@@ -205,7 +205,7 @@ import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
 import { defaultLayout } from '@/settings'
-import { useUserStore } from '@/store'
+import { useAppStore, useTenantStore, useUserStore } from '@/store'
 import { request } from '@/utils'
 import { resolveTenantPublicAssetUrl, setDocumentFavicon } from '@/utils/tenant-config'
 
@@ -1211,9 +1211,7 @@ function handleUserPageSizeChange(pageSize) {
 // 提交成功后处理 - 重新加载租户配置并应用
 async function handleSubmitSuccess() {
   // 重新加载租户配置
-  const { useTenantStore, useUserStore, useAppStore } = await import('@/store')
   const tenantStore = useTenantStore()
-  const userStore = useUserStore()
   const appStore = useAppStore()
 
   // 获取最新的租户配置
@@ -1274,7 +1272,7 @@ async function handleSubmitSuccess() {
 
     // 应用浏览器图标
     const iconUrl = resolveTenantPublicAssetUrl(tenantConfig, 'icon')
-    setDocumentFavicon(iconUrl || tenantConfig.browserIcon)
+    setDocumentFavicon(iconUrl)
 
     window.$message.success('主题配置已更新')
   }

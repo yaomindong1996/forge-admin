@@ -71,7 +71,11 @@ import { defaultLayout, layoutSettingVisible, normalizeLayout } from './settings
 const LayoutComponent = shallowRef(null)
 
 const layouts = new Map()
-const layoutModules = import.meta.glob('./layouts/*/index.vue')
+const layoutModules = import.meta.glob([
+  './layouts/*/index.vue',
+  '!./layouts/app-portal/index.vue',
+  '!./layouts/empty/index.vue',
+])
 
 function resolveRouteViewKey(curRoute) {
   return curRoute.meta?.preserveOnQuery ? curRoute.path : curRoute.fullPath

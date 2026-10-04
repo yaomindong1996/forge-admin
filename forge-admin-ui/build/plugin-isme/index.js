@@ -1,2 +1,2 @@
-export { pluginIcons } from './icons'
-export { pluginPagePathes } from './page-pathes'
+export { pluginIcons } from './icons.js'
+export { pluginPagePathes } from './page-pathes.js'

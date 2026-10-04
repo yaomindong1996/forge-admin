@@ -4,6 +4,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCrudGenerator } from '@/composables/useCrudGenerator'
 import { managedFetch } from '@/composables/useGlobalLoading'
+import { useAuthStore } from '@/store'
 import { request } from '@/utils'
 import ApiConfigEditor from '../components/ApiConfigEditor.vue'
 import DesensitizeConfigPanel from '../components/DesensitizeConfigPanel.vue'
@@ -340,7 +341,6 @@ export function applyCrudGeneratorPart1() {
       window.$message?.warning('请先保存配置')
       return
     }
-    const { useAuthStore } = await import('@/store')
     const authStore = useAuthStore()
     const BASE_URL = import.meta.env.VITE_REQUEST_PREFIX || ''
     const url = `${BASE_URL}/ai/crud-config/codegen/download/${configKey.value}`

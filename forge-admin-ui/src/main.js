@@ -4,7 +4,7 @@ import App from './App.vue'
 
 import { setupDirectives } from './directives'
 import { setupRouter } from './router'
-import { setupStore } from './store'
+import { setupStore, useAppStore } from './store'
 import { setupNaiveDiscreteApi } from './utils'
 import { loadRuntimeCryptoConfig } from './utils/crypto/crypto-config'
 import { setupDebugConsole } from './utils/debug-console'
@@ -39,7 +39,6 @@ async function bootstrap() {
   setupDirectives(app)
 
   // 初始化主题配置：使用 store 中的配置，如果没有则使用默认配置
-  const { useAppStore } = await import('@/store')
   const appStore = useAppStore()
   const themeConfig = appStore.themeConfig || defaultThemeConfig
   applyThemeConfig(themeConfig, appStore.isDark)

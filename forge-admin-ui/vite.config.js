@@ -9,7 +9,38 @@ import VueRouter from 'unplugin-vue-router/vite'
 import { defineConfig, loadEnv } from 'vite'
 import removeNoMatch from 'vite-plugin-router-warn'
 import VueDevTools from 'vite-plugin-vue-devtools'
-import { pluginIcons, pluginPagePathes } from './build/plugin-isme'
+import { pluginIcons, pluginPagePathes } from './build/plugin-isme/index.js'
+
+/** 原地改 UnoCSS 插件，避免复制对象后 Rolldown 仍调用原始 renderChunk。 */
+function patchUnocssGenerateOnce(plugins) {
+  const list = [plugins].flat(Infinity).filter(Boolean)
+  for (const plugin of list) {
+    if (plugin.name !== 'unocss:global:build:generate')
+      continue
+    const hook = plugin.renderChunk
+    const original = typeof hook === 'function' ? hook : hook?.handler
+    if (typeof original !== 'function')
+      continue
+    const seen = new Set()
+    const wrapped = async function renderChunk(code, chunk, options) {
+      const unoIds = Object.keys(chunk.modules || {})
+        .filter(id => id.includes('__uno'))
+        .sort()
+      if (!unoIds.length)
+        return original.call(this, code, chunk, options)
+      const key = unoIds.join('|')
+      if (seen.has(key))
+        return null
+      seen.add(key)
+      return original.call(this, code, chunk, options)
+    }
+    if (typeof hook === 'function')
+      plugin.renderChunk = wrapped
+    else
+      plugin.renderChunk.handler = wrapped
+  }
+  return list
+}
 
 export default defineConfig(({ mode, command }) => {
   const viteEnv = loadEnv(mode, process.cwd())
@@ -36,7 +67,9 @@ export default defineConfig(({ mode, command }) => {
       VueJsx(),
       // Vue DevTools 会显著抬高长期 HMR 内存；默认关闭，需要时：VITE_DEVTOOLS=1 pnpm dev
       ...(isServe && viteEnv.VITE_DEVTOOLS === '1' ? [VueDevTools()] : []),
-      Unocss(),
+      ...patchUnocssGenerateOnce(Unocss({
+        inspector: false,
+      })),
       AutoImport({
         imports: ['vue', 'vue-router'],
         dts: false,
@@ -171,6 +204,8 @@ export default defineConfig(({ mode, command }) => {
       minify: 'oxc',
       // CSS 压缩用 esbuild（vite 8 默认 lightningcss 对源码中 // 注释更严格会报错）
       cssMinify: 'esbuild',
+      // 关闭 CSS 拆包：UnoCSS 会对每个 CSS chunk 再生成一遍，900+ chunk 时能省大半构建时间
+      cssCodeSplit: false,
     },
   }
 })

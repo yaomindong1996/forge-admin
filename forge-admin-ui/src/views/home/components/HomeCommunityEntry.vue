@@ -24,6 +24,7 @@ const supportVisible = ref(false)
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px 16px;
+  margin-bottom: 12px;
   padding: 12px 16px;
   border: 1px solid var(--border-light, #e5e7eb);
   border-radius: 6px;

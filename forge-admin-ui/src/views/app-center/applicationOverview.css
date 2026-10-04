@@ -368,8 +368,8 @@
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-gutter: stable;
-  //scrollbar-color: color-mix(in srgb, var(--n-primary-color, var(--primary-color, #165dff)) 45%, transparent)
-  //  var(--n-color-embedded, #f2f3f5);
+  /* scrollbar-color: color-mix(in srgb, var(--n-primary-color, var(--primary-color, #165dff)) 45%, transparent)
+     var(--n-color-embedded, #f2f3f5); */
   scrollbar-width: thin;
   overscroll-behavior: contain;
 }

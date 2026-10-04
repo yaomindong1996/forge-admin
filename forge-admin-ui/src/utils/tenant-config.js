@@ -99,18 +99,30 @@ export function resolveTenantPublicAssetUrl(tenantConfig, assetType = 'logo') {
   return `${getRequestPrefix()}/auth/tenant/assets/${tenantId}/${normalizedAssetType}${buildAssetCacheBuster(assetReference)}`
 }
 
-export function setDocumentFavicon(iconUrl = '/favicon.ico') {
+export function getDefaultFaviconUrl() {
+  const base = import.meta.env.BASE_URL || '/'
+  const prefix = base.endsWith('/') ? base : `${base}/`
+  return `${prefix}favicon-32.png`
+}
+
+export function setDocumentFavicon(iconUrl) {
   const head = document.head || document.getElementsByTagName('head')[0]
   if (!head)
     return
 
+  const href = String(iconUrl || '').trim() || getDefaultFaviconUrl()
   document.querySelectorAll("link[rel*='icon']").forEach(link => link.remove())
 
-  const link = document.createElement('link')
-  link.type = 'image/x-icon'
-  link.rel = 'shortcut icon'
-  link.href = iconUrl || '/favicon.ico'
-  head.appendChild(link)
+  const png = document.createElement('link')
+  png.rel = 'icon'
+  png.type = 'image/png'
+  png.href = href
+  head.appendChild(png)
+
+  const shortcut = document.createElement('link')
+  shortcut.rel = 'shortcut icon'
+  shortcut.href = href
+  head.appendChild(shortcut)
 }
 
 function isHexColor(value) {
@@ -195,5 +207,5 @@ export async function applyTenantConfig(tenantConfig, appStore) {
       iconUrl = resolveTenantPublicAssetUrl(tenantConfig, 'icon') || tenantConfig.browserIcon
     }
   }
-  setDocumentFavicon(iconUrl || tenantConfig.browserIcon)
+  setDocumentFavicon(iconUrl)
 }

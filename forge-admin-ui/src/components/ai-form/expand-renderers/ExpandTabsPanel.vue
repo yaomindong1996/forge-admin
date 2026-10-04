@@ -46,7 +46,8 @@
 </template>
 
 <script setup>
-import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import ExpandPanelRenderer from '../ExpandPanelRenderer.vue'
 import { loadExpandPanelData } from '../expand-utils'
 
 const props = defineProps({
@@ -55,8 +56,6 @@ const props = defineProps({
   data: { type: null, default: null },
   context: { type: Object, default: () => ({}) },
 })
-
-const ExpandPanelRenderer = defineAsyncComponent(() => import('../ExpandPanelRenderer.vue'))
 
 const activeKey = ref('')
 const states = ref({})

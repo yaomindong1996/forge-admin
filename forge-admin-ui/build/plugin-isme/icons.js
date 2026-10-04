@@ -1,4 +1,4 @@
-import { getIcons } from '..'
+import { getIcons } from '../index.js'
 
 const PLUGIN_ICONS_ID = 'isme:icons'
 export function pluginIcons() {

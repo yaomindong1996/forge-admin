@@ -53,7 +53,7 @@ export const useTenantStore = defineStore('tenant', {
       try {
         // 如果没有传入租户ID，尝试从用户信息中获取
         if (!tenantId) {
-          const { useUserStore } = await import('@/store')
+          const { useUserStore } = await import('./user.js')
           const userStore = useUserStore()
           tenantId = userStore.userInfo?.tenantId
         }
