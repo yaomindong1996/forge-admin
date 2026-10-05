@@ -1,6 +1,6 @@
 <template>
-  <n-dropdown :options="dropdownOptions" @select="handleSelect">
-    <div id="user-dropdown" class="flex cursor-pointer items-center">
+  <n-dropdown trigger="click" :options="dropdownOptions" @select="handleSelect">
+    <button id="user-dropdown" class="user-trigger flex items-center" type="button" aria-label="个人中心">
       <n-avatar
         v-if="avatarSrc"
         round
@@ -16,16 +16,15 @@
       >
         {{ avatarText }}
       </n-avatar>
-      <div v-if="userStore.userInfo || userStore.staffInfo" class="ml-8 flex-col flex-shrink-0 items-center">
+      <span v-if="userStore.userInfo || userStore.staffInfo" class="user-name ml-8 flex-col flex-shrink-0 items-center">
         <span class="text-14">{{ userStore.realName || userStore.staffInfo?.staffName }}</span>
-      </div>
-    </div>
+      </span>
+    </button>
   </n-dropdown>
 </template>
 
 <script setup>
 import api from '@/api'
-import { defaultThemeConfig } from '@/config/theme.config.js'
 import { useAuthStore, useUserStore } from '@/store'
 import { resolveRenderableFileUrl } from '@/utils/file'
 import { isSilentAuthError } from '@/utils/http/helpers'
@@ -105,7 +104,7 @@ function handleSelect(key) {
         'type': 'info',
         'content': '确认退出？',
         'positive-button-props': {
-          color: defaultThemeConfig.primaryColor,
+          type: 'primary',
         },
         async confirm() {
           authStore.beginLogout()
@@ -128,3 +127,15 @@ watch(() => userStore.avatar, () => {
   loadAvatar(true)
 }, { immediate: true })
 </script>
+
+<style scoped>
+.user-trigger {
+  border: 0;
+  padding: 0 4px;
+  min-height: 32px;
+  background: transparent;
+  color: var(--chrome-text, var(--text-primary));
+  font: inherit;
+  cursor: pointer;
+}
+</style>

@@ -2,38 +2,17 @@
   <div class="layout-header layout-chrome-header flex items-center px-12" border-b="1px solid light_border dark:dark_border">
     <MenuCollapse />
 
-    <!-- 菜单搜索 -->
-    <div class="ml-16">
-      <MenuSearch />
-    </div>
-
     <div class="header-breadcrumb-wrap">
       <BreadCrumb />
     </div>
 
-    <div class="header-tools-wrap">
-      <BeginnerGuide />
-
-      <ToggleTheme />
-
-      <Fullscreen />
-
-      <!--      <ThemeSetting /> -->
-
-      <MessageNotification />
-
-      <TenantSwitcher />
-
-      <OrgSwitcher />
-
-      <UserAvatar />
-    </div>
+    <HeaderTools class="header-tools-wrap" />
   </div>
 </template>
 
 <script setup>
-import { ToggleTheme } from '@/components'
-import { BeginnerGuide, BreadCrumb, Fullscreen, MenuCollapse, MenuSearch, MessageNotification, OrgSwitcher, TenantSwitcher, UserAvatar } from '@/layouts/components'
+import { BreadCrumb, MenuCollapse } from '@/layouts/components'
+import HeaderTools from '@/layouts/components/HeaderTools.vue'
 </script>
 
 <style scoped>

@@ -1,29 +1,6 @@
-import { defaultThemeConfig } from '@/config/theme.config'
-import { solidColor } from '@/utils/navigation-theme'
+import { readTenantAppearance } from '@/utils/tenant-appearance'
 
-// 保持租户 API 的 JSON 协议，不新增后端字段。
-export function readTenantAppearance(data = {}) {
-  let source = data.themeConfig || {}
-  if (typeof source === 'string') {
-    try {
-      source = JSON.parse(source)
-    }
-    catch (error) {
-      console.warn('租户主题 JSON 无效，使用默认外观', error)
-      source = {}
-    }
-  }
-  if (!source || typeof source !== 'object' || Array.isArray(source)) {
-    source = {}
-  }
-  const theme = { ...defaultThemeConfig, ...source }
-  for (const group of ['header', 'topMenu', 'sideMenu', 'headerDark', 'topMenuDark', 'sideMenuDark']) {
-    theme[group] = { ...defaultThemeConfig[group], ...source[group] }
-  }
-  theme.navigationMode = source.navigationMode || (Object.keys(source).length ? 'custom' : 'auto')
-  theme.primaryColor = solidColor(data.systemTheme || source.primaryColor, defaultThemeConfig.primaryColor)
-  return theme
-}
+export { readTenantAppearance }
 
 export function writeTenantAppearance(data, theme) {
   data.systemTheme = theme.primaryColor

@@ -2,7 +2,7 @@
   <div class="menu-search-wrapper">
     <n-tooltip placement="bottom" trigger="hover">
       <template #trigger>
-        <button class="search-trigger" type="button" aria-label="搜索菜单" @click="handleOpen">
+        <button class="search-trigger" type="button" title="搜索全部菜单 (Ctrl + K)" aria-label="搜索全部菜单" @click="handleOpen">
           <i class="i-mdi-magnify" />
         </button>
       </template>

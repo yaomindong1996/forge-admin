@@ -45,4 +45,26 @@ describe('共用外观控件', () => {
     }
     finally { wrapper.unmount() }
   })
+  it('深浅预览只切换样例，不修改草稿或发出主题更新', async () => {
+    const source = {
+      ...defaultThemeConfig,
+      headerDark: { ...defaultThemeConfig.headerDark, backgroundColor: '#061917' },
+    }
+    const original = JSON.stringify(source)
+    const wrapper = mount(AppearanceThemeEditor, {
+      props: { modelValue: source, layout: 'normal' },
+      global: { components },
+    })
+    try {
+      await wrapper.findAll('.preview-modes button')[1].trigger('click')
+      expect(wrapper.findAll('.preview-modes button')[1].attributes('aria-pressed')).toBe('true')
+      expect(wrapper.find('.theme-sample').attributes('style')).toContain('--sample-header: #061917')
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(JSON.stringify(source)).toBe(original)
+      await wrapper.findAll('.preview-modes button')[0].trigger('click')
+      expect(wrapper.find('.theme-sample').attributes('style')).toContain('--sample-header: #ffffff')
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    }
+    finally { wrapper.unmount() }
+  })
 })

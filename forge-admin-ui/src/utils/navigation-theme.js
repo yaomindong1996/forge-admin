@@ -17,14 +17,17 @@ function channels(value) {
     return full.length === 8 ? [...rgb, Number.parseInt(full.slice(6), 16) / 255] : rgb
   }
   const rgb = text.match(/^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)$/i)
-  if (!rgb || rgb.slice(1, 4).some(value => Number(value) > 255)) {
+  const values = rgb?.slice(1, 4).map(Number)
+  const alpha = Number(rgb?.[4] ?? 1)
+  if (!values || values.some(value => !Number.isFinite(value) || value > 255)
+    || !Number.isFinite(alpha) || alpha < 0 || alpha > 1) {
     return null
   }
-  return rgb.slice(1, 4).map(Number).concat(Number(rgb[4] ?? 1))
+  return values.concat(alpha)
 }
 
 export function solidColor(value, fallback = '#FFFFFF') {
-  const rgb = channels(value) || channels(fallback)
+  const rgb = channels(value) || channels(fallback) || channels('#FFFFFF')
   return `#${rgb.slice(0, 3).map(value => Math.round(value).toString(16).padStart(2, '0')).join('')}`
 }
 

@@ -119,10 +119,10 @@
           <button
             type="button"
             class="top-tab-search-button"
-            aria-label="搜索标签页"
-            title="搜索标签页"
+            aria-label="查找已打开的标签页"
+            title="查找已打开的标签页"
           >
-            <i class="i-material-symbols:search-rounded" />
+            <i class="i-lucide:list-filter" />
           </button>
         </template>
         <div class="top-tab-search-panel">
@@ -552,6 +552,7 @@ async function handleContextMenu(e, tagItem) {
   --forge-tab-gap: 5px;
   --forge-tab-text: var(--chrome-tab-text, var(--text-secondary, #4e5969));
   --forge-tab-muted: var(--chrome-tab-text, var(--text-tertiary, #86909c));
+  --forge-tab-accent: var(--primary-color, #4242f7);
   --forge-tab-active-bg: var(--chrome-tab-active-bg, color-mix(in srgb, var(--primary-color, #4242f7) 9%, transparent));
   --forge-tab-hover-bg: var(--chrome-tab-hover-bg, color-mix(in srgb, var(--text-primary, #1d2129) 5%, transparent));
 }
@@ -719,7 +720,7 @@ async function handleContextMenu(e, tagItem) {
 
 .top-tab-item.is-active {
   background: var(--forge-tab-active-bg);
-  color: var(--chrome-tab-active-text, var(--primary-color, #4242f7));
+  color: var(--chrome-tab-active-text, var(--forge-tab-accent));
   font-weight: 600;
 }
 
@@ -824,7 +825,7 @@ async function handleContextMenu(e, tagItem) {
 .top-tab-scroll-button:hover {
   border-color: color-mix(in srgb, var(--primary-color, #4242f7) 36%, var(--border-light, #e5e7eb));
   background: var(--chrome-tab-hover-bg, var(--bg-primary, #fff));
-  color: var(--chrome-tab-active-text, var(--primary-color, #4242f7));
+  color: var(--chrome-tab-active-text, var(--forge-tab-accent));
 }
 
 .top-tab-scroll-button.is-left {
@@ -872,7 +873,7 @@ async function handleContextMenu(e, tagItem) {
 .top-tab-search-button:hover {
   border-color: transparent;
   background: var(--forge-tab-hover-bg);
-  color: var(--chrome-tab-active-text, var(--primary-color, #4242f7));
+  color: var(--chrome-tab-active-text, var(--forge-tab-accent));
   box-shadow: none;
 }
 
@@ -948,7 +949,12 @@ async function handleContextMenu(e, tagItem) {
 }
 
 .dark #top-tab {
+  /* 内容区深色 Tab 用正文高亮，顶栏内仍优先使用导航表面的对比色。 */
+  --forge-tab-accent: var(--text-primary);
   --forge-tab-active-bg: color-mix(in srgb, var(--primary-color, #6a7dff) 18%, transparent);
   --forge-tab-hover-bg: rgba(255, 255, 255, 0.06);
+}
+.dark .top-tab-search-result:is(:hover, .is-active) {
+  color: var(--text-primary);
 }
 </style>

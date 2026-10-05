@@ -6,11 +6,14 @@
     :disabled="switchingOrg"
     @select="handleSelect"
   >
-    <div class="org-switcher">
+    <button
+      type="button" class="org-switcher" :disabled="switchingOrg"
+      :title="`当前组织：${currentOrgName}`" :aria-label="`切换组织，当前为${currentOrgName}`"
+    >
       <i class="org-icon i-material-symbols:account-tree-rounded" />
       <span class="org-name">{{ currentOrgName }}</span>
       <i class="org-arrow i-material-symbols:expand-more-rounded" />
-    </div>
+    </button>
   </n-dropdown>
 </template>
 

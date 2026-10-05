@@ -5,32 +5,13 @@
       <BreadCrumb />
     </div>
 
-    <!-- 中间：搜索 -->
-    <div class="header-center">
-      <MenuSearch />
-    </div>
-
     <!-- 右侧：工具栏 -->
-    <div class="header-right">
-      <ToggleTheme />
-      <Fullscreen />
-      <MessageNotification />
-      <div class="header-divider" />
-      <TenantSwitcher />
-      <OrgSwitcher />
-      <UserAvatar />
-    </div>
+    <HeaderTools class="header-right" />
   </div>
 </template>
 
 <script setup>
-import ToggleTheme from '@/components/common/ToggleTheme.vue'
-import Fullscreen from '@/layouts/components/Fullscreen.vue'
-import MenuSearch from '@/layouts/components/MenuSearch.vue'
-import MessageNotification from '@/layouts/components/MessageNotification.vue'
-import OrgSwitcher from '@/layouts/components/OrgSwitcher.vue'
-import TenantSwitcher from '@/layouts/components/TenantSwitcher.vue'
-import UserAvatar from '@/layouts/components/UserAvatar.vue'
+import HeaderTools from '@/layouts/components/HeaderTools.vue'
 import BreadCrumb from '../BreadCrumb.vue'
 </script>
 
@@ -160,7 +141,7 @@ import BreadCrumb from '../BreadCrumb.vue'
 }
 
 .header-center :deep(.search-trigger:hover) {
-  background: var(--nexus-hover-bg);
+  background: var(--layout-header-hover-color);
   border-color: var(--border-default);
 }
 

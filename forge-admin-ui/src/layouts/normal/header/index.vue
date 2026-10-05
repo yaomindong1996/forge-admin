@@ -7,17 +7,7 @@
     </div>
 
     <!-- 右侧：工具区 -->
-    <div class="header-right">
-      <MenuSearch />
-      <BeginnerGuide />
-      <ToggleTheme />
-      <Fullscreen />
-      <MessageNotification />
-      <div class="header-divider" />
-      <TenantSwitcher />
-      <OrgSwitcher />
-      <UserAvatar />
-    </div>
+    <HeaderTools class="header-right" />
   </div>
 </template>
 
@@ -68,6 +58,6 @@
 </style>
 
 <script setup>
-import { ToggleTheme } from '@/components'
-import { AppTab, BeginnerGuide, Fullscreen, MenuCollapse, MenuSearch, MessageNotification, OrgSwitcher, TenantSwitcher, UserAvatar } from '@/layouts/components'
+import { AppTab, MenuCollapse } from '@/layouts/components'
+import HeaderTools from '@/layouts/components/HeaderTools.vue'
 </script>

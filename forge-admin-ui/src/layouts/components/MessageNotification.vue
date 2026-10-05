@@ -15,8 +15,8 @@
       v-model:show="showPanel"
       placement="right"
       :width="panelWidth"
-      :trap-focus="false"
       class="message-center-drawer"
+      :style="{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }"
     >
       <div class="message-center">
         <header class="message-center-header">
@@ -128,10 +128,12 @@
 
           <NEmpty v-else description="暂无符合条件的通知" class="message-empty" />
           <div v-if="hasMore" class="load-more">
-            <span class="load-more-text" @click="loadMore">
+            <button class="load-more-text" type="button" :disabled="loading || noticeStore.loading" @click="loadMore">
               <NSpin v-if="loading || noticeStore.loading" :size="12" />
-              <template v-else>加载更多</template>
-            </span>
+              <template v-else>
+                加载更多
+              </template>
+            </button>
           </div>
         </NScrollbar>
 
@@ -469,13 +471,13 @@ defineExpose({
   line-height: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background: #ef5b68;
+  background: var(--error-color);
   color: #fff;
-  box-shadow: 0 0 0 2px #fff;
+  box-shadow: none;
 }
 
 :deep(.message-center-drawer .n-drawer-content) {
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 :deep(.message-center-drawer .n-drawer-body-content-wrapper) {
@@ -483,10 +485,12 @@ defineExpose({
 }
 
 .message-center {
+  --notification-accent: color-mix(in srgb, var(--primary-color) 75%, var(--text-primary));
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: #202124;
+  color: var(--text-primary);
+  background: var(--bg-primary);
 }
 
 .message-center-header {
@@ -500,7 +504,7 @@ defineExpose({
 .message-center-header h2 {
   margin: 0;
   font-size: 18px;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
@@ -510,18 +514,18 @@ defineExpose({
   height: 32px;
   border: 0;
   background: transparent;
-  color: #5f6368;
+  color: var(--text-secondary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border-radius: 50%;
+  border-radius: 4px;
 }
 
 .icon-button:hover,
 .tab-action:hover {
-  background: #f1f3f4;
-  color: #202124;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .icon-button i,
@@ -535,7 +539,7 @@ defineExpose({
   align-items: end;
   gap: 0;
   padding: 0 22px;
-  border-bottom: 1px solid #e8eaed;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .message-tab {
@@ -544,7 +548,7 @@ defineExpose({
   position: relative;
   border: 0;
   background: transparent;
-  color: #1f1f1f;
+  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0;
@@ -552,7 +556,7 @@ defineExpose({
 }
 
 .message-tab.active {
-  color: #627e4f;
+  color: var(--notification-accent);
 }
 
 .message-tab.active::after {
@@ -563,7 +567,7 @@ defineExpose({
   bottom: 0;
   height: 2px;
   border-radius: 3px 3px 0 0;
-  background: #6a8355;
+  background: var(--primary-color);
 }
 
 .tab-count {
@@ -574,7 +578,7 @@ defineExpose({
   right: 4px;
   padding: 0 6px;
   border-radius: 999px;
-  background: #ef5b68;
+  background: var(--error-color);
   color: #fff;
   font-size: 12px;
   line-height: 18px;
@@ -596,7 +600,7 @@ defineExpose({
   margin: 0;
   padding: 0 22px 8px;
   font-size: 11px;
-  color: #8a8d91;
+  color: var(--text-tertiary);
   line-height: 1.4;
 }
 
@@ -618,13 +622,13 @@ defineExpose({
 
 .message-card {
   padding: 12px 22px 14px;
-  border-bottom: 1px solid #edf0ed;
+  border-bottom: 1px solid var(--border-light);
   cursor: pointer;
   transition: background-color 0.16s ease;
 }
 
 .message-card:hover {
-  background: #fafbf8;
+  background: var(--bg-secondary);
 }
 
 .message-card-main {
@@ -641,13 +645,13 @@ defineExpose({
   align-items: center;
   justify-content: center;
   margin-top: 2px;
-  background: #e8f0fe;
-  color: #1a73e8;
+  background: color-mix(in srgb, var(--primary-color) 10%, var(--bg-primary));
+  color: var(--notification-accent);
 }
 
 .message-icon.approval {
-  background: #e8f0fe;
-  color: #1a73e8;
+  background: color-mix(in srgb, var(--primary-color) 10%, var(--bg-primary));
+  color: var(--notification-accent);
 }
 
 .message-icon i {
@@ -663,20 +667,20 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  color: #8a8d91;
+  color: var(--text-tertiary);
   font-size: 12px;
   line-height: 18px;
 }
 
 .message-meta span {
-  color: #2f3337;
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 600;
 }
 
 .message-content h3 {
   margin: 6px 0 6px;
-  color: #26292d;
+  color: var(--text-primary);
   font-size: 14px;
   line-height: 1.45;
   font-weight: 600;
@@ -685,7 +689,7 @@ defineExpose({
 
 .message-content p {
   margin: 0;
-  color: #7b8087;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.5;
   word-break: break-word;
@@ -696,7 +700,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   gap: 3px;
-  color: #7b8087;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -710,26 +714,15 @@ defineExpose({
 
 .message-card-actions :deep(.n-button) {
   height: 30px;
-  border-radius: 7px;
+  border-radius: 4px;
   font-size: 13px;
   font-weight: 600;
-}
-
-.approval-button {
-  --n-color: #6a8355 !important;
-  --n-color-hover: #5f774c !important;
-  --n-color-pressed: #526a42 !important;
-  --n-color-focus: #6a8355 !important;
-  --n-border: 1px solid #6a8355 !important;
-  --n-border-hover: 1px solid #5f774c !important;
-  --n-border-pressed: 1px solid #526a42 !important;
-  --n-border-focus: 1px solid #6a8355 !important;
 }
 
 .message-center-footer {
   min-height: 52px;
   padding: 10px 18px;
-  border-top: 1px solid #edf0ed;
+  border-top: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -747,14 +740,23 @@ defineExpose({
 
 .load-more-text {
   display: inline-block;
+  color: var(--text-tertiary);
+  border: 0;
+  background: transparent;
+  font: inherit;
   font-size: 12px;
-  color: #8a8d91;
   cursor: pointer;
   transition: color 0.16s ease;
 }
 
 .load-more-text:hover {
-  color: var(--primary-color, #165dff);
+  color: var(--primary-color);
+}
+
+.message-center button:focus-visible,
+.message-card:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
 }
 
 @media (max-width: 520px) {

@@ -42,18 +42,7 @@
         <i class="i-lucide:chevron-right" />
       </button>
     </nav>
-    <div class="business-header-tools">
-      <MenuSearch />
-      <ToggleTheme class="workbench-theme-toggle" />
-      <MessageNotification />
-      <button
-        id="layout-setting" class="chrome-icon-button" type="button" title="布局与外观"
-        aria-label="布局与外观" @click="appStore.appearanceOpen = true"
-      >
-        <i class="i-lucide:panels-top-left" />
-      </button>
-      <UserAvatar />
-    </div>
+    <HeaderTools class="business-header-tools" show-appearance />
     <WorkbenchMegaPanel />
   </header>
 </template>
@@ -63,12 +52,9 @@ import { onClickOutside, useResizeObserver, useScroll } from '@vueuse/core'
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import TheLogo from '@/components/common/TheLogo.vue'
 import TheTitle from '@/components/common/TheTitle.vue'
-import ToggleTheme from '@/components/common/ToggleTheme.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
-import MenuSearch from '@/layouts/components/MenuSearch.vue'
-import MessageNotification from '@/layouts/components/MessageNotification.vue'
-import UserAvatar from '@/layouts/components/UserAvatar.vue'
-import { useAppStore, usePermissionStore } from '@/store'
+import HeaderTools from '@/layouts/components/HeaderTools.vue'
+import { usePermissionStore } from '@/store'
 import { useBusinessWorkbenchStore } from '@/stores/layout/businessWorkbenchStore'
 import { useWorkbenchNavigation } from '../useWorkbenchNavigation'
 import WorkbenchMegaPanel from './WorkbenchMegaPanel.vue'
@@ -81,7 +67,6 @@ const SWITCH_DELAY_MS = 50
 const CLOSE_DELAY_MS = 220
 
 const store = useBusinessWorkbenchStore()
-const appStore = useAppStore()
 const permissionStore = usePermissionStore()
 const { menus, activeRootKey, activateMenu } = useWorkbenchNavigation()
 const header = ref(null)

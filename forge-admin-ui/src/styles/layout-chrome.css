@@ -1,3 +1,26 @@
+/* 原生图标按钮也在无顶栏布局中使用，保留键盘与正文区域兜底。 */
+.chrome-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--chrome-text, var(--text-secondary));
+  font-size: 18px;
+  cursor: pointer;
+}
+.chrome-icon-button:hover { background: var(--chrome-control-hover-bg, var(--bg-secondary)); }
+.chrome-icon-button:focus-visible,
+.layout-chrome-header button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
 /* 后台导航表面：仅作用于框架 Header，不污染浮层和业务正文。 */
 .layout-chrome-header.layout-chrome-header {
   --chrome-text: var(--layout-header-text-color);

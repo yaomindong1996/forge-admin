@@ -25,6 +25,17 @@
     <p class="theme-guidance">
       {{ scopeNote }} 文字、图标与选中态自动适配，深色模式使用独立深色表面。
     </p>
+    <div v-if="layout !== 'empty'" class="theme-preview-tools">
+      <span>效果预览</span>
+      <div class="preview-modes" role="group" aria-label="预览模式">
+        <button type="button" :aria-pressed="!previewDark" @click="previewDark = false">
+          浅色
+        </button>
+        <button type="button" :aria-pressed="previewDark" @click="previewDark = true">
+          深色
+        </button>
+      </div>
+    </div>
     <!-- 与当前草稿绑定的小预览，不污染系统正在使用的主题 -->
     <div v-if="layout !== 'empty'" class="theme-sample" :style="sampleStyle" aria-label="导航配色预览">
       <div v-if="hasHeader" class="sample-header">
@@ -60,7 +71,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { defaultThemeConfig } from '@/config/theme.config'
 import {
   createNavigationTheme,
@@ -72,6 +83,7 @@ import {
 
 const props = defineProps({ layout: { type: String, default: 'normal' } })
 const model = defineModel({ type: Object, required: true })
+const previewDark = ref(false)
 const hasHeader = computed(() => !['simple', 'bento', 'empty'].includes(props.layout))
 const baseFields = computed(() => [
   { key: 'primary', label: '品牌主色' },
@@ -101,7 +113,7 @@ const scopeNote = computed(() => {
   }
   return '顶栏和侧边导航在所有后台布局中保持一致。'
 })
-const rendered = computed(() => resolveNavigationTheme(model.value, defaultThemeConfig))
+const rendered = computed(() => resolveNavigationTheme(model.value, defaultThemeConfig, previewDark.value))
 const sampleStyle = computed(() => ({
   '--sample-header': rendered.value.header.backgroundColor,
   '--sample-header-text': rendered.value.header.textColor,
@@ -109,6 +121,8 @@ const sampleStyle = computed(() => ({
   '--sample-side-text': rendered.value.sideMenu.textColor,
   '--sample-active': rendered.value.sideMenu.backgroundColorActive,
   '--sample-active-text': rendered.value.sideMenu.textColorActive,
+  '--sample-content-bg': previewDark.value ? '#101014' : '#F5F7FA',
+  '--sample-content-text': previewDark.value ? '#E5E7EB' : '#4E5969',
 }))
 function baseValue(key) {
   if (key === 'primary')
@@ -226,10 +240,41 @@ function updateCustom(path, value) {
   line-height: 1.6;
 }
 .theme-sample {
+  color: var(--sample-side-text);
+  background: var(--sample-side);
   overflow: hidden;
   border: 1px solid var(--border-light);
   border-radius: 6px;
   font-size: 12px;
+}
+.theme-preview-tools,
+.preview-modes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.theme-preview-tools {
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.preview-modes button {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  font: inherit;
+  cursor: pointer;
+}
+.preview-modes button[aria-pressed='true'] {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+.theme-editor button:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 .sample-header {
   height: 36px;
@@ -246,8 +291,8 @@ function updateCustom(path, value) {
 .sample-body {
   display: flex;
   min-height: 80px;
-  color: var(--text-tertiary);
-  background: var(--bg-secondary);
+  color: var(--sample-content-text);
+  background: var(--sample-content-bg);
 }
 .sample-body > span {
   padding: 16px;

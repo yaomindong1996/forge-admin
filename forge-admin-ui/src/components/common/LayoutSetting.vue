@@ -33,9 +33,7 @@
           租户默认布局和品牌配色请在租户管理中保存。
         </p>
         <template #footer>
-          <n-button @click="resetTheme">
-            恢复默认配色
-          </n-button>
+          <AppearanceRestoreActions />
         </template>
       </n-drawer-content>
     </n-drawer>
@@ -44,8 +42,8 @@
 
 <script setup>
 import { computed } from 'vue'
-import { defaultThemeConfig } from '@/config/theme.config'
 import { useAppStore } from '@/store'
+import AppearanceRestoreActions from './appearance/AppearanceRestoreActions.vue'
 import AppearanceThemeEditor from './appearance/AppearanceThemeEditor.vue'
 import LayoutPicker from './appearance/LayoutPicker.vue'
 
@@ -53,10 +51,6 @@ defineProps({ showTrigger: { type: Boolean, default: true } })
 const appStore = useAppStore()
 const layout = computed({ get: () => appStore.layout, set: value => appStore.setLayout(value) })
 const theme = computed({ get: () => appStore.themeConfig, set: value => appStore.setThemeConfig(value) })
-function resetTheme() {
-  appStore.setThemeConfig(JSON.parse(JSON.stringify(defaultThemeConfig)))
-  window.$message?.success('已恢复默认配色')
-}
 </script>
 
 <style scoped>

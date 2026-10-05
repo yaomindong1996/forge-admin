@@ -7,11 +7,14 @@
     :render-label="renderDropdownLabel"
     @select="handleSelect"
   >
-    <div class="tenant-switcher">
+    <button
+      type="button" class="tenant-switcher" :disabled="switchingTenant"
+      :title="`当前租户：${currentTenantName}`" :aria-label="`切换租户，当前为${currentTenantName}`"
+    >
       <i class="tenant-icon i-material-symbols:domain-rounded" />
       <span class="tenant-name">{{ currentTenantName }}</span>
       <i v-if="switchableTenantCount > 1" class="tenant-arrow i-material-symbols:expand-more-rounded" />
-    </div>
+    </button>
   </n-dropdown>
 </template>
 

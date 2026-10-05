@@ -61,7 +61,7 @@ export const layoutSettings = {
     {
       name: 'top-menu',
       title: '顶部菜单布局',
-      description: '一级菜单在顶部，二级及以下菜单在左侧',
+      description: '菜单集中在顶部，通过下拉面板展开子菜单',
     },
     {
       name: 'top-side-menu',

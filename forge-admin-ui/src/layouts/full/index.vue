@@ -50,21 +50,20 @@ const { showSidebar } = useSidebarVisibility()
   width: 100%;
   height: 100vh;
   display: flex;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 /* 侧边栏 */
 .sidebar-full {
   flex-shrink: 0;
-  width: 200px;
+  width: var(--side-menu-width);
   background: var(--side-menu-bg-color, #ffffff);
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
 }
 
 .sidebar-full-collapsed {
-  width: 64px;
+  width: var(--side-menu-collapsed-width);
 }
 
 .sidebar-full-inner {
@@ -87,7 +86,7 @@ const { showSidebar } = useSidebarVisibility()
 .header-full {
   height: 60px;
   flex-shrink: 0;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--layout-header-border-color);
 }
 
 .tab-bar-full {
@@ -96,7 +95,7 @@ const { showSidebar } = useSidebarVisibility()
   display: flex;
   align-items: center;
   padding: 0 8px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .tab-content {
@@ -109,7 +108,7 @@ const { showSidebar } = useSidebarVisibility()
   overflow-x: hidden;
   overflow-y: auto;
   padding: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   min-height: 0;
 }
 

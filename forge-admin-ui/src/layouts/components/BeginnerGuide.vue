@@ -1,10 +1,13 @@
 <template>
   <n-tooltip trigger="hover">
     <template #trigger>
-      <i
-        class="ai-icon:beginner text-20 mr-16 cursor-pointer"
+      <button
+        class="chrome-icon-button" type="button" title="操作指引" aria-label="操作指引"
         @click="show = true"
-      />
+      >
+        <i class="i-lucide:book-open" />
+        <span v-if="withLabel">操作指引</span>
+      </button>
     </template>
     操作指引
   </n-tooltip>
@@ -42,6 +45,7 @@
 <script setup>
 import Vue3IntroStep from 'vue3-intro-step'
 
+defineProps({ withLabel: Boolean })
 const myIntroStep = shallowRef(null)
 const show = shallowRef(false)
 const config = {
@@ -59,37 +63,13 @@ const config = {
       el: '#toggleTheme',
       tipPosition: 'bottom',
       title: '切换系统主题',
-      content: '一键开启护眼模式',
-    },
-    {
-      el: '#fullscreen',
-      tipPosition: 'bottom',
-      title: '全屏/退出全屏',
-      content: '一键开启全屏',
-    },
-    {
-      el: '#theme-setting',
-      tipPosition: 'bottom',
-      title: '设置主题色',
-      content: '调整为你喜欢的主题色',
+      content: '在浅色和深色模式之间切换',
     },
     {
       el: '#user-dropdown',
       tipPosition: 'bottom',
       title: '个人中心',
       content: '查看个人资料和退出系统',
-    },
-    {
-      el: '#menu-collapse',
-      tipPosition: 'bottom',
-      title: '展开/收起菜单',
-      content: '一键展开/收起菜单',
-    },
-    {
-      el: '#top-tab',
-      tipPosition: 'bottom',
-      title: '标签栏',
-      content: '鼠标滚轮滑动可调整至最佳视野',
     },
     {
       el: '#layout-setting',

@@ -14,33 +14,15 @@
       <PageRefresh class="header-refresh-action" />
       <TopMenu class="top-menu-wrapper main-top-menu flex-1" />
 
-      <!-- 菜单搜索 -->
-      <div class="header-search mx-16">
-        <MenuSearch />
-      </div>
-
-      <div class="header-actions flex items-center">
-        <span class="header-divider mx-6 opacity-20">|</span>
-        <div class="header-actions-inner text-18 flex flex-shrink-0 items-center px-12">
-          <!--          <ThemeConfigButton class="mr-16" /> -->
-          <ToggleTheme class="mobile-hidden-action" />
-          <Fullscreen class="mobile-hidden-action" />
-          <!--          <ThemeSetting class="mr-16" /> -->
-          <MessageNotification class="mobile-hidden-action mr-16" />
-          <TenantSwitcher class="mr-12" />
-          <OrgSwitcher class="mr-12" />
-          <UserAvatar />
-        </div>
-      </div>
+      <HeaderTools class="header-actions" />
     </header>
 
     <div class="w-full flex flex-1 overflow-hidden">
       <!-- 左侧二级及以下菜单 - 只在有子菜单时显示 -->
       <aside
         v-if="showSidebar"
-        class="side-menu-wrapper flex flex-col flex-shrink-0 transition-width-300"
-        :class="appStore.collapsed ? 'w-64 collapsed' : 'w-200'"
-        border-r="1px solid #999999"
+        class="side-menu-wrapper flex flex-col flex-shrink-0"
+        :class="{ collapsed: appStore.collapsed }"
       >
         <SideMenu />
         <div class="side-collapse-dock">
@@ -53,7 +35,7 @@
         <AppCard :bordered="false" :padding="false" class="top-side-layout-tab-bar px-8 py-0" shadow="none" radius="none">
           <AppTab class="w-0 flex-1" />
         </AppCard>
-        <div class="layout-page-content flex-1 bg-[#f2f3f5]" :class="{ 'flow-task-layout-content': isFlowTaskListPage }">
+        <div class="layout-page-content flex-1" :class="{ 'flow-task-layout-content': isFlowTaskListPage }">
           <slot />
         </div>
       </article>
@@ -69,15 +51,10 @@ import DemoBanner from '@/components/DemoBanner.vue'
 import { TheTitle } from '@/components/index.js'
 import {
   AppTab,
-  Fullscreen,
   MenuCollapse,
-  MenuSearch,
-  MessageNotification,
-  OrgSwitcher,
   PageRefresh,
-  TenantSwitcher,
-  UserAvatar,
 } from '@/layouts/components'
+import HeaderTools from '@/layouts/components/HeaderTools.vue'
 import { useSidebarVisibility } from '@/layouts/composables/useSidebarVisibility'
 import { useAppStore } from '@/store'
 import { isFlowTaskListPath } from '@/utils/flow-task-layout'
@@ -141,6 +118,7 @@ const { showSidebar } = useSidebarVisibility()
 }
 
 .layout-page-content {
+  background: var(--bg-secondary);
   box-sizing: border-box;
   min-height: 0;
   overflow-x: hidden;
@@ -162,7 +140,12 @@ const { showSidebar } = useSidebarVisibility()
 }
 
 .side-menu-wrapper {
+  width: var(--side-menu-width);
+  border-right: 1px solid var(--side-menu-border-color);
   background: var(--side-menu-bg-color, var(--bg-primary));
+}
+.side-menu-wrapper.collapsed {
+  width: var(--side-menu-collapsed-width);
 }
 
 .side-collapse-dock {

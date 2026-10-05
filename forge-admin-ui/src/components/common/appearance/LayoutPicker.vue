@@ -97,18 +97,22 @@ const options = computed(() => layoutSettings.layouts.filter((item) => {
 }
 .layout-mini--business-workbench .mini-side,
 .layout-mini--immersive .mini-side,
+.layout-mini--top-menu .mini-side,
 .layout-mini--empty .mini-side {
   display: none;
 }
 .layout-mini--business-workbench .mini-top,
+.layout-mini--top-menu .mini-top,
 .layout-mini--immersive .mini-top {
   left: 3px;
 }
 .layout-mini--business-workbench .mini-content,
+.layout-mini--top-menu .mini-content,
 .layout-mini--immersive .mini-content {
   left: 3px;
 }
 .layout-mini--simple .mini-top,
+.layout-mini--bento .mini-top,
 .layout-mini--empty .mini-top {
   display: none;
 }
@@ -121,9 +125,19 @@ const options = computed(() => layoutSettings.layouts.filter((item) => {
 .layout-mini--bento .mini-side {
   width: 8%;
 }
-.layout-mini--bento .mini-content,
-.layout-mini--bento .mini-top {
+.layout-mini--bento .mini-content {
   left: 14%;
+  top: 3px;
+}
+.layout-mini--top-side-menu .mini-top {
+  left: 3px;
+}
+.layout-mini--top-side-menu .mini-side {
+  top: 12px;
+}
+.layout-card:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 @media (max-width: 600px) {
   .layout-grid {

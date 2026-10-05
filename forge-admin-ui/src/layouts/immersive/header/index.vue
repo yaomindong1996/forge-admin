@@ -27,17 +27,7 @@
     </div>
 
     <!-- 右侧：工具区 -->
-    <div class="header-right">
-      <MenuSearch />
-      <BeginnerGuide />
-      <ToggleTheme />
-      <Fullscreen />
-      <MessageNotification />
-      <div class="header-divider" />
-      <TenantSwitcher />
-      <OrgSwitcher />
-      <UserAvatar />
-    </div>
+    <HeaderTools class="header-right" />
 
     <!-- 抽屉菜单 -->
     <DrawerMenu v-model:show="menuDrawerVisible" />
@@ -46,19 +36,10 @@
 
 <script setup>
 import { ref } from 'vue'
-import { ToggleTheme } from '@/components'
 import TheLogo from '@/components/common/TheLogo.vue'
 import TheTitle from '@/components/common/TheTitle.vue'
-import {
-  BeginnerGuide,
-  BreadCrumb,
-  Fullscreen,
-  MenuSearch,
-  MessageNotification,
-  OrgSwitcher,
-  TenantSwitcher,
-  UserAvatar,
-} from '@/layouts/components'
+import { BreadCrumb } from '@/layouts/components'
+import HeaderTools from '@/layouts/components/HeaderTools.vue'
 import DrawerMenu from '../components/DrawerMenu.vue'
 
 const menuDrawerVisible = ref(false)

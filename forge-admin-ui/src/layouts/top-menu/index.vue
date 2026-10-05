@@ -13,21 +13,7 @@
       </div>
       <PageRefresh class="header-refresh-action" />
       <TopMenu class="top-menu-wrapper main-top-menu flex-1" />
-      <!-- 菜单搜索 -->
-      <div class="header-search mx-16">
-        <MenuSearch />
-      </div>
-
-      <div class="header-actions flex items-center">
-        <span class="header-divider mx-6 opacity-20">|</span>
-        <div class="header-actions-inner text-18 flex flex-shrink-0 items-center px-12">
-          <Fullscreen class="mobile-hidden-action" />
-          <MessageNotification class="mobile-hidden-action mr-16" />
-          <TenantSwitcher class="mr-12" />
-          <OrgSwitcher class="mr-12" />
-          <UserAvatar />
-        </div>
-      </div>
+      <HeaderTools class="header-actions" />
     </header>
 
     <!-- 主内容区域 -->
@@ -35,7 +21,7 @@
       <AppCard :bordered="false" :padding="false" class="top-layout-tab-bar px-8 py-0" shadow="none" radius="none">
         <AppTab class="w-0 flex-1" />
       </AppCard>
-      <div class="layout-page-content flex-1 bg-[#f2f3f5]" :class="{ 'flow-task-layout-content': isFlowTaskListPage }">
+      <div class="layout-page-content flex-1" :class="{ 'flow-task-layout-content': isFlowTaskListPage }">
         <slot />
       </div>
     </article>
@@ -50,14 +36,9 @@ import DemoBanner from '@/components/DemoBanner.vue'
 import { TheTitle } from '@/components/index.js'
 import {
   AppTab,
-  Fullscreen,
-  MenuSearch,
-  MessageNotification,
-  OrgSwitcher,
   PageRefresh,
-  TenantSwitcher,
-  UserAvatar,
 } from '@/layouts/components'
+import HeaderTools from '@/layouts/components/HeaderTools.vue'
 import { isFlowTaskListPath } from '@/utils/flow-task-layout'
 import TopMenu from './components/TopMenu.vue'
 
@@ -116,6 +97,7 @@ const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
 }
 
 .layout-page-content {
+  background: var(--bg-secondary);
   box-sizing: border-box;
   min-height: 0;
   overflow-x: hidden;

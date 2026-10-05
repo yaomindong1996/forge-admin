@@ -355,7 +355,7 @@ const roleData = [
 .bento-card {
   padding: 16px;
   background: var(--bg-primary);
-  border: 1px solid var(--nexus-border);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
   transition: border-color var(--transition-base);
@@ -426,7 +426,7 @@ const roleData = [
   gap: 12px;
   padding: 8px;
   background: var(--bg-primary);
-  border: 1px solid var(--nexus-border);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
   margin-bottom: 12px;
@@ -453,9 +453,9 @@ const roleData = [
 }
 
 .filter-pill-active {
-  background: var(--nexus-active-bg) !important;
+  background: color-mix(in srgb, var(--primary-color) 9%, var(--bg-primary)) !important;
   border-color: var(--primary-500) !important;
-  color: var(--nexus-active-text) !important;
+  color: var(--text-primary) !important;
 }
 
 .pill-badge {
@@ -469,7 +469,7 @@ const roleData = [
 
 .filter-pill-active .pill-badge {
   background: rgba(22, 93, 255, 0.15) !important;
-  color: var(--nexus-active-text) !important;
+  color: var(--text-primary) !important;
   border: none !important;
 }
 
@@ -519,7 +519,7 @@ const roleData = [
   align-items: center;
   padding: 12px 16px;
   background: var(--bg-primary);
-  border: 1px solid var(--nexus-border);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
   transition: all var(--transition-base);
@@ -544,7 +544,7 @@ const roleData = [
 }
 
 .role-row:hover {
-  background: var(--nexus-hover-bg);
+  background: var(--bg-secondary);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 

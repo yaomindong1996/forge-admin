@@ -5,6 +5,7 @@ import { applyThemeConfig, defaultThemeConfig } from '@/config/theme.config'
 import { defaultLayout, defaultPrimaryColor, naiveThemeOverrides, normalizeLayout } from '@/settings'
 import { solidColor } from '@/utils/navigation-theme'
 import { getDefaultPageTitle } from '@/utils/page-title'
+import { readTenantAppearance } from '@/utils/tenant-appearance'
 
 function cloneConfig(config) {
   return JSON.parse(JSON.stringify(config))
@@ -54,6 +55,16 @@ export const useAppStore = defineStore('app', {
     },
     setSelectedTopMenuId(id) {
       this.selectedTopMenuId = id
+    },
+    restoreTenantAppearance(config) {
+      // 仅恢复本会话外观，不调用租户切换，不触碰权限或保存配置。
+      this.setLayout(config?.systemLayout || defaultLayout)
+      this.themeConfig = readTenantAppearance(config)
+      this.setThemeConfig(this.themeConfig)
+    },
+    restoreSystemTheme() {
+      this.themeConfig = cloneConfig(defaultThemeConfig)
+      this.setThemeConfig(this.themeConfig)
     },
     resetAccountState() {
       this.appearanceOpen = false

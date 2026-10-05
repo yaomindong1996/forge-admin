@@ -77,7 +77,7 @@ const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
   display: flex;
   flex-direction: column;
   min-width: 0;
-  background: var(--gray-100);
+  background: var(--bg-secondary);
 }
 
 /* 头部包裹 - 不设置大小，由内部 header 自己控制 */
@@ -88,7 +88,7 @@ const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
 /* 内容区域 */
 .content-area {
   flex: 1;
-  background: var(--gray-100);
+  background: var(--bg-secondary);
   overflow-x: hidden;
   overflow-y: auto;
   box-sizing: border-box;

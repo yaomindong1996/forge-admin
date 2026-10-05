@@ -118,7 +118,7 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100vh;
   display: flex;
-  background: var(--nexus-page-bg);
+  background: var(--bg-secondary);
   overflow: hidden;
   font-family: var(--font-family-sans);
 }
@@ -140,7 +140,7 @@ onBeforeUnmount(() => {
   background: var(--side-menu-bg-color);
   border: 1px solid var(--side-menu-border-color);
   border-radius: 6px;
-  box-shadow: var(--nexus-shadow-card);
+  box-shadow: none;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -165,7 +165,9 @@ onBeforeUnmount(() => {
   border: 1px solid var(--side-menu-border-color);
   border-left: none;
   box-shadow: none;
-  transition: all var(--transition-base);
+  transition:
+    background-color var(--transition-base),
+    border-color var(--transition-base);
   user-select: none;
   -webkit-user-drag: none;
 }
@@ -218,7 +220,7 @@ onBeforeUnmount(() => {
   background: var(--layout-header-bg-color);
   border: 1px solid var(--layout-header-border-color);
   border-radius: 6px;
-  box-shadow: var(--nexus-shadow-card);
+  box-shadow: none;
   z-index: 20;
   display: flex;
   align-items: center;
@@ -228,9 +230,9 @@ onBeforeUnmount(() => {
 .nexus-content {
   flex: 1;
   background: var(--bg-primary);
-  border: 1px solid var(--nexus-border);
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  box-shadow: var(--nexus-shadow-content);
+  box-shadow: none;
   overflow: hidden;
   min-height: 0;
   display: flex;
@@ -241,8 +243,8 @@ onBeforeUnmount(() => {
 .nexus-tab-bar {
   height: 38px;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--nexus-border);
-  background: var(--nexus-tab-bg);
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-secondary);
   padding: 0 8px;
   display: flex;
   align-items: center;
@@ -252,136 +254,6 @@ onBeforeUnmount(() => {
 .nexus-tab-bar :deep(#top-tab) {
   flex: 1;
   min-width: 0;
-}
-
-/* Tab 样式覆盖 */
-.nexus-tab-bar :deep(.n-tabs-nav) {
-  border-bottom: none !important;
-}
-
-.nexus-tab-bar :deep(.n-tabs-tab) {
-  border: 0 !important;
-  border-radius: 3px !important;
-  background: transparent !important;
-  color: var(--text-secondary) !important;
-  font-size: 13px !important;
-  font-weight: 500 !important;
-  padding: 0 12px !important;
-  height: 30px !important;
-  box-shadow: none !important;
-  transition:
-    background-color 0.16s ease,
-    color 0.16s ease !important;
-}
-
-.nexus-tab-bar :deep(.n-tabs-tab:hover) {
-  background: color-mix(in srgb, var(--text-primary) 5%, transparent) !important;
-  color: var(--text-primary) !important;
-}
-
-.nexus-tab-bar :deep(.n-tabs-tab.n-tabs-tab--active) {
-  background: color-mix(in srgb, var(--primary-color, #4242f7) 9%, transparent) !important;
-  color: var(--primary-color, #4242f7) !important;
-  font-weight: 600 !important;
-  z-index: 1;
-}
-
-/* 深色模式下选中态增强 */
-.dark .nexus-tab-bar :deep(.n-tabs-tab.n-tabs-tab--active) {
-  background: color-mix(in srgb, var(--primary-color, #6a7dff) 18%, transparent) !important;
-  color: var(--primary-200, #c7d2fe) !important;
-  font-weight: 600 !important;
-}
-
-/* 侧边栏深色模式 */
-.dark .nexus-sidebar-inner {
-  background: #0f172a !important;
-  border-color: #1e293b !important;
-}
-
-.dark .nexus-header {
-  background: #0f172a !important;
-  border-color: #1e293b !important;
-}
-
-.dark .nexus-content {
-  background: #0f172a !important;
-  border-color: #1e293b !important;
-}
-
-.dark .nexus-tab-bar {
-  border-bottom-color: #1e293b !important;
-  background: #1e293b !important;
-}
-
-/* 缓存监控页面 - 深色模式背景 */
-.dark .cache-management-page {
-  background: #0f172a !important;
-}
-
-.dark .metrics-section {
-  background: #1e293b !important;
-  border-bottom-color: #334155 !important;
-}
-
-.dark .metric-card {
-  background: #0f172a !important;
-  border-color: #334155 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
-}
-
-.dark .metric-label {
-  color: #94a3b8 !important;
-}
-
-.dark .metric-value {
-  color: #f1f5f9 !important;
-}
-
-.dark .metric-sub {
-  color: #64748b !important;
-}
-
-.dark .cache-container {
-  background: #334155 !important;
-}
-
-.dark .left-panel {
-  background: #0f172a !important;
-  border-right-color: #334155 !important;
-}
-
-.dark .panel-header {
-  border-bottom-color: #334155 !important;
-}
-
-.dark .panel-footer {
-  border-top-color: #334155 !important;
-  background: #1e293b !important;
-}
-
-.dark .resize-handle {
-  background: #334155 !important;
-}
-
-.dark .tree-leaf-label {
-  color: #e2e8f0 !important;
-}
-
-.dark .tree-folder-label {
-  color: #f1f5f9 !important;
-}
-
-.dark :deep(.n-tree-node-content:hover) {
-  background-color: #1e293b !important;
-}
-
-.dark :deep(.n-tree-node-content.n-tree-node-content--selected) {
-  background-color: #1e3a5f !important;
-}
-
-.nexus-tab-bar :deep(.n-tabs-tab-pane) {
-  display: none;
 }
 
 /* 页面内容 */
@@ -491,32 +363,5 @@ onBeforeUnmount(() => {
   .nexus-main {
     transition: none;
   }
-}
-</style>
-
-<style>
-/* 全局 Nexus 变量 */
-:root {
-  --nexus-page-bg: #f3f5f8;
-  --nexus-border: rgba(226, 232, 240, 0.8);
-  --nexus-shadow-card: 0 2px 16px rgba(0, 0, 0, 0.03);
-  --nexus-shadow-content: 0 4px 24px rgba(0, 0, 0, 0.03);
-  --nexus-tab-bg: #fafbfc;
-  --nexus-active-bg: #eff6ff;
-  --nexus-active-text: #1d4ed8;
-  --nexus-hover-bg: #f8fafc;
-  --primary-300: #93c5fd;
-}
-
-.dark {
-  --nexus-page-bg: #0b1120;
-  --nexus-border: rgba(51, 65, 85, 0.8);
-  --nexus-shadow-card: 0 2px 16px rgba(0, 0, 0, 0.3);
-  --nexus-shadow-content: 0 4px 24px rgba(0, 0, 0, 0.3);
-  --nexus-tab-bg: #111827;
-  --nexus-active-bg: #1e3a5f;
-  --nexus-active-text: #60a5fa;
-  --nexus-hover-bg: #1e293b;
-  --primary-300: #1e3a5f;
 }
 </style>
