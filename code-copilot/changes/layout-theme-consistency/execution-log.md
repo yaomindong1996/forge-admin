@@ -260,3 +260,33 @@ node --test forge-server/scripts/db/tenant-theme-migration.test.mjs \
 - 本机 `/usr/bin/java` 仅系统占位，`java_home -v17` 未找到运行时且没有 Maven；后端编译/动态测试未执行，
   没有安装工具或修改生产 Java。真实 Flyway、租户保存、后台服务启动明确未执行。
 - 本地提交脚本不代表测试环境错误已消除；须先执行 V1.0.208，再由用户重试租户配置保存。
+
+## 2026-10-05 第六阶段 T11
+
+### 实现与回归
+
+- T10 已本地提交 `d4f0c4cb`；本阶段完整移除公共操作指引的入口、对话框、说明模块、App 挂载和 Store 状态。
+- 桌面全屏改为直接入口，不保留只含单一操作的“更多工具”浮层；窄屏与紧凑布局继续复用账户工具。
+- 移除 vue3-intro-step 的 package 依赖、锁文件 importer/package/snapshot 三处和 Vite 预构建项。
+  没有新增依赖；其它业务页面自己的操作说明不在删除范围。三个旧模块可从 Git 历史恢复。
+- Node `v20.19.0`，复跑第五阶段同一 14 文件矩阵，117 项通过，2.00 秒。
+  数量变化为 125 - 13 旧指引行为 + 4 移除契约 + 1 大配置回归，不使用 skip 规避失败。
+- 首次新工具测试意外加载查询子组件和真实路由，出现 `routes is not iterable`；隔离查询/路由子组件后通过，
+  保留真实 Fullscreen/ToggleTheme 组件和外观 Store 断言。首次两处 Lint 格式问题已修正。
+- 修改 tracked JS/Vue 与 Vite 配置 ESLint 退出 0；`git diff --check` 通过。
+- 最终生产构建退出 0，34.68 秒；日志 `/private/tmp/forge-layout-theme-stage6-build.log`，仅保留插件耗时提示。
+- 尝试 pnpm offline/frozen/lockfile-only 验证时，当前 pnpm 供应链元数据验证仍发起 npm 请求并报 ENOTFOUND，
+  已中止本轮会话；未绕过安全策略、安装包或执行依赖脚本。锁文件差异仍仅上述三段删除，
+  不能将此尝试记为安装通过；现有依赖下测试与构建通过。
+
+### 浏览器与清理
+
+- 使用真实 App/Store/布局/样式的隔离预览，仅模拟认证、授权菜单与查询，不连接后台、不修改真实偏好。
+- 桌面默认布局全屏直接可见；便当盒账户面板保留身份切换、资料、主题、全屏、外观和退出，指引已消失。
+- 点击账户内“布局与外观”打开根级面板并收起账户浮层；切到沉浸式，在 320×740 重复验证通过。
+- 320px 下页面 scrollWidth=320；账户面板 left=74/right=298/top=56/bottom=406，在视口内。
+- 浏览器 error 日志为空；根路径未配置与既有重复组件注册 warning 属于预览桩，不代表真实 E2E。
+- 验证截图 `/private/tmp/forge-layout-theme-stage6-preview.jpg`；验证标签 9 关闭，视口覆盖已恢复。
+- 仅本轮临时 Vite 会话 Ctrl+C 停止，3032 端口无监听；用户其它服务/标签没有关闭。
+- 未执行真实数据库迁移、租户保存、身份切换、登录/注销、全屏或消息/审批写入。
+  本阶段只本地提交，不自动 push；用户 `.DS_Store` 保留且不入提交。

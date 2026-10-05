@@ -261,9 +261,6 @@ importers:
       vitest:
         specifier: ^2.1.9
         version: 2.1.9(@vitest/ui@2.1.9)(jsdom@25.0.1)(lightningcss@1.33.0)(sass@1.98.0)
-      vue3-intro-step:
-        specifier: ^1.0.5
-        version: 1.0.5(vue@3.5.30(typescript@5.9.3))
 
 packages:
 
@@ -6484,12 +6481,6 @@ packages:
     resolution: {integrity: sha512-Hz9q5sa33Yhduglwz6g9skT8OBPii+4bFn88w6J+J4MfEo4KRRpmiNG/hHHkdbRFlLBOqxN8y8gf2Fb0MTUgVg==}
     peerDependencies:
       vue: ^3.5.0
-
-  vue3-intro-step@1.0.5:
-    resolution: {integrity: sha512-MV+Y2VZCRVWGFgmwxaAFq0opANe7Yj/xEyL5Zox2z+8JNbU1Y6vkbGivT+yKbqc4o+Q/ui0z45zizI7GCouDmw==}
-    engines: {node: '>=12'}
-    peerDependencies:
-      vue: ^3.0.5
 
   vue3-slide-verify@1.1.8:
     resolution: {integrity: sha512-qsGXM0w0pkPnI10p58neHQNAkMiGdX8ijGkvRo6eIYbFn3+6fQE05t8afdQsCY9llgG1chDrRD7H0XxV3Ts9Cw==}
@@ -13662,10 +13653,6 @@ snapshots:
   vue-router@4.6.4(vue@3.5.30(typescript@5.9.3)):
     dependencies:
       '@vue/devtools-api': 6.6.4
-      vue: 3.5.30(typescript@5.9.3)
-
-  vue3-intro-step@1.0.5(vue@3.5.30(typescript@5.9.3)):
-    dependencies:
       vue: 3.5.30(typescript@5.9.3)
 
   vue3-slide-verify@1.1.8(typescript@5.9.3):

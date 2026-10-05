@@ -21,7 +21,6 @@
         </button>
         <ToggleTheme with-label />
         <Fullscreen with-label />
-        <BeginnerGuide v-if="showGuide" with-label @start="visible = false" />
         <button type="button" @click="openAppearance">
           <i class="i-lucide:panels-top-left" /><span>布局与外观</span>
         </button>
@@ -41,16 +40,12 @@ import { useRoute } from 'vue-router'
 import ToggleTheme from '@/components/common/ToggleTheme.vue'
 import { useAppStore } from '@/store'
 import AccountIdentity from './AccountIdentity.vue'
-import BeginnerGuide from './BeginnerGuide.vue'
 import { useAccountActions } from './composables/useAccountActions'
 import Fullscreen from './Fullscreen.vue'
 import OrgSwitcher from './OrgSwitcher.vue'
 import TenantSwitcher from './TenantSwitcher.vue'
 
-defineProps({
-  placement: { type: String, default: 'right-end' },
-  showGuide: { type: Boolean, default: true },
-})
+defineProps({ placement: { type: String, default: 'right-end' } })
 const route = useRoute()
 const appStore = useAppStore()
 const visible = ref(false)

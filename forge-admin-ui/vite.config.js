@@ -137,7 +137,6 @@ export default defineConfig(({ mode, command }) => {
         'sockjs-client',
         'tiny-svg',
         'vuedraggable',
-        'vue3-intro-step',
         'vue3-slide-verify',
       ],
     },

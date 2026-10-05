@@ -1,108 +1,71 @@
-import { flushPromises, mount } from '@vue/test-utils'
+import { existsSync, readFileSync } from 'node:fs'
+import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { reactive } from 'vue'
+import { ref } from 'vue'
 import { useAppStore } from '@/store/modules/app'
-import BeginnerGuide from '../BeginnerGuide.vue'
-import { createOperationGuide } from '../operation-guide'
-import OperationGuideDialog from '../OperationGuideDialog.vue'
+import HeaderTools from '../HeaderTools.vue'
 
-const navigation = vi.hoisted(() => ({ route: null }))
-vi.mock('vue-router', () => ({ useRoute: () => navigation.route }))
+const viewport = vi.hoisted(() => ({ compact: null }))
+vi.mock('@vueuse/core', async load => ({
+  ...await load(),
+  useMediaQuery: () => viewport.compact,
+}))
 vi.mock('@/store', async () => ({ useAppStore: (await import('@/store/modules/app')).useAppStore }))
-const modal = {
-  props: ['show'],
-  emits: ['update:show'],
-  template: '<div v-if="show"><slot /><slot name="footer" /></div>',
-}
-const button = { props: ['disabled'], template: '<button :disabled="disabled"><slot /></button>' }
-const options = { global: { stubs: { NModal: modal, NButton: button } } }
-const click = (wrapper, label) => wrapper.findAll('button').find(item => item.text() === label).trigger('click')
+// 切断查询/路由副作用；本用例检查 HeaderTools 编排，实际账户与主题行为由原组件测试覆盖。
+vi.mock('../MenuSearch.vue', () => ({ default: { template: '<button aria-label="搜索全部菜单" />' } }))
+vi.mock('../MessageNotification.vue', () => ({ default: { template: '<button aria-label="通知中心" />' } }))
+vi.mock('../TenantSwitcher.vue', () => ({ default: { template: '<span>当前租户</span>' } }))
+vi.mock('../OrgSwitcher.vue', () => ({ default: { template: '<span>当前组织</span>' } }))
+vi.mock('../UserAvatar.vue', () => ({ default: { template: '<button aria-label="个人中心" />' } }))
+vi.mock('../CompactLayoutTools.vue', () => ({ default: { template: '<button aria-label="账户与工具" />' } }))
+const read = file => readFileSync(new URL(file, import.meta.url), 'utf8')
 
-describe('全局操作指引', () => {
+// 用户明确移除指引后，契约转为“无残留且实际工具继续可用”，不跳过旧失败用例。
+describe('移除操作指引后的工具回归', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    navigation.route = reactive({ fullPath: '/home' })
+    viewport.compact = ref(false)
   })
 
-  it('关闭启动浮层后仍由 Store 保持指引，移除入口也不影响状态', async () => {
-    const trigger = mount(BeginnerGuide)
-    await trigger.find('button').trigger('click')
-    expect(trigger.emitted('start')).toHaveLength(1)
-    trigger.unmount()
-    expect(useAppStore().guideOpen).toBe(true)
+  it('组件、弹窗、说明模块已删除，没有公共导出或状态残留', () => {
+    for (const file of ['../BeginnerGuide.vue', '../OperationGuideDialog.vue', '../operation-guide.js']) {
+      expect(existsSync(new URL(file, import.meta.url))).toBe(false)
+    }
+    expect(read('../index.js')).not.toContain('BeginnerGuide')
+    expect(read('../../../App.vue')).not.toContain('OperationGuideDialog')
+    expect(useAppStore().$state).not.toHaveProperty('guideOpen')
   })
 
-  it('下一步、上一步、步骤跳转及完成可用，重新打开从首步开始', async () => {
-    const store = useAppStore()
-    store.guideOpen = true
-    const wrapper = mount(OperationGuideDialog, options)
+  it('废弃第三方库从依赖、锁文件和预构建配置移除', () => {
+    for (const file of ['../../../../package.json', '../../../../pnpm-lock.yaml', '../../../../vite.config.js']) {
+      expect(read(file)).not.toContain('vue3-intro-step')
+    }
+  })
+
+  it('桌面全屏直接可达，布局与外观仍打开根级面板', async () => {
+    const wrapper = mount(HeaderTools, { props: { showAppearance: true } })
     try {
-      expect(wrapper.find('.guide-content h3').text()).toBe('找到业务入口')
-      expect(wrapper.findAll('button').find(item => item.text() === '上一步').attributes('disabled')).toBeDefined()
-      await click(wrapper, '下一步')
-      expect(wrapper.find('.guide-content h3').text()).toBe('查看通知与待办')
-      await click(wrapper, '上一步')
-      expect(wrapper.find('.guide-counter').text()).toBe('1 / 4')
-      await click(wrapper, '调整布局与配色')
-      expect(wrapper.find('.guide-counter').text()).toBe('4 / 4')
-      await click(wrapper, '完成')
-      expect(store.guideOpen).toBe(false)
-      store.guideOpen = true
-      await flushPromises()
-      expect(wrapper.find('.guide-counter').text()).toBe('1 / 4')
+      expect(wrapper.find('button[aria-label="进入全屏"]').exists()).toBe(true)
+      expect(wrapper.find('button[aria-label="更多工具"]').exists()).toBe(false)
+      expect(wrapper.text()).not.toContain('操作指引')
+      await wrapper.find('button[aria-label="布局与外观"]').trigger('click')
+      expect(useAppStore().appearanceOpen).toBe(true)
     }
     finally { wrapper.unmount() }
   })
 
-  it('打开外观走根级状态，关闭指引而不是叠加两个弹层', async () => {
-    const store = useAppStore()
-    store.guideOpen = true
-    const wrapper = mount(OperationGuideDialog, options)
+  it('窄屏搜索、通知和账户入口各一个，不重复渲染桌面工具', () => {
+    viewport.compact.value = true
+    const wrapper = mount(HeaderTools)
     try {
-      await click(wrapper, '调整布局与配色')
-      await click(wrapper, '打开布局与外观')
-      expect(store.guideOpen).toBe(false)
-      expect(store.appearanceOpen).toBe(true)
-    }
-    finally { wrapper.unmount() }
-  })
-
-  it.each(['route', 'layout'])('%s 变化会关闭指引，不留遮罩', async (kind) => {
-    const store = useAppStore()
-    store.guideOpen = true
-    const wrapper = mount(OperationGuideDialog, options)
-    try {
-      if (kind === 'route') {
-        navigation.route.fullPath = '/profile'
+      for (const label of ['搜索全部菜单', '通知中心', '账户与工具']) {
+        expect(wrapper.findAll(`button[aria-label="${label}"]`)).toHaveLength(1)
       }
-      else {
-        store.layout = 'bento'
-      }
-      await flushPromises()
-      expect(store.guideOpen).toBe(false)
+      expect(wrapper.find('button[aria-label="进入全屏"]').exists()).toBe(false)
+      expect(wrapper.find('button[aria-label="个人中心"]').exists()).toBe(false)
+      expect(wrapper.text()).not.toContain('操作指引')
     }
     finally { wrapper.unmount() }
-  })
-
-  it.each(['simple', 'bento', 'immersive', 'full'])('%s 说明与实际入口位置对应', (layout) => {
-    const steps = createOperationGuide(layout)
-    expect(steps).toHaveLength(4)
-    expect(new Set(steps.map(item => item.key)).size).toBe(4)
-    expect(steps[1].content).toContain(['simple', 'bento'].includes(layout) ? '侧栏底部' : '顶栏')
-    if (['immersive', 'bento'].includes(layout)) {
-      expect(steps[0].content).toContain('打开完整导航')
-    }
-  })
-
-  it.each(['business-workbench', 'top-menu', 'top-side-menu'])('%s 不错误引导用户寻找桌面侧栏', (layout) => {
-    expect(createOperationGuide(layout)[0].content).toContain('从顶部导航选择业务模块')
-  })
-
-  it('清理账号关闭指引，且指引状态不持久化', () => {
-    const store = useAppStore()
-    store.guideOpen = true
-    store.resetAccountState()
-    expect(store.guideOpen).toBe(false)
   })
 })

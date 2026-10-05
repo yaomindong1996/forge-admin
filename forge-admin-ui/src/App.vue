@@ -46,7 +46,6 @@
         <div v-if="watermarkConfig.enable" class="watermark-layer" :style="watermarkStyle" />
         <GlobalLoadingOverlay />
         <NoticeDetailModal />
-        <OperationGuideDialog v-if="showLayoutSetting" />
       </n-message-provider>
     </n-dialog-provider>
   </n-config-provider>
@@ -62,7 +61,6 @@ import GlobalLoadingOverlay from '@/components/common/GlobalLoadingOverlay.vue'
 import SystemPageLayout from '@/components/common/SystemPageLayout.vue'
 import NoticeDetailModal from '@/components/notice/NoticeDetailModal.vue'
 import { useWatermark } from '@/composables/useWatermark'
-import OperationGuideDialog from '@/layouts/components/OperationGuideDialog.vue'
 import { isApplicationPortalPath } from '@/router/guards/permission-guard'
 import { useAppStore, usePermissionStore, useTabStore, useUserStore } from '@/store'
 import { initResponsiveFont } from '@/utils/responsive-font'

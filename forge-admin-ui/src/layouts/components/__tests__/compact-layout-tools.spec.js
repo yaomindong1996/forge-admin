@@ -15,7 +15,6 @@ vi.mock('@/store', async () => ({ useAppStore: (await import('@/store/modules/ap
 vi.mock('../TenantSwitcher.vue', () => ({ default: { template: '<button>当前租户</button>' } }))
 vi.mock('../OrgSwitcher.vue', () => ({ default: { template: '<button>当前组织</button>' } }))
 vi.mock('../AccountIdentity.vue', () => ({ default: { template: '<span>当前用户</span>' } }))
-vi.mock('../BeginnerGuide.vue', () => ({ default: { template: '<button>操作指引</button>' } }))
 
 const popover = {
   props: ['show'],
@@ -40,6 +39,8 @@ describe('无顶栏账户工具', () => {
       await wrapper.find('button[aria-label="账户与工具"]').trigger('click')
       expect(wrapper.text()).toContain('当前租户')
       expect(wrapper.text()).toContain('当前组织')
+      expect(wrapper.text()).not.toContain('操作指引')
+      expect(wrapper.find('button[aria-label="进入全屏"]').exists()).toBe(true)
       const appearance = wrapper.findAll('button').find(button => button.text() === '布局与外观')
       await appearance.trigger('click')
       expect(useAppStore().appearanceOpen).toBe(true)

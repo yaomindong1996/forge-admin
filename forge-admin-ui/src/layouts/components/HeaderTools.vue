@@ -5,7 +5,7 @@
     <ToggleTheme v-if="!isCompact" />
     <MessageNotification />
     <!-- 极窄窗口只保留核心入口，账户工具不丢失、不重复挂载切换器 -->
-    <CompactLayoutTools v-if="isCompact" placement="bottom-end" show-guide />
+    <CompactLayoutTools v-if="isCompact" placement="bottom-end" />
     <template v-else>
       <TenantSwitcher />
       <OrgSwitcher />
@@ -15,18 +15,8 @@
       >
         <i class="i-lucide:panels-top-left" />
       </button>
-      <!-- 低频工具集中收纳，弹层使用正文配色，不继承深色顶栏文字 -->
-      <n-popover v-model:show="moreToolsOpen" trigger="click" placement="bottom-end" :show-arrow="false">
-        <template #trigger>
-          <button class="chrome-icon-button" type="button" title="更多工具" aria-label="更多工具">
-            <i class="i-lucide:ellipsis" />
-          </button>
-        </template>
-        <div class="header-more-tools">
-          <Fullscreen with-label />
-          <BeginnerGuide with-label @start="moreToolsOpen = false" />
-        </div>
-      </n-popover>
+      <!-- 移除指引后仅剩全屏，不再用额外浮层承载单一操作。 -->
+      <Fullscreen />
       <UserAvatar />
     </template>
   </div>
@@ -34,10 +24,8 @@
 
 <script setup>
 import { useMediaQuery } from '@vueuse/core'
-import { ref } from 'vue'
 import ToggleTheme from '@/components/common/ToggleTheme.vue'
 import { useAppStore } from '@/store'
-import BeginnerGuide from './BeginnerGuide.vue'
 import CompactLayoutTools from './CompactLayoutTools.vue'
 import Fullscreen from './Fullscreen.vue'
 import MenuSearch from './MenuSearch.vue'
@@ -49,7 +37,6 @@ import UserAvatar from './UserAvatar.vue'
 defineProps({ showAppearance: Boolean })
 const appStore = useAppStore()
 const isCompact = useMediaQuery('(max-width: 480px)')
-const moreToolsOpen = ref(false)
 </script>
 
 <style scoped>
@@ -59,35 +46,6 @@ const moreToolsOpen = ref(false)
   gap: 4px;
   flex-shrink: 0;
   color: var(--chrome-text, var(--text-primary));
-}
-.header-more-tools {
-  --chrome-text: var(--text-primary);
-  display: grid;
-  gap: 4px;
-  min-width: 144px;
-}
-.header-more-tools :deep(button) {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 32px;
-  width: 100%;
-  padding: 0 10px;
-  margin: 0;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-}
-.header-more-tools :deep(button:hover) {
-  background: var(--bg-secondary);
-}
-.header-more-tools :deep(button:focus-visible) {
-  outline: 2px solid var(--primary-color);
-  outline-offset: -2px;
 }
 .header-tools :deep(.tenant-switcher),
 .header-tools :deep(.org-switcher) {

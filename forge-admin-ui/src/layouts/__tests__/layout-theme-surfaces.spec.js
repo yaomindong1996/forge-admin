@@ -47,13 +47,13 @@ describe('布局主题覆盖与工具接入契约', () => {
     expect(content).toContain('<HeaderTools')
     expect(content).not.toContain('<MenuSearch')
   })
-  it('工作台共用工具区保留身份入口，低频工具进入浮层', () => {
+  it('工作台共用工具区保留身份入口，全屏不再藏进单项浮层', () => {
     const content = source('layouts/components/HeaderTools.vue')
     expect(content).toContain('<TenantSwitcher />')
     expect(content).toContain('<OrgSwitcher />')
-    expect(content).toContain('aria-label="更多工具"')
-    expect(content).toContain('<Fullscreen with-label />')
-    expect(content).toContain('<BeginnerGuide with-label @start="moreToolsOpen = false" />')
+    expect(content).toContain('<Fullscreen />')
+    expect(content).not.toContain('aria-label="更多工具"')
+    expect(content).not.toContain('<n-popover')
     expect(content).toContain('v-if="isCompact" placement="bottom-end"')
     expect(source('layouts/business-workbench/components/WorkbenchHeader.vue')).toContain('show-appearance')
   })
@@ -133,11 +133,15 @@ describe('布局主题覆盖与工具接入契约', () => {
     expect(source('layouts/full/header/index.vue')).toContain('height: 48px')
   })
 
-  it('指引由 App 全局持有，不轮询隐藏元素或随工具浮层卸载', () => {
-    expect(source('App.vue')).toContain('<OperationGuideDialog v-if="showLayoutSetting" />')
-    const trigger = source('layouts/components/BeginnerGuide.vue')
-    expect(trigger).not.toContain('vue3-intro-step')
-    expect(trigger).toContain('appStore.guideOpen = true')
-    expect(source('layouts/components/CompactLayoutTools.vue')).toContain('@start="visible = false"')
+  it('移除全局指引，不遗留入口、状态或空工具浮层', () => {
+    for (const file of [
+      'App.vue',
+      'store/modules/app.js',
+      'layouts/components/HeaderTools.vue',
+      'layouts/components/CompactLayoutTools.vue',
+      'layouts/components/index.js',
+    ]) {
+      expect(source(file)).not.toMatch(/BeginnerGuide|OperationGuideDialog|guideOpen|show-guide/)
+    }
   })
 })
