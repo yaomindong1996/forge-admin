@@ -32,7 +32,8 @@ alwaysApply: true
 - 自动 Commit：每个 task/fix 完成后自动 commit，保持一个 task 一个 commit
 - Commit 必须可编译：commit 前执行编译检查
 - 禁止自动 Push：push 由用户主动触发，保留审查机会
-- Message 格式：[<变更名>] <中文简述>
+- Message 必须用中文：标题和正文用中文，可保留类名、路径等专有名词；推荐 `[<变更名>] <中文简述>`
+- 仅 merge/revert、第三方自动生成、或必须对齐外部英文历史时可用英文；人工提交禁止纯英文
 
 ## 6. 数据库 SQL 规范
 ### 6.1 租户 ID 规则（重要）

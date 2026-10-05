@@ -9,6 +9,7 @@ import VueRouter from 'unplugin-vue-router/vite'
 import { defineConfig, loadEnv } from 'vite'
 import removeNoMatch from 'vite-plugin-router-warn'
 import VueDevTools from 'vite-plugin-vue-devtools'
+import { pluginBuildProgress } from './build/plugin-build-progress.js'
 import { pluginIcons, pluginPagePathes } from './build/plugin-isme/index.js'
 
 /** 原地改 UnoCSS 插件，避免复制对象后 Rolldown 仍调用原始 renderChunk。 */
@@ -82,6 +83,8 @@ export default defineConfig(({ mode, command }) => {
       pluginPagePathes(),
       // 自定义插件，用于生成自定义icon，并添加到虚拟模块
       pluginIcons(),
+      // 打包进度：transform / render 阶段在终端打出进度条
+      pluginBuildProgress(),
       // 移除非必要的vue-router动态路由警告: No match found for location with path
       removeNoMatch(),
     ],

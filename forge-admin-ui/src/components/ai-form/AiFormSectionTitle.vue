@@ -45,8 +45,8 @@ defineProps({
   gap: 8px;
   width: 100%;
   min-width: 0;
-  margin: 8px 0 10px;
-  padding: 2px 0;
+  margin: 4px 0 6px;
+  padding: 0;
   border: 0;
   background: transparent;
 }

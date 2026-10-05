@@ -23,7 +23,7 @@
     :size="size"
   >
     <div class="ai-form-body" :class="{ 'ai-form-body--with-nav': showSectionNav }">
-      <nav v-if="showSectionNav" class="ai-form-section-nav" aria-label="表单分组导航">
+      <nav v-if="showSectionNav" ref="sectionNavRef" class="ai-form-section-nav" aria-label="表单分组导航">
         <button
           v-for="item in sectionNavItems"
           :key="item.id"
@@ -32,8 +32,7 @@
           :class="{ 'is-active': activeSectionId === item.id }"
           @click="scrollToSection(item.id)"
         >
-          <span class="ai-form-section-nav__dot" aria-hidden="true" />
-          <span class="ai-form-section-nav__text">{{ item.label }}</span>
+          {{ item.label }}
         </button>
       </nav>
 
@@ -156,6 +155,7 @@ import { scan as scanCollaborationCode } from '@/utils/collaboration-runtime'
 import { createArrayPermissionMap, createFieldPermissionMap } from '@/utils/field-permissions'
 import { normalizeRulePattern, normalizeValidationRules } from '@/utils/validation-presets'
 import AiFormLayoutNodes from './AiFormLayoutNodes.vue'
+import { keepChildInHorizontalView, scrollElementIntoScroller } from './form-section-scroll'
 import { appendSelectionLabelContextDefaults, buildContextDefaultsPatch } from './data-source-binding-runtime'
 import { createFieldEventRuntime } from './field-event-runtime'
 import { isInputLikeFieldType, isNumberFieldType } from './field-type-utils'
@@ -196,7 +196,7 @@ const props = defineProps({
     type: String,
     default: 'medium', // 'small' | 'medium' | 'large'
   },
-  // 是否隐藏左侧分组导航（分组≥3时默认显示，可用此关闭）
+  // 是否隐藏顶部分组导航（分组≥3时默认显示，可用此关闭）
   hideSectionNav: {
     type: Boolean,
     default: false,
@@ -298,6 +298,7 @@ const route = useRoute()
 const aiFormComponent = markRaw(getCurrentInstance()?.type)
 
 const formRef = ref(null)
+const sectionNavRef = ref(null)
 const formValue = ref({})
 const isCollapsed = ref(true)
 const activeSectionId = ref('')
@@ -1041,7 +1042,9 @@ function scrollToSection(sectionId) {
   if (!target)
     return
   activeSectionId.value = sectionId
-  target.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' })
+  // 在弹窗/抽屉的 overflow 容器里滚，避免 scrollIntoView 把分组条滚回顶部
+  scrollElementIntoScroller(target, 4)
+  keepChildInHorizontalView(sectionNavRef.value, sectionNavRef.value?.querySelector('.ai-form-section-nav__item.is-active'))
 }
 
 function flattenValidationErrors(source, result = []) {
@@ -1125,6 +1128,7 @@ defineExpose({
   reset: handleReset,
   getFormData: () => ({ ...formValue.value }),
   dispatchFieldEvent,
+  scrollToSection,
 })
 
 function applyFieldPermissionsToNodes(nodes = []) {
@@ -1349,71 +1353,75 @@ function isLegacyGroupTitleNode(node = {}) {
 }
 
 .ai-form-body--with-nav {
-  display: grid;
-  grid-template-columns: 128px minmax(0, 1fr);
-  gap: 20px;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .ai-form-content {
   min-width: 0;
 }
 
+.ai-form-body--with-nav .ai-form-content :deep(.af-layout-grid > .n-gi:first-child .ai-form-section-title) {
+  margin-top: 0;
+}
+
 .ai-form-section-nav {
-  position: sticky;
-  top: 8px;
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  max-height: min(56vh, 520px);
-  overflow-y: auto;
-  padding: 4px 0 4px 6px;
-  border-left: 1px solid rgba(22, 93, 255, 0.12);
+  gap: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  margin: 0 0 2px;
+  padding: 0;
+  border-bottom: 1px solid var(--border-light, #eef0f4);
+}
+
+.ai-form-section-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .ai-form-section-nav__item {
-  display: grid;
-  grid-template-columns: 10px minmax(0, 1fr);
-  gap: 7px;
-  align-items: center;
-  width: 100%;
+  position: relative;
+  flex: 0 0 auto;
   min-height: 28px;
-  padding: 4px 8px 4px 4px;
+  padding: 0 10px 6px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 0;
   background: transparent;
-  color: #64748b;
-  font-size: 12px;
-  line-height: 18px;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    color 0.16s ease,
-    background-color 0.16s ease;
-}
-
-.ai-form-section-nav__item:hover,
-.ai-form-section-nav__item.is-active {
-  background: rgba(22, 93, 255, 0.06);
-  color: #165dff;
-}
-
-.ai-form-section-nav__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.45;
-}
-
-.ai-form-section-nav__item.is-active .ai-form-section-nav__dot {
-  opacity: 1;
-}
-
-.ai-form-section-nav__text {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--text-tertiary, #64748b);
+  font-size: 13px;
+  line-height: 22px;
   white-space: nowrap;
+  cursor: pointer;
+}
+
+.ai-form-section-nav__item:hover {
+  color: var(--primary-color, #165dff);
+  background: transparent;
+}
+
+.ai-form-section-nav__item.is-active {
+  color: var(--primary-color, #165dff);
+  background: transparent;
+  font-weight: 600;
+}
+
+.ai-form-section-nav__item.is-active::after {
+  content: '';
+  position: absolute;
+  right: 10px;
+  bottom: -1px;
+  left: 10px;
+  height: 2px;
+  background: var(--primary-color, #165dff);
+}
+
+.ai-form-section-nav__item:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary-color, #165dff) 42%, transparent);
+  outline-offset: 2px;
 }
 
 .af-action-cell {
@@ -1462,26 +1470,16 @@ function isLegacyGroupTitleNode(node = {}) {
 }
 
 :global(.dark) .ai-form-section-nav {
-  border-left-color: rgba(64, 128, 255, 0.22);
+  border-bottom-color: var(--border-light, #2d2d30);
 }
 
 :global(.dark) .ai-form-section-nav__item {
-  color: #94a3b8;
+  color: var(--text-tertiary, #94a3b8);
 }
 
 :global(.dark) .ai-form-section-nav__item:hover,
 :global(.dark) .ai-form-section-nav__item.is-active {
-  background: rgba(64, 128, 255, 0.14);
-  color: #94bfff;
+  color: var(--primary-color, #94bfff);
 }
 
-@media (max-width: 760px) {
-  .ai-form-body--with-nav {
-    display: block;
-  }
-
-  .ai-form-section-nav {
-    display: none;
-  }
-}
 </style>

@@ -23,7 +23,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    include: ['src/**/__tests__/**/*.{spec,test}.{js,ts}'],
+    include: ['src/**/__tests__/**/*.{spec,test}.{js,ts}', 'build/**/__tests__/**/*.{spec,test}.{js,ts}'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

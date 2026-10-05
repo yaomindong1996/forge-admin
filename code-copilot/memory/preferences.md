@@ -196,3 +196,9 @@ Forge AI 中枢的真实 Flyway、Admin/Flow 服务启动、MCP Streamable HTTP 
 
 用户希望巨型 Java 类持续按业务职责拆分，单类代码原则上不超过 1000 行；新增类不得超限，存量超限类按阶段收敛并明确剩余工作，不能只做形式上的行数切割。
 
+## 27. Git 提交说明使用中文
+
+**记录日期**: 2026-10-05
+
+用户要求本仓库后续 commit message 必须用中文。可保留模块名、类名、文件路径等必要英文专有名词。仅 merge/revert、工具自动生成、或必须与外部英文仓库历史对齐时允许英文。已写入 `AGENTS.md` 5.17 与 `code-copilot/rules/coding-style.md` §5。
+

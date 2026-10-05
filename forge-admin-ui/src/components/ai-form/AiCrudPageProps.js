@@ -476,7 +476,7 @@ export const aiCrudPageProps = {
   },
 
   /**
-   * 是否隐藏编辑表单左侧的分组导航（分组≥3时默认显示）
+   * 是否隐藏编辑/详情表单顶部的分组导航（分组≥3时默认显示）
    * @type {boolean}
    */
   hideFormSectionNav: {

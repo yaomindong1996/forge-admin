@@ -71,6 +71,7 @@ describe('菜单工作台真实组件编排', () => {
   it('详情按需打开，关闭/客户端切换不遗留过期浮层', async () => {
     const vm = await mountPage()
     const workspace = useMenuWorkspaceStore()
+    expect(wrapper.find('.resource-text-action.text-info').text()).toBe('详情')
     expect(workspace.detailVisible).toBe(false)
     await wrapper.find('.resource-list-row').trigger('click')
     expect(workspace.detailVisible).toBe(true)

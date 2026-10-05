@@ -151,7 +151,7 @@
 }
 
 .ai-crud-edit-form :deep(.ai-form-section-title) {
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .ai-crud-edit-form :deep(.af-layout-grid > .n-gi:first-child .ai-form-section-title) {

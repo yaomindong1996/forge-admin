@@ -1,0 +1,12 @@
+---
+description: Git 提交说明必须使用中文
+alwaysApply: true
+---
+
+# Git 提交说明
+
+本仓库 commit message 必须使用中文（可保留类名、路径等专有名词）。
+
+推荐：`[<变更名>] <中文简述>` 或 `fix: 中文简述`。
+
+仅 merge/revert、工具自动生成、或必须对齐外部英文历史时可用英文。人工和 AI 编写的提交禁止纯英文。

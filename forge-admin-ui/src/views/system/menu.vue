@@ -313,7 +313,7 @@
               </div>
               <div class="resource-list-actions">
                 <button
-                  type="button" class="resource-text-action" :aria-label="`查看 ${row.resourceName} 详情`"
+                  type="button" class="resource-text-action text-info" :aria-label="`查看 ${row.resourceName} 详情`"
                   @click.stop="openResourceDetail(row)"
                 >
                   详情

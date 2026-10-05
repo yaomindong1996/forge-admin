@@ -713,6 +713,7 @@
   cursor: pointer;
 }
 .resource-text-action.text-primary { color: var(--primary-color); }
+.resource-text-action.text-info { color: #909399; }
 .resource-text-action:hover { text-decoration: underline; }
 .resource-text-action:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
 .resource-name:focus-visible, .context-breadcrumbs button:focus-visible {
