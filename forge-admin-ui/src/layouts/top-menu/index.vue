@@ -7,12 +7,14 @@
     <header
       class="layout-header layout-chrome-header top-layout-header flex flex-shrink-0 items-center"
     >
+      <!-- 窄屏只挂载授权菜单抽屉，不压缩桌面横向菜单 -->
+      <ResponsiveMenuToggle v-if="isNarrow" />
       <div class="brand-section">
         <TheLogo class="brand-logo" />
         <TheTitle class="brand-title" />
       </div>
       <PageRefresh class="header-refresh-action" />
-      <TopMenu class="top-menu-wrapper main-top-menu flex-1" />
+      <TopMenu v-if="!isNarrow" class="top-menu-wrapper main-top-menu flex-1" />
       <HeaderTools class="header-actions" />
     </header>
 
@@ -29,6 +31,7 @@
 </template>
 
 <script setup>
+import { useMediaQuery } from '@vueuse/core'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { AppCard } from '@/components/common'
@@ -39,10 +42,12 @@ import {
   PageRefresh,
 } from '@/layouts/components'
 import HeaderTools from '@/layouts/components/HeaderTools.vue'
+import ResponsiveMenuToggle from '@/layouts/components/ResponsiveMenuToggle.vue'
 import { isFlowTaskListPath } from '@/utils/flow-task-layout'
 import TopMenu from './components/TopMenu.vue'
 
 const route = useRoute()
+const isNarrow = useMediaQuery('(max-width: 768px)')
 const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
 </script>
 
@@ -94,6 +99,12 @@ const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
 
 .header-actions :deep(.message-notification-wrapper) {
   color: var(--top-menu-text-color, var(--layout-header-text-color));
+}
+
+@media (max-width: 768px) {
+  .header-actions {
+    margin-left: auto;
+  }
 }
 
 .layout-page-content {

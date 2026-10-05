@@ -2,7 +2,7 @@
   <div class="app-header-bar layout-chrome-header">
     <!-- 左侧：折叠按鈕 + Tab -->
     <div class="header-left">
-      <MenuCollapse />
+      <ResponsiveMenuToggle />
       <AppTab class="header-tabs" />
     </div>
 
@@ -58,6 +58,7 @@
 </style>
 
 <script setup>
-import { AppTab, MenuCollapse } from '@/layouts/components'
+import { AppTab } from '@/layouts/components'
 import HeaderTools from '@/layouts/components/HeaderTools.vue'
+import ResponsiveMenuToggle from '@/layouts/components/ResponsiveMenuToggle.vue'
 </script>

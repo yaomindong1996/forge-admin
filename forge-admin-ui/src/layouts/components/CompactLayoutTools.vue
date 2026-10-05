@@ -10,17 +10,25 @@
       </button>
     </template>
     <section class="compact-account-tools" aria-label="账户与工具">
-      <UserAvatar />
+      <AccountIdentity class="account-summary" />
       <div class="account-context">
         <TenantSwitcher />
         <OrgSwitcher />
       </div>
       <div class="account-actions">
+        <button id="user-dropdown" type="button" @click="openProfile">
+          <i class="i-lucide:user-round" /><span>个人资料</span>
+        </button>
         <ToggleTheme with-label />
         <Fullscreen with-label />
         <BeginnerGuide v-if="showGuide" with-label />
         <button type="button" @click="openAppearance">
           <i class="i-lucide:panels-top-left" /><span>布局与外观</span>
+        </button>
+      </div>
+      <div class="account-actions">
+        <button class="logout-action" type="button" @click="logout">
+          <i class="i-lucide:log-out" /><span>退出登录</span>
         </button>
       </div>
     </section>
@@ -32,16 +40,26 @@ import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import ToggleTheme from '@/components/common/ToggleTheme.vue'
 import { useAppStore } from '@/store'
+import AccountIdentity from './AccountIdentity.vue'
 import BeginnerGuide from './BeginnerGuide.vue'
+import { useAccountActions } from './composables/useAccountActions'
 import Fullscreen from './Fullscreen.vue'
 import OrgSwitcher from './OrgSwitcher.vue'
 import TenantSwitcher from './TenantSwitcher.vue'
-import UserAvatar from './UserAvatar.vue'
 
 defineProps({ placement: { type: String, default: 'right-end' }, showGuide: Boolean })
 const route = useRoute()
 const appStore = useAppStore()
 const visible = ref(false)
+const { handleAccountAction } = useAccountActions()
+function openProfile() {
+  visible.value = false
+  handleAccountAction('profile')
+}
+function logout() {
+  visible.value = false
+  handleAccountAction('logout')
+}
 function openAppearance() {
   visible.value = false
   appStore.appearanceOpen = true
@@ -73,6 +91,12 @@ watch(() => route.fullPath, () => {
 }
 .account-context:empty {
   display: none;
+}
+.account-summary {
+  padding: 4px 8px 8px;
+}
+.compact-account-tools .logout-action {
+  color: var(--error-color, var(--error-500));
 }
 .account-actions {
   padding-top: 8px;

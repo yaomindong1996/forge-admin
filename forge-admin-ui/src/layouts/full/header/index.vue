@@ -1,6 +1,6 @@
 <template>
   <div class="layout-header layout-chrome-header flex items-center px-12" border-b="1px solid light_border dark:dark_border">
-    <MenuCollapse />
+    <ResponsiveMenuToggle />
 
     <div class="header-breadcrumb-wrap">
       <BreadCrumb />
@@ -11,8 +11,9 @@
 </template>
 
 <script setup>
-import { BreadCrumb, MenuCollapse } from '@/layouts/components'
+import { BreadCrumb } from '@/layouts/components'
 import HeaderTools from '@/layouts/components/HeaderTools.vue'
+import ResponsiveMenuToggle from '@/layouts/components/ResponsiveMenuToggle.vue'
 </script>
 
 <style scoped>

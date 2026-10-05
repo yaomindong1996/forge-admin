@@ -86,20 +86,50 @@ describe('共用外观控件', () => {
       expect(baseUpdate.header).toEqual(source.header)
       expect(baseUpdate.extension).toEqual(source.extension)
       // 修改基础色会回到自动配色；显式恢复手动模式后再验证高级文字编辑。
-      await wrapper.setProps({ modelValue: { ...baseUpdate, navigationMode: 'custom' } })
+      await wrapper.setProps({ modelValue: baseUpdate })
+      await wrapper.findComponent(NSwitch).vm.$emit('update:value', true)
+      const manualUpdate = wrapper.emitted('update:modelValue').at(-1)[0]
+      expect(manualUpdate.navigationMode).toBe('custom')
+      expect(manualUpdate.navigationModeDark).toBe('custom')
+      await wrapper.setProps({ modelValue: manualUpdate })
       const customFields = wrapper.findAllComponents(NColorPicker)
       await customFields[5].vm.$emit('update:value', '#E5E7EB')
-      const textUpdate = wrapper.emitted('update:modelValue')[1][0]
+      const textUpdate = wrapper.emitted('update:modelValue').at(-1)[0]
       expect(textUpdate.headerDark.textColor).toBe('#E5E7EB')
       expect(textUpdate.headerDark.brandTitleTextColor).toBe('#E5E7EB')
       expect(textUpdate.header).toEqual(source.header)
       await customFields[6].vm.$emit('update:value', '#7DB7FF')
-      const activeUpdate = wrapper.emitted('update:modelValue')[2][0]
+      const activeUpdate = wrapper.emitted('update:modelValue').at(-1)[0]
       expect(activeUpdate.topMenuDark.iconActiveColor).toBe('#7DB7FF')
       expect(activeUpdate.topMenuDark.textColorActiveHorizontal).toBe('#7DB7FF')
       expect(activeUpdate.topMenu).toEqual(source.topMenu)
       await wrapper.setProps({ layout: 'simple' })
       expect(wrapper.find('.dark-base-fields').text()).not.toContain('深色顶栏背景')
+    }
+    finally { wrapper.unmount() }
+  })
+
+  it('高级手动开关按当前模式回显，进入手动时保留实际预览颜色', async () => {
+    const wrapper = mount(AppearanceThemeEditor, {
+      props: { modelValue: { ...defaultThemeConfig, navigationModeDark: 'custom' }, layout: 'normal' },
+      global: { components },
+    })
+    try {
+      await wrapper.find('.n-collapse-item__header-main').trigger('click')
+      expect(wrapper.findComponent(NSwitch).props('value')).toBe(false)
+      const original = wrapper.find('.theme-sample').attributes('style')
+      await wrapper.findComponent(NSwitch).vm.$emit('update:value', true)
+      const next = wrapper.emitted('update:modelValue')[0][0]
+      await wrapper.setProps({ modelValue: next })
+      expect(wrapper.find('.theme-sample').attributes('style')).toBe(original)
+      expect(next.navigationModeDark).toBe('custom')
+      await wrapper.findAll('.custom-theme-mode button')[1].trigger('click')
+      expect(wrapper.findComponent(NSwitch).props('value')).toBe(true)
+      await wrapper.findComponent(NSwitch).vm.$emit('update:value', false)
+      const updated = wrapper.emitted('update:modelValue').at(-1)[0]
+      expect(updated.navigationMode).toBe('custom')
+      expect(updated.navigationModeDark).toBe('auto')
+      expect(updated.header).toEqual(next.header)
     }
     finally { wrapper.unmount() }
   })

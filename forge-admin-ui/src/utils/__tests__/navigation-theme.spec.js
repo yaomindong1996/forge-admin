@@ -6,8 +6,10 @@ import {
   contrastRatio,
   createNavigationTheme,
   navigationPresets,
+  resolveNavigationMode,
   resolveNavigationTheme,
   updateNavigationBases,
+  updateNavigationMode,
 } from '@/utils/navigation-theme'
 import { prepareTenantAppearance, readTenantAppearance } from '@/views/system/components/tenant/tenant-appearance'
 
@@ -109,6 +111,61 @@ describe('租户外观保存兼容', () => {
     expect(theme.navigationMode).toBe('custom')
     expect(theme.primaryColor).toBe('#b91c1c')
     expect(readTenantAppearance().navigationMode).toBe('auto')
+  })
+})
+
+describe('深浅导航模式隔离', () => {
+  it.each(['auto', 'custom'])('旧全局 %s 同时适用于浅色和深色', (mode) => {
+    expect(resolveNavigationMode({ navigationMode: mode })).toBe(mode)
+    expect(resolveNavigationMode({ navigationMode: mode }, true)).toBe(mode)
+    expect(resolveNavigationMode({ navigationMode: mode, navigationModeDark: 'invalid' }, true)).toBe(mode)
+  })
+
+  it.each([false, true])('修改模式 %s 基础色不改变另一套手动渲染效果', (dark) => {
+    const source = {
+      ...defaultThemeConfig,
+      navigationMode: 'custom',
+      header: { ...defaultThemeConfig.header, textColor: '#334155' },
+      headerDark: { ...defaultThemeConfig.headerDark, textColor: '#b8cde0' },
+      extension: { density: 'compact' },
+    }
+    const original = JSON.stringify(source)
+    const other = resolveNavigationTheme(source, defaultThemeConfig, !dark)
+    const next = updateNavigationBases(source, { header: '#061917', side: '#08201d' }, dark)
+    expect(resolveNavigationMode(next, dark)).toBe('auto')
+    expect(resolveNavigationMode(next, !dark)).toBe('custom')
+    const rendered = resolveNavigationTheme(next, defaultThemeConfig, !dark)
+    for (const group of ['header', 'topMenu', 'sideMenu']) {
+      expect(rendered[group]).toEqual(other[group])
+    }
+    expect(next.extension).toEqual(source.extension)
+    expect(JSON.stringify(source)).toBe(original)
+  })
+
+  it.each([false, true])('手动开关 %s 不改变另一套自动配色', (dark) => {
+    const source = { ...defaultThemeConfig }
+    const next = updateNavigationMode(source, 'custom', dark)
+    expect(resolveNavigationMode(next, dark)).toBe('custom')
+    expect(resolveNavigationMode(next, !dark)).toBe('auto')
+    expect(source).not.toHaveProperty('navigationModeDark')
+  })
+
+  it('租户保存、解析和重新编辑保留独立模式及扩展字段', () => {
+    const data = { themeConfig: JSON.stringify({
+      navigationMode: 'custom',
+      navigationModeDark: 'auto',
+      header: { textColor: '#334155' },
+      extension: { version: 2 },
+    }) }
+    prepareTenantAppearance(data)
+    const loaded = readTenantAppearance(data)
+    expect(loaded.navigationMode).toBe('custom')
+    expect(loaded.navigationModeDark).toBe('auto')
+    expect(loaded.header.textColor).toBe('#334155')
+    expect(loaded.extension).toEqual({ version: 2 })
+    const next = updateNavigationMode(loaded, 'custom', true)
+    expect(next.navigationMode).toBe('custom')
+    expect(next.navigationModeDark).toBe('custom')
   })
 })
 

@@ -1,33 +1,16 @@
 <template>
-  <n-dropdown trigger="click" :options="dropdownOptions" @select="handleSelect">
-    <button id="user-dropdown" class="user-trigger flex items-center" type="button" aria-label="个人中心">
-      <n-avatar
-        v-if="avatarSrc"
-        round
-        :size="28"
-        :src="avatarSrc"
-        @error="handleAvatarError"
-      />
-      <n-avatar
-        v-else
-        round
-        :size="28"
-        :style="{ backgroundColor: 'var(--primary-500)', fontSize: '12px' }"
-      >
-        {{ avatarText }}
-      </n-avatar>
-      <span v-if="userStore.userInfo || userStore.staffInfo" class="user-name ml-8 flex-col flex-shrink-0 items-center">
-        <span class="text-14">{{ userStore.realName || userStore.staffInfo?.staffName }}</span>
-      </span>
+  <!-- 桌面顶栏保留个人下拉，复用统一身份展示与账户动作 -->
+  <n-dropdown trigger="click" :options="dropdownOptions" @select="handleAccountAction">
+    <button id="user-dropdown" class="user-trigger" type="button" aria-label="个人中心">
+      <AccountIdentity />
     </button>
   </n-dropdown>
 </template>
 
 <script setup>
-import api from '@/api'
-import { useAuthStore, useUserStore } from '@/store'
-import { resolveRenderableFileUrl } from '@/utils/file'
-import { isSilentAuthError } from '@/utils/http/helpers'
+import { h } from 'vue'
+import AccountIdentity from './AccountIdentity.vue'
+import { useAccountActions } from './composables/useAccountActions'
 
 const props = defineProps({
   /**
@@ -40,92 +23,11 @@ const props = defineProps({
   },
 })
 
-const router = useRouter()
-const userStore = useUserStore()
-const authStore = useAuthStore()
-
-const avatarSrc = ref('')
-const avatarText = computed(() => {
-  const name = userStore.realName || userStore.username
-  return name ? name.charAt(0) : 'U'
-})
-
-const dropdownOptions = computed(() => {
-  const baseOptions = []
-  baseOptions.push(
-    {
-      label: '个人资料',
-      key: 'profile',
-      icon: () => h('i', { class: 'i-material-symbols:person-outline text-14' }),
-    },
-    {
-      label: '退出登录',
-      key: 'logout',
-      icon: () => h('i', { class: 'i-mdi:exit-to-app text-14' }),
-    },
-  )
-  return baseOptions
-})
-
-async function loadAvatar(forceRefresh = false) {
-  const avatar = userStore.avatar
-  if (!avatar) {
-    avatarSrc.value = ''
-    return
-  }
-  try {
-    avatarSrc.value = await resolveRenderableFileUrl(avatar, undefined, forceRefresh)
-  }
-  catch {
-    avatarSrc.value = ''
-  }
-}
-
-function handleAvatarError() {
-  avatarSrc.value = ''
-}
-
-function handleSelect(key) {
-  switch (key) {
-    case 'profile':
-      {
-        const target = typeof props.profileRoute === 'function'
-          ? props.profileRoute()
-          : props.profileRoute
-        if (target)
-          router.push(target)
-        else
-          router.push('/profile')
-      }
-      break
-    case 'logout':
-      $dialog.confirm({
-        'title': '提示',
-        'type': 'info',
-        'content': '确认退出？',
-        'positive-button-props': {
-          type: 'primary',
-        },
-        async confirm() {
-          authStore.beginLogout()
-          try {
-            await api.logout()
-          }
-          catch (error) {
-            if (!isSilentAuthError(error))
-              console.error('logout error', error)
-          }
-          authStore.logout()
-          $message.success('已退出登录')
-        },
-      })
-      break
-  }
-}
-
-watch(() => userStore.avatar, () => {
-  loadAvatar(true)
-}, { immediate: true })
+const { handleAccountAction } = useAccountActions(() => props.profileRoute)
+const dropdownOptions = [
+  { label: '个人资料', key: 'profile', icon: () => h('i', { class: 'i-lucide:user-round text-14' }) },
+  { label: '退出登录', key: 'logout', icon: () => h('i', { class: 'i-lucide:log-out text-14' }) },
+]
 </script>
 
 <style scoped>
@@ -133,9 +35,15 @@ watch(() => userStore.avatar, () => {
   border: 0;
   padding: 0 4px;
   min-height: 32px;
+  max-width: 180px;
   background: transparent;
   color: var(--chrome-text, var(--text-primary));
   font: inherit;
   cursor: pointer;
+}
+@media (max-width: 900px) {
+  .user-trigger :deep(.account-name) {
+    display: none;
+  }
 }
 </style>

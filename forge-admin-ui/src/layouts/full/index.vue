@@ -5,7 +5,7 @@
 
     <!-- 侧边栏 -->
     <aside
-      v-if="showSidebar"
+      v-if="showSidebar && !isNarrow"
       class="sidebar-full"
       :class="{ 'sidebar-full-collapsed': appStore.collapsed }"
     >
@@ -28,6 +28,7 @@
 </template>
 
 <script setup>
+import { useMediaQuery } from '@vueuse/core'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import DemoBanner from '@/components/DemoBanner.vue'
@@ -40,6 +41,7 @@ import AppHeader from './header/index.vue'
 import SideBar from './sidebar/index.vue'
 
 const appStore = useAppStore()
+const isNarrow = useMediaQuery('(max-width: 768px)')
 const route = useRoute()
 const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
 const { showSidebar } = useSidebarVisibility()
@@ -134,26 +136,5 @@ const { showSidebar } = useSidebarVisibility()
 
 .content-full::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
-}
-
-/* 响应式 */
-@media (max-width: 768px) {
-  .sidebar-full {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    z-index: 1000;
-  }
-
-  .sidebar-full-collapsed {
-    transform: translateX(-100%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sidebar-full {
-    transition: none;
-  }
 }
 </style>

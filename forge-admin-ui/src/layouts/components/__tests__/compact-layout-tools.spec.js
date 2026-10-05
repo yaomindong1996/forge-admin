@@ -6,11 +6,15 @@ import { useAppStore } from '@/store/modules/app'
 import CompactLayoutTools from '../CompactLayoutTools.vue'
 
 const navigation = vi.hoisted(() => ({ route: null }))
+const accountAction = vi.hoisted(() => vi.fn())
+vi.mock('../composables/useAccountActions', () => ({ useAccountActions: () => ({
+  handleAccountAction: accountAction,
+}) }))
 vi.mock('vue-router', () => ({ useRoute: () => navigation.route }))
 vi.mock('@/store', async () => ({ useAppStore: (await import('@/store/modules/app')).useAppStore }))
 vi.mock('../TenantSwitcher.vue', () => ({ default: { template: '<button>当前租户</button>' } }))
 vi.mock('../OrgSwitcher.vue', () => ({ default: { template: '<button>当前组织</button>' } }))
-vi.mock('../UserAvatar.vue', () => ({ default: { template: '<button>个人资料</button>' } }))
+vi.mock('../AccountIdentity.vue', () => ({ default: { template: '<span>当前用户</span>' } }))
 vi.mock('../BeginnerGuide.vue', () => ({ default: { template: '<button>操作指引</button>' } }))
 
 const popover = {
@@ -27,6 +31,7 @@ describe('无顶栏账户工具', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     navigation.route = reactive({ fullPath: '/' })
+    accountAction.mockClear()
   })
 
   it('打开外观时关闭账户面板，通过根级 Store 保留外观抽屉', async () => {
@@ -54,6 +59,21 @@ describe('无顶栏账户工具', () => {
       expect(wrapper.text()).toContain('切换浅色模式')
       navigation.route.fullPath = '/profile'
       await flushPromises()
+      expect(wrapper.find('.compact-account-tools').exists()).toBe(false)
+    }
+    finally { wrapper.unmount() }
+  })
+
+  it.each([['个人资料', 'profile'], ['退出登录', 'logout']])('%s 直接调用共用动作并关闭面板', async (label, key) => {
+    const wrapper = mount(CompactLayoutTools, options)
+    try {
+      await wrapper.find('button[aria-label="账户与工具"]').trigger('click')
+      expect(wrapper.text()).toContain('当前用户')
+      expect(wrapper.find('#user-dropdown').text()).toBe('个人资料')
+      const button = wrapper.findAll('button').find(item => item.text() === label)
+      await button.trigger('click')
+      expect(accountAction).toHaveBeenCalledOnce()
+      expect(accountAction).toHaveBeenCalledWith(key)
       expect(wrapper.find('.compact-account-tools').exists()).toBe(false)
     }
     finally { wrapper.unmount() }

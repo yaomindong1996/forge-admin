@@ -5,6 +5,7 @@
 
     <!-- 侧边栏 -->
     <aside
+      v-if="!isNarrow"
       class="sidebar-wrapper"
       :class="{ 'sidebar-collapsed': appStore.collapsed }"
     >
@@ -24,6 +25,7 @@
 </template>
 
 <script setup>
+import { useMediaQuery } from '@vueuse/core'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import DemoBanner from '@/components/DemoBanner.vue'
@@ -33,6 +35,7 @@ import AppHeader from './header/index.vue'
 import SideBar from './sidebar/index.vue'
 
 const appStore = useAppStore()
+const isNarrow = useMediaQuery('(max-width: 768px)')
 const route = useRoute()
 const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
 </script>
@@ -51,7 +54,6 @@ const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
 .sidebar-wrapper {
   flex-shrink: 0;
   width: var(--side-menu-width);
-  transition: width var(--transition-slow);
   position: relative;
   z-index: 100;
   background: var(--side-menu-bg-color);
@@ -103,31 +105,10 @@ const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
 
 /* 响应式 */
 @media (max-width: 768px) {
-  .sidebar-wrapper {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    z-index: 1000;
-    border-right: none;
-    box-shadow: var(--shadow-lg);
-  }
-
-  .sidebar-wrapper.sidebar-collapsed {
-    transform: translateX(-100%);
-  }
-
   .header-glass {
     height: 48px;
     min-height: 48px;
     padding: 0 8px 0 0;
-  }
-}
-
-/* 动画优化 */
-@media (prefers-reduced-motion: reduce) {
-  .sidebar-wrapper {
-    transition: none;
   }
 }
 </style>

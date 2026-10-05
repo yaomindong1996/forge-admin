@@ -150,6 +150,22 @@ function protectThemeSurfaces(theme) {
   return theme
 }
 
+export function resolveNavigationMode(config, isDark = false) {
+  // 旧配置只有一个全局模式；缺少深色模式时沿用它，而不是重置历史定制。
+  const legacy = config?.navigationMode === 'auto' ? 'auto' : 'custom'
+  const darkMode = config?.navigationModeDark
+  return isDark && ['auto', 'custom'].includes(darkMode) ? darkMode : legacy
+}
+
+export function updateNavigationMode(config, mode, isDark = false) {
+  // 首次编辑先固定另一模式；浅色开关变化不能改变深色的历史回退结果。
+  return {
+    ...config,
+    navigationMode: isDark ? resolveNavigationMode(config) : mode,
+    navigationModeDark: isDark ? mode : resolveNavigationMode(config, true),
+  }
+}
+
 export function resolveNavigationTheme(config, defaults, isDark = false) {
   const source = config || {}
   const suffix = isDark ? 'Dark' : ''
@@ -158,7 +174,7 @@ export function resolveNavigationTheme(config, defaults, isDark = false) {
   for (const group of groups) {
     theme[group] = { ...defaults[group + suffix], ...source[group + suffix] }
   }
-  if (source.navigationMode === 'auto') {
+  if (resolveNavigationMode(source, isDark) === 'auto') {
     const generated = createNavigationTheme({
       primary: theme.primaryColor,
       header: theme.header.backgroundColor,
@@ -180,7 +196,7 @@ export function updateNavigationBases(config, patch, isDark = false) {
     side: patch.side || config[`sideMenu${suffix}`]?.backgroundColor,
   })
   // 深色编辑只更新对应分组，不能把深色背景写进浅色配置。
-  const next = { ...config, primaryColor: generated.primaryColor, navigationMode: 'auto' }
+  const next = { ...updateNavigationMode(config, 'auto', isDark), primaryColor: generated.primaryColor }
   for (const group of ['header', 'topMenu', 'sideMenu']) {
     next[group + suffix] = { ...config[group + suffix], ...generated[group] }
   }

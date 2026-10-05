@@ -72,12 +72,12 @@
         </div>
         <div class="manual-mode">
           <span>手动配置文字和状态色</span>
-          <n-switch :value="model.navigationMode === 'custom'" @update:value="setManualMode" />
+          <n-switch :value="manualMode" @update:value="setManualMode" />
         </div>
         <p class="theme-guidance">
-          历史自定义保持不变。低对比颜色在显示时自动保护；修改基础色会重新启用自动配色。
+          浅色与深色独立设置。修改背景只对当前模式启用自动配色；低对比颜色在显示时自动保护。
         </p>
-        <div v-if="model.navigationMode === 'custom'" class="theme-color-fields">
+        <div v-if="manualMode" class="theme-color-fields">
           <label v-for="field in advancedFields" :key="field.path">
             <span>{{ field.label }}</span>
             <n-color-picker
@@ -95,17 +95,19 @@
 import { computed, ref } from 'vue'
 import { defaultThemeConfig } from '@/config/theme.config'
 import {
-  createNavigationTheme,
   navigationPresets,
+  resolveNavigationMode,
   resolveNavigationTheme,
   solidColor,
   updateNavigationBases,
+  updateNavigationMode,
 } from '@/utils/navigation-theme'
 
 const props = defineProps({ layout: { type: String, default: 'normal' } })
 const model = defineModel({ type: Object, required: true })
 const previewDark = ref(false)
 const advancedDark = ref(false)
+const manualMode = computed(() => resolveNavigationMode(model.value, advancedDark.value) === 'custom')
 const hasHeader = computed(() => !['simple', 'bento', 'empty'].includes(props.layout))
 const baseFields = computed(() => [
   { key: 'primary', label: '品牌主色' },
@@ -188,14 +190,11 @@ function setManualMode(enabled) {
     return
   }
   const suffix = advancedDark.value ? 'Dark' : ''
-  const generated = createNavigationTheme({
-    primary: baseValue('primary'),
-    header: model.value[`header${suffix}`]?.backgroundColor,
-    side: model.value[`sideMenu${suffix}`]?.backgroundColor,
-  })
-  const next = { ...model.value, navigationMode: 'custom' }
+  // 从实际显示结果进入手动模式，避免自动推导过的状态色突然跳回旧原始值。
+  const generated = resolveNavigationTheme(model.value, defaultThemeConfig, advancedDark.value)
+  const next = updateNavigationMode(model.value, 'custom', advancedDark.value)
   for (const group of ['header', 'topMenu', 'sideMenu']) {
-    next[group + suffix] = { ...generated[group], ...model.value[group + suffix] }
+    next[group + suffix] = { ...model.value[group + suffix], ...generated[group] }
   }
   model.value = next
 }
@@ -213,7 +212,10 @@ function updateCustom(path, value) {
       patch.textColorActiveHover = value
     }
   }
-  model.value = { ...model.value, navigationMode: 'custom', [group]: { ...model.value[group], ...patch } }
+  model.value = {
+    ...updateNavigationMode(model.value, 'custom', advancedDark.value),
+    [group]: { ...model.value[group], ...patch },
+  }
 }
 </script>
 

@@ -60,10 +60,13 @@ describe('布局主题覆盖与工具接入契约', () => {
 
   it('无顶栏布局收纳账户与工具，便当盒不再另写注销/全屏逻辑', () => {
     const panel = source('layouts/components/CompactLayoutTools.vue')
-    for (const component of ['TenantSwitcher', 'OrgSwitcher', 'UserAvatar', 'ToggleTheme', 'Fullscreen']) {
+    for (const component of ['TenantSwitcher', 'OrgSwitcher', 'AccountIdentity', 'ToggleTheme', 'Fullscreen']) {
       expect(panel).toContain(`<${component}`)
     }
     expect(panel).toContain('appStore.appearanceOpen = true')
+    expect(panel).not.toContain('<UserAvatar')
+    expect(panel).toContain('handleAccountAction(\'logout\')')
+    expect(panel).toContain('handleAccountAction(\'profile\')')
     expect(source('layouts/simple/sidebar/index.vue')).toContain('<CompactLayoutTools')
     const rail = source('layouts/bento/components/BentoRail.vue')
     expect(rail).toContain('<CompactLayoutTools')
@@ -81,5 +84,20 @@ describe('布局主题覆盖与工具接入契约', () => {
     expect(nexus).not.toContain('translateX(-100%)')
     expect(nexus).not.toContain('nexus-expand-bar')
     expect(nexus).not.toContain('handleBarMouseDown')
+  })
+
+  it.each(['normal', 'full', 'top-menu', 'top-side-menu'])('%s 窄屏复用授权抽屉，不残留固定侧栏', (layout) => {
+    const content = source(`layouts/${layout}/index.vue`)
+    const header = ['normal', 'full'].includes(layout)
+      ? source(`layouts/${layout}/header/index.vue`)
+      : content
+    expect(content).toContain('!isNarrow')
+    expect(content).toContain('max-width: 768px')
+    expect(content).not.toContain('translateX(-100%)')
+    expect(header).toContain('<ResponsiveMenuToggle')
+    expect(content).not.toContain('transition: width')
+    if (['top-menu', 'top-side-menu'].includes(layout)) {
+      expect(content).toContain('<TopMenu v-if="!isNarrow"')
+    }
   })
 })

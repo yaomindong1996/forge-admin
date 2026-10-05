@@ -1,11 +1,12 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { useAppStore } from '@/store/modules/app'
 import ResponsiveMenuToggle from '../ResponsiveMenuToggle.vue'
 
-const media = vi.hoisted(() => ({ narrow: null }))
+const media = vi.hoisted(() => ({ narrow: null, route: null }))
+vi.mock('vue-router', () => ({ useRoute: () => media.route }))
 vi.mock('@vueuse/core', async importOriginal => ({
   ...await importOriginal(),
   useMediaQuery: () => media.narrow,
@@ -22,6 +23,7 @@ describe('响应式菜单可达性', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     media.narrow = ref(false)
+    media.route = reactive({ fullPath: '/home' })
   })
 
   it('桌面收起后入口仍存在，点击可以展开', async () => {
@@ -63,6 +65,20 @@ describe('响应式菜单可达性', () => {
       expect(wrapper.find('.select-leaf').exists()).toBe(false)
       expect(wrapper.find('button[aria-label="收起菜单"]').exists()).toBe(true)
       expect(useAppStore().collapsed).toBe(false)
+    }
+    finally { wrapper.unmount() }
+  })
+
+  it('从菜单外导航也关闭抽屉，不修改桌面偏好', async () => {
+    media.narrow.value = true
+    useAppStore().collapsed = true
+    const wrapper = mount(ResponsiveMenuToggle)
+    try {
+      await wrapper.find('button[aria-label="打开菜单"]').trigger('click')
+      media.route.fullPath = '/profile'
+      await flushPromises()
+      expect(wrapper.find('.select-leaf').exists()).toBe(false)
+      expect(useAppStore().collapsed).toBe(true)
     }
     finally { wrapper.unmount() }
   })

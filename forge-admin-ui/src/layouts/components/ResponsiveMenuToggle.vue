@@ -13,13 +13,19 @@
 <script setup>
 import { useMediaQuery } from '@vueuse/core'
 import { ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import DrawerMenu from '@/layouts/immersive/components/DrawerMenu.vue'
 import MenuCollapse from './MenuCollapse.vue'
 
 const isNarrow = useMediaQuery('(max-width: 768px)')
+const route = useRoute()
 const drawerVisible = ref(false)
 // 窗口放大后回到桌面导航，不能残留遮罩挡住内容。
 watch(isNarrow, () => {
+  drawerVisible.value = false
+})
+// 搜索、通知等抽屉外入口也能导航，不能让旧菜单遮罩留在新页面。
+watch(() => route.fullPath, () => {
   drawerVisible.value = false
 })
 </script>

@@ -7,12 +7,14 @@
     <header
       class="layout-header layout-chrome-header top-layout-header flex flex-shrink-0 items-center"
     >
+      <!-- 小窗口通过同一抽屉访问全部层级，不同时展示两层桌面导航 -->
+      <ResponsiveMenuToggle v-if="isNarrow" />
       <div class="brand-section">
         <TheLogo class="brand-logo" />
         <TheTitle class="brand-title" />
       </div>
       <PageRefresh class="header-refresh-action" />
-      <TopMenu class="top-menu-wrapper main-top-menu flex-1" />
+      <TopMenu v-if="!isNarrow" class="top-menu-wrapper main-top-menu flex-1" />
 
       <HeaderTools class="header-actions" />
     </header>
@@ -20,7 +22,7 @@
     <div class="w-full flex flex-1 overflow-hidden">
       <!-- 左侧二级及以下菜单 - 只在有子菜单时显示 -->
       <aside
-        v-if="showSidebar"
+        v-if="showSidebar && !isNarrow"
         class="side-menu-wrapper flex flex-col flex-shrink-0"
         :class="{ collapsed: appStore.collapsed }"
       >
@@ -44,6 +46,7 @@
 </template>
 
 <script setup>
+import { useMediaQuery } from '@vueuse/core'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { AppCard } from '@/components/common'
@@ -55,6 +58,7 @@ import {
   PageRefresh,
 } from '@/layouts/components'
 import HeaderTools from '@/layouts/components/HeaderTools.vue'
+import ResponsiveMenuToggle from '@/layouts/components/ResponsiveMenuToggle.vue'
 import { useSidebarVisibility } from '@/layouts/composables/useSidebarVisibility'
 import { useAppStore } from '@/store'
 import { isFlowTaskListPath } from '@/utils/flow-task-layout'
@@ -62,6 +66,7 @@ import SideMenu from './components/SideMenu.vue'
 import TopMenu from './components/TopMenu.vue'
 
 const appStore = useAppStore()
+const isNarrow = useMediaQuery('(max-width: 768px)')
 const route = useRoute()
 const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
 const { showSidebar } = useSidebarVisibility()
@@ -115,6 +120,12 @@ const { showSidebar } = useSidebarVisibility()
 
 .header-actions :deep(.message-notification-wrapper) {
   color: var(--top-menu-text-color, var(--layout-header-text-color));
+}
+
+@media (max-width: 768px) {
+  .header-actions {
+    margin-left: auto;
+  }
 }
 
 .layout-page-content {
