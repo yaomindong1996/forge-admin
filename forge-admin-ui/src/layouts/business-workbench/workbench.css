@@ -382,9 +382,13 @@
     background-color 0.15s ease;
 }
 .mega-section-nav > button:hover,
+.mega-section-nav > button:focus-visible {
+  color: var(--side-menu-text-color-hover, var(--workbench-primary));
+  background: var(--side-menu-bg-color-hover, var(--bg-secondary));
+}
 .mega-section-nav > button.is-active {
-  color: var(--workbench-primary);
-  background: color-mix(in srgb, var(--workbench-primary) 8%, transparent);
+  color: var(--side-menu-text-color-active, var(--workbench-primary));
+  background: var(--side-menu-bg-color-active, var(--bg-secondary));
 }
 .mega-section-nav > button.is-current .mega-section-nav__label {
   font-weight: 650;
@@ -413,11 +417,8 @@
 }
 .mega-section-nav__arrow {
   flex: 0 0 auto;
-  color: var(--text-tertiary);
+  color: currentColor;
   font-size: 13px;
-}
-.mega-section-nav > button.is-active .mega-section-nav__arrow {
-  color: var(--workbench-primary);
 }
 .mega-section-nav-summary {
   flex: 0 0 auto;
@@ -592,11 +593,14 @@
   overflow-wrap: anywhere;
 }
 .workbench-menu-link:hover,
-.workbench-menu-link.is-current {
-  color: var(--workbench-primary);
-  background: color-mix(in srgb, var(--workbench-primary) 6%, transparent);
+.workbench-menu-link:focus-visible {
+  color: var(--side-menu-text-color-hover, var(--workbench-primary));
+  background: var(--side-menu-bg-color-hover, var(--bg-secondary));
 }
+/* 选中项悬停/聚焦仍保留选中配色，不能出现白字配透明/浅色背景。 */
 .workbench-menu-link.is-current {
+  color: var(--side-menu-text-color-active, var(--workbench-primary));
+  background: var(--side-menu-bg-color-active, var(--bg-secondary));
   font-weight: 600;
 }
 .workbench-menu-group {

@@ -69,3 +69,34 @@
 复跑命令：先进入 forge-admin-ui，source NVM 并 nvm use v20.19.0，复用 layout-theme-consistency/T12
 日志中的原 16 文件 Vitest 命令，再追加 test-spec 的 8 文件；构建命令仍为
 node --max-old-space-size=8192 node_modules/vite/bin/vite.js build。
+
+## T05 2026-10-05 末级菜单配色修复
+
+- 基线 88844f77；fetch 后与 origin/main 相同，用户明确要求本次完成后推送 main。
+- 根因确认：公共面板覆盖将 --workbench-primary 设为 side-menu-text-color-active，旧配置白字本应
+  使用实色选中底，末级入口却用 6% 混合色，产生白字近白底；并非菜单重复或后端数据问题。
+- 将品牌色与选中文字色分离，二级及任意深度末级入口 hover/focus-visible 和 active/current 分别成对
+  使用对应侧栏前景/背景 Token，选中规则后置保持悬停选中一致，二级箭头继承按钮文字色。
+  删除公共二级 hover/active 混用覆盖；不改租户配置/权限/接口/路由及顶级透明背景/横条。
+- 第一次静态测试 107 通过、1 失败：测试 CSS 规则解析器把前置注释并入选择器。
+  修正解析器移除 CSS 注释后，原断言不变；最终 6 文件 108 项通过，新增 8 项，1.09 秒。
+- 复跑命令（forge-admin-ui，先 source NVM 并 nvm use v20.19.0）：
+  node node_modules/vitest/vitest.mjs run src/layouts/__tests__/layout-theme-surfaces.spec.js
+  src/utils/__tests__/navigation-theme.spec.js src/components/common/__tests__/system-navigation.spec.js
+  src/layouts/business-workbench/__tests__/menu-model.spec.js
+  src/layouts/business-workbench/__tests__/menu-scroll.spec.js
+  src/layouts/business-workbench/__tests__/settings.spec.js（上述参数在同一条命令中执行）。
+- node node_modules/eslint/bin/eslint.js src/layouts/__tests__/layout-theme-surfaces.spec.js 退出 0；
+  git diff --check 通过；node --max-old-space-size=8192 node_modules/vite/bin/vite.js build 退出 0。
+  构建耗时 37.90 秒，日志 /private/tmp/forge-workbench-menu-state-build.log，仅既有插件耗时提示。
+- 复用 /private/tmp/forge-system-navigation.cfiocl 真实 App/布局/组件的隔离预览，追加配色控件与五级菜单。
+  Vite 初次启动受沙箱限制 EPERM，提升权限后仅监听 127.0.0.1:3032；没有连接真实后端或写业务数据。
+- 浏览器 1280px 实测：白字选中 rgb(255,255,255) 配蓝底 rgb(47,111,237)，文字/图标一致，
+  已选项悬停不改变底色；未选项悬停/深层聚焦为黑字配 rgb(238,244,255)。
+- 自定义白字悬停配 rgb(51,65,85) 深灰底；深色悬停配 rgb(38,52,73)；默认自动模式文字配浅灰底。
+  多层入口正常跳转，重新打开仍有 aria-current=page，is-current/is-nested/is-deep 状态与背景正确。
+- 浏览器 error 日志为空；沿用预览根路由缺少 /、设计器 transfer 重复注册等 warning，未隐藏，
+  不将隔离预览表述为真实租户环境 E2E；未更改浏览器视口。
+- 截图 /private/tmp/forge-workbench-menu-state.png；本轮标签 15 已关闭，临时 Vite PID 57268 已 Ctrl+C 停止，
+  3032 无监听，没有停止其它服务。
+  用户 .DS_Store 与 main 工作区 .ci-tools/ 保留，不纳入提交；仅本轮源码、回归测试和文档合入 main。

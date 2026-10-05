@@ -108,7 +108,8 @@
 .layout-chrome-header .business-mega-panel {
   --workbench-surface: var(--side-menu-bg-color);
   --workbench-muted: var(--side-menu-text-color);
-  --workbench-primary: var(--side-menu-text-color-active);
+  /* 品牌色不是选中文字色；白色选中文字只能与它配置的选中表面成对使用。 */
+  --workbench-primary: var(--primary-color);
   --text-primary: var(--side-menu-text-color);
   --text-secondary: var(--side-menu-text-color);
   --text-tertiary: var(--side-menu-text-color);
@@ -116,10 +117,6 @@
   color: var(--side-menu-text-color);
 }
 .business-mega-panel .mega-panel-aside { background: var(--side-menu-bg-color); }
-.business-mega-panel .mega-section-nav > button:is(:hover, .is-active) {
-  background: var(--side-menu-bg-color-active);
-  color: var(--side-menu-text-color-active);
-}
 
 /* 便当盒没有顶栏；工具和快捷入口随导航表面配色。 */
 .bento-rail.bento-rail {

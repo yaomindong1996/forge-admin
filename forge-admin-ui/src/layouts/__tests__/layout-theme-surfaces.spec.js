@@ -4,6 +4,13 @@ import { describe, expect, it } from 'vitest'
 
 const source = file => fs.readFileSync(path.resolve(process.cwd(), 'src', file), 'utf8')
 
+function styleRule(css, selector) {
+  const rules = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+  const rule = rules.find(match => match[1].split(',').some(part => part.trim() === selector))
+  expect(rule, `缺少状态样式 ${selector}`).toBeDefined()
+  return rule[2]
+}
+
 describe('布局主题覆盖与工具接入契约', () => {
   it('通知表面没有独立绿色品牌或写死白底，审批按钮沿用 Naive 主题', () => {
     const content = source('layouts/components/MessageNotification.vue')
@@ -168,5 +175,35 @@ describe('布局主题覆盖与工具接入契约', () => {
     expect(header).toContain('向左查看更多菜单')
     expect(header).toContain('@keydown.right.prevent')
     expect(header).toContain('scrollIntoView')
+  })
+
+  it('工作台品牌强调色不借用可能为白色的侧栏选中文字色', () => {
+    const panel = styleRule(source('styles/layout-chrome.css'), '.layout-chrome-header .business-mega-panel')
+    expect(panel).toContain('--workbench-primary: var(--primary-color)')
+    expect(panel).not.toContain('--workbench-primary: var(--side-menu-text-color-active)')
+  })
+
+  it.each([
+    ['.mega-section-nav > button:hover', 'hover'],
+    ['.mega-section-nav > button:focus-visible', 'hover'],
+    ['.mega-section-nav > button.is-active', 'active'],
+    ['.workbench-menu-link:hover', 'hover'],
+    ['.workbench-menu-link:focus-visible', 'hover'],
+    ['.workbench-menu-link.is-current', 'active'],
+  ])('%s 前景和背景成对使用侧栏 %s 配色', (selector, state) => {
+    const rule = styleRule(source('layouts/business-workbench/workbench.css'), selector)
+    expect(rule).toContain(`color: var(--side-menu-text-color-${state},`)
+    expect(rule).toContain(`background: var(--side-menu-bg-color-${state},`)
+    expect(rule).not.toContain('color-mix')
+  })
+
+  it('选中状态后置以覆盖悬停/聚焦，箭头随父按钮状态而非品牌色', () => {
+    const css = source('layouts/business-workbench/workbench.css')
+    expect(css.indexOf('.workbench-menu-link.is-current {'))
+      .toBeGreaterThan(css.indexOf('.workbench-menu-link:focus-visible {'))
+    expect(css.indexOf('.mega-section-nav > button.is-active {'))
+      .toBeGreaterThan(css.indexOf('.mega-section-nav > button:focus-visible {'))
+    expect(styleRule(css, '.mega-section-nav__arrow')).toContain('color: currentColor')
+    expect(source('styles/layout-chrome.css')).not.toContain('button:is(:hover, .is-active)')
   })
 })
