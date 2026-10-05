@@ -1,7 +1,6 @@
-import { defaultThemeConfig } from '@/config/theme.config'
-import { useTenantStore } from '@/store'
 import { resolveRenderableFileUrl } from '@/utils/file'
 import { normalizePageTitle, setDocumentTitle } from '@/utils/page-title'
+import { readTenantAppearance } from '@/utils/tenant-appearance'
 
 const MANAGED_FILE_ID_PATTERN = /^[\w-]{8,128}$/
 
@@ -125,26 +124,7 @@ export function setDocumentFavicon(iconUrl) {
   head.appendChild(shortcut)
 }
 
-function isHexColor(value) {
-  return typeof value === 'string' && /^#(?:[\da-f]{3}|[\da-f]{6}|[\da-f]{8})$/i.test(value.trim())
-}
-
-function parseThemeConfig(tenantConfig, tenantStore) {
-  const rawThemeConfig = tenantConfig?.themeConfig
-  if (rawThemeConfig) {
-    try {
-      return typeof rawThemeConfig === 'string' ? JSON.parse(rawThemeConfig) : rawThemeConfig
-    }
-    catch (error) {
-      console.error('解析主题配置失败:', error)
-    }
-  }
-  return tenantStore.themeConfig
-}
-
 export async function applyTenantConfig(tenantConfig, appStore) {
-  const tenantStore = useTenantStore()
-
   appStore.resetAccountState()
   if (!tenantConfig)
     return
@@ -153,44 +133,8 @@ export async function applyTenantConfig(tenantConfig, appStore) {
     appStore.setLayout(tenantConfig.systemLayout)
   }
 
-  const themeConfigObj = parseThemeConfig(tenantConfig, tenantStore)
-  if (themeConfigObj) {
-    const primaryColor = tenantConfig.systemTheme || themeConfigObj.primaryColor || defaultThemeConfig.primaryColor
-    appStore.setThemeConfig({
-      ...themeConfigObj,
-      navigationMode: themeConfigObj.navigationMode || 'custom',
-      primaryColor,
-      header: {
-        ...defaultThemeConfig.header,
-        ...themeConfigObj.header,
-      },
-      headerDark: {
-        ...defaultThemeConfig.headerDark,
-        ...themeConfigObj.headerDark,
-      },
-      topMenu: {
-        ...defaultThemeConfig.topMenu,
-        ...themeConfigObj.topMenu,
-      },
-      topMenuDark: {
-        ...defaultThemeConfig.topMenuDark,
-        ...themeConfigObj.topMenuDark,
-      },
-      sideMenu: {
-        ...defaultThemeConfig.sideMenu,
-        ...themeConfigObj.sideMenu,
-      },
-      sideMenuDark: {
-        ...defaultThemeConfig.sideMenuDark,
-        ...themeConfigObj.sideMenuDark,
-      },
-    })
-  }
-  else if (tenantConfig.systemTheme && isHexColor(tenantConfig.systemTheme)) {
-    // systemTheme 只接受十六进制主色；历史数据可能存主题模式值（如 'light'），
-    // 非法颜色会让 colorPalette 抛异常并中断整个菜单加载流程，必须跳过
-    appStore.setThemeConfig({ primaryColor: tenantConfig.systemTheme })
-  }
+  // 登录与外观恢复共用解析器，历史 systemTheme=light 不得覆盖 JSON 内合法主色。
+  appStore.setThemeConfig(readTenantAppearance(tenantConfig))
 
   const pageBaseTitle = normalizePageTitle(tenantConfig.browserTitle) || normalizePageTitle(tenantConfig.systemName)
   if (pageBaseTitle) {

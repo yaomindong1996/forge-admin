@@ -78,3 +78,59 @@
 - 截图 `/private/tmp/forge-layout-theme-stage2-preview.png`、`/private/tmp/forge-layout-theme-stage2-notification.png`。
 - 临时服务 `127.0.0.1:3032` 已停止、端口无监听；验证标签已关闭，视口覆盖已恢复。
 - 不执行真实租户保存/重登录、身份切换、消息已读、审批提交，不修改后端/数据库或权限；本地提交，不自动 push。
+
+## 2026-10-05 第三阶段 T07 开始
+
+- 基线 `9b64b337`；继续 `codex/workbench-illustrations`，保留用户 `.DS_Store`。
+- 增量范围：窄屏菜单可达、无顶栏工具收纳、登录主题解析一致、可选深色高级编辑。
+- 复用现有 Spec/测试基线与隔离预览，不运行真实后台服务或写接口。
+
+### T07 实现与自动化结果
+
+- Nexus 删除边缘拖拽与离屏侧栏逻辑，顶栏共用响应式菜单按钮；简约桌面侧栏与窄屏入口互斥挂载。
+- 简约/便当盒共用 `CompactLayoutTools`，保留实际个人资料、租户/组织组件，主题/全屏/外观收入面板。
+- ≤480px 共用顶栏只直显搜索、通知、账户工具；操作指引保留在面板，不重复挂载菜单搜索或切换器。
+- `applyTenantConfig` 复用 `readTenantAppearance`，删除另一套解析；登录和恢复完整主题对比覆盖八种场景。
+- 高级区浅/深配置分组明确，深色基础和状态色不写入浅色分组；同步 DESIGN 语义背景 Token。
+- 初次高级控件测试仍引用基础色修改后已被卸载的手动项；修正测试为显式回到手动模式，未放宽断言。
+- 初次 Lint 发现两个单行 watch 回调多语句，改为块函数；高级字段映射拆为清晰块函数，避免超长行。
+- Node `v20.19.0`；最终 Vitest 十一个文件 78 项全部通过，1.92 秒；目标 JS/Vue Lint 通过。
+- 生产构建 `node --max-old-space-size=8192 node_modules/vite/bin/vite.js build` 退出 0，52.23 秒。
+- 构建日志 `/private/tmp/forge-layout-theme-stage3-build.log`，仅有插件耗时提示，无编译错误。
+- 新增工具/菜单组件 110 行以内，外观编辑器 377 行、Nexus 228 行、简约 149 行；未修改超限 SFC。
+
+可复跑增量命令（先进入 `forge-admin-ui`，切换 Node 20.19.0）：
+
+```bash
+node node_modules/vitest/vitest.mjs run \
+  src/utils/__tests__/navigation-theme.spec.js \
+  src/utils/__tests__/app-theme.spec.js \
+  src/utils/__tests__/tenant-config-appearance.spec.js \
+  src/components/common/appearance/__tests__/appearance-controls.spec.js \
+  src/layouts/components/__tests__/responsive-menu-toggle.spec.js \
+  src/layouts/components/__tests__/compact-layout-tools.spec.js \
+  src/layouts/__tests__/layout-theme-surfaces.spec.js \
+  src/layouts/components/__tests__/message-notification-utils.spec.js \
+  src/layouts/business-workbench/__tests__/menu-model.spec.js \
+  src/layouts/business-workbench/__tests__/settings.spec.js \
+  src/views/system/__tests__/tenant-workspace-ux.spec.js
+git diff 9b64b337 --relative --name-only -- src | rg '\.(js|vue)$' | \
+  xargs node node_modules/eslint/bin/eslint.js
+```
+
+### T07 浏览器证据与边界
+
+- 复用本机隔离 Vite 预览，真实 App/布局/Store/组件配模拟授权菜单、身份选项和查询数据；无真实后端调用。
+- Nexus 桌面可点击/Enter 收起展开；390px 菜单搜索父目录并点击业务报表 30，导航且关闭；放大后遮罩关闭。
+- 320px 共用工具区宽 108px，右边界 303px；Nexus 顶栏右边界 312px，页面宽与视口同为 320px。
+- 768×480 长菜单滚动容器可视 272px、内容 1252px；搜索区固定，全部 30 个叶子可访问。
+- 简约桌面收起后侧栏 64px，账户/展开按钮仍在视口内；缩至窄屏打开菜单，再切回桌面，偏好未改变。
+- 简约窄屏账户面板右边界 368px（390px 视口）；便当盒短窗口面板全部工具可见，深色文字跟随主题。
+- 点击真实租户和组织组件看到模拟接口选项，未选择身份；账户按钮 Enter 打开，外观按钮关闭面板并打开根级抽屉。
+- 深色高级色板改背景，预览立即更新，浅色背景保持白色，实际系统导航未被租户草稿污染。
+- 浏览器工具 HEX 填值未触发原生 change，未作为键入成功证据；补真实取色器 DOM input/change 单测通过。
+- 最终浏览器无 error；根路由未配置和既有重复组件注册 warning 仅属于隔离预览，不代表线上验证。
+- 截图 `/private/tmp/forge-layout-theme-stage3-preview.png`；验证标签已关闭，临时视口已恢复。
+- 临时服务 PID `20024`（127.0.0.1:3032）已通过本轮会话 Ctrl+C 停止；不停止用户其他进程。
+- 无真实登录、配置保存、身份切换、注销、全屏或审批/消息写入验收；无后端/数据库/依赖改动。
+- 保留用户 `.DS_Store`，本阶段仅本地提交，不自动推送。

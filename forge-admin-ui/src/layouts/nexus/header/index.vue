@@ -2,6 +2,7 @@
   <div class="nexus-header layout-chrome-header">
     <!-- 左侧：面包屑 -->
     <div class="header-left">
+      <ResponsiveMenuToggle />
       <BreadCrumb />
     </div>
 
@@ -12,6 +13,7 @@
 
 <script setup>
 import HeaderTools from '@/layouts/components/HeaderTools.vue'
+import ResponsiveMenuToggle from '@/layouts/components/ResponsiveMenuToggle.vue'
 import BreadCrumb from '../BreadCrumb.vue'
 </script>
 
@@ -32,6 +34,7 @@ import BreadCrumb from '../BreadCrumb.vue'
   align-items: center;
   flex: 0 1 auto;
   min-width: 0;
+  gap: 8px;
 }
 
 /* 面包屑样式 */
@@ -40,6 +43,16 @@ import BreadCrumb from '../BreadCrumb.vue'
   font-weight: 500;
   display: flex;
   align-items: center;
+}
+
+@media (max-width: 768px) {
+  .nexus-header {
+    padding-inline: 8px;
+    gap: 4px;
+  }
+  .header-left :deep(.n-breadcrumb) {
+    display: none;
+  }
 }
 
 .header-left :deep(.n-breadcrumb ul) {

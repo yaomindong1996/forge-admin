@@ -54,6 +54,32 @@ describe('布局主题覆盖与工具接入契约', () => {
     expect(content).toContain('aria-label="更多工具"')
     expect(content).toContain('<Fullscreen with-label />')
     expect(content).toContain('<BeginnerGuide with-label />')
+    expect(content).toContain('v-if="isCompact" placement="bottom-end"')
     expect(source('layouts/business-workbench/components/WorkbenchHeader.vue')).toContain('show-appearance')
+  })
+
+  it('无顶栏布局收纳账户与工具，便当盒不再另写注销/全屏逻辑', () => {
+    const panel = source('layouts/components/CompactLayoutTools.vue')
+    for (const component of ['TenantSwitcher', 'OrgSwitcher', 'UserAvatar', 'ToggleTheme', 'Fullscreen']) {
+      expect(panel).toContain(`<${component}`)
+    }
+    expect(panel).toContain('appStore.appearanceOpen = true')
+    expect(source('layouts/simple/sidebar/index.vue')).toContain('<CompactLayoutTools')
+    const rail = source('layouts/bento/components/BentoRail.vue')
+    expect(rail).toContain('<CompactLayoutTools')
+    expect(rail).not.toContain('requestFullscreen')
+    expect(rail).not.toContain('userDropdownVisible')
+  })
+
+  it('简约窄屏入口和桌面侧栏互斥，Nexus 不再使用离屏菜单或拖拽条', () => {
+    const simple = source('layouts/simple/index.vue')
+    expect(simple).toContain('v-if="!isNarrow"')
+    expect(simple).toContain('v-if="isNarrow"')
+    expect(simple).toContain('<ResponsiveMenuToggle')
+    expect(source('layouts/nexus/header/index.vue')).toContain('<ResponsiveMenuToggle')
+    const nexus = source('layouts/nexus/index.vue')
+    expect(nexus).not.toContain('translateX(-100%)')
+    expect(nexus).not.toContain('nexus-expand-bar')
+    expect(nexus).not.toContain('handleBarMouseDown')
   })
 })

@@ -5,6 +5,7 @@
 
     <!-- 侧边栏 -->
     <aside
+      v-if="!isNarrow"
       class="sidebar-simple"
       :class="{ 'sidebar-simple-collapsed': appStore.collapsed }"
     >
@@ -15,6 +16,13 @@
 
     <!-- 主内容区 -->
     <article class="main-content-simple">
+      <!-- 仅窄屏保留必要导航，桌面不增加顶栏 -->
+      <header v-if="isNarrow" class="simple-mobile-nav">
+        <ResponsiveMenuToggle />
+        <TheTitle class="simple-mobile-title" />
+        <MessageNotification />
+        <CompactLayoutTools placement="bottom-end" />
+      </header>
       <div class="content-simple" :class="{ 'content-simple-flush': isFlowTaskListPage }">
         <slot />
       </div>
@@ -23,14 +31,20 @@
 </template>
 
 <script setup>
+import { useMediaQuery } from '@vueuse/core'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import TheTitle from '@/components/common/TheTitle.vue'
 import DemoBanner from '@/components/DemoBanner.vue'
+import CompactLayoutTools from '@/layouts/components/CompactLayoutTools.vue'
+import MessageNotification from '@/layouts/components/MessageNotification.vue'
+import ResponsiveMenuToggle from '@/layouts/components/ResponsiveMenuToggle.vue'
 import { useAppStore } from '@/store'
 import { isFlowTaskListPath } from '@/utils/flow-task-layout'
 import SideBar from './sidebar/index.vue'
 
 const appStore = useAppStore()
+const isNarrow = useMediaQuery('(max-width: 768px)')
 const route = useRoute()
 const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
 </script>
@@ -49,7 +63,6 @@ const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
   width: var(--side-menu-width);
   background: var(--side-menu-bg-color, #ffffff);
   border-right: 1px solid var(--side-menu-border-color, #e2e8f0);
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
 }
@@ -72,6 +85,24 @@ const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
   flex-direction: column;
   min-width: 0;
   overflow: hidden;
+  min-height: 0;
+}
+
+.simple-mobile-nav {
+  --chrome-text: var(--side-menu-text-color);
+  --brand-title-text-color: var(--side-menu-text-color);
+  display: none;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 8px;
+  flex-shrink: 0;
+  background: var(--side-menu-bg-color);
+  color: var(--side-menu-text-color);
+  border-bottom: 1px solid var(--side-menu-border-color);
+}
+.simple-mobile-title {
+  flex: 1;
 }
 
 .content-simple {
@@ -109,21 +140,10 @@ const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
 /* 响应式 */
 @media (max-width: 768px) {
   .sidebar-simple {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    z-index: 1000;
+    display: none;
   }
-
-  .sidebar-simple-collapsed {
-    transform: translateX(-100%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sidebar-simple {
-    transition: none;
+  .simple-mobile-nav {
+    display: flex;
   }
 }
 </style>

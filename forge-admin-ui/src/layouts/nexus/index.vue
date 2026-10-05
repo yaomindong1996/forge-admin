@@ -9,22 +9,6 @@
       </aside>
     </Transition>
 
-    <!-- 展开拖拽条（收起时贴在左侧边缘） -->
-    <button
-      v-show="appStore.collapsed"
-      ref="expandBarRef"
-      type="button"
-      aria-label="展开菜单"
-      class="nexus-expand-bar"
-      :style="{ top: `${expandBarTop}px` }"
-      @click="handleBarClick"
-      @mousedown="handleBarMouseDown"
-    >
-      <div class="expand-bar-icon">
-        <i class="i-material-symbols:chevron-right" />
-      </div>
-    </button>
-
     <!-- 主内容区 -->
     <div class="nexus-main">
       <!-- 演示环境提示条 -->
@@ -49,7 +33,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import DemoBanner from '@/components/DemoBanner.vue'
 import { AppTab } from '@/layouts/components'
@@ -61,56 +45,6 @@ import Sidebar from './sidebar/index.vue'
 const appStore = useAppStore()
 const route = useRoute()
 const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
-const expandBarRef = ref(null)
-const expandBarTop = ref(400)
-const isDragging = ref(false)
-const hasDragged = ref(false)
-const dragStartY = ref(0)
-const dragStartTop = ref(0)
-
-function handleBarMouseDown(e) {
-  e.preventDefault()
-  isDragging.value = true
-  hasDragged.value = false
-  dragStartY.value = e.clientY
-  dragStartTop.value = expandBarTop.value
-
-  document.addEventListener('mousemove', handleBarMouseMove)
-  document.addEventListener('mouseup', handleBarMouseUp)
-}
-
-function handleBarMouseMove(e) {
-  if (!isDragging.value)
-    return
-  const delta = e.clientY - dragStartY.value
-  const maxTop = window.innerHeight - 60
-
-  // 移动超过 5px 就认为是拖拽，不是点击
-  if (Math.abs(delta) > 5) {
-    hasDragged.value = true
-  }
-
-  expandBarTop.value = Math.max(20, Math.min(maxTop, dragStartTop.value + delta))
-}
-
-function handleBarMouseUp() {
-  isDragging.value = false
-  document.removeEventListener('mousemove', handleBarMouseMove)
-  document.removeEventListener('mouseup', handleBarMouseUp)
-}
-
-function handleBarClick() {
-  if (hasDragged.value) {
-    hasDragged.value = false
-    return
-  }
-  appStore.collapsed = false
-}
-
-onBeforeUnmount(() => {
-  document.removeEventListener('mousemove', handleBarMouseMove)
-  document.removeEventListener('mouseup', handleBarMouseUp)
-})
 </script>
 
 <style scoped>
@@ -144,60 +78,6 @@ onBeforeUnmount(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-
-/* ═══════════════════════════════════════
- * 展开拖拽条（左侧边缘）
- * ═══════════════════════════════════════ */
-.nexus-expand-bar {
-  position: fixed;
-  left: 0;
-  z-index: 30;
-  width: 18px;
-  height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border-radius: 0 6px 6px 0;
-  padding: 0;
-  background: var(--side-menu-bg-color-active);
-  border: 1px solid var(--side-menu-border-color);
-  border-left: none;
-  box-shadow: none;
-  transition:
-    background-color var(--transition-base),
-    border-color var(--transition-base);
-  user-select: none;
-  -webkit-user-drag: none;
-}
-
-.nexus-expand-bar:hover {
-  background: var(--side-menu-bg-color-hover);
-  border-color: var(--side-menu-text-color-active);
-  width: 20px;
-}
-
-.nexus-expand-bar:active {
-  cursor: grabbing;
-  background: var(--side-menu-bg-color-active);
-}
-
-.expand-bar-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--side-menu-text-color-active);
-  font-size: 16px;
-  transition: all var(--transition-base);
-}
-
-.nexus-expand-bar:hover .expand-bar-icon {
-  transform: scale(1.15);
-}
-
-.nexus-expand-bar:active .expand-bar-icon {
-  transform: scale(1.2);
 }
 
 /* ═══════════════════════════════════════
@@ -295,12 +175,11 @@ onBeforeUnmount(() => {
  * ═══════════════════════════════════════ */
 
 /* 侧边栏滑入/滑出 */
-.sidebar-slide-enter-active {
-  transition: all var(--transition-slow);
-}
-
+.sidebar-slide-enter-active,
 .sidebar-slide-leave-active {
-  transition: all var(--transition-slow);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
 }
 
 .sidebar-slide-enter-from {
@@ -311,17 +190,6 @@ onBeforeUnmount(() => {
 .sidebar-slide-leave-to {
   opacity: 0;
   transform: translateX(-20px);
-}
-
-/* 展开条淡入/淡出 */
-.expand-fade-enter-active,
-.expand-fade-leave-active {
-  transition: all var(--transition-base);
-}
-
-.expand-fade-enter-from,
-.expand-fade-leave-to {
-  opacity: 0;
 }
 
 /* ═══════════════════════════════════════
@@ -340,15 +208,7 @@ onBeforeUnmount(() => {
   }
 
   .nexus-sidebar-wrapper {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 240px;
-    padding: 12px;
-    z-index: 100;
-    transform: translateX(-100%);
-    transition: transform var(--transition-slow);
+    display: none;
   }
 
   .nexus-main {
@@ -359,7 +219,8 @@ onBeforeUnmount(() => {
 /* 动画优化 */
 @media (prefers-reduced-motion: reduce) {
   .nexus-sidebar-wrapper,
-  .nexus-expand-trigger,
+  .sidebar-slide-enter-active,
+  .sidebar-slide-leave-active,
   .nexus-main {
     transition: none;
   }

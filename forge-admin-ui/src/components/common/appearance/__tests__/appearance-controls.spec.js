@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { DOMWrapper, flushPromises, mount } from '@vue/test-utils'
 import { NCollapse, NCollapseItem, NColorPicker, NSwitch } from 'naive-ui'
 import { describe, expect, it } from 'vitest'
 import { defaultThemeConfig } from '@/config/theme.config'
@@ -64,6 +64,64 @@ describe('共用外观控件', () => {
       await wrapper.findAll('.preview-modes button')[0].trigger('click')
       expect(wrapper.find('.theme-sample').attributes('style')).toContain('--sample-header: #ffffff')
       expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    }
+    finally { wrapper.unmount() }
+  })
+
+  it('高级深色编辑写入正确分组，基础设置仍保持简洁', async () => {
+    const source = { ...defaultThemeConfig, navigationMode: 'custom', extension: { density: 'compact' } }
+    const wrapper = mount(AppearanceThemeEditor, {
+      props: { modelValue: source, layout: 'normal' },
+      global: { components },
+    })
+    try {
+      await wrapper.find('.n-collapse-item__header-main').trigger('click')
+      await wrapper.findAll('.custom-theme-mode button')[1].trigger('click')
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.find('.dark-base-fields').text()).toContain('深色顶栏背景')
+      const fields = wrapper.findAllComponents(NColorPicker)
+      await fields[3].vm.$emit('update:value', '#061917')
+      const baseUpdate = wrapper.emitted('update:modelValue')[0][0]
+      expect(baseUpdate.headerDark.backgroundColor).toBe('#061917')
+      expect(baseUpdate.header).toEqual(source.header)
+      expect(baseUpdate.extension).toEqual(source.extension)
+      // 修改基础色会回到自动配色；显式恢复手动模式后再验证高级文字编辑。
+      await wrapper.setProps({ modelValue: { ...baseUpdate, navigationMode: 'custom' } })
+      const customFields = wrapper.findAllComponents(NColorPicker)
+      await customFields[5].vm.$emit('update:value', '#E5E7EB')
+      const textUpdate = wrapper.emitted('update:modelValue')[1][0]
+      expect(textUpdate.headerDark.textColor).toBe('#E5E7EB')
+      expect(textUpdate.headerDark.brandTitleTextColor).toBe('#E5E7EB')
+      expect(textUpdate.header).toEqual(source.header)
+      await customFields[6].vm.$emit('update:value', '#7DB7FF')
+      const activeUpdate = wrapper.emitted('update:modelValue')[2][0]
+      expect(activeUpdate.topMenuDark.iconActiveColor).toBe('#7DB7FF')
+      expect(activeUpdate.topMenuDark.textColorActiveHorizontal).toBe('#7DB7FF')
+      expect(activeUpdate.topMenu).toEqual(source.topMenu)
+      await wrapper.setProps({ layout: 'simple' })
+      expect(wrapper.find('.dark-base-fields').text()).not.toContain('深色顶栏背景')
+    }
+    finally { wrapper.unmount() }
+  })
+
+  it('真实取色器 HEX 输入提交到深色草稿，不覆盖浅色背景', async () => {
+    const wrapper = mount(AppearanceThemeEditor, {
+      attachTo: document.body,
+      props: { modelValue: defaultThemeConfig, layout: 'normal' },
+      global: { components },
+    })
+    try {
+      await wrapper.find('.n-collapse-item__header-main').trigger('click')
+      await wrapper.findAll('.custom-theme-mode button')[1].trigger('click')
+      await wrapper.find('.dark-base-fields .n-color-picker').trigger('click')
+      await flushPromises()
+      const input = new DOMWrapper(document.querySelector('.n-color-picker-panel input'))
+      await input.setValue('#061917')
+      await flushPromises()
+      const updated = wrapper.emitted('update:modelValue')[0][0]
+      expect(updated.headerDark.backgroundColor).toBe('#061917')
+      expect(updated.header.backgroundColor).toBe(defaultThemeConfig.header.backgroundColor)
+      expect(wrapper.find('.theme-sample').attributes('style')).toContain('--sample-header: #061917')
     }
     finally { wrapper.unmount() }
   })

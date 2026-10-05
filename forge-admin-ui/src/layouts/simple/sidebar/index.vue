@@ -3,21 +3,22 @@
     <SideLogo />
     <SideMenu class="sidebar-simple-menu" />
     <div class="sidebar-simple-footer">
-      <UserAvatar v-if="!appStore.collapsed" />
+      <MessageNotification />
+      <CompactLayoutTools />
       <MenuCollapse />
     </div>
   </div>
 </template>
 
 <script setup>
-import { MenuCollapse, SideLogo, SideMenu, UserAvatar } from '@/layouts/components'
-import { useAppStore } from '@/store'
-
-const appStore = useAppStore()
+import { MenuCollapse, SideLogo, SideMenu } from '@/layouts/components'
+import CompactLayoutTools from '@/layouts/components/CompactLayoutTools.vue'
+import MessageNotification from '@/layouts/components/MessageNotification.vue'
 </script>
 
 <style scoped>
 .sidebar-simple-wrapper {
+  --chrome-text: var(--side-menu-text-color);
   width: 100%;
   height: 100%;
   display: flex;
@@ -38,7 +39,8 @@ const appStore = useAppStore()
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 16px 12px;
+  flex-wrap: wrap;
+  padding: 8px;
   border-top: 1px solid var(--side-menu-border-color, #f1f5f9);
   background: var(--side-menu-bg-color, #ffffff);
   gap: 8px;

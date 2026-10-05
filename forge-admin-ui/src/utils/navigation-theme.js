@@ -172,15 +172,17 @@ export function resolveNavigationTheme(config, defaults, isDark = false) {
   return protectThemeSurfaces(theme)
 }
 
-export function updateNavigationBases(config, patch) {
+export function updateNavigationBases(config, patch, isDark = false) {
+  const suffix = isDark ? 'Dark' : ''
   const generated = createNavigationTheme({
     primary: patch.primary || config.primaryColor,
-    header: patch.header || config.header?.backgroundColor,
-    side: patch.side || config.sideMenu?.backgroundColor,
+    header: patch.header || config[`header${suffix}`]?.backgroundColor,
+    side: patch.side || config[`sideMenu${suffix}`]?.backgroundColor,
   })
-  const next = { ...config, ...generated }
+  // 深色编辑只更新对应分组，不能把深色背景写进浅色配置。
+  const next = { ...config, primaryColor: generated.primaryColor, navigationMode: 'auto' }
   for (const group of ['header', 'topMenu', 'sideMenu']) {
-    next[group] = { ...config[group], ...generated[group] }
+    next[group + suffix] = { ...config[group + suffix], ...generated[group] }
   }
   return next
 }

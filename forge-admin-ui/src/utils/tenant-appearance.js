@@ -1,7 +1,7 @@
 import { defaultThemeConfig } from '@/config/theme.config'
 import { solidColor } from '@/utils/navigation-theme'
 
-// 租户编辑与会话外观恢复共用解析规则，不写入租户或修改原配置。
+// 登录初始化、租户编辑与会话外观恢复共用解析规则，不写入租户或修改原配置。
 export function readTenantAppearance(data = {}) {
   let source = data?.themeConfig || {}
   if (typeof source === 'string') {

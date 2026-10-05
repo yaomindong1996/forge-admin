@@ -34,37 +34,9 @@
 
     <!-- 底部工具栏 -->
     <div class="bento-tools">
-      <div class="tool-item" title="切换主题" @click="appStore.isDark = !appStore.isDark">
-        <i :class="appStore.isDark ? 'i-material-symbols:light-mode' : 'i-material-symbols:dark-mode-outline'" />
-      </div>
-      <div class="tool-item" title="全屏" @click="toggleFullscreen">
-        <i class="i-material-symbols:fullscreen" />
-      </div>
-      <div class="tool-item" title="消息">
-        <MessageNotification />
-      </div>
-      <div class="tool-item tool-divider" />
-      <div
-        class="tool-item user-tool"
-        :title="userName || '用户'"
-        @click="userDropdownVisible = !userDropdownVisible"
-      >
-        <div class="user-avatar-small">
-          {{ userAvatarText }}
-        </div>
-      </div>
+      <MessageNotification />
+      <CompactLayoutTools />
     </div>
-
-    <!-- 用户下拉菜单 -->
-    <n-dropdown
-      :show="userDropdownVisible"
-      :options="userDropdownOptions"
-      placement="right-end"
-      @select="handleUserSelect"
-      @clickoutside="userDropdownVisible = false"
-    >
-      <div class="dropdown-anchor" />
-    </n-dropdown>
 
     <!-- 导航菜单抽屉 -->
     <DrawerMenu v-model:show="menuDrawerVisible" />
@@ -76,19 +48,17 @@ import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import TheLogo from '@/components/common/TheLogo.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
-import { useMenu, useUser } from '@/composables'
+import { useMenu } from '@/composables'
 import { MessageNotification } from '@/layouts/components'
-import { useAppStore, usePermissionStore } from '@/store'
+import CompactLayoutTools from '@/layouts/components/CompactLayoutTools.vue'
+import { usePermissionStore } from '@/store'
 import DrawerMenu from '../../immersive/components/DrawerMenu.vue'
 
 const route = useRoute()
 const permissionStore = usePermissionStore()
-const appStore = useAppStore()
 const { handleMenuSelect: baseHandleMenuSelect } = useMenu()
 
 const menuDrawerVisible = ref(false)
-
-const { userName, userAvatarText, userDropdownOptions, dropdownVisible: userDropdownVisible, handleDropdownSelect } = useUser()
 
 // Extract top shortcut menus (first level)
 const topMenus = computed(() => {
@@ -121,19 +91,6 @@ function handleMenuSelect(item) {
   if (item.path) {
     baseHandleMenuSelect(item.key || item.id, item.path)
   }
-}
-
-function toggleFullscreen() {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen()
-  }
-  else {
-    document.exitFullscreen()
-  }
-}
-
-function handleUserSelect(key) {
-  handleDropdownSelect(key)
 }
 </script>
 
@@ -190,6 +147,7 @@ function handleUserSelect(key) {
 /* 快捷菜单 */
 .bento-quick-links {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -231,67 +189,7 @@ function handleUserSelect(key) {
   align-items: center;
   gap: 2px;
   padding: 6px 0;
-}
-
-.tool-item {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  font-size: 18px;
-  color: var(--side-menu-text-color);
-  transition: all var(--transition-fast);
-  position: relative;
-}
-
-.tool-item:hover {
-  background: var(--side-menu-bg-color-hover);
-  color: var(--side-menu-text-color-hover);
-}
-
-.tool-divider {
-  height: 1px !important;
-  width: 24px;
-  margin: 4px auto;
-  background: var(--side-menu-border-color);
-  border-radius: 0;
-  cursor: default;
-  color: transparent;
-}
-
-.tool-badge {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  font-size: 10px;
-  line-height: 16px;
-  text-align: center;
-  color: white;
-  background: var(--error-500);
-  border-radius: 8px;
-}
-
-.user-avatar-small {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--primary-500);
-  color: white;
-  font-size: 12px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.user-tool {
-  cursor: pointer;
+  flex-shrink: 0;
 }
 
 /* 滚动条 */

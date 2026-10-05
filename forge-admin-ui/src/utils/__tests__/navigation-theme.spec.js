@@ -53,6 +53,23 @@ describe('统一导航主题', () => {
     expect(contrastRatio(theme.header.textColor, theme.header.backgroundColor)).toBeGreaterThanOrEqual(4.5)
   })
 
+  it('深色基础色只写深色分组，保留浅色、尺寸与未知扩展', () => {
+    const source = { ...defaultThemeConfig, extension: { density: 'compact' } }
+    const original = JSON.stringify(source)
+    const next = updateNavigationBases(source, { header: '#061917', side: '#08201d' }, true)
+    expect(next.navigationMode).toBe('auto')
+    expect(next.header).toEqual(source.header)
+    expect(next.topMenu).toEqual(source.topMenu)
+    expect(next.sideMenu).toEqual(source.sideMenu)
+    expect(next.headerDark.backgroundColor).toBe('#061917')
+    expect(next.sideMenuDark.backgroundColor).toBe('#08201d')
+    expect(next.sideMenuDark.width).toBe(source.sideMenuDark.width)
+    expect(next.extension).toEqual(source.extension)
+    const rendered = resolveNavigationTheme(next, defaultThemeConfig, true)
+    expect(contrastRatio(rendered.header.textColor, rendered.header.backgroundColor)).toBeGreaterThanOrEqual(4.5)
+    expect(JSON.stringify(source)).toBe(original)
+  })
+
   it('cSS 变量同时覆盖 Header、菜单、工具及 Logo 文字', () => {
     const config = createNavigationTheme({ header: '#171717', side: '#eef4ff' })
     applyThemeConfig(config)

@@ -49,6 +49,27 @@
     </div>
     <n-collapse v-if="layout !== 'empty'" class="advanced-theme" :default-expanded-names="[]">
       <n-collapse-item name="advanced" title="高级自定义">
+        <!-- 深色独立配置不占首屏，选择模式只调整本地预览 -->
+        <div class="theme-preview-tools custom-theme-mode">
+          <span>自定义配色</span>
+          <div class="preview-modes" role="group" aria-label="自定义配色模式">
+            <button type="button" :aria-pressed="!advancedDark" @click="selectAdvancedMode(false)">
+              浅色
+            </button>
+            <button type="button" :aria-pressed="advancedDark" @click="selectAdvancedMode(true)">
+              深色
+            </button>
+          </div>
+        </div>
+        <div v-if="advancedDark" class="theme-color-fields dark-base-fields">
+          <label v-for="field in darkBaseFields" :key="field.key">
+            <span>{{ field.label }}</span>
+            <n-color-picker
+              :value="pathValue(field.path)" :show-alpha="false" :modes="['hex']"
+              @update:value="value => updateDarkBase(field.key, value)"
+            />
+          </label>
+        </div>
         <div class="manual-mode">
           <span>手动配置文字和状态色</span>
           <n-switch :value="model.navigationMode === 'custom'" @update:value="setManualMode" />
@@ -84,20 +105,30 @@ import {
 const props = defineProps({ layout: { type: String, default: 'normal' } })
 const model = defineModel({ type: Object, required: true })
 const previewDark = ref(false)
+const advancedDark = ref(false)
 const hasHeader = computed(() => !['simple', 'bento', 'empty'].includes(props.layout))
 const baseFields = computed(() => [
   { key: 'primary', label: '品牌主色' },
   ...(['simple', 'bento', 'empty'].includes(props.layout) ? [] : [{ key: 'header', label: '顶栏背景' }]),
   ...(props.layout === 'empty' ? [] : [{ key: 'side', label: '导航背景' }]),
 ])
-const advancedFields = computed(() => [
-  { path: 'header.textColor', label: '顶栏文字 / 工具' },
-  { path: 'topMenu.textColorActive', label: '顶栏选中态' },
-  { path: 'sideMenu.textColor', label: '导航文字 / 图标' },
-  { path: 'sideMenu.textColorActive', label: '导航选中文字' },
-  { path: 'sideMenu.backgroundColorActive', label: '导航选中背景' },
-  { path: 'sideMenu.backgroundColorHover', label: '导航悬停背景' },
-].filter(field => hasHeader.value || field.path.startsWith('sideMenu.')))
+const advancedFields = computed(() => {
+  const fields = [
+    { path: 'header.textColor', label: '顶栏文字 / 工具' },
+    { path: 'topMenu.textColorActive', label: '顶栏选中态' },
+    { path: 'sideMenu.textColor', label: '导航文字 / 图标' },
+    { path: 'sideMenu.textColorActive', label: '导航选中文字' },
+    { path: 'sideMenu.backgroundColorActive', label: '导航选中背景' },
+    { path: 'sideMenu.backgroundColorHover', label: '导航悬停背景' },
+  ]
+  const suffix = advancedDark.value ? 'Dark.' : '.'
+  return fields.filter(field => hasHeader.value || field.path.startsWith('sideMenu.'))
+    .map(field => ({ ...field, path: field.path.replace('.', suffix) }))
+})
+const darkBaseFields = computed(() => [
+  ...(hasHeader.value ? [{ key: 'header', path: 'headerDark.backgroundColor', label: '深色顶栏背景' }] : []),
+  { key: 'side', path: 'sideMenuDark.backgroundColor', label: '深色导航背景' },
+])
 const scopeNote = computed(() => {
   if (props.layout === 'empty') {
     return '空白布局没有导航区域，配色用于页面控件。'
@@ -131,7 +162,7 @@ function baseValue(key) {
 }
 function pathValue(path) {
   const [group, field] = path.split('.')
-  return solidColor(model.value[group]?.[field], rendered.value[group]?.[field])
+  return solidColor(model.value[group]?.[field], defaultThemeConfig[group]?.[field])
 }
 function updateBase(key, value) {
   model.value = updateNavigationBases(model.value, { [key]: value })
@@ -144,31 +175,40 @@ function matchesPreset(preset) {
     && baseValue('header')?.toLowerCase() === preset.header.toLowerCase()
     && baseValue('side')?.toLowerCase() === preset.side.toLowerCase()
 }
+function selectAdvancedMode(isDark) {
+  advancedDark.value = isDark
+  previewDark.value = isDark
+}
+function updateDarkBase(key, value) {
+  model.value = updateNavigationBases(model.value, { [key]: value }, true)
+}
 function setManualMode(enabled) {
   if (!enabled) {
-    model.value = updateNavigationBases(model.value, {})
+    model.value = updateNavigationBases(model.value, {}, advancedDark.value)
     return
   }
+  const suffix = advancedDark.value ? 'Dark' : ''
   const generated = createNavigationTheme({
     primary: baseValue('primary'),
-    header: baseValue('header'),
-    side: baseValue('side'),
+    header: model.value[`header${suffix}`]?.backgroundColor,
+    side: model.value[`sideMenu${suffix}`]?.backgroundColor,
   })
   const next = { ...model.value, navigationMode: 'custom' }
   for (const group of ['header', 'topMenu', 'sideMenu']) {
-    next[group] = { ...generated[group], ...model.value[group] }
+    next[group + suffix] = { ...generated[group], ...model.value[group + suffix] }
   }
   model.value = next
 }
 function updateCustom(path, value) {
   const [group, field] = path.split('.')
+  const kind = group.replace(/Dark$/, '')
   const patch = { [field]: value }
   if (field === 'textColor') {
-    patch[group === 'header' ? 'brandTitleTextColor' : 'iconColor'] = value
+    patch[kind === 'header' ? 'brandTitleTextColor' : 'iconColor'] = value
   }
   if (field === 'textColorActive') {
-    patch[group === 'topMenu' ? 'iconActiveColor' : 'iconColorActive'] = value
-    if (group === 'topMenu') {
+    patch[kind === 'topMenu' ? 'iconActiveColor' : 'iconColorActive'] = value
+    if (kind === 'topMenu') {
       patch.textColorActiveHorizontal = value
       patch.textColorActiveHover = value
     }
@@ -321,6 +361,10 @@ function updateCustom(path, value) {
   gap: 12px;
   margin-bottom: 8px;
   font-size: 12px;
+}
+.custom-theme-mode,
+.dark-base-fields {
+  margin-bottom: 12px;
 }
 .advanced-theme .theme-color-fields {
   margin-top: 12px;
