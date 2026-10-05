@@ -74,6 +74,25 @@ describe('外观会话状态', () => {
     expect(store.primaryColor).toBe(defaultThemeConfig.primaryColor.toLowerCase())
   })
 
+  it('应用和恢复租户主题保留独立横条设置，不污染来源', () => {
+    const store = useAppStore()
+    store.isDark = false
+    const source = {
+      ...defaultThemeConfig,
+      topMenu: { activeBarColor: '#FF7D00' },
+      topMenuDark: { activeBarColor: '#7DB7FF' },
+      extension: { version: 3 },
+    }
+    const original = JSON.stringify(source)
+    store.setThemeConfig(source)
+    expect(document.documentElement.style.getPropertyValue('--top-menu-active-bar-color')).toBe('#ff7d00')
+    store.restoreTenantAppearance({ themeConfig: original, systemTheme: '#2F6FED' })
+    expect(store.themeConfig.topMenu.activeBarColor).toBe('#FF7D00')
+    expect(store.themeConfig.topMenuDark.activeBarColor).toBe('#7DB7FF')
+    expect(store.themeConfig.extension).toEqual(source.extension)
+    expect(JSON.stringify(source)).toBe(original)
+  })
+
   it('非法 RGB 数字或透明度降级，不生成 NaN CSS 颜色', () => {
     for (const color of ['rgb(.,0,0)', 'rgb(999,0,0)', 'rgba(0,0,0,2)']) {
       expect(solidColor(color, '#2f6fed')).toBe('#2f6fed')

@@ -6,7 +6,7 @@
 /**
  * 默认主题配置
  */
-import { resolveNavigationTheme } from '@/utils/navigation-theme'
+import { resolveNavigationTheme, solidColor } from '@/utils/navigation-theme'
 
 export const defaultThemeConfig = {
   navigationMode: 'auto',
@@ -35,6 +35,7 @@ export const defaultThemeConfig = {
 
   // 顶部菜单配置
   topMenu: {
+    activeBarColor: '', // 空值跟随品牌主色，与选中文字颜色独立。
     textColor: 'rgba(255, 255, 255, 0.75)',
     textColorHover: '#FFFFFF',
     textColorActive: '#FFFFFF',
@@ -52,6 +53,7 @@ export const defaultThemeConfig = {
 
   // 暗色模式顶部菜单配置
   topMenuDark: {
+    activeBarColor: '',
     textColor: '#e5e7eb',
     textColorHover: '#5388ff',
     textColorActive: '#5388ff',
@@ -140,6 +142,51 @@ function hexToRgb(hex) {
   }
 }
 
+function applyMenuVariables(root, prefix, properties) {
+  for (const [name, value] of Object.entries(properties)) {
+    root.style.setProperty(`--${prefix}-${name}`, value)
+  }
+}
+
+function applyTopMenuConfig(root, menu, primary) {
+  applyMenuVariables(root, 'top-menu', {
+    'active-bar-color': solidColor(menu.activeBarColor, primary),
+    'text-color': menu.textColor,
+    'text-color-hover': menu.textColorHover || menu.textColorActive || menu.textColor,
+    'text-color-active': menu.textColorActive,
+    'text-color-active-hover': menu.textColorActiveHover || menu.textColorHover,
+    'text-color-active-horizontal': menu.textColorActiveHorizontal || menu.textColorActive,
+    'bg-color': menu.backgroundColor,
+    'bg-color-hover': menu.backgroundColorHover,
+    'bg-color-active': menu.backgroundColorActive,
+    'bg-color-active-hover': menu.backgroundColorActiveHover || menu.backgroundColorHover,
+    'font-size': menu.fontSize,
+    'font-weight': menu.fontWeight,
+    'icon-color': menu.iconColor,
+    'icon-color-active': menu.iconActiveColor,
+  })
+}
+
+function applySideMenuConfig(root, menu) {
+  applyMenuVariables(root, 'side-menu', {
+    'bg-color': menu.backgroundColor,
+    'text-color': menu.textColor,
+    'text-color-hover': menu.textColorHover,
+    'text-color-active': menu.textColorActive,
+    'parent-text-color-active': menu.parentTextColorActive || menu.textColorActive,
+    'bg-color-hover': menu.backgroundColorHover,
+    'bg-color-active': menu.backgroundColorActive,
+    'parent-bg-color-active': menu.parentBackgroundColorActive || 'transparent',
+    'border-color': menu.borderColor,
+    'font-size': menu.fontSize,
+    'font-weight': menu.fontWeight,
+    'icon-color': menu.iconColor,
+    'icon-color-active': menu.iconColorActive,
+    'collapsed-width': menu.collapsedWidth,
+    'width': menu.width,
+  })
+}
+
 /**
  * 应用主题配置到 CSS 变量
  * @param {object} config 主题配置对象
@@ -193,38 +240,12 @@ export function applyThemeConfig(config, isDark = false) {
   // 4. 应用顶部菜单配置
   const topMenuConfig = config.topMenu
   if (topMenuConfig) {
-    root.style.setProperty('--top-menu-text-color', topMenuConfig.textColor)
-    root.style.setProperty('--top-menu-text-color-hover', topMenuConfig.textColorHover || topMenuConfig.textColorActive || topMenuConfig.textColor)
-    root.style.setProperty('--top-menu-text-color-active', topMenuConfig.textColorActive)
-    root.style.setProperty('--top-menu-text-color-active-hover', topMenuConfig.textColorActiveHover || topMenuConfig.textColorHover)
-    root.style.setProperty('--top-menu-text-color-active-horizontal', topMenuConfig.textColorActiveHorizontal || topMenuConfig.textColorActive)
-    root.style.setProperty('--top-menu-bg-color', topMenuConfig.backgroundColor)
-    root.style.setProperty('--top-menu-bg-color-hover', topMenuConfig.backgroundColorHover)
-    root.style.setProperty('--top-menu-bg-color-active', topMenuConfig.backgroundColorActive)
-    root.style.setProperty('--top-menu-bg-color-active-hover', topMenuConfig.backgroundColorActiveHover || topMenuConfig.backgroundColorHover)
-    root.style.setProperty('--top-menu-font-size', topMenuConfig.fontSize)
-    root.style.setProperty('--top-menu-font-weight', topMenuConfig.fontWeight)
-    root.style.setProperty('--top-menu-icon-color', topMenuConfig.iconColor)
-    root.style.setProperty('--top-menu-icon-color-active', topMenuConfig.iconActiveColor)
+    applyTopMenuConfig(root, topMenuConfig, config.primaryColor)
   }
 
   // 5. 应用侧边菜单配置
   const sideMenuConfig = config.sideMenu
   if (sideMenuConfig) {
-    root.style.setProperty('--side-menu-bg-color', sideMenuConfig.backgroundColor)
-    root.style.setProperty('--side-menu-text-color', sideMenuConfig.textColor)
-    root.style.setProperty('--side-menu-text-color-hover', sideMenuConfig.textColorHover)
-    root.style.setProperty('--side-menu-text-color-active', sideMenuConfig.textColorActive)
-    root.style.setProperty('--side-menu-parent-text-color-active', sideMenuConfig.parentTextColorActive || sideMenuConfig.textColorActive)
-    root.style.setProperty('--side-menu-bg-color-hover', sideMenuConfig.backgroundColorHover)
-    root.style.setProperty('--side-menu-bg-color-active', sideMenuConfig.backgroundColorActive)
-    root.style.setProperty('--side-menu-parent-bg-color-active', sideMenuConfig.parentBackgroundColorActive || 'transparent')
-    root.style.setProperty('--side-menu-border-color', sideMenuConfig.borderColor)
-    root.style.setProperty('--side-menu-font-size', sideMenuConfig.fontSize)
-    root.style.setProperty('--side-menu-font-weight', sideMenuConfig.fontWeight)
-    root.style.setProperty('--side-menu-icon-color', sideMenuConfig.iconColor)
-    root.style.setProperty('--side-menu-icon-color-active', sideMenuConfig.iconColorActive)
-    root.style.setProperty('--side-menu-collapsed-width', sideMenuConfig.collapsedWidth)
-    root.style.setProperty('--side-menu-width', sideMenuConfig.width)
+    applySideMenuConfig(root, sideMenuConfig)
   }
 }

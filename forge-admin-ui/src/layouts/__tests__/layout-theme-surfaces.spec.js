@@ -144,4 +144,29 @@ describe('布局主题覆盖与工具接入契约', () => {
       expect(source(file)).not.toMatch(/BeginnerGuide|OperationGuideDialog|guideOpen|show-guide/)
     }
   })
+
+  it('顶部和混合共用横条 Token，工作台基础样式及覆盖规则也保持一致', () => {
+    const token = '--top-menu-active-bar-color'
+    expect(source('layouts/components/TopMenuBar.vue')).toContain(`background: var(${token}, var(--primary-color))`)
+    const chrome = source('styles/layout-chrome.css')
+    expect(chrome).toMatch(/business-mega-triggers > button::after\s*\{\s*background: var\(--top-menu-active-bar-color/)
+    expect(source('layouts/business-workbench/workbench.css')).toContain(`background: var(${token}, var(--workbench-primary))`)
+    for (const layout of ['top-menu', 'top-side-menu']) {
+      expect(source(`layouts/${layout}/components/TopMenu.vue`)).toContain('<TopMenuBar')
+    }
+  })
+
+  it('工作台隐藏横向滚动条但保留滚动容器、左右按钮和键盘定位', () => {
+    const css = source('layouts/business-workbench/workbench.css')
+    const track = css.match(/\.business-mega-triggers\s*\{([^}]+)\}/)[1]
+    expect(track).toContain('overflow-x: auto')
+    expect(track).toContain('scrollbar-width: none')
+    expect(css).toMatch(/\.business-mega-triggers::-webkit-scrollbar\s*\{\s*display: none/)
+    const header = source('layouts/business-workbench/components/WorkbenchHeader.vue')
+    expect(header).toContain('@wheel="scrollMenuWithWheel"')
+    expect(header).toContain('向右查看更多菜单')
+    expect(header).toContain('向左查看更多菜单')
+    expect(header).toContain('@keydown.right.prevent')
+    expect(header).toContain('scrollIntoView')
+  })
 })

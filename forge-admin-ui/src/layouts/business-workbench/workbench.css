@@ -77,8 +77,12 @@
   flex: 1;
   min-width: 0;
   overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--workbench-border) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+/* 只隐藏原生轨道；触摸、触控板、键盘和两侧导航按钮仍可滚动。 */
+.business-mega-triggers::-webkit-scrollbar {
+  display: none;
 }
 .business-mega-triggers > button {
   position: relative;
@@ -104,7 +108,7 @@
   left: 14px;
   right: 14px;
   height: 2px;
-  background: var(--workbench-primary);
+  background: var(--top-menu-active-bar-color, var(--workbench-primary));
   transform: scaleX(0);
   transform-origin: left center;
   transition: transform 0.14s ease;

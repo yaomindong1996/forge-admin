@@ -24,6 +24,7 @@
   --top-menu-text-color-active: #ffffffff;
   --top-menu-text-color-active-hover: #ffffffff;
   --top-menu-text-color-active-horizontal: #333333;
+  --top-menu-active-bar-color: var(--primary-color);
   --top-menu-bg-color: transparent;
   --top-menu-bg-color-hover: transparent;
   --top-menu-bg-color-active: rgba(255, 255, 255, 0.2);

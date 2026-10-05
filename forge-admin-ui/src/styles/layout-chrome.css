@@ -99,7 +99,9 @@
   color: var(--top-menu-text-color-active);
   background: var(--top-menu-bg-color-hover);
 }
-.layout-chrome-header .business-mega-triggers > button::after { background: var(--top-menu-text-color-active); }
+.layout-chrome-header .business-mega-triggers > button::after {
+  background: var(--top-menu-active-bar-color, var(--primary-color));
+}
 .layout-chrome-header .workbench-brand { border-color: var(--layout-header-border-color); }
 .layout-chrome-header .menu-scroll { color: var(--chrome-text); background: var(--layout-header-bg-color); }
 .layout-chrome-header .business-mega-panel {

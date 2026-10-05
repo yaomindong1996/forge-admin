@@ -114,6 +114,56 @@ describe('租户外观保存兼容', () => {
   })
 })
 
+describe('顶部菜单选中横条', () => {
+  it.each([false, true])('模式 %s 未设置时跟随品牌主色，与可读文字色独立', (dark) => {
+    const source = updateNavigationBases(defaultThemeConfig, { primary: '#2F6FED', header: '#2F6FED' }, dark)
+    const rendered = resolveNavigationTheme(source, defaultThemeConfig, dark)
+    expect(rendered.topMenu.textColorActive).not.toBe(rendered.primaryColor)
+    applyThemeConfig(source, dark)
+    expect(document.documentElement.style.getPropertyValue('--top-menu-active-bar-color')).toBe('#2f6fed')
+    applyThemeConfig({ ...source, primaryColor: '#B91C1C' }, dark)
+    expect(document.documentElement.style.getPropertyValue('--top-menu-active-bar-color')).toBe('#b91c1c')
+  })
+
+  it.each(['auto', 'custom'])('%s 配色保留独立浅/深横条，基础色与预设更新不覆盖它', (mode) => {
+    const source = {
+      ...defaultThemeConfig,
+      navigationMode: mode,
+      topMenu: { ...defaultThemeConfig.topMenu, activeBarColor: '#FF7D00' },
+      topMenuDark: { ...defaultThemeConfig.topMenuDark, activeBarColor: '#7DB7FF' },
+    }
+    const original = JSON.stringify(source)
+    const next = updateNavigationBases(source, navigationPresets[1])
+    expect(next.topMenu.activeBarColor).toBe('#FF7D00')
+    expect(next.topMenuDark.activeBarColor).toBe('#7DB7FF')
+    applyThemeConfig(next)
+    expect(document.documentElement.style.getPropertyValue('--top-menu-active-bar-color')).toBe('#ff7d00')
+    applyThemeConfig(next, true)
+    expect(document.documentElement.style.getPropertyValue('--top-menu-active-bar-color')).toBe('#7db7ff')
+    expect(JSON.stringify(source)).toBe(original)
+  })
+
+  it.each([undefined, null, '', 'invalid', 'rgb(999,0,0)'])('非法或空横条 %s 安全回退品牌色', (value) => {
+    applyThemeConfig({ primaryColor: '#0E8F7E', topMenu: { activeBarColor: value } })
+    expect(document.documentElement.style.getPropertyValue('--top-menu-active-bar-color')).toBe('#0e8f7e')
+  })
+
+  it('租户保存/重新编辑保留两套横条与未知字段', () => {
+    const data = { themeConfig: JSON.stringify({
+      primaryColor: '#2f6fed',
+      navigationMode: 'auto',
+      topMenu: { activeBarColor: '#FF7D00' },
+      topMenuDark: { activeBarColor: '#7DB7FF' },
+      extension: { version: 3 },
+    }) }
+    prepareTenantAppearance(data)
+    const loaded = readTenantAppearance(data)
+    expect(loaded.topMenu.activeBarColor).toBe('#FF7D00')
+    expect(loaded.topMenuDark.activeBarColor).toBe('#7DB7FF')
+    expect(loaded.extension).toEqual({ version: 3 })
+  })
+})
+
 describe('深浅导航模式隔离', () => {
   it.each(['auto', 'custom'])('旧全局 %s 同时适用于浅色和深色', (mode) => {
     expect(resolveNavigationMode({ navigationMode: mode })).toBe(mode)

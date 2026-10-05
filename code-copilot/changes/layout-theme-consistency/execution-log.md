@@ -290,3 +290,68 @@ node --test forge-server/scripts/db/tenant-theme-migration.test.mjs \
 - 仅本轮临时 Vite 会话 Ctrl+C 停止，3032 端口无监听；用户其它服务/标签没有关闭。
 - 未执行真实数据库迁移、租户保存、身份切换、登录/注销、全屏或消息/审批写入。
   本阶段只本地提交，不自动 push；用户 `.DS_Store` 保留且不入提交。
+
+## 2026-10-05 第七阶段 T12
+
+### 实现与兼容
+
+- 基线 `fb5c9515`，分支 `codex/workbench-illustrations`；用户 `.DS_Store` 原样保留且排除提交。
+- `topMenu` / `topMenuDark.activeBarColor` 为空时跟随品牌主色，非法/缺失值也安全回退。
+  新 CSS Token 与文字角色分离，顶部/混合/工作台和工作台高优先级样式均读取它。
+- 共用高级取色控件提供跟随开关与 HEX 输入，浅/深各自编辑，不要求切换手动文字模式；
+  基础三色、预设、自动/手动切换、个人恢复和租户 JSON 解析保留显式颜色及未知字段。
+- 取色器用原生 group 承载可访问名称，避免对 fragment 根组件直接传 aria 属性产生警告；
+  横条预览只覆盖菜单文字宽度。主题 CSS 映射按顶部/侧边职责提取，原回退语义不变，避免增长旧大方法。
+- 工作台隐藏 Firefox/WebKit 原生滚动条且保留 overflow-x:auto；普通纵向滚轮转换为横向移动，
+  无溢出/边界不阻止页面滚动，Ctrl 缩放、Shift 和触控板横向事件交给浏览器。
+  既有左右按钮、键盘与活动菜单自动滚入保留。
+- 共用编辑器 398 行、新控件 62 行、工作台头部 229 行、滚轮函数 16 行；无后端/数据库/依赖变更。
+
+### 增量自动化验证
+
+- Node `v20.19.0`；在 forge-admin-ui 复用以下 16 文件矩阵（117 项基线 + 33 项新增）：
+
+```bash
+node node_modules/vitest/vitest.mjs run \
+  src/utils/__tests__/navigation-theme.spec.js \
+  src/utils/__tests__/app-theme.spec.js \
+  src/utils/__tests__/tenant-config-appearance.spec.js \
+  src/layouts/__tests__/layout-theme-surfaces.spec.js \
+  src/layouts/business-workbench/__tests__/menu-model.spec.js \
+  src/layouts/business-workbench/__tests__/settings.spec.js \
+  src/layouts/business-workbench/__tests__/menu-scroll.spec.js \
+  src/layouts/components/__tests__/operation-guide.spec.js \
+  src/layouts/components/__tests__/compact-layout-tools.spec.js \
+  src/layouts/components/__tests__/account-actions.spec.js \
+  src/layouts/components/__tests__/account-identity.spec.js \
+  src/layouts/components/__tests__/responsive-menu-toggle.spec.js \
+  src/layouts/components/__tests__/message-notification-utils.spec.js \
+  src/views/system/__tests__/tenant-workspace-ux.spec.js \
+  src/components/common/appearance/__tests__/appearance-controls.spec.js \
+  src/components/common/appearance/__tests__/top-menu-indicator.spec.js
+```
+
+- 最终 16 文件 150 项全部通过，2.51 秒；覆盖缺失/非法回退、自动/手动/预设保留、JSON 回环、
+  真实 HEX 输入、跟随恢复、浅/深隔离、实际 CSS Token 和滚轮边界；没有 skip 或削弱旧断言。
+- 首次目标 Lint 的 8 处格式/导入问题修正后，最终所有修改及新增 JS/Vue ESLint 退出 0。
+  取色器 fragment 警告改为原生 group 后复跑无此警告；没有关闭警告或替换真实取色组件规避问题。
+- 最终生产构建 `node --max-old-space-size=8192 node_modules/vite/bin/vite.js build` 退出 0，35.44 秒；
+  日志 `/private/tmp/forge-layout-theme-stage7-build-final.log`，仅保留插件耗时提示。`git diff --check` 通过。
+
+### 浏览器实测与清理
+
+- 复用真实 App/Store/布局/样式的隔离预览，菜单/认证/查询接口由桩模拟，不连接真实后台。
+- 通过实际 HEX 键盘输入和 Tab 提交浅色 `#FF7D00`：顶部/混合/工作台实际横条为 rgb(255,125,0)，
+  菜单文字仍为 rgb(29,33,41)，品牌主色 `#2f6fed` 不变。最终 CSS 映射提取后再次验证通过。
+- 深色单独设 `#7DB7FF` 后实际横条为 rgb(125,183,255)，深色顶栏 rgb(24,24,28)、文字白色；
+  返回浅色仍为橙色。恢复跟随后横条为 rgb(47,111,237)，与品牌主色一致。
+- CUA fill 虽改变 HEX 输入显示但未触发 Naive UI 原生提交；改用真实逐键输入及失焦后成功。
+  未修改产品逻辑绕过真实交互，组件测试仍使用实际 NColorPicker/NInput 的 change 行为。
+- 1024×740 工作台菜单 clientWidth=234、scrollWidth=368、可滚距离 134；scrollbar-width:none，
+  WebKit scrollbar display:none。左右按钮到达边界，真实鼠标滚轮横向滚至 134，键盘左移焦点至业务管理；
+  页面 scrollWidth=1024，没有全页横向溢出。
+- 最终 1280×800 配色入口截图 `/private/tmp/forge-layout-theme-stage7-preview.jpg`，显示橙色配置与短横条预览。
+  浏览器 error 日志为空；根路由缺失及既有组件注册 warning 来自隔离桩，不代表真实线上 E2E。
+- 本轮临时标签 10、11 均关闭，视口覆盖恢复；仅本轮 Vite 会话 Ctrl+C 停止，3032 端口无监听。
+  用户标签、其它前端服务、真实租户保存、身份切换及业务写入未操作。
+- 本阶段只本地提交，不自动合并 main 或 push；真实租户保存/授权与线上菜单仍需实际环境验收。

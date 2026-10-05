@@ -15,7 +15,10 @@
       <button v-if="overflowing" type="button" class="menu-scroll" aria-label="向左查看更多菜单" :disabled="arrivedState.left" @click="scrollMenus(-1)">
         <i class="i-lucide:chevron-left" />
       </button>
-      <div ref="track" class="business-mega-triggers" @keydown.right.prevent="moveFocus($event, 1)" @keydown.left.prevent="moveFocus($event, -1)">
+      <div
+        ref="track" class="business-mega-triggers" @wheel="scrollMenuWithWheel"
+        @keydown.right.prevent="moveFocus($event, 1)" @keydown.left.prevent="moveFocus($event, -1)"
+      >
         <button
           v-for="item in menus" :key="item.key" type="button" :data-menu-key="item.key"
           :class="{
@@ -56,6 +59,7 @@ import IconRenderer from '@/components/IconRenderer.vue'
 import HeaderTools from '@/layouts/components/HeaderTools.vue'
 import { usePermissionStore } from '@/store'
 import { useBusinessWorkbenchStore } from '@/stores/layout/businessWorkbenchStore'
+import { scrollMenuWithWheel } from '../menu-scroll'
 import { useWorkbenchNavigation } from '../useWorkbenchNavigation'
 import WorkbenchMegaPanel from './WorkbenchMegaPanel.vue'
 

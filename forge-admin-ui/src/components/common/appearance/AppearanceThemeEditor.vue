@@ -40,7 +40,8 @@
     <!-- 与当前草稿绑定的小预览，不污染系统正在使用的主题 -->
     <div v-if="layout !== 'empty'" class="theme-sample" :style="sampleStyle" aria-label="导航配色预览">
       <div v-if="hasHeader" class="sample-header">
-        <i class="i-lucide:panel-left" /><span>系统导航</span><i class="i-lucide:bell" />
+        <i class="i-lucide:panel-left" />
+        <span :class="{ 'sample-top-menu': hasTopMenu }">系统导航</span><i class="i-lucide:bell" />
       </div>
       <div class="sample-body">
         <div class="sample-side">
@@ -71,6 +72,7 @@
             />
           </label>
         </div>
+        <TopMenuIndicatorControl v-if="hasTopMenu" v-model="model" :dark="advancedDark" />
         <div class="manual-mode">
           <span>手动配置文字和状态色</span>
           <n-switch :value="manualMode" @update:value="setManualMode" />
@@ -103,6 +105,7 @@ import {
   updateNavigationBases,
   updateNavigationMode,
 } from '@/utils/navigation-theme'
+import TopMenuIndicatorControl from './TopMenuIndicatorControl.vue'
 
 const props = defineProps({ layout: { type: String, default: 'normal' } })
 const model = defineModel({ type: Object, required: true })
@@ -110,6 +113,7 @@ const previewDark = ref(false)
 const advancedDark = ref(false)
 const manualMode = computed(() => resolveNavigationMode(model.value, advancedDark.value) === 'custom')
 const hasHeader = computed(() => !['simple', 'bento', 'empty'].includes(props.layout))
+const hasTopMenu = computed(() => ['top-menu', 'top-side-menu', 'business-workbench'].includes(props.layout))
 const baseFields = computed(() => [
   { key: 'primary', label: '品牌主色' },
   ...(['simple', 'bento', 'empty'].includes(props.layout) ? [] : [{ key: 'header', label: '顶栏背景' }]),
@@ -151,6 +155,8 @@ const rendered = computed(() => resolveNavigationTheme(model.value, defaultTheme
 const sampleStyle = computed(() => ({
   '--sample-header': rendered.value.header.backgroundColor,
   '--sample-header-text': rendered.value.header.textColor,
+  '--sample-top-menu-text': rendered.value.topMenu.textColorActive,
+  '--sample-active-bar': solidColor(rendered.value.topMenu.activeBarColor, rendered.value.primaryColor),
   '--sample-side': rendered.value.sideMenu.backgroundColor,
   '--sample-side-text': rendered.value.sideMenu.textColor,
   '--sample-active': rendered.value.sideMenu.backgroundColorActive,
@@ -330,6 +336,18 @@ function updateCustom(path, value) {
 }
 .sample-header span {
   flex: 1;
+}
+.sample-header .sample-top-menu {
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding-inline: 8px;
+  color: var(--sample-top-menu-text);
+  border-bottom: 2px solid var(--sample-active-bar);
+}
+.sample-header .sample-top-menu + i {
+  margin-left: auto;
 }
 .sample-body {
   display: flex;

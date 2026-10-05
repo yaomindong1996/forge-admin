@@ -316,7 +316,7 @@ watch(() => props.activeKey, () => {
   min-width: 34px;
   height: 2px;
   border-radius: var(--radius-full);
-  background: var(--top-menu-text-color-active);
+  background: var(--top-menu-active-bar-color, var(--primary-color));
   transform: translateX(-50%);
 }
 
