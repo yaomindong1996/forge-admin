@@ -5,7 +5,7 @@
 
     <!-- 顶部一级菜单 -->
     <header
-      class="layout-header top-layout-header flex flex-shrink-0 items-center"
+      class="layout-header layout-chrome-header top-layout-header flex flex-shrink-0 items-center"
     >
       <div class="brand-section">
         <TheLogo class="brand-logo" />

@@ -46,7 +46,7 @@ const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
 /* 侧边栏 */
 .sidebar-simple {
   flex-shrink: 0;
-  width: 260px;
+  width: var(--side-menu-width);
   background: var(--side-menu-bg-color, #ffffff);
   border-right: 1px solid var(--side-menu-border-color, #e2e8f0);
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -55,7 +55,7 @@ const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
 }
 
 .sidebar-simple-collapsed {
-  width: 72px;
+  width: var(--side-menu-collapsed-width);
 }
 
 .sidebar-simple-inner {

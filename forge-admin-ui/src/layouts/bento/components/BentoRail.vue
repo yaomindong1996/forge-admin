@@ -1,31 +1,35 @@
 <template>
   <div class="bento-rail">
     <!-- Logo -->
-    <router-link to="/" class="bento-logo" title="首页">
+    <div class="bento-logo" title="首页">
       <TheLogo />
-    </router-link>
+    </div>
 
     <!-- 菜单触发按钮 -->
-    <div
+    <button
       class="bento-menu-trigger"
+      type="button"
+      aria-label="打开菜单"
       title="打开菜单"
       @click="menuDrawerVisible = true"
     >
       <i class="i-ion-menu" />
-    </div>
+    </button>
 
     <!-- 顶部菜单快捷入口 -->
     <div class="bento-quick-links">
-      <div
+      <button
         v-for="item in topMenus"
         :key="item.key"
         class="quick-link"
         :class="{ active: item.key === activeKey }"
         :title="item.label"
+        type="button"
+        :aria-label="item.label"
         @click="handleMenuSelect(item)"
       >
         <IconRenderer :icon="item.iconClass" :size="20" />
-      </div>
+      </button>
     </div>
 
     <!-- 底部工具栏 -->
@@ -90,19 +94,9 @@ const { userName, userAvatarText, userDropdownOptions, dropdownVisible: userDrop
 const topMenus = computed(() => {
   const menus = permissionStore.menus || []
   return menus.slice(0, 8).map((item) => {
-    const iconMap = {
-      system: 'i-ai-icon:settings',
-      generator: 'i-ai-icon:code',
-      flow: 'i-ai-icon:flow',
-      message: 'i-ai-icon:bell',
-      monitor: 'i-ai-icon:monitor',
-      job: 'i-ai-icon:clock',
-      file: 'i-ai-icon:file',
-    }
-    const iconKey = (item.path || '').split('/')[1] || ''
     return {
       ...item,
-      iconClass: item.icon || iconMap[iconKey] || 'i-ai-icon:grid',
+      iconClass: item.icon || (item.children?.length ? 'ionicons5:FolderOutline' : 'ionicons5:DocumentTextOutline'),
     }
   })
 })
@@ -110,24 +104,20 @@ const topMenus = computed(() => {
 // Compute active top menu key based on current route
 const activeKey = computed(() => {
   const menus = permissionStore.menus || []
-  const currentPath = route.path
-  for (let i = 0; i < menus.length; i++) {
-    const item = menus[i]
-    if (item.path === currentPath) {
-      return item.key || item.id
-    }
-    if (item.children) {
-      for (const child of item.children) {
-        if (child.path === currentPath) {
-          return item.key || item.id
-        }
-      }
-    }
-  }
-  return null
+  const current = menus.find(item => containsPath(item, route.path))
+  return current?.key || current?.id || null
 })
 
+function containsPath(item, path) {
+  return item.path === path || (item.children || []).some(child => containsPath(child, path))
+}
+
 function handleMenuSelect(item) {
+  // 一级目录没有页面路由，打开完整菜单，不能让快捷图标点了无响应。
+  if (item.children?.length) {
+    menuDrawerVisible.value = true
+    return
+  }
   if (item.path) {
     baseHandleMenuSelect(item.key || item.id, item.path)
   }
@@ -153,8 +143,8 @@ function handleUserSelect(key) {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
-  border-right: 1px solid var(--border-light);
+  background: var(--side-menu-bg-color);
+  border-right: 1px solid var(--side-menu-border-color);
   flex-shrink: 0;
   padding: 6px 0;
 }
@@ -185,13 +175,16 @@ function handleUserSelect(key) {
   border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 20px;
-  color: var(--text-primary);
+  color: var(--side-menu-text-color);
+  padding: 0;
+  border: 0;
+  background: transparent;
   transition: all var(--transition-fast);
 }
 
 .bento-menu-trigger:hover {
-  background: var(--bg-secondary);
-  color: var(--primary-500);
+  background: var(--side-menu-bg-color-hover);
+  color: var(--side-menu-text-color-hover);
 }
 
 /* 快捷菜单 */
@@ -214,18 +207,21 @@ function handleUserSelect(key) {
   border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 17px;
-  color: var(--text-secondary);
+  color: var(--side-menu-text-color);
+  padding: 0;
+  border: 0;
+  background: transparent;
   transition: all var(--transition-fast);
 }
 
 .quick-link:hover {
-  background: var(--bg-secondary);
-  color: var(--primary-500);
+  background: var(--side-menu-bg-color-hover);
+  color: var(--side-menu-text-color-hover);
 }
 
 .quick-link.active {
-  background: var(--primary-50);
-  color: var(--primary-500);
+  background: var(--side-menu-bg-color-active);
+  color: var(--side-menu-text-color-active);
 }
 
 /* 底部工具 */
@@ -246,21 +242,21 @@ function handleUserSelect(key) {
   border-radius: var(--radius-lg);
   cursor: pointer;
   font-size: 18px;
-  color: var(--text-secondary);
+  color: var(--side-menu-text-color);
   transition: all var(--transition-fast);
   position: relative;
 }
 
 .tool-item:hover {
-  background: var(--bg-secondary);
-  color: var(--primary-500);
+  background: var(--side-menu-bg-color-hover);
+  color: var(--side-menu-text-color-hover);
 }
 
 .tool-divider {
   height: 1px !important;
   width: 24px;
   margin: 4px auto;
-  background: var(--border-light);
+  background: var(--side-menu-border-color);
   border-radius: 0;
   cursor: default;
   color: transparent;

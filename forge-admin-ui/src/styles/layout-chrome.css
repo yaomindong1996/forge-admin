@@ -1,0 +1,126 @@
+/* 后台导航表面：仅作用于框架 Header，不污染浮层和业务正文。 */
+.layout-chrome-header.layout-chrome-header {
+  --chrome-text: var(--layout-header-text-color);
+  --chrome-tab-text: var(--layout-header-text-color);
+  --chrome-tab-active-text: var(--top-menu-text-color-active);
+  --chrome-tab-active-bg: var(--top-menu-bg-color-active);
+  --chrome-tab-hover-bg: var(--layout-header-hover-color);
+  --chrome-tab-surface: var(--layout-header-bg-color);
+  --chrome-control-bg: transparent;
+  --chrome-control-hover-bg: var(--layout-header-hover-color);
+  --chrome-control-border: transparent;
+  background: var(--layout-header-bg-color);
+  color: var(--layout-header-text-color);
+  border-color: var(--layout-header-border-color);
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.layout-chrome-header :is(.header-right, .header-actions-inner, .header-tools-wrap, .business-header-tools) {
+  gap: 4px;
+  color: var(--chrome-text);
+}
+.layout-chrome-header :is(.search-trigger, .notification-trigger, .menu-collapse-button, .menu-trigger-btn,
+  .chrome-icon-button, #toggleTheme, #fullscreen, #beginner-guide) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--chrome-text);
+  font-size: 18px;
+  cursor: pointer;
+}
+.layout-chrome-header :is(.search-trigger, .notification-trigger, .menu-collapse-button, .menu-trigger-btn,
+  .chrome-icon-button, #toggleTheme, #fullscreen, #beginner-guide):hover {
+  background: var(--layout-header-hover-color);
+  color: var(--chrome-text);
+}
+.layout-chrome-header :is(.tenant-switcher, .org-switcher) {
+  background: transparent;
+  color: var(--chrome-text);
+  border-color: transparent;
+}
+.layout-chrome-header :is(.tenant-switcher, .org-switcher):hover {
+  background: var(--layout-header-hover-color);
+  color: var(--chrome-text);
+}
+.layout-chrome-header .message-notification-wrapper { margin-right: 0; }
+.layout-chrome-header .header-divider { background: var(--layout-header-border-color); }
+.layout-chrome-header .n-breadcrumb-item__link,
+.layout-chrome-header .n-breadcrumb-item:last-child .n-breadcrumb-item__link,
+.layout-chrome-header .n-breadcrumb-item__separator { color: var(--chrome-text); }
+.layout-chrome-header .n-breadcrumb-item__link:hover { color: var(--top-menu-text-color-hover); }
+.layout-chrome-header .top-tab-group-marker { display: none; }
+.layout-chrome-header :is(.top-tab-close, .top-tab-pin, .top-tab-search-button, .top-tab-scroll-button) {
+  color: var(--chrome-text);
+}
+.layout-chrome-header :is(.top-tab-search-button, .top-tab-scroll-button) {
+  background: var(--layout-header-bg-color);
+}
+.layout-chrome-header :is(.top-tab-close, .top-tab-pin, .top-tab-search-button, .top-tab-scroll-button):hover {
+  color: var(--chrome-text);
+  background: var(--layout-header-hover-color);
+}
+
+/* 业务工作台：主导航真实图标 + 轻主题选中，不额外添加独立彩色体系。 */
+.layout-chrome-header .workbench-brand { --brand-title-text-color: var(--layout-header-text-color); }
+.layout-chrome-header .business-mega-triggers > button { gap: 7px; color: var(--top-menu-text-color); }
+.layout-chrome-header .business-mega-triggers > button:is(.active, .is-intent, .is-open, :hover) {
+  color: var(--top-menu-text-color-active);
+  background: var(--top-menu-bg-color-hover);
+}
+.layout-chrome-header .business-mega-triggers > button::after { background: var(--top-menu-text-color-active); }
+.layout-chrome-header .workbench-brand { border-color: var(--layout-header-border-color); }
+.layout-chrome-header .menu-scroll { color: var(--chrome-text); background: var(--layout-header-bg-color); }
+.layout-chrome-header .business-mega-panel {
+  --workbench-surface: var(--side-menu-bg-color);
+  --workbench-muted: var(--side-menu-text-color);
+  --workbench-primary: var(--side-menu-text-color-active);
+  --text-primary: var(--side-menu-text-color);
+  --text-secondary: var(--side-menu-text-color);
+  --text-tertiary: var(--side-menu-text-color);
+  --workbench-border: var(--side-menu-border-color);
+  color: var(--side-menu-text-color);
+}
+.business-mega-panel .mega-panel-aside { background: var(--side-menu-bg-color); }
+.business-mega-panel .mega-section-nav > button:is(:hover, .is-active) {
+  background: var(--side-menu-bg-color-active);
+  color: var(--side-menu-text-color-active);
+}
+
+/* 便当盒没有顶栏；工具和快捷入口随导航表面配色。 */
+.bento-rail.bento-rail {
+  --chrome-text: var(--side-menu-text-color);
+  --chrome-control-bg: transparent;
+  --chrome-control-hover-bg: var(--side-menu-bg-color-hover);
+  --chrome-control-border: transparent;
+  background: var(--side-menu-bg-color);
+  color: var(--side-menu-text-color);
+  border-color: var(--side-menu-border-color);
+}
+.bento-rail :is(.bento-menu-trigger, .quick-link, .tool-item) { color: var(--side-menu-text-color); }
+.bento-rail :is(.bento-menu-trigger, .quick-link, .tool-item):hover {
+  color: var(--side-menu-text-color-hover);
+  background: var(--side-menu-bg-color-hover);
+}
+.bento-rail .quick-link.active { color: var(--side-menu-text-color-active); background: var(--side-menu-bg-color-active); }
+.sidebar-simple-footer { --chrome-text: var(--side-menu-text-color); }
+
+@media (max-width: 1100px) {
+  .layout-chrome-header :is(#beginner-guide, #fullscreen) { display: none; }
+  .layout-chrome-header :is(.tenant-name, .org-name) { max-width: 70px; }
+  .layout-chrome-header .header-center { display: none; }
+  .business-workbench-header { padding-inline: 12px; gap: 12px; }
+}
+@media (max-width: 760px) {
+  .layout-chrome-header :is(.tenant-name, .org-name, #user-dropdown > .ml-8) { display: none; }
+  .layout-chrome-header .header-system-name { max-width: 100px; }
+  .layout-chrome-header .header-tools-wrap { padding-left: 0; }
+}

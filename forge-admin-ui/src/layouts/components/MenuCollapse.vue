@@ -1,12 +1,15 @@
 <template>
-  <div
+  <button
     id="menu-collapse"
+    type="button"
     class="menu-collapse-button"
     :title="appStore.collapsed ? '展开菜单' : '收起菜单'"
+    :aria-label="appStore.collapsed ? '展开菜单' : '收起菜单'"
+    :aria-expanded="!appStore.collapsed"
     @click="appStore.switchCollapsed"
   >
     <i :class="appStore.collapsed ? 'i-line-md-menu-unfold-left' : 'i-line-md-menu-fold-left'" />
-  </div>
+  </button>
 </template>
 
 <script setup>

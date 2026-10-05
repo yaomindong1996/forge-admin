@@ -1,7 +1,7 @@
 <template>
   <header
     ref="header"
-    class="business-workbench-header"
+    class="business-workbench-header layout-chrome-header"
     :style="{ '--workbench-mega-intent-ms': `${INTENT_MS}ms` }"
     @keydown.esc="closeAndFocus"
     @mouseenter="cancelClose"
@@ -19,7 +19,7 @@
         <button
           v-for="item in menus" :key="item.key" type="button" :data-menu-key="item.key"
           :class="{
-            active: store.activeMenu ? store.activeMenu === item.key : activeRootKey === item.key,
+            'active': store.activeMenu ? store.activeMenu === item.key : activeRootKey === item.key,
             'is-open': store.activeMenu === item.key,
             'is-intent': intentMenuKey === item.key,
           }"
@@ -32,7 +32,9 @@
           @animationend="onIntentAnimationEnd($event, item)"
           @keydown.down.prevent="openAndFocus(item)"
         >
-          {{ item.label }}
+          <IconRenderer v-if="typeof item.icon === 'string' && item.icon" :icon="item.icon" :size="16" />
+          <component :is="item.icon" v-else-if="item.icon" />
+          <span>{{ item.label }}</span>
         </button>
         <span v-if="!menus.length" class="menu-empty">{{ permissionStore.menuDataLoaded ? '暂无可访问菜单' : '菜单加载中…' }}</span>
       </div>
@@ -44,7 +46,12 @@
       <MenuSearch />
       <ToggleTheme class="workbench-theme-toggle" />
       <MessageNotification />
-      <LayoutSetting />
+      <button
+        id="layout-setting" class="chrome-icon-button" type="button" title="布局与外观"
+        aria-label="布局与外观" @click="appStore.appearanceOpen = true"
+      >
+        <i class="i-lucide:panels-top-left" />
+      </button>
       <UserAvatar />
     </div>
     <WorkbenchMegaPanel />
@@ -54,14 +61,14 @@
 <script setup>
 import { onClickOutside, useResizeObserver, useScroll } from '@vueuse/core'
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
-import LayoutSetting from '@/components/common/LayoutSetting.vue'
 import TheLogo from '@/components/common/TheLogo.vue'
 import TheTitle from '@/components/common/TheTitle.vue'
 import ToggleTheme from '@/components/common/ToggleTheme.vue'
+import IconRenderer from '@/components/IconRenderer.vue'
 import MenuSearch from '@/layouts/components/MenuSearch.vue'
 import MessageNotification from '@/layouts/components/MessageNotification.vue'
 import UserAvatar from '@/layouts/components/UserAvatar.vue'
-import { usePermissionStore } from '@/store'
+import { useAppStore, usePermissionStore } from '@/store'
 import { useBusinessWorkbenchStore } from '@/stores/layout/businessWorkbenchStore'
 import { useWorkbenchNavigation } from '../useWorkbenchNavigation'
 import WorkbenchMegaPanel from './WorkbenchMegaPanel.vue'
@@ -74,6 +81,7 @@ const SWITCH_DELAY_MS = 50
 const CLOSE_DELAY_MS = 220
 
 const store = useBusinessWorkbenchStore()
+const appStore = useAppStore()
 const permissionStore = usePermissionStore()
 const { menus, activeRootKey, activateMenu } = useWorkbenchNavigation()
 const header = ref(null)

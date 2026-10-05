@@ -550,10 +550,10 @@ async function handleContextMenu(e, tagItem) {
   overflow: hidden;
   --forge-tab-height: 30px;
   --forge-tab-gap: 5px;
-  --forge-tab-text: var(--text-secondary, #4e5969);
-  --forge-tab-muted: var(--text-tertiary, #86909c);
-  --forge-tab-active-bg: color-mix(in srgb, var(--primary-color, #4242f7) 9%, transparent);
-  --forge-tab-hover-bg: color-mix(in srgb, var(--text-primary, #1d2129) 5%, transparent);
+  --forge-tab-text: var(--chrome-tab-text, var(--text-secondary, #4e5969));
+  --forge-tab-muted: var(--chrome-tab-text, var(--text-tertiary, #86909c));
+  --forge-tab-active-bg: var(--chrome-tab-active-bg, color-mix(in srgb, var(--primary-color, #4242f7) 9%, transparent));
+  --forge-tab-hover-bg: var(--chrome-tab-hover-bg, color-mix(in srgb, var(--text-primary, #1d2129) 5%, transparent));
 }
 
 #top-tab::before,
@@ -571,13 +571,13 @@ async function handleContextMenu(e, tagItem) {
 
 #top-tab::before {
   left: 0;
-  background: linear-gradient(90deg, var(--bg-primary, #fff) 12%, transparent);
+  background: linear-gradient(90deg, var(--chrome-tab-surface, var(--bg-primary, #fff)) 12%, transparent);
   box-shadow: inset 12px 0 10px -12px rgb(15 23 42 / 40%);
 }
 
 #top-tab::after {
   right: 28px;
-  background: linear-gradient(270deg, var(--bg-primary, #fff) 12%, transparent);
+  background: linear-gradient(270deg, var(--chrome-tab-surface, var(--bg-primary, #fff)) 12%, transparent);
   box-shadow: inset -12px 0 10px -12px rgb(15 23 42 / 40%);
 }
 
@@ -699,7 +699,7 @@ async function handleContextMenu(e, tagItem) {
   bottom: 0;
   left: 8px;
   height: 2px;
-  background: var(--primary-color, #4242f7);
+  background: var(--chrome-tab-active-text, var(--primary-color, #4242f7));
   content: '';
   opacity: 0;
   transform: scaleX(0.35);
@@ -710,7 +710,7 @@ async function handleContextMenu(e, tagItem) {
 
 .top-tab-item:hover {
   background: var(--forge-tab-hover-bg);
-  color: var(--text-primary, #1d2129);
+  color: var(--chrome-tab-active-text, var(--text-primary, #1d2129));
 }
 
 .top-tab-item:focus-visible {
@@ -719,7 +719,7 @@ async function handleContextMenu(e, tagItem) {
 
 .top-tab-item.is-active {
   background: var(--forge-tab-active-bg);
-  color: var(--primary-color, #4242f7);
+  color: var(--chrome-tab-active-text, var(--primary-color, #4242f7));
   font-weight: 600;
 }
 
@@ -767,8 +767,8 @@ async function handleContextMenu(e, tagItem) {
 
 .top-tab-close:hover,
 .top-tab-pin:hover {
-  background: color-mix(in srgb, var(--text-primary, #1d2129) 9%, transparent);
-  color: var(--text-secondary, #4e5969);
+  background: var(--chrome-tab-hover-bg, color-mix(in srgb, var(--text-primary, #1d2129) 9%, transparent));
+  color: var(--chrome-tab-text, var(--text-secondary, #4e5969));
 }
 
 .top-tab-close i,
@@ -777,7 +777,7 @@ async function handleContextMenu(e, tagItem) {
 }
 
 .top-tab-pin {
-  color: var(--primary-color, #4242f7);
+  color: var(--chrome-tab-text, var(--primary-color, #4242f7));
 }
 
 #top-tab.is-tab-dragging,
@@ -811,8 +811,8 @@ async function handleContextMenu(e, tagItem) {
   padding: 0;
   border: 1px solid color-mix(in srgb, var(--border-light, #e5e7eb) 82%, transparent);
   border-radius: 4px;
-  background: color-mix(in srgb, var(--bg-primary, #fff) 94%, transparent);
-  color: var(--text-secondary, #4e5969);
+  background: var(--chrome-tab-surface, color-mix(in srgb, var(--bg-primary, #fff) 94%, transparent));
+  color: var(--chrome-tab-text, var(--text-secondary, #4e5969));
   cursor: pointer;
   box-shadow: 0 1px 4px rgb(15 23 42 / 14%);
   transition:
@@ -823,8 +823,8 @@ async function handleContextMenu(e, tagItem) {
 
 .top-tab-scroll-button:hover {
   border-color: color-mix(in srgb, var(--primary-color, #4242f7) 36%, var(--border-light, #e5e7eb));
-  background: var(--bg-primary, #fff);
-  color: var(--primary-color, #4242f7);
+  background: var(--chrome-tab-hover-bg, var(--bg-primary, #fff));
+  color: var(--chrome-tab-active-text, var(--primary-color, #4242f7));
 }
 
 .top-tab-scroll-button.is-left {
@@ -850,7 +850,7 @@ async function handleContextMenu(e, tagItem) {
   flex: 0 0 auto;
   align-items: center;
   padding: 0 3px;
-  background: var(--bg-primary, #fff);
+  background: var(--chrome-tab-surface, var(--bg-primary, #fff));
   gap: 2px;
 }
 
@@ -864,7 +864,7 @@ async function handleContextMenu(e, tagItem) {
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: var(--text-secondary, #4e5969);
+  color: var(--chrome-tab-text, var(--text-secondary, #4e5969));
   cursor: pointer;
 }
 
@@ -872,7 +872,7 @@ async function handleContextMenu(e, tagItem) {
 .top-tab-search-button:hover {
   border-color: transparent;
   background: var(--forge-tab-hover-bg);
-  color: var(--primary-color, #4242f7);
+  color: var(--chrome-tab-active-text, var(--primary-color, #4242f7));
   box-shadow: none;
 }
 

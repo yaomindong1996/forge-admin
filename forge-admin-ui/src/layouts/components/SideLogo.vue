@@ -1,32 +1,26 @@
 <template>
   <div class="modern-side-header">
-    <router-link class="logo-link" to="/">
+    <div class="logo-link">
       <div class="logo-wrapper">
         <TheLogo />
       </div>
       <transition name="fade-slide">
-        <h2 v-show="!appStore.collapsed" class="system-name">
-          {{ systemName }}
-        </h2>
+        <TheTitle v-show="!appStore.collapsed" class="system-name" />
       </transition>
-    </router-link>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { useAppStore, useTenantStore } from '@/store'
-import { getDefaultPageTitle } from '@/utils/page-title'
+import TheTitle from '@/components/common/TheTitle.vue'
+import { useAppStore } from '@/store'
 
-const tenantStore = useTenantStore()
 const appStore = useAppStore()
-
-const systemName = computed(() => {
-  return tenantStore.systemName || getDefaultPageTitle()
-})
 </script>
 
 <style scoped>
 .modern-side-header {
+  --brand-title-text-color: var(--side-menu-text-color);
   height: 52px;
   padding: 0 12px;
   display: flex;
@@ -45,22 +39,20 @@ const systemName = computed(() => {
 }
 
 .logo-wrapper {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md);
   flex-shrink: 0;
-  background: var(--primary-500);
-  box-shadow: 0 2px 6px rgba(22, 93, 255, 0.25);
+  background: transparent;
 }
 
 .logo-wrapper :deep(img) {
-  width: 16px;
-  height: 16px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
-  filter: brightness(10);
 }
 
 .system-name {

@@ -8,9 +8,9 @@
     @select="handleSelect"
   >
     <div class="tenant-switcher">
-      <i class="i-material-symbols:domain-rounded tenant-icon" />
+      <i class="tenant-icon i-material-symbols:domain-rounded" />
       <span class="tenant-name">{{ currentTenantName }}</span>
-      <i v-if="switchableTenantCount > 1" class="i-material-symbols:expand-more-rounded tenant-arrow" />
+      <i v-if="switchableTenantCount > 1" class="tenant-arrow i-material-symbols:expand-more-rounded" />
     </div>
   </n-dropdown>
 </template>
@@ -139,10 +139,10 @@ watch(() => userStore.userInfo?.tenantId, () => {
   align-items: center;
   gap: 6px;
   padding: 0 9px;
-  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  border: 1px solid var(--chrome-control-border, color-mix(in srgb, currentColor 22%, transparent));
   border-radius: 8px;
-  background: color-mix(in srgb, currentColor 8%, transparent);
-  color: var(--top-menu-text-color, var(--layout-header-text-color));
+  background: var(--chrome-control-bg, color-mix(in srgb, currentColor 8%, transparent));
+  color: var(--chrome-text, var(--text-secondary));
   cursor: pointer;
   transition:
     background-color var(--transition-fast),
@@ -152,9 +152,9 @@ watch(() => userStore.userInfo?.tenantId, () => {
 }
 
 .tenant-switcher:hover {
-  border-color: color-mix(in srgb, currentColor 34%, transparent);
-  background: color-mix(in srgb, currentColor 12%, transparent);
-  color: var(--top-menu-text-color-hover, var(--top-menu-text-color, var(--layout-header-text-color)));
+  border-color: var(--chrome-control-border, color-mix(in srgb, currentColor 34%, transparent));
+  background: var(--chrome-control-hover-bg, color-mix(in srgb, currentColor 12%, transparent));
+  color: var(--chrome-text, var(--text-primary));
 }
 
 .tenant-switcher.is-single {

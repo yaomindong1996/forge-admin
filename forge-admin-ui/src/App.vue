@@ -36,7 +36,10 @@
             </KeepAlive>
           </component>
 
-          <LayoutSetting v-if="showLayoutSetting" class="fixed right-12 top-1/2 z-999" />
+          <LayoutSetting
+            v-if="showLayoutSetting" :show-trigger="appStore.layout !== 'business-workbench'"
+            class="fixed right-12 top-1/2 z-999"
+          />
         </router-view>
 
         <!-- 全局水印 -->
@@ -65,6 +68,7 @@ import ApplicationPortalSkeleton from '@/views/app-center/components/portal/Appl
 import ApplicationRuntimeSkeleton from '@/views/app-center/components/portal/ApplicationRuntimeSkeleton.vue'
 import AppPortalLayout from './layouts/app-portal/index.vue'
 import EmptyLayout from './layouts/empty/index.vue'
+import { canConfigureLayout } from './layouts/layout-settings-visibility'
 import { defaultLayout, layoutSettingVisible, normalizeLayout } from './settings'
 
 // 使用 shallowRef 确保 Layout 引用稳定
@@ -124,8 +128,10 @@ const permissionStore = usePermissionStore()
 const userStore = useUserStore()
 const isSystemRoute = computed(() => route.path.startsWith('/system/'))
 const showLayoutSetting = computed(() => {
-  const layoutName = route.meta?.layout || appStore.layout
-  return layoutSettingVisible && !['app-portal', 'business-workbench', 'empty'].includes(layoutName)
+  return layoutSettingVisible && canConfigureLayout({
+    routeLayout: route.meta?.layout,
+    authenticated: userStore.userInfo || userStore.staffInfo,
+  })
 })
 
 // 监听布局变化，及时更新布局组件

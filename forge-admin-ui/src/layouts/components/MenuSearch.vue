@@ -22,7 +22,7 @@
       <div class="search-container">
         <!-- 搜索输入框 -->
         <div class="search-input-wrapper">
-          <i class="i-mdi-magnify search-icon" />
+          <i class="search-icon i-mdi-magnify" />
           <input
             ref="inputRef"
             v-model="searchKeyword"
@@ -75,7 +75,7 @@
 
         <!-- 空状态 -->
         <div v-else-if="searchKeyword" class="search-empty">
-          <i class="i-mdi-magnify-close empty-icon" />
+          <i class="empty-icon i-mdi-magnify-close" />
           <p class="empty-text">
             未找到匹配的菜单
           </p>
@@ -382,12 +382,12 @@ onUnmounted(() => {
   background: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: var(--top-menu-text-color, var(--layout-header-text-color));
+  color: var(--chrome-text, var(--text-secondary));
   font-size: 22px;
 }
 
 .search-trigger:hover {
-  color: var(--top-menu-text-color-hover, var(--top-menu-text-color, var(--layout-header-text-color)));
+  color: var(--chrome-text, var(--text-primary));
 }
 
 /* 弹窗样式 */

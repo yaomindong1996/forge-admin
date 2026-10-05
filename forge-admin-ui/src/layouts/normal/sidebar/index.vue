@@ -21,6 +21,7 @@ import { SideLogo, SideMenu } from '@/layouts/components'
 
 .sidebar-menu {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   margin-top: var(--space-2);

@@ -111,7 +111,7 @@ export function setDocumentFavicon(iconUrl) {
     return
 
   const href = String(iconUrl || '').trim() || getDefaultFaviconUrl()
-  document.querySelectorAll("link[rel*='icon']").forEach(link => link.remove())
+  document.querySelectorAll('link[rel*=\'icon\']').forEach(link => link.remove())
 
   const png = document.createElement('link')
   png.rel = 'icon'
@@ -157,6 +157,8 @@ export async function applyTenantConfig(tenantConfig, appStore) {
   if (themeConfigObj) {
     const primaryColor = tenantConfig.systemTheme || themeConfigObj.primaryColor || defaultThemeConfig.primaryColor
     appStore.setThemeConfig({
+      ...themeConfigObj,
+      navigationMode: themeConfigObj.navigationMode || 'custom',
       primaryColor,
       header: {
         ...defaultThemeConfig.header,
@@ -187,8 +189,7 @@ export async function applyTenantConfig(tenantConfig, appStore) {
   else if (tenantConfig.systemTheme && isHexColor(tenantConfig.systemTheme)) {
     // systemTheme 只接受十六进制主色；历史数据可能存主题模式值（如 'light'），
     // 非法颜色会让 colorPalette 抛异常并中断整个菜单加载流程，必须跳过
-    appStore.setPrimaryColor(tenantConfig.systemTheme)
-    appStore.setThemeColor(tenantConfig.systemTheme)
+    appStore.setThemeConfig({ primaryColor: tenantConfig.systemTheme })
   }
 
   const pageBaseTitle = normalizePageTitle(tenantConfig.browserTitle) || normalizePageTitle(tenantConfig.systemName)

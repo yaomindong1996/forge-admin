@@ -1,5 +1,5 @@
 <template>
-  <div class="nexus-header">
+  <div class="nexus-header layout-chrome-header">
     <!-- 左侧：面包屑 -->
     <div class="header-left">
       <BreadCrumb />
@@ -42,13 +42,7 @@ import BreadCrumb from '../BreadCrumb.vue'
   align-items: center;
   padding: 0 16px;
   gap: 12px;
-  color: var(--text-secondary);
-  --layout-header-text-color: var(--text-secondary);
-  --top-menu-text-color: var(--text-secondary);
-  --top-menu-text-color-hover: var(--text-primary);
-  --top-menu-text-color-active: var(--text-primary);
-  --top-menu-text-color-active-hover: var(--text-primary);
-  --top-menu-text-color-active-horizontal: var(--text-primary);
+  color: var(--layout-header-text-color);
 }
 
 /* 左侧面包屑 */
@@ -80,7 +74,7 @@ import BreadCrumb from '../BreadCrumb.vue'
 }
 
 .header-left :deep(.n-breadcrumb-item__separator) {
-  color: var(--text-tertiary);
+  color: var(--layout-header-text-color);
   font-weight: 400;
   margin: 0 6px;
   display: inline-flex;
@@ -90,7 +84,7 @@ import BreadCrumb from '../BreadCrumb.vue'
 }
 
 .header-left :deep(.n-breadcrumb-item__link) {
-  color: var(--text-secondary);
+  color: var(--layout-header-text-color);
   font-size: 14px;
   display: inline-flex;
   align-items: center;
@@ -135,12 +129,12 @@ import BreadCrumb from '../BreadCrumb.vue'
 }
 
 .header-left :deep(.n-breadcrumb-item:last-child .n-breadcrumb-item__link) {
-  color: var(--text-primary);
+  color: var(--layout-header-text-color);
   font-weight: 600;
 }
 
 .header-left :deep(.n-breadcrumb-item__link:hover) {
-  color: var(--primary-500) !important;
+  color: var(--top-menu-text-color-hover);
 }
 
 /* 中间搜索框 */

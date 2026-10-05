@@ -1,5 +1,5 @@
 <template>
-  <div class="layout-header flex items-center px-12" border-b="1px solid light_border dark:dark_border">
+  <div class="layout-header layout-chrome-header flex items-center px-12" border-b="1px solid light_border dark:dark_border">
     <MenuCollapse />
 
     <!-- 菜单搜索 -->
@@ -34,10 +34,6 @@
 <script setup>
 import { ToggleTheme } from '@/components'
 import { BeginnerGuide, BreadCrumb, Fullscreen, MenuCollapse, MenuSearch, MessageNotification, OrgSwitcher, TenantSwitcher, UserAvatar } from '@/layouts/components'
-
-function handleLinkClick(link) {
-  window.open(link)
-}
 </script>
 
 <style scoped>

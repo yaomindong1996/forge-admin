@@ -10,9 +10,11 @@
     </Transition>
 
     <!-- 展开拖拽条（收起时贴在左侧边缘） -->
-    <div
+    <button
       v-show="appStore.collapsed"
       ref="expandBarRef"
+      type="button"
+      aria-label="展开菜单"
       class="nexus-expand-bar"
       :style="{ top: `${expandBarTop}px` }"
       @click="handleBarClick"
@@ -21,7 +23,7 @@
       <div class="expand-bar-icon">
         <i class="i-material-symbols:chevron-right" />
       </div>
-    </div>
+    </button>
 
     <!-- 主内容区 -->
     <div class="nexus-main">
@@ -125,7 +127,7 @@ onBeforeUnmount(() => {
  * 左侧浮岛侧边栏
  * ═══════════════════════════════════════ */
 .nexus-sidebar-wrapper {
-  width: 240px;
+  width: var(--side-menu-width);
   flex-shrink: 0;
   padding: 10px 5px 10px 10px;
   display: flex;
@@ -135,9 +137,9 @@ onBeforeUnmount(() => {
 
 .nexus-sidebar-inner {
   flex: 1;
-  background: var(--bg-primary);
-  border: 1px solid var(--nexus-border);
-  border-radius: 12px;
+  background: var(--side-menu-bg-color);
+  border: 1px solid var(--side-menu-border-color);
+  border-radius: 6px;
   box-shadow: var(--nexus-shadow-card);
   overflow: hidden;
   display: flex;
@@ -158,53 +160,34 @@ onBeforeUnmount(() => {
   justify-content: center;
   cursor: pointer;
   border-radius: 0 6px 6px 0;
-  background: var(--nexus-active-bg);
-  border: 1px solid rgba(22, 93, 255, 0.25);
+  padding: 0;
+  background: var(--side-menu-bg-color-active);
+  border: 1px solid var(--side-menu-border-color);
   border-left: none;
-  box-shadow: 0 0 8px rgba(22, 93, 255, 0.15);
+  box-shadow: none;
   transition: all var(--transition-base);
   user-select: none;
   -webkit-user-drag: none;
 }
 
-.dark .nexus-expand-bar {
-  background: rgba(37, 99, 235, 0.4);
-  border-color: rgba(96, 165, 250, 0.3);
-  box-shadow: 0 0 8px rgba(96, 165, 250, 0.15);
-}
-
 .nexus-expand-bar:hover {
-  background: rgba(22, 93, 255, 0.15);
-  border-color: rgba(22, 93, 255, 0.4);
-  box-shadow: 0 0 16px rgba(22, 93, 255, 0.25);
+  background: var(--side-menu-bg-color-hover);
+  border-color: var(--side-menu-text-color-active);
   width: 20px;
-}
-
-.dark .nexus-expand-bar:hover {
-  background: rgba(37, 99, 235, 0.6);
 }
 
 .nexus-expand-bar:active {
   cursor: grabbing;
-  background: rgba(22, 93, 255, 0.2);
-  box-shadow: 0 0 20px rgba(22, 93, 255, 0.3);
-}
-
-.dark .nexus-expand-bar:active {
-  background: rgba(37, 99, 235, 0.7);
+  background: var(--side-menu-bg-color-active);
 }
 
 .expand-bar-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--primary-500);
+  color: var(--side-menu-text-color-active);
   font-size: 16px;
   transition: all var(--transition-base);
-}
-
-.dark .expand-bar-icon {
-  color: var(--nexus-active-text);
 }
 
 .nexus-expand-bar:hover .expand-bar-icon {
@@ -232,9 +215,9 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   height: 56px;
   min-height: 56px;
-  background: var(--bg-primary);
-  border: 1px solid var(--nexus-border);
-  border-radius: 12px;
+  background: var(--layout-header-bg-color);
+  border: 1px solid var(--layout-header-border-color);
+  border-radius: 6px;
   box-shadow: var(--nexus-shadow-card);
   z-index: 20;
   display: flex;
@@ -246,7 +229,7 @@ onBeforeUnmount(() => {
   flex: 1;
   background: var(--bg-primary);
   border: 1px solid var(--nexus-border);
-  border-radius: 12px;
+  border-radius: 6px;
   box-shadow: var(--nexus-shadow-content);
   overflow: hidden;
   min-height: 0;

@@ -15,6 +15,7 @@ import '@/styles/design-tokens.css'
 import '@/styles/animations.css'
 import '@/styles/global.css'
 import '@/styles/theme.css'
+import '@/styles/layout-chrome.css'
 import '@/styles/responsive-vars.css'
 import 'uno.css'
 

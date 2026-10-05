@@ -1,23 +1,24 @@
 <template>
-  <div class="immersive-header-bar">
+  <div class="immersive-header-bar layout-chrome-header">
     <!-- 左侧：菜单触发 + Logo + 标题 -->
     <div class="header-left">
-      <div
+      <button
+        type="button"
         class="menu-trigger-btn"
         title="展开菜单"
+        aria-label="展开菜单"
+        :aria-expanded="menuDrawerVisible"
         @click="menuDrawerVisible = !menuDrawerVisible"
       >
         <i class="i-ion-menu" />
-      </div>
+      </button>
 
-      <router-link to="/" class="header-logo-link">
+      <div class="header-logo-link">
         <div class="header-logo-wrapper">
           <TheLogo />
         </div>
-        <h2 class="header-system-name">
-          {{ systemName }}
-        </h2>
-      </router-link>
+        <TheTitle class="header-system-name" />
+      </div>
     </div>
 
     <!-- 中间：面包屑 -->
@@ -47,6 +48,7 @@
 import { ref } from 'vue'
 import { ToggleTheme } from '@/components'
 import TheLogo from '@/components/common/TheLogo.vue'
+import TheTitle from '@/components/common/TheTitle.vue'
 import {
   BeginnerGuide,
   BreadCrumb,
@@ -57,16 +59,9 @@ import {
   TenantSwitcher,
   UserAvatar,
 } from '@/layouts/components'
-import { useTenantStore } from '@/store'
-import { getDefaultPageTitle } from '@/utils/page-title'
 import DrawerMenu from '../components/DrawerMenu.vue'
 
-const tenantStore = useTenantStore()
 const menuDrawerVisible = ref(false)
-
-const systemName = computed(() => {
-  return tenantStore.systemName || getDefaultPageTitle()
-})
 </script>
 
 <style scoped>
@@ -91,6 +86,8 @@ const systemName = computed(() => {
 }
 
 .menu-trigger-btn {
+  border: 0;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -100,7 +97,7 @@ const systemName = computed(() => {
   cursor: pointer;
   transition: all var(--transition-fast);
   font-size: 20px;
-  color: var(--text-primary);
+  color: var(--layout-header-text-color);
   flex-shrink: 0;
 }
 
@@ -117,28 +114,26 @@ const systemName = computed(() => {
 }
 
 .header-logo-wrapper {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md);
   flex-shrink: 0;
-  background: var(--primary-500);
-  box-shadow: 0 2px 6px rgba(22, 93, 255, 0.25);
+  background: transparent;
 }
 
 .header-logo-wrapper :deep(img) {
-  width: 16px;
-  height: 16px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
-  filter: brightness(10);
 }
 
 .header-system-name {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--brand-title-text-color);
   margin: 0;
   white-space: nowrap;
   letter-spacing: 0;

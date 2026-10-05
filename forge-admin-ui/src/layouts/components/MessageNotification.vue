@@ -439,7 +439,7 @@ defineExpose({
 <style scoped>
 .message-notification-wrapper {
   margin-right: 8px;
-  color: var(--top-menu-text-color, var(--layout-header-text-color));
+  color: var(--chrome-text, var(--text-secondary));
 }
 
 .notification-trigger {
@@ -451,7 +451,7 @@ defineExpose({
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: var(--workbench-muted);
+  color: inherit;
   cursor: pointer;
 }
 

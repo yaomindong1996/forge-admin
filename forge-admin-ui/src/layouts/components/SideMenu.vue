@@ -1,7 +1,7 @@
 <template>
   <nav
     class="forge-side-menu"
-    :class="{ 'forge-side-menu--collapsed': appStore.collapsed }"
+    :class="{ 'forge-side-menu--collapsed': collapsed }"
     aria-label="主导航"
   >
     <div class="forge-side-menu__scroll">
@@ -11,7 +11,7 @@
           :level="0"
           :active-key="currentActiveKey"
           :expanded-keys="expandedKeys"
-          :collapsed="appStore.collapsed"
+          :collapsed="collapsed"
           @select="handleSelect"
         />
       </template>
@@ -34,9 +34,13 @@ const props = defineProps({
     type: [String, Number],
     default: '',
   },
+  collapsedOverride: { type: Boolean, default: undefined },
+  expandAll: Boolean,
 })
+const emit = defineEmits(['select'])
 
 const appStore = useAppStore()
+const collapsed = computed(() => props.collapsedOverride ?? appStore.collapsed)
 
 const { processedMenus, activeKey, handleMenuSelect } = useMenu()
 const expandedKeys = ref([])
@@ -65,10 +69,18 @@ function findAncestorKeys(items, targetKey, ancestors = []) {
   return null
 }
 
+function collectParentKeys(items) {
+  return items.flatMap(item => hasChildren(item) ? [normalizeKey(item.key), ...collectParentKeys(item.children)] : [])
+}
+
 watch(
-  [menuOptions, currentActiveKey],
-  ([menus, key]) => {
+  [menuOptions, currentActiveKey, () => props.expandAll],
+  ([menus, key, expandAll]) => {
     const ancestors = findAncestorKeys(menus, normalizeKey(key)) || []
+    if (expandAll) {
+      expandedKeys.value = collectParentKeys(menus)
+      return
+    }
     const merged = new Set([...expandedKeys.value, ...ancestors])
     expandedKeys.value = Array.from(merged)
   },
@@ -88,7 +100,7 @@ function toggleExpanded(key) {
 
 function handleSelect(item) {
   if (hasChildren(item)) {
-    if (appStore.collapsed) {
+    if (collapsed.value) {
       handleMenuSelect(item.key, item.path)
       return
     }
@@ -96,6 +108,7 @@ function handleSelect(item) {
     return
   }
   handleMenuSelect(item.key, item.path)
+  emit('select', item)
 }
 </script>
 

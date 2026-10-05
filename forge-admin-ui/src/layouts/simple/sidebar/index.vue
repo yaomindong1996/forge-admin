@@ -28,6 +28,7 @@ const appStore = useAppStore()
 
 .sidebar-simple-menu {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   margin-top: 8px;

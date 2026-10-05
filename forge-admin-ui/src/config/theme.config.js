@@ -6,18 +6,21 @@
 /**
  * 默认主题配置
  */
+import { resolveNavigationTheme } from '@/utils/navigation-theme'
+
 export const defaultThemeConfig = {
+  navigationMode: 'auto',
   // 主题色
   primaryColor: '#4242F7',
 
   // Header 配置
   header: {
-    backgroundColor: '#4242F7',
-    textColor: '#FFFFFF',
-    brandTitleTextColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF',
+    textColor: '#1D2129',
+    brandTitleTextColor: '#1D2129',
     fontSize: 'var(--font-size-base)',
     height: '60px',
-    borderColor: '#FFFFFF',
+    borderColor: '#E5E7EB',
   },
 
   // 暗色模式 Header 配置
@@ -143,6 +146,7 @@ function hexToRgb(hex) {
  * @param {boolean} isDark 是否为暗色模式
  */
 export function applyThemeConfig(config, isDark = false) {
+  config = resolveNavigationTheme(config, defaultThemeConfig, isDark)
   const root = document.documentElement
 
   // 1. 应用字体大小配置
@@ -175,7 +179,7 @@ export function applyThemeConfig(config, isDark = false) {
   }
 
   // 3. 应用 Header 配置
-  const headerConfig = isDark ? (config.headerDark || config.header) : config.header
+  const headerConfig = config.header
   if (headerConfig) {
     root.style.setProperty('--layout-header-bg-color', headerConfig.backgroundColor)
     root.style.setProperty('--layout-header-text-color', headerConfig.textColor)
@@ -183,10 +187,11 @@ export function applyThemeConfig(config, isDark = false) {
     root.style.setProperty('--layout-header-font-size', headerConfig.fontSize)
     root.style.setProperty('--layout-header-height', headerConfig.height)
     root.style.setProperty('--layout-header-border-color', headerConfig.borderColor)
+    root.style.setProperty('--layout-header-hover-color', `color-mix(in srgb, ${headerConfig.textColor} 8%, transparent)`)
   }
 
   // 4. 应用顶部菜单配置
-  const topMenuConfig = isDark ? (config.topMenuDark || config.topMenu) : config.topMenu
+  const topMenuConfig = config.topMenu
   if (topMenuConfig) {
     root.style.setProperty('--top-menu-text-color', topMenuConfig.textColor)
     root.style.setProperty('--top-menu-text-color-hover', topMenuConfig.textColorHover || topMenuConfig.textColorActive || topMenuConfig.textColor)
@@ -204,7 +209,7 @@ export function applyThemeConfig(config, isDark = false) {
   }
 
   // 5. 应用侧边菜单配置
-  const sideMenuConfig = isDark ? (config.sideMenuDark || config.sideMenu) : config.sideMenu
+  const sideMenuConfig = config.sideMenu
   if (sideMenuConfig) {
     root.style.setProperty('--side-menu-bg-color', sideMenuConfig.backgroundColor)
     root.style.setProperty('--side-menu-text-color', sideMenuConfig.textColor)

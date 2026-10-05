@@ -7,9 +7,9 @@
     @select="handleSelect"
   >
     <div class="org-switcher">
-      <i class="i-material-symbols:account-tree-rounded org-icon" />
+      <i class="org-icon i-material-symbols:account-tree-rounded" />
       <span class="org-name">{{ currentOrgName }}</span>
-      <i class="i-material-symbols:expand-more-rounded org-arrow" />
+      <i class="org-arrow i-material-symbols:expand-more-rounded" />
     </div>
   </n-dropdown>
 </template>
@@ -121,18 +121,19 @@ watch(() => [userStore.userInfo?.tenantId, userStore.userInfo?.activeOrgId], () 
   align-items: center;
   gap: 6px;
   padding: 0 10px;
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--chrome-control-border, var(--border-light));
   border-radius: 6px;
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
+  background: var(--chrome-control-bg, var(--bg-secondary));
+  color: var(--chrome-text, var(--text-secondary));
   cursor: pointer;
   transition: all var(--transition-base);
   margin-right: 8px;
 }
 
 .org-switcher:hover {
-  border-color: var(--border-default);
-  color: var(--text-primary);
+  border-color: var(--chrome-control-border, var(--border-default));
+  background: var(--chrome-control-hover-bg, var(--bg-secondary));
+  color: var(--chrome-text, var(--text-primary));
 }
 
 .org-icon,

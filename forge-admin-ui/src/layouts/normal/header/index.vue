@@ -1,5 +1,5 @@
 <template>
-  <div class="app-header-bar">
+  <div class="app-header-bar layout-chrome-header">
     <!-- 左侧：折叠按鈕 + Tab -->
     <div class="header-left">
       <MenuCollapse />
@@ -12,7 +12,6 @@
       <BeginnerGuide />
       <ToggleTheme />
       <Fullscreen />
-      <ThemeSetting />
       <MessageNotification />
       <div class="header-divider" />
       <TenantSwitcher />

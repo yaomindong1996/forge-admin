@@ -3,6 +3,7 @@ import { useDark } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import { applyThemeConfig, defaultThemeConfig } from '@/config/theme.config'
 import { defaultLayout, defaultPrimaryColor, naiveThemeOverrides, normalizeLayout } from '@/settings'
+import { solidColor } from '@/utils/navigation-theme'
 import { getDefaultPageTitle } from '@/utils/page-title'
 
 function cloneConfig(config) {
@@ -12,6 +13,7 @@ function cloneConfig(config) {
 export const useAppStore = defineStore('app', {
   state: () => ({
     collapsed: false,
+    appearanceOpen: false, // 跨布局切换时保留设置面板，不写入会话缓存。
     isDark: useDark(),
     layout: normalizeLayout(import.meta.env.VITE_DEFAULT_LAYOUT || defaultLayout),
     primaryColor: defaultPrimaryColor,
@@ -54,6 +56,7 @@ export const useAppStore = defineStore('app', {
       this.selectedTopMenuId = id
     },
     resetAccountState() {
+      this.appearanceOpen = false
       this.layout = normalizeLayout(import.meta.env.VITE_DEFAULT_LAYOUT || defaultLayout)
       this.primaryColor = defaultPrimaryColor
       this.naiveThemeOverrides = cloneConfig(naiveThemeOverrides)
@@ -67,8 +70,10 @@ export const useAppStore = defineStore('app', {
       this.themeConfig = { ...this.themeConfig, ...config }
       // 同步外层的 primaryColor 和 themeConfig.primaryColor
       if (config.primaryColor) {
-        this.primaryColor = config.primaryColor
-        this.setThemeColor(config.primaryColor)
+        const primary = solidColor(config.primaryColor, defaultPrimaryColor)
+        this.themeConfig.primaryColor = primary
+        this.primaryColor = primary
+        this.setThemeColor(primary)
       }
       applyThemeConfig(this.themeConfig, this.isDark)
     },
