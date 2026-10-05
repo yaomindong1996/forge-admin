@@ -232,3 +232,31 @@ node --max-old-space-size=8192 node_modules/vite/bin/vite.js build
 - 已询问是否提交 varchar→TEXT 的 Flyway 扩容，尚未收到确认；不修改数据库脚本、不执行真实 DDL。
 - T10 保持未完成；不能以容量风险替代现场 SQL 异常，也不能宣称租户 500 已修复。
 - 不执行真实租户保存、身份切换、登录/注销、消息或审批写入；本轮前端本地提交，不自动推送。
+
+## 2026-10-05 第六阶段 T10
+
+### 根因、授权与实现
+
+- 基线 `abda59fa`，分支 `codex/workbench-illustrations`，保留用户 `.DS_Store`；远端 main 未发现新提交。
+- 用户补充服务端 SQL 日志：`theme_config` 超长触发 `MysqlDataTruncation`，并明确同意扩容及移除操作指引。
+- 新增 `V1.0.208__expand_tenant_theme_config.sql`，仅将当前库的 sys_tenant/theme_config 窄文本列扩为 TEXT。
+- 保留字符集/排序规则，不降级宽文本/JSON；重复执行为空操作，不截断、重写或删除配置。
+- 全量和 Docker 初始化 SQL 同步为 TEXT；Java DTO、实体及接口 String 协议不改。
+- DDL 可能短时持有表锁，用户安排执行；应用回滚可继续使用 TEXT，不提供会截断数据的缩列回滚。
+
+### 验证与明确边界
+
+- Node `v20.19.0` 执行下面命令：16 项通过（迁移契约 5 + 排序规则回归 11），255.868ms。
+
+```bash
+node --test forge-server/scripts/db/tenant-theme-migration.test.mjs \
+  forge-server/scripts/db/check-collation-consistency.test.mjs
+```
+
+- 测试静态检查版本唯一、作用域/类型守卫、PREPARE 生命周期、无数据 DML/截断、初始化一致及 Java String 定义。
+- 大于 1000 字符的扩展配置由前端实际 applyTenantConfig/restore 测试验证，源字符串和未知扩展字段均保留。
+- 新脚本无 Flyway `${...}` 业务占位符。全库扫描仅发现历史 V1.0.72 的 4 行模板，原样保留；
+  Admin 和脚本 Maven 的 Flyway 配置均禁用 placeholder replacement，不据此宣称全库扫描零命中。
+- 本机 `/usr/bin/java` 仅系统占位，`java_home -v17` 未找到运行时且没有 Maven；后端编译/动态测试未执行，
+  没有安装工具或修改生产 Java。真实 Flyway、租户保存、后台服务启动明确未执行。
+- 本地提交脚本不代表测试环境错误已消除；须先执行 V1.0.208，再由用户重试租户配置保存。

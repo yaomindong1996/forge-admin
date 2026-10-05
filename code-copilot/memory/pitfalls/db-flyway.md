@@ -276,3 +276,16 @@ Detected resolved migration not applied to database: 1.0.56
 - 复用旧路由资源时要显式迁移 `parent_id`、`path`、`component`、`perms` 和角色资源关系，同时恢复原业务入口的名称、路径和父级。
 - 设计器、预览等跳转页继续保留为隐藏路由，不要伪装成侧边栏菜单。
 - 新目录和菜单只继承角色已有的业务权限，不能借菜单修复给无权限角色扩权。
+
+## 完整租户主题 JSON 不能继续存入 varchar(1000)
+
+**发现日期**: 2026-10-05
+
+**问题描述**:
+主题配置增加多布局、明暗分组和自动配色后，完整默认 JSON 已达 2108 字符，但 sys_tenant.theme_config
+仍为 varchar(1000)。租户编辑触发 `Data too long for column 'theme_config'`；不能通过截断 JSON 或删除未知字段规避。
+
+**解决方案**:
+- 用新 Flyway 版本扩为 TEXT，同步全量和 Docker 初始化 SQL，保留现有 String 接口协议和完整配置。
+- 迁移限定当前数据库与目标列，保留字符集/排序规则；重复执行和已有更大文本/JSON 列时不缩列。
+- 仅提交代码不会修复已部署数据库；确认迁移成功后再验证真实保存。应用回滚不要求缩列。

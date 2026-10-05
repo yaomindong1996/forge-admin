@@ -5841,7 +5841,7 @@ CREATE TABLE `sys_tenant` (
   `copyright_info` varchar(200) DEFAULT NULL COMMENT '版权显示文本',
   `system_layout` varchar(50) DEFAULT 'default' COMMENT '系统布局（default-默认，classic-经典，modern-现代等）',
   `system_theme` varchar(50) DEFAULT 'light' COMMENT '系统主题（light-亮色，dark-暗色，auto-跟随系统等）',
-  `theme_config` varchar(1000) DEFAULT NULL COMMENT '主题配置',
+  `theme_config` text DEFAULT NULL COMMENT '主题配置',
   `create_dept` bigint unsigned DEFAULT NULL,
   `default_business_datasource_id` bigint DEFAULT NULL COMMENT '默认业务数据源ID',
   `default_business_datasource_code` varchar(64) DEFAULT NULL COMMENT '默认业务数据源编码',

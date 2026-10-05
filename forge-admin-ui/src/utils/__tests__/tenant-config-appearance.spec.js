@@ -59,4 +59,18 @@ describe('登录与恢复外观使用一致的租户配置', () => {
     expect(store.themeConfig).toEqual(defaultThemeConfig)
     expect(store.themeConfig).not.toHaveProperty('extension')
   })
+
+  it('大于旧列容量的完整主题与中文扩展字段不被截断，加载和恢复保持一致', async () => {
+    const store = useAppStore()
+    const theme = { ...defaultThemeConfig, extension: { description: '主题配置'.repeat(600) } }
+    const themeConfig = JSON.stringify(theme)
+    expect(themeConfig.length).toBeGreaterThan(1000)
+    const tenant = { systemLayout: 'immersive', themeConfig }
+    await applyTenantConfig(tenant, store)
+    expect(store.themeConfig.extension).toEqual(theme.extension)
+    const initialized = JSON.stringify(store.themeConfig)
+    store.restoreTenantAppearance(tenant)
+    expect(JSON.stringify(store.themeConfig)).toBe(initialized)
+    expect(tenant.themeConfig).toBe(themeConfig)
+  })
 })

@@ -324,8 +324,9 @@
 - 超级管理员不能全局忽略租户隔离
 - 初始化 SQL 不能从开发库直接导出存储凭据
 
-### [数据库 / Flyway / 索引](pitfalls/db-flyway.md)（16）
+### [数据库 / Flyway / 索引](pitfalls/db-flyway.md)（17）
 
+- 完整租户主题 JSON 不能继续存入 varchar(1000)
 - 15. Flyway 已执行版本脚本不能二次修改
 - 23. 菜单活跃项函数签名不一致导致选中状态停留
 - 26. Flyway 已执行版本禁止复用或改写
