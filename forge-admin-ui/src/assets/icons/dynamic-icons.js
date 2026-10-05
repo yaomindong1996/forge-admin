@@ -32,4 +32,14 @@ export default [
   'i-material-symbols:api',
   'i-material-symbols:account-tree',
   'i-material-symbols:radio-button-unchecked',
+  // 系统组织树和资源类型解析在 JS 中动态返回，确保开发和生产均生成线性图标。
+  'i-lucide:building-2',
+  'i-lucide:folder-tree',
+  'i-lucide:users',
+  'i-lucide:folder',
+  'i-lucide:file-text',
+  'i-lucide:panel-top',
+  'i-lucide:mouse-pointer-2',
+  'i-lucide:braces',
+  'i-lucide:layers',
 ]

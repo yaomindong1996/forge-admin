@@ -3,7 +3,7 @@
     <div class="org-tree-header">
       <div class="header-title">
         <div class="header-icon">
-          <i class="i-material-symbols:account-tree-rounded" />
+          <i class="i-lucide:building-2" />
         </div>
         <div v-if="!leftOrgPanelCollapsed" class="header-copy">
           <span>组织架构</span>
@@ -43,7 +43,7 @@
           :class="{ 'is-selected': isShowAllUsers }"
           @click="handleSelectAllUsers"
         >
-          <i class="i-material-symbols:groups-rounded" />
+          <i class="i-lucide:users" />
           <span>全部用户</span>
         </div>
         <PremiumTree
@@ -68,7 +68,7 @@
       :class="{ 'has-active-filter': selectedOrgNode && !isShowAllUsers }"
       @click="toggleLeftOrgPanel"
     >
-      <i class="i-material-symbols:group-work-outline-rounded" />
+      <i class="i-lucide:building-2" />
       <span>组织筛选</span>
     </div>
   </div>

@@ -1,5 +1,6 @@
 <template>
   <div ref="pageRef" class="system-menu-page">
+    <!-- 客户端与页面级操作 -->
     <div class="menu-workbench-header">
       <div class="header-main">
         <div class="header-title">
@@ -39,6 +40,7 @@
     </div>
 
     <div class="menu-workbench-body">
+      <!-- 左侧只负责定位目录和菜单 -->
       <aside class="tree-pane">
         <div class="pane-head">
           <div>
@@ -103,45 +105,23 @@
       </aside>
 
       <main class="list-pane">
+        <!-- 当前层级与查询；低频筛选按需展开 -->
         <div class="list-toolbar">
           <div class="list-context">
-            <span class="context-title">{{ currentContextTitle }}</span>
+            <nav class="context-breadcrumbs" aria-label="资源层级">
+              <template v-for="(item, index) in contextBreadcrumbs" :key="item.id">
+                <i v-if="index" class="i-lucide:chevron-right" aria-hidden="true" />
+                <button
+                  type="button" :aria-current="index === contextBreadcrumbs.length - 1 ? 'page' : undefined"
+                  :title="item.label" @click="enterResource(item)"
+                >
+                  {{ item.label }}
+                </button>
+              </template>
+            </nav>
             <span class="context-subtitle">{{ displayRows.length }} 项资源</span>
           </div>
-
           <div class="list-toolbar-right">
-            <div class="batch-actions">
-              <NCheckbox
-                size="small"
-                :checked="allDisplayRowsChecked"
-                :indeterminate="displayRowsCheckIndeterminate"
-                :disabled="displayRows.length === 0"
-                @update:checked="handleDisplayRowsCheckedChange"
-              >
-                本页
-              </NCheckbox>
-              <span class="checked-count">已选 {{ checkedResourceIds.length }}</span>
-              <NButton size="tiny" secondary :disabled="checkedResourceIds.length === 0" @click="openBatchMigrate">
-                <template #icon>
-                  <i class="i-material-symbols:drive-file-move-outline" />
-                </template>
-                批量迁移
-              </NButton>
-              <NButton
-                size="tiny"
-                type="error"
-                secondary
-                :disabled="checkedResourceIds.length === 0"
-                :loading="batchActionLoading"
-                @click="handleBatchDelete"
-              >
-                <template #icon>
-                  <i class="i-material-symbols:delete-outline" />
-                </template>
-                批量删除
-              </NButton>
-            </div>
-
             <div class="list-filters">
               <n-input
                 v-model:value="resourceKeyword"
@@ -154,26 +134,61 @@
                   <i class="i-material-symbols:search" />
                 </template>
               </n-input>
-              <n-select
-                v-model:value="resourceTypeFilter"
-                size="small"
-                clearable
-                placeholder="类型"
-                :options="resourceTypeFilterOptions"
-                class="type-filter"
-              />
-              <n-select
-                v-model:value="visibleFilter"
-                size="small"
-                clearable
-                placeholder="状态"
-                :options="visibleFilterOptions"
-                class="visible-filter"
-              />
+              <n-popover v-model:show="workspace.filtersVisible" trigger="click" placement="bottom-end" :show-arrow="false">
+                <template #trigger>
+                  <NButton size="small" :type="activeFilterCount ? 'primary' : 'default'" :secondary="!!activeFilterCount">
+                    <template #icon>
+                      <i class="i-lucide:list-filter" />
+                    </template>
+                    筛选{{ activeFilterCount ? ` (${activeFilterCount})` : '' }}
+                  </NButton>
+                </template>
+                <div class="resource-filter-panel">
+                  <label>资源类型</label>
+                  <n-select v-model:value="resourceTypeFilter" size="small" clearable placeholder="全部类型" :options="resourceTypeFilterOptions" />
+                  <label>显示状态</label>
+                  <n-select v-model:value="visibleFilter" size="small" clearable placeholder="全部状态" :options="visibleFilterOptions" />
+                  <div class="filter-actions">
+                    <NButton size="small" @click="resetResourceFilters">
+                      重置
+                    </NButton>
+                    <NButton size="small" type="primary" @click="workspace.filtersVisible = false">
+                      完成
+                    </NButton>
+                  </div>
+                </div>
+              </n-popover>
+              <NButton v-if="currentNode" size="small" type="primary" @click="handleAdd(currentNode)">
+                <template #icon>
+                  <i class="i-lucide:plus" />
+                </template>新增子项
+              </NButton>
             </div>
           </div>
         </div>
-
+        <!-- 勾选后才出现批量动作，不占据日常浏览首屏 -->
+        <div class="resource-selection-bar">
+          <NCheckbox
+            size="small" :checked="allDisplayRowsChecked" :indeterminate="displayRowsCheckIndeterminate"
+            :disabled="displayRows.length === 0" @update:checked="handleDisplayRowsCheckedChange"
+          >
+            全选当前结果
+          </NCheckbox>
+          <template v-if="checkedResourceIds.length">
+            <span class="checked-count">已选 {{ checkedResourceIds.length }} 项</span>
+            <NButton size="tiny" secondary @click="openBatchMigrate">
+              批量迁移
+            </NButton>
+            <NButton size="tiny" type="error" secondary :loading="batchActionLoading" @click="handleBatchDelete">
+              批量删除
+            </NButton>
+            <NButton size="tiny" text @click="clearCheckedResources">
+              取消选择
+            </NButton>
+          </template>
+          <span v-else class="selection-hint">点击名称进入下级，点击行查看详情</span>
+        </div>
+        <!-- 当前层资源列表，自身滚动 -->
         <div class="resource-list-scroll cus-scroll-y">
           <div v-if="loading" class="resource-list-skeleton">
             <div v-for="index in 9" :key="index" class="resource-list-skeleton-row">
@@ -190,7 +205,10 @@
           <template v-else>
             <div v-if="displayRows.length === 0" class="resource-list-empty">
               <i class="i-material-symbols:database-off-outline" />
-              <span>暂无资源</span>
+              <span>{{ hasSearch ? '没有匹配的资源' : '当前层级暂无资源' }}</span>
+              <NButton v-if="hasSearch" size="small" text type="primary" @click="resetResourceFilters">
+                清除查询条件
+              </NButton>
             </div>
 
             <div
@@ -198,11 +216,12 @@
               :key="row.id"
               class="resource-list-row"
               :class="{ 'is-active': activeResource?.id === row.id, 'is-checked': checkedResourceIdSet.has(row.id) }"
-              @click="selectedRow = row"
+              @click="openResourceDetail(row)"
             >
               <div class="resource-list-check" @click.stop>
                 <NCheckbox
                   size="small"
+                  :aria-label="`选择资源 ${row.resourceName}`"
                   :checked="checkedResourceIdSet.has(row.id)"
                   @update:checked="checked => handleResourceCheckedChange(row, checked)"
                 />
@@ -230,12 +249,15 @@
 
                 <div class="resource-list-copy">
                   <div class="resource-title-line">
-                    <span class="resource-name">{{ row.resourceName || '-' }}</span>
+                    <button
+                      type="button" class="resource-name" :title="row.resourceName"
+                      :aria-label="[1, 2].includes(Number(row.resourceType)) ? `进入 ${row.resourceName} 下级资源` : `查看 ${row.resourceName} 详情`"
+                      @click.stop="handleResourceName(row)"
+                    >
+                      {{ row.resourceName || '-' }}
+                      <i v-if="[1, 2].includes(Number(row.resourceType))" class="i-lucide:chevron-right" />
+                    </button>
                     <span class="resource-type-badge">
-                      <span
-                        class="resource-type-dot"
-                        :style="{ backgroundColor: getResourceTypeConfig(row.resourceType).color || '#adb5bd' }"
-                      />
                       {{ getResourceTypeText(row.resourceType) }}
                     </span>
                     <span v-if="!currentClientCode" class="resource-client-chip">
@@ -265,7 +287,7 @@
                   @update:value="value => handleSortCommit(row, value)"
                   @blur="row._editingSort = false"
                 />
-                <button v-else class="sort-chip" @click.stop="row._editingSort = true">
+                <button v-else class="sort-chip" :aria-label="`调整 ${row.resourceName} 排序`" title="点击调整排序" @click.stop="row._editingSort = true">
                   {{ row.sort ?? 0 }}
                 </button>
               </div>
@@ -277,6 +299,7 @@
                       circle
                       size="tiny"
                       class="table-icon-action visibility-icon-button"
+                      :aria-label="`${Number(row.visible) === 1 ? '隐藏' : '显示'} ${row.resourceName}`"
                       :class="Number(row.visible) === 1 ? 'is-visible' : 'is-hidden'"
                       @click.stop="handleInlineUpdate(row, 'visible', Number(row.visible) === 1 ? 0 : 1)"
                     >
@@ -289,13 +312,17 @@
                 </NTooltip>
               </div>
               <div class="resource-list-actions">
+                <button
+                  type="button" class="resource-text-action" :aria-label="`查看 ${row.resourceName} 详情`"
+                  @click.stop="openResourceDetail(row)"
+                >
+                  详情
+                </button>
                 <NTooltip trigger="hover">
                   <template #trigger>
-                    <NButton quaternary circle size="tiny" type="primary" class="table-icon-action" @click.stop="handleEdit(row)">
-                      <template #icon>
-                        <i class="i-material-symbols:edit-outline" />
-                      </template>
-                    </NButton>
+                    <button type="button" class="resource-text-action text-primary" :aria-label="`编辑 ${row.resourceName}`" @click.stop="handleEdit(row)">
+                      编辑
+                    </button>
                   </template>
                   编辑
                 </NTooltip>
@@ -306,7 +333,7 @@
                 >
                   <NTooltip trigger="hover">
                     <template #trigger>
-                      <NButton quaternary circle size="tiny" class="table-icon-action" @click.stop>
+                      <NButton quaternary circle size="tiny" class="table-icon-action" :aria-label="`${row.resourceName} 更多操作`" @click.stop>
                         <template #icon>
                           <i class="i-material-symbols:more-horiz" />
                         </template>
@@ -320,108 +347,15 @@
           </template>
         </div>
       </main>
-
-      <aside class="detail-pane">
-        <template v-if="activeResource">
-          <div class="detail-head">
-            <div class="detail-title-row">
-              <IconRenderer
-                v-if="getRenderableIcon(activeResource)"
-                :icon="getRenderableIcon(activeResource)"
-                :font-size="18"
-                custom-style="color: var(--primary-color, #4c6ef5)"
-              />
-              <div class="detail-title-text">
-                <span>{{ activeResource.resourceName }}</span>
-                <small>{{ getResourceTypeText(activeResource.resourceType) }}</small>
-              </div>
-            </div>
-            <DictTag
-              :options="visibleOptions"
-              :value="activeResource.visible"
-              size="small"
-              :bordered="false"
-              force-tag
-            />
-          </div>
-
-          <div class="detail-actions">
-            <NButton size="small" type="primary" @click="handleEdit(activeResource)">
-              <template #icon>
-                <i class="i-material-symbols:edit-outline" />
-              </template>
-              编辑
-            </NButton>
-            <NButton size="small" @click="handleAdd(activeResource)">
-              <template #icon>
-                <i class="i-material-symbols:add" />
-              </template>
-              新增子项
-            </NButton>
-            <NButton size="small" type="error" secondary @click="handleDelete(activeResource)">
-              <template #icon>
-                <i class="i-material-symbols:delete-outline" />
-              </template>
-              删除
-            </NButton>
-          </div>
-
-          <div class="detail-scroll cus-scroll-y">
-            <div class="detail-section">
-              <span class="section-label">基础信息</span>
-              <dl class="detail-grid">
-                <div>
-                  <dt>客户端</dt>
-                  <dd>{{ getClientDisplayName(activeResource.clientCode) }}</dd>
-                </div>
-                <div>
-                  <dt>排序</dt>
-                  <dd>{{ activeResource.sort ?? 0 }}</dd>
-                </div>
-                <div>
-                  <dt>路由</dt>
-                  <dd>{{ activeResource.path || '-' }}</dd>
-                </div>
-                <div>
-                  <dt>组件</dt>
-                  <dd>{{ activeResource.component || '-' }}</dd>
-                </div>
-                <div>
-                  <dt>权限标识</dt>
-                  <dd>{{ activeResource.perms || '-' }}</dd>
-                </div>
-                <div>
-                  <dt>API</dt>
-                  <dd>{{ activeResource.apiMethod || '-' }} {{ activeResource.apiUrl || '' }}</dd>
-                </div>
-              </dl>
-            </div>
-
-            <div class="detail-section">
-              <span class="section-label">子资源概览</span>
-              <div class="child-summary">
-                <span>目录/菜单 {{ activeChildSummary.menu }}</span>
-                <span>按钮 {{ activeChildSummary.button }}</span>
-                <span>API {{ activeChildSummary.api }}</span>
-              </div>
-            </div>
-
-            <div v-if="activeResource.remark" class="detail-section">
-              <span class="section-label">备注</span>
-              <p class="remark-text">
-                {{ activeResource.remark }}
-              </p>
-            </div>
-          </div>
-        </template>
-
-        <div v-else class="detail-empty">
-          <i class="i-material-symbols:ads-click" />
-          <span>选择左侧节点或中间列表项查看详情</span>
-        </div>
-      </aside>
     </div>
-
+    <!-- 按需详情与原有编辑/批量弹层 -->
+    <MenuResourceDetail
+      :resource="activeResource" :icon="getRenderableIcon(activeResource)"
+      :type-label="getResourceTypeText(activeResource?.resourceType)"
+      :client-label="getClientDisplayName(activeResource?.clientCode)"
+      :visible-options="visibleOptions" :child-summary="activeChildSummary"
+      @enter="enterResource" @edit="editResourceFromDetail" @add="addResourceFromDetail" @delete="handleDelete"
+    />
     <n-drawer v-model:show="drawerVisible" :width="drawerWidth" placement="right" :trap-focus="false">
       <n-drawer-content :title="drawerTitle" closable>
         <AiForm
@@ -574,19 +508,118 @@
   </div>
 </template>
 
-<script>
-import { menuPageLocalComponents } from './menuPageLocalComponents'
+<script setup>
 import { useMenuPage } from './composables/useMenuPage'
+import { menuPageLocalComponents } from './menuPageLocalComponents'
 
-export default {
-  name: 'MenuPage',
-  components: {
-    ...menuPageLocalComponents,
-  },
-  setup() {
-    return useMenuPage()
-  },
-}
+defineOptions({ name: 'MenuPage' })
+const {
+  AiForm,
+  IconRenderer,
+  IconSelector,
+  ImageUpload,
+  MenuResourceDetail,
+  NAutoComplete,
+  NButton,
+  NCheckbox,
+  NDropdown,
+  NInputNumber,
+  NTooltip,
+} = menuPageLocalComponents
+const api = useMenuPage()
+const {
+  activeChildSummary,
+  activeFilterCount,
+  activeResource,
+  addResourceFromDetail,
+  allDisplayRowsChecked,
+  batchActionLoading,
+  batchMigrateParentId,
+  batchMigrateParentOptions,
+  batchMigrateRootRows,
+  batchMigrateVisible,
+  checkedResourceIdSet,
+  checkedResourceIds,
+  clearCheckedResources,
+  clientList,
+  collapseNavigationTree,
+  contextBreadcrumbs,
+  currentClientCode,
+  currentNode,
+  displayRows,
+  displayRowsCheckIndeterminate,
+  drawerTitle,
+  drawerVisible,
+  drawerWidth,
+  editResourceFromDetail,
+  editSchema,
+  enterResource,
+  expandNavigationTree,
+  formData,
+  formIconTab,
+  getAvailableComponentOptions,
+  getAvailableRouteOptions,
+  getClientDisplayName,
+  getDisplayLevel,
+  getFontIconValue,
+  getImageIconValue,
+  getMoreActionOptions,
+  getPrimaryRouteText,
+  getRenderableIcon,
+  getResourceSubtitle,
+  getResourceTypeConfig,
+  getResourceTypeText,
+  getSecondaryRouteText,
+  handleAdd,
+  handleAddRoot,
+  handleBatchDelete,
+  handleBatchMigrateSubmit,
+  handleClientTabChange,
+  handleComponentPathChange,
+  handleDelete,
+  handleDisplayRowsCheckedChange,
+  handleDrawerSubmit,
+  handleEdit,
+  handleFormIconTabChange,
+  handleInlineUpdate,
+  handleMoreAction,
+  handleNavigationExpandedKeys,
+  handleNavigationSelect,
+  handleResourceCheckedChange,
+  handleResourceName,
+  handleRoutePathChange,
+  handleSortCommit,
+  handleTableIconSelected,
+  hasSearch,
+  loadResourceTree,
+  loading,
+  navigationExpandedKeys,
+  navigationSelectedKeys,
+  navigationTreeData,
+  normalizeComponentValue,
+  openBatchMigrate,
+  openResourceDetail,
+  renderComponentOptionLabel,
+  renderNavigationLabel,
+  renderRouteOptionLabel,
+  resetResourceFilters,
+  resourceKeyword,
+  resourceTypeFilter,
+  resourceTypeFilterOptions,
+  submitLoading,
+  tableIconValue,
+  treeKeyword,
+  visibleFilter,
+  visibleFilterOptions,
+  visibleOptions,
+  workspace,
+  pageRef,
+  formRef,
+  tableIconSelectorRef,
+} = api
+
+// 保留历史页面公开编排接口；模板 ref 直接连接 composable 的真实实例。
+defineExpose(api)
 </script>
 
 <style scoped src="./menuPage.css"></style>

@@ -1,49 +1,21 @@
 /** menu.vue setup part 2. */
-import {
-  NAutoComplete,
-  NButton,
-  NCheckbox,
-  NDropdown,
-  NInputNumber,
-  NTooltip,
-} from 'naive-ui'
-import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import api from '@/api'
-import { AiForm } from '@/components/ai-form'
-import DictTag from '@/components/DictTag.vue'
-import IconRenderer from '@/components/IconRenderer.vue'
-import IconSelector from '@/components/IconSelector.vue'
-import ImageUpload from '@/components/image-upload/index.vue'
-import { useDict } from '@/composables'
-import { usePermissionStore, useUserStore } from '@/store'
-import { request } from '@/utils'
-import { toNumberDictOptions } from '@/utils/dict-options'
-import { getMenuRouteOptions } from '@/utils/menu-route-options'
-import {
-  flattenResourceTree,
-  resolveFreshResourceRow,
-  resolveResourceContextRows,
-} from '../menu-interaction-utils'
+
+import { computed } from 'vue'
+
 export function applyMenuPagePart2(deps = {}) {
   const {
-    __impl, mut, autoFillComponentFromRoute, beforeRenderForm, beforeSubmit, buildBatchMigrateParentOptions, buildNavigationTree, clearCheckedResources,
-    collapseNavigationTree, collectRowDescendantIds, copyText, expandNavigationTree, expandResourcePath, focusMigratedParent, getAllNavigationKeys, getAvailableComponentOptions,
-    getAvailableRouteOptions, getBatchDeleteBlockers, getChildResourceCount, getClientDisplayName, getContextRows, getDisplayLevel, getExpandableNavigationKeys, getFontIconValue,
-    getImageIconValue, getMoreActionOptions, getPrimaryRouteText, getRenderableIcon, getResourceSubtitle, getResourceTypeConfig, getResourceTypeText, getSecondaryRouteText,
-    getSsoTargetClientOptions, getUsedRoutePathSet, handleAdd, handleAddRoot, handleBatchDelete, handleBatchMigrateSubmit, handleClientTabChange, handleDelete,
-    handleDisplayRowsCheckedChange, handleDrawerSubmit, handleEdit, handleFormIconTabChange, handleInlineUpdate, handleMoreAction, handleNavigationExpandedKeys, handleNavigationSelect,
-    handleResourceCheckedChange, handleRoutePathChange, handleSortCommit, handleTableIconSelected, hasCheckedAncestor, isImageIconValue, isValidBatchMigrateParent, keepSelectionAvailable,
-    loadClientList, loadResourceDetail, loadResourceTree, matchesResourceFilter, matchesRouteKeyword, normalizeComponentValue, normalizeListResponse, normalizeRouteInput,
-    openBatchMigrate, openTableIconSelector, reconcileCheckedResourceIds, reconcileNavigationExpandedKeys, refreshSystemMenu, renderComponentOptionLabel, renderNavigationLabel, renderRouteOptionLabel,
-    resetSelectionAfterDelete, resolveDefaultBatchMigrateParentId, selectSavedResource, setupMenuPageLayout, syncParentResourceOptions, resourceTypeOptions, visibleOptions, apiMethodOptions,
-    openTargetOptions, minUserTypeOptions, yesNoOptions, permissionStore, userStore, currentUserClientCode, routeOptions, pageRef,
-    formRef, clientList, currentClientCode, loading, submitLoading, batchActionLoading, allResources, selectedResourceId,
-    selectedRow, checkedResourceIds, navigationExpandedKeys, treeKeyword, resourceKeyword, resourceTypeFilter, visibleFilter, parentResourceOptions,
-    pendingParentId, pendingClientCode, drawerVisible, drawerMode, formData, batchMigrateVisible, batchMigrateParentId, formIconTab,
-    tableIconSelectorRef, tableIconEditRow, tableIconValue, publicParams, drawerTitle, drawerWidth, clientCodeOptions, resourceTypeFilterOptions,
-    visibleFilterOptions, flatResources, navigationSelectedKeys, currentNode, activeResource, currentContextTitle, activeChildSummary, navigationTreeData,
-    displayRows, checkedResourceIdSet, checkedResourceRows, allDisplayRowsChecked, displayRowsCheckIndeterminate, batchMigrateRootRows, batchMigrateDisabledParentIds, batchMigrateParentOptions,
-    typeStyleMap,
+    __impl,
+    getSsoTargetClientOptions,
+    normalizeComponentValue,
+    resourceTypeOptions,
+    visibleOptions,
+    apiMethodOptions,
+    openTargetOptions,
+    minUserTypeOptions,
+    yesNoOptions,
+    routeOptions,
+    parentResourceOptions,
+    clientCodeOptions,
   } = deps
   function handleComponentPathChange(componentPath, updateValue, currentFormData) {
     const normalizedComponent = normalizeComponentValue(componentPath)
@@ -321,6 +293,8 @@ export function applyMenuPagePart2(deps = {}) {
   __impl.handleComponentPathChange = handleComponentPathChange
 
   return {
-    ...deps, editSchema, handleComponentPathChange,
+    ...deps,
+    editSchema,
+    handleComponentPathChange,
   }
 }

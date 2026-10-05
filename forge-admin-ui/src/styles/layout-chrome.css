@@ -97,7 +97,8 @@
 .layout-chrome-header .business-mega-triggers > button { gap: 7px; color: var(--top-menu-text-color); }
 .layout-chrome-header .business-mega-triggers > button:is(.active, .is-intent, .is-open, :hover) {
   color: var(--top-menu-text-color-active);
-  background: var(--top-menu-bg-color-hover);
+  /* 顶层导航仅用文字和横条表达状态，不能套用菜单项的灰色悬停表面。 */
+  background: transparent;
 }
 .layout-chrome-header .business-mega-triggers > button::after {
   background: var(--top-menu-active-bar-color, var(--primary-color));

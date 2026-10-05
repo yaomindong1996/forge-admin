@@ -275,6 +275,7 @@
 import { computed, h, nextTick, onMounted, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import MasterDetailWorkspace from '@/components/common/MasterDetailWorkspace.vue'
+import { getOrganizationNodeIcon as getLeftOrgNodeIcon } from '@/components/common/organization-tree-icons'
 import PremiumTree from '@/components/common/PremiumTree.vue'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import UserSelectModal from '@/components/common/UserSelectModal.vue'
@@ -797,14 +798,6 @@ function getAllKeys(list, keys = []) {
 
 function countTreeNodes(list = []) {
   return list.reduce((total, item) => total + 1 + countTreeNodes(item.children || []), 0)
-}
-
-function getLeftOrgNodeIcon(node = {}) {
-  if (!node.parentId || Number(node.parentId) === 0)
-    return 'i-material-symbols:account-tree-rounded'
-  if (node.children?.length)
-    return 'i-material-symbols:account-tree-rounded'
-  return 'i-material-symbols:domain-rounded'
 }
 
 function getLeftOrgNodeTone(node = {}) {

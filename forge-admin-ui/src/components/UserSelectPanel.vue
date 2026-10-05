@@ -121,6 +121,7 @@
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
+import { getOrganizationNodeIcon as getOrgNodeIcon } from '@/components/common/organization-tree-icons'
 import PremiumTree from '@/components/common/PremiumTree.vue'
 import { request } from '@/utils'
 
@@ -315,12 +316,6 @@ function filterOrgTree(list = [], keyword) {
       }
     })
     .filter(Boolean)
-}
-
-function getOrgNodeIcon(node = {}) {
-  return node.children?.length
-    ? 'i-material-symbols:account-tree-rounded'
-    : 'i-material-symbols:domain-rounded'
 }
 
 function getOrgNodeTone(node = {}) {

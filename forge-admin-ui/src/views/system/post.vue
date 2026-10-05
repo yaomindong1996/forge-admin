@@ -125,6 +125,7 @@
 import { computed, h, onMounted, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import MasterDetailWorkspace from '@/components/common/MasterDetailWorkspace.vue'
+import { getOrganizationNodeIcon as getLeftOrgNodeIcon } from '@/components/common/organization-tree-icons'
 import PremiumTree from '@/components/common/PremiumTree.vue'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
@@ -426,14 +427,6 @@ function countTreeNodes(list = []) {
 
 function isSameKey(left, right) {
   return String(left) === String(right)
-}
-
-function getLeftOrgNodeIcon(node = {}) {
-  if (!node.parentId || Number(node.parentId) === 0)
-    return 'i-material-symbols:account-tree-rounded'
-  if (node.children?.length)
-    return 'i-material-symbols:account-tree-rounded'
-  return 'i-material-symbols:domain-rounded'
 }
 
 function getLeftOrgNodeTone(node = {}) {

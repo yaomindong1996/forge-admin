@@ -1,16 +1,19 @@
 /** role.vue setup part 1. */
-import { NTag } from 'naive-ui'
-import { computed, h, nextTick, onMounted, ref, watch } from 'vue'
-import { AiCrudPage } from '@/components/ai-form'
-import MasterDetailWorkspace from '@/components/common/MasterDetailWorkspace.vue'
-import PremiumTree from '@/components/common/PremiumTree.vue'
+import { computed, h, nextTick, ref, watch } from 'vue'
+import { getOrganizationNodeIcon as getOrgNodeIcon } from '@/components/common/organization-tree-icons'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
-import UserSelectPanel from '@/components/UserSelectPanel.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
 import { request } from '@/utils'
-import RolePermissionSettings from '../components/RolePermissionSettings.vue'
+import {
+  buildRoleUserOrgTreeOptions,
+  flattenOrgNodes,
+  getOrgNodeTone,
+  normalizeNumberList,
+  normalizeSingleNumber,
+} from '../role-organization-presentation'
+
 export function applyRolePagePart1() {
   const __impl = {}
   const mut = {}
@@ -512,24 +515,6 @@ export function applyRolePagePart1() {
     }))
   }
 
-  function normalizeSingleNumber(value, fallback = null) {
-    if (Array.isArray(value)) {
-      const first = value.find(item => item !== null && item !== undefined && item !== '')
-      return normalizeSingleNumber(first, fallback)
-    }
-    if (value === null || value === undefined || value === '')
-      return fallback
-    const numberValue = Number(value)
-    return Number.isNaN(numberValue) ? fallback : numberValue
-  }
-
-  function normalizeNumberList(value) {
-    const list = Array.isArray(value) ? value : (value === null || value === undefined || value === '' ? [] : [value])
-    return Array.from(new Set(list
-      .map(item => normalizeSingleNumber(item))
-      .filter(item => item !== null)))
-  }
-
   function resolveOptionLabel(options = [], value, fallback = '') {
     const matched = options.find(option => String(option?.value) === String(value))
     return matched?.label || fallback
@@ -592,44 +577,6 @@ export function applyRolePagePart1() {
 
   function isUserEnabled(row = {}) {
     return Number(row.userStatus) === 1
-  }
-
-  function flattenOrgNodes(list = []) {
-    return (list || []).flatMap((item) => {
-      const current = [item]
-      const children = flattenOrgNodes(item.children || [])
-      return [...current, ...children]
-    })
-  }
-
-  function buildRoleUserOrgTreeOptions(list = [], scopedOrgIds = new Set(), globalScope = false) {
-    return (list || [])
-      .map((item) => {
-        const value = normalizeSingleNumber(item.id)
-        const children = buildRoleUserOrgTreeOptions(item.children || [], scopedOrgIds, globalScope)
-        const selectable = value !== null && (globalScope || scopedOrgIds.has(value))
-        if (!selectable && children.length === 0)
-          return null
-        return {
-          label: item.orgName || item.label || '-',
-          value,
-          disabled: !selectable,
-          children,
-        }
-      })
-      .filter(Boolean)
-  }
-
-  function getOrgNodeIcon(node = {}) {
-    return node.children?.length
-      ? 'i-material-symbols:account-tree-rounded'
-      : 'i-material-symbols:domain-rounded'
-  }
-
-  function getOrgNodeTone(node = {}) {
-    if (!node.parentId || Number(node.parentId) === 0)
-      return 'folder'
-    return node.children?.length ? 'folder' : 'menu'
   }
 
   function buildRoleTenantParams() {
@@ -1113,85 +1060,134 @@ export function applyRolePagePart1() {
   }
 
   // 加载角色已有的资源
-  __impl.getRoleDropdownMenuProps = getRoleDropdownMenuProps
-  __impl.handleRoleCardAction = handleRoleCardAction
-  __impl.toNumberOptions = toNumberOptions
-  __impl.normalizeSingleNumber = normalizeSingleNumber
-  __impl.normalizeNumberList = normalizeNumberList
-  __impl.resolveOptionLabel = resolveOptionLabel
-  __impl.resolveRoleTypeShortLabel = resolveRoleTypeShortLabel
-  __impl.resolveRoleDictValue = resolveRoleDictValue
-  __impl.resolveRoleDataScopeLabel = resolveRoleDataScopeLabel
-  __impl.resolveRoleStatusLabel = resolveRoleStatusLabel
-  __impl.isRoleDisabled = isRoleDisabled
-  __impl.resolveRoleMemberCount = resolveRoleMemberCount
-  __impl.resolveUserDisplayName = resolveUserDisplayName
-  __impl.resolveUserAccountLabel = resolveUserAccountLabel
-  __impl.resolveUserOrgLabel = resolveUserOrgLabel
-  __impl.resolveUserStatusLabel = resolveUserStatusLabel
-  __impl.isUserEnabled = isUserEnabled
-  __impl.flattenOrgNodes = flattenOrgNodes
-  __impl.buildRoleUserOrgTreeOptions = buildRoleUserOrgTreeOptions
-  __impl.getOrgNodeIcon = getOrgNodeIcon
-  __impl.getOrgNodeTone = getOrgNodeTone
-  __impl.buildRoleTenantParams = buildRoleTenantParams
-  __impl.loadRoleOrgTree = loadRoleOrgTree
-  __impl.loadRoleApplicableOrgIds = loadRoleApplicableOrgIds
-  __impl.beforeSubmit = beforeSubmit
-  __impl.loadRoleList = loadRoleList
-  __impl.handleRoleTypeChange = handleRoleTypeChange
-  __impl.handleRoleSearch = handleRoleSearch
-  __impl.handleAddRole = handleAddRole
-  __impl.handleSelectRole = handleSelectRole
-  __impl.handleRoleMutationSuccess = handleRoleMutationSuccess
-  __impl.handleEdit = handleEdit
-  __impl.handleDelete = handleDelete
-  __impl.handleRoleOrgScope = handleRoleOrgScope
-  __impl.toggleRoleOrgExpandAll = toggleRoleOrgExpandAll
-  __impl.handleRoleOrgExpandedKeysChange = handleRoleOrgExpandedKeysChange
-  __impl.handleRoleOrgCheckedKeysChange = handleRoleOrgCheckedKeysChange
-  __impl.handleSubmitRoleOrgs = handleSubmitRoleOrgs
-  __impl.handleRoleScopeModeChange = handleRoleScopeModeChange
-  __impl.handleViewUsers = handleViewUsers
-  __impl.beforeLoadRoleUserList = beforeLoadRoleUserList
-  __impl.handleRoleUserLoadSuccess = handleRoleUserLoadSuccess
-  __impl.refreshRoleUsers = refreshRoleUsers
-  __impl.searchRoleUsers = searchRoleUsers
-  __impl.handleUserSearch = handleUserSearch
-  __impl.handleRoleUserOrgChange = handleRoleUserOrgChange
-  __impl.handleUserSearchReset = handleUserSearchReset
-  __impl.handleRemoveUserRole = handleRemoveUserRole
-  __impl.loadAssignedUserIds = loadAssignedUserIds
-  __impl.handleAddUser = handleAddUser
-  __impl.handleAddUserFromList = handleAddUserFromList
-  __impl.handleConfirmAddUsers = handleConfirmAddUsers
-  __impl.handleAuth = handleAuth
-  __impl.getAllKeys = getAllKeys
-  __impl.loadResourceTree = loadResourceTree
+  // 本 part 的方法直接随返回值导出；__impl 只保留跨 part 的延迟实现。
 
   return {
-    __impl, mut, beforeLoadRoleUserList, beforeSubmit, buildRoleTenantParams, buildRoleUserOrgTreeOptions,
-    flattenOrgNodes, getAllKeys, getOrgNodeIcon, getOrgNodeTone, getRoleActionOptions, getRoleDropdownMenuProps,
-    handleAddRole, handleAddUser, handleAddUserFromList, handleAuth, handleConfirmAddUsers, handleDelete, handleEdit,
-    handleRemoveUserRole, handleRoleCardAction, handleRoleMutationSuccess, handleRoleOrgCheckedKeysChange,
-    handleRoleOrgExpandedKeysChange, handleRoleOrgScope, handleRoleScopeModeChange, handleRoleSearch,
-    handleRoleTypeChange, handleRoleUserLoadSuccess, handleRoleUserOrgChange, handleSelectRole, handleSubmitRoleOrgs,
-    handleUserSearch, handleUserSearchReset, handleViewUsers, isRoleDisabled, isUserEnabled, loadAssignedUserIds,
-    loadResourceTree, loadRoleApplicableOrgIds, loadRoleList, loadRoleOrgTree, normalizeNumberList,
-    normalizeSingleNumber, refreshRoleUsers, resolveOptionLabel, resolveRoleDataScopeLabel, resolveRoleDictValue,
-    resolveRoleMemberCount, resolveRoleStatusLabel, resolveRoleTypeShortLabel, resolveUserAccountLabel,
-    resolveUserDisplayName, resolveUserOrgLabel, resolveUserStatusLabel, searchRoleUsers, toNumberOptions,
-    toggleRoleOrgExpandAll, USER_STATUS_DICT, ROLE_DATA_SCOPE_DICT, ROLE_TYPE_DICT, NORMAL_DISABLE_DICT, YES_NO_DICT,
-    crudRef, roleUserCrudRef, userStore, roleList, roleListLoading, roleKeyword, activeRoleType, ROLE_ORG_SCOPE_GLOBAL,
-    ROLE_ORG_SCOPE_CUSTOM, authModalVisible, authLoading, authLoadFailed, authSubmitLoading, resourceTreeData,
-    checkedResourceKeys, dataScopeLoading, dataScopeLoadFailed, dataScopeSettings, clientList, currentAuthClientCode,
-    currentRole, addUserModalVisible, addUserLoading, assignedUserIds, roleUserOrgId, roleUserKeyword,
-    roleApplicableOrgIds, roleOrgTreeData, roleUserTotal, roleUserCountMap, userSearchParams, roleOrgModalVisible,
-    roleOrgLoading, roleOrgSubmitLoading, roleScopeMode, checkedRoleOrgKeys, roleOrgExpandedKeys, roleOrgTreeExpandAll,
-    userStatusOptions, dataScopeOptions, manageableDataScopeOptions, roleTypeOptions, roleStatusOptions, yesNoOptions,
-    roleTypeTabs, isCurrentRoleGlobalScope, roleUserOrgOptions, roleUserOrgTreeOptions, allRoleOrgIds,
-    currentRoleScopeLabel, currentRoleScopeTagType, currentRoleDataScopeLabel, canAddUserToCurrentRole,
-    addUserButtonText, roleUserApiConfig, roleUserTableColumns, roleOrgScopeSummary, roleOrgScopeTagType,
-    authClientTabs, currentAuthClientName, searchSchema, tableColumns, editSchema,
+    __impl,
+    mut,
+    beforeLoadRoleUserList,
+    beforeSubmit,
+    buildRoleTenantParams,
+    buildRoleUserOrgTreeOptions,
+    flattenOrgNodes,
+    getAllKeys,
+    getOrgNodeIcon,
+    getOrgNodeTone,
+    getRoleActionOptions,
+    getRoleDropdownMenuProps,
+    handleAddRole,
+    handleAddUser,
+    handleAddUserFromList,
+    handleAuth,
+    handleConfirmAddUsers,
+    handleDelete,
+    handleEdit,
+    handleRemoveUserRole,
+    handleRoleCardAction,
+    handleRoleMutationSuccess,
+    handleRoleOrgCheckedKeysChange,
+    handleRoleOrgExpandedKeysChange,
+    handleRoleOrgScope,
+    handleRoleScopeModeChange,
+    handleRoleSearch,
+    handleRoleTypeChange,
+    handleRoleUserLoadSuccess,
+    handleRoleUserOrgChange,
+    handleSelectRole,
+    handleSubmitRoleOrgs,
+    handleUserSearch,
+    handleUserSearchReset,
+    handleViewUsers,
+    isRoleDisabled,
+    isUserEnabled,
+    loadAssignedUserIds,
+    loadResourceTree,
+    loadRoleApplicableOrgIds,
+    loadRoleList,
+    loadRoleOrgTree,
+    normalizeNumberList,
+    normalizeSingleNumber,
+    refreshRoleUsers,
+    resolveOptionLabel,
+    resolveRoleDataScopeLabel,
+    resolveRoleDictValue,
+    resolveRoleMemberCount,
+    resolveRoleStatusLabel,
+    resolveRoleTypeShortLabel,
+    resolveUserAccountLabel,
+    resolveUserDisplayName,
+    resolveUserOrgLabel,
+    resolveUserStatusLabel,
+    searchRoleUsers,
+    toNumberOptions,
+    toggleRoleOrgExpandAll,
+    USER_STATUS_DICT,
+    ROLE_DATA_SCOPE_DICT,
+    ROLE_TYPE_DICT,
+    NORMAL_DISABLE_DICT,
+    YES_NO_DICT,
+    crudRef,
+    roleUserCrudRef,
+    userStore,
+    roleList,
+    roleListLoading,
+    roleKeyword,
+    activeRoleType,
+    ROLE_ORG_SCOPE_GLOBAL,
+    ROLE_ORG_SCOPE_CUSTOM,
+    authModalVisible,
+    authLoading,
+    authLoadFailed,
+    authSubmitLoading,
+    resourceTreeData,
+    checkedResourceKeys,
+    dataScopeLoading,
+    dataScopeLoadFailed,
+    dataScopeSettings,
+    clientList,
+    currentAuthClientCode,
+    currentRole,
+    addUserModalVisible,
+    addUserLoading,
+    assignedUserIds,
+    roleUserOrgId,
+    roleUserKeyword,
+    roleApplicableOrgIds,
+    roleOrgTreeData,
+    roleUserTotal,
+    roleUserCountMap,
+    userSearchParams,
+    roleOrgModalVisible,
+    roleOrgLoading,
+    roleOrgSubmitLoading,
+    roleScopeMode,
+    checkedRoleOrgKeys,
+    roleOrgExpandedKeys,
+    roleOrgTreeExpandAll,
+    userStatusOptions,
+    dataScopeOptions,
+    manageableDataScopeOptions,
+    roleTypeOptions,
+    roleStatusOptions,
+    yesNoOptions,
+    roleTypeTabs,
+    isCurrentRoleGlobalScope,
+    roleUserOrgOptions,
+    roleUserOrgTreeOptions,
+    allRoleOrgIds,
+    currentRoleScopeLabel,
+    currentRoleScopeTagType,
+    currentRoleDataScopeLabel,
+    canAddUserToCurrentRole,
+    addUserButtonText,
+    roleUserApiConfig,
+    roleUserTableColumns,
+    roleOrgScopeSummary,
+    roleOrgScopeTagType,
+    authClientTabs,
+    currentAuthClientName,
+    searchSchema,
+    tableColumns,
+    editSchema,
   }
 }

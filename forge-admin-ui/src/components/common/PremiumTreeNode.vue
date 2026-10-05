@@ -34,7 +34,7 @@
         :tabindex="hasChildren ? 0 : -1"
         @click.stop="handleToggle"
       >
-        <i v-if="hasChildren" class="i-material-symbols:chevron-right-rounded" />
+        <i v-if="hasChildren" class="i-lucide:chevron-right" />
       </button>
 
       <input
@@ -207,7 +207,8 @@ const nodeSubtitle = computed(() => {
     return ''
   return props.getNodeSubtitle?.(props.node) || props.node?.subtitle || props.node?.path || ''
 })
-const nodeIcon = computed(() => props.getNodeIcon?.(props.node) || props.node?.icon || 'i-material-symbols:folder-outline-rounded')
+const nodeIcon = computed(() => props.getNodeIcon?.(props.node) || props.node?.icon
+  || (hasChildren.value ? 'i-lucide:folder' : 'i-lucide:file-text'))
 const nodeMeta = computed(() => {
   if (!props.showMeta)
     return null
@@ -338,9 +339,9 @@ function resolveActionDisabled(action) {
 
 .premium-tree-row.is-selected {
   background: color-mix(in srgb, var(--primary-color, #2563eb) 9%, var(--bg-primary, #fff));
-  border-color: transparent;
+  border-color: color-mix(in srgb, var(--primary-color, #2563eb) 20%, var(--border-light, #e5e7eb));
   color: var(--primary-color, #2563eb);
-  box-shadow: inset 2px 0 0 var(--primary-color, #2563eb);
+  box-shadow: none;
 }
 
 .premium-tree-switcher {

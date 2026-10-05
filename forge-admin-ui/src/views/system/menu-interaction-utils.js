@@ -27,3 +27,17 @@ export function resolveFreshResourceRow(flatResources, selectedRow) {
   return (Array.isArray(flatResources) ? flatResources : [])
     .find(item => item.id === selectedRow.id) || null
 }
+
+export function getResourceBreadcrumbs(flatResources, currentNode) {
+  const nodes = new Map(flatResources.map(row => [String(row.id), row]))
+  const visited = new Set()
+  const path = []
+  let current = currentNode
+  // 兼容树接口只有 parentId 的节点，并防止脏数据形成父级循环。
+  while (current && !visited.has(String(current.id))) {
+    visited.add(String(current.id))
+    path.unshift({ id: current.id, label: current.resourceName })
+    current = current.parent || nodes.get(String(current.parentId))
+  }
+  return [{ id: 0, label: '全部资源' }, ...path]
+}

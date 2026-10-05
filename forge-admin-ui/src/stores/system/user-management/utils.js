@@ -1,4 +1,5 @@
 import { h } from 'vue'
+import { getOrganizationNodeIcon } from '@/components/common/organization-tree-icons'
 import DictTag from '@/components/DictTag.vue'
 
 export const USER_TYPE_DICT = 'sys_user_type'
@@ -158,9 +159,7 @@ export function resolveRoleDictValue(row = {}, field) {
 }
 
 export function getLeftOrgNodeIcon(node = {}) {
-  return node.children?.length
-    ? 'i-material-symbols:account-tree-rounded'
-    : 'i-material-symbols:domain-rounded'
+  return getOrganizationNodeIcon(node)
 }
 
 export function getLeftOrgNodeTone(node = {}) {

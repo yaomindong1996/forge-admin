@@ -131,7 +131,7 @@ const avatarInitial = computed(() => {
 
 .system-table-cell__primary {
   overflow: hidden;
-  font-weight: 600;
+  font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

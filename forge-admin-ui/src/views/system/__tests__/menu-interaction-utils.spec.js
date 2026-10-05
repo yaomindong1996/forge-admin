@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  flattenResourceTree,
+  getResourceBreadcrumbs,
   resolveFreshResourceRow,
   resolveResourceContextRows,
 } from '../menu-interaction-utils'
@@ -46,6 +48,23 @@ describe('resolveResourceContextRows', () => {
         expect.objectContaining({ id: 3, level: 1 }),
         expect.objectContaining({ id: 4, level: 0 }),
       ])
+  })
+})
+
+describe('资源层级面包屑', () => {
+  it('根上下文与多层上下文保留真实 ID', () => {
+    const flat = flattenResourceTree(resources)
+    expect(getResourceBreadcrumbs(flat, null)).toEqual([{ id: 0, label: '全部资源' }])
+    expect(getResourceBreadcrumbs(flat, flat[2]).map(item => item.id)).toEqual([0, 1, 2, 3])
+  })
+  it('只有 parentId 的旧节点支持字符串雪花 ID，不转 Number', () => {
+    const flat = [{ id: '2100942720360046593', resourceName: '父级' }, { id: '2100942720360046594', parentId: '2100942720360046593', resourceName: '子级' }]
+    expect(getResourceBreadcrumbs(flat, flat[1]).map(item => item.id))
+      .toEqual([0, '2100942720360046593', '2100942720360046594'])
+  })
+  it('父级循环不会死循环或重复节点', () => {
+    const flat = [{ id: 1, parentId: 2 }, { id: 2, parentId: 1 }]
+    expect(getResourceBreadcrumbs(flat, flat[0]).map(item => item.id)).toEqual([0, 2, 1])
   })
 })
 

@@ -1,19 +1,7 @@
 /** menu.vue setup part 1. */
-import {
-  NAutoComplete,
-  NButton,
-  NCheckbox,
-  NDropdown,
-  NInputNumber,
-  NTooltip,
-} from 'naive-ui'
+
 import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import api from '@/api'
-import { AiForm } from '@/components/ai-form'
-import DictTag from '@/components/DictTag.vue'
-import IconRenderer from '@/components/IconRenderer.vue'
-import IconSelector from '@/components/IconSelector.vue'
-import ImageUpload from '@/components/image-upload/index.vue'
 import { useDict } from '@/composables'
 import { usePermissionStore, useUserStore } from '@/store'
 import { request } from '@/utils'
@@ -24,6 +12,8 @@ import {
   resolveFreshResourceRow,
   resolveResourceContextRows,
 } from '../menu-interaction-utils'
+import { buildNavigationTree, getResourceTypeConfig, renderNavigationLabel } from '../menu-tree-presentation'
+
 export function applyMenuPagePart1() {
   const __impl = {}
   const mut = {}
@@ -191,13 +181,6 @@ export function applyMenuPagePart1() {
     ...buildBatchMigrateParentOptions(allResources.value, batchMigrateDisabledParentIds.value),
   ])
 
-  const typeStyleMap = {
-    1: { icon: 'i-material-symbols:folder-outline', color: '#4C6EF5', bg: '#EDF2FF', fontWeight: '600' },
-    2: { icon: 'i-material-symbols:menu', color: '#40C057', bg: '#EBFBEE', fontWeight: '500' },
-    3: { icon: 'i-material-symbols:smart-button', color: '#FD7E14', bg: '#FFF4E6', fontWeight: '400' },
-    4: { icon: 'i-material-symbols:api', color: '#FA5252', bg: '#FFF5F5', fontWeight: '400' },
-  }
-
   watch(currentClientCode, async () => {
     selectedResourceId.value = 0
     selectedRow.value = null
@@ -331,29 +314,6 @@ export function applyMenuPagePart1() {
     currentClientCode.value = clientCode
   }
 
-  function buildNavigationTree(list = [], keyword = '') {
-    return (Array.isArray(list) ? list : [])
-      .map((item) => {
-        const type = Number(item.resourceType)
-        const children = buildNavigationTree(item.children || [], keyword)
-        const isNavigationNode = type === 1 || type === 2
-        const matched = !keyword || String(item.resourceName || '').toLowerCase().includes(keyword) || String(item.path || '').toLowerCase().includes(keyword)
-
-        if (!isNavigationNode && children.length === 0)
-          return null
-        if (keyword && !matched && children.length === 0)
-          return null
-
-        return {
-          ...item,
-          key: item.id,
-          label: item.resourceName,
-          children,
-        }
-      })
-      .filter(Boolean)
-  }
-
   function expandNavigationTree() {
     navigationExpandedKeys.value = getExpandableNavigationKeys()
   }
@@ -405,20 +365,6 @@ export function applyMenuPagePart1() {
       : null
   }
 
-  function renderNavigationLabel({ option }) {
-    const typeConfig = getResourceTypeConfig(option.resourceType)
-    return h('div', { class: ['nav-tree-label', `type-${Number(option.resourceType) || 0}`] }, [
-      h('span', { class: 'nav-tree-icon-shell' }, [
-        h(IconRenderer, {
-          icon: typeConfig.icon,
-          fontSize: 14,
-          customStyle: 'display:block;line-height:1',
-        }),
-      ]),
-      h('span', { class: 'nav-tree-name' }, option.label),
-    ])
-  }
-
   function getContextRows(options = {}) {
     return resolveResourceContextRows(allResources.value, currentNode.value, options)
   }
@@ -444,10 +390,6 @@ export function applyMenuPagePart1() {
     if (!Number.isFinite(level) || level < 0)
       return 0
     return Math.min(level, 5)
-  }
-
-  function getResourceTypeConfig(type) {
-    return typeStyleMap[Number(type)] || { icon: 'i-material-symbols:radio-button-unchecked', color: '#adb5bd' }
   }
 
   function getRenderableIcon(row) {
@@ -609,7 +551,8 @@ export function applyMenuPagePart1() {
   }
 
   function handleAddRoot() {
-    handleAdd(null)
+    // “顶级”不能继承当前选中的父级，明确传 0 保留接口原有根节点协议。
+    handleAdd({ id: 0, clientCode: currentClientCode.value })
   }
 
   function handleAdd(row) {
@@ -1120,108 +1063,144 @@ export function applyMenuPagePart1() {
     ])
   }
 
-  __impl.setupMenuPageLayout = setupMenuPageLayout
-  __impl.loadClientList = loadClientList
-  __impl.loadResourceTree = loadResourceTree
-  __impl.normalizeListResponse = normalizeListResponse
-  __impl.keepSelectionAvailable = keepSelectionAvailable
-  __impl.reconcileCheckedResourceIds = reconcileCheckedResourceIds
-  __impl.handleResourceCheckedChange = handleResourceCheckedChange
-  __impl.handleDisplayRowsCheckedChange = handleDisplayRowsCheckedChange
-  __impl.clearCheckedResources = clearCheckedResources
-  __impl.handleClientTabChange = handleClientTabChange
-  __impl.buildNavigationTree = buildNavigationTree
-  __impl.expandNavigationTree = expandNavigationTree
-  __impl.collapseNavigationTree = collapseNavigationTree
-  __impl.handleNavigationExpandedKeys = handleNavigationExpandedKeys
-  __impl.reconcileNavigationExpandedKeys = reconcileNavigationExpandedKeys
-  __impl.getAllNavigationKeys = getAllNavigationKeys
-  __impl.getExpandableNavigationKeys = getExpandableNavigationKeys
-  __impl.handleNavigationSelect = handleNavigationSelect
-  __impl.renderNavigationLabel = renderNavigationLabel
-  __impl.getContextRows = getContextRows
-  __impl.matchesResourceFilter = matchesResourceFilter
-  __impl.getDisplayLevel = getDisplayLevel
-  __impl.getResourceTypeConfig = getResourceTypeConfig
-  __impl.getRenderableIcon = getRenderableIcon
-  __impl.handleSortCommit = handleSortCommit
-  __impl.getMoreActionOptions = getMoreActionOptions
-  __impl.getResourceSubtitle = getResourceSubtitle
-  __impl.getPrimaryRouteText = getPrimaryRouteText
-  __impl.getSecondaryRouteText = getSecondaryRouteText
-  __impl.getResourceTypeText = getResourceTypeText
-  __impl.getClientDisplayName = getClientDisplayName
-  __impl.getSsoTargetClientOptions = getSsoTargetClientOptions
-  __impl.handleMoreAction = handleMoreAction
-  __impl.copyText = copyText
-  __impl.syncParentResourceOptions = syncParentResourceOptions
-  __impl.buildBatchMigrateParentOptions = buildBatchMigrateParentOptions
-  __impl.hasCheckedAncestor = hasCheckedAncestor
-  __impl.collectRowDescendantIds = collectRowDescendantIds
-  __impl.handleAddRoot = handleAddRoot
-  __impl.handleAdd = handleAdd
-  __impl.handleEdit = handleEdit
-  __impl.loadResourceDetail = loadResourceDetail
-  __impl.handleDelete = handleDelete
-  __impl.handleBatchDelete = handleBatchDelete
-  __impl.getBatchDeleteBlockers = getBatchDeleteBlockers
-  __impl.resetSelectionAfterDelete = resetSelectionAfterDelete
-  __impl.openBatchMigrate = openBatchMigrate
-  __impl.resolveDefaultBatchMigrateParentId = resolveDefaultBatchMigrateParentId
-  __impl.isValidBatchMigrateParent = isValidBatchMigrateParent
-  __impl.handleBatchMigrateSubmit = handleBatchMigrateSubmit
-  __impl.focusMigratedParent = focusMigratedParent
-  __impl.getChildResourceCount = getChildResourceCount
-  __impl.handleDrawerSubmit = handleDrawerSubmit
-  __impl.selectSavedResource = selectSavedResource
-  __impl.expandResourcePath = expandResourcePath
-  __impl.handleInlineUpdate = handleInlineUpdate
-  __impl.refreshSystemMenu = refreshSystemMenu
-  __impl.beforeRenderForm = beforeRenderForm
-  __impl.beforeSubmit = beforeSubmit
-  __impl.isImageIconValue = isImageIconValue
-  __impl.getFontIconValue = getFontIconValue
-  __impl.getImageIconValue = getImageIconValue
-  __impl.handleFormIconTabChange = handleFormIconTabChange
-  __impl.openTableIconSelector = openTableIconSelector
-  __impl.handleTableIconSelected = handleTableIconSelected
-  __impl.getUsedRoutePathSet = getUsedRoutePathSet
-  __impl.matchesRouteKeyword = matchesRouteKeyword
-  __impl.normalizeRouteInput = normalizeRouteInput
-  __impl.getAvailableRouteOptions = getAvailableRouteOptions
-  __impl.renderRouteOptionLabel = renderRouteOptionLabel
-  __impl.normalizeComponentValue = normalizeComponentValue
-  __impl.handleRoutePathChange = handleRoutePathChange
-  __impl.autoFillComponentFromRoute = autoFillComponentFromRoute
-  __impl.getAvailableComponentOptions = getAvailableComponentOptions
-  __impl.renderComponentOptionLabel = renderComponentOptionLabel
+  // 本 part 的方法直接随返回值导出；__impl 只保留跨 part 的延迟实现。
 
   return {
-    __impl, mut, autoFillComponentFromRoute, beforeRenderForm, beforeSubmit, buildBatchMigrateParentOptions,
-    buildNavigationTree, clearCheckedResources, collapseNavigationTree, collectRowDescendantIds, copyText,
-    expandNavigationTree, expandResourcePath, focusMigratedParent, getAllNavigationKeys, getAvailableComponentOptions,
-    getAvailableRouteOptions, getBatchDeleteBlockers, getChildResourceCount, getClientDisplayName, getContextRows,
-    getDisplayLevel, getExpandableNavigationKeys, getFontIconValue, getImageIconValue, getMoreActionOptions,
-    getPrimaryRouteText, getRenderableIcon, getResourceSubtitle, getResourceTypeConfig, getResourceTypeText,
-    getSecondaryRouteText, getSsoTargetClientOptions, getUsedRoutePathSet, handleAdd, handleAddRoot, handleBatchDelete,
-    handleBatchMigrateSubmit, handleClientTabChange, handleDelete, handleDisplayRowsCheckedChange, handleDrawerSubmit,
-    handleEdit, handleFormIconTabChange, handleInlineUpdate, handleMoreAction, handleNavigationExpandedKeys,
-    handleNavigationSelect, handleResourceCheckedChange, handleRoutePathChange, handleSortCommit,
-    handleTableIconSelected, hasCheckedAncestor, isImageIconValue, isValidBatchMigrateParent, keepSelectionAvailable,
-    loadClientList, loadResourceDetail, loadResourceTree, matchesResourceFilter, matchesRouteKeyword,
-    normalizeComponentValue, normalizeListResponse, normalizeRouteInput, openBatchMigrate, openTableIconSelector,
-    reconcileCheckedResourceIds, reconcileNavigationExpandedKeys, refreshSystemMenu, renderComponentOptionLabel,
-    renderNavigationLabel, renderRouteOptionLabel, resetSelectionAfterDelete, resolveDefaultBatchMigrateParentId,
-    selectSavedResource, setupMenuPageLayout, syncParentResourceOptions, resourceTypeOptions, visibleOptions,
-    apiMethodOptions, openTargetOptions, minUserTypeOptions, yesNoOptions, permissionStore, userStore,
-    currentUserClientCode, routeOptions, pageRef, formRef, clientList, currentClientCode, loading, submitLoading,
-    batchActionLoading, allResources, selectedResourceId, selectedRow, checkedResourceIds, navigationExpandedKeys,
-    treeKeyword, resourceKeyword, resourceTypeFilter, visibleFilter, parentResourceOptions, pendingParentId,
-    pendingClientCode, drawerVisible, drawerMode, formData, batchMigrateVisible, batchMigrateParentId, formIconTab,
-    tableIconSelectorRef, tableIconEditRow, tableIconValue, publicParams, drawerTitle, drawerWidth, clientCodeOptions,
-    resourceTypeFilterOptions, visibleFilterOptions, flatResources, navigationSelectedKeys, currentNode,
-    activeResource, currentContextTitle, activeChildSummary, navigationTreeData, displayRows, checkedResourceIdSet,
-    checkedResourceRows, allDisplayRowsChecked, displayRowsCheckIndeterminate, batchMigrateRootRows,
-    batchMigrateDisabledParentIds, batchMigrateParentOptions, typeStyleMap,
+    __impl,
+    mut,
+    autoFillComponentFromRoute,
+    beforeRenderForm,
+    beforeSubmit,
+    buildBatchMigrateParentOptions,
+    buildNavigationTree,
+    clearCheckedResources,
+    collapseNavigationTree,
+    collectRowDescendantIds,
+    copyText,
+    expandNavigationTree,
+    expandResourcePath,
+    focusMigratedParent,
+    getAllNavigationKeys,
+    getAvailableComponentOptions,
+    getAvailableRouteOptions,
+    getBatchDeleteBlockers,
+    getChildResourceCount,
+    getClientDisplayName,
+    getContextRows,
+    getDisplayLevel,
+    getExpandableNavigationKeys,
+    getFontIconValue,
+    getImageIconValue,
+    getMoreActionOptions,
+    getPrimaryRouteText,
+    getRenderableIcon,
+    getResourceSubtitle,
+    getResourceTypeConfig,
+    getResourceTypeText,
+    getSecondaryRouteText,
+    getSsoTargetClientOptions,
+    getUsedRoutePathSet,
+    handleAdd,
+    handleAddRoot,
+    handleBatchDelete,
+    handleBatchMigrateSubmit,
+    handleClientTabChange,
+    handleDelete,
+    handleDisplayRowsCheckedChange,
+    handleDrawerSubmit,
+    handleEdit,
+    handleFormIconTabChange,
+    handleInlineUpdate,
+    handleMoreAction,
+    handleNavigationExpandedKeys,
+    handleNavigationSelect,
+    handleResourceCheckedChange,
+    handleRoutePathChange,
+    handleSortCommit,
+    handleTableIconSelected,
+    hasCheckedAncestor,
+    isImageIconValue,
+    isValidBatchMigrateParent,
+    keepSelectionAvailable,
+    loadClientList,
+    loadResourceDetail,
+    loadResourceTree,
+    matchesResourceFilter,
+    matchesRouteKeyword,
+    normalizeComponentValue,
+    normalizeListResponse,
+    normalizeRouteInput,
+    openBatchMigrate,
+    openTableIconSelector,
+    reconcileCheckedResourceIds,
+    reconcileNavigationExpandedKeys,
+    refreshSystemMenu,
+    renderComponentOptionLabel,
+    renderNavigationLabel,
+    renderRouteOptionLabel,
+    resetSelectionAfterDelete,
+    resolveDefaultBatchMigrateParentId,
+    selectSavedResource,
+    setupMenuPageLayout,
+    syncParentResourceOptions,
+    resourceTypeOptions,
+    visibleOptions,
+    apiMethodOptions,
+    openTargetOptions,
+    minUserTypeOptions,
+    yesNoOptions,
+    permissionStore,
+    userStore,
+    currentUserClientCode,
+    routeOptions,
+    pageRef,
+    formRef,
+    clientList,
+    currentClientCode,
+    loading,
+    submitLoading,
+    batchActionLoading,
+    allResources,
+    selectedResourceId,
+    selectedRow,
+    checkedResourceIds,
+    navigationExpandedKeys,
+    treeKeyword,
+    resourceKeyword,
+    resourceTypeFilter,
+    visibleFilter,
+    parentResourceOptions,
+    pendingParentId,
+    pendingClientCode,
+    drawerVisible,
+    drawerMode,
+    formData,
+    batchMigrateVisible,
+    batchMigrateParentId,
+    formIconTab,
+    tableIconSelectorRef,
+    tableIconEditRow,
+    tableIconValue,
+    publicParams,
+    drawerTitle,
+    drawerWidth,
+    clientCodeOptions,
+    resourceTypeFilterOptions,
+    visibleFilterOptions,
+    flatResources,
+    navigationSelectedKeys,
+    currentNode,
+    activeResource,
+    currentContextTitle,
+    activeChildSummary,
+    navigationTreeData,
+    displayRows,
+    checkedResourceIdSet,
+    checkedResourceRows,
+    allDisplayRowsChecked,
+    displayRowsCheckIndeterminate,
+    batchMigrateRootRows,
+    batchMigrateDisabledParentIds,
+    batchMigrateParentOptions,
   }
 }
