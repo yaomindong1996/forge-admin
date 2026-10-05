@@ -25,6 +25,15 @@ describe('统一导航主题', () => {
     expect(theme.sideMenu.iconColorActive).toBe(theme.sideMenu.textColorActive)
   })
 
+  it('雾色方案顶栏和侧栏同色，形成浅罩三色条', () => {
+    const washes = navigationPresets.filter(item => item.key.startsWith('mist'))
+    expect(washes.map(item => item.name)).toEqual(['雾蓝', '雾青', '雾紫'])
+    for (const preset of washes) {
+      expect(preset.header).toBe(preset.side)
+      expect(preset.header.toLowerCase()).not.toBe(preset.primary.toLowerCase())
+    }
+  })
+
   it('低对比历史文字只在运行时保护，不修改原始 JSON', () => {
     const old = {
       primaryColor: '#2f6fed',

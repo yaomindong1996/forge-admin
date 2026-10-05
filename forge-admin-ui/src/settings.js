@@ -54,6 +54,11 @@ export const layoutSettings = {
       description: '顶部导航与分组菜单，适合多模块业务后台',
     },
     {
+      name: 'side-flyout',
+      title: '侧栏弹出',
+      description: '左侧一级菜单，点击后侧出分组面板，适合模块多、入口深的后台',
+    },
+    {
       name: 'normal',
       title: '默认布局',
       description: '侧边栏菜单布局',

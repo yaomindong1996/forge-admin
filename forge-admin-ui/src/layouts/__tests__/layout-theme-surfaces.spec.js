@@ -47,6 +47,7 @@ describe('布局主题覆盖与工具接入契约', () => {
     'nexus/header/index.vue',
     'immersive/header/index.vue',
     'business-workbench/components/WorkbenchHeader.vue',
+    'side-flyout/components/SideFlyoutHeader.vue',
     'top-menu/index.vue',
     'top-side-menu/index.vue',
   ])('%s 复用同一个工具区，不重复菜单搜索监听器', (file) => {
@@ -63,6 +64,7 @@ describe('布局主题覆盖与工具接入契约', () => {
     expect(content).not.toContain('<n-popover')
     expect(content).toContain('v-if="isCompact" placement="bottom-end"')
     expect(source('layouts/business-workbench/components/WorkbenchHeader.vue')).toContain('show-appearance')
+    expect(source('layouts/side-flyout/components/SideFlyoutHeader.vue')).toContain('show-appearance')
   })
 
   it('无顶栏布局收纳账户与工具，便当盒不再另写注销/全屏逻辑', () => {
@@ -181,6 +183,29 @@ describe('布局主题覆盖与工具接入契约', () => {
     const panel = styleRule(source('styles/layout-chrome.css'), '.layout-chrome-header .business-mega-panel')
     expect(panel).toContain('--workbench-primary: var(--primary-color)')
     expect(panel).not.toContain('--workbench-primary: var(--side-menu-text-color-active)')
+  })
+
+  it('侧栏弹出窄屏隐藏轨，顶栏复用工具区和导航 Token', () => {
+    const layout = source('layouts/side-flyout/index.vue')
+    expect(layout).toContain('v-if="!isNarrow"')
+    expect(layout).toContain('is-flyout-open')
+    expect(layout).toContain('max-width: 768px')
+    expect(source('layouts/side-flyout/components/SideFlyoutHeader.vue')).toContain('<ResponsiveMenuToggle')
+    expect(source('layouts/side-flyout/components/SideFlyoutHeader.vue')).toContain('展开菜单')
+    expect(source('layouts/side-flyout/components/SideFlyoutHeader.vue')).toContain('<TheLogo')
+    expect(source('layouts/side-flyout/components/SideFlyoutHeader.vue')).toContain('<TheTitle')
+    expect(source('layouts/side-flyout/components/SideFlyoutHeader.vue')).not.toContain('<span>展开菜单</span>')
+    expect(source('layouts/side-flyout/components/SideFlyoutHeader.vue')).not.toContain('<BreadCrumb')
+    expect(source('layouts/side-flyout/components/SideFlyoutRail.vue')).not.toContain('<TheLogo')
+    expect(source('layouts/side-flyout/components/SideFlyoutRail.vue')).toContain('variant="rail"')
+    expect(source('layouts/side-flyout/components/SideFlyoutRail.vue')).toContain('<MenuCollapse')
+    const css = source('layouts/side-flyout/side-flyout.css')
+    expect(css).toContain('background: var(--layout-header-bg-color')
+    expect(css).toContain('background: var(--side-menu-bg-color)')
+    expect(css).toContain('color: var(--layout-header-text-color')
+    expect(css).toContain('transition: width 0.2s ease')
+    expect(css).toContain('is-flyout-open:not(.is-collapsed)')
+    expect(css).toContain('prefers-reduced-motion: reduce')
   })
 
   it.each([

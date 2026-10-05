@@ -1,4 +1,4 @@
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useMenu } from '@/composables/useMenu'
 import { usePermissionStore } from '@/store'
 import { useBusinessWorkbenchStore } from '@/stores/layout/businessWorkbenchStore'
@@ -11,20 +11,40 @@ export function useWorkbenchNavigation() {
   const menus = computed(() => buildWorkbenchMenus(permissionStore.menus))
   const trail = computed(() => findWorkbenchTrail(menus.value, activeKey.value))
   const activeRootKey = computed(() => trail.value[0]?.key)
+  const highlightedRootKey = computed(() => store.activeMenu || store.pinRoot || activeRootKey.value)
   const expandedMenu = computed(() => menus.value.find(item => item.key === store.activeMenu))
   const sections = computed(() => buildMegaSections(expandedMenu.value))
 
+  watch(activeRootKey, (key) => {
+    store.syncPin(key)
+  })
+
   function navigate(item) {
+    store.prepareNavigation()
     handleMenuSelect(item.key, item.path)
-    store.closeMenus()
+    store.closePanel()
   }
 
   function activateMenu(item) {
-    if (item.children.length)
-      store.activeMenu = store.activeMenu === item.key ? null : item.key
-    else
+    if (!item.children.length) {
       navigate(item)
+      return
+    }
+    if (store.activeMenu === item.key)
+      store.closeMenus()
+    else
+      store.openMenu(item.key)
   }
 
-  return { menus, trail, activeKey, activeRootKey, expandedMenu, sections, navigate, activateMenu }
+  return {
+    menus,
+    trail,
+    activeKey,
+    activeRootKey,
+    highlightedRootKey,
+    expandedMenu,
+    sections,
+    navigate,
+    activateMenu,
+  }
 }

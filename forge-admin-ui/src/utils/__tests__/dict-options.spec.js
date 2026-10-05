@@ -4,9 +4,11 @@ import { describe, expect, it } from 'vitest'
 import { computed, nextTick, ref } from 'vue'
 import { readSplitVueSource } from '@/test-utils/read-split-vue-source'
 import {
+  fromDictSelectValue,
   mapDictOptionValues,
   normalizeDictOptionValue,
   toBooleanDictOptions,
+  toDictSelectValue,
   toNumberDictOptions,
 } from '../dict-options'
 
@@ -53,6 +55,14 @@ describe('dict option converters', () => {
     expect(toNumberDictOptions()).toEqual([])
     expect(toBooleanDictOptions(null)).toEqual([])
     expect(mapDictOptionValues(undefined, {})).toEqual([])
+  })
+
+  it('aligns numeric bindings with string dictionary values for select display', () => {
+    expect(toDictSelectValue(1)).toBe('1')
+    expect(toDictSelectValue(0)).toBe('0')
+    expect(fromDictSelectValue('1', null)).toBe('1')
+    expect(fromDictSelectValue('1', 0)).toBe(1)
+    expect(fromDictSelectValue('0', 1)).toBe(0)
   })
 
   it('preserves persisted values until dictionary options finish loading', () => {

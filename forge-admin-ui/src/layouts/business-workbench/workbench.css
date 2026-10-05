@@ -52,7 +52,7 @@
   border-right: 1px solid var(--workbench-border);
 }
 .workbench-brand .the-title {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
 }
 .workbench-brand .logo-container {
@@ -249,6 +249,28 @@
   opacity: 0;
   transform: translateY(-6px);
 }
+.business-mega-panel.is-rail {
+  top: 0;
+  right: auto;
+  bottom: 0;
+  left: 100%;
+  width: min(540px, calc(100vw - var(--side-flyout-rail-width, 84px) - 12px));
+  height: auto;
+  max-height: none;
+  translate: none;
+  border: 1px solid var(--workbench-border);
+  border-left: 0;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 10px 0 28px rgb(15 23 42 / 12%);
+}
+.business-mega-panel.is-rail.mega-panel-enter-active,
+.business-mega-panel.is-rail.mega-panel-leave-active {
+  transform-origin: left center;
+}
+.business-mega-panel.is-rail.mega-panel-enter-from,
+.business-mega-panel.is-rail.mega-panel-leave-to {
+  transform: translateX(-10px);
+}
 .business-mega-inner {
   display: grid;
   grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
@@ -383,10 +405,15 @@
 }
 .mega-section-nav > button:hover,
 .mega-section-nav > button:focus-visible {
-  color: var(--side-menu-text-color-hover, var(--workbench-primary));
-  background: var(--side-menu-bg-color-hover, var(--bg-secondary));
+  color: var(--text-primary, var(--text-secondary));
+  background: color-mix(in srgb, var(--side-menu-bg-color-hover, var(--bg-secondary)) 55%, transparent);
 }
 .mega-section-nav > button.is-active {
+  color: var(--side-menu-text-color-active, var(--workbench-primary));
+  background: var(--side-menu-bg-color-active, var(--bg-secondary));
+}
+.mega-section-nav > button.is-active:hover,
+.mega-section-nav > button.is-active:focus-visible {
   color: var(--side-menu-text-color-active, var(--workbench-primary));
   background: var(--side-menu-bg-color-active, var(--bg-secondary));
 }
@@ -798,7 +825,7 @@
     border-right: 0;
   }
   .workbench-brand .the-title {
-    font-size: 15px;
+    font-size: 16px;
   }
   .business-header-tools {
     margin-left: auto;
@@ -817,7 +844,7 @@
   }
 }
 @media (max-width: 640px) {
-  .business-mega-panel {
+  .business-mega-panel:not(.is-rail) {
     left: 0;
     width: 100%;
     height: min(500px, calc(100dvh - 94px));

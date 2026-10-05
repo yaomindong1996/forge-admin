@@ -37,7 +37,7 @@
           </component>
 
           <LayoutSetting
-            v-if="showLayoutSetting" :show-trigger="appStore.layout !== 'business-workbench'"
+            v-if="showLayoutSetting" :show-trigger="!['business-workbench', 'side-flyout'].includes(appStore.layout)"
             class="fixed right-12 top-1/2 z-999"
           />
         </router-view>

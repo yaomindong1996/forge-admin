@@ -42,6 +42,7 @@ describe('共用外观控件', () => {
       await wrapper.setProps({ tenant: true })
       expect(wrapper.text()).not.toContain('空布局')
       expect(wrapper.text()).not.toContain('应用门户布局')
+      expect(wrapper.text()).toContain('侧栏弹出')
     }
     finally { wrapper.unmount() }
   })

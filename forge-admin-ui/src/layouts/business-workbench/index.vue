@@ -23,6 +23,6 @@ import './workbench.css'
 
 const route = useRoute()
 const store = useBusinessWorkbenchStore()
-watch(() => route.fullPath, () => store.closeMenus())
+watch(() => route.fullPath, () => store.onRouteChange())
 onUnmounted(() => store.closeMenus())
 </script>

@@ -1,15 +1,18 @@
 <template>
-  <router-link to="/" class="logo-container">
+  <router-link :to="homePath" class="logo-container">
     <AuthImage :src="tenantStore.systemLogo" :fallback="defaultLogo" alt="Logo" class="logo-image" />
   </router-link>
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import defaultLogo from '@/assets/images/logo.png'
 import { useTenantStore } from '@/store'
+import { getHomePath } from '@/utils/home-path'
 import AuthImage from './AuthImage.vue'
 
 const tenantStore = useTenantStore()
+const homePath = computed(() => getHomePath())
 </script>
 
 <style scoped>

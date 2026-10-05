@@ -949,7 +949,7 @@ function rememberApplication(applicationId) {
 
 function queryStatus(value) {
   const text = queryText(value)
-  return text === '0' || text === '1' ? Number(text) : null
+  return text === '0' || text === '1' ? text : null
 }
 
 function queryPositiveInt(value, fallback) {

@@ -35,6 +35,11 @@ describe('portal shell layouts', () => {
       showPersistentSidebar: true,
       shellClass: 'shell-workbench',
     })
+    expect(resolvePortalShellChrome({ shellLayout: 'side-flyout' })).toMatchObject({
+      showPersistentSidebar: true,
+      showTopNav: false,
+      shellClass: 'shell-side-flyout',
+    })
   })
 
   it('normalizes portal config with shellLayout and synced navigation.style', () => {

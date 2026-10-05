@@ -26,7 +26,7 @@ export const RESERVED_PORTAL_SLUGS = Object.freeze([
 
 export const DEFAULT_PORTAL_CONFIG = Object.freeze({
   themeColor: '#3370ff',
-  /** 门户壳布局（复用系统布局语义）：normal / top-menu / business-workbench ... */
+  /** 门户壳布局（复用系统布局语义）：normal / top-menu / business-workbench / side-flyout ... */
   shellLayout: 'normal',
   navigation: {
     style: 'side',

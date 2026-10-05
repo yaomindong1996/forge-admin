@@ -9,7 +9,7 @@
 
 <template>
   <n-select
-    :value="value"
+    :value="selectValue"
     :options="dictOptions"
     :placeholder="placeholder"
     :disabled="disabled"
@@ -25,6 +25,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { getDictData } from '@/composables/useDict'
+import { fromDictSelectValue, stringifyDictValue, toDictSelectValue } from '@/utils/dict-options'
 
 const props = defineProps({
   // v-model 绑定值
@@ -128,15 +129,17 @@ const effectiveCascade = computed(() => {
   }
 })
 
-// 字典选项
+// 字典选项。n-select 用 === 匹配，字典 dictValue 是字符串、业务字段常是数字，统一成字符串才能回显汉字。
 const dictOptions = computed(() => {
   return filterDictList(dictList.value).map(item => ({
     label: item.label,
-    value: item.value,
+    value: stringifyDictValue(item.value),
     disabled: item.status === 0, // 状态为 0 时禁用
     raw: item.raw || item,
   }))
 })
+
+const selectValue = computed(() => toDictSelectValue(props.value, props.multiple))
 
 // 加载字典数据
 async function loadDict() {
@@ -161,7 +164,7 @@ watch(() => props.dictType, () => {
 
 // 更新值
 function handleUpdate(val) {
-  emit('update:value', val)
+  emit('update:value', fromDictSelectValue(val, props.value, props.multiple))
 }
 
 function filterDictList(list = []) {

@@ -6,7 +6,7 @@
       :class="{ active: model === item.name }" :aria-pressed="model === item.name" @click="model = item.name"
     >
       <span class="layout-mini" :class="`layout-mini--${item.name}`" aria-hidden="true">
-        <span class="mini-side" /><span class="mini-top" /><span class="mini-content" />
+        <span class="mini-side" /><span class="mini-top" /><span class="mini-flyout" /><span class="mini-content" />
       </span>
       <span class="layout-title">{{ item.title }}<i v-if="model === item.name" class="i-lucide:check" /></span>
       <small>{{ item.description }}</small>
@@ -76,7 +76,8 @@ const options = computed(() => layoutSettings.layouts.filter((item) => {
 }
 .mini-side,
 .mini-top,
-.mini-content {
+.mini-content,
+.mini-flyout {
   position: absolute;
   border-radius: 2px;
 }
@@ -125,9 +126,20 @@ const options = computed(() => layoutSettings.layouts.filter((item) => {
 .layout-mini--bento .mini-side {
   width: 8%;
 }
-.layout-mini--bento .mini-content {
-  left: 14%;
-  top: 3px;
+.mini-flyout {
+  display: none;
+}
+.layout-mini--side-flyout .mini-side {
+  width: 12%;
+}
+.layout-mini--side-flyout .mini-flyout {
+  display: block;
+  inset: 12px auto 3px 16%;
+  width: 22%;
+  background: color-mix(in srgb, var(--primary-color) 18%, var(--bg-primary));
+}
+.layout-mini--side-flyout .mini-content {
+  left: 40%;
 }
 .layout-mini--top-side-menu .mini-top {
   left: 3px;

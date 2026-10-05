@@ -1,0 +1,222 @@
+.side-flyout {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.side-flyout-rail-wrap {
+  --side-flyout-rail-width: 84px;
+  position: relative;
+  z-index: 40;
+  flex-shrink: 0;
+  width: var(--side-flyout-rail-width);
+  overflow: hidden;
+  transition: width 0.2s ease;
+}
+
+.side-flyout-rail-wrap.is-collapsed {
+  width: 0;
+  pointer-events: none;
+}
+
+/* 弹出层挂在轨右侧，展开时不能裁切；收起动画仍需要 hidden */
+.side-flyout-rail-wrap.is-flyout-open:not(.is-collapsed) {
+  overflow: visible;
+}
+
+.side-flyout-rail {
+  display: flex;
+  width: var(--side-flyout-rail-width);
+  height: 100%;
+  flex-direction: column;
+  border-right: 1px solid color-mix(in srgb, var(--side-menu-text-color) 8%, transparent);
+  background: var(--side-menu-bg-color);
+  color: var(--side-menu-text-color);
+  transition: transform 0.2s ease;
+}
+
+.side-flyout-rail-wrap.is-collapsed .side-flyout-rail {
+  transform: translateX(-100%);
+}
+
+.side-flyout-nav {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 6px;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.side-flyout-item {
+  display: flex;
+  min-height: 62px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--side-menu-text-color);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.3;
+  text-align: center;
+  word-break: break-word;
+}
+
+.side-flyout-item :deep(svg),
+.side-flyout-item i {
+  flex-shrink: 0;
+  font-size: 20px;
+}
+
+.side-flyout-item span {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.side-flyout-item:hover,
+.side-flyout-item:focus-visible {
+  color: var(--side-menu-text-color-hover, var(--primary-color));
+  background: var(--side-menu-bg-color-hover, var(--bg-secondary));
+}
+
+.side-flyout-item.is-active,
+.side-flyout-item.is-open {
+  color: var(--side-menu-text-color-active, var(--primary-color));
+  background: var(--side-menu-bg-color-active, var(--primary-50));
+}
+
+.side-flyout-empty {
+  padding: 16px 4px;
+  color: var(--side-menu-text-color);
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.side-flyout-dock {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  padding: 8px 0;
+}
+
+.side-flyout-dock :deep(.menu-collapse-button) {
+  width: 28px;
+  height: 28px;
+  color: inherit;
+  font-size: 16px;
+  opacity: 0.45;
+}
+
+.side-flyout-dock :deep(.menu-collapse-button:hover) {
+  opacity: 1;
+  background: var(--side-menu-bg-color-hover, var(--bg-secondary));
+}
+
+.side-flyout-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.side-flyout-body {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+}
+
+.side-flyout-header {
+  --brand-title-text-color: var(--layout-header-text-color);
+  display: flex;
+  z-index: 45;
+  min-height: 56px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--layout-header-text-color) 8%, transparent);
+  background: var(--layout-header-bg-color, var(--bg-primary));
+  color: var(--layout-header-text-color, var(--text-primary));
+}
+
+.side-flyout-brand {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+}
+
+.side-flyout-brand :deep(.the-title) {
+  font-size: 16px;
+}
+
+.side-flyout-tools {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.side-flyout-tab-bar {
+  display: flex;
+  min-height: 40px;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 0 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text-primary) 8%, transparent);
+  background: var(--bg-primary);
+}
+
+.side-flyout-tab-bar #top-tab {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  overflow: hidden;
+}
+
+.side-flyout-content {
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+  padding: 8px;
+  overflow: auto;
+  background: var(--bg-secondary);
+}
+
+.side-flyout-content.is-flush {
+  padding: 0;
+}
+
+.side-flyout-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: rgb(15 23 42 / 10%);
+}
+
+@media (max-width: 768px) {
+  .side-flyout-header {
+    padding: 0 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .side-flyout-rail-wrap,
+  .side-flyout-rail {
+    transition: none;
+  }
+}

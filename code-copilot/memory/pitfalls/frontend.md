@@ -1,6 +1,6 @@
 # 踩坑：前端 / 构建 / 路由
 
-> 从 `code-copilot/memory/pitfalls.md` 按主题拆出。新条目追加到本文件。共 49 条。
+> 从 `code-copilot/memory/pitfalls.md` 按主题拆出。新条目追加到本文件。共 51 条。
 
 ## uni-app 微信小程序不能直接复用 H5 Teleport 和动态 component 递归
 
@@ -824,3 +824,15 @@ H5 鉴权头像加载失败后按“当前解析出的 URL”判断是否已经�
 **解决方案**：浅色保留 `navigationMode`，深色使用可选 `navigationModeDark`；旧配置缺失深色模式
 时沿用旧全局值。首次编辑先固定另一模式，切换手动时从当前实际渲染结果生成颜色，避免视觉跳变。
 测试应分别比较浅→深、深→浅修改前后的实际渲染分组，并验证租户保存/恢复回环和开关回显。
+
+## 品牌 Logo/系统名不能链到 `/`，否则 Tab 会重复出现首页
+
+**发现日期**：2026-10-05
+
+**问题描述**：`TheLogo` / `TheTitle` 使用 `router-link to="/"`。`/` 只是重定向到 `/home`，
+且路由 meta 标题也是「首页」。点一次品牌会先记一条 `/` 的 Tab，再记 `/home`，看起来像每次多一个首页。
+所有布局共用这两个组件，所以侧栏、顶栏都会中招。
+
+**解决方案**：品牌链接走 `getHomePath()`（`$homePath` / `VITE_HOME_PATH` / `/home`）。
+Tab 守卫排除 `/` 和纯 redirect 记录，并把 `/`、`/home` 视为同一首页 Tab。
+

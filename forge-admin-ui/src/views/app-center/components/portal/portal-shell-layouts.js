@@ -12,6 +12,13 @@ export const PORTAL_SHELL_LAYOUTS = Object.freeze([
     preview: 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'104\' height=\'60\' viewBox=\'0 0 104 60\'%3E%3Crect width=\'104\' height=\'10\' fill=\'%234242F7\'/%3E%3Crect y=\'12\' width=\'22\' height=\'48\' fill=\'%23EEF2FF\'/%3E%3Crect x=\'24\' y=\'12\' width=\'80\' height=\'48\' fill=\'%23F8FAFC\'/%3E%3C/svg%3E',
   },
   {
+    value: 'side-flyout',
+    label: '侧栏弹出',
+    description: '左侧一级菜单，点击后侧出分组面板',
+    group: 'common',
+    preview: 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'104\' height=\'60\' viewBox=\'0 0 104 60\'%3E%3Crect width=\'12\' height=\'60\' fill=\'%234242F7\'/%3E%3Crect x=\'14\' width=\'22\' height=\'60\' fill=\'%23EEF2FF\'/%3E%3Crect x=\'38\' width=\'66\' height=\'10\' fill=\'%234242F7\'/%3E%3Crect x=\'38\' y=\'12\' width=\'66\' height=\'48\' fill=\'%23F8FAFC\'/%3E%3C/svg%3E',
+  },
+  {
     value: 'normal',
     label: '通用',
     description: '经典左侧导航 + 顶栏，结构稳定',
@@ -138,7 +145,7 @@ export function resolvePortalShellChrome(portalConfig = {}) {
     }
   }
 
-  if (shellLayout === 'business-workbench' || shellLayout === 'top-side-menu') {
+  if (shellLayout === 'business-workbench' || shellLayout === 'top-side-menu' || shellLayout === 'side-flyout') {
     return {
       shellLayout,
       navigationStyle: 'side',
@@ -146,7 +153,9 @@ export function resolvePortalShellChrome(portalConfig = {}) {
       showPersistentSidebar: true,
       showDrawerToggle: Boolean(navigation.collapsible),
       defaultCollapsed: navigation.collapsed === true,
-      shellClass: shellLayout === 'business-workbench' ? 'shell-workbench' : 'shell-top-side',
+      shellClass: shellLayout === 'business-workbench'
+        ? 'shell-workbench'
+        : shellLayout === 'side-flyout' ? 'shell-side-flyout' : 'shell-top-side',
     }
   }
 

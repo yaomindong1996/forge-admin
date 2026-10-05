@@ -3,6 +3,8 @@ export const navigationPresets = [
   { key: 'clean', name: '清爽白', primary: '#4242F7', header: '#FFFFFF', side: '#FFFFFF' },
   { key: 'forge-blue', name: '品牌蓝', primary: '#4242F7', header: '#4242F7', side: '#FFFFFF' },
   { key: 'mist', name: '雾蓝', primary: '#2F6FED', header: '#EEF4FF', side: '#EEF4FF' },
+  { key: 'mist-teal', name: '雾青', primary: '#0E8F7E', header: '#E7F6F3', side: '#E7F6F3' },
+  { key: 'mist-violet', name: '雾紫', primary: '#6D5EF6', header: '#F1EEFF', side: '#F1EEFF' },
   { key: 'cloud-blue', name: '云蓝', primary: '#2F6FED', header: '#FFFFFF', side: '#F3F6FC' },
   { key: 'ink-blue', name: '墨蓝', primary: '#3569D4', header: '#1E293B', side: '#182234' },
   { key: 'graphite', name: '石墨', primary: '#334155', header: '#1F2937', side: '#FFFFFF' },

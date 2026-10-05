@@ -93,7 +93,11 @@
 }
 
 /* 业务工作台：主导航真实图标 + 轻主题选中，不额外添加独立彩色体系。 */
-.layout-chrome-header .workbench-brand { --brand-title-text-color: var(--layout-header-text-color); }
+.layout-chrome-header .workbench-brand,
+.layout-chrome-header .side-flyout-brand { --brand-title-text-color: var(--layout-header-text-color); }
+.layout-chrome-header .the-title {
+  font-size: 16px;
+}
 .layout-chrome-header .business-mega-triggers > button { gap: 7px; color: var(--top-menu-text-color); }
 .layout-chrome-header .business-mega-triggers > button:is(.active, .is-intent, .is-open, :hover) {
   color: var(--top-menu-text-color-active);
@@ -105,7 +109,8 @@
 }
 .layout-chrome-header .workbench-brand { border-color: var(--layout-header-border-color); }
 .layout-chrome-header .menu-scroll { color: var(--chrome-text); background: var(--layout-header-bg-color); }
-.layout-chrome-header .business-mega-panel {
+.layout-chrome-header .business-mega-panel,
+.side-flyout-rail-wrap .business-mega-panel {
   --workbench-surface: var(--side-menu-bg-color);
   --workbench-muted: var(--side-menu-text-color);
   /* 品牌色不是选中文字色；白色选中文字只能与它配置的选中表面成对使用。 */
@@ -119,7 +124,8 @@
 .business-mega-panel .mega-panel-aside { background: var(--side-menu-bg-color); }
 
 /* 便当盒没有顶栏；工具和快捷入口随导航表面配色。 */
-.bento-rail.bento-rail {
+.bento-rail.bento-rail,
+.side-flyout-rail.side-flyout-rail {
   --chrome-text: var(--side-menu-text-color);
   --chrome-control-bg: transparent;
   --chrome-control-hover-bg: var(--side-menu-bg-color-hover);

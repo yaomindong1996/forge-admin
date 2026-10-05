@@ -31,11 +31,19 @@
       @update:value="value => emit('update:status', value)"
     />
 
-    <n-button secondary :loading="loading" @click="emit('refresh')">
+    <n-button
+      secondary
+      circle
+      size="small"
+      class="application-refresh"
+      :loading="loading"
+      aria-label="刷新"
+      title="刷新"
+      @click="emit('refresh')"
+    >
       <template #icon>
         <n-icon><RefreshOutline /></n-icon>
       </template>
-      刷新
     </n-button>
   </div>
 </template>
@@ -75,31 +83,42 @@ const emit = defineEmits([
 <style scoped>
 .application-filter-bar {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
   min-width: 0;
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
 }
 
 .application-search {
-  width: min(420px, 42vw);
+  min-width: 140px;
+  flex: 1 1 180px;
+  width: auto;
+  max-width: 360px;
 }
 
 .application-filter {
-  width: 150px;
+  flex: 0 0 118px;
+  width: 118px;
 }
 
-@media (max-width: 760px) {
+.application-refresh {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 720px) {
   .application-filter-bar {
     flex-wrap: wrap;
   }
 
   .application-search {
-    width: 100%;
+    flex: 1 1 100%;
+    max-width: none;
+    min-width: 0;
   }
 
   .application-filter {
-    flex: 1 1 140px;
+    flex: 1 1 120px;
     width: auto;
   }
 }

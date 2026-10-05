@@ -297,9 +297,9 @@
 .panel-pagination {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 16px;
+  justify-content: flex-start;
+  gap: 10px 12px;
+  padding: 10px 16px;
 }
 
 .panel-toolbar {
@@ -311,26 +311,28 @@
 .toolbar-left {
   display: flex;
   min-width: 0;
-  flex: 1 1 760px;
-  flex-wrap: wrap;
+  flex: 1 1 560px;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .toolbar-left > :deep(.n-radio-group) {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   min-width: 0;
 }
 
 .toolbar-filters {
-  flex: 1 1 500px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .toolbar-actions {
   display: flex;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  margin-left: auto;
 }
 
 .new-application-button-label {
@@ -497,26 +499,13 @@ html.dark .application-loading-mask {
     grid-template-columns: 230px minmax(0, 1fr);
   }
 
-  .panel-toolbar,
   .panel-pagination {
     align-items: flex-start;
-    flex-direction: column;
   }
 
   .pagination-controls {
     width: 100%;
     justify-content: flex-start;
-  }
-
-  .toolbar-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .toolbar-left,
-  .toolbar-filters {
-    width: 100%;
-    flex-basis: 100%;
   }
 }
 
@@ -553,6 +542,8 @@ html.dark .application-loading-mask {
   }
 
   .toolbar-left {
+    width: 100%;
+    flex-basis: 100%;
     align-items: stretch;
     flex-direction: column;
     gap: 10px;

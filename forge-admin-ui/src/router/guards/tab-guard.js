@@ -1,7 +1,8 @@
 import { usePermissionStore, useTabStore } from '@/store'
+import { isHomeTabPath } from '@/utils/home-path'
 import { confirmDirtyTabs } from '@/utils/tab-interactions'
 
-export const EXCLUDE_TAB = ['/404', '/403', '/login', '/login/callback', '/mcp-authorize']
+export const EXCLUDE_TAB = ['/404', '/403', '/login', '/login/callback', '/mcp-authorize', '/']
 
 /**
  * 从扁平菜单数组中查找路径对应的中文名称
@@ -85,7 +86,7 @@ export function createTabGuard(router) {
   })
 
   router.afterEach(async (to) => {
-    if (EXCLUDE_TAB.includes(to.path))
+    if (EXCLUDE_TAB.includes(to.path) || to.matched?.every(record => record.redirect))
       return
     const tabStore = useTabStore()
     if (to.meta?.skipTab) {
@@ -106,7 +107,7 @@ export function createTabGuard(router) {
       title = findTitleFromAllMenus(permissionStore.allMenus, to.path, to.query?.menuKey || to.query?.menuResourceId) || title
     }
 
-    if (to.path === '/home') {
+    if (to.path === '/home' || isHomeTabPath(to.path)) {
       title = '首页'
     }
 
@@ -135,19 +136,23 @@ export function createTabGuard(router) {
       }
     }
 
-    // 检查是否已存在相同 path 的 tab
+    // 检查是否已存在相同 path 的 tab；首页 `/` 与 `/home` 视为同一页，避免品牌点击重复开 Tab
     const existingTab = tabStore.tabs.find(item => item.path === path)
+      || (isHomeTabPath(to.path)
+        ? tabStore.tabs.find(item => isHomeTabPath(item.path) || isHomeTabPath(item.key))
+        : null)
     const forceClosable = !!to.meta?.forceClosable || isBusinessRuntimePath(to.path)
     const closable = to.meta?.closable !== false
+    const tabKey = existingTab?.key || existingTab?.path || path
     if (!existingTab) {
       tabStore.addTab({ name, path, title: title || path, icon, keepAlive, key: path, closable, forceClosable })
     }
     else {
-      tabStore.updateTabMeta(path, { closable, forceClosable })
+      tabStore.updateTabMeta(tabKey, { closable, forceClosable })
       if (shouldUpdateExistingTitle(existingTab.title, title, to.path)) {
-        tabStore.updateTabTitle(path, title)
+        tabStore.updateTabTitle(tabKey, title)
       }
     }
-    tabStore.setActiveTab(path)
+    tabStore.setActiveTab(tabKey)
   })
 }

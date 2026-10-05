@@ -14,5 +14,7 @@ describe('业务工作台默认布局', () => {
   it('保留租户已明确选择的有效布局', () => {
     expect(normalizeLayout('normal')).toBe('normal')
     expect(normalizeLayout('top-menu')).toBe('top-menu')
+    expect(normalizeLayout('side-flyout')).toBe('side-flyout')
+    expect(validLayoutNames).toContain('side-flyout')
   })
 })

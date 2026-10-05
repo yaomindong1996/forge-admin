@@ -38,7 +38,7 @@
       </div>
     </div>
     <!-- 与当前草稿绑定的小预览，不污染系统正在使用的主题 -->
-    <div v-if="layout !== 'empty'" class="theme-sample" :style="sampleStyle" aria-label="导航配色预览">
+    <div v-if="layout !== 'empty'" class="theme-sample" :class="{ 'is-side-flyout': layout === 'side-flyout' }" :style="sampleStyle" aria-label="导航配色预览">
       <div v-if="hasHeader" class="sample-header">
         <i class="i-lucide:panel-left" />
         <span :class="{ 'sample-top-menu': hasTopMenu }">系统导航</span><i class="i-lucide:bell" />
@@ -46,7 +46,11 @@
       <div class="sample-body">
         <div class="sample-side">
           <span>业务管理</span><span class="selected">当前菜单</span>
-        </div><span>内容工作区</span>
+        </div>
+        <div v-if="layout === 'side-flyout'" class="sample-flyout" aria-hidden="true">
+          <span>分组</span><span class="selected">入口</span>
+        </div>
+        <span>内容工作区</span>
       </div>
     </div>
     <n-collapse v-if="layout !== 'empty'" class="advanced-theme" :default-expanded-names="[]">
@@ -145,6 +149,9 @@ const scopeNote = computed(() => {
   }
   if (props.layout === 'business-workbench') {
     return '顶栏与展开的业务菜单共用这套配色。'
+  }
+  if (props.layout === 'side-flyout') {
+    return '顶栏放工具和页签，一级菜单与侧出面板使用导航配色。'
   }
   if (['simple', 'bento'].includes(props.layout)) {
     return '当前布局只有侧边导航，不需要配置顶栏。'
@@ -372,6 +379,33 @@ function updateCustom(path, value) {
   border-radius: 4px;
 }
 .sample-side .selected {
+  background: var(--sample-active);
+  color: var(--sample-active-text);
+}
+.theme-sample.is-side-flyout .sample-side {
+  width: 44px;
+  padding: 8px 4px;
+}
+.theme-sample.is-side-flyout .sample-side span {
+  padding: 6px 0;
+  font-size: 10px;
+  text-align: center;
+}
+.sample-flyout {
+  display: grid;
+  gap: 4px;
+  align-content: center;
+  width: 88px;
+  padding: 8px;
+  background: color-mix(in srgb, var(--sample-side) 82%, var(--sample-header));
+  color: var(--sample-side-text);
+  border-right: 1px solid var(--border-light);
+}
+.sample-flyout span {
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+.sample-flyout .selected {
   background: var(--sample-active);
   color: var(--sample-active-text);
 }
