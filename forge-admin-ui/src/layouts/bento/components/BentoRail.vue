@@ -187,9 +187,34 @@ function handleMenuSelect(item) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   padding: 6px 0;
   flex-shrink: 0;
+}
+
+/* 通知带角标、账户带浮层；固定同一热区，不能让包装层外边距偏移中心线。 */
+.bento-tools :deep(.message-notification-wrapper) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+}
+.bento-tools :deep(.notification-trigger),
+.bento-tools :deep(.compact-tools-trigger) {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 20px;
+  border-radius: 6px;
+}
+.bento-tools :deep(.notification-trigger i),
+.bento-tools :deep(.compact-tools-trigger i) {
+  font-size: 20px;
+}
+.bento-tools :deep(.notification-trigger:hover) {
+  background: var(--side-menu-bg-color-hover);
 }
 
 /* 滚动条 */

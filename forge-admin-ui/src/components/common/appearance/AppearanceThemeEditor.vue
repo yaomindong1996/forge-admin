@@ -8,6 +8,7 @@
       >
         <span class="preset-colors" aria-hidden="true">
           <span :style="{ background: preset.header }" /><span :style="{ background: preset.primary }" />
+          <span :style="{ background: preset.side }" />
         </span>
         {{ preset.name }}
       </button>

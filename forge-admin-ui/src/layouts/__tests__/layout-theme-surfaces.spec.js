@@ -53,7 +53,7 @@ describe('布局主题覆盖与工具接入契约', () => {
     expect(content).toContain('<OrgSwitcher />')
     expect(content).toContain('aria-label="更多工具"')
     expect(content).toContain('<Fullscreen with-label />')
-    expect(content).toContain('<BeginnerGuide with-label />')
+    expect(content).toContain('<BeginnerGuide with-label @start="moreToolsOpen = false" />')
     expect(content).toContain('v-if="isCompact" placement="bottom-end"')
     expect(source('layouts/business-workbench/components/WorkbenchHeader.vue')).toContain('show-appearance')
   })
@@ -99,5 +99,45 @@ describe('布局主题覆盖与工具接入契约', () => {
     if (['top-menu', 'top-side-menu'].includes(layout)) {
       expect(content).toContain('<TopMenu v-if="!isNarrow"')
     }
+  })
+
+  it('沉浸式 scoped 表面与租户前景一致，不用正文背景覆盖顶栏', () => {
+    const header = source('layouts/immersive/header/index.vue')
+    expect(header).toContain('background: var(--layout-header-bg-color)')
+    expect(header).toContain('color: var(--layout-header-text-color)')
+    expect(header).toContain('background: var(--layout-header-hover-color)')
+    expect(header).not.toContain('background: var(--bg-primary)')
+    expect(header).not.toContain('background: var(--bg-secondary)')
+    expect(header).toMatch(/@media \(max-width: 1100px\)[\s\S]*?\.header-center\s*\{\s*display: none/)
+  })
+
+  it('便当盒通知和账户使用同一热区并消除包装层横向偏移', () => {
+    const rail = source('layouts/bento/components/BentoRail.vue')
+    expect(rail).toContain('.bento-tools :deep(.message-notification-wrapper)')
+    expect(rail).toMatch(/\.bento-tools :deep\(\.message-notification-wrapper\)[\s\S]*?margin: 0/)
+    expect(rail).toContain('.bento-tools :deep(.compact-tools-trigger)')
+    expect(rail).toContain('width: 36px')
+    expect(rail).toContain('font-size: 20px')
+  })
+
+  it.each(['full', 'simple'])('%s 展开侧栏至少 240px，收起仍沿用用户偏好', (layout) => {
+    const content = source(`layouts/${layout}/index.vue`)
+    expect(content).toContain('width: max(240px, var(--side-menu-width))')
+    expect(content).toContain('width: var(--side-menu-collapsed-width)')
+    expect(content).toContain('!isNarrow')
+  })
+
+  it('全屏顶栏保持 48px，不被父壳改回 60px', () => {
+    expect(source('layouts/full/index.vue')).toContain('--layout-header-height: 48px')
+    expect(source('layouts/full/index.vue')).toContain('height: 48px')
+    expect(source('layouts/full/header/index.vue')).toContain('height: 48px')
+  })
+
+  it('指引由 App 全局持有，不轮询隐藏元素或随工具浮层卸载', () => {
+    expect(source('App.vue')).toContain('<OperationGuideDialog v-if="showLayoutSetting" />')
+    const trigger = source('layouts/components/BeginnerGuide.vue')
+    expect(trigger).not.toContain('vue3-intro-step')
+    expect(trigger).toContain('appStore.guideOpen = true')
+    expect(source('layouts/components/CompactLayoutTools.vue')).toContain('@start="visible = false"')
   })
 })

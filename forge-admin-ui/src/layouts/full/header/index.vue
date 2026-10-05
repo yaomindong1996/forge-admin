@@ -19,10 +19,10 @@ import ResponsiveMenuToggle from '@/layouts/components/ResponsiveMenuToggle.vue'
 <style scoped>
 .layout-header {
   width: 100%;
-  height: 50px;
+  height: 48px;
   flex-shrink: 0;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-light);
+  background: var(--layout-header-bg-color);
+  border-bottom: 1px solid var(--layout-header-border-color);
 }
 
 .header-breadcrumb-wrap {

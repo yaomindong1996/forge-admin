@@ -15,6 +15,7 @@ export const useAppStore = defineStore('app', {
   state: () => ({
     collapsed: false,
     appearanceOpen: false, // 跨布局切换时保留设置面板，不写入会话缓存。
+    guideOpen: false, // 指引独立于布局和工具浮层，不持久化。
     isDark: useDark(),
     layout: normalizeLayout(import.meta.env.VITE_DEFAULT_LAYOUT || defaultLayout),
     primaryColor: defaultPrimaryColor,
@@ -68,6 +69,7 @@ export const useAppStore = defineStore('app', {
     },
     resetAccountState() {
       this.appearanceOpen = false
+      this.guideOpen = false
       this.layout = normalizeLayout(import.meta.env.VITE_DEFAULT_LAYOUT || defaultLayout)
       this.primaryColor = defaultPrimaryColor
       this.naiveThemeOverrides = cloneConfig(naiveThemeOverrides)

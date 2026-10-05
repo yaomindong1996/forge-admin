@@ -16,7 +16,7 @@
         <i class="i-lucide:panels-top-left" />
       </button>
       <!-- 低频工具集中收纳，弹层使用正文配色，不继承深色顶栏文字 -->
-      <n-popover trigger="click" placement="bottom-end" :show-arrow="false">
+      <n-popover v-model:show="moreToolsOpen" trigger="click" placement="bottom-end" :show-arrow="false">
         <template #trigger>
           <button class="chrome-icon-button" type="button" title="更多工具" aria-label="更多工具">
             <i class="i-lucide:ellipsis" />
@@ -24,7 +24,7 @@
         </template>
         <div class="header-more-tools">
           <Fullscreen with-label />
-          <BeginnerGuide with-label />
+          <BeginnerGuide with-label @start="moreToolsOpen = false" />
         </div>
       </n-popover>
       <UserAvatar />
@@ -34,6 +34,7 @@
 
 <script setup>
 import { useMediaQuery } from '@vueuse/core'
+import { ref } from 'vue'
 import ToggleTheme from '@/components/common/ToggleTheme.vue'
 import { useAppStore } from '@/store'
 import BeginnerGuide from './BeginnerGuide.vue'
@@ -48,6 +49,7 @@ import UserAvatar from './UserAvatar.vue'
 defineProps({ showAppearance: Boolean })
 const appStore = useAppStore()
 const isCompact = useMediaQuery('(max-width: 480px)')
+const moreToolsOpen = ref(false)
 </script>
 
 <style scoped>

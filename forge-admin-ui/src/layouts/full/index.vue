@@ -58,10 +58,11 @@ const { showSidebar } = useSidebarVisibility()
 /* 侧边栏 */
 .sidebar-full {
   flex-shrink: 0;
-  width: var(--side-menu-width);
+  width: max(240px, var(--side-menu-width));
   background: var(--side-menu-bg-color, #ffffff);
   display: flex;
   flex-direction: column;
+  border-right: 1px solid var(--side-menu-border-color);
 }
 
 .sidebar-full-collapsed {
@@ -86,7 +87,9 @@ const { showSidebar } = useSidebarVisibility()
 }
 
 .header-full {
-  height: 60px;
+  /* 旧全局主题以 !important 读取高度变量；局部变量同步压紧，避免只写 height 无效。 */
+  --layout-header-height: 48px;
+  height: 48px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--layout-header-border-color);
 }

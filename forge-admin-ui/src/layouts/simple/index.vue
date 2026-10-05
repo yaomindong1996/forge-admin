@@ -60,7 +60,7 @@ const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
 /* 侧边栏 */
 .sidebar-simple {
   flex-shrink: 0;
-  width: var(--side-menu-width);
+  width: max(240px, var(--side-menu-width));
   background: var(--side-menu-bg-color, #ffffff);
   border-right: 1px solid var(--side-menu-border-color, #e2e8f0);
   display: flex;
@@ -76,6 +76,7 @@ const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0;
 }
 
 /* 主内容区 */

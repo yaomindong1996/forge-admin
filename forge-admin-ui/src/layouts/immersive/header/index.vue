@@ -52,8 +52,9 @@ const menuDrawerVisible = ref(false)
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-light);
+  background: var(--layout-header-bg-color);
+  color: var(--layout-header-text-color);
+  border-bottom: 1px solid var(--layout-header-border-color);
   padding: 0 12px;
   flex-shrink: 0;
 }
@@ -63,7 +64,8 @@ const menuDrawerVisible = ref(false)
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .menu-trigger-btn {
@@ -76,14 +78,16 @@ const menuDrawerVisible = ref(false)
   height: 36px;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
   font-size: 20px;
   color: var(--layout-header-text-color);
   flex-shrink: 0;
 }
 
 .menu-trigger-btn:hover {
-  background: var(--bg-secondary);
+  background: var(--layout-header-hover-color);
 }
 
 .header-logo-link {
@@ -92,6 +96,7 @@ const menuDrawerVisible = ref(false)
   gap: 8px;
   text-decoration: none;
   overflow: hidden;
+  min-width: 0;
 }
 
 .header-logo-wrapper {
@@ -114,9 +119,12 @@ const menuDrawerVisible = ref(false)
 .header-system-name {
   font-size: 14px;
   font-weight: 600;
-  color: var(--brand-title-text-color);
+  color: var(--layout-header-text-color);
   margin: 0;
   white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   letter-spacing: 0;
 }
 
@@ -145,5 +153,20 @@ const menuDrawerVisible = ref(false)
   height: 14px;
   background: var(--border-light);
   margin: 0 6px;
+}
+
+@media (max-width: 1100px) {
+  /* scoped 的 display:flex 会覆盖公共隐藏规则；必须同步取消面包屑占位。 */
+  .header-center {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  .immersive-header-bar {
+    padding-inline: 8px;
+  }
+  .header-right {
+    padding-inline: 0;
+  }
 }
 </style>

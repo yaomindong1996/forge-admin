@@ -28,6 +28,10 @@ import { SideLogo, SideMenu } from '@/layouts/components'
   margin-top: 8px;
 }
 
+.sidebar-full-wrapper :deep(.modern-side-header) {
+  height: 48px;
+}
+
 /* 滚动条 */
 .sidebar-full-menu::-webkit-scrollbar {
   width: 6px;
