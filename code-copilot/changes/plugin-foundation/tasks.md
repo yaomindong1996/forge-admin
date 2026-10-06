@@ -1,0 +1,44 @@
+# 插件化底座 Tasks
+
+> 关联 Spec：`spec.md`。按顺序执行，T0 必须在改动 `create-project.mjs` 之前完成。
+
+- [ ] T0 版本号与改名基线：
+  - 先把 `forge-server/pom.xml` 的 `revision` 从 `1.0.0` 升为 `1.1.0`；
+  - 再用固定参数执行 `forge:create`，生成 `full`、`minimal-admin` 两套工程，记录全部文件的相对路径和 SHA-256，基线清单存入本目录 `baseline/`。
+- [ ] T1 新增 `forge-starter-plugin`（F1）：
+  - `ForgeVersion` 及资源过滤的 `forge-version.properties`；
+  - `FeatureGate`、`CommunityFeatureGate`；
+  - `@RequiresFeature`、`FeatureGateInterceptor` 及其 `WebMvcConfigurer`；
+  - `PluginDescriptor`、`PluginRegistry`；
+  - 在 `forge-starter-parent/pom.xml` 注册模块，`forge-admin-server` 引入依赖；
+  - 单测。
+- [ ] T2 插件迁移执行器（F2）：`PluginFlywayMigrationStrategy`、历史表名推导、`baselineVersion = 0`；单测覆盖主迁移先执行。
+- [ ] T3 功能授权过滤（F3）：
+  - `V1.0.209__add_resource_feature_code.sql`；
+  - `SysResource.featureCode`；
+  - `SysResourceServiceImpl.getUserResources` 过滤；
+  - `UserLoadServiceImpl` 普通用户权限过滤；
+  - `forge-plugin-system` 引入 `forge-starter-plugin`；
+  - 单测。
+- [ ] T4 `clean-db.sh` 保留插件历史表，更新 `clean-db.test.mjs`。
+- [ ] T5 抽出共用改名规则（F4）：
+  - 新增 `scripts/forge-shared/rename.mjs`，`create-project.mjs` 改为引用；
+  - 与 T0 基线逐文件比对，必须完全一致。
+- [ ] T6 脚手架扩展（F4）：
+  - `forge.config.json` 增加 `forgeVersion`、`plugins`；
+  - 生成工程包含根 `package.json`、`scripts/forge-plugin/`、`scripts/forge-shared/`、`module-catalog.json`；
+  - 复制 `.gitignore` 时去除“仅模板仓库”区块；
+  - 除上述新增项外，其余文件仍与基线一致。
+- [ ] T7 pom 插件标记区块：`forge-server/pom.xml` 的 modules、`forge-admin-server/pom.xml` 的 dependencies 各加一组空标记；确认 `forge:create` 改名后标记保留。
+- [ ] T8 `forge:plugin` 命令（F5）：`add`、`--force`、`--dev`、`list`、`remove`；Node 单测。
+- [ ] T9 示例插件 `plugins-samples/forge-plugin-hello/`（F6）：后端模块、菜单迁移、前端页面、`forge-plugin.json`。
+- [ ] T10 防误提交（F7）：
+  - `scripts/guards/check-edition.mjs` 和根 `package.json` 的 `check:edition` 脚本；
+  - 模板仓库 `.gitignore` 区块；
+  - `AGENTS.md` 5.18；
+  - Node 单测。
+- [ ] T11 文档：更新 `.agents/skills/forge-project-init/SKILL.md`（插件安装、升级、卸载）；新增插件开发说明，包括企业版接口必须加 `@RequiresFeature`、迁移脚本规则、升级覆盖规则。
+- [ ] T12 人工验收（本机无 Maven/MySQL，由用户执行）：
+  - `mvn -pl forge-admin-server -am package -DskipTests`；
+  - `mvn test -Penable-tests`（相关模块）；
+  - 按 `test-spec.md` 跑示例插件全链路。
