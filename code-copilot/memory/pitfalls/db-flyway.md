@@ -277,6 +277,18 @@ Detected resolved migration not applied to database: 1.0.56
 - 设计器、预览等跳转页继续保留为隐藏路由，不要伪装成侧边栏菜单。
 - 新目录和菜单只继承角色已有的业务权限，不能借菜单修复给无权限角色扩权。
 
+## 初始化安全契约不能继续读取已移除的 SQL 副本
+
+**发现日期**: 2026-10-07
+
+**问题描述**:
+System 完整回归中 ClientCredentialSurfaceContractTest 报 NoSuchFileException，仍读取
+forge-admin-server/sql/初始化脚本.sql；副本已在 d2c4f0ee 移除，当前入口使用 db/全量初始化SQL.sql。
+
+**解决方案**:
+契约测试读取现用权威 SQL，并同时验证 init-db.sh 对该文件的声明和执行入口。保留敏感路径和
+日志保护断言，不恢复废弃 SQL、不忽略文件缺失、不跳过测试；模板和改名 full/minimal-admin 均复跑。
+
 ## 完整租户主题 JSON 不能继续存入 varchar(1000)
 
 **发现日期**: 2026-10-05

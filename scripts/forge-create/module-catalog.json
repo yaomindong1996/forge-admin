@@ -152,6 +152,7 @@
         "starter-core",
         "starter-orm",
         "starter-auth",
+        "starter-plugin",
         "starter-log",
         "starter-trans",
         "starter-excel",

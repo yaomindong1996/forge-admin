@@ -336,3 +336,75 @@ node --test forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/cle
   - https://docs.spring.io/spring-boot/how-to/data-initialization.html
   - https://documentation.red-gate.com/flyway/reference/usage/api-java
   - https://documentation.red-gate.com/flyway/reference/configuration/flyway-namespace/flyway-target-setting
+
+## 2026-10-07：T3 功能授权过滤
+
+### 范围与实现
+
+- 用户要求继续，先复用 T2 的 Spec/Task/测试记录，补充 T3 权限收窄边界后编码；仅实现 F3。
+- 新增 V1.0.209，以当前库 information_schema 判断列是否存在，可空 VARCHAR(64)，不改存量资源编码。
+  实体加入 featureCode，System 引入 starter-plugin，同步 forge:create 模块依赖闭包，不改生成器或 T0 基线。
+- 当前菜单/资源树在 getUserResources 的管理员和普通用户结果均按 Gate 过滤；普通登录的按钮/API 权限
+  在保存快照前过滤，API patterns 查询只接收保留的资源 ID。角色/租户/客户端/用户类型范围和排序不变。
+- 后台资源维护和管理员授权配置保留完整目录，超管通配保持；接口独立的 RequiresFeature 继续负责实时功能拒绝。
+  不过滤全局 configured API 目录，避免未开通 API 被误判为不需 RBAC；不新增角色授权或关闭安全机制。
+- 新增测试覆盖默认/自定义 Gate、两服务共用 Bean、公开 loadUserByUserId 路径、隐藏页面保留、全禁用空集、
+  异常拒绝和租户上下文恢复；Mapper 全为桩。迁移只做防重复/版本/字段映射静态契约，不模拟 MySQL DDL 成功。
+
+### 模板编译、测试与打包
+
+使用同一临时 JDK/Maven，离线缓存；在 forge-server 中设置
+`JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home` 后执行：
+
+```bash
+/private/tmp/apache-maven-3.9.11/bin/mvn -q -o \
+  -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framework/forge-plugin-parent/forge-plugin-system \
+  -am test -Penable-tests -Dmaven.test.redirectTestOutputToFile=true
+/private/tmp/apache-maven-3.9.11/bin/mvn -q -o -pl forge-admin-server -am package -DskipTests
+```
+
+- 最终完整测试退出 0。解析 Surefire XML：starter-plugin 154 项，System 160 项，均失败/错误/跳过为 0；
+  相关依赖模块由 -am 同时复跑通过。新增 32 项：菜单/资源 14、权限快照 12、迁移/实体 3、装配/公开加载 3。
+- 首轮 System 157 项中新增 29 项已通过，1 个旧安全用例读
+  `forge-admin-server/sql/初始化脚本.sql` 报 NoSuchFileException；该副本在 d2c4f0ee 已移除。
+  对齐现用权威 SQL `db/全量初始化SQL.sql`，并断言 init-db.sh 声明与调用该路径，保留敏感接口日志保护断言。
+  加入装配用例后完整重跑通过，未跳过测试、放宽安全断言或恢复废弃 SQL 副本。
+- Admin 聚合 package 退出 0；包内 forge-plugin-system-1.2.0.jar 的 SHA-256 与本轮模块 jar 一致：
+  `eda95f3da8777d173c4bfd8e45e4fc17e92d1629eb740385bfdd48766f6dcb53`。
+  包内 starter-plugin 摘要与当前模块一致：
+  `fecaea7b1c96ea703dd5771973a4294547a7bd3051fd3b3802c0822647342b95`，没有误用旧缓存构件。
+- Maven 同一 checkout 的 test/package 串行执行。Console 有 Mockito CDS 提示；既有 T2 H2 兼容告警仍未消除，
+  不影响本轮结果，也不能代替真实 MySQL/Redis 验收。
+
+### 改名生成与回归
+
+按 forge-project-init Skill 使用已确认的基线参数进行隔离工程验证；专用 mktemp 目录
+`/private/tmp/forge-plugin-t3.RZaqzp/`，没有使用 --force，未执行生成器输出的真实库初始化建议。
+Node v20.19.0、pnpm 11.19.0，在仓库根目录执行：
+
+```bash
+pnpm forge:create -- /private/tmp/forge-plugin-t3.RZaqzp/forge-baseline-full \
+  --base-package com.acme.demo --preset full
+pnpm forge:create -- /private/tmp/forge-plugin-t3.RZaqzp/forge-baseline-min \
+  --base-package com.acme.demo --preset minimal-admin
+node --test code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
+  forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+```
+
+- 两套生成后分别在改名 server 中先离线 install 独立 BOM，再 -am test -Penable-tests 改名
+  starter-plugin 和 plugin-system；两套都退出 0，XML 计数各 154 + 160 = 314，失败/错误/跳过均为 0。
+- full 的 54 个 POM、minimal-admin 的 35 个 POM XML 均解析通过；System 引用改名 starter-plugin，
+  两个服务 import 为 com.acme.demo，V1.0.209 随工程保留；版本仍为 1.2.0。
+- 基线工具 5 项 + 模板 DB 脚本 18 项共 23/23（约 25.1 秒）；生成 full 的同类 DB 桩测试
+  18/18（约 30.5 秒），总共 41 项通过。所有 MySQL/Maven 迁移执行均为测试桩，没有真实重建或清理。
+- 源 POM XML、模块清单 JSON、新增 Java 行宽、git diff --check 通过；类/方法不超规模上限。
+  新迁移无业务占位符；全目录扫描命中原 V1.0.72 的 4 行，不改已执行脚本，主配置原本关闭占位符替换。
+
+### 状态与限制
+
+- T3 完成，T4–T12 待继续。V1.0.209 需由部署时主 Flyway 执行；未运行真实 MySQL 迁移或
+  Sa-Token/Redis 登录、会话刷新与企业插件端到端。权限快照变更需重新登录/刷新会话，接口门禁仍实时判断。
+- 本轮无前端变更，不执行 UI 构建；测试 Spring 容器和 H2 夹具自行关闭，没有启动业务服务或改其他项目。
+  隔离生成工程保留，不纳入提交；T0 冻结清单不变，用户原有 .DS_Store 修改保留且不提交。
+- 本轮本地提交到 codex/plugin-foundation，不 push、不合并 main。T4 清理历史保护未接入，
+  当前仍不要对安装了插件的数据库运行旧清理脚本。

@@ -26,7 +26,7 @@ class UserLoadServiceImplPasswordLoginTest {
         SysUserMapper userMapper = mock(SysUserMapper.class);
         UserLoadServiceImpl service = new UserLoadServiceImpl(
                 userMapper, null, null, null, null, null, null, null, null,
-                null, null, null);
+                null, null, null, null);
         when(userMapper.selectUsersByUsernameForLogin("alice")).thenReturn(List.of());
 
         assertThatThrownBy(() -> service.authenticateByUsernamePassword("alice", "secret", null))
@@ -40,7 +40,7 @@ class UserLoadServiceImplPasswordLoginTest {
         SysUserTenantMapper userTenantMapper = mock(SysUserTenantMapper.class);
         UserLoadServiceImpl service = spy(new UserLoadServiceImpl(
                 userMapper, null, null, null, null, userTenantMapper, null, null, null,
-                null, null, null));
+                null, null, null, null));
 
         SysUser user = new SysUser();
         user.setId(10L);

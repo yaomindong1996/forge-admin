@@ -23,13 +23,13 @@
   - H2 实跑首装/重复启动、相同版本隔离、失败阻断、主 Java 迁移不重跑、JAR/嵌套目录和 checksum 校验；
   - Admin 47 模块聚合 package 通过，包内 starter 与本轮模块 jar 的 SHA-256 一致；41 项 Node 回归通过；
   - 未运行真实 MySQL；T3 菜单过滤、T4 历史表清理保护与安装命令仍待后续实现。
-- [ ] T3 功能授权过滤（F3）：
-  - `V1.0.209__add_resource_feature_code.sql`；
-  - `SysResource.featureCode`；
-  - `SysResourceServiceImpl.getUserResources` 过滤；
-  - `UserLoadServiceImpl` 普通用户权限过滤；
-  - `forge-plugin-system` 引入 `forge-starter-plugin`；
-  - 单测。
+- [x] T3 功能授权过滤（F3，2026-10-07）：
+  - `V1.0.209__add_resource_feature_code.sql` 防重复迁移及 `SysResource.featureCode`；
+  - `getUserResources` 两类用户过滤，普通用户登录按钮/API 权限快照过滤；
+  - System 引入 starter-plugin，同步模块目录闭包，两个入口使用同一个可替换 Gate；
+  - 新增 32 项测试，System 160 项 + starter-plugin 154 项在模板/full/minimal-admin 各通过；
+  - Admin 聚合 package 与 41 项 Node 回归通过；旧安全测试对齐现用初始化路径后完整复跑；
+  - 真实 MySQL DDL/登录端到端未执行；管理员配置树和通配权限保留，企业接口仍必须加 RequiresFeature。
 - [ ] T4 `clean-db.sh` 保留插件历史表，更新 `clean-db.test.mjs`。
 - [ ] T5 抽出共用改名规则（F4）：
   - 新增 `scripts/forge-shared/rename.mjs`，`create-project.mjs` 改为引用；

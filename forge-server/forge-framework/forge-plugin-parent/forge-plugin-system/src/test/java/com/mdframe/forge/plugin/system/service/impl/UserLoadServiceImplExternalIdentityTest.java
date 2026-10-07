@@ -18,7 +18,7 @@ class UserLoadServiceImplExternalIdentityTest {
         SysUserMapper userMapper = mock(SysUserMapper.class);
         UserLoadServiceImpl service = new UserLoadServiceImpl(
                 userMapper, null, null, null, null, null, null, null, null,
-                null, null, null);
+                null, null, null, null);
         when(userMapper.selectEligibleUsersByVerifiedPhone("13800000000", 1L))
                 .thenReturn(List.of(user(101L), user(102L)));
 

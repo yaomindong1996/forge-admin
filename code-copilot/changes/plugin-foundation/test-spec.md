@@ -133,3 +133,29 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
   一次同工作区并行 package/test 导致 class 文件读取失败，改为串行完整复跑通过，未跳过测试或降低断言。
 - H2 2.3.232 比 Flyway 10.20.1 声明的 H2 支持版本新，有兼容告警；使用已有依赖，不升级全项目版本来消除提示。
   所有 H2 库均随机命名且关闭时 SHUTDOWN；未连接实际开发库，真实 MySQL 与 T3–T12 仍未验收。
+
+## 8. T3 增量验证（2026-10-07）
+
+- 实际调用 SysResourceServiceImpl 的当前菜单/资源树/权限/资源 ID 方法；管理员与普通用户均不返回
+  未启用资源，普通隐藏页/空编码/社区编码不被误删；无角色/无资源返回空，未登录保持原行为。
+- 用自定义 Gate 验证允许 ee 编码与禁止社区编码，不把企业前缀规则写死在 System；Gate 异常不得放行。
+- 调用 UserLoadServiceImpl 权限加载方法，验证普通按钮/API 权限无禁用编码；API Mapper 只收到允许 ID，
+  空集不调用 pattern 查询，重复/空白 pattern 仍规范化；管理员通配与用户类型边界保持不变。
+- 捕获原有 Wrapper，验证角色 ID、租户 ID、默认/明确客户端和用户类型范围仍存在；不通过 mock 自动筛选
+  功能资源，混合启用/禁用资源由生产过滤逻辑真实处理。复跑现有用户加载、资源授权与 API 权限回归。
+- 迁移静态契约：版本唯一、information_schema 当前库/表/列防重复、可空 64 字符、AFTER perms、
+  PREPARE/EXECUTE/DEALLOCATE 配对、无 UPDATE/DELETE/旧脚本改写/业务占位符；实体映射与新依赖可编译。
+- Maven：System 与 starter-plugin 连同依赖模块执行 -am test -Penable-tests，再串行 Admin package；
+  隔离生成 full/minimal-admin，验证新增依赖及改名后的目标用例；按 Skill 复跑模板/生成 full 的 DB 桩测试。
+- 不启动真实业务服务或连接开发库；真实 MySQL 迁移、登录会话刷新和企业插件授权端到端仍待 T12。
+
+### T3 执行结果
+
+- 新增 32 项（当前资源 14、权限快照 12、迁移/实体 3、Spring/公开用户加载 3）。System 160 项和
+  starter-plugin 154 项在模板、改名 full/minimal-admin 各通过，失败/错误/跳过均为 0；相关上游测试同时通过。
+- 首轮 System 157 项中，新增 29 项均通过；1 项旧安全契约因已删初始化副本而报 NoSuchFileException。
+  对齐权威全量 SQL 和脚本实际调用路径，并新增 3 项装配测试后完整复跑，未禁用/删除测试或降低断言。
+- Admin 聚合 package 退出 0，新 System/starter 内嵌构件摘要一致；POM XML、模块清单和改名引用通过。
+- 模板 DB 桩 18 项、生成 full DB 桩 18 项、基线工具 5 项通过。新增迁移无业务占位符；旧 V1.0.72 的
+  4 处存量命中未修改，主配置原本关闭 placeholder replacement。未将静态迁移契约表述为 MySQL 执行通过。
+- 未改前端、不执行 UI 构建；无真实服务/数据库写入或待清理业务进程，T4 清理历史保护仍未完成。
