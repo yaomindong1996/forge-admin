@@ -49,7 +49,7 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
 
 | 用例 | 预期 |
 |------|------|
-| `ForgeVersion.satisfies` | `>=1.1.0 <2.0.0` 对 1.1.0 / 1.9.9 为真，对 1.0.9 / 2.0.0 为假；非法表达式抛错 |
+| `ForgeVersion.satisfies` | `>=1.2.0 <2.0.0` 对 1.2.0 / 1.9.9 为真，对 1.1.3 / 2.0.0 为假；非法表达式抛错 |
 | `CommunityFeatureGate` | 空编码启用、`ee.*` 未启用、其它编码启用 |
 | `FeatureGateInterceptor` | 方法注解优先于类注解；未授权返回 403 与约定文案 |
 | `PluginRegistry` | 重复 ID、非法字段、版本不兼容时启动失败，错误信息含插件 ID 与版本范围 |
@@ -80,3 +80,10 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
 - 对修改的 3 个 POM，以及两套工程全部 POM 执行 `xmllint --noout`。
 - 静态验证模板/生成工程的根版本、框架版本继承、BOM 版本和根 BOM 引用均一致；数据库迁移版本不随核心版本修改。
 - 本轮无 Java/前端业务代码变更，不执行 UI 构建或真实数据库初始化。Java 编译受本机工具缺失限制，不能以静态检查代替编译通过。
+
+### 用户确认的 1.2.0 修正
+
+- 在同一源提交上应用修正后的版本补丁，重新生成 full/minimal-admin 并记录摘要，再重复生成验证。
+- 与初次 1.1.0 清单对比，允许差异仅为两个预设各自的根 POM、独立 BOM 的版本内容；不允许新增/缺失文件。
+- 用户明确确认重新生成，是版本更正，不是后续改名回归中为了通过测试而重录基线。
+- 复跑清单工具、模板/生成 full 数据库桩测试及 XML/版本链检查；旧基线可从 `369f345b` 恢复。

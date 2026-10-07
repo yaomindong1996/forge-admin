@@ -22829,7 +22829,7 @@
     },
     {
       "path": "forge-baseline-full-server/forge-baseline-full-framework/forge-baseline-full-dependencies/pom.xml",
-      "sha256": "5310a2bd056bb40460d2faf7225ca90aaccbecfd28ecef2827f53e1c05cf9305",
+      "sha256": "3f6ff09189ef9c283a215cf6731e5ea58d7c36df1dd058dc68f1df0e9189b1cf",
       "bytes": 24478
     },
     {
@@ -41544,7 +41544,7 @@
     },
     {
       "path": "forge-baseline-full-server/pom.xml",
-      "sha256": "5162dac3382b486de3c12c2909c50831298767a442cf00e3dbc4e487c2ceb8ad",
+      "sha256": "e57c0a87cb8976258efc9e1b72ef6a9efdd33cc13f1b58f161f5a924ac501484",
       "bytes": 16900
     },
     {

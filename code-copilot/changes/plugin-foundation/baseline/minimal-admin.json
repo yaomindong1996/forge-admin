@@ -13079,7 +13079,7 @@
     },
     {
       "path": "forge-baseline-min-server/forge-baseline-min-framework/forge-baseline-min-dependencies/pom.xml",
-      "sha256": "7ab988f13b68e68b17d38d6c0adc5ac4ade91e55bb9da6a73e98fe978070e8e5",
+      "sha256": "e08744b605e97932cd9c30ee873a2264930f95945514c186bd00f51477139df1",
       "bytes": 21665
     },
     {
@@ -24254,7 +24254,7 @@
     },
     {
       "path": "forge-baseline-min-server/pom.xml",
-      "sha256": "bce132a6a0dc09fb4f2171278b60a4ead0102150195139c56765ed0e4467ec38",
+      "sha256": "fbabac8bdc7cd2d5ae1f3d2adfcca67d201ab88aab68cbf67da9327285287f16",
       "bytes": 16722
     },
     {

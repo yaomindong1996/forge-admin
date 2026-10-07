@@ -3,8 +3,8 @@
 > 关联 Spec：`spec.md`。按顺序执行，T0 必须在改动 `create-project.mjs` 之前完成。
 
 - [x] T0 版本号与改名基线（2026-10-07）：
-  - 先把 `forge-server/pom.xml` 的 `revision` 从 `1.0.0` 升为 `1.1.0`；
-  - 同步独立 BOM 为 `1.1.0`，框架继承根版本，根 BOM 导入和框架版本属性引用 `${revision}`；
+  - 用户确认目标版本修正为 `1.2.0`，不复用已有 Gitee 标签；根 POM 和独立 BOM 同步升级；
+  - 框架继承根版本，根 BOM 导入和框架版本属性引用 `${revision}`；
   - 再用固定参数执行 `forge:create`，生成 `full`、`minimal-admin` 两套工程，记录全部文件的相对路径和 SHA-256，基线清单存入本目录 `baseline/`。
   - `full` 8324 个文件、`minimal-admin` 4866 个文件；重复生成差异均为 0。
   - 冻结源提交、版本补丁、生成器/目录清单摘要及复跑说明一并留存；Maven/JDK 缺失，Java 编译待 T12 补验。
