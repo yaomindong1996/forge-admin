@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { renameComponent, decodeUtf8 } from './content.mjs'
-import { componentFiles, fingerprint, readDirectory } from './bundle.mjs'
+import { componentFiles, fingerprint, readInstalledDirectory } from './bundle.mjs'
 import { normalizeParentPath, validateSourcePom } from './pom.mjs'
 import { finalModule, targetsFor } from './project.mjs'
 import { sourceComponent, devWrapperDigest } from './ownership.mjs'
@@ -62,7 +62,7 @@ export async function stageComponents(work, context, installation) {
     }
     await fs.writeFile(path.join(directory, '.forge-plugin-owned.json'),
       JSON.stringify({ id: descriptor.id, version: descriptor.version }))
-    record.checksums[kind] = fingerprint(await readDirectory(directory))
+    record.checksums[kind] = fingerprint(await readInstalledDirectory(directory))
     operations.push({ relative, stage: directory })
   }
   return { record, operations }

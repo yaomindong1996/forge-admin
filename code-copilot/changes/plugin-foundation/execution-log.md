@@ -1403,3 +1403,70 @@ node scripts/guards/check-edition.mjs
   不能直接把生成工程当作已具备商业插件作者工具链的 Pro 发行工程。
 - 更新审查记录后，文档契约再次 6/6 通过，git diff --check 无错误；
   开源门禁再次通过（9522/9522）。只提交这四份审查文档，保留 .DS_Store 和临时复现脚本不暂存。
+
+## 2026-10-07：R1/R2 修复及两阶段增量自审
+
+- 用户明确要求先修复，并询问可视化安装/已安装插件查看方案。按现有 Review 任务更新 §12.5 边界后编码；
+  插件可视化只给方案，不创建接口/菜单/UI、Pro 工程或商业授权实现。
+- 基线 ad2cac6d / codex/plugin-foundation；保留用户 .DS_Store。不切分支、连接 158/真实数据库、
+  启动服务、部署、push 或合并 main。采用 forge-project-init 的安装维护规则，复用既有测试基线。
+- R1 新增 identity.mjs：完整插件标识/功能编码与 Java/Maven 坐标分开处理，资源目录及二进制路径一致。
+  共享 rename 的可选钩子只用于插件，默认生成规则不变，根/运行描述及源码包不被原地修改。
+- R2 源包仍过滤本地配置；已安装目录独立扫描，配置在读内容前拒绝，预检/摘要/逐写入复检一致。
+  保留 build/dev/锁/备份/回滚语义；客户参考新增配置须人工移出的说明。
+
+Node 路径为 `/Users/mini32g/.nvm/versions/node/v20.19.0/bin/node`，命令：
+
+```bash
+node --test scripts/forge-plugin/identity.test.mjs scripts/forge-plugin/ownership.test.mjs \
+  /private/tmp/forge-foundation-review.mjs
+node --test --test-reporter=tap scripts/forge-shared scripts/forge-plugin scripts/guards \
+  scripts/forge-create code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
+  forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+node --test /private/tmp/forge-foundation-review.mjs
+node --test scripts/forge-plugin/documentation.test.mjs
+node scripts/guards/check-edition.mjs
+git diff --check
+```
+
+- 正式新增 44 项（identity 15、ownership 29）。最终 focused=46/46、模板完整回归=345/345，
+  无失败/取消/跳过；完整 TAP `/private/tmp/forge-plugin-r1-r2-tests-final.tap`，约 21 秒。
+- 原独立复现现在 2/2：runtimeId 与 SQL 目录均 forge-starter-core，配置 rejected=true/retained=true。
+  目录/ZIP、模板/改名、ID 与核心及自身 artifact 同名、Java package/功能值碰撞、UI-only、
+  多行替换/单行 Java 声明、二进制、无 Git/整目录忽略/部分忽略/提交配置/配置链接都覆盖。
+- 初轮增量 42/44：两条新竞态测试错误地在组件替换完成后的 POM 操作创建配置，此时没有待覆盖的旧组件，
+  不能证明预检保护；更正注入点为 UI 写入之前（server 已写入），保留原拒绝和文件完整性断言，
+  全量复跑通过；没有降低断言或改事务来适配错误的测试时序。
+- 按技能要求两次从当前模板新建独立 full 夹具（不覆盖旧目录），保留独立 Maven/Java/模块前缀：
+  project=forge-fix-check / group=com.acme.maven / package=com.acme.fix /
+  artifact=fix-host / module=core；无数据库连接配置。
+
+```bash
+node scripts/forge-create/create-project.mjs /private/tmp/forge-plugin-fix.nrjdIV/final-host \
+  --preset full --project-name forge-fix-check --java-name ForgeFixCheck --base-package com.acme.fix \
+  --group-id com.acme.maven --artifact-prefix fix-host --module-artifact-prefix core \
+  --display-name 插件修复验证 --database-name forge_fix_check
+# 在上述生成根目录执行（均为 mysql/Maven 桩）：
+node --test fix-host-server/scripts/db/init-db.test.mjs fix-host-server/scripts/db/clean-db.test.mjs
+node --test /private/tmp/forge-plugin-fix.nrjdIV/generated-check.mjs
+```
+
+- 首轮生成 host、最终 final-host DB 桩分别 30/30；最终证据 final-db-tests.tap 留在专有临时目录。
+  两轮实际 CLI 各 1/1：原字节核对 6 个工具文件，工程外 cwd 安装、list、保护配置、移出本轮合成配置、
+  带构建输出升级和卸载均正常；源包字节不变，备份保留；没有直接手改生成工程 POM/config 登记。
+- Node --check、新增文件行宽检查通过；新增生产函数 <=21 行、参数 <=3，修改函数未超过 80 行，
+  无新增深层嵌套或外部依赖。尝试探测 @babel/parser 时本机不存在，未安装依赖/放宽门槛，
+  改用 Node 语法检查及人工核对形态，不宣称运行过 AST 指标工具。
+- 文档契约单独 6/6，开源门禁首次 9522/9525 通过。共享默认入口和冻结证据契约继续通过，
+  不重录 T0，不把本轮测试说成重新逐字节生成了冻结输入。
+- 阶段一实际代码对照 F5/§12.5，并复核 F1–F7 无扩展：PASS。随后阶段二对照代码规则，
+  核对文件边界、版本/包名、失败保护/回滚、配置不读取不泄露及形态：PASS（增量自审，非第三方审查）。
+- 复用此前 Java/UI 构建及 T12 真环境证据；本轮只有 Node 安装/改名及说明变化，无业务 Java/UI/SQL 改动，
+  不重跑无关 Maven/前端构建，也不把 DB 桩或资源目录可达性表述为真实插件迁移/登录验收。
+  无服务启动，不需要停止用户进程；测试框架自行清理其夹具，专有生成工程/日志/合成配置有限留存。
+- 已安装旧包如已有错误转换，先人工核对 SQL/历史，不自动 repair 或改已执行迁移。
+  源码安装仍需重新构建部署；可视化方案必须分清源码登记、构建任务与当前实例运行注册表。
+- 按仓库一个修复一个提交分拆：R1 本地提交 bddb3823；先把暂存内容检出到专有 r1-index，
+  仅 R1 的 identity/installer/shared rename 测试 76/76，证明没有依赖尚未提交的 R2 代码。
+  首次稀疏检出漏带原 Admin 启动类，75/76 的唯一失败为 ENOENT；补齐真实索引文件后全量复跑通过，
+  没有删断言或跳过用例。R2 与共同验证/Review 文档另一本地提交，不暂存 .DS_Store。

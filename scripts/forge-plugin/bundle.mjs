@@ -19,11 +19,23 @@ export async function readBundle(source) {
 
 function excluded(relative) {
   return relative.split('/').some(name => ignored.has(name)
-    || name.startsWith('.env') || name === 'application-dev.yml')
+    || localConfiguration(name))
 }
 
 export async function readDirectory(root) {
-  const state = { files: new Map(), total: 0, visited: 0 }
+  return scanDirectory(root, false)
+}
+
+export async function readInstalledDirectory(root) {
+  return scanDirectory(root, true)
+}
+
+function localConfiguration(name) {
+  return name.startsWith('.env') || name === 'application-dev.yml'
+}
+
+async function scanDirectory(root, installed) {
+  const state = { files: new Map(), total: 0, visited: 0, installed }
   await walk(root, '', state)
   assertDistinctPaths([...state.files.keys()])
   return state.files
@@ -34,9 +46,12 @@ async function walk(root, relative, state) {
   state.visited += entries.length
   requireCondition(state.visited <= limits.count, '插件目录条目数量超过限制')
   for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
-    if (ignored.has(entry.name) || entry.name.startsWith('.env') || entry.name === 'application-dev.yml') {
+    if (ignored.has(entry.name) || (!state.installed && localConfiguration(entry.name))) {
       continue
     }
+    // 源包排除配置是防泄密；覆盖检查恰好相反，先拒绝，甚至不读配置内容/链接目标。
+    requireCondition(!state.installed || !localConfiguration(entry.name),
+      '插件安装目录包含本地配置，请先人工移出再覆盖/卸载')
     const next = validateRelative(relative ? `${relative}/${entry.name}` : entry.name)
     requireCondition(next.split('/').length <= 32, '插件目录层级超过限制')
     if (entry.isDirectory()) {

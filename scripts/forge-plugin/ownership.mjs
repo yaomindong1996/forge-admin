@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
-import { readDirectory, fingerprint } from './bundle.mjs'
+import { readInstalledDirectory, fingerprint } from './bundle.mjs'
 import { parseStrictJson } from './json.mjs'
 import { targetsFor } from './project.mjs'
 import { requireCondition, safeTarget, statOptional } from './paths.mjs'
@@ -26,7 +26,7 @@ export async function checkOwned(context, record) {
       continue
     }
     requireCondition(stat.isDirectory(), '插件目录不是普通目录')
-    const files = await readDirectory(target)
+    const files = await readInstalledDirectory(target)
     const stamp = files.get('.forge-plugin-owned.json')
     requireCondition(stamp, '插件目录缺少安装所有权标记')
     const owner = parseStrictJson(stamp.toString('utf8'))
@@ -97,7 +97,7 @@ export async function verifyChecks(root, checks) {
     }
     else {
       const digest = check.devRecord ? await devWrapperDigest(target, check.devRecord)
-        : fingerprint(await readDirectory(target))
+        : fingerprint(await readInstalledDirectory(target))
       requireCondition(digest === check.digest, '插件在预检后发生变化')
     }
   }
