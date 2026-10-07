@@ -3,11 +3,12 @@
 import path from 'node:path'
 import { realpathSync } from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { addPlugin, listPlugins, removePlugin } from './installer.mjs'
+import { addPlugin, inspectPluginInstall, listPlugins, removePlugin } from './installer.mjs'
 
 const help = `Forge 插件工具
 
 用法：pnpm forge:plugin add <目录|包.zip> [--force] [--dev]
+      pnpm forge:plugin check <目录|包.zip> [--force]
       pnpm forge:plugin list
       pnpm forge:plugin remove <插件ID>
 
@@ -35,6 +36,12 @@ export async function runPluginCli(args, output = console, environment = {}) {
     if (command.name === 'add') {
       result = await addPlugin(root, path.resolve(environment.cwd || process.cwd(), command.argument),
         command.flags, environment.hooks)
+    }
+    else if (command.name === 'check') {
+      result = await inspectPluginInstall(root, path.resolve(environment.cwd || process.cwd(), command.argument),
+        command.flags)
+      output.log(JSON.stringify(result, null, 2))
+      return 0
     }
     else {
       result = await removePlugin(root, command.argument, environment.hooks)
@@ -64,14 +71,15 @@ function printResult(output, result, command) {
 
 function parseArguments(args) {
   const [name, argument, ...options] = args
-  if (!['add', 'list', 'remove'].includes(name)) {
+  if (!['add', 'check', 'list', 'remove'].includes(name)) {
     throw new Error('未知插件命令，请使用 --help。')
   }
   if (name === 'list' && args.length === 1) {
     return { name }
   }
   if (!argument || argument.startsWith('-') || name === 'list'
-    || (name === 'remove' && options.length) || new Set(options).size !== options.length
+    || (name === 'remove' && options.length) || (name === 'check' && options.includes('--dev'))
+    || new Set(options).size !== options.length
     || options.some(option => !['--force', '--dev'].includes(option))) {
     throw new Error('命令参数非法，请使用 --help。')
   }

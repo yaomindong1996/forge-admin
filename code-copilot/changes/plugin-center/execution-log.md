@@ -1,5 +1,101 @@
 # 插件中心执行记录
 
+## 2026-10-07：P3.1 开始
+
+- 用户继续开发，基线 5c8a378b，分支 codex/plugin-foundation，保留未提交 .DS_Store。
+- 复用 project-init Skill、插件参考、现有 CLI/快照/生成工具及测试基线；追加离线执行器契约。
+- 本轮不改任务 Web 状态/权限/数据库，不连接共享服务；构建不能冒充部署。
+- 本机 command -v docker 无输出；实现执行器逻辑并验证拒绝/桩边界，真实 rootless 构建待验收。
+
+## 2026-10-07：P3.1 离线执行器交付
+
+### 范围与两阶段自审
+
+- 原 CLI 新增只读 check，与 add 共用完整宿主/POM/目录/所有权校验，未改原事务与恢复逻辑。
+- 新 `scripts/forge-plugin-builder/` 按配置、快照、子进程、容器、产物和编排拆分；
+  check 固定 Git HEAD/每文件 blob/ZIP SHA，run 必须 --reviewed，整包替换须 --force。
+  已提交定制及原安装目录忽略的本地配置仍拒绝，不在原工程写入或执行上传代码。
+- rootless/私有本地 socket 父目录/不可变本地镜像检查；验证 cgroup v2/systemd 及
+  memory/swap/CPU quota/PID 能力，防止资源参数被静默忽略。控制器字段核对 Docker/Moby 主文档，
+  运维说明链接 Docker 官方 rootless 资源限制要求，不自动更改 daemon 或系统配置。
+- 固定无网络/只读根/cap-drop/no-new-privileges/资源限额；只读 source/package/control、唯一输出。
+  不继承生产环境/认证，Docker 配置目录本次独占；有界输出/超时/SIGINT/SIGTERM，
+  核对随机名称+标签才清理本次容器，清理失败报错，私有 container.json 保留身份回执。
+- 固定离线 Maven/BOM/pnpm/Vite，不启动服务/Flyway/部署，不以宿主执行作为容器失败降级。
+  从实际产物重新计算大小/SHA，拒绝缺失/超量/零文件/越界/链接/硬链接/普通文本假 JAR。
+  result.json 明确 checked/built/failed、阶段/错误码及 deployed=false，不把构建当安装/健康证明。
+- Stage 1：本轮仅 P3.1，未改 Java、SQL、Web 任务/API/UI、权限或租户；
+  P3.2 认证领取/租约/回写、P3.3 部署/运行核验仍未完成，P2 队列不会自动执行。
+- Stage 2：新增模块/SFC 规模与函数 ≤80/行 ≤120/参数及嵌套自检，产物哈希流式读取，
+  原安装器保护/源码固定视图/命令无 shell/无 Secret 继承与失败清理复核。
+  清理仅涉及本次容器，job 保留；不删客户文件/数据，不自动增加限额或打开网络。
+- project-init Skill 影响：复用原 CLI/交付格式，改名完成后原样复制工具/README，
+  修正把 Vite build 源码目录忽略的旧规则，保持 dist/target 等实际产物保护。
+
+### 增量验证命令与证据
+
+独占 QA_DIR：`/private/tmp/forge-plugin-builder-p3.B7t3Rs`。
+node 指 `/Users/mini32g/.nvm/versions/node/v20.19.0/bin/node`，沿用现有 JDK17/Maven3.9.11，
+未安装 Docker/依赖。根目录运行：
+
+```sh
+node --test scripts/forge-shared scripts/forge-plugin scripts/forge-plugin-builder \
+  scripts/guards scripts/forge-create \
+  code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
+  code-copilot/changes/plugin-center/contracts.test.mjs \
+  code-copilot/changes/plugin-center/workbench-contract.test.mjs \
+  forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+node forge-admin-ui/node_modules/eslint/bin/eslint.js --no-config-lookup \
+  --rule 'no-unused-vars:error' scripts/forge-plugin-builder scripts/forge-plugin/preflight.test.mjs
+node scripts/guards/check-edition.mjs
+git diff --check
+```
+
+- `node-final-acceptance.tap`：386/386、失败/跳过0，28.60秒。含模板 DB 桩及原基础测试；
+  相对 P2 的353基线新增33项，涵盖源码/包/定制、商业/降级、进程与容器拒绝/清理和产物边界。
+- `eslint-final-acceptance.log`：退出0，执行脚本级 unused/syntax 检查，非全 UI lint；
+  新增 .mjs 的120字符检查无输出，edition 与 diff --check 通过。
+- 模板本轮无 Java/UI/API 改动，复用 P2 236项 Java/14项 UI/聚合构建证据，不重复模拟浏览器验收。
+- 按现有 create-project 从当前模板新生成 full/final/release 三套完整工程，不是局部目录拷贝。
+  参数：plugin-builder-check/PluginBuilderCheck/com.acme.builder/com.acme.maven/
+  builder-host/kernel/plugin_builder_check；release 为验收源。
+- `release-db.tap`：新 full 的 init/clean DB 桩31/31，38.87秒；未创建数据库或执行真实 Flyway。
+- `generated-check.mjs` 使用生成后的实际运行工具，Git初始提交、原始 hello ZIP、固定摘要：
+  源码6568文件、61628074字节、排除1913文件，admin-build 范围；
+  目标为 builder-host-server/plugins/kernel-plugin-hello 和
+  plugin-builder-check-admin-ui/src/views/plugins/hello，版本hello1.0.0/core1.2.0。
+  安装仅发生在独占副本，原生成仓库 Git 干净，真实 build/plugin-ui-manifest.js 被跟踪。
+  工具以 copyGeneratedPluginTools 机械刷新收尾的 unused import/运维说明/容器检查后，再固定 QA Git提交，
+  `generated-final-acceptance.log` 退出0，字节与模板原工具一致，不带 tests/fixtures。
+- `generated-cli.log`：生成工程实际 CLI 入口执行 check 成功，非仅导入函数。
+- 对 QA 已审查公开 hello 样例的副本 job-YJlJ9Q/source 手工验证安装器构建契约：
+  在 builder-host-server 先 `mvn -o -q -f kernel-framework/kernel-dependencies/pom.xml install -DskipTests`，
+  再 `mvn -o -q -pl kernel-admin-server -am package -DskipTests`；使用沿用 JDK17，
+  staged-bom.log/staged-admin-package.log 均退出0。仅测试坐标 BOM 写本机缓存，未发布远程制品。
+  这是已审查样例的生成/POM编译回归，**不是执行器宿主降级或真实容器验收**。
+- `artifact-check.log`：实际 Admin JAR 224361668字节，ZIP文件头和流式 SHA 校验通过；
+  SHA `03b019e20a30e107180a57d8df4387daa35bb7f461637826243ce96132a7c703`。
+  不是数字签名/运行健康/数据库迁移证明；生成 UI全量构建仍未执行。
+
+### 发现、修复及验证边界
+
+- 初次 Unix socket 测试被沙箱 EPERM 阻断，经授权仅创建私有临时测试 socket 后重跑通过。
+  Docker始终为明确桩，不运行真实 daemon；socket服务在测试结束关闭，临时测试目录自动清理。
+- macOS 默认大小写不敏感，初次碰撞夹具实际覆盖同一文件；改为直接验证真正不同路径的
+  Set/NFC/前缀碰撞协议，不把未制造成功的磁盘夹具声称为安全通过。
+- 全量首次381/382：旧生成工程契约仅允许一个命令；按新增实际接口精确断言两个命令并重跑，
+  不删除测试、不降低门槛。脚本 lint 发现两个未使用 path import，删除后最终检查通过。
+- full 真快照首次触发 SOURCE_SIZE_LIMIT：定位 Report UI约509MiB字体库；
+  不扩大512MiB阈值，固定只选 Admin构建输入，排除其它前端/部署/文档/旧发布ZIP，
+  实际新 full 验证通过；定制范围外的工作区仍不自动支持。故障记入 backend 踩坑索引。
+- 没有本地 Docker：真实 rootless daemon、审查镜像、离线缓存/构建、资源与网络隔离尚未验收；
+  运维目录/镜像/权限需人工准备，不把 Docker桩、手工 Maven或文件哈希当成该验收。
+- 未连接158 MySQL/Redis、启动真实Admin/Flow、执行Flyway/业务写入/生产部署；
+  P1/P2 真实登录/RBAC/加密/multipart验收、P3.2/3.3和独立Pro工程均仍待后续阶段。
+- 未启动业务/浏览器预览服务；所有本轮测试/构建进程完成，无 Docker 容器或真实服务遗留。
+  QA日志/生成工程/私有job与已校验产物保留供复查；本轮未删除材料，用户 .DS_Store 保留。
+- 收尾按项目规则在 codex/plugin-foundation 本地中文提交，不 push、不合并 main。
+
 ## 2026-10-07：P2 开始
 
 - 用户请求继续下一阶段，基线 203068d7，保持 codex/plugin-foundation 和用户 .DS_Store。

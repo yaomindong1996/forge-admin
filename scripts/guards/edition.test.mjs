@@ -278,7 +278,7 @@ test('actual template ignore block stripped; customer plugin paths become commit
   await copyGeneratedPluginTools({ repoRoot: repository, outputRoot, projectName: 'customer' })
   await assert.rejects(fs.stat(path.join(outputRoot, 'scripts/guards')), { code: 'ENOENT' })
   const generated = JSON.parse(await fs.readFile(path.join(outputRoot, 'package.json')))
-  assert.deepEqual(Object.keys(generated.scripts), ['forge:plugin'])
+  assert.deepEqual(Object.keys(generated.scripts), ['forge:plugin', 'forge:plugin-build'])
   assert.equal(inspectContent('sample/forge-plugin.json', Buffer.from('{"edition":"community"}')).length, 0)
 })
 

@@ -2,7 +2,7 @@
 # Build Tools
 
 .gradle
-/forge-admin-ui/build/
+# forge-admin-ui/build 是 Vite 源码插件，不是构建输出；输出使用已有 dist/ 规则。
 !gradle/wrapper/gradle-wrapper.jar
 
 target/

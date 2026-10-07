@@ -1,6 +1,6 @@
 # 踩坑：后端框架 / Spring / Maven
 
-> 从 `code-copilot/memory/pitfalls.md` 按主题拆出。新条目追加到本文件。共 46 条。
+> 从 `code-copilot/memory/pitfalls.md` 按主题拆出。新条目追加到本文件。共 47 条。
 
 ## 打印关系外键 businessObject0eq3Id 对不上是设计器列名+model_schema 漏字段
 
@@ -794,3 +794,13 @@ Forge 源包使用原始 groupId，生成工程的全文改名却将 Java 验证
 **解决方案**:
 固定交付协议坐标用分段常量保护，Java package/import 仍正常改名；安装器负责后续宿主坐标转换。
 生成 full 工程后，验证器测试仍使用原始 Forge 包坐标，而非由生成器同步改写的“自洽”夹具。
+
+## Admin 插件构建快照不能复制 full 的全部独立前端资产
+
+**发现日期**：2026-10-07
+
+新 full 工程的独立 Report UI 字体资产约509 MiB，完整 Git 快照触发512 MiB总量限制。
+提高限额会放大内存/磁盘风险，且这些资产不参与 Admin 插件构建。
+执行器固定只复制后端根、Admin UI、根包管理配置和原模块 catalog，排除其它独立前端、
+部署/文档及历史 Admin dist.zip；逐文件绑定提交/摘要，结果明确 admin-build 范围及排除数量。
+真实生成工程快照收敛到约59 MiB并通过，未改变限额；范围外的自定义工作区仍不自动支持。

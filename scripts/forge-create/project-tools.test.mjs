@@ -123,12 +123,13 @@ test('project config preserves custom context and sorted selections with only tw
   assert.deepEqual([...selection.selectedModuleIds], ['plugin-print', 'admin-server'])
 })
 
-test('copies raw runtime tools recursively, omits tests/local files and writes only the plugin script', async (t) => {
+test('copies raw runtime tools recursively, omits tests/local files and writes plugin/build scripts', async (t) => {
   const files = {
     'scripts/forge-plugin/index.mjs': 'export const entry = "ForgeAdminApplication"',
     'scripts/forge-plugin/lib/action.mjs': 'export const module = "forge-plugin-print"',
     'scripts/forge-shared/rename.mjs': 'export const source = "com.mdframe.forge"',
     'scripts/forge-create/module-catalog.json': '{"modules":{"print":{"artifactId":"forge-plugin-print"}}}',
+    'scripts/forge-plugin-builder/index.mjs': 'export const image = "forge-builder"',
     'scripts/forge-plugin/index.test.mjs': 'not a runtime file',
     'scripts/forge-plugin/fixtures/example.json': 'fixture',
     'scripts/forge-shared/.env.local': 'local configuration',
@@ -137,15 +138,16 @@ test('copies raw runtime tools recursively, omits tests/local files and writes o
   const repoRoot = await fixture(t, files)
   const outputRoot = await fixture(t, {})
   await copyGeneratedPluginTools({ repoRoot, outputRoot, projectName: 'acme-runtime' })
-  for (const file of Object.keys(files).slice(0, 4)) {
+  for (const file of Object.keys(files).slice(0, 5)) {
     assert.equal(await fs.readFile(path.join(outputRoot, file), 'utf8'), files[file])
   }
-  for (const file of Object.keys(files).slice(4)) {
+  for (const file of Object.keys(files).slice(5)) {
     await assert.rejects(fs.stat(path.join(outputRoot, file)), { code: 'ENOENT' })
   }
   assert.deepEqual(JSON.parse(await fs.readFile(path.join(outputRoot, 'package.json'), 'utf8')), {
     name: 'acme-runtime', private: true, type: 'module',
-    scripts: { 'forge:plugin': 'node scripts/forge-plugin/index.mjs' },
+    scripts: { 'forge:plugin': 'node scripts/forge-plugin/index.mjs',
+      'forge:plugin-build': 'node scripts/forge-plugin-builder/index.mjs' },
   })
   await assert.rejects(fs.stat(path.join(outputRoot, 'scripts/forge-create/create-project.mjs')), { code: 'ENOENT' })
 })
@@ -176,7 +178,8 @@ test('actual runtime shared rules stay canonical and are usable for a second plu
   assert.equal(applyTextReplacements('com.mdframe.forge ForgeAdminApplication forge-plugin-print', rules),
     'com.acme.runtime AcmeAdminApplication domain-plugin-print')
   for (const file of ['scripts/forge-shared/rename.mjs', 'scripts/forge-shared/files.mjs',
-    'scripts/forge-plugin/index.mjs', 'scripts/forge-create/module-catalog.json']) {
+    'scripts/forge-plugin/index.mjs', 'scripts/forge-create/module-catalog.json',
+    'scripts/forge-plugin-builder/index.mjs', 'scripts/forge-plugin-builder/container-entry.mjs']) {
     assert.deepEqual(await fs.readFile(path.join(outputRoot, file)), await fs.readFile(path.join(repoRoot, file)))
   }
 })

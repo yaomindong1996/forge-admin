@@ -9,6 +9,28 @@ import { transact } from './transaction.mjs'
 import { requireCondition, safeTarget, statOptional } from './paths.mjs'
 
 export async function addPlugin(root, source, flags = {}, hooks = {}) {
+  const prepared = await prepareInstall(root, source, flags)
+  const { context, descriptor, components, old, checks } = prepared
+  const plan = { id: descriptor.id, checks }
+  return transact(context, plan, async work => {
+    const staged = await stageComponents(work, context, { descriptor, components, source, dev: flags.dev })
+    const records = replaceRecord(context.config.plugins, staged.record)
+    const operations = mergeOperations(context, staged.operations, old)
+    return { operations, files: hostFiles(context, records), result: { record: staged.record } }
+  }, hooks)
+}
+
+// 预检和安装复用同一入口，不以「描述合法」冒充宿主目录/所有权检查通过。
+export async function inspectPluginInstall(root, source, flags = {}) {
+  const { context, descriptor, old, checks } = await prepareInstall(root, source, flags)
+  return { pluginId: descriptor.id, version: descriptor.version, coreVersion: context.coreVersion,
+    edition: descriptor.edition, operation: old ? 'replace' : 'install', previousVersion: old?.version || null,
+    targets: targetsFor(context, descriptor),
+    hostFiles: [context.rootPom, context.adminPom, 'forge.config.json'],
+    checks: checks.map(({ relative, digest }) => ({ relative, digest })) }
+}
+
+async function prepareInstall(root, source, flags) {
   const context = await loadProject(root)
   requireCondition(!flags.dev || context.template, '--dev 仅支持模板仓库')
   const bundle = await readBundle(source)
@@ -20,13 +42,7 @@ export async function addPlugin(root, source, flags = {}, hooks = {}) {
   const checks = old ? await checkOwned(context, old) : []
   await validateTargets(context, descriptor, old, source)
   preparePoms(context, replaceRecord(context.config.plugins, descriptor))
-  const plan = { id: descriptor.id, checks }
-  return transact(context, plan, async work => {
-    const staged = await stageComponents(work, context, { descriptor, components, source, dev: flags.dev })
-    const records = replaceRecord(context.config.plugins, staged.record)
-    const operations = mergeOperations(context, staged.operations, old)
-    return { operations, files: hostFiles(context, records), result: { record: staged.record } }
-  }, hooks)
+  return { context, descriptor, components, old, checks }
 }
 
 export async function removePlugin(root, id, hooks = {}) {
