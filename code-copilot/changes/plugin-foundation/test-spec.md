@@ -300,3 +300,30 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
   Node 语法、新文件行宽/方法规模/参数/diff 检查通过；新模块/测试分别 44/129 行。
 - 仅 POM 注释和生成器渲染变更，无新依赖或 Java/UI/SQL 改动，不执行全量 Java 单测或 package；
   编译与模型验证不能代替真实数据库、服务启动或插件安装全链路；本轮没有启动业务服务。
+
+## 14. T8 增量验证（2026-10-07）
+
+- P0：目录/ZIP 安装到模板及改名工程，连续安装不误判模板；UI-only/server-only、版本与运行描述一致性。
+- P0：SemVer 完整范围/预发布、大数字及非法范围；描述字段/重复键/路径/模块名、ZIP CRC/大小/条目安全校验。
+- P0：POM 标记唯一、直属位置、配置一致；冲突目录/模块/链接拒绝；源包和宿主越界路径不可访问/覆盖。
+- P0：重复安装必须 --force；Git dirty/untracked/ignored 和无 Git 摘要保护，成功升级保留旧源码备份。
+- P0：源码复制、POM/config 写入等故障注入恢复旧状态；并发锁和宿主文件并发修改不得静默覆盖。
+- P1：--dev 仅模板目录，源包不变，卸载不删链接目标；list/remove 排序与缺少 ID 提示、数据库保留指引。
+- 工具单测/既有生成器回归及模板/生成 full DB 桩；两套新工程使用已复制工具安装合成插件并 Maven 验证。
+- 冻结 T7 输出差异只放行明确运行工具；工具字节与源相同，其它输出不变。无真实 MySQL/服务/License 验收。
+
+### T8 执行结果
+
+- 模板 Node 247/247（比 T7 新增 118 项）；生成 full DB 桩 30/30，总计 277 项；工具回归 217/217。
+  Node v20.19.0，无失败/取消/跳过。测试安装器不执行包内脚本，不运行数据库迁移。
+- 覆盖 copy/dev 转换、UI-only/server-only、多插件排序、源码/Git/摘要保护及所有权标记。
+  12 组写入故障恢复源码/POM/config；保留被替换的他人锁并返回警告，拒绝覆盖预检后发生的宿主改动。
+- 开发模式真实 Maven 验证先失败（整个模块软链接导致父 POM 走外部路径），修复为宿主 POM/源码链接后通过。
+  测试覆盖外部源码编辑、接入 POM 改动拒绝和构建输出忽略；真实构建后卸载保留外部包原字节。
+- 两套实时生成工程安装合成 ZIP，离线 BOM install/Admin package 均退出 0。
+  复用本机现有依赖，Admin UI Vite 生产构建退出 0（40.35s/39.88s，未联网安装依赖）。
+  JAR 原字节、META-INF/forge-plugin.json、Start-Class 及编译 view-loader 插件路径断言通过；卸载后登记清空。
+- 冻结 full 8343/minimal-admin 5077 文件；相对已复现的 T7 输出仅新增 14 个运行模块、改变命令入口，
+  其它文件无新增/缺失/字节变化。最终 raw 工具交付复用 copyGeneratedPluginTools，不混入测试文件或改名工具本体。
+- git diff --check、Node 语法及方法/参数/行宽/嵌套/复杂度形态审查通过；未改 Java/UI/SQL 生产源码。
+  未启动服务/真实 MySQL，真实插件迁移、普通用户菜单及接口授权仍待 T9/T12；不执行无关全量 Java 单测。

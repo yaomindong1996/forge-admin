@@ -57,7 +57,7 @@ test('creator rejects unresolved revision before creating the requested output d
   for (const file of ['scripts/forge-create/create-project.mjs', 'scripts/forge-create/project-tools.mjs',
     'scripts/forge-create/pom-modules.mjs',
     'scripts/forge-create/source-glue.mjs', 'scripts/forge-create/module-catalog.json',
-    'scripts/forge-shared/rename.mjs', 'scripts/forge-shared/files.mjs']) {
+    'scripts/forge-shared/rename.mjs', 'scripts/forge-shared/files.mjs', 'scripts/forge-shared/version.mjs']) {
     const target = path.join(root, file)
     await fs.mkdir(path.dirname(target), { recursive: true })
     await fs.copyFile(path.join(repoRoot, file), target)

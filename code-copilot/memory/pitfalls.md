@@ -259,7 +259,9 @@
 - 167. DAG 分支路由必须同时处理跨层穿卡和三种顺序一致性
 - 183. 捕获参与当前事务的下游异常不能清除 rollback-only
 
-### [后端框架 / Spring / Maven](pitfalls/backend.md)（41）
+### [后端框架 / Spring / Maven](pitfalls/backend.md)（42）
+
+- 插件开发模式不能直接链接整个 Maven 模块目录
 
 - 最小生成工程裁模块时必须同时裁剪 Admin 的可选接入层
 - 脚手架品牌前缀替换会抢先改掉 Admin 启动类名

@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { readPomVersion } from '../forge-shared/version.mjs'
 
 const templateBlockBegin = '# forge-template-only:begin'
 const templateBlockEnd = '# forge-template-only:end'
@@ -7,24 +8,7 @@ const ignoredToolNames = new Set(['.git', '.DS_Store', 'node_modules', 'fixtures
 
 // 配置版本必须来自本次模板，不能猜测版本或把 Maven 未解析变量带给安装器。
 export async function readForgeVersion(repoRoot) {
-  const pom = (await fs.readFile(path.join(repoRoot, 'forge-server/pom.xml'), 'utf8'))
-    .replace(/<!--[\s\S]*?-->/g, '')
-  const properties = pom.match(/<properties>([\s\S]*?)<\/properties>/)?.[1] || ''
-  const revisions = [...properties.matchAll(/<revision>\s*([^<]*?)\s*<\/revision>/g)]
-  if (revisions.length !== 1 || !isLiteralVersion(revisions[0][1])) {
-    throw new Error('模板根 POM 必须包含唯一、合法的明文 revision 版本')
-  }
-  return revisions[0][1]
-}
-
-function isLiteralVersion(version) {
-  const match = version.match(/^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$/)
-  if (!match || match.slice(1, 4).some(value => /^0\d/.test(value))) {
-    return false
-  }
-  const prerelease = match[4]?.split('.') || []
-  const build = match[5]?.split('.') || []
-  return prerelease.every(value => value && !/^0\d+$/.test(value)) && build.every(Boolean)
+  return readPomVersion(path.join(repoRoot, 'forge-server/pom.xml'))
 }
 
 // 逐行保留原始字节（含 CRLF），只删除精确标记区块；损坏标记不能静默丢掉客户规则。

@@ -885,3 +885,99 @@ node --test forge-baseline-full-server/scripts/db/init-db.test.mjs \
   无 Java/UI/SQL 改动，按增量标准不重复上述无关全量验证，未启动业务服务或操作真实库。
 - 按 forge-project-init Skill 重生成两预设并复跑模板/生成 full DB 桩；临时工程保留，
   既有 .DS_Store 改动不提交；本轮单独本地提交到 codex/plugin-foundation，不 push、不合并 main。
+
+## 2026-10-07 T8：插件安装器
+
+### 范围与实现
+
+- 继续现有 plugin-foundation，分支 codex/plugin-foundation；交付 T8，不提前实现 T9 示例、T10 门禁或 License。
+- 根 forge:plugin 注册，add 支持目录/ZIP，--force 明确整包替换，list/remove 及模板 --dev 开放。
+  生成工程沿用 forge.config.json 的独立 Maven/Java/模块前缀，未知配置字段保留；模板首次登记 projectType。
+  空/null/数组配置不当成“未配置模板”覆盖，forgeVersion 对照直属根 revision。
+- 全部路径由合法工程上下文和插件 ID 推导；严格 JSON/重复键/元数据、SemVer/范围、根/运行描述一致性。
+  源 POM 校验单模块、Forge 父工程与继承 revision，不允许插件覆盖核心 revision。
+  限制 ZIP 文件数/体积/解压大小，校验 CRC/目录/本地头，拒绝加密/ZIP64/穿越/链接/特殊文件/重复路径。
+- 安装器不执行包内脚本或 Maven，不连接数据库。隔离副本复用 renameSourceTree，未知二进制原字节保留。
+  修复 UI-only 映射不能插入 undefined 键的问题；元数据文件保留 canonical ID/feature，不做品牌替换。
+- Git dirty/untracked 拒绝；无 Git/忽略路径按摘要保护。所有权、POM 区块和配置登记不一致拒绝。
+  独占锁、每次写入前检查、隔离 staging、逐操作原件移动/回滚；首装/升级/卸载都留恢复备份。
+  恢复目录自身 .gitignore='*'，不实现 T10 插件源码版次门禁；他人替换的锁不删除，并显式警告。
+  捕获失败恢复宿主源码/POM/config；不承诺进程崩溃/断电的跨文件原子性，遗留锁/恢复目录人工检查。
+- remove 只移走已登记源码/接入目录，保留备份；提示重新构建、停用关联菜单和保留迁移历史，数据库未删除。
+
+### 实测问题与修复
+
+- 首轮 193 项工具测试仅“从任意 cwd 执行复制入口”失败。macOS /var 与 /private/var 别名导致
+  import.meta.url 与 argv 字面路径不同；按入口 realpath 比较后通过，不能把退出 0/无输出当命令执行成功。
+- 整目录开发链接第一次 Maven package 失败：parent.relativePath 沿外部模块真实路径解析，父 POM 不存在。
+  后端改为宿主普通接入 POM + 外部源码/资源链接；前端仍整目录链接。不复制/改名/修改外部插件原文件。
+  修复后真实 package 退出 0，链接类型、接入 POM 摘要与所有权纳入检查。
+- 开发构建后 remove 首次被 .flattened-pom.xml 阻断；排除已知普通 target/.flattened-pom.xml 构建输出，
+  仍拒绝构建输出链接或其它未登记文件。普通复制安装摘要同样排除此构件；再实跑构建后卸载通过。
+- 形态审查发现 CLI 复杂度 17，按职责提取结果输出后通过；未放宽阈值、跳过用例或降低原生成器断言。
+  初次测试命令误把目录当模块入口；后续均使用 Node v20.19.0 和显式 *.test.mjs，保留全部旧回归。
+
+### Node 与安全验证
+
+验证根目录 /private/tmp/forge-plugin-t8.Dxg2B6；Node v20.19.0：
+
+```bash
+node --test --test-reporter=spec scripts/forge-create/*.test.mjs scripts/forge-shared/*.test.mjs \
+  scripts/forge-plugin/*.test.mjs code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
+  forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+```
+
+- 最终 247/247，失败/取消/跳过为 0；较 T7 新增 118 项。日志 final-validation.log。
+  单独工具 217 项通过（包含于上述结果）；早期工具 216/216，追加配置空值负例后增加一项。
+- live/full 根复跑以下命令，30/30、无失败/取消/跳过，日志 final-generated-db.log：
+
+```bash
+node --test --test-reporter=spec forge-baseline-full-server/scripts/db/init-db.test.mjs \
+  forge-baseline-full-server/scripts/db/clean-db.test.mjs
+```
+
+- 合计 277 项，所有数据库/迁移调用为桩。覆盖严格描述/UTF-8、SemVer、大整数/预发布、ZIP、路径/POM、
+  模板连续安装、改名工程、仅前端/仅后端、多插件、copy/dev 互换、Git/摘要、所有权与外部源不变。
+  首装/升级/卸载/dev 共 12 组逐写入故障恢复全部宿主文件；并发文件改动不覆盖，被替换的锁保留并警告。
+- pnpm forge:plugin --help 从模板根实际执行成功；复制入口从非工程 cwd 执行定位工具所属工程。
+  Node 语法、git diff --check、新增方法 <=80/参数 <=5/嵌套 <=3/行宽 <=120/复杂度 <=15 形态检查通过。
+
+### 脚手架原字节回归
+
+- frozen-template 复制已审计 T7 输入，先在 before 重生成 full/minimal-admin，与 T7 after 全文件比较零差异。
+  固定末级名称、com.acme.demo、full/minimal-admin 预设，不使用生成器 --force，不引入实时业务模块。
+- 只带入 project-tools/插件/共享工具增量，在 after 重生成；实时模板在 live 使用相同固定参数另生成。
+  行宽和开发模式修正后复用 copyGeneratedPluginTools 在相同输出交付最终运行文件，未手改业务输出。
+- qa.mjs audit 使用原 collectManifest/compareManifests，全部路径/字节数/SHA-256，无忽略/归一化。
+  final-audit.log：full 8343、minimal-admin 5077；相对 T7 两套 missing=[]，changed 仅 scripts/forge-plugin/index.mjs。
+  added 精确为 scripts/forge-plugin 下 bundle/content/descriptor/installer/json/ownership/paths/pom/project/stage/
+  transaction/xml/zip 共 13 模块，以及 scripts/forge-shared/version.mjs；其它输出包括配置/POM/SQL/图片不变。
+- 运行文件与模板原字节一致，测试/fixtures 不进入工具交付；模板目录清单保留 canonical 映射。
+  冻结 POM XML 53/36、实时安装前 54/37 全通过；根版本 1.2.0，plugins=[]，CLI list 真正执行。
+  git diff --name-only -- code-copilot/changes/plugin-foundation/baseline 为空，未改 T0 清单或 provenance。
+
+### 构建与产物证明
+
+- 合成测试包仅存在临时目录 test-package/test-package.zip，不作为 T9 示例交付。
+  通过两套工程复制的 CLI 安装 ZIP，源码/UI 路径及原运行描述验证通过。
+- JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home，Maven=/private/tmp/apache-maven-3.9.11/bin/mvn。
+  两套工程各先离线安装独立 BOM，再 -q -o -pl <name>-admin-server -am package -DskipTests，全部退出 0。
+  日志 full-package.log/min-package.log。不同生成目录构建未共享 target。
+- 两套 Admin UI 复用本机已有 node_modules（未联网安装），Node v20.19.0/NODE_OPTIONS=--max-old-space-size=8192，
+  vite build --mode production，退出 0；Vite 实际依赖版本 8.2.1，耗时 40.35s/39.88s。
+  日志 full-ui.log/min-ui.log；有既有构建体积/插件耗时提示，不阻断，没有新增生产 UI 源码修改。
+- qa.mjs verify-built：解出 Admin BOOT-INF/lib/<name>-plugin-demo-1.2.0.jar，与 Reactor jar 逐字节一致；
+  META-INF/forge-plugin.json 等于包根描述，Start-Class 为对应 ForgeBaselineFull/MinAdminApplication。
+  两套编译 JS 的 view-loader 包含 plugins/demo/index.vue；不把静态装配当登录/权限/页面运行验收。
+- 临时 dev-template：-q -o -pl plugins/forge-plugin-demo -am package -DskipTests 修复后退出 0，
+  dev-package-fixed.log；构建后 remove 成功，备份含源码链接，外部包所有原文件字节不变。
+  两套 live 使用最终复制 CLI remove/list，恢复备份保留，plugins 清空；未删除数据库。
+
+### 状态与限制
+
+- T8 完成；T9 示例、T10 防误提交、T11 开发文档及 Skill 扩展、T12 人工运行验收仍待继续。
+  当前 Skill 影响本轮：复用生成器改名规则，并重生成 full/minimal-admin、复跑模板/生成 full DB 桩。
+- 无生产 Java/SQL/业务 UI 改动，不执行无关全部 Java 单测；未连接真实 MySQL/Redis，不启动 Admin/Flow/Vite 服务。
+  没有本轮服务 PID，也未改变浏览器页面。真实迁移/普通用户授权由后续用户验收，不冒充已通过。
+- 临时工程/日志/构件保留供复核，不提交。既有 .DS_Store 改动保留；仅本轮文件本地中文提交，
+  不 push、不合并或切换 main。

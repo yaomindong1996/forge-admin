@@ -62,7 +62,14 @@
   - 新增 20 项测试；模板 129/129、生成 full DB 桩 30/30；三套 Admin 聚合编译、两套模型验证通过。
   - 冻结两套工程相对 T6 仅两个 POM 加标记，删掉精确注释后旧字节一致；T0 原基线不变。
   - 实时工程 54/37 个 POM XML、直属空标记/模块目录及独立前缀改名验证通过；安装命令仍待 T8。
-- [ ] T8 `forge:plugin` 命令（F5）：`add`、`--force`、`--dev`、`list`、`remove`；Node 单测。
+- [x] T8 `forge:plugin` 命令（F5，2026-10-07）：
+  - 目录/ZIP、整包升级、清单、可恢复卸载、模板开发接入；共用改名与严格元数据/版本/POM/路径校验。
+  - Git/摘要改动保护、独占锁、隔离 staging、逐写入故障回滚；首装/升级/卸载均保留宿主恢复备份。
+  - 开发模式后端接入 POM + 外部源码链接，UI 目录链接；外部包不复制/改名/修改，卸载不删数据库。
+  - 新增 118 项；模板 247/247、生成 full DB 桩 30/30；工具回归 217/217，均无失败/跳过。
+  - 两套实时工程 Admin package/UI build、插件 JAR 原字节/运行描述/页面装配及开发模式 package/卸载通过。
+  - 冻结两套相对 T7 各 added=14/changed=1/missing=0，全部限定运行工具；T0 基线不变。
+  - 未连接真实库/启动服务；合成夹具不是 T9 示例交付，不把构建验证表述为迁移/权限运行验收。
 - [ ] T9 示例插件 `plugins-samples/forge-plugin-hello/`（F6）：后端模块、菜单迁移、前端页面、`forge-plugin.json`。
 - [ ] T10 防误提交（F7）：
   - `scripts/guards/check-edition.mjs` 和根 `package.json` 的 `check:edition` 脚本；
