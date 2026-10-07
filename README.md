@@ -512,6 +512,13 @@ mvn clean install -DskipTests
 
 ## 🔌 插件体系
 
+支持通过 `pnpm forge:plugin` 将完整源码包安装到模板或 `forge:create` 生成的 Admin 工程，
+与宿主一起编译、部署；不是热加载。社区示例不默认安装，企业授权实现仍需独立交付。
+
+- [插件开发指南](plugins-samples/README.md)：源码包、权限与功能授权、迁移、UI、版本及交付边界。
+- [安装、升级和卸载](.agents/skills/forge-project-init/references/plugins.md)：客户工程操作及恢复注意事项。
+- [hello 社区示例](plugins-samples/forge-plugin-hello/README.md)：可交付样例与验证入口。
+
 | 插件 | 说明 |
 |------|------|
 | `forge-plugin-system` | 用户、角色、菜单、部门、岗位、租户、字典等系统管理能力 |

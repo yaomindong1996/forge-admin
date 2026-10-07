@@ -1162,3 +1162,63 @@ node /private/tmp/forge-plugin-t10.ycT4CV/qa.mjs final
 - 不新增依赖/Java/UI/SQL；本轮不重复 Maven/UI 构建，不启动 Admin/Flow/Vite 或真实 MySQL/Redis，
   无需停止服务。临时工程/日志保留，不提交。T11 文档与 T12 真实数据库/授权全链路仍未完成。
 - 仅本地中文提交到 codex/plugin-foundation，不 push、不合并 main；既有 .DS_Store 不进入提交。
+
+## 2026-10-07：T11 插件开发文档与初始化技能
+
+### 交付及边界
+
+- 使用 skill-creator 维护既有 forge-project-init：短入口按需加载 references/plugins.md，不复制无关能力。
+  安装在基础初始化/清理之后；检查插件不等于授权安装、升级、部署、角色修改或数据库操作。
+- 新增 plugins-samples/README.md 作者指南，保留原始 Forge 坐标/源码包格式，不复制到客户工程。
+  根 README 提供作者指南、操作参考、hello 示例三个入口。当前 checkout 没有 forge-docs，不创建新站点。
+- 说明实际描述校验、扫描、RequiresFeature + RBAC、非 HTTP 显式 Gate、独立 Flyway 历史、UI 菜单、
+  开发接入、升级整包覆盖及恢复边界；没有编造 merge/restore/update 命令或 License/收费实现。
+- 客户参考随已有技能复制；构建模块/前端路径按宿主改名，后端根目录明确由 artifactPrefix 推导。
+  未改变生成器或业务 Java/UI/SQL；T12 真实库、登录/普通用户授权仍需独立确认测试环境和操作权限。
+
+### 环境与回归
+
+Node v20.19.0；验证目录 /private/tmp/forge-plugin-t11.vZ1qkq/。从仓库根执行：
+
+```bash
+/Users/mini32g/.nvm/versions/node/v20.19.0/bin/node --test \
+  scripts/guards/*.test.mjs scripts/forge-plugin/*.test.mjs scripts/forge-create/*.test.mjs \
+  scripts/forge-shared/*.test.mjs code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
+  forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+node --test scripts/forge-plugin/documentation.test.mjs
+node /private/tmp/forge-plugin-t11.vZ1qkq/shape.mjs
+PATH=/Users/mini32g/.nvm/versions/node/v20.19.0/bin:$PATH pnpm check:edition
+git diff --check
+git diff --cached --check
+```
+
+- node-validation.log：301/301、32.96s，无失败/取消/跳过；新增 6 个文档契约。
+  documentation-final.log：收尾目录说明修正后 6/6、1.50s。全部 MySQL/Maven 脚本调用为桩。
+- 测试从实际 Markdown 提取插件命令并仅替换来源占位符，直接执行 CLI，不 eval 任意 shell。
+  验证模板/独立前缀客户的完整升级生命周期、dirty 拒绝、提交定制整包覆盖、恢复计划字段及源包不变。
+  dev 模板使用接入 POM + src 链接；客户拒绝，无需启动业务服务。
+- 新文档 JSON 使用现有严格解析及校验器，与两份 hello 描述一致；作者/技能/README 本地链接可达。
+- 系统和 bundled Python 缺 PyYAML；复用已有临时 invoke/vendor/yaml，以 PYTHONPATH 运行真实
+  skill-creator/scripts/quick_validate.py。模板及两套最终客户技能均输出 Skill is valid，无新安装依赖。
+- shape.log：18 个函数，最大 31 行/2 参数/2 层嵌套、行宽 <=120，node --check 通过。
+  新测试无复杂多层分支；暂存前 edition.log 已通过，收尾再次检查索引与工作区。
+
+### 新生成工程与逐文件比较
+
+- 使用 git archive cfa447db 的 T10 源作为 before-template，另从当前工作区生成 full/minimal-admin。
+  首轮发现 archive 缺少用户本地 H5 .env.development.local，而当前 full 会复制它；这是既有生成行为。
+  为两侧准备同一份该本地输入，仅复制进临时 before-template，不输出其内容、不改模板排除规则。
+  重新生成 before-aligned，不删差异文件、不归一化内容、不覆盖 T0 或前轮证据。
+- 首轮文档误假设任意 forge-server/plugins 文本都会被自动改名；实际规则仅替换指定根路径。
+  修正文档为配置字段推导后端根目录，不扩大本轮到生成器。最终另开 after-final 保留失败证据。
+- generation-final.log：full 8383→8384、minimal-admin 5116→5117。各只有 added=references/plugins.md、
+  changed=SKILL.md、missing=0；其余原始 SHA-256 不变，完整前后清单与 delta.json 存于验证目录。
+  两套 Maven 模块/管理端路径正确、参考可达、作者指南和 guard 均不存在。
+- generated-cli.log：两套复制工具从工程外 cwd 执行 help/list/install/dirty refusal/upgrade/remove，
+  真实 Git 提交定制后整包替换，至少三份备份保留；卸载登记清空、源示例全文件摘要不变。
+  两套实际 pnpm forge:plugin --help 与 list 退出 0；pnpm 临时产物在清单记录之后，仅留在 QA 工程。
+- 在 after-final/forge-baseline-full/forge-baseline-full-server/scripts/db 执行
+  node --test init-db.test.mjs clean-db.test.mjs：generated-db-final.log 30/30、34.36s，无失败/取消/跳过。
+  仅数据库桩，不执行真实初始化、迁移、清理、授权或 MySQL/Redis 连接。
+- 文档/测试限定变更，不重复 Maven/UI 构建，不启动 Admin/Flow/Vite，无服务需要停止。
+  临时工程与日志保留，不提交；只本地中文提交到 codex/plugin-foundation，不 push/合并 main，保留 .DS_Store。

@@ -385,3 +385,28 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
   两套生成工程剥离真实模板区块、没有 guard/命令/样例；安装 hello 后两端路径均正常加入索引。
 - 五个新模块 node --check 通过；AST 60 个函数最大 26 行/3 参数/3 层嵌套，行宽 <=120，diff 检查通过。
   无 Java/UI/SQL 业务改动，不重复 Maven/UI build，不启动真实服务或连接数据库；T12 仍需人工验收。
+
+## 17. T11 增量验证（2026-10-07）
+
+- P0：技能 frontmatter 校验；入口按需指向操作参考，安装/升级/卸载保留明确授权边界，无新 invocation policy。
+- P0：作者指南对应真实 descriptor/POM/RequiresFeature/Flyway/installer 契约，命令不新增 unsupported 参数。
+  操作参考不引用客户缺失的 samples/guard/forge-docs；根 README 和作者指南本地链接可达。
+- P0：重新生成 full/minimal-admin，技能与参考完整复制且路径改名正确；原始作者指南不复制。
+  两预设工具 help/list/add/升级/remove 在隔离工程验证；测试 Git dirty 时 --force 仍拒绝覆盖。
+- P1：参考的 shell 示例解析/占位符替换后，在隔离工程复跑 Node 命令；不执行真实迁移/授权/部署建议。
+  备份与失败恢复说明据实检查，不自动恢复数据库；描述例子用现有严格校验器验证。
+- 根 DB 桩及生成 full DB 桩，已有工具回归、实际 check:edition、diff/新增代码语法与形态检查。
+  全文件 manifest 只放行技能/参考的明确文档差异，T0 原证据不改；无业务源码改动不重复 Maven/UI build。
+
+### T11 执行结果
+
+- 新文档契约 6/6：严格 JSON 样例与真实描述一致、本地链接可达；文档中的全部插件 CLI 示例经解析后
+  在模板/独立包名与模块前缀客户夹具执行，覆盖脏文件拒绝、已提交定制覆盖、备份、卸载与开发模式边界。
+- 模板 Node 301/301（含 DB 桩）、新生成 full DB 桩 30/30；失败/取消/跳过均为 0。
+  收尾后文档契约单独复跑 6/6。真实 PyYAML 复用现有临时依赖，三套技能结构校验均通过。
+- 新 full 8384/minimal-admin 5117，相对一致 T10 输入仅新增 references/plugins.md、改变 SKILL.md。
+  原字节 SHA-256 比较，不改 T0 或忽略输出；作者指南/samples/guard 均不复制。
+- 两套真实生成 CLI 从工程外 cwd 执行 help/list/add/upgrade/remove；dirty 时 --force 拒绝且源码不变，
+  提交定制后升级整包覆盖；备份保留、卸载登记为空、原示例源包不变，pnpm help/list 入口通过。
+- 新测试 Node 语法及 AST 18 个函数通过，最大 31 行/2 参数/2 层嵌套、行宽 <=120；diff 检查通过。
+  不重跑无关 Maven/UI build，不连接真实数据库或服务；测试不证明 T12 实际登录/授权和 MySQL 验收。

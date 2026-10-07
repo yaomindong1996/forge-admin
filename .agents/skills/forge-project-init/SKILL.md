@@ -1,6 +1,6 @@
 ---
 name: forge-project-init
-description: Bootstrap a new project from this Forge template end to end, or reset a Forge database into a clean template system. Use when the user wants to initialize/create a new project based on this repo, rename packages/artifacts/database via forge:create, choose module presets, configure backend/frontend env files, run full SQL then Flyway migrations, remove test data (logs, low-code apps and auto-created tables, test users/tenants/orgs/roles, flow data), start with an empty code-copilot/changes directory, or maintain scripts/forge-create, forge-server/scripts/db/init-db.sh and clean-db.sh.
+description: Bootstrap or maintain projects generated from Forge, initialize a clean template database, and install, upgrade or remove Forge source plugins in template or generated Admin projects. Use for forge:create presets, package/artifact/database renaming, local configuration, init-db.sh/clean-db.sh maintenance, and forge:plugin delivery. Not for Codex app plugins or commercial license implementation.
 ---
 
 # Forge Project Init
@@ -94,6 +94,22 @@ With Docker:
 ### Using the template repo directly (no rename)
 
 Run only step 3 against a new database. Keep the template repo's own `code-copilot/changes` untouched unless the user explicitly asks to delete them there.
+
+### 5. Optional source plugins
+
+Only when plugins are requested, read [references/plugins.md](references/plugins.md) before installation,
+upgrade or removal. It also applies to an existing generated project without repeating database initialization.
+
+- Confirm the source package, target project and requested operation; do not infer permission to upgrade,
+  deploy, grant roles or change a database from a request to inspect a plugin.
+- Finish baseline initialization/cleanup before installing plugins. Later cleanup may remove plugin data;
+  preview it separately and preserve both main and plugin migration histories.
+- Generated projects carry `forge.config.json`, the root `forge:plugin` command and its runtime tools.
+  They do not carry samples or template-only `check:edition`; installed customer plugins are committable.
+- Use the existing CLI rather than editing POM/config records by hand. `--force` replaces the entire package,
+  never merges customizations or bypasses dirty-file checks. Uninstall does not delete database objects.
+- For authoring new delivery packages, use the original template's `plugins-samples/README.md`, not renamed
+  host source as the package format. Plugin authoring guidance is not copied into customer projects.
 
 ## Rules
 
