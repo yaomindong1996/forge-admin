@@ -70,7 +70,13 @@
   - 两套实时工程 Admin package/UI build、插件 JAR 原字节/运行描述/页面装配及开发模式 package/卸载通过。
   - 冻结两套相对 T7 各 added=14/changed=1/missing=0，全部限定运行工具；T0 基线不变。
   - 未连接真实库/启动服务；合成夹具不是 T9 示例交付，不把构建验证表述为迁移/权限运行验收。
-- [ ] T9 示例插件 `plugins-samples/forge-plugin-hello/`（F6）：后端模块、菜单迁移、前端页面、`forge-plugin.json`。
+- [x] T9 示例插件 `plugins-samples/forge-plugin-hello/`（F6，2026-10-07）：
+  - 完整社区源码包：后端 Controller/VO、Registry 版本信息、RBAC/功能注解、菜单/API 迁移、Naive UI 页面。
+  - 不默认安装，不给现有角色授权；只新增自身资源，重复 SQL/逻辑删除重建/停用资源/客户路径冲突均验证。
+  - 新增 Node 7 项，模板 254/254、生成 full DB 桩 30/30；Java 12 项在三套宿主各通过，UI 8/8。
+  - 三套 Admin package、两套 UI build/动态页面装配与 JAR 原字节验证通过；ESLint/形态/diff 检查通过。
+  - 冻结 full 8343/minimal-admin 5077 文件与 T8 零差异，T0 基线不变；卸载后外部样例不变，备份保留。
+  - 模拟接口亮/暗/320px/刷新/错误重试验证通过；不连接真实库，真实登录及普通用户授权仍待 T12。
 - [ ] T10 防误提交（F7）：
   - `scripts/guards/check-edition.mjs` 和根 `package.json` 的 `check:edition` 脚本；
   - 模板仓库 `.gitignore` 区块；

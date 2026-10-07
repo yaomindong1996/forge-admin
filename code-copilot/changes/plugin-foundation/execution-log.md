@@ -981,3 +981,105 @@ node --test --test-reporter=spec forge-baseline-full-server/scripts/db/init-db.t
   没有本轮服务 PID，也未改变浏览器页面。真实迁移/普通用户授权由后续用户验收，不冒充已通过。
 - 临时工程/日志/构件保留供复核，不提交。既有 .DS_Store 改动保留；仅本轮文件本地中文提交，
   不 push、不合并或切换 main。
+
+## 2026-10-07 T9：完整社区示例插件
+
+### 范围与实现
+
+- 继续 codex/plugin-foundation；只交付 plugins-samples/forge-plugin-hello，不默认安装到工作仓库。
+  先追加 Spec 范围与增量测试矩阵，再实现；不提前做 T10 门禁、T11 通用开发文档或企业 License。
+- 根和 META-INF 两份相同描述：hello/community/1.0.0，requiresCore >=1.2.0 <2.0.0。
+  Maven 继承核心 revision。源包父路径指向模板，宿主安装器规范为 ../../pom.xml，不修改外部源包。
+- GET /plugin/hello/info 使用 SaCheckPermission(plugin:hello:info) + RequiresFeature(community.hello)，
+  类型化 VO 从 Registry 返回插件版本、从 ForgeVersion 返回核心版本；缺运行描述按装配错误拒绝。
+- 插件独立 V1.0.0 只 INSERT 菜单/API：tenant_id=1、feature_code=NULL、is_public=0、有效业务键 NOT EXISTS。
+  API 只挂自身有效菜单，不覆盖同路径客户菜单、不自动授予角色、不重启已停用资源；无业务表变更。
+- UI 复用 Naive UI/宿主 request 和主题变量：区域骨架、刷新互斥、真实响应、失败清旧值与重试。
+  接口模块关闭重复弹窗提示但不绕过登录/RBAC；接口与测试在 api/，不生成文件路由。
+- 样例 README 说明安装/升级/卸载、独立版本、显式授权及人工回滚；卸载不删 DB/历史。
+  无层级共享状态，不额外创建无意义 Store；生产 Controller/SFC 分别为 39/98 行。
+
+### Node、Java 和 SQL
+
+验证目录 /private/tmp/forge-plugin-t9.FIymgf。Node v20.19.0：
+
+```bash
+node --test --test-reporter=spec scripts/forge-create/*.test.mjs scripts/forge-shared/*.test.mjs \
+  scripts/forge-plugin/*.test.mjs code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
+  forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+```
+
+- node-validation.log：254/254，新增 7；失败/取消/跳过为 0，27.47s。
+  最后只整理两个超长测试行，sample-node-final.log 单独 7/7 再通过。
+  源包目录/ZIP、模板/独立 Maven groupId 与 Java 包名/模块前缀、dev 链接、移除后的原字节与备份均通过。
+- 初次新增用例 5/7：期望 groupId 写成与现有夹具不一致的常量；改用夹具 host.options.groupId 后通过。
+  生产改名规则未改，未放宽不同 groupId/basePackage 的验证。
+- fresh live/full 执行生成工程内的 init-db.test.mjs/clean-db.test.mjs，generated-db.log：30/30。
+  所有 DB 脚本调用均为桩；真实 MySQL 未访问，CPU 并行负载下耗时 93.64s。
+- JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home，Maven=/private/tmp/apache-maven-3.9.11/bin/mvn，离线：
+
+```bash
+mvn -q -o -pl plugins/<模块前缀>-plugin-hello -am test -Penable-tests \
+  -Dtest='HelloPlugin*Test' -Dsurefire.failIfNoSpecifiedTests=false
+mvn -q -o -pl <模块前缀>-admin-server -am package -DskipTests
+```
+
+- 三个独立 checkout 串行 test 后 package，checkout 之间并行，不共享 target：
+  dev-template/forge-server（forge）、live/forge-baseline-full/...-server、live/forge-baseline-min/...-server。
+  三份 Surefire 报告每套 Controller 6 + Migration 6；各 12/12，错误/失败/跳过全部 0。
+  日志 full-tests-final.log/min-tests.log/dev-tests.log；三份 package.log 命令都退出 0。
+- Controller 测试真实加载运行描述、包扫描和 MockMvc 响应；核对 RBAC 注解，真实 FeatureGate 拒绝路径。
+  不配置 Sa-Token Redis，不把注解契约/MVC 成功当真实登录鉴权通过。
+- SQL 用随机 H2 MySQL 模式内存库，真实 PluginFlywayMigrationStrategy 执行主 V1.0.1 和 hello V1.0.0。
+  检查独立历史/首装/重复启动/直接重跑、逻辑删除历史不覆盖、停用不复活、客户菜单不修改。
+  检查菜单/API 父子关联、tenant/client/is_public/feature_code 和角色关系完全不变。
+  H2 2.3.232 高于 Flyway 10.20.1 已测试支持版本提示非阻断；真实 MySQL 方言仍需用户验收。
+
+### 生成输出和产物
+
+- qa.mjs prepare 复用 T8 frozen-template，只额外放入本轮 samples，再生成 full/minimal-admin。
+  与 T8 after 原始 manifest 比对：full 8343、min 5077，missing/added/changed 三项均为空。
+  不重录 T0、没有新的忽略/归一化规则；生成器与工具运行源码没有变动。
+- 从实时模板另外重新生成：full 8383/min 5116 个原始文件，plugins=[]，不复制 samples、不默认安装 hello。
+  原始 manifest 保存到 *-before.json，再通过生成工程自己复制的 CLI 从任意 cwd 安装。
+  full 使用 ZIP、min 使用目录；UI 单测断言修正后通过 --force 更新，恢复副本保留。
+- verify-built-final.log：三套 Admin BOOT-INF/lib 内 hello JAR 与 Reactor JAR 逐字节相同。
+  两套改名 JAR 内 Controller 在 com/acme/demo，运行描述与根描述 JSON 一致，SQL 正确。
+  生产 JAR 不含 test fixture，Start-Class 与生成文件名正确；生产 JS 包含 /plugins/hello 和真实页面提示，
+  不含 api/__tests__ 页面路由。初次产物检查猜错 Admin 文件名带版本，改按实际 finalName 无版本后通过；
+  生产构建配置没改，未以“构建成功”替代产物检查。
+- qa.mjs remove：两套复制安装与 dev 接入均卸载成功，登记恢复为空，外部样例指纹不变。
+  .forge-plugin/backups 下恢复副本保留，没有数据库删除或手工停用真实菜单。
+
+### 前端构建和浏览器
+
+- 两套 UI 复用主项目现有 node_modules 链接，未联网安装依赖；Node v20.19.0、Vite 8.2.1。
+  从对应 UI 根执行 ESLint 和 full 中 Vitest：
+
+```bash
+node_modules/.bin/eslint src/views/plugins/hello/index.vue src/views/plugins/hello/api/info.js \
+  src/views/plugins/hello/api/__tests__/info.spec.js
+node_modules/.bin/vitest run src/views/plugins/hello/api/__tests__/info.spec.js
+NODE_OPTIONS=--max-old-space-size=8192 node_modules/.bin/vite build --mode production
+```
+
+- ui-lint.log 无错误，ui-tests-final.log 8/8、3.72s；两套 build 退出 0，3m41s/3m45s（并行负载）。
+  有既有体积/插件耗时提示，未增加业务依赖。样例没有其它生产前端变更。
+- 初次 UI 测试 7/8：Vitest 2.1.9 不支持 toHaveBeenCalledExactlyOnceWith；拆为次数与参数两断言，8/8 通过。
+  根 cwd 的 ESLint 首次没有加载 Vue 配置，不能算 SFC lint；改在生成 UI 中真正检查三份文件，退出 0。
+- 隔离 preview/ 通过临时 Vite 127.0.0.1:5198 使用模拟接口，不加载主应用鉴权、不请求后台。
+  普通沙箱监听报 EPERM，经只绑定本机的执行授权后启动；浏览器首开拒绝连接后重开验证成功。
+  亮/暗主题渲染、320px 卡片、刷新时区域骨架/禁用、403 错误与重试后 hello 信息恢复均通过。
+  DOM 测量两块 scrollWidth=clientWidth=904/320，无横向溢出；截图 screenshots/light.jpg、dark.jpg。
+- 已关闭临时验证页；预览统一执行会话 92816 用 Ctrl-C 停止，退出 130；未启动 Admin/Flow 或其它真实服务，
+  未停止用户进程或改变 ABP 页面。临时工程/日志/截图保留供复核，不进入 Git。
+
+### 收尾与限制
+
+- git diff --check、SQL 无业务占位符、新增代码行宽 <=120/单方法 <=80/参数 <=5/嵌套 <=3 审查通过。
+  14 个样例交付文件和 1 个 Node 测试，无本机配置/构件/秘密；根 POM/主 SQL/已执行迁移未修改。
+- 按 forge-project-init Skill 验证模板与两套改名工程，并复跑模板/生成 full DB 桩；
+  本轮没有改变生成规则，样例根目录未纳入默认交付。
+- T9 开发完成；T10 防误提交、T11 通用开发文档和 T12 真实 MySQL/登录/授权验收仍待继续。
+  本轮只能证明编译、内存迁移、UI 模拟与静态装配；不能宣称真实 DB、普通用户或商业 License 已通过。
+- 保留既有 .DS_Store 改动；只做本轮中文本地提交，不 push、不合并 main、不变更分支。

@@ -1,7 +1,7 @@
 # 插件化底座 Spec
 
 > 变更名：`plugin-foundation`
-> 状态：`implementing`（T0–T8 及 T5-F1 已交付；T9–T12 待继续）
+> 状态：`implementing`（T0–T9 及 T5-F1 已交付；T10–T12 待继续）
 > 创建日期：2026-10-06
 > 涉及：权限过滤（菜单/接口按功能授权隐藏和拦截）、Flyway 执行流程、脚手架改名逻辑，需人工审查
 
@@ -633,3 +633,33 @@ ALTER TABLE sys_resource
 - 冻结 full 8343/minimal-admin 5077 文件；相对 T7 仅新增 14 个运行工具、修改插件命令入口。
   其它文件路径/原字节不变；原 T0 清单不动。校验目录 /private/tmp/forge-plugin-t8.Dxg2B6。
 - 无真实 MySQL/Redis、服务启动或真实菜单/权限端到端验收；T9 示例、T10 门禁、T11 文档及 T12 人工验收未完成。
+
+### 2026-10-07 T9 实现边界
+
+- 只交付社区示例包 plugins-samples/forge-plugin-hello，不默认登记到模板 POM、配置、主库 SQL 或前端。
+  生成器现有根文件白名单不复制 samples；用重新生成的 full/minimal-admin 验证未安装时输出不变。
+- GET /plugin/hello/info 以类型化 VO 返回注册表中的插件 ID/发布版本和 ForgeVersion.CURRENT，
+  同时声明 SaCheckPermission(plugin:hello:info) 与 RequiresFeature(community.hello)，不替代宿主登录鉴权。
+- 插件 V1.0.0 只新增一个顶级社区菜单及其 GET API 权限资源，tenant_id=1、feature_code=NULL、
+  is_public=0、NOT EXISTS 按有效业务键防重复；不改既有资源、不插入角色授权、不建业务表。
+  普通用户须由管理员显式分配菜单及 API 资源并重新登录；权限配置需人工审查。
+  卸载前人工停用这两个资源并撤销关联授权，卸载后保留迁移历史；重新安装不自动恢复已停用菜单。
+- UI 使用宿主 Naive UI 和主题变量；真实请求、局部加载、错误重试，不硬编码接口成功数据。
+  api/ 下的接口与测试不会被文件路由识别为页面，不增设无意义的共享 Store。
+- Java/MVC 与随机 H2 MySQL 模式验证真实描述扫描、组件扫描、响应与插件迁移；
+  安装/改名/生产构建在隔离工程验证，UI 测试使用模拟接口，不连接真实 MySQL/Redis 或启动业务服务。
+  H2 和 MockMvc 不能代替真实 MySQL/Sa-Token 用户会话验收，仍保留 T12。
+
+### T9 交付与验证结果
+
+- 完整 hello 社区源码包已交付，包含根/运行描述、Controller/类型化 VO、独立菜单/API 迁移、
+  Naive UI 页面、接口适配及测试。版本数据来自 Registry，不从前端或 Maven 版本伪造。
+- 新增 7 项 Node 安装契约，模板回归 254/254、重新生成 full DB 桩 30/30；页面测试 8/8、ESLint 通过。
+  新增 Java 12 项，在 canonical --dev、改名 full/minimal-admin 各 12/12，通过 H2 实跑和 MockMvc。
+- 三套 Admin 聚合 package、两套生产 UI build 通过；包内 hello JAR 与 Reactor 原字节一致，
+  Controller、运行描述、SQL、Start-Class、前端动态页面路径正确，测试资源不进入生产 JAR/页面路由。
+- 冻结两套工程相对 T8 的 missing/added/changed 均为 0，full 8343/minimal-admin 5077 文件；
+  实时生成工程未默认安装/复制样例。安装、卸载和 dev 构建后外部样例原字节不变，恢复备份保留。
+- 模拟接口浏览器验证亮/暗主题、320px 无横向溢出、刷新加载/403 提示/重试恢复；临时预览验证后停止。
+  没有连接真实 MySQL/Redis或启动业务服务，RBAC 测试核对注解而非真实登录会话，T12 仍未完成。
+  详细命令、限制与失败修正见 execution-log.md；T10 防误提交和 T11 插件开发文档待继续。

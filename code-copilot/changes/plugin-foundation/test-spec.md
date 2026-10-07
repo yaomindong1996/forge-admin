@@ -327,3 +327,33 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
   其它文件无新增/缺失/字节变化。最终 raw 工具交付复用 copyGeneratedPluginTools，不混入测试文件或改名工具本体。
 - git diff --check、Node 语法及方法/参数/行宽/嵌套/复杂度形态审查通过；未改 Java/UI/SQL 生产源码。
   未启动服务/真实 MySQL，真实插件迁移、普通用户菜单及接口授权仍待 T9/T12；不执行无关全量 Java 单测。
+
+## 15. T9 增量验证（2026-10-07）
+
+- P0：示例根/运行描述一致，继承核心 revision；Registry 加载、组件扫描、GET 类型响应、RBAC/功能注解。
+- P0：实际插件 SQL 在独占 H2 MySQL 模式执行；首次、重复启动、直接重跑 SQL、逻辑删除历史后重建，
+  菜单路径/组件/API 权限/tenant_id/feature_code/is_public 正确，无角色权限扩张，插件历史与主历史隔离。
+- P0：实际示例目录与 ZIP 安装到模板/独立包名和模块前缀夹具；源包原字节不变，卸载可恢复且不碰数据库。
+- P1：Naive UI 页面显示真实响应、加载态、错误重试、刷新互斥；控件及内容无模拟成功状态。
+  使用 Vue 组件单测和无后端浏览器验证亮/暗/窄屏；生产 UI 构建与动态页面路径检查。
+- 从当前模板重新生成 full/minimal-admin，安装前 samples/plugins 默认为空；示例安装后相关 Java 单测、
+  Admin 聚合 package 与 UI build、JAR 描述/SQL/Controller 产物校验；复跑模板与 full DB 桩。
+- 不改 T0 原基线；无主业务源码改动时完整输出与 T8 的差异应为 0。
+  不运行真实数据库或业务服务；授权/真实 MySQL 方言、登录与菜单点击全链路留给 T12。
+
+### T9 执行结果
+
+- 模板 Node 254/254（新增 7 项）；生成 full DB 桩 30/30；UI 8/8。失败/取消/跳过均为 0。
+  最终行宽整理后单独复跑样例 7/7；全部数据库脚本调用为桩，真实 SQL 实跑仅在随机 H2 中。
+- Java 12 项在 dev 模板、改名 full/minimal-admin 各通过，合计 36 次执行；无失败/错误/跳过。
+  覆盖真实描述、Controller 包扫描、响应/注解、功能 Gate 拒绝、缺描述失败；迁移真实调用插件执行器。
+  RBAC 只核对宿主将执行的 SaCheckPermission 注解，不假装已验证 Sa-Token/Redis 登录与授权会话。
+- 实际 SQL 首次、重复启动、直接重跑、逻辑删除重建、停用不恢复、客户路径不覆盖通过；角色关系不变，
+  菜单/API 有效关联、租户/客户端/公开标记及独立历史正确。H2 的 Flyway 版本提示非阻断。
+- 三套 Admin 聚合 package、两套 UI build 均退出 0；JAR 原字节、Controller/JSON/SQL、Start-Class 和
+  动态 /plugins/hello 页面路径正确，生产包不含测试 fixture，UI 不生成 api/__tests__ 页面。
+- 冻结输出 full 8343/minimal-admin 5077，与 T8 raw SHA-256 比较零差异；实时两预设默认 plugins=[]、
+  不带 samples。安装/构建/卸载后源码指纹不变，宿主恢复备份保留，T0 原始清单未修改。
+- ESLint、行宽/规模/diff/SQL 占位符检查通过；隔离 Vite + 模拟接口验证亮/暗/320px、加载、失败、重试，
+  两个页面的 scrollWidth=clientWidth（904/320）；截图保存在验证目录，临时页关闭、预览进程已停止。
+- 未进行真实 MySQL/Redis、业务服务或普通用户菜单/API E2E；T12 留待人工验收，不扩大本轮授权范围。
