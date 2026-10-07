@@ -30,4 +30,23 @@
         <module>forge-plugin-data</module>
     </modules>
 
+    <build>
+        <resources combine.self="override">
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>META-INF/forge-module.json</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <!-- 只过滤构建声明，不修改业务 JSON/SQL 中的表达式。 -->
+                    <include>META-INF/forge-module.json</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
 </project>

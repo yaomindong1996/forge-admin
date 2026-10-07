@@ -1,0 +1,6 @@
+{
+  "id": "plugin-message",
+  "name": "消息中心",
+  "version": "${project.version}",
+  "module": "${project.artifactId}"
+}

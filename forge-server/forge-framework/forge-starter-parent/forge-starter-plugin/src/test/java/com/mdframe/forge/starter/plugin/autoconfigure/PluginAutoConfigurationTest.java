@@ -1,6 +1,7 @@
 package com.mdframe.forge.starter.plugin.autoconfigure;
 
 import com.mdframe.forge.starter.plugin.descriptor.PluginRegistry;
+import com.mdframe.forge.starter.plugin.catalog.RuntimePluginCatalog;
 import com.mdframe.forge.starter.plugin.feature.CommunityFeatureGate;
 import com.mdframe.forge.starter.plugin.feature.FeatureGate;
 import com.mdframe.forge.starter.plugin.feature.RequiresFeature;
@@ -59,6 +60,7 @@ class PluginAutoConfigurationTest {
     void should_register_one_default_gate_without_servlet_beans_in_non_web_host() {
         core.run(context -> {
             assertThat(context).hasNotFailed().hasSingleBean(FeatureGate.class).hasSingleBean(PluginRegistry.class);
+            assertThat(context).hasSingleBean(RuntimePluginCatalog.class);
             assertThat(context.getBean(FeatureGate.class)).isInstanceOf(CommunityFeatureGate.class);
             assertThat(context.getBean(PluginRegistry.class).getPlugins()).isEmpty();
             assertThat(context).doesNotHaveBean(FeatureGateInterceptor.class)
@@ -91,6 +93,7 @@ class PluginAutoConfigurationTest {
                 new LazyInitializationBeanFactoryPostProcessor())).run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context.getBeanFactory().containsSingleton("pluginRegistry")).isTrue();
+            assertThat(context.getBeanFactory().containsSingleton("runtimePluginCatalog")).isTrue();
         });
     }
 

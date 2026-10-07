@@ -1,0 +1,6 @@
+{
+  "id": "plugin-capability-high-risk-approval",
+  "name": "高风险操作审批",
+  "version": "${project.version}",
+  "module": "${project.artifactId}"
+}

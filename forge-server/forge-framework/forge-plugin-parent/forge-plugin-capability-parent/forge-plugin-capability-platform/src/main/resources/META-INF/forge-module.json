@@ -1,0 +1,6 @@
+{
+  "id": "plugin-capability-platform",
+  "name": "能力开放平台",
+  "version": "${project.version}",
+  "module": "${project.artifactId}"
+}

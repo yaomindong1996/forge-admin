@@ -1,5 +1,6 @@
 package com.mdframe.forge.starter.plugin.autoconfigure;
 
+import com.mdframe.forge.starter.plugin.catalog.RuntimePluginCatalog;
 import com.mdframe.forge.starter.plugin.descriptor.PluginRegistry;
 import com.mdframe.forge.starter.plugin.feature.CommunityFeatureGate;
 import com.mdframe.forge.starter.plugin.feature.FeatureGate;
@@ -24,5 +25,11 @@ public class PluginAutoConfiguration {
     @Lazy(false)
     public PluginRegistry pluginRegistry(ResourceLoader resourceLoader) {
         return new PluginRegistry(new PathMatchingResourcePatternResolver(resourceLoader));
+    }
+
+    @Bean
+    @Lazy(false)
+    public RuntimePluginCatalog runtimePluginCatalog(ResourceLoader resourceLoader, PluginRegistry registry) {
+        return new RuntimePluginCatalog(new PathMatchingResourcePatternResolver(resourceLoader), registry);
     }
 }

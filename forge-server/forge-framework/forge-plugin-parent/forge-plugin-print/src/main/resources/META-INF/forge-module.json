@@ -1,0 +1,6 @@
+{
+  "id": "plugin-print",
+  "name": "打印中心",
+  "version": "${project.version}",
+  "module": "${project.artifactId}"
+}

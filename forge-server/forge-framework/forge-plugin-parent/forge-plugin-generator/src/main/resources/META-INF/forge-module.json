@@ -1,0 +1,6 @@
+{
+  "id": "plugin-generator",
+  "name": "代码生成",
+  "version": "${project.version}",
+  "module": "${project.artifactId}"
+}
