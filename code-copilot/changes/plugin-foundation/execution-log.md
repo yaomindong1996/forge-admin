@@ -1222,3 +1222,126 @@ git diff --cached --check
   仅数据库桩，不执行真实初始化、迁移、清理、授权或 MySQL/Redis 连接。
 - 文档/测试限定变更，不重复 Maven/UI 构建，不启动 Admin/Flow/Vite，无服务需要停止。
   临时工程与日志保留，不提交；只本地中文提交到 codex/plugin-foundation，不 push/合并 main，保留 .DS_Store。
+
+## 2026-10-07：T12 真实 MySQL / Redis 后端验收（浏览器与收尾待确认）
+
+### 授权、配置参考与隔离
+
+- 用户明确允许使用 158 Docker MySQL/Redis，并指定 /Users/mini32g/Desktop/project/lawhub 作为配置参考。
+  从其 deploy/README.md / service-configuration.md 确认主机 192.168.66.158、基础设施容器与回环端口；
+  root 公钥 SSH 可用。仅读取连接元数据，不改 lawhub 源码、配置、业务库、服务或现有用户授权。
+- forge-mysql 8.0.46、forge-redis 7.4.11 原容器健康。MySQL 客户端凭据仅在原容器内由环境取得，
+  没有输出/复制基础设施密码。先确认测试库与测试账号均不存在，再创建：
+  - 库 forge_plugin_t12_20261007_0y7usg；
+  - 临时账号 forge_plugin_t12_0y7usg，仅有该库权限，随机密码，未改已有账号权限；
+  - Redis 容器 forge-plugin-t12-0y7usg-redis，owner=t12-0y7usg，使用已有缓存镜像，
+    128 MiB / 0.5 CPU / 无持久化，远端仅绑定 127.0.0.1:26380，随机密码，未使用/清空原 Redis DB；
+  - 专用 SSH PID 61492：本机 127.0.0.1:13316 → 远端 3306，16316 → 远端临时 Redis 26380。
+- 验收目录 /private/tmp/forge-plugin-t12.0y7UsG，目录 700；secrets.json / application-local.yml /
+  tokens.json 均为 600，不进入 Git。server/runtime 及密钥均在该目录，不使用用户已有密钥文件。
+  Redis 专用配置目录的确切路径和容器 ID 记录于私有 redis-owned.json，原容器身份留于 containers-before.txt。
+
+### 真实基础初始化与构建
+
+Node 20.19.0、Temurin JDK 17.0.20.1、Maven 3.9.11；生成工程为 minimal-admin / com.acme.check。
+
+```bash
+node scripts/forge-create/create-project.mjs /private/tmp/forge-plugin-t12.0y7UsG/plugin-check \
+  --base-package com.acme.check --preset minimal-admin
+```
+
+- 生成 31 个后端功能模块、管理端 UI；没有预装 hello。安装改名后的独立 BOM 后构建 Reactor，
+  不能拿模板旧 jar 代替此工程；本机缓存写入需要 sandbox 授权，首轮失败保留 bom-install.log，
+  授权后的 bom-install-final.log 退出 0。
+- 本机没有 mysql CLI，在验收目录提供仅转发 argv/stdin 的 SSH 桥，最终执行原容器真实 mysql。
+  init-base.log 来自未修改的生成 init-db.sh：全量 SQL 与全部 required seed 执行成功；
+  使用明确的 --database / --host / --port / --user，不使用 --recreate，不指向其他业务库。
+- 以生成工程 scripts/db/flyway/pom.xml 执行实际 Flyway。初次离线插件解析失败且没有运行迁移；
+  改用完整 Maven 插件坐标和正常依赖解析，密码仅从权限受限文件传入 FORGE_DB_PASSWORD 环境。
+  migrate-main-online.log：209 个迁移成功，达到 1.0.209，BUILD SUCCESS，耗时 2:10。
+  没有 repair、删除历史、修改已执行 SQL 或关闭 Flyway 校验。
+- 在相同独立库运行生成 clean-db.sh --execute --yes，clean-base.log 通过，剩余用户/角色各 1，
+  菜单/权限 541。遵循 T11 技能，先基础初始化/迁移/清理，再执行 hello 安装。
+
+在生成工程根目录执行：
+
+```bash
+node scripts/forge-plugin/index.mjs add \
+  /Users/mini32g/Desktop/project/forge-admin/plugins-samples/forge-plugin-hello
+```
+
+- 原始示例未被修改；插件后端/UI 及 POM 正确落入客户工程。5 次同一工程串行 package 均退出 0：
+  package-hello.log / package-gate.log / package-restored.log / package-upgrade.log / package-reinstall.log。
+  构建命令为 mvn -q -o -pl plugin-check-admin-server -am package -DskipTests；没有并行编译同一 Reactor。
+- 本机回环 18590 启动正常 Admin，Spring profiles=local，独立 JDBC/Redis/动态配置数据源一致。
+  本轮没有生产 Java/UI/SQL 变更，相关 Java -Penable-tests / UI / Node 单测复用 T9–T11 既有证据；
+  包构建没有冒充重新执行单测。
+
+### 首装与真实用户权限
+
+- start-first.log：Admin 正常启动，主库 up to date；独立表 plugin_check_plugin_hello_history 创建，
+  baseline=0，成功运行 V1.0.0__add_hello_resources.sql，SQL checksum=1207650029；hello 资源正好 2 个。
+- 全量初始化的原始登录配置关闭验证码；为加强验收只在 QA 库设置 enableCaptcha=true /
+  captchaType=graphical，重启专用服务生效。保留 RSA 与验证码生成/校验/一次性消费，
+  使用现有 local-profile FORGE_CAPTCHA_DEV_ECHO_CODE=true 的受支持回显，不增加测试后门。
+- 普通用户完全合成，只复制模板管理员的默认密码哈希，不复制任何个人字段；只存在于 QA 库。
+  首轮漏 sys_user_tenant 被正常租户校验拒绝；随后漏 sys_user_org_role，角色未进入当前组织会话。
+  补齐租户成员/组织成员/组织内角色后重新登录验证正向授权，未修改生产权限代码或降低断言。
+- 使用真实 HTTP /auth/loginConfig、/auth/captcha、/crypto/public-key、RSA 加密后的 /auth/login，
+  返回的 Sa-Token Bearer 调用 /auth/current/menu 和 /plugin/hello/info；不用 X-Inner-Call 替代登录。
+  管理员通配仍保留，普通用户通过真实角色资源映射授权 hello 菜单/API 两项。
+- 临时资源设置 ee.test 后重新登录：管理员/普通用户菜单均隐藏，普通用户按钮/API 权限快照均无 hello。
+  只在客户 QA Controller 将 RequiresFeature 改为 ee.test 并重构建/重启：管理员接口确实 HTTP 403 / code=403。
+  完成此项后恢复 community.hello 原字节；模板样例与其描述/SQL 始终未修改。
+
+脱敏检查结果（每项包含 HTTP status 与业务 code，脚本还断言菜单/快照/版本）：
+
+| 日志 | 阶段 | HTTP 步骤 |
+| --- | --- | --- |
+| accept-basic-pass.log | 匿名拒绝、管理员可用、普通用户未授权拒绝 | 13 |
+| accept-granted-final.log | 完整租户/组织角色绑定后普通用户可用 | 13 |
+| accept-filter-final.log | 两类用户菜单与普通用户权限快照过滤 | 13 |
+| accept-gate.log | 未开通功能对已登录管理员返回 HTTP 403 | 13 |
+| accept-after-clean.log | 真清理后重启、正常登录与插件版本 | 7 |
+| accept-upgrade.log | 真实升级迁移及 Registry 发布版本 | 7 |
+| accept-reinstall.log | 卸载重装后的真实登录与版本 | 7 |
+
+- 共 73 个步骤通过。RBAC 的既有行为是 HTTP 200 + code=403，匿名 code=401；没有混同为 HTTP 403。
+  只有 FeatureGateInterceptor 的管理员负例同时断言实际 HTTP 403。
+- 初次夹具/断言解析失败日志保留，不混入通过统计；permissions=null 表达未授予权限，按空集校验，
+  正向授权仍必须包含精确 hello 权限/API pattern。未授权功能负例在正向授权通过后重新执行。
+
+### 二次启动、清理、升级、卸载与重装
+
+- start-captcha.log / start-gate.log 主库、插件均 up to date，未重复迁移。
+- 停止本轮服务再运行生成 clean-db.sh，仅清理专用 QA 库；clean-with-plugin.log 退出 0，
+  用户/角色各 1，菜单/权限 543；插件菜单和 API 保留。
+- history-before-clean.tsv / history-after-clean.tsv / history-after-clean-restart.tsv 完全一致：
+  主历史 209 条、hello 历史 2 条。摘要涵盖 rank/version/type/script/checksum/success/installed_on，
+  不是只检查表存在；start-after-clean.log 两套迁移 up to date，正常登录/信息接口通过。
+- 从原始示例另复制临时 hello-upgrade 包，只将两份描述改为 1.0.1，并追加 QA 标记 SQL；
+  V1.0.0 旧脚本字节不改。不将该测试发布包或新 SQL 加入模板。
+  --force 安装、构建、重启后只执行 V1.0.1__qa_upgrade_marker.sql，checksum=776622356，
+  Registry 信息返回 id=hello / version=1.0.1 / coreVersion=1.2.0。升级后插件历史为 3 条。
+- 停止 QA 服务，在客户工程执行 remove hello / list：登记为空，源码移除，恢复备份保留。
+  真实 MySQL 两项资源、主历史及插件历史均保留；history-before-remove.tsv 与 history-after-remove.tsv 一致。
+  没有构建并运行卸载态服务，因此不宣称卸载态 HTTP 404 已验证。
+- 重装同一临时 1.0.1 包、构建、启动：主/插件均 up to date，history-after-reinstall.tsv 与卸载前一致，
+  正常登录/Registry 版本通过；没有对已升级历史使用旧版包降级来掩盖版本校验。
+
+### 浏览器、工具限制与待完成项
+
+- 生成 UI 用缓存依赖尝试 pnpm --ignore-workspace install --offline --frozen-lockfile。
+  依赖已落盘，但 pnpm 11 ignored-builds 导致退出 1；pnpm exec 又触发自动依赖检查。
+  不修改项目允许构建策略、不把失败写成安装成功；改用已有 node_modules/vite/bin/vite.js 直接启动，
+  ui-dev-direct.log 显示 Vite 8.2.1 ready，回环 http://127.0.0.1:3132，代理仅指向专用 QA Admin。
+- 浏览器已打开本地验收登录页并填写测试账号，关闭记住密码；尚未填写/提交图形验证码。
+  已请求用户确认该本地 CAPTCHA 操作，未收到确认；不能用 API 验收或 T9 模拟页面替代真实插件页面。
+- 文档契约 6/6、开源边界检查通过；git diff --check 通过。保留用户 .DS_Store，不提交 QA 文件/密钥，
+  只记录本轮证据，不 push/合并 main，T12 总项仍未勾选。
+- 158 原 MySQL/Redis、LawHub 与 CRM 服务在收尾读取时均健康，本轮没有操作其部署/库/容器。
+  共享主机可能同时有其他任务部署，健康快照不等于承诺所有容器身份/运行时间全程静态不变。
+- 为待确认的浏览器验收，当前专有资源暂保留：SSH PID 61492、Vite PID 72517、QA Java PID 86609；
+  专有数据库/账号、临时 Redis、私有配置/恢复备份如上。后续先核对 PID/端口/所有者再操作，不能凭旧 PID 杀进程。
+  本地 API 18590 / UI 3132 / SSH 13316、16316 全部仅绑定 127.0.0.1，不影响原前后端端口。
+  最终资源清理待页面验收结束执行；不能把暂留的资源报告成已删除，也不得清空共享 Redis。

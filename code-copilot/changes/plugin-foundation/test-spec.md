@@ -60,8 +60,10 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
 ## 4. 人工验收（真实 MySQL 8 + Maven）
 
 1. 生成工程：`pnpm forge:create -- ../plugin-check --base-package com.acme.check --preset minimal-admin`。
-2. 在生成工程中执行：`pnpm forge:plugin add <模板仓库>/plugins-samples/forge-plugin-hello`。
-3. 用 `init-db.sh --recreate --clean` 初始化库，然后编译启动：`mvn -pl <admin模块> -am package -DskipTests`。
+2. 在独立空验收库中按「全量 SQL → required seed → 全部主迁移 → clean」初始化基础库。
+   2026-10-07 顺序修正：遵循 T11 技能，禁止先装插件再清理基础库；不对现有业务库使用 --recreate。
+3. 在生成工程执行 `pnpm forge:plugin add <模板仓库>/plugins-samples/forge-plugin-hello`，
+   然后编译启动：`mvn -pl <admin模块> -am package -DskipTests`。
 4. 检查：
    - `SHOW TABLES LIKE '%_plugin_hello_history'` 存在，且记录 `V1.0.0` 成功；
    - admin 登录后菜单出现“示例插件”，页面可打开，`GET /plugin/hello/info` 返回插件版本和框架版本。
@@ -70,6 +72,35 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
    - 给示例接口加 `@RequiresFeature("ee.test")` 后重启，超级管理员调用返回 403。
 6. 再次启动，Flyway 主库和插件都报告 up to date。
 7. 执行 `clean-db.sh --execute --yes` 后再启动，插件脚本不重复执行。
+
+### T12 已授权执行环境（2026-10-07）
+
+- 参考 lawhub/deploy 的主机/基础设施配置；192.168.66.158 的 forge-mysql 8.0.46 已健康。
+  独立库名 forge_plugin_t12_20261007_0y7usg；只创建该库的临时测试账号，不改原用户权限。
+- 本地隔离目录 /private/tmp/forge-plugin-t12.0y7UsG；新生成 plugin-check / minimal-admin。
+  复用 T9–T11 已通过的 Java/Node/UI 结果，重点补真实 MySQL、Redis、登录及插件生命周期。
+- 本机没有 MySQL CLI；可通过 SSH 调用既有容器内真实 mysql 客户端导入/清理，
+  本地 Maven/服务通过回环 SSH 隧道访问同一验收库；必须记录真实 SQL 执行而非数据库桩。
+- 普通用户只在验收库建立，先测试未授权，再授权 hello 菜单/按钮/API；重新登录验证快照过滤。
+  ee.test 测试覆盖管理员及普通用户，未登录仍由认证拦截器拒绝。
+- 不重启/修改原容器、不接触 lawhub/CRM 业务库、不输出密钥；收尾核对原容器身份/健康状态，
+  验收账号/库/Redis/隧道/本地服务只按明确创建清单清理。未通过项保留失败证据，不勾选 T12。
+
+### T12 实际执行结果（本轮后端部分）
+
+- 新生成 minimal-admin，独立 BOM 安装及 5 次 hello 测试构件 Reactor package 通过；
+  实际主迁移达到 1.0.209，hello 首装历史含 baseline=0、成功 V1.0.0，未给已有角色授权。
+- basic/granted/filter/gate 四阶段各 13 个 HTTP 步骤；清理后重启/升级/重装各 7 个，共 73 个通过。
+  登录使用 RSA/正常 Sa-Token，普通用户通过真实租户成员和当前组织角色绑定，不使用内部调用替代登录。
+  QA 初始化默认验证码关闭，本轮仅在 QA 库加强为图形验证码，并用已有 local-profile 回显完成 API 测试。
+- 管理员/普通用户菜单与普通用户按钮/API 权限快照满足矩阵；RequiresFeature 未开通返回 HTTP 403。
+  原有 RBAC 拒绝沿用 HTTP 200 + 业务 code=403，匿名请求业务 code=401；未将其混淆为 Gate 的 HTTP 403。
+- clean 前后及重启后：主历史 209 条、hello 历史 2 条，包含安装时间的完整摘要一致。
+  临时 1.0.1 交付包保留旧 SQL 字节，仅追加标记迁移；升级后 hello 历史 3 条，CLI 卸载/重装后摘要不变。
+- 初轮离线 Flyway 插件解析、Maven 缓存写权限、测试夹具和 pnpm 11 ignored-builds 失败均保留日志，
+  不作为成功结果；用正确依赖上下文/权限及完整夹具复跑。直接启动已有 Vite 成功，不宣称 pnpm install 成功。
+- 文档契约 6/6、check-edition 通过；生产代码未变，复用 T9/T11 相关 Java/Node/UI 证据。
+  浏览器真实页面仍未验收，等待本地验证码填写确认；资源最终清理未执行，不勾选整个 T12。
 
 ## 5. T0 增量验证（2026-10-07）
 
