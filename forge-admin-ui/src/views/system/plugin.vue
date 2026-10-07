@@ -1,84 +1,91 @@
 <template>
-  <div class="plugin-center">
-    <!-- 页面标题与刷新 -->
-    <header class="plugin-center__header">
-      <div>
-        <h2>插件中心</h2>
-        <p>当前后端服务 · 核心 {{ metadata.coreVersion || '—' }}</p>
+  <NTabs type="line" animated default-value="runtime">
+    <NTabPane name="runtime" tab="当前后端" display-directive="if">
+      <div class="plugin-center">
+        <!-- 页面标题与刷新 -->
+        <header class="plugin-center__header">
+          <div>
+            <h2>插件中心</h2>
+            <p>当前后端服务 · 核心 {{ metadata.coreVersion || '—' }}</p>
+          </div>
+          <NButton v-if="canList" :loading="loading" @click="load">
+            <template #icon>
+              <i class="i-lucide:refresh-cw" />
+            </template>
+            刷新清单
+          </NButton>
+        </header>
+
+        <!-- 筛选区 -->
+        <form class="plugin-center__filters" @submit.prevent="search">
+          <NInput v-model:value="query.keyword" clearable :maxlength="100" placeholder="插件名称或标识" />
+          <NSelect v-model:value="query.origin" clearable :options="origins" placeholder="全部来源" />
+          <NButton type="primary" attr-type="submit" :loading="loading">
+            查询
+          </NButton>
+          <NButton @click="reset">
+            重置
+          </NButton>
+        </form>
+
+        <!-- 列表与错误反馈 -->
+        <NAlert v-if="error" type="error" title="清单加载失败">
+          {{ error }} <NButton text type="primary" @click="load">
+            重试
+          </NButton>
+        </NAlert>
+        <NDataTable
+          :columns="columns" :data="records" :loading="loading" :row-key="row => row.id"
+          :scroll-x="760" :bordered="false" size="medium"
+        >
+          <template #empty>
+            <NEmpty description="当前服务没有符合条件的插件" />
+          </template>
+        </NDataTable>
+        <footer class="plugin-center__footer">
+          <span>共 {{ total }} 个</span>
+          <NPagination
+            :page="query.pageNum" :page-size="query.pageSize" :item-count="total"
+            :page-sizes="[15, 30, 50]" show-size-picker @update:page="changePage" @update:page-size="changeSize"
+          />
+        </footer>
+        <p class="plugin-center__note">
+          这里只显示当前后端实例的构建声明，不包含尚未部署的源码和纯前端插件。
+          安装、升级与卸载需重新构建部署；独立流程服务请在对应实例核验。
+        </p>
+
+        <!-- 单层详情面板 -->
+        <PluginDetail
+          :show="detailVisible" :loading="detailLoading" :plugin="detail" :error="detailError"
+          @close="closeDetail" @retry="openDetail()"
+        />
       </div>
-      <NButton v-if="canList" :loading="loading" @click="load">
-        <template #icon>
-          <i class="i-lucide:refresh-cw" />
-        </template>
-        刷新清单
-      </NButton>
-    </header>
-
-    <!-- 筛选区 -->
-    <form class="plugin-center__filters" @submit.prevent="search">
-      <NInput v-model:value="query.keyword" clearable :maxlength="100" placeholder="插件名称或标识" />
-      <NSelect v-model:value="query.origin" clearable :options="origins" placeholder="全部来源" />
-      <NButton type="primary" attr-type="submit" :loading="loading">
-        查询
-      </NButton>
-      <NButton @click="reset">
-        重置
-      </NButton>
-    </form>
-
-    <!-- 列表与错误反馈 -->
-    <NAlert v-if="error" type="error" title="清单加载失败">
-      {{ error }} <NButton text type="primary" @click="load">
-        重试
-      </NButton>
-    </NAlert>
-    <NDataTable
-      :columns="columns" :data="records" :loading="loading" :row-key="row => row.id"
-      :scroll-x="760" :bordered="false" size="medium"
-    >
-      <template #empty>
-        <NEmpty description="当前服务没有符合条件的插件" />
-      </template>
-    </NDataTable>
-    <footer class="plugin-center__footer">
-      <span>共 {{ total }} 个</span>
-      <NPagination
-        :page="query.pageNum" :page-size="query.pageSize" :item-count="total"
-        :page-sizes="[15, 30, 50]" show-size-picker @update:page="changePage" @update:page-size="changeSize"
-      />
-    </footer>
-    <p class="plugin-center__note">
-      这里只显示当前后端实例的构建声明，不包含尚未部署的源码和纯前端插件。
-      安装、升级与卸载需重新构建部署；独立流程服务请在对应实例核验。
-    </p>
-
-    <!-- 单层详情面板 -->
-    <PluginDetail
-      :show="detailVisible" :loading="detailLoading" :plugin="detail" :error="detailError"
-      @close="closeDetail" @retry="openDetail()"
-    />
-  </div>
+    </NTabPane>
+    <NTabPane name="ui" tab="构建对比" display-directive="if">
+      <PluginBuildComparison />
+    </NTabPane>
+    <NTabPane name="tasks" tab="安装工作台" display-directive="if">
+      <PluginWorkbench />
+    </NTabPane>
+  </NTabs>
 </template>
 
 <script setup>
-import { NAlert, NButton, NDataTable, NEmpty, NInput, NPagination, NSelect } from 'naive-ui'
+import { NAlert, NButton, NDataTable, NEmpty, NInput, NPagination, NSelect, NTabPane, NTabs } from 'naive-ui'
 import { computed, h, onMounted } from 'vue'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
-import { useUserStore } from '@/store'
+import PluginBuildComparison from './plugin/components/PluginBuildComparison.vue'
 import PluginDetail from './plugin/components/PluginDetail.vue'
+import PluginWorkbench from './plugin/components/PluginWorkbench.vue'
 import { usePluginCenter } from './plugin/usePluginCenter'
+import { usePluginPermission } from './plugin/usePluginPermission'
 
 defineOptions({ name: 'SystemPluginCenter' })
 const { dict } = useDict('sys_plugin_origin', 'sys_plugin_edition', 'sys_plugin_load_state')
 const origins = computed(() => dict.value.sys_plugin_origin || [])
-const userStore = useUserStore()
-function hasPermission(code) {
-  return userStore.isAdmin || userStore.permissions.some(
-    grant => ['**', '*:*:*', code].includes(grant),
-  )
-}
+const hasPermission = usePluginPermission()
 const canList = computed(() => hasPermission('system:plugin:list'))
 const canDetail = computed(() => hasPermission('system:plugin:detail'))
 const {

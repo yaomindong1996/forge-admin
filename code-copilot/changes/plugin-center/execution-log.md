@@ -1,5 +1,101 @@
 # 插件中心执行记录
 
+## 2026-10-07：P2 开始
+
+- 用户请求继续下一阶段，基线 203068d7，保持 codex/plugin-foundation 和用户 .DS_Store。
+- 重读 project-init Skill/plugins 参考、DESIGN、测试规范及已有 P1 证据，追加 P2 执行契约。
+- P2 仅受控上传/预检/确认/审计及 UI 构建声明；确认排队不执行安装，不读生产源码路径。
+- ZIP 入私有有界 BLOB，平台/RBAC/租户上下文隔离；新增迁移待人工上线，不连接共享数据库。
+
+## 2026-10-07：P2 交付与增量自审
+
+### 范围与实现
+
+- 有界 ZIP central/local、路径、链接、大小、压缩流、CRC、NFC 重名校验；严格 JSON、
+  根/runtime 描述一致、POM 单模块/外部实体/64 层限制，私有包不解压落盘、不执行。
+- 任务审计/私有 BLOB、显式 DTO/VO、Mapper XML 租户过滤、上传 requestId 幂等，
+  确认/取消 SHA-256+revision+CAS，运行快照变化拒绝确认；独立同插件活动任务占用键。
+- 平台超级管理员和独立 RBAC；上传/确认/取消 OperationLog 不保存请求/响应内容。
+  只到待构建，无 shell/Node/部署接口；前端不显示假安装成功，不实现 Pro/许可证。
+- V1.0.211 新表/10 权限资源/2 字典类型/6 字典项；不改 V1.0.210、不赋普通角色权限。
+  不覆盖客户菜单/权限/接口，当前唯一键要求 snapshot 独立权限编码。
+- 上传工作台、确认风险/取消/查询及有界预览；真实 UI 构建清单核验所有权/开发链接，
+  与完整后端快照比较。源码登记、定制、路径/依赖及迁移实际影响明确留到 P3。
+- Stage 1 Spec 合规：P2 覆盖，P3 仍未接入；Stage 2 质量：新类/SFC <1000、方法 ≤80、
+  新增行 ≤120，字典/枚举/构造器注入/事务/幂等/权限/租户/逻辑删除与日志隐私自检。
+  vite.config.js 原有 137 字符环境变量解构行未增长，不顺手修改历史代码。
+- forge-project-init Skill 影响：复用源码 CLI/格式，保持协议坐标和稳定 ID，
+  模板清理任务包并对新生成 full 工程执行 DB 桩、原始坐标单测和聚合构建。
+
+### 验证环境与命令
+
+- 独占目录 `/private/tmp/forge-plugin-center-p2.03Fo6H`，以下简称 QA_DIR。
+  沿用 Node20/JDK17/Maven3.9.11 离线工具和已有依赖；H2 仅 test-scope（BOM 已管理）。
+- 模板 forge-server：`mvn -o -q -pl forge-framework/forge-plugin-parent/forge-plugin-system -am test
+  -Penable-tests '-Dtest=SourcePluginPackageReaderTest,Plugin*Test,RuntimePluginCatalogTest,
+  CommunityFeatureGateTest,ForgeVersionTest,SysPlugin*Test,*FeatureGateTest'
+  -Dsurefire.failIfNoSpecifiedTests=false -Dmaven.test.redirectTestOutputToFile=true`。
+  实际 -Dtest 参数为无换行/空格的上述列表，预加载同 P1 的 Byte Buddy agent。
+  `java-final.log` 退出 0，starter-plugin 188/system 48，共 236，失败/错误/跳过均 0。
+- 模板 `mvn -o -q -pl forge-admin-server -am package -DskipTests`：
+  `admin-final-package.log` 退出 0；不是全仓所有业务测试均已通过。
+- UI 现有依赖直接运行 ESLint、`vitest run src/views/system/plugin/__tests__`、`vite build`：
+  `eslint-final.log` 退出 0、14/14 通过、`ui-final-build.log` 退出 0（38.60 秒），
+  现有大包/构建分析提示非阻断，不安装/替换 node_modules。
+- Node 完整矩阵沿用 P1 命令并追加 workbench-contract.test.mjs：
+  `node-final.tap` 353/353，无失败/跳过（34.35 秒）；文档/中心契约独立 13/13。
+- `SysPluginTaskMapperTest` 执行真实 MyBatis/XML/表结构，验证私有包内部读取、
+  公共查询不取 ZIP、租户隔离、活动唯一键、CAS、取消释放和逻辑删除。
+  `SysPluginMigrationTest` 在 H2 MySQL 模式执行实际 210/211、211 两次，
+  15 总资源/14 平台限制资源、6 字典类型/14 条目，客户菜单/权限冲突不覆盖。
+  QA_DIR/migration-fixture.sql 的独立 RunScript 也退出 0，不等价于 MySQL/Flyway。
+
+### 生成工程与浏览器
+
+- 新 full 工程生成四次（full/delivery/final/release-generated），最后以 release-generated 验收；
+  每次从当前模板生成，不是只拷贝变更目录。参数沿用 P1：plugin-center-check、
+  PluginCenterCheck、com.acme.center、com.acme.maven、center-host/kernel、plugin_center_check。
+- release-db.tap：新 full 工程 init/clean DB 桩 31/31（48.25 秒），未创建真实数据库。
+- release-java.log：`-pl kernel-framework/kernel-plugin-parent/kernel-plugin-system -am test`
+  `-Penable-tests -Dtest=SourcePluginPackageReaderTest,PluginAutoConfigurationTest,SysPlugin*Test`，
+  56/56，退出 0；源包测试仍使用原始 Forge groupId，不让夹具随宿主改名自洽。
+- 在独占生成工程用现有 CLI 安装标准 plugins-samples/forge-plugin-hello，
+  release-install.log 退出 0；实际生成 UI helper 的 release-manifest.log 输出 hello 1.0.0、
+  core 1.2.0，无源码路径；随后 release-package.log Admin 聚合 package 退出 0。
+  未做生成 UI 全量构建，模板 UI 已完整构建；不是执行器接入或目标部署。
+- 明确标注模拟接口的 Vite 127.0.0.1:43128，隔离系统 Chrome，无用户会话读取。
+  browser-final.log：上传/风险勾选前禁止确认/确认待构建/取消/阻断无确认按钮/
+  查询/失败重试/构建版本不同/320px 深色；无 pageerror，页面 scrollWidth=320，
+  抽屉 x=0,width=320,height=720，关闭按钮 x=240,y=670,width=56,height=34 完整可见。
+  人工检查 preview-light、preview-narrow-dark、workbench-narrow-dark 截图；
+  使用模拟响应，不替代真实用户登录、加密/multipart 或数据库验收。
+
+### 发现与修复
+
+- 真 Mapper 测试发现 byte[] 返回被 MyBatis 当作多行数组，改为私有实体包装列，
+  不降低公开 API 隐私；隔离 Factory 的删除测试显式传入审计字段，避免未注册填充器产生 NULL。
+- strict POM 原始 groupId 被生成器改名，改分段协议常量，生成后的测试仍用原始包。
+- sys_resource 真实唯一键不允许 page/snapshot 复用编码，snapshot 改独立权限；
+  冲突保护同时校验 PC 权限及 API，新增真实唯一键迁移回归。
+- 初次测试夹具 Mockito 未完成 stubbing、唯一键错误文案大小写、UI mock 缺字典导出，
+  分别修正夹具；测试断言/门禁未降级，浏览器窄屏等待动画稳定再检查位置。
+- 补日志时误用不存在的 OperationType.INSERT，编译发现后查枚举改为 ADD，完整回归重跑通过。
+- 初次生成工程对 Admin 全链开测试，触发存量 AiProviderAdapterRegistryTest 缺
+  createEmbeddingModel 实现的编译问题（generated-java.log）。本轮未改无关 AI 测试；
+  改用本轮 system/starter 的定向 Reactor 测试通过，Admin 生产聚合 package 通过。
+- 构建 helper 位于既有被忽略但包含源码的 build 目录，提交显式纳入此新文件，避免遗漏。
+- 两个真实故障已沉淀 backend 踩坑及索引；未改用户 .DS_Store。
+
+### 待执行和清理
+
+- 未连接或修改 158 MySQL/Redis、启动真实 Admin/Flow、执行 Flyway/生产部署；
+  V1.0.211 和真实登录/RBAC/加密/multipart 验收仍待目标环境执行。
+- P3 builder/源工作区冲突和定制检查/构建/受控部署/运行核验未开发；Pro 工程未创建。
+- 隔离 Chrome 每次 finally 关闭；只停止本轮 43128 模拟 Vite，日志/截图/生成工程保留。
+- Vite 会话 91764 Ctrl-C 结束（退出 130），lsof 复核 43128 无监听；未停止用户已有前端。
+- 收尾文档/中心契约重跑 13/13、edition 门禁及 diff --check 通过，索引与工作区仅本轮变更。
+- 本地中文提交 codex/plugin-foundation，不 push、不合并 main，.DS_Store 不提交。
+
 ## 2026-10-07：P1 开始
 
 - 用户批准可视化插件架构后开始；基线 ae6dc7ab，分支 codex/plugin-foundation。

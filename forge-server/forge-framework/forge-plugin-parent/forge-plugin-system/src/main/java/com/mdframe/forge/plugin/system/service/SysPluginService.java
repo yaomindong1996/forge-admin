@@ -4,6 +4,7 @@ import com.mdframe.forge.plugin.system.dto.SysPluginQuery;
 import com.mdframe.forge.plugin.system.enums.PluginLoadState;
 import com.mdframe.forge.plugin.system.vo.SysPluginPageVO;
 import com.mdframe.forge.plugin.system.vo.SysPluginVO;
+import com.mdframe.forge.plugin.system.vo.SysPluginSnapshotVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.plugin.ForgeVersion;
 import com.mdframe.forge.starter.plugin.catalog.RuntimePlugin;
@@ -39,6 +40,11 @@ public class SysPluginService {
     public SysPluginVO detail(String id) {
         return catalog.findById(id).map(this::view)
                 .orElseThrow(() -> new BusinessException(404, "当前服务未加载此插件，请确认部署实例"));
+    }
+
+    public SysPluginSnapshotVO snapshot() {
+        return new SysPluginSnapshotVO(catalog.getPlugins().stream().map(this::view).toList(),
+                ForgeVersion.CURRENT, gate.edition());
     }
 
     private boolean matches(RuntimePlugin plugin, String origin, String keyword) {

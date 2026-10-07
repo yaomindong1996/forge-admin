@@ -1,6 +1,6 @@
 # 踩坑：后端框架 / Spring / Maven
 
-> 从 `code-copilot/memory/pitfalls.md` 按主题拆出。新条目追加到本文件。共 34 条。
+> 从 `code-copilot/memory/pitfalls.md` 按主题拆出。新条目追加到本文件。共 46 条。
 
 ## 打印关系外键 businessObject0eq3Id 对不上是设计器列名+model_schema 漏字段
 
@@ -770,3 +770,27 @@ Node CLI 同样应按 realpath 比较入口路径，避免 macOS /var 与 /priva
 源包排除配置用于防泄密；已安装扫描则在读取内容前检测并拒绝配置（包含忽略/提交文件与链接）。
 预检和逐写入复检共用该口径，正常构建输出及外部 dev 源码不受影响。
 竞态测试必须在相应组件覆盖前注入配置；放在组件已替换后的 POM 操作不属于此保护窗口。
+
+## MyBatis BLOB 查询不能用 byte[] 作为整个 Mapper 返回类型
+
+**发现日期**: 2026-10-07
+
+**问题描述**:
+`byte[] selectArchive(...)` 配合单列 BLOB resultType=byte[]，MyBatis-Plus 将数组当作多行返回，
+将每行 byte[] 放进 byte[] 时抛 `Array.set argument type mismatch`；纯 Mapper mock 测试发现不了。
+
+**解决方案**:
+用明确实体/VO 包装 BLOB 列，内部读取 `getArchiveData()`；公开响应仍使用不包含包字节的 VO。
+增加执行真实 Mapper XML 和表结构的测试，验证内部包读取、列表不取包、租户边界及并发状态校验。
+
+## 生成工程的插件源包验证坐标不能跟随宿主包名改写
+
+**发现日期**: 2026-10-07
+
+**问题描述**:
+Forge 源包使用原始 groupId，生成工程的全文改名却将 Java 验证器内固定字符串替换成宿主包名。
+如果测试夹具中的相同字符串也被替换，单测能通过，却无法接收真正的标准插件包。
+
+**解决方案**:
+固定交付协议坐标用分段常量保护，Java package/import 仍正常改名；安装器负责后续宿主坐标转换。
+生成 full 工程后，验证器测试仍使用原始 Forge 包坐标，而非由生成器同步改写的“自洽”夹具。

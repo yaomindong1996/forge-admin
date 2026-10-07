@@ -37,6 +37,7 @@ class SysPluginControllerTest {
             assertThatThrownBy(() -> controller.page(new SysPluginQuery())).isInstanceOf(BusinessException.class)
                     .hasMessageContaining("平台超级管理员");
             assertThatThrownBy(() -> controller.detail("plugin-system")).isInstanceOf(BusinessException.class);
+            assertThatThrownBy(controller::snapshot).isInstanceOf(BusinessException.class);
             verifyNoInteractions(service);
         }
     }
@@ -61,6 +62,8 @@ class SysPluginControllerTest {
                 .getAnnotation(SaCheckPermission.class).value()).containsExactly("system:plugin:list");
         assertThat(SysPluginController.class.getMethod("detail", String.class)
                 .getAnnotation(SaCheckPermission.class).value()).containsExactly("system:plugin:detail");
+        assertThat(SysPluginController.class.getMethod("snapshot")
+                .getAnnotation(SaCheckPermission.class).value()).containsExactly("system:plugin:snapshot");
     }
 
     private ExecutionIdentity identity(int type) {

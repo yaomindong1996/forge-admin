@@ -7,3 +7,7 @@ export function listRuntimePlugins(params) {
 export function getRuntimePlugin(id) {
   return request.get(`/system/plugin/${encodeURIComponent(id)}`, { needTip: false })
 }
+
+export function getRuntimePluginSnapshot() {
+  return request.get('/system/plugin/snapshot', { needTip: false })
+}

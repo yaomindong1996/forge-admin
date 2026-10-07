@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.system.mapper.SysPluginTaskMapper">
+    <sql id="Columns">
+        id, tenant_id, request_id, plugin_id, plugin_name, plugin_version, operation_type, task_status,
+        revision, active_plugin_id, archive_sha256, file_name, archive_bytes, runtime_snapshot,
+        confirmed_by, confirmed_time, cancelled_by, cancelled_time,
+        create_by, create_time, create_dept, update_by, update_time, del_flag
+    </sql>
+    <!-- 列表不取 ZIP 和大预览，租户与逻辑删除条件显式保留。 -->
+    <select id="selectTaskPage" resultType="com.mdframe.forge.plugin.system.entity.SysPluginTask">
+        SELECT <include refid="Columns"/> FROM sys_plugin_task
+        WHERE tenant_id = #{tenantId} AND del_flag = 0
+        <if test="query.keyword != null and query.keyword != ''">
+            AND (LOCATE(#{query.keyword}, plugin_id) > 0 OR LOCATE(#{query.keyword}, plugin_name) > 0)
+        </if>
+        <if test="query.status != null and query.status != ''">
+            AND task_status = #{query.status}
+        </if>
+        ORDER BY create_time DESC, id DESC
+    </select>
+    <select id="selectTask" resultType="com.mdframe.forge.plugin.system.entity.SysPluginTask">
+        SELECT <include refid="Columns"/>, preview_json FROM sys_plugin_task
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+    </select>
+    <select id="selectByRequest" resultType="com.mdframe.forge.plugin.system.entity.SysPluginTask">
+        SELECT <include refid="Columns"/>, preview_json FROM sys_plugin_task
+        WHERE tenant_id = #{tenantId} AND create_by = #{actorId} AND request_id = #{requestId} AND del_flag = 0
+    </select>
+    <!-- ZIP 仅内部确认校验读取，没有公开下载接口。 -->
+    <select id="selectArchive" resultType="com.mdframe.forge.plugin.system.entity.SysPluginTask">
+        SELECT archive_data FROM sys_plugin_task WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+    </select>
+    <update id="transition">
+        UPDATE sys_plugin_task SET task_status = #{task.taskStatus}, revision = revision + 1,
+            active_plugin_id = #{task.activePluginId},
+            confirmed_by = #{task.confirmedBy}, confirmed_time = #{task.confirmedTime},
+            cancelled_by = #{task.cancelledBy}, cancelled_time = #{task.cancelledTime},
+            update_by = #{task.updateBy}, update_time = #{task.updateTime}
+        WHERE tenant_id = #{task.tenantId} AND id = #{task.id} AND del_flag = 0
+            AND task_status = #{expectedStatus} AND revision = #{expectedRevision}
+    </update>
+</mapper>
