@@ -160,6 +160,8 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
     
+        <!-- forge-plugins:dependencies:begin -->
+        <!-- forge-plugins:dependencies:end -->
     </dependencies>
     
     <build>

@@ -55,6 +55,7 @@ test('creator rejects unresolved revision before creating the requested output d
   const repoRoot = fileURLToPath(new URL('../..', import.meta.url))
   const root = await fixture(t, { 'forge-server/pom.xml': '<properties><revision>${revision}</revision></properties>' })
   for (const file of ['scripts/forge-create/create-project.mjs', 'scripts/forge-create/project-tools.mjs',
+    'scripts/forge-create/pom-modules.mjs',
     'scripts/forge-create/source-glue.mjs', 'scripts/forge-create/module-catalog.json',
     'scripts/forge-shared/rename.mjs', 'scripts/forge-shared/files.mjs']) {
     const target = path.join(root, file)

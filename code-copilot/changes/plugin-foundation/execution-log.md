@@ -800,3 +800,88 @@ JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home \
   本轮 Maven package 与数据库桩验证不代表真实数据库或安装验收；没有本轮业务服务 PID。
 - 按工程初始化 Skill 重生成两预设并复跑模板/生成 full DB 桩；只提交本轮脚本/阶段文档，
   保留既有 .DS_Store 改动，不提交临时工程/构件，不 push、不合并 main。
+
+## 2026-10-07 T7：POM 插件接入标记
+
+### 范围与实现
+
+- 用户确认继续下一阶段。本轮只交付 T7，沿用 T6 的帮助入口，不实现 T8 安装/升级/卸载或 License。
+- 后端根 POM modules 末尾新增 forge-plugins:modules:begin/end，Admin dependencies 末尾新增
+  forge-plugins:dependencies:begin/end。区块为空，现有模块/依赖/版本及顺序不变。
+- 原 replacePomModules 整块重写会丢失注释；提取为 pom-modules.mjs，保留合法空标记。
+  无标记旧模板输出不变；重复/缺失/反向/错位/非空区块拒绝，单文件校验失败不写入该文件。
+  生成器不新增全工程回滚；失败可能留下部分临时输出，不能把单文件保护表述为安装器事务。
+- T6 的 CLI 版本错误夹具同步带入新的模块渲染依赖，保留原“不创建目标”和版本错误断言。
+  新测试覆盖原渲染兼容、标记拒绝/幂等、源 POM 契约及真实共享改名，不放宽原断言或删除测试。
+
+### 隔离生成与原字节审计
+
+- 验证根目录：/private/tmp/forge-plugin-t7.H0ou4a，未覆盖用户工程、未使用 --force。
+- frozen-template 复制 T6 的已审计冻结输入 /private/tmp/forge-plugin-t6.BJerbU/frozen-template；
+  先在 before 生成两套工程，全部文件与 T6 final-frozen 比较，missing/added/changed 均为 []。
+  未把实时业务源码、目录清单或 T1–T4 新模块混入冻结输入。
+- 随后只带入 T7 生成器/pom-modules 和两处精确 POM 注释，在 after 生成：
+
+```bash
+node scripts/forge-create/create-project.mjs \
+  /private/tmp/forge-plugin-t7.H0ou4a/after/forge-baseline-full \
+  --base-package com.acme.demo --preset full
+node scripts/forge-create/create-project.mjs \
+  /private/tmp/forge-plugin-t7.H0ou4a/after/forge-baseline-min \
+  --base-package com.acme.demo --preset minimal-admin
+```
+
+- 实时模板使用相同固定参数，目标改为 live/forge-baseline-full、live/forge-baseline-min，均生成成功。
+  before/after 的命令从 frozen-template 执行，live 的命令从仓库根执行，不连接数据库。
+- 审计命令：node /private/tmp/forge-plugin-t7.H0ou4a/audit.mjs /private/tmp/forge-plugin-t7.H0ou4a，退出 0。
+  使用原 collectManifest/compareManifests，对全部文件路径、字节数、SHA-256 比较，没有任何路径忽略/归一化。
+- full 8329、minimal-admin 5063 文件；相对 before 两套 missing=[]/added=[]，changed 精确为：
+  <name>-server/pom.xml、<name>-server/<name>-admin-server/pom.xml。
+  删除唯一新增的两行空标记注释后，每个文件与 before 原字节一致；配置/业务/POM 其它内容/SQL/图片不变。
+- 模板两个源 POM 同样删除精确新增注释后，与 0b93c1b2 中对应文件逐字节一致。
+  git diff --name-only -- code-copilot/changes/plugin-foundation/baseline 为空，原 T0 清单/provenance/补丁不变。
+- 两套实时工程所有 POM xmllint --noout 通过（54/37），声明的每个子模块目录及 pom.xml 均存在。
+  xmllint XPath 验证空标记为 project 直属 modules/dependencies 的子节点；唯一、为空，未落入 dependencyManagement。
+  forgeVersion=1.2.0/plugins=[] 未变，实际共享改名测试验证独立 Maven groupId/Java 包/模块前缀不改标记名称。
+
+### 测试与编译
+
+- Node v20.19.0；完整模板回归命令：
+
+```bash
+node --test scripts/forge-create/module-catalog.test.mjs scripts/forge-create/source-glue.test.mjs \
+  scripts/forge-create/pom-modules.test.mjs scripts/forge-create/project-tools.test.mjs \
+  scripts/forge-shared/rename.test.mjs scripts/forge-plugin/index.test.mjs \
+  code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
+  forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+```
+
+- 新增 20 项；模板共 129/129，约 29.95 秒；live/full 根复跑以下命令 30/30，约 27.85 秒。
+  合计 159 项，失败/取消/跳过均为 0，所有数据库/迁移调用均为桩：
+
+```bash
+node --test forge-baseline-full-server/scripts/db/init-db.test.mjs \
+  forge-baseline-full-server/scripts/db/clean-db.test.mjs
+```
+
+- 行宽审查后，非 DB 工具回归 99 项及关键 pom-modules/project-tools 45 项复跑退出 0。
+  仅缩短一条测试标题/注释并折行相同错误文案，不改测试断言或生成输出语义。
+- JDK=/private/tmp/lawhub-october-jdk/Contents/Home，Maven=/private/tmp/apache-maven-3.9.11/bin/mvn，3.9.11。
+  以下均使用 JAVA_HOME 指向上述 JDK、Maven -q -o 离线运行，-DskipTests：
+  - 仓库 forge-server：-pl forge-admin-server -am compile，退出 0。
+  - live/full server：-pl forge-baseline-full-framework/forge-baseline-full-dependencies install，
+    -pl forge-baseline-full-admin-server -am validate，以及 -pl forge-baseline-full-admin-server -am compile，退出 0。
+  - live/min server：-pl forge-baseline-min-framework/forge-baseline-min-dependencies install，
+    -pl forge-baseline-min-admin-server -am validate，以及 -pl forge-baseline-min-admin-server -am compile，退出 0。
+  - 最后两套 BOM install/validate 在 set -e 的会话中再复核，均退出 0。
+  三套工程路径/坐标独立，没有同 checkout 的并发构建，也没有引入新依赖或靠新增插件模块凑编译通过。
+- Node --check 生成器/pom-modules、git diff --check、新增行宽 <=120/方法 <=80/参数 <=5 检查通过。
+  新运行模块/测试分别 44/129 行；生成器由 1076 减至 1061 行，原渲染器提取后不再在入口追加逻辑。
+
+### 状态与限制
+
+- T7 完成；下一阶段为 T8 安装命令，T8–T12 和真实数据库/插件全链路未完成。
+- 本轮仅 POM 注释和生成器渲染变更，编译验证不等于 package、应用启动、全部 Java 单测或真实 MySQL 验收。
+  无 Java/UI/SQL 改动，按增量标准不重复上述无关全量验证，未启动业务服务或操作真实库。
+- 按 forge-project-init Skill 重生成两预设并复跑模板/生成 full DB 桩；临时工程保留，
+  既有 .DS_Store 改动不提交；本轮单独本地提交到 codex/plugin-foundation，不 push、不合并 main。

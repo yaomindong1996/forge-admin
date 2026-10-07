@@ -11,6 +11,7 @@ import {
 } from '../forge-shared/rename.mjs'
 import { collectFiles, exists } from '../forge-shared/files.mjs'
 import { pruneOptionalAdminGlue } from './source-glue.mjs'
+import { replacePomModules } from './pom-modules.mjs'
 import {
   readForgeVersion, copyGeneratedGitignore, copyGeneratedPluginTools, writeGeneratedProjectConfig,
 } from './project-tools.mjs'
@@ -562,22 +563,6 @@ async function patchBackendPoms(serverRoot, catalog, selection, selectedArtifact
   }
 
   await patchBusinessCoreDependency(serverRoot, selectedArtifacts)
-}
-
-async function replacePomModules(pomFile, modules) {
-  if (!(await exists(pomFile))) {
-    return
-  }
-  const content = await fs.readFile(pomFile, 'utf8')
-  const moduleContent = [
-    '    <modules>',
-    ...modules.map(moduleName => `        <module>${moduleName}</module>`),
-    '    </modules>',
-  ].join('\n')
-  const nextContent = content.includes('<modules>')
-    ? content.replace(/[\t ]*<modules>[\s\S]*?<\/modules>/, moduleContent)
-    : content
-  await fs.writeFile(pomFile, nextContent)
 }
 
 async function prunePomDependencies(pomFile, selectedArtifacts) {

@@ -194,6 +194,8 @@
         <module>forge-app-server</module>
         <module>forge-flow</module>
         <module>forge-business</module>
+        <!-- forge-plugins:modules:begin -->
+        <!-- forge-plugins:modules:end -->
     </modules>
 
     <!--

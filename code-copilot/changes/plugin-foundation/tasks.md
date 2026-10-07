@@ -57,7 +57,11 @@
   - 新增 33 项测试，模板 109/109、生成 full DB 桩 30/30 通过；最终两套 Admin 聚合 package 通过。
   - 相对已审计 T5-F1 两套均只新增 5 文件/改变 1 配置文件，配置仅加两字段；保留原 T0 基线。
   - 54/37 个 POM XML、工具二次改名、pnpm 帮助入口与精确 .gitignore 剥离通过；无真实库或服务验收。
-- [ ] T7 pom 插件标记区块：`forge-server/pom.xml` 的 modules、`forge-admin-server/pom.xml` 的 dependencies 各加一组空标记；确认 `forge:create` 改名后标记保留。
+- [x] T7 POM 插件标记区块（2026-10-07）：
+  - 根 modules/Admin dependencies 各加一组空标记；模块裁剪保留，非法/非空区块拒绝。
+  - 新增 20 项测试；模板 129/129、生成 full DB 桩 30/30；三套 Admin 聚合编译、两套模型验证通过。
+  - 冻结两套工程相对 T6 仅两个 POM 加标记，删掉精确注释后旧字节一致；T0 原基线不变。
+  - 实时工程 54/37 个 POM XML、直属空标记/模块目录及独立前缀改名验证通过；安装命令仍待 T8。
 - [ ] T8 `forge:plugin` 命令（F5）：`add`、`--force`、`--dev`、`list`、`remove`；Node 单测。
 - [ ] T9 示例插件 `plugins-samples/forge-plugin-hello/`（F6）：后端模块、菜单迁移、前端页面、`forge-plugin.json`。
 - [ ] T10 防误提交（F7）：

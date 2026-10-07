@@ -272,3 +272,31 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
 - 两套最终实时工程先 install 独立 BOM 再 Admin 聚合 package -am -DskipTests，四个命令全部退出 0。
   Start-Class 与生成类名一致，包内打印 jar 与本轮 Reactor jar 摘要一致；Node 语法/规模/行宽/diff 检查通过。
 - 无生产 Java/UI/SQL 改动，不重跑全部 Java 单测，不启动服务或真实 MySQL/Redis；安装全链路仍待 T8–T12。
+
+## 13. T7 增量验证（2026-10-07）
+
+- P0：根 modules 与 Admin dependencies 各有唯一、完整、空标记，位置在对应直属区块内部，命名符合 F5。
+  注释以外的源 POM 字节不变，不改变模块/依赖次序或引入新依赖。
+- P0：生成器重写 modules 保留合法空标记；无标记输出与旧规则精确一致、缺文件 no-op。
+  重复/未闭合/反向/区块外标记及非空区块拒绝，不能静默丢掉插件登记。
+- P1：实际共享改名模块处理不同 groupId/basePackage/artifact 前缀，标记不改名。
+  full/minimal-admin 从当前模板重新生成，验证标记、裁剪闭包、所有 POM XML；Maven 模型验证及 Admin 聚合编译。
+- 冻结模板复用 T6 已审计输入，先复现其最终输出，再只添加本轮 POM 注释和模块渲染器。
+  全文件 manifest 相对 T6 只允许两个 POM 变化；删除精确新增注释后恢复旧 POM 字节，不忽略其它路径。
+- 复跑已有 Node 工具回归、模板 DB 桩和重新生成 full 的 DB 桩；Node 语法/形态/diff 检查。
+  本轮不改 Java/SQL/UI，不执行全量 Java 单测、真实数据库迁移或服务级/安装端到端验收。
+
+### T7 执行结果
+
+- 新增模块渲染/标记 20 项：旧渲染/LF/CRLF、空标记裁剪/幂等、损坏/重复/错位/非空拒绝、
+  失败文件不写、缺文件 no-op、两源 POM 空标记及实际共享改名。模板共 129/129、生成 full DB 桩 30/30，
+  合计 159 项，失败/取消/跳过均为 0。行宽收敛后工具类 99 项与关键 45 项复跑通过，数据库执行均为桩。
+- 模板源 POM 删除精确新增的两行注释后与 T6 提交逐字节一致；两套冻结 T6 输出复现零差异。
+  T7 full 8329/minimal-admin 5063 文件，相对 T6 各 missing=0/added=0/changed=2，精确为根/Admin POM。
+  删掉注释恢复原输出字节，其它文件 SHA-256 不变；没有重录 T0 或增加忽略/归一化规则。
+- 实时 full/minimal-admin 的 54/37 个 POM XML 及声明的子模块目录全部通过；
+  xmllint XPath 验证标记位于 project 的直属 modules/dependencies 中，唯一且为空；版本/plugins 配置不变。
+- 模板 Admin 聚合 compile、两套生成工程 BOM install/Admin validate/Admin 聚合 compile 均退出 0，全部离线。
+  Node 语法、新文件行宽/方法规模/参数/diff 检查通过；新模块/测试分别 44/129 行。
+- 仅 POM 注释和生成器渲染变更，无新依赖或 Java/UI/SQL 改动，不执行全量 Java 单测或 package；
+  编译与模型验证不能代替真实数据库、服务启动或插件安装全链路；本轮没有启动业务服务。
