@@ -251,3 +251,88 @@ node --test forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/cle
 - 实现方式核对了 Spring Boot 官方自动配置文档和 SemVer 官方规则；测试结论以上述本地输出为准：
   - https://docs.spring.io/spring-boot/3.5/reference/features/developing-auto-configuration.html
   - https://semver.org/
+
+## 2026-10-07：T2 插件独立迁移执行器
+
+### 范围与实现
+
+- 用户要求继续实现，本轮交付 T2，编码前增量补充 Spec 和测试矩阵；没有扩展到收费、License 或真实数据库。
+- 新增迁移计划、Flyway 配置工厂、迁移策略及自动配置四个生产类；生产类均在 100 行以内，方法不超过 80 行。
+  自动配置先于 Boot Flyway 配置登记策略，客户自定义策略可覆盖；开关关闭或 Flyway 缺失时不装配。
+- 主迁移先执行，再规划全部已注册插件的 SQL 迁移，校验表名并按 ID 排序；无 SQL 的插件不建历史表。
+  数据源及通用配置继承，locations/table/baselineVersion 独立；清空主程序化迁移来源，不污染主配置。
+- `baselineOnMigrate`、target、ignoreMigrationPatterns 等保持继承，有限 target 必须存在于各迁移流。
+  插件失败中断初始化，不自动 clean/repair/回滚 DDL；依赖初始化器的 Bean 等待插件迁移完成。
+- Flyway 复用主项目 `10.20.1`，新依赖为 optional；H2 `2.3.232` 和 Spring JDBC 仅 test scope。
+  测试用独立临时 classpath、随机 H2 内存库，关闭时 SHUTDOWN，不读取本地服务/数据库配置。
+- 按 `forge-project-init` Skill 验证改名工程和数据库脚本桩测试；生产生成器、T0 基线和 SQL 均未修改。
+
+### Java 与打包证据
+
+使用已有 JDK `/private/tmp/lawhub-october-jdk/Contents/Home`（Temurin 17.0.20.1）和 Maven 3.9.11，
+设置 `JAVA_HOME` 后在 `forge-server` 执行；没有安装工具，Maven 均使用离线缓存：
+
+```bash
+/private/tmp/apache-maven-3.9.11/bin/mvn -q -o \
+  -pl forge-framework/forge-starter-parent/forge-starter-plugin -am test \
+  -Penable-tests -Dmaven.test.redirectTestOutputToFile=true
+/private/tmp/apache-maven-3.9.11/bin/mvn -q -o -pl forge-admin-server -am package -DskipTests
+```
+
+- 最终串行单测 154/154 通过（失败/错误/跳过均为 0），其中 T1 原有 106 项、本轮新增 48 项。
+  新增分布：历史计划 23、工厂 3、策略 4、H2 SQL 集成 11、Boot 自动配置 7。
+- H2 实跑：非空库首装基线为 0，V1.0.0 执行成功；重启不重复执行；两个插件相同版本历史互不冲突；
+  未注册目录不执行；JAR/嵌套 SQL 发现成功；主 Java 迁移只执行一次；checksum 改动导致下次启动失败；
+  主/插件失败、SQL 后缀及有限 target、baselineOnMigrate=false、主配置不被修改均覆盖。
+- Boot 真实 Flyway 自动配置与初始化器测试：本策略生效，自定义策略只调用一次；依赖 Bean 在 SQL 完成后读取；
+  插件失败使容器失败。没有启动实际 Admin/Redis/Sa-Token 服务。
+- Admin 47 模块聚合 package 退出 0。检查 `target/forge-admin-server.jar` 包含当前 starter 与
+  Flyway core/mysql `10.20.1`。嵌入 starter 和模块 jar 的 SHA-256 均为
+  `fecaea7b1c96ea703dd5771973a4294547a7bd3051fd3b3802c0822647342b95`，避免仅验证到了旧缓存构件。
+
+### 失败、修正与警告
+
+- 初次编译：`.resolvers()` 存在 String/MigrationResolver 两个可变参数重载，改为明确的空 MigrationResolver 数组。
+- 首次 152 项用例中有两项夹具错误：H2 的历史表还有 `TABLE` 建表元记录，不能把整表行数当 SQL 次数；
+  有限 target=1.0.1 需要在插件流中实际存在该版本。分别改为明确统计基线/迁移记录和补目标版本夹具，
+  另加 target 缺失时拒绝初始化负例；未降低断言或忽略真实迁移错误。
+- 一次同时运行同工作区 `test` 与 `package`，共享 `target/classes` 被另一编译重写，出现 14 个 class 读取错误。
+  等 package 完成后串行重跑通过，记录到 backend 踩坑索引；不同隔离生成工程才并行构建。
+- Flyway 提示 H2 2.3.232 新于其声明支持的 H2 2.2.224，属于未消除的非阻塞兼容警告；已有用例全部通过，
+  仍不能替代 MySQL 8 验收。另有 Mockito CDS 提示，未为消除提示升级全局依赖。
+- 改名工程的测试验收主历史表前缀随生成器改名；单独表名算法用例用固定 example/acme 字面量独立断言。
+  未新增生成器忽略规则，也未重录基线。
+
+### 隔离生成及 Node 回归
+
+Node v20.19.0、pnpm 11.19.0；本轮专用目录为 `/private/tmp/forge-plugin-t2.KqirLH/`。
+在仓库根目录执行，输出目录原先不存在，没有使用 `--force` 或执行生成器打印的数据库初始化建议：
+
+```bash
+pnpm forge:create -- /private/tmp/forge-plugin-t2.KqirLH/forge-baseline-full \
+  --base-package com.acme.demo --preset full
+pnpm forge:create -- /private/tmp/forge-plugin-t2.KqirLH/forge-baseline-min \
+  --base-package com.acme.demo --preset minimal-admin
+node --test code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs
+node --test forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+```
+
+- 两套生成成功，分别先 `mvn -q -o -f <改名 framework>/<改名 dependencies>/pom.xml install -DskipTests`，
+  再执行改名后的 starter `-am test -Penable-tests`，各 154/154 通过，错误/失败/跳过均为 0。
+- 解析三套 Surefire XML 复核计数；两套新自动配置导入引用 `com.acme.demo`，Java 无旧包名残留；
+  模块清单保留 starter-plugin，版本资源均读取 1.2.0；真实 H2 历史表使用改名后的主表前缀。
+- 模板数据库桩测试 18/18（约 19.4 秒）、生成 full 的 `scripts/db` 同类测试 18/18（约 13.8 秒）、
+  清单工具 5/5，共 41 项通过，所有 MySQL/Maven 迁移执行均为测试桩，没有真实重建/清理。
+- 修改的源 POM 和 full 54 个/minimal-admin 35 个 POM XML 解析通过；Java 行宽检查及 `git diff --check` 通过。
+  包内模块摘要与当前 jar 一致；T0 清单/补丁/provenance 无差异。
+
+### 状态与限制
+
+- T2 完成，T3–T12 继续待办。T4 历史保护尚未实现，当前不要在已经装了插件的库使用旧清理脚本。
+- 未执行真实 MySQL 或前端/UI 构建（本轮无前端变更），未操作生产数据，没有启动业务服务或改其他项目。
+  H2 内存库均随夹具关闭，无需停止用户原有进程；专用临时生成工程保留，不纳入提交。
+- 本轮仅本地提交至 `codex/plugin-foundation`，不 push、不合并 main；原有 `.DS_Store` 修改保留且排除。
+- 迁移初始化扩展与 API 语义核对了本地 Boot/Flyway 字节码及官方文档：
+  - https://docs.spring.io/spring-boot/how-to/data-initialization.html
+  - https://documentation.red-gate.com/flyway/reference/usage/api-java
+  - https://documentation.red-gate.com/flyway/reference/configuration/flyway-namespace/flyway-target-setting

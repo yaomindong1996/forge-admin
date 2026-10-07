@@ -1,7 +1,7 @@
 # 插件化底座 Spec
 
 > 变更名：`plugin-foundation`
-> 状态：`confirmed`（待澄清已全部确认，可进入 /apply）
+> 状态：`implementing`（方案已确认，T0–T2 分阶段交付，T3–T12 待继续）
 > 创建日期：2026-10-06
 > 涉及：权限过滤（菜单/接口按功能授权隐藏和拦截）、Flyway 执行流程、脚手架改名逻辑，需人工审查
 
@@ -116,7 +116,7 @@ Forge 后续采用“开源版 + 企业版插件”的模式：
   - 先执行主库 `flyway.migrate()`；
   - 再按插件 ID 字母序，为每个声明了迁移的插件执行一次独立的 Flyway。
 - 插件 Flyway 配置：
-  - 继承主 Flyway 的数据源和全部配置；
+  - 复制主 Flyway 的数据源和通用配置，不修改主配置；程序化迁移来源按 T2 隔离边界处理；
   - `locations` = `classpath:db/plugin/<插件ID>`；
   - `table` = 由主历史表名推导；
   - `baselineVersion` = `0`。
@@ -383,5 +383,36 @@ ALTER TABLE sys_resource
   MVC 登录顺序验证使用 MockMvc 夹具，不等同于真实 Sa-Token/Redis 登录端到端验收。
 - 按项目初始化 Skill 复跑清单工具及模板/生成 full 数据库脚本共 41 项 Node 测试，数据库和迁移调用均为桩。
   新模块在生成工程保留且包名/artifact/自动配置引用一致，版本资源读取 `1.2.0`；T0 冻结基线保持不变。
-- T2–T12 仍未完成：尚无插件迁移、菜单权限过滤、安装升级命令或示例插件；商业 License 和计费不在本期。
+- T1 验证时 T2–T12 未完成：当时尚无插件迁移、菜单权限过滤、安装升级命令或示例插件；商业 License 和计费不在本期。
   具体命令、失败修正及限制见 `execution-log.md`。
+
+### 2026-10-07 T2 实现边界
+
+- 本轮只接入 F2，保留 T1 扩展点及 T0 冻结基线；不执行真实 MySQL、业务服务或权限变更。
+- `flyway-core` 使用现有 `10.20.1` 依赖管理且声明为 optional，避免其他宿主被传递引入 Flyway；
+  测试复用项目已有 H2、Spring JDBC（仅 test scope），在随机命名的内存数据库验证真实迁移，不使用本地开发库。
+- 自动配置先于 Boot Flyway 自动配置登记策略，后于 Plugin 自动配置；未引入 Flyway或
+  `spring.flyway.enabled=false` 时不登记策略，客户已有 `FlywayMigrationStrategy` 时默认实现退出。
+- 主迁移必须先调用；随后只扫描已注册插件自己的 `db/plugin/<id>/` 下符合主 SQL 后缀的文件，
+  无迁移文件的插件不创建历史表。按 ID 排序执行，并在首个插件运行前检查所有历史表名称。
+- 主历史表必须是合法 ASCII 标识符并以 `_schema_history` 结尾；插件历史表最多 64 字符，
+  短横线转换成下划线。没有插件迁移时不因客户自定义主表名额外失败。
+- 继承主数据源、ClassLoader、Schema、编码、事务、占位符、SQL 命名及校验配置；仅替换 locations/table/baselineVersion。
+  为防止主脚本重复落入插件历史，清空显式 Java migrations/custom resolvers/resource provider，
+  插件限定 SQL，使用空 Java class provider 和默认 SQL resolver；客户特殊解析器可覆盖整个策略。
+  全局回调继续继承，会在每个插件迁移时触发，回调实现应按当前 Configuration 区分上下文。
+- `baselineOnMigrate`、`target`、`ignoreMigrationPatterns`、`outOfOrder` 原样继承并测试：
+  `baselineOnMigrate=false` 时不擅自基线化已有库；有限 target 也限制插件版本，且必须存在于各迁移流，
+  否则 Flyway 拒绝初始化。模板未设置有限 target，不新增独立插件 target 的配置管理。
+  插件 baselineVersion 固定为 0，确保默认非空业务库首装仍执行插件 V1.0.0。
+- 主/插件失败均中断初始化；不自动 clean、repair、降级或回滚已执行 DDL，启动错误带插件 ID 与历史表上下文。
+  依赖 `flywayInitializer` 的 Bean 只能在所有插件完成后创建；H2/MockMvc 等测试不替代真实 MySQL 验收。
+
+### T2 交付与验证结果
+
+- 完成策略、SQL 迁移计划/工厂和独立自动配置，复用现有 Flyway 版本；不增加传递的宿主迁移依赖。
+- 新增 48 项测试，连同 T1 共 154 项在模板、改名 full/minimal-admin 中各全部通过。
+  H2 真实 SQL 验证非空库 V1.0.0 首装、历史独立、重复启动、校验失败、顺序与中断；容器测试验证初始化依赖等待。
+- Admin 47 模块聚合 package 成功，包内新 starter 与当前模块 jar 摘要一致；41 项 Node 回归及 XML 检查通过。
+- 未连接真实 MySQL、未启动业务服务或变更业务表；H2 版本有 Flyway 非阻塞兼容提示，真实 MySQL 验收仍待 T12。
+  T3–T12 尚未完成，尤其 T4 清理保护未接入，当前不要对安装了插件的库运行既有清理脚本。

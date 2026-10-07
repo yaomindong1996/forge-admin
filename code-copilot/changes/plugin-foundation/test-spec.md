@@ -109,3 +109,27 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
 - 清单工具 5 项、模板数据库脚本 18 项、生成 full 数据库脚本 18 项通过；均未连接真实 MySQL。
 - 首轮 Mockito 不可读资源负例的重新 stub 触发旧异常，已改为独立 resolver 夹具并完整复跑；未弱化断言。
 - T2 迁移、T3 权限过滤和真实插件端到端验收尚未实现/执行，后续按既有矩阵增量补测。
+
+## 7. T2 增量验证（2026-10-07）
+
+- 历史表：模板/改名工程、短横线 ID、最大长度边界、非法字符/后缀、相邻插件 ID 不冲突。
+- 策略：主迁移先执行、插件按 ID 排序、无插件/无 SQL 不创建历史、主失败不执行插件、插件失败停止后续。
+- 配置：复制不污染主配置，保留数据源/ClassLoader/Schema/编码/占位符/命名及校验策略；
+  独立路径、历史表、baselineVersion=0，不重复执行主 Java/custom resolver/resource provider 的脚本。
+  有限 target、ignoreMigrationPatterns 和 baselineOnMigrate=false 明确继承；全局回调保留。
+- 自动配置：Boot 的真实 Flyway 初始化器选中本策略；开关关闭/类缺失不装配，自定义策略可替换；
+  依赖初始化器的 Bean 等待所有插件完成，迁移失败容器启动失败。
+- H2：随机内存库，主迁移创建业务表后插件 SQL 写入；非空库首装仍执行 V1.0.0，重复启动不重跑，
+  两插件同版本不冲突、未注册插件目录不执行、目录/JAR/嵌套资源可发现；不连接真实 MySQL。
+- 回归：复跑 T1 106 项测试、Admin 聚合 package、模板/生成 full 的数据库桩测试；
+  隔离生成 full/minimal-admin 验证改名工程的新自动配置及目标模块测试，不重录 T0 基线。
+
+### T2 执行结果
+
+- 48 项新增测试：计划 23、工厂 3、策略 4、H2 集成 11、Boot 自动配置 7；连同 T1 共 154 项。
+  模板/full/minimal-admin 各 154/154 通过，失败/错误/跳过均为 0。
+- Admin 聚合 package 成功，包内 starter 摘要与本轮 jar 一致；模板/生成 full 数据库脚本各 18 项、清单工具 5 项通过。
+- 首轮发现空 resolvers 重载歧义；随后发现 H2 TABLE 元记录及 target 精确版本规则，已修正类型与测试夹具。
+  一次同工作区并行 package/test 导致 class 文件读取失败，改为串行完整复跑通过，未跳过测试或降低断言。
+- H2 2.3.232 比 Flyway 10.20.1 声明的 H2 支持版本新，有兼容告警；使用已有依赖，不升级全项目版本来消除提示。
+  所有 H2 库均随机命名且关闭时 SHUTDOWN；未连接实际开发库，真实 MySQL 与 T3–T12 仍未验收。

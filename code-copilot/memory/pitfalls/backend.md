@@ -672,3 +672,16 @@ macOS 上使用临时 Microsoft OpenJDK 17 运行 Mockito 5 测试时，内联 M
 
 **解决方案**:
 从当前 Maven 依赖缓存定位匹配版本的 `byte-buddy-agent`，在测试命令的 `JAVA_TOOL_OPTIONS` 中使用 `-javaagent:/绝对路径/byte-buddy-agent-x.y.z.jar`，确保 Maven 和 Surefire fork 都预加载 Instrumentation。必须继续检查实际 `Tests run` 汇总，不能把环境错误当成业务测试失败或跳过测试。
+
+## 同一工作区并发 Maven 构建会干扰运行中的测试
+
+**发现日期**: 2026-10-07
+
+**问题描述**:
+同一 checkout 同时运行模块 `test -am` 和 Admin `package -am` 时，重编译共享模块暂时移除/重写
+`target/classes`，测试报自动配置 class 资源不存在或 `NoClassDefFoundError`。对应源码没有缺失，
+并行 package 完成后在同一代码上串行复跑全部测试通过。
+
+**解决方案**:
+同一输出目录中的 Maven 测试和聚合构建串行执行；只有独立 worktree/生成工程的构建可以并行。
+排查先检查是否有共享 target 的构建正在运行，再完整重跑生命周期与真实测试计数，不删除测试或更改装配规则迁就环境竞争。

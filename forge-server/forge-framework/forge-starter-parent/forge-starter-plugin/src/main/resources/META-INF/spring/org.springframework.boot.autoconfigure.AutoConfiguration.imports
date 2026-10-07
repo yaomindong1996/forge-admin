@@ -1,2 +1,3 @@
 com.mdframe.forge.starter.plugin.autoconfigure.PluginAutoConfiguration
 com.mdframe.forge.starter.plugin.autoconfigure.PluginWebAutoConfiguration
+com.mdframe.forge.starter.plugin.autoconfigure.PluginFlywayAutoConfiguration

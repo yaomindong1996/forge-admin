@@ -17,7 +17,12 @@
   - 在 `forge-starter-parent/pom.xml` 注册模块，`forge-admin-server` 引入依赖，同步 BOM 和脚手架模块闭包；
   - 106 项 Java 单测全部通过，模板、改名 full/minimal-admin 各复跑；Admin 47 个模块聚合编译通过；
   - 清单工具与模板/生成 full 数据库脚本共 41 项 Node 测试通过，全部数据库调用为桩；T0 基线不变。
-- [ ] T2 插件迁移执行器（F2）：`PluginFlywayMigrationStrategy`、历史表名推导、`baselineVersion = 0`；单测覆盖主迁移先执行。
+- [x] T2 插件迁移执行器（F2，2026-10-07）：
+  - `PluginFlywayMigrationStrategy`、独立历史表推导、`baselineVersion = 0`、SQL 来源隔离与 Boot 自动配置；
+  - 新增 48 项测试，连同 T1 共 154 项在模板/full/minimal-admin 三套工程中全部通过；
+  - H2 实跑首装/重复启动、相同版本隔离、失败阻断、主 Java 迁移不重跑、JAR/嵌套目录和 checksum 校验；
+  - Admin 47 模块聚合 package 通过，包内 starter 与本轮模块 jar 的 SHA-256 一致；41 项 Node 回归通过；
+  - 未运行真实 MySQL；T3 菜单过滤、T4 历史表清理保护与安装命令仍待后续实现。
 - [ ] T3 功能授权过滤（F3）：
   - `V1.0.209__add_resource_feature_code.sql`；
   - `SysResource.featureCode`；
