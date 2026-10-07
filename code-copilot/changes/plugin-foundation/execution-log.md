@@ -475,3 +475,113 @@ node --test forge-baseline-full-server/scripts/db/init-db.test.mjs \
 - 没有连接真实 MySQL、没有重建或清理真实库、没有启动业务服务，无需停止业务 PID。
   专用隔离工程保留但不纳入提交；生成器输出的真实初始化命令未执行，自定义 SQL 不在自动保护范围。
 - 按仓库规则本地单独提交 T4，不 push、不合并 main，.DS_Store 原有修改不纳入提交。
+
+## 2026-10-07 12:02 CST：T5 抽取共享改名规则，冻结输出零差异
+
+### 范围与实现
+
+- 从 codex/plugin-foundation 的 73f49cf5 继续，按 forge-project-init Skill 维护工程生成器。
+  抽出 scripts/forge-shared/rename.mjs、files.mjs，生成器复用，不改变其编排阶段。
+- 映射/顺序化文本规则、POM、Java 包/类文件/模块目录改名共用；新增 renameSourceTree 隔离源码入口。
+  Maven groupId 先改，Docker/H5 具体前缀先改；二进制排除、SSO 行清理及已有目标规则保持一致。
+- 仅新增同包名 Java 目录 no-op，避免合并后删除自身；生成器 1498 -> 1084 行。
+  共享规则 419 行、文件工具 52 行、测试 278 行；插件包校验/安装/回滚仍由 T8 承担。
+- 未实现 T6 配置/工具复制，不改 Java/UI/SQL/目录清单/依赖；原有 .DS_Store 修改保留且不提交。
+
+### 规则与模板回归
+
+环境：Node v20.19.0、pnpm 11.19.0、bash 3.2.57。仓库根目录执行：
+
+```bash
+source /Users/mini32g/.nvm/nvm.sh && nvm use v20.19.0
+node --check scripts/forge-create/create-project.mjs
+node --check scripts/forge-shared/rename.mjs
+node --check scripts/forge-shared/files.mjs
+node --check scripts/forge-shared/rename.test.mjs
+node --test scripts/forge-shared/rename.test.mjs \
+  code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
+  forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+git diff --check
+```
+
+- 最终 60/60，约 24.24 秒，失败/取消/跳过均为 0：共享规则 25 + 基线工具 5 + DB 桩 30。
+  初轮 24/25 的失败是报表条件夹具期望遗漏旧模块别名替换；核对原规则后修正精确期望，再完整复跑，
+  没有改变生产规则迁就测试。模板 DB 测试没有连接真实 MySQL。
+- 另用 node --input-type=module 从 git show 73f49cf5 提取原纯函数，VM 中执行并与当前 exports 比较：
+  无/仅 admin/仅 report/仅 H5/全部前端 × 默认/自定义参数共 10 组。模块/启动类映射及完整有序规则
+  JSON 均相等；顺序未归一化，Maven groupId 与 Java basePackage 的自定义值不同。
+- Node 语法、git diff --check、新文件行宽 <=120 和辅助方法 <=80 行通过。初次方法行数扫描误把
+  fixture 后面的全部 test callbacks 算进 fixture，改用函数的顶层闭合行复查后无超限；非源码缺陷。
+
+### 冻结输出验证
+
+专用 mktemp 目录 `/private/tmp/forge-plugin-t5.HLERZE`；按 baseline/README.md 从
+e416f7902834763ef43989c4525738441e49bd4c 解出 frozen-template，应用已有 version-bump.patch。
+只带入当前 create-project.mjs 与 forge-shared 依赖，不复制实时业务源码、module-catalog 或文档。
+在冻结模板中执行以下两条生成命令，无 --force；生成后在当前仓库执行 verify：
+
+```bash
+pnpm forge:create -- /private/tmp/forge-plugin-t5.HLERZE/frozen-output/forge-baseline-full \
+  --base-package com.acme.demo --preset full
+pnpm forge:create -- /private/tmp/forge-plugin-t5.HLERZE/frozen-output/forge-baseline-min \
+  --base-package com.acme.demo --preset minimal-admin
+node code-copilot/changes/plugin-foundation/baseline/manifest.mjs verify \
+  /private/tmp/forge-plugin-t5.HLERZE/frozen-output/forge-baseline-full \
+  code-copilot/changes/plugin-foundation/baseline/full.json
+node code-copilot/changes/plugin-foundation/baseline/manifest.mjs verify \
+  /private/tmp/forge-plugin-t5.HLERZE/frozen-output/forge-baseline-min \
+  code-copilot/changes/plugin-foundation/baseline/minimal-admin.json
+```
+
+- full fileCount=8324、minimal-admin fileCount=4866，两次 verify 均退出 0，
+  missing=[]、added=[]、changed=[]。不忽略/归一化文本、点文件、空文件或二进制。
+- git diff --name-only -- code-copilot/changes/plugin-foundation/baseline 输出为空，未重新录制/覆盖基线。
+
+### 实时工程集成与已发现旧问题
+
+当前仓库另用同样参数生成 live-output 下 full/minimal-admin 两套工程；在实时 full 根执行：
+
+```bash
+node --test forge-baseline-full-server/scripts/db/init-db.test.mjs \
+  forge-baseline-full-server/scripts/db/clean-db.test.mjs
+```
+
+- 30/30，约 25.61 秒，失败/取消/跳过均为 0；包含改名前缀的主库和插件迁移历史保护。
+  模板及实时 full 总计 90 项 Node 回归通过，全部数据库调用为桩。
+- 用 xmllint --noout 检查 full 54/minimal-admin 35 个 POM；Node 严格检查 1.2.0 版本、
+  System 的 starter-plugin 依赖、com.acme.demo 自动配置、V1.0.209 和历史保护均通过。
+- JDK=/private/tmp/lawhub-october-jdk/Contents/Home，Maven=/private/tmp/apache-maven-3.9.11/bin/mvn。
+  在每套实时 server 根先执行离线 BOM install，再执行 Admin 聚合 compile：
+
+```bash
+JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home \
+  /private/tmp/apache-maven-3.9.11/bin/mvn -q -o \
+  -pl forge-baseline-full-framework/forge-baseline-full-dependencies install -DskipTests
+JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home \
+  /private/tmp/apache-maven-3.9.11/bin/mvn -q -o \
+  -pl forge-baseline-full-admin-server -am compile -DskipTests
+JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home \
+  /private/tmp/apache-maven-3.9.11/bin/mvn -q -o \
+  -pl forge-baseline-min-framework/forge-baseline-min-dependencies install -DskipTests
+JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home \
+  /private/tmp/apache-maven-3.9.11/bin/mvn -q -o \
+  -pl forge-baseline-min-admin-server -am compile -DskipTests
+```
+
+- 两次 BOM install 退出 0，Admin compile 均退出 1：full 最先在 plugin-data 的 DatasetPrintDataProvider
+  报 plugin.print 类型不存在；minimal-admin 最先在 plugin-generator 的 PrintApplicationAccessAdapter 等类
+  报同类错误。原目录清单没有 plugin-print，裁剪会删掉源 POM 已存在的打印依赖，冻结工程同样如此。
+- 另在独立 mktemp 输出目录直接运行 javac -proc:none 对 full 生成 Admin 源文件诊断：退出 1，
+  `class ForgeBaselineFullApplication is public, should be declared in a file named ForgeBaselineFullApplication.java`。
+  原 ForgeAdmin 品牌替换先命中，完整启动类规则无法命中，但文件名仍被独立改为 AdminApplication。
+  没有为该调用提供外部类路径，它只确认命名诊断，不是聚合构建；两套 Maven 在更早的打印依赖处失败。
+- 两个问题均在冻结输出中存在，不是 T5 抽取新增。保留失败证据与踩坑，不改目录清单或替换顺序来掩盖，
+  建议下一阶段先单独确认修复及允许差异；不以“零差异”或局部模块测试代替生成 Admin 构建成功。
+
+### 状态与限制
+
+- T5 的共享规则抽取和零输出差异门禁完成；T6–T12 尚未完成，生成工程上述编译问题未修复。
+  已询问用户是否先单独修复再继续工具开发；未收到选择时不突破 T5 的零差异约束。
+- 本轮无 Java 新源码/UI/Flyway 改动，不重跑此前相关 Java 单测或 UI 构建，不启动服务或连接真实数据库。
+  没有业务服务 PID；隔离验证工程留存且不提交，不执行生成器打印的真实初始化/清理命令。
+- 按仓库规则本地单独提交 T5 的脚本与文档，不 push、不合并 main，原有 .DS_Store 修改保留。

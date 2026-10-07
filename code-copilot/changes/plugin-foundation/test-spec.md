@@ -182,3 +182,31 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
   其它 5 项新测试覆盖预览/执行保留、备份副本、业务表模式、帮助边界，普通表写入断言仍保留。
 - bash 3.2.57、Node 语法、新增行宽 <=120、改名一致性与 diff 检查通过；T0 清单未变。
 - 未修改 Java/UI/Flyway SQL，不执行相应全量构建或真实数据库清理；无本轮业务服务或残留服务 PID。
+
+## 10. T5 增量验证（2026-10-07）
+
+- P0：groupId 与 basePackage 不同，POM 使用 groupId，Java/Mapper/自动配置使用 basePackage；
+  root parent、具体 Docker/H5 前缀、旧/新模块路径、启动类名替换顺序保持一致。
+- P0：main/test Java 包目录移动、空父目录清理、目录合并、已有目标文件/目录的原有规则、
+  同包名 no-op；PNG 等二进制字节不改，文本/点文件/SQL 仍按同一张表替换。
+- P1：full/minimal 的 report/H5 条件、SSO 配置行保留/删除、自定义前端路径/端口/代理、
+  不同模块 artifact 前缀、扩展插件模块 map、未知目录/空目录和原样文本处理。
+- node --check 生成器与共享模块；node --test scripts/forge-shared，并复跑已有清单工具与 DB 桩测试。
+- 按 baseline/README.md 重建冻结模板，不混入当前模块目录和业务文件，带入生成器及全部共享依赖；
+  两个预设用 manifest.mjs verify 对照冻结清单，新增/缺失/变化文件均为 0，不归一化或忽略任何输出。
+- 当前模板另生成 full/minimal-admin，核对版本/插件模块/依赖/历史保护规则，改名 full 复跑 DB 桩测试；
+  根据生成集成范围执行离线 Admin 聚合编译。没有 UI/数据库业务变动，不启动业务服务或初始化真实库。
+
+### T5 执行结果
+
+- 新增共享规则 25 项，模板合计 60/60、实时改名 full DB 桩 30/30；失败/错误/取消/跳过均为 0。
+  初轮报表条件用例误认为旧模块别名也不替换，核对原规则后修正精确期望，再完整复跑；未改变生产行为迁就测试。
+- 抽取前后 10 组映射与完整有序替换数组一致；冻结 full 8324/minimal-admin 4866 文件的
+  missing/added/changed 均为 []，保留全部原始字节，不更新基线或增加忽略路径。
+- 两套当前生成工程 54/35 个 POM XML 及版本/新 starter/System 依赖/自动配置/迁移/历史保护检查通过；
+  生成器和共享模块 Node 语法、新增行宽 <=120、辅助方法 <=80 行、git diff --check 通过。
+- 两套离线 Admin 聚合 compile 均失败：full 最先报 plugin-data 打印类型缺失，minimal-admin 最先报
+  plugin-generator 打印类型缺失；原 module-catalog 未包含 plugin-print，冻结输出同样缺模块和依赖。
+- 直接 javac -proc:none 对生成 Admin 源文件确认 public 类名/文件名冲突；未提供外部类路径，该调用只用于
+  命名错误诊断，不视作聚合编译或其它依赖验证。两个旧问题待单独修复，T5 未改变其冻结输出。
+- 未执行 Java 新测试/UI 构建/真实数据库迁移：本轮没有这些源码或协议变动；不启动业务服务，暂无服务 PID。

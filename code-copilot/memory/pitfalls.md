@@ -259,8 +259,9 @@
 - 167. DAG 分支路由必须同时处理跨层穿卡和三种顺序一致性
 - 183. 捕获参与当前事务的下游异常不能清除 rollback-only
 
-### [后端框架 / Spring / Maven](pitfalls/backend.md)（39）
+### [后端框架 / Spring / Maven](pitfalls/backend.md)（40）
 
+- 脚手架品牌前缀替换会抢先改掉 Admin 启动类名
 - 同一工作区并发 Maven 构建会干扰运行中的测试
 
 - 打印关系外键 businessObject0eq3Id 对不上是设计器列名+model_schema 漏字段

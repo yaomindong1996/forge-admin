@@ -202,6 +202,12 @@ mvn -pl forge-admin-server -am compile -DskipTests
 **验证建议**:
 修复 forge-create 裁剪逻辑后，必须重新生成临时 `minimal-admin` 工程，检查生成后的 `admin-server` 存在降级 `AiClientAdapterImpl` 且没有引用 `plugin-ai`，再执行 `mvn -pl <project>-admin-server -am compile -DskipTests` 或 `package -DskipTests`。
 
+**2026-10-07 增量发现（未修复）**:
+`full` 在 `plugin-data`、`minimal-admin` 在 `plugin-generator` 聚合编译时都报 `plugin.print` 类型不存在。
+两个源 POM 已依赖 `forge-plugin-print`，但 module-catalog 未登记该模块；生成器裁剪后删除模块及依赖。
+冻结 T0 输出也有此问题，不能把输出零差异当成可编译。新增模块时需要同步目录清单和所有直接引用者的闭包，
+再分别执行改名工程 Admin 聚合构建；只跑 System/starter 模块测试无法覆盖此缺失。
+
 ## 74. Spring Boot 3.5 与 Redisson 3.34.1 会触发登录 Redis 适配死循环
 
 
@@ -685,3 +691,17 @@ macOS 上使用临时 Microsoft OpenJDK 17 运行 Mockito 5 测试时，内联 M
 **解决方案**:
 同一输出目录中的 Maven 测试和聚合构建串行执行；只有独立 worktree/生成工程的构建可以并行。
 排查先检查是否有共享 target 的构建正在运行，再完整重跑生命周期与真实测试计数，不删除测试或更改装配规则迁就环境竞争。
+
+## 脚手架品牌前缀替换会抢先改掉 Admin 启动类名
+
+**发现日期**: 2026-10-07
+
+**问题描述**:
+生成 `forge-baseline-full` 工程时，文件为 `ForgeBaselineFullAdminApplication.java`，
+public 类却为 `ForgeBaselineFullApplication`；直接 javac 提示应放入 `ForgeBaselineFullApplication.java`。
+minimal-admin 和冻结 T0 输出也有此问题，不是共享改名抽取引入。
+
+**根因与规避**:
+原替换表先执行 `ForgeAdmin -> javaName` 品牌规则，随后 `ForgeAdminApplication` 启动类规则已无法命中；
+文件改名却独立使用完整启动类映射。应单独修复前缀重叠，验证声明、文件名、main 引用和构建配置一致。
+零差异抽取期间不能静默更改这条行为或重录 T0；修复要单列允许差异，再重新生成并聚合构建。

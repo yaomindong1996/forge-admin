@@ -35,9 +35,12 @@
   - 显式 --drop-table 删除历史表时，在连接 MySQL 前拒绝；普通历史与备份/临时副本清理不变；
   - 新增 12 项清理测试，模板 35 项、改名 full 30 项回归均通过；使用系统 bash 3.2 与 MySQL 桩；
   - 更新帮助和自定义 SQL 审核边界；T0 基线不变，未连接真实库，清理后重启验收仍待 T12。
-- [ ] T5 抽出共用改名规则（F4）：
-  - 新增 `scripts/forge-shared/rename.mjs`，`create-project.mjs` 改为引用；
-  - 与 T0 基线逐文件比对，必须完全一致。
+- [x] T5 抽出共用改名规则（F4，2026-10-07）：
+  - 新增 `scripts/forge-shared/rename.mjs` 与文件工具，`create-project.mjs` 复用同一份规则；
+  - 抽取前后 10 组映射/有序规则一致，冻结 full 8324/minimal-admin 4866 文件与 T0 的差异均为 0；
+  - 新增 25 项 Node 测试，模板 60/60、当前改名 full DB 桩 30/30 通过；两套 POM/依赖/配置检查通过；
+  - 生成 Admin 聚合编译被原有打印模块依赖遗漏阻断，另有启动类名与文件名冲突；待单独确认修复，
+    未改写 T0 基线，不把兼容抽取通过表述为生成工程全量编译通过。
 - [ ] T6 脚手架扩展（F4）：
   - `forge.config.json` 增加 `forgeVersion`、`plugins`；
   - 生成工程包含根 `package.json`、`scripts/forge-plugin/`、`scripts/forge-shared/`、`module-catalog.json`；
