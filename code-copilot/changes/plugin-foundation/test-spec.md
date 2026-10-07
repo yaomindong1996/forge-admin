@@ -2,15 +2,17 @@
 
 ## 1. 改名基线（T0 / T5 / T6）
 
-执行位置：仓库根目录。
+执行位置：仓库根目录；模板输入必须按 `baseline/README.md` 冻结，不能拿后续变更的工作区直接对比。
 
 ```bash
-pnpm forge:create -- /tmp/forge-baseline-full --base-package com.acme.demo --preset full --force
-pnpm forge:create -- /tmp/forge-baseline-min --base-package com.acme.demo --preset minimal-admin --force
+pnpm forge:create -- "$baseline_dir/forge-baseline-full" --base-package com.acme.demo --preset full
+pnpm forge:create -- "$baseline_dir/forge-baseline-min" --base-package com.acme.demo --preset minimal-admin
 ```
 
 - T0：记录两套工程全部文件的相对路径和 SHA-256。
+  `baseline_dir` 是通过 `mktemp -d` 新建的专用目录；固定末级目录名决定项目名，禁止 `--force` 覆盖已有工程。
 - T5：重构后以相同参数重新生成，与基线逐项比对，差异必须为 0。
+  比对时只向冻结输入替换生成器及其依赖，不能混入 T1–T4 的生产源码修改。
 - T6：差异只允许出现在以下几处：
   - 新增的 `package.json`、`scripts/`；
   - `forge.config.json` 的 `forgeVersion`、`plugins` 字段；
@@ -68,3 +70,13 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
    - 给示例接口加 `@RequiresFeature("ee.test")` 后重启，超级管理员调用返回 403。
 6. 再次启动，Flyway 主库和插件都报告 up to date。
 7. 执行 `clean-db.sh --execute --yes` 后再启动，插件脚本不重复执行。
+
+## 5. T0 增量验证（2026-10-07）
+
+- 清单工具：`node --test code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs`。
+  覆盖点文件、空文件、二进制、确定排序、增删改检测、软链接拒绝、失败退出码及基线覆盖拒绝。
+- 按初始化 Skill 复跑模板和生成 full 工程的 `init-db.test.mjs` / `clean-db.test.mjs`；MySQL/Maven 全部为桩。
+- 用 `manifest.mjs verify` 比较独立输出目录中的两轮生成结果，文件集合和每个文件内容均必须相同。
+- 对修改的 3 个 POM，以及两套工程全部 POM 执行 `xmllint --noout`。
+- 静态验证模板/生成工程的根版本、框架版本继承、BOM 版本和根 BOM 引用均一致；数据库迁移版本不随核心版本修改。
+- 本轮无 Java/前端业务代码变更，不执行 UI 构建或真实数据库初始化。Java 编译受本机工具缺失限制，不能以静态检查代替编译通过。

@@ -10,8 +10,8 @@
     
     
     <properties>
-        <revision>1.0.0</revision>
-        <forge-framework.version>1.0.0</forge-framework.version>
+        <revision>1.1.0</revision>
+        <forge-framework.version>${revision}</forge-framework.version>
         <spring-boot.version>3.5.13</spring-boot.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -144,7 +144,7 @@
             <dependency>
                 <groupId>com.mdframe.forge</groupId>
                 <artifactId>forge-dependencies</artifactId>
-                <version>1.0.0</version>
+                <version>${revision}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

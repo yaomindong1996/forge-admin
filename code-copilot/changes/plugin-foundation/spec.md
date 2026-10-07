@@ -38,9 +38,12 @@ Forge 后续采用“开源版 + 企业版插件”的模式：
 - 启动类扫描范围固定为 `com.mdframe.forge`，Mapper 扫描固定为 `com.mdframe.forge.**.mapper`。
   - 出处：`forge-server/forge-admin-server/src/main/java/com/mdframe/forge/admin/ForgeAdminApplication.java`，`@SpringBootApplication(scanBasePackages = {"com.mdframe.forge"})`、`@MapperScan("com.mdframe.forge.**.mapper")`。
   - 推论：只要插件源码的包名与工程包名一致（被脚手架同规则改名），插件会被自动扫描，不需要额外的装配机制。
-- 仓库中没有任何 `META-INF/spring/...AutoConfiguration.imports`，所有插件靠组件扫描生效。
+- 2026-10-07 核对：仓库已有 26 个 `META-INF/spring/...AutoConfiguration.imports`，包括 cache、flow、job 等模块。
+  业务 Controller/Mapper 可沿用包扫描；需要 `@ConditionalOnMissingBean` 的默认扩展点应复用现有自动配置方式，
+  不能根据“仓库没有自动配置”假设依赖组件扫描先后顺序。
 - 模块聚合：`forge-server/pom.xml` 第 191–196 行列出 6 个顶层模块；`forge-admin-server/pom.xml` 逐个声明插件依赖（第 24–141 行）。
-- 根版本号：`forge-server/pom.xml` 第 13 行 `<revision>1.0.0</revision>`，基线以来未变更。
+- 提案时根版本号为 `1.0.0`。框架子 POM 和独立 BOM 也声明了自己的 `revision`，根 POM 还固定导入 `1.0.0` BOM。
+  T0 已将根/BOM 升为 `1.1.0`，框架继承根版本，BOM 导入及框架版本属性引用 `${revision}`，避免混用新旧模块。
 
 ### 2.2 Flyway
 
@@ -330,6 +333,7 @@ ALTER TABLE sys_resource
 已于 2026-10-06 全部确认：
 
 1. **版本号策略**：根 pom `revision` 升为 `1.1.0`，此后每次开源版发版都递增；插件的 `requiresCore` 以此为准。升版放在 T0 生成基线之前，避免基线比对出现版本号差异。
+   需同步独立 BOM 的 `revision`、移除框架子 POM 的旧版本覆盖，并统一根 POM 的内部 BOM 版本引用。
 2. **目录与路由前缀**：插件后端放 `<后端根目录>/plugins/`，前端页面放 `src/views/plugins/<插件ID>/`，路由前缀 `/plugins/<插件ID>`。
 3. **模块命名**：使用 `forge-starter-plugin`，与现有 `forge-starter-*` 一致。
 
@@ -340,3 +344,14 @@ ALTER TABLE sys_resource
 - 各企业版功能的扩展点（文件预览、配额、导出审批等）：每个企业版插件立项时，先在开源仓库补对应扩展点和默认实现，不预先设计。
 - 插件之间的依赖关系、插件卸载时删表、插件热加载。
 - 制品库分发、二进制插件、`plugins/` 目录直接放 jar。
+
+## 11. 2026-10-07 可行性复核与执行进度
+
+- 结论：源码插件、独立迁移历史和功能授权接口的总体方向可行；不是运行时热加载或源码防破解机制。
+- 复核细节和后续实现约束见 [feasibility.md](./feasibility.md)。其中 T8 模板配置识别、安装回滚和路径防护，
+  T10 防误提交检查的自匹配问题，需要在对应 Task 落地前收敛并验证，不属于 T0 已实现内容。
+- T0 完成：先统一 `1.1.0` 版本链，再生成两套工程，分别记录 8324 / 4866 个文件的路径、字节数和 SHA-256。
+- 基线不是直接读取后续变动的工作区：冻结输入为 `e416f7902834763ef43989c4525738441e49bd4c` 加版本补丁。
+  T5/T6 必须在该输入上替换生成器及其依赖后做输出对比，防止把 T1–T4 的业务源码变更误认成改名回归。
+- 重复生成均无新增、缺失或内容差异。复跑方法见 [baseline/README.md](./baseline/README.md)。
+- 本轮未修改生产生成器、未实现 T1–T12，未启动服务或操作真实数据库；Java 编译因本机缺 Maven/JDK 未执行。

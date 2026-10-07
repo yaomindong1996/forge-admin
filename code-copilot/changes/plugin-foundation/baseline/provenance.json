@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "e416f7902834763ef43989c4525738441e49bd4c",
+  "sourceTree": "e6776d5d5c53f1af3fda5dda2f9b88e0b35c3e3c",
+  "coreVersion": "1.1.0",
+  "nodeVersion": "v20.19.0",
+  "pnpmVersion": "11.19.0",
+  "versionPatch": "version-bump.patch",
+  "versionPatchSha256": "a86b376af018c70f9445964bed918c05a2479f1ad2c92b9aaee67bbe5aee69e4",
+  "generatorSha256": "b74843500b2acacadd3f02ff846a1f83a0aecbfddc6d5bbe6c3094b459e9fc64",
+  "catalogSha256": "b7e7c292642815719e73ebc32974f7fc27ddc704b9151b52be1ce4c35fd31504",
+  "basePackage": "com.acme.demo",
+  "groupId": "com.acme.demo",
+  "cases": [
+    {
+      "preset": "full",
+      "directoryName": "forge-baseline-full",
+      "databaseName": "forge_baseline_full",
+      "manifest": "full.json",
+      "manifestSha256": "786d23b2ae6d3f4398973cbcc0949c644f2d45a54da30dd7687789bb36bd33b6",
+      "fileCount": 8324
+    },
+    {
+      "preset": "minimal-admin",
+      "directoryName": "forge-baseline-min",
+      "databaseName": "forge_baseline_min",
+      "manifest": "minimal-admin.json",
+      "manifestSha256": "37219babebb80fa5f371ac1c923e8d447aa7ad3304ce64126e31bed889732976",
+      "fileCount": 4866
+    }
+  ]
+}
