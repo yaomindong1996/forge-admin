@@ -452,3 +452,13 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
   提交定制后升级整包覆盖；备份保留、卸载登记为空、原示例源包不变，pnpm help/list 入口通过。
 - 新测试 Node 语法及 AST 18 个函数通过，最大 31 行/2 参数/2 层嵌套、行宽 <=120；diff 检查通过。
   不重跑无关 Maven/UI build，不连接真实数据库或服务；测试不证明 T12 实际登录/授权和 MySQL 验收。
+
+## 18. Review 增量复现（2026-10-07）
+
+- 复用 Node 20.19.0、现有 project/plugin/write 夹具及实际 addPlugin，不模拟安装器。
+- R1：合法 ID forge-starter-core，后端为 forge-plugin-demo，独立 SQL 目录按 ID 命名；
+  生成宿主安装后应保留该目录。实际变成 core-starter-core，运行描述 ID 未变，断言失败。
+- R2：无 Git 宿主首装后新增 application-dev.yml；整包升级应拒绝未登记的本地配置。
+  实际未拒绝，当前配置未保留，断言失败；旧目录恢复备份仍存在，不宣称永久数据丢失。
+- 既有 Node 301/301 通过，增量 0/2 通过，分别报告；复现不是修复完成。
+- 本轮不再运行真实 MySQL/Redis，不修改生产实现；修复后需把边界用例纳入正式回归。

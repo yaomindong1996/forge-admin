@@ -1367,3 +1367,39 @@ node scripts/forge-plugin/index.mjs add \
   Redis 仅含本轮临时缓存/会话，无业务数据。临时工程/恢复副本/日志/截图/私有备份有限保留，不提交。
 - T12 最终全部通过、任务已勾选；Spec 状态 implemented，等待两阶段 Review / 归档。
   没有生产 Java/UI/SQL 修复，也没有新增商业 License/收费代码；不把社区底座完成扩大为企业授权产品完成。
+
+## 2026-10-07：最终 Review（阶段一未通过）
+
+- 用户请求 Review，并询问插件开发位置及独立 Pro 工程/新品牌、新 groupId/包名。
+  已读 Spec/Tasks、测试规范/既有证据、Review 两阶段流程、源码插件技能和作者参考；
+  直接核对运行时底座、权限差异、安装事务/改名/摘要/ZIP/POM、生成工具、开源门禁与样例源码。
+- 审查基线 2738415d / codex/plugin-foundation，保留用户 .DS_Store；没有修复生产代码，
+  没有操作 158/业务数据库、创建 Pro 工程、切分支、push 或合并 main。
+- 新独立复现脚本 `/private/tmp/forge-foundation-review.mjs` 通过 apply_patch 创建，
+  使用现有 fixtures/helpers 创建临时工程与包，test.after 自动清理本轮夹具目录。
+  只用合成配置文字，不使用密码、Token 或任何真实连接配置。
+
+命令（Node 为 `/Users/mini32g/.nvm/versions/node/v20.19.0/bin/node`）：
+
+```bash
+node --test --test-reporter=tap scripts/forge-shared scripts/forge-plugin scripts/guards \
+  scripts/forge-create code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
+  forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+node --test /private/tmp/forge-foundation-review.mjs
+node scripts/guards/check-edition.mjs
+```
+
+- 既有 Node 两轮均退出 0；最终 TAP tests=301/pass=301/fail=0/cancelled=0/skipped=0。
+  DB 脚本相关仍使用桩，不等于本轮重跑真实数据库验收。
+- Review 增量两轮均退出 1；最终 tests=2/pass=0/fail=2，无跳过。
+  R1 输出 runtimeId=forge-starter-core / directories=[core-starter-core]；
+  R2 输出 rejected=false / retained=false。失败不被计入通过，不修改断言迁就现实现。
+- R2 初轮标题误称 committed，实际夹具无 Git；改正为新增本地配置后再跑，现象一致。
+  旧目录仍有恢复备份，因此报告仅说明未拒绝覆盖及当前配置失效，不夸大为永久删除。
+- 开源门禁退出 0：索引/工作区均 9522 文件。原有 Java/生成构建/T12 证据复用，
+  本轮生产 Java/UI/SQL 未改，不再运行无关 Maven/UI 或创建真实环境。
+- 阶段一 FAIL，按流程阶段二不启动，未归档。Spec/Tasks/Test Spec 仅追加发现及修复验收要求。
+  Pro 方案仍属候选：现有 source POM 硬编码原始坐标，dev 仅模板、UI 路径仍带 admin；
+  不能直接把生成工程当作已具备商业插件作者工具链的 Pro 发行工程。
+- 更新审查记录后，文档契约再次 6/6 通过，git diff --check 无错误；
+  开源门禁再次通过（9522/9522）。只提交这四份审查文档，保留 .DS_Store 和临时复现脚本不暂存。
