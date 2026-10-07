@@ -30,6 +30,11 @@ export function usePluginTaskActions(refresh) {
     visible.value = false
     detailRequest.cancel()
   }
+  async function refreshDetail() {
+    await open()
+    if (!disposed && visible.value && !busy.value)
+      await refresh()
+  }
   async function run(action) {
     if (busy.value)
       return
@@ -70,6 +75,7 @@ export function usePluginTaskActions(refresh) {
     close,
     upload,
     retryUpload,
+    refreshDetail,
     confirm,
     cancel,
     detailLoading: detailRequest.loading,

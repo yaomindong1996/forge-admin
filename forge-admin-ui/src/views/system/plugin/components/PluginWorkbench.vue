@@ -2,7 +2,7 @@
   <section class="plugin-workbench">
     <!-- 工具栏及上传 -->
     <header>
-      <div>上传预检 → 人工确认 → 待构建；独立执行器尚未接入。</div>
+      <div>上传预检 → 人工确认 → 独立执行器构建 → 待部署</div>
       <NSpace>
         <NButton :loading="list.loading.value" @click="list.load">
           刷新任务
@@ -19,6 +19,7 @@
     </header>
     <p class="plugin-workbench__note">
       ZIP ≤8 MiB；拒绝本地配置和构建产物。包须来自可信交付方，不会在当前服务执行。
+      执行器须单独启用并人工审查；确认后不会自动部署。
     </p>
     <!-- 查询区 -->
     <form @submit.prevent="list.search">
@@ -60,7 +61,7 @@
       :show="actions.visible.value" :task="actions.task.value" :busy="actions.busy.value"
       :loading="actions.detailLoading.value" :error="actions.detailError.value"
       :action-error="actions.actionError.value"
-      @close="actions.close" @retry="actions.open()" @confirm="actions.confirm" @cancel="actions.cancel"
+      @close="actions.close" @retry="actions.refreshDetail" @confirm="actions.confirm" @cancel="actions.cancel"
     />
   </section>
 </template>

@@ -18,6 +18,6 @@ public class SysPluginTaskQuery {
     private Integer pageSize = 15;
     @Size(max = 100)
     private String keyword;
-    @Pattern(regexp = "await_confirmation|blocked|queued|cancelled")
+    @Pattern(regexp = "await_confirmation|blocked|queued|cancelled|building|built|build_failed")
     private String status;
 }

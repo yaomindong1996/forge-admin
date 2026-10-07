@@ -14,6 +14,7 @@ public class PluginTaskQueryService {
     private final SysPluginTaskMapper mapper;
     private final PluginTaskRepository repository;
     private final PluginTaskViews views;
+    private final PluginBuildViews builds;
 
     public SysPluginTaskPageVO page(SysPluginTaskQuery query, PluginTaskActor actor) {
         var page = mapper.selectTaskPage(new Page<>(query.getPageNum(), query.getPageSize()), actor.tenantId(), query);
@@ -22,6 +23,6 @@ public class PluginTaskQueryService {
     }
 
     public SysPluginTaskVO detail(String id, PluginTaskActor actor) {
-        return views.view(repository.required(actor, id), true);
+        return views.view(repository.required(actor, id), true).withExecution(builds.summary(actor.tenantId(), id));
     }
 }

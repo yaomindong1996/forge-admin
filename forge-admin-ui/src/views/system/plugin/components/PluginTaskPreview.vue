@@ -10,7 +10,7 @@
       </NAlert>
       <div v-else-if="task" class="plugin-preview">
         <!-- 摘要与状态 -->
-        <NDescriptions bordered :column="1" size="small">
+        <NDescriptions bordered :column="1" size="small" label-placement="left">
           <NDescriptionsItem label="插件">
             {{ task.name }} · {{ task.pluginId }}
           </NDescriptionsItem>
@@ -26,6 +26,9 @@
           <NDescriptionsItem label="任务 ID">
             {{ task.id }}
           </NDescriptionsItem>
+          <NDescriptionsItem label="任务版本（revision）">
+            {{ task.revision }}
+          </NDescriptionsItem>
           <NDescriptionsItem label="包 SHA-256">
             <code>{{ task.sha256 }}</code>
           </NDescriptionsItem>
@@ -39,6 +42,7 @@
             {{ pluginTime(task.cancelledTime) }}
           </NDescriptionsItem>
         </NDescriptions>
+        <PluginBuildExecution :execution="task.execution" :busy="busy" @refresh="emit('retry')" />
         <!-- 已知阻断与尚未核验范围 -->
         <NAlert v-for="blocker in task.preview.blockers" :key="blocker" type="error">
           {{ blocker }}
@@ -103,6 +107,7 @@ import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
 import { pluginTime } from '../pluginTaskUtils'
 import { usePluginPermission } from '../usePluginPermission'
+import PluginBuildExecution from './PluginBuildExecution.vue'
 
 const props = defineProps({
   show: Boolean,

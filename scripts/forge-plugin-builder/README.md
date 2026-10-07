@@ -1,7 +1,7 @@
 # Forge 离线插件构建执行器
 
-P3.1 只做**源码副本预检和离线构建**。不读取插件中心任务、不修改原工程、不连接数据库，
-不运行服务/迁移、不部署或证明插件健康；Web 任务领取/租约/回写为 P3.2，受控部署为 P3.3。
+check/run 做**源码副本预检和离线构建**；worker 以机器认证处理指定已确认任务。
+不修改原工程、不连接数据库、不运行服务/迁移、不部署或证明插件健康；受控部署为 P3.3。
 该工具连同原安装器一并复制到新生成的 Admin 工程，无第三方运行时依赖。
 
 ## 准备受控工作区
@@ -23,7 +23,7 @@ P3.1 只做**源码副本预检和离线构建**。不读取插件中心任务�
   每次生成 `job-*` 独占子目录，拒绝复用输出；不要放在生产配置或其它 Git 工程内。
 - `packageFile` 必须是审查过的本地 ZIP，明确 SHA-256；沿用源码 CLI 格式和有界 ZIP 校验。
   离线 CLI 限额为32MiB包/16MiB单文件/128MiB展开/10000条目；Web上传仍执行其更小限额，
-  离线工具不会放宽 Web 接口，也不会读取 Web BLOB。
+  离线 check/run 不读取 Web BLOB；worker 仅通过认证/有效租约下载且核对更小的8MiB限额。
   当前只支持 community 包，不校验收费许可证，不执行未确认的 Pro 工程方案。
 - `dockerSocket` 必须是当前用户拥有的真实本地 Unix socket，daemon 必须报告 rootless。
   socket 直接父目录也必须为当前用户的私有目录；daemon 必须为 cgroup v2/systemd，
@@ -110,10 +110,37 @@ build 成功文件为 `artifacts/backend/admin.jar` 和/或 `artifacts/frontend/
 单次源码最多30000文件/64MiB单文件/512MiB总量；产物4096文件/512MiB单文件/1GiB总量。
 进程输出上限1MiB（Git tree 8MiB），超限立即失败。所有 job 保留，不自动递归删除用户数据。
 运维应为专用目录设置磁盘配额、并发上限与保留周期；人工清理前保留摘要/审计及必要恢复输入。
-共享数据库迁移、Web 租约绑定、产物仓库、自动保留策略和受控部署不在 P3.1 范围。
+共享数据库迁移、产物仓库、自动保留策略和受控部署不由构建器执行。
 
 ## 当前验证边界
 
 已测试 Git/ZIP/原 CLI 的真实文件预检、离线命令规划、Docker 参数和异常清理桩、产物文件校验，
 并对新生成 full 工程回归。开发机没有 Docker，尚未实跑 rootless 容器/镜像离线构建。
 上线前必须单独验收镜像/缓存/资源限制、网络阻断、信号清理及有效 Admin JAR/UI 产物。
+## 已确认任务桥接
+
+新增 `forge:plugin-build worker`，一次只处理指定任务，须机器认证和 `--reviewed`，不自动执行队列。
+部署方默认关闭 `forge.plugin-build.worker`；开启需 id（小写、最长64）、正数 tenant-id、
+token-sha256 和 expires-at（Instant）。凭证为32字节随机数的64字符小写 hex；
+token-sha256 对该 hex 文本做 SHA-256。仅从运维配置接收摘要/到期时间，不提交凭证。
+必须使用可信 HTTPS/代理安全配置；拒绝用户 Token、X-Inner-Call、请求租户与未知路由。
+worker 仍发送正常 X-Timestamp/随机 X-Nonce，不豁免全局重放验证。
+
+本地 worker.json 只含 apiBaseUrl 和 builder.json 的 sourceRoot、commit、workspaceRoot、
+dockerExecutable、dockerSocket、image；删除 packageFile/packageSha256（包从认证接口取得）。
+URL 为规范 HTTPS origin 加可选 API 前缀，无账号、query、编码路径或重定向。
+将机器 token 通过可信运维机制放入 FORGE_PLUGIN_WORKER_TOKEN 环境；不能放入 JSON 或镜像。
+从工作台获取任务 ID、当前 revision、ZIP SHA，然后审查源码/包/镜像：
+
+```sh
+node scripts/forge-plugin-builder/index.mjs worker /absolute/worker.json <任务ID> <revision> <SHA256> --reviewed
+```
+
+替换仍需 --force，所有权/定制保护仍生效。一次只运行选定任务，不自动领取下一项。
+90秒租约、30秒和阶段切换续期、25分钟硬期限；失联/信号触发本次构建中止及所有权核对清理。
+过期禁止复活或回写，不自动抢占/释放占用；成功/失败也保留占用待后续受控部署/恢复处置。
+不要直接改表清空占用或删除审计；先核查本次容器、产物和服务端状态。
+transfer-*/worker-result.json 保存脱敏结果；lease.json 为私有0600恢复收据，不进入容器。
+raw Bearer 不落盘。report_pending 是网络/结果不确定，不能当成功，也不自动再领取。
+job-* 实际产物保留在私有工作区；Web 只展示执行器报告摘要，不是服务端再次核验或部署证明。
+模板完整运维说明在 forge-docs/guide/plugin-worker.md；真实 TLS/MySQL/rootless 验收仍待执行。

@@ -9,10 +9,14 @@ const fields = ['sourceRoot', 'commit', 'packageFile', 'packageSha256', 'workspa
 const digest = /^[a-f0-9]{64}$/
 
 export async function readConfig(file) {
+  const value = parseStrictJson((await readRegular(file, 16384)).toString('utf8'), 16384)
+  return validateConfig(value)
+}
+
+export async function validateConfig(value) {
   const [major, minor] = process.versions.node.split('.').map(Number)
   ensure(major > 20 || (major === 20 && minor >= 19), 'NODE_VERSION_UNSUPPORTED')
   ensure(typeof process.getuid === 'function' && process.platform !== 'win32', 'POSIX_REQUIRED')
-  const value = parseStrictJson((await readRegular(file, 16384)).toString('utf8'), 16384)
   ensure(value && !Array.isArray(value) && typeof value === 'object', 'CONFIG_INVALID')
   ensure(Object.keys(value).length === fields.length && Object.keys(value).every(key => fields.includes(key)),
     'CONFIG_INVALID')

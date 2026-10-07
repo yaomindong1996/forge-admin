@@ -30,6 +30,11 @@ class SysPluginMigrationTest {
                     .isEqualTo(14);
             assertThat(count(connection, "SELECT COUNT(*) FROM sys_dict_type")).isEqualTo(6);
             assertThat(count(connection, "SELECT COUNT(*) FROM sys_dict_data")).isEqualTo(14);
+            run(connection, "V1.0.212__add_plugin_build_leases.sql");
+            run(connection, "V1.0.212__add_plugin_build_leases.sql");
+            assertThat(count(connection, "SELECT COUNT(*) FROM sys_dict_type")).isEqualTo(7);
+            assertThat(count(connection, "SELECT COUNT(*) FROM sys_dict_data")).isEqualTo(22);
+            assertThat(count(connection, "SELECT COUNT(*) FROM sys_resource")).isEqualTo(15);
             assertThat(count(connection, "SELECT COUNT(*) FROM sys_resource WHERE perms = 'system:plugin:snapshot'"))
                     .isEqualTo(1);
             checkCustomerMenu(connection);

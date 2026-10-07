@@ -25,13 +25,16 @@ export async function executeBuild(config, options = {}) {
     image: config.image, packageSha256: config.packageSha256 }
   let phase = 'source_snapshot'
   try {
+    await options.onPhase?.(phase)
     result.source = await snapshotSource(config, job.source, options.signal)
     phase = 'package_preflight'
+    await options.onPhase?.(phase)
     const archive = await readRegular(config.packageFile, limits.archive)
     ensure(sha256(archive) === config.packageSha256, 'PACKAGE_DIGEST_MISMATCH')
     validatePackageFiles(archive)
     await writePrivate(root, 'package.zip', archive)
     phase = 'source_preflight'
+    await options.onPhase?.(phase)
     await verifySourceOwnership(config.sourceRoot)
     const context = await loadProject(job.source)
     ensure(context.config.plugins.every(record => record.mode === 'copy'), 'DEV_PLUGIN_UNSUPPORTED')
@@ -42,8 +45,10 @@ export async function executeBuild(config, options = {}) {
     await writePrivate(root, 'preflight.json', `${JSON.stringify(result.preflight, null, 2)}\n`)
     if (options.run) {
       phase = 'container_build'
+      await options.onPhase?.(phase)
       await buildJob(config, job, options)
       phase = 'artifact_verification'
+      await options.onPhase?.(phase)
       result.artifacts = await collectArtifacts(job.output, result.preflight.targets, options.signal)
     }
     result.status = options.run ? 'built' : 'checked'

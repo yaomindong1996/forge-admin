@@ -1,5 +1,98 @@
 # 插件中心执行记录
 
+## 2026-10-08：P3.2 认证桥接交付
+
+### 范围与两阶段增量自审
+
+- Stage 1：按本轮 Spec 接通选定任务，不自动消费队列、不部署、不创建 Pro 工程。
+  沿用 project-init Skill 的原源码 CLI、稳定插件协议及改名后原样复制运行工具规则。
+- 独立机器过滤器始终注册、默认关闭；必须可信 HTTPS、固定部署身份/租户、未过期凭证。
+  SaIgnore 只跳过用户会话；普通 Token、X-Inner-Call、客户端租户均不能代替机器认证。
+  原始机器凭证只读环境，私有恢复收据只保存随机租约，不进入容器或公开 API。
+- queued→building→built/build_failed；任务一对一构建审计，90秒/30秒/25分钟租约边界。
+  并发领取、阶段及终态 CAS、结果绑定和同结果幂等；失联/终态保留占用与审计，不自动重试。
+- Web 仅有界 BLOB/DTO/事务；没有文件系统/子进程或部署执行。worker 调用原隔离构建器，
+  实际核验产物后仅回写摘要，服务端不把机器报告冒充独立制品复验。
+- Stage 2：核对租户上下文恢复、私有字段不出 VO、拒绝日志脱敏、HTTP 不重定向/3秒期限，
+  原确认/取消 CAS 和幂等不受续期影响。补 finish 的阶段 CAS，避免并发旧结果覆盖新阶段。
+  新类/SFC远低于规模上限；新增生产方法≤80行、单行≤120，职责按认证/状态机/视图/传输拆分。
+- V1.0.212 新增表与系统字典，未修改210/211、未授予普通角色、无物理删除接口。
+  clean-db 纳入审计表；本轮没有新增运行时依赖、凭证/真实个人数据或构建镜像。
+
+### 环境及最终回归
+
+- 独占 QA_DIR：`/private/tmp/forge-plugin-worker-p3.0PkCQH`；Node20.19.0、JDK17、Maven3.9.11。
+  Maven离线 `-o`，复用已有依赖；测试通过 JAVA_TOOL_OPTIONS 加载既有 Byte Buddy agent。
+- 在 forge-server 执行以下相关矩阵，`java-final.log` 退出0：starter-plugin188、system61，
+  共249/249，失败/错误/跳过均0（不统计未选择的旧 surefire 报告）。
+
+```sh
+mvn -o -q -pl forge-framework/forge-plugin-parent/forge-plugin-system -am test -Penable-tests \
+  '-Dtest=SourcePluginPackageReaderTest,Plugin*Test,RuntimePluginCatalogTest,CommunityFeatureGateTest,ForgeVersionTest,SysPlugin*Test,*FeatureGateTest' \
+  -Dsurefire.failIfNoSpecifiedTests=false -Dmaven.test.redirectTestOutputToFile=true
+mvn -o -q -pl forge-admin-server -am package -DskipTests
+```
+
+- `admin-package.log` 退出0。新增13项Java测试覆盖实际Mapper/XML、Spring事务回滚、
+  两线程并发领取、私有包摘要/租户、阶段/终态、始终注册的过滤器及MockMvc参数校验。
+  H2实际210/211/212连续执行两次，7字典类型/22字典数据、15资源不额外扩权。
+- 仓库根目录最终 Node 矩阵，`node-final.tap` 396/396、失败/跳过0，34.24秒：
+
+```sh
+node --test scripts/forge-shared scripts/forge-plugin scripts/forge-plugin-builder \
+  scripts/guards scripts/forge-create \
+  code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
+  code-copilot/changes/plugin-center/contracts.test.mjs \
+  code-copilot/changes/plugin-center/workbench-contract.test.mjs \
+  forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+```
+
+- 新增10项覆盖固定TLS请求、真实3秒超时/中止、响应边界、选定任务、串行续期、摘要不匹配、
+  失租不能成功与结果不确定；其中真实Git/ZIP/产物文件核验、Docker/socket调用为受控桩。
+  ESLint `--no-config-lookup --rule 'no-unused-vars:error' scripts/forge-plugin-builder` 退出0。
+- UI最终 ESLint范围 `src/api/system/plugin.js src/views/system/plugin.vue src/views/system/plugin`，
+  Vitest该域17/17；`ui-final-verified.log`通过，`ui-final-build.log`生产构建退出0，38.71秒。
+  沿用已安装Vite/Rolldown，既有chunk/UnoCSS性能提示非阻断；未重新安装依赖。
+- 明确标注模拟接口的Vite43129 + 系统Chrome隔离会话，实际组件点击上传/确认/刷新/详情，
+  核对building、租约到期及成功摘要、无取消/部署假按钮、明暗主题和320px。
+  `browser-compact.log`无pageerror，窄屏document宽320，关闭按钮x240/y670/w56/h34。
+  人工查看execution-light、execution-narrow-dark；摘要标签改为左侧，避免大屏信息过度纵向占用。
+
+### 最新 full 生成工程
+
+- 从最终生产代码全新生成QA_DIR/final-generated，不是局部拷贝；full、com.acme.worker包名、
+  com.acme.maven坐标、worker-host宿主前缀、kernel框架前缀，`final-generate.log`退出0。
+- `final-generated-db.tap`31/31，失败/跳过0，25.06秒；mysql/Maven调用为桩，没有创建真实数据库。
+- 改名后端 `kernel-plugin-system -am -Penable-tests` 选择
+  SourcePluginPackageReaderTest,PluginAutoConfigurationTest,SysPlugin*Test，69/69，
+  `final-generated-java.log`退出0；`kernel-admin-server -am package -DskipTests`，
+  `final-generated-package.log`退出0。使用本机已有改名BOM缓存，不发布远程制品。
+- 15份运行mjs/README逐字节一致；真实生成Java包名改变但/internal/plugin-build和
+  forge.plugin-build.worker保持原协议，212迁移字节一致。生成工具仍排除测试/夹具。
+- edition门禁、git diff --check通过；本轮未提交用户 .DS_Store。
+
+### 遇到的环境/修复与验收边界
+
+- 初次聚焦Node测试因沙箱Unix socket EPERM失败，授权仅临时socket/Git夹具后重跑完整矩阵通过。
+  UI测试初次3项列表换行lint失败，格式化后重跑lint/test/build通过；没有弱化断言。
+  收尾门禁第一次误在UI目录找根scripts而未运行，改回仓库根目录后edition/diff通过。
+  暂存后新增文件的diff检查发现7个DTO/VO尾部空行，移除后重新检查；只改空白，不改已验证逻辑。
+- 浏览器首次截图在抽屉动画中，增加完成等待再检查；独立会话每次finally关闭，不读用户登录。
+- 未连接共享158 MySQL/Redis；未执行Flyway、真实Admin/Flow登录、加密、业务写入或部署。
+  H2/MockMvc/TLS请求桩/模拟UI不等价于目标HTTPS/重放/MySQL或rootless容器验收。
+  本机仍无Docker；真实离线镜像/cache、资源控制及失联容器清理仍须目标环境验收。
+- 制品仅在私有worker工作区；制品仓库、人工部署/健康核验与受控恢复留在P3.3，
+  不直接改表释放占用，不宣称插件已安装。只验收Admin构建范围，不冒充独立Flow/Report部署。
+- 仅停止本轮模拟Vite会话11758（退出130）；lsof复核43129无监听，QA日志/截图/工程保留复查。
+  不停止用户服务、不清理其他任务数据；按已有阶段惯例本地中文提交，不push、不合并main。
+
+## 2026-10-08：P3.2 开始
+
+- 用户继续；基线 f9b47529，保持 codex/plugin-foundation 和未提交 .DS_Store。
+- 复用 P3.1、project-init Skill/plugins 参考、DESIGN、测试规范和既有验证证据。
+- 先补机器认证/租约/有界包下载/结构化回写契约；不自动执行队列或部署。
+- 本地 Docker 缺失仍按实情记录；不改共享 MySQL/Redis，不创建 Pro 工程。
+
 ## 2026-10-07：P3.1 开始
 
 - 用户继续开发，基线 5c8a378b，分支 codex/plugin-foundation，保留未提交 .DS_Store。

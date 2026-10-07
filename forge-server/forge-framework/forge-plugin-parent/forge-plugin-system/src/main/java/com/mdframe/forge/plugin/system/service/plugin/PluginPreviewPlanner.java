@@ -39,7 +39,7 @@ public class PluginPreviewPlanner {
         PluginTaskOperation operation = current == null ? PluginTaskOperation.INSTALL : PluginTaskOperation.REPLACE;
         List<String> warnings = List.of("这里只比较上传包与当前后端构建声明，尚未连接源码工作区。",
                 "待执行器检查源码登记、目标目录、客户定制和构建依赖；不会在 Web 服务中执行。",
-                "确认仅进入待构建，执行器尚未接入。SQL/权限变更仍需人工审查，源码回滚不回滚数据库。",
+                "确认仅排队，执行器须单独启用并审查。SQL/权限变更仍需审查，源码回滚不回滚数据库。",
                 "ZIP 格式和摘要校验不证明交付方可信，也不代表恶意代码或密钥内容检测通过。");
         return new SysPluginPreviewVO(source, ForgeVersion.CURRENT, current == null ? null : current.version(),
                 operation.getCode(), snapshot(), List.copyOf(blockers), warnings);
