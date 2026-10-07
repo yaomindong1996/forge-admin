@@ -102,6 +102,17 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
 - 文档契约 6/6、check-edition 通过；生产代码未变，复用 T9/T11 相关 Java/Node/UI 证据。
   浏览器真实页面仍未验收，等待本地验证码填写确认；资源最终清理未执行，不勾选整个 T12。
 
+### T12 浏览器与最终收尾结果
+
+- 上述待确认记录为中间状态。后续读取时已处于正常登录后的首页，Agent 未填写/提交验证码。
+  真实“示例插件”菜单打开 /plugins/hello；页面显示 hello / 1.0.1 / 1.2.0，刷新有加载态且恢复数据，
+  无错误态；plugin-page.jpg 记录实际页面，不是 T9 的模拟接口页面。
+- cleanup-final.log 成功：测试库先备份、SHA-256 留存，再删除本轮测试库/账号，验证均为 0；
+  专有 Redis 的 ID/owner 必须与创建记录一致才停止/删除，配置目录只允许包含 redis.conf 才清理。
+  原 MySQL/Redis 容器身份一致；本机 13316/16316/18590/3132 均无监听，临时浏览器标签页已关闭。
+- T12 全部完成；正式提案实现待 Review / 归档。没有残留运行中的本轮验收服务或服务器资源，
+  有限的临时工程、私有测试备份、日志/截图留存，不进入提交。
+
 ## 5. T0 增量验证（2026-10-07）
 
 - 清单工具：`node --test code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs`。

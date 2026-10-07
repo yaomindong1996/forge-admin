@@ -1345,3 +1345,25 @@ node scripts/forge-plugin/index.mjs add \
   专有数据库/账号、临时 Redis、私有配置/恢复备份如上。后续先核对 PID/端口/所有者再操作，不能凭旧 PID 杀进程。
   本地 API 18590 / UI 3132 / SSH 13316、16316 全部仅绑定 127.0.0.1，不影响原前后端端口。
   最终资源清理待页面验收结束执行；不能把暂留的资源报告成已删除，也不得清空共享 Redis。
+
+### 同轮后续：真实浏览器完成与资源清理
+
+- 上一节是中间状态。准备交接时重新读取同一临时标签页，页面已位于 /home，真实菜单出现“示例插件”。
+  本轮 Agent 只曾填写测试用户名/密码并取消记住密码，没有填写/提交 CAPTCHA，也没有向浏览器写入令牌。
+  继续使用现有正常登录状态进行读操作，不重新做验证码或绕过登录。
+- 点击真实菜单进入 /plugins/hello：先显示 loading，再显示插件 ID=hello、插件版本=1.0.1、核心版本=1.2.0。
+  再点击“刷新”：按钮/loading 状态正确，随后同一数据恢复，未出现错误提示。
+  截图保存于 /private/tmp/forge-plugin-t12.0y7UsG/plugin-page.jpg；这是连接 QA 真服务的实际浏览器页面。
+- 收尾前再次核对 lsof：只有专用 SSH 61492、Vite 72517、QA Java 86609 占用这 4 个专用回环端口。
+  明确 PID 后逐个 TERM，等待各会话退出；再次 lsof 无监听。临时标签页关闭，不关闭用户其他标签页。
+- cleanup.mjs 只针对创建时明确拥有的资源：
+  - 用原 MySQL 容器内真实 mysqldump 备份独立 QA 库，single-transaction / no-tablespaces /
+    set-gtid-purged=OFF，备份 600，qa-backup.sha256 留存；备份失败就停止，不直接丢弃测试结果。
+  - 删除 forge_plugin_t12_20261007_0y7usg 与其专有账号，information_schema/mysql.user 复核均为 0。
+  - 临时 Redis 的完整 ID 和 owner=t12-0y7usg 均与创建记录一致才 stop/rm；只删除含唯一 redis.conf 的专用目录。
+  - 原 forge-mysql / forge-redis 的 ID/名称/镜像与 before 完全一致；containers-after.txt 与 health-after.txt 留存。
+  - cleanup-final.log 退出 0；没有 docker prune、清空原 Redis DB、重启原容器或删除其他库。
+- 删除的是本轮创建的测试库、测试账号、临时 Redis/配置；库可从本地 qa-backup.sql 恢复，
+  Redis 仅含本轮临时缓存/会话，无业务数据。临时工程/恢复副本/日志/截图/私有备份有限保留，不提交。
+- T12 最终全部通过、任务已勾选；Spec 状态 implemented，等待两阶段 Review / 归档。
+  没有生产 Java/UI/SQL 修复，也没有新增商业 License/收费代码；不把社区底座完成扩大为企业授权产品完成。
