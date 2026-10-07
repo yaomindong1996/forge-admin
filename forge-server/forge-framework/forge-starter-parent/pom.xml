@@ -14,6 +14,7 @@
     
     <modules>
         <module>forge-starter-core</module>
+        <module>forge-starter-plugin</module>
         <module>forge-starter-orm</module>
         <module>forge-starter-web</module>
         <module>forge-starter-cache</module>

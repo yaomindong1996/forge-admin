@@ -302,6 +302,11 @@
             <!--starter-->
             <dependency>
                 <groupId>com.mdframe.forge</groupId>
+                <artifactId>forge-starter-plugin</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.mdframe.forge</groupId>
                 <artifactId>forge-starter-core</artifactId>
                 <version>${revision}</version>
             </dependency>

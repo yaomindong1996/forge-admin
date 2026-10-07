@@ -164,3 +164,90 @@ node code-copilot/changes/plugin-foundation/baseline/manifest.mjs verify \
 - 优先少量能力套件，明确企业内部/服务商交付范围、业务应用交付/框架源码转售区别及技术支持边界。
   Codeup 用于内部开发，客户按权益取得固定源码交付包；不把源码授权校验宣称为防破解保证。
 - 上述建议未写入商业合同、报价或生产授权逻辑；商业协议及第三方许可边界仍需专业法律审查。
+
+## 2026-10-07：T1 插件运行时底座
+
+### 确认、边界与产物
+
+- 用户确认按此前分析开始实现，本轮交付 T1；编码前已补充 Spec 实现边界及增量测试矩阵。
+- 使用项目 `forge-project-init` Skill 核对新增模块的 BOM、目录清单、依赖闭包和生成工程改名。
+  不修改生产生成器，不重录 T0 基线，不执行初始化/清理脚本建议中的真实库操作。
+- 新增 `forge-starter-plugin`：14 个生产 Java 类、6 个测试类，核心版本资源和两项自动配置导入。
+  默认 Community Gate 可被客户配置/先行自动配置覆盖；API 功能拦截不替代登录与角色/接口权限。
+- 插件描述按 ID 确定排序且不可变，校验字段/前缀/目录/兼容范围；拒绝重复 JSON 键、未知字段、
+  标量转字符串和超过 64 KiB 的文件。全局懒加载下仍立即校验，非法或不兼容插件使启动失败。
+- SemVer 支持预发布优先级及构建元信息，范围采用完整校验后的空格分隔比较式。
+- 同步 starter parent、独立 BOM、Admin 依赖及 `module-catalog.json`，确保生成工程不会裁掉依赖。
+- T2–T12 保持未完成，未添加迁移 SQL、菜单权限字段、安装器、示例插件或 EE License/计费实现。
+
+### 工具环境
+
+- 系统 PATH 中仍无 Maven、未注册 Java Runtime，但发现并复用了已有临时工具，未安装或修改全局环境：
+  - JDK：`/private/tmp/lawhub-october-jdk/Contents/Home`，Temurin `17.0.20.1`；
+  - Maven：`/private/tmp/apache-maven-3.9.11/bin/mvn`，版本 `3.9.11`。
+- Node `v20.19.0`、pnpm `11.19.0`；Maven 使用 `-o` 复用现有缓存，没有依赖网络安装。
+- 独立 BOM 必须先安装 `1.2.0`，然后测试/编译通过 `-am` 使用本轮 Reactor 源码，未用旧 starter jar 代替。
+
+### Java 与聚合编译
+
+下面命令均设置 `JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home`，在仓库根目录执行 BOM 安装：
+
+```bash
+/private/tmp/apache-maven-3.9.11/bin/mvn -o \
+  -f forge-server/forge-framework/forge-dependencies/pom.xml install -DskipTests -B -ntp
+```
+
+在 `forge-server` 执行：
+
+```bash
+/private/tmp/apache-maven-3.9.11/bin/mvn -q -o \
+  -pl forge-framework/forge-starter-parent/forge-starter-plugin -am test \
+  -Penable-tests -Dmaven.test.redirectTestOutputToFile=true
+/private/tmp/apache-maven-3.9.11/bin/mvn -q -o -pl forge-admin-server -am compile -DskipTests
+```
+
+- 最终 106 项用例全部通过，失败/错误/跳过均为 0：版本 38、社区 Gate 11、描述校验 27、Registry 15、
+  HTTP 拦截 6、自动配置与容器启动 9。
+- 首轮 100 项测试中 1 个 Mockito 夹具错误：对先前设置 `thenThrow` 的 resolver 用 `when` 重新 stub，
+  在重新 stub 时触发旧异常。改为独立 resolver 夹具后完整复跑通过；未删除用例或放宽断言。
+- 后续补充 JSON 强类型和全局懒加载负例，最终以 106 项重新执行。负例异常日志保存在 Surefire 输出中，
+  重定向只避免控制台堆栈噪音，不跳过异常测试。直接解析三套工程 Surefire XML 复核统计一致。
+- Admin 及依赖共 47 模块首次聚合编译 `BUILD SUCCESS`，最终源码更新后再次编译退出 0。
+- MockMvc 覆盖真实 MVC 自动注册、403 状态/统一响应体、方法优先和自定义 Gate 替换；登录顺序为测试夹具，
+  未启动 Sa-Token/Redis 或调用实际登录接口，不宣称已完成真实鉴权端到端验收。
+- 非阻塞构建提示：资源过滤的 propertiesEncoding 未显式配置（版本资源只有 ASCII）、Mockito CDS 提示，
+  现有模块另有 deprecated/unchecked 提示；没有编译错误。
+
+### 生成工程与增量回归
+
+在仓库根目录执行以下命令，输出目录此前不存在，未使用 `--force`：
+
+```bash
+pnpm forge:create -- /private/tmp/forge-plugin-t1.RmXjPh/verified/forge-baseline-full \
+  --base-package com.acme.demo --preset full
+pnpm forge:create -- /private/tmp/forge-plugin-t1.RmXjPh/verified/forge-baseline-min \
+  --base-package com.acme.demo --preset minimal-admin
+node --test code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs
+node --test forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+```
+
+- full/minimal-admin 均生成成功，两套 `forge.config.json.modules` 都包含 `starter-plugin`。
+  新模块、Admin 依赖、BOM 和自动配置类名随 artifact/package 改名，无残留旧 Java 包名。
+- 在两套生成工程中分别先安装独立 BOM，再按改名后的 `-pl <framework>/<starter-parent>/<starter-plugin>`
+  运行相同 `-am test -Penable-tests` 命令，各 106/106 通过。运行时版本资源均实际读取 `1.2.0`；
+  `META-INF/forge/forge-version.properties` 保留固定协议路径，不把该文件名当业务包名改掉。
+- 清单工具 5/5、模板数据库脚本 18/18、最终生成 full 的 `scripts/db` 同类测试 18/18，共 41 项通过。
+  MySQL 及迁移命令均由桩替代，测试中的重建/清理行为没有作用于任何真实数据库。
+- 修改的源 POM 与两套生成工程 POM 经 `xmllint --noout` 解析通过：full 54 个，minimal-admin 35 个。
+  新增 Java 无超过 120 字符的行、字段注入或禁用测试；`git diff --check` 通过。
+- 当前生成工程包含 T1 新增源码，不与 T0 冻结输出做零差异比较；T0 清单、补丁和 provenance 均未修改。
+  T5 的纯改名回归仍须使用冻结输入，不能通过重新生成基线掩盖差异。
+
+### 交付与未验收项
+
+- 仅本地提交到 `codex/plugin-foundation`，未推送，未合并 main；用户原有 `.DS_Store` 修改保留且不提交。
+- 没有启动业务服务，没有操作真实数据库，没有改动 UI 或其他项目源码；完整 Flyway/插件链路仍留待 T2–T12。
+- 隔离生成工程保留在 `/private/tmp/forge-plugin-t1.RmXjPh/verified/`，不进入提交。
+- 实现方式核对了 Spring Boot 官方自动配置文档和 SemVer 官方规则；测试结论以上述本地输出为准：
+  - https://docs.spring.io/spring-boot/3.5/reference/features/developing-auto-configuration.html
+  - https://semver.org/

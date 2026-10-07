@@ -7,14 +7,16 @@
   - 框架继承根版本，根 BOM 导入和框架版本属性引用 `${revision}`；
   - 再用固定参数执行 `forge:create`，生成 `full`、`minimal-admin` 两套工程，记录全部文件的相对路径和 SHA-256，基线清单存入本目录 `baseline/`。
   - `full` 8324 个文件、`minimal-admin` 4866 个文件；重复生成差异均为 0。
-  - 冻结源提交、版本补丁、生成器/目录清单摘要及复跑说明一并留存；Maven/JDK 缺失，Java 编译待 T12 补验。
-- [ ] T1 新增 `forge-starter-plugin`（F1）：
+  - 冻结源提交、版本补丁、生成器/目录清单摘要及复跑说明一并留存；T0 时 Maven/JDK 缺失，T1 已找到临时工具补验编译。
+- [x] T1 新增 `forge-starter-plugin`（F1，2026-10-07）：
   - `ForgeVersion` 及资源过滤的 `forge-version.properties`；
   - `FeatureGate`、`CommunityFeatureGate`；
   - `@RequiresFeature`、`FeatureGateInterceptor` 及其 `WebMvcConfigurer`；
   - `PluginDescriptor`、`PluginRegistry`；
-  - 在 `forge-starter-parent/pom.xml` 注册模块，`forge-admin-server` 引入依赖；
-  - 单测。
+  - 独立自动配置支持客户 Gate 替换，Registry 在全局懒加载下仍立即校验；
+  - 在 `forge-starter-parent/pom.xml` 注册模块，`forge-admin-server` 引入依赖，同步 BOM 和脚手架模块闭包；
+  - 106 项 Java 单测全部通过，模板、改名 full/minimal-admin 各复跑；Admin 47 个模块聚合编译通过；
+  - 清单工具与模板/生成 full 数据库脚本共 41 项 Node 测试通过，全部数据库调用为桩；T0 基线不变。
 - [ ] T2 插件迁移执行器（F2）：`PluginFlywayMigrationStrategy`、历史表名推导、`baselineVersion = 0`；单测覆盖主迁移先执行。
 - [ ] T3 功能授权过滤（F3）：
   - `V1.0.209__add_resource_feature_code.sql`；
@@ -41,7 +43,7 @@
   - `AGENTS.md` 5.18；
   - Node 单测。
 - [ ] T11 文档：更新 `.agents/skills/forge-project-init/SKILL.md`（插件安装、升级、卸载）；新增插件开发说明，包括企业版接口必须加 `@RequiresFeature`、迁移脚本规则、升级覆盖规则。
-- [ ] T12 人工验收（本机无 Maven/MySQL，由用户执行）：
+- [ ] T12 人工验收（已找到临时 Maven/JDK；真实 MySQL 与插件全链路仍需后续验收）：
   - `mvn -pl forge-admin-server -am package -DskipTests`；
   - `mvn test -Penable-tests`（相关模块）；
   - 按 `test-spec.md` 跑示例插件全链路。

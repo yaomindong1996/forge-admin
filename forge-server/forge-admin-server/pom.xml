@@ -12,6 +12,10 @@
     <name>forge-admin</name>
     <description>forge-admin</description>
     <dependencies>
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-plugin</artifactId>
+        </dependency>
         
         <!-- Mysql驱动包 -->
         <dependency>

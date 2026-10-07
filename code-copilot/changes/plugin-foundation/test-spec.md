@@ -40,7 +40,7 @@ node --test forge-server/scripts/db/clean-db.test.mjs
 | clean-db | `forge_plugin_hello_history` 归入保留，不在清空列表 |
 | forge:create | `.gitignore` 无模板区块；`forge.config.json` 含 `forgeVersion`、`plugins` |
 
-## 3. Java 单测（需 Maven，用户执行）
+## 3. Java 单测（需 Maven；T1 已用临时工具执行）
 
 ```bash
 cd forge-server
@@ -87,3 +87,25 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
 - 与初次 1.1.0 清单对比，允许差异仅为两个预设各自的根 POM、独立 BOM 的版本内容；不允许新增/缺失文件。
 - 用户明确确认重新生成，是版本更正，不是后续改名回归中为了通过测试而重录基线。
 - 复跑清单工具、模板/生成 full 数据库桩测试及 XML/版本链检查；旧基线可从 `369f345b` 恢复。
+
+## 6. T1 增量验证（2026-10-07）
+
+- Java：版本范围、非法比较式、SemVer 预发布排序、构建元信息；社区 Gate 三类编码及空白处理。
+- Registry：空 classpath、多个目录/JAR 描述、确定排序、重复 ID、字段非法、未知字段、重复 JSON 键、
+  版本不兼容、不可读/过大文件、标量隐式转字符串；普通/全局懒加载容器均必须启动失败，返回列表不得可变。
+- Servlet：方法注解优先于类注解，继承/组合注解、无注解和静态资源正常通过；拒绝返回 403 和统一 JSON。
+  MockMvc 验证登录拦截器先执行、实际 MVC 注册生效；自定义 FeatureGate 替换默认实现且只有一个 Bean。
+  覆盖用户配置 Bean 和先于默认配置的客户自动配置两种接入方式。
+- Maven：先构建/安装独立 `forge-dependencies`，再以 `-am -Penable-tests` 运行新 starter 及核心依赖测试；
+  Admin 聚合编译验证主应用依赖装配。不得依赖其他版本的旧 starter jar 代替 Reactor。
+- 脚手架：隔离生成 full/minimal-admin，检查新 starter 保留、BOM/依赖改名一致、版本资源正确读取及自动配置类名改名；
+  复跑模板和生成 full 的数据库脚本桩测试。不更改 T0 输出比对标准。
+- 不执行真实 Flyway、登录接口或企业授权校验，尚未实现的 T2–T12 不标为完成。
+
+### T1 执行结果
+
+- 模板与 full/minimal-admin 三套工程各 106 项 Java 用例通过，失败/错误/跳过均为 0。
+- 最新 Admin 聚合编译通过；模板和生成工程 POM 均可解析，full 54 个、minimal-admin 35 个。
+- 清单工具 5 项、模板数据库脚本 18 项、生成 full 数据库脚本 18 项通过；均未连接真实 MySQL。
+- 首轮 Mockito 不可读资源负例的重新 stub 触发旧异常，已改为独立 resolver 夹具并完整复跑；未弱化断言。
+- T2 迁移、T3 权限过滤和真实插件端到端验收尚未实现/执行，后续按既有矩阵增量补测。
