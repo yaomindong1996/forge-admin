@@ -38,7 +38,8 @@ export async function renameComponent(directory, files, context) {
 function renamedBinaryPath(relative, context) {
   const parts = relative.split('/')
   const leaf = parts.pop()
-  const directory = parts.map(part => context.artifactMap[part] || part).join('/')
+  const directoryMap = context.directoryMap ?? context.artifactMap
+  const directory = parts.map(part => directoryMap[part] || part).join('/')
   const packagePath = context.options.basePackage.replaceAll('.', '/')
   const renamed = directory.replace(/^src\/(main|test)\/java\/com\/mdframe\/forge(?=\/|$)/,
     (_, sourceSet) => `src/${sourceSet}/java/${packagePath}`)

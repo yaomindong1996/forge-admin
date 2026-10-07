@@ -6,6 +6,7 @@ import { normalizeParentPath, validateSourcePom } from './pom.mjs'
 import { finalModule, targetsFor } from './project.mjs'
 import { sourceComponent, devWrapperDigest } from './ownership.mjs'
 import { requireCondition, validateRelative } from './paths.mjs'
+import { identityContext } from './identity.mjs'
 
 export function validateComponents(context, bundle, descriptor) {
   const components = {}
@@ -50,7 +51,7 @@ export async function stageComponents(work, context, installation) {
       if (descriptor.server) {
         artifactMap[descriptor.server.module] = finalModule(context, descriptor)
       }
-      await renameComponent(directory, components[kind], { ...context, artifactMap })
+      await renameComponent(directory, components[kind], identityContext({ ...context, artifactMap }, descriptor))
     }
     if (kind === 'server') {
       const pomFile = path.join(directory, 'pom.xml')

@@ -251,7 +251,7 @@ export function applyTextReplacements(content, replacements) {
   return nextContent
 }
 
-export async function rewriteTextFiles(rootDir, replacements, hasReportUi) {
+export async function rewriteTextFiles(rootDir, replacements, hasReportUi, transformText) {
   const files = await collectFiles(rootDir, filePath => !isBinaryFile(filePath))
   for (const file of files) {
     let content
@@ -261,7 +261,8 @@ export async function rewriteTextFiles(rootDir, replacements, hasReportUi) {
     catch {
       continue
     }
-    let nextContent = applyTextReplacements(content, replacements)
+    let nextContent = transformText ? transformText(file, content, replacements)
+      : applyTextReplacements(content, replacements)
 
     // 如果没有报表模块，删除 SSO 相关的配置行
     if (!hasReportUi) {
@@ -412,9 +413,9 @@ export async function renameSourceTree(directory, context) {
   // 先把 POM 替成 groupId，才替换 Java 包名；二者不同时不能让后一步覆盖 Maven 坐标。
   await rewritePomGroupIds(directory, options.groupId)
   await rewriteRootPomArtifact(directory, `${options.artifactPrefix}-server`)
-  await rewriteTextFiles(directory, replacements, selection?.frontendIds?.has('report-ui'))
+  await rewriteTextFiles(directory, replacements, selection?.frontendIds?.has('report-ui'), context.transformText)
   await moveJavaPackageDirectories(directory, 'com.mdframe.forge', options.basePackage)
   await renameFilesByBasename(directory, applicationClassMap, '.java')
-  await renameArtifactDirectories(directory, artifactMap)
+  await renameArtifactDirectories(directory, context.directoryMap ?? artifactMap)
   return { artifactMap, applicationClassMap, replacements }
 }
