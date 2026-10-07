@@ -77,11 +77,15 @@
   - 三套 Admin package、两套 UI build/动态页面装配与 JAR 原字节验证通过；ESLint/形态/diff 检查通过。
   - 冻结 full 8343/minimal-admin 5077 文件与 T8 零差异，T0 基线不变；卸载后外部样例不变，备份保留。
   - 模拟接口亮/暗/320px/刷新/错误重试验证通过；不连接真实库，真实登录及普通用户授权仍待 T12。
-- [ ] T10 防误提交（F7）：
+- [x] T10 防误提交（F7，2026-10-07）：
   - `scripts/guards/check-edition.mjs` 和根 `package.json` 的 `check:edition` 脚本；
   - 模板仓库 `.gitignore` 区块；
   - `AGENTS.md` 5.18；
   - Node 单测。
+  - 新增 41 项；模板 295/295、生成 full DB 桩 30/30，实际 pnpm check:edition 通过。
+  - 工作区/索引原始内容双检查，无目录豁免；损坏配置、强制暂存安装目录、链接/冲突/超限拒绝。
+  - 冻结两预设与 T9 零差异；实时两预设只增加 AGENTS 的条件化 5.18，不复制 guard/命令/忽略区块。
+  - 安装 hello 后客户插件后端/前端均可暂存；未启动服务、操作真实数据库或新增商业 License。
 - [ ] T11 文档：更新 `.agents/skills/forge-project-init/SKILL.md`（插件安装、升级、卸载）；新增插件开发说明，包括企业版接口必须加 `@RequiresFeature`、迁移脚本规则、升级覆盖规则。
 - [ ] T12 人工验收（已找到临时 Maven/JDK；真实 MySQL 与插件全链路仍需后续验收）：
   - `mvn -pl forge-admin-server -am package -DskipTests`；

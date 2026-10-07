@@ -103,3 +103,7 @@ forge/db/community-export/
 /var/
 /.tmp/
 /.tmp-test/
+# forge-template-only:begin
+/forge-server/plugins/
+/forge-admin-ui/src/views/plugins/
+# forge-template-only:end

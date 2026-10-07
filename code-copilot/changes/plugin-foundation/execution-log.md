@@ -1083,3 +1083,82 @@ NODE_OPTIONS=--max-old-space-size=8192 node_modules/.bin/vite build --mode produ
 - T9 开发完成；T10 防误提交、T11 通用开发文档和 T12 真实 MySQL/登录/授权验收仍待继续。
   本轮只能证明编译、内存迁移、UI 模拟与静态装配；不能宣称真实 DB、普通用户或商业 License 已通过。
 - 保留既有 .DS_Store 改动；只做本轮中文本地提交，不 push、不合并 main、不变更分支。
+
+## 2026-10-07：T10 开源边界与防误提交检查
+
+### 范围与实现
+
+- 继续 plugin-foundation 的 T10。使用 forge-project-init Skill 校验模板与客户工程的忽略/分发边界，
+  不改生成器、不复制私有代码、不启动数据库或应用。保留已有 .DS_Store 修改。
+- 根 package 增加 pnpm check:edition；五个 Node 模块（含测试）按 CLI/Git/内容/编排职责拆分。
+  Git 原始索引 blob 与可提交工作区双检查，覆盖包前缀、描述 edition、POM 空区块、安装目录。
+  不设置文档/测试豁免；规范及负例以分段包名避免自匹配，JSON 错误不输出可能包含敏感值的原文。
+- 两个宿主 POM 强制空标记，其它 POM 出现标记同样严格校验；JSON 重复键/损坏/未知 edition 拒绝。
+  检查路径/二进制全文，拒绝可提交链接、子模块、冲突、不可读对象/文件和 >64 MiB 文件。
+  清除 Git 环境重定向，禁用 replace ref，检查前后索引一致；blob 分批读取，不一次载入全仓库。
+- .gitignore 两个安装目录放进模板专用块；AGENTS 5.18 明确只约束开源模板，客户可提交合法授权插件。
+  工具不修改文件/索引、不安装提交钩子；是手动防误提交检查，不替代审查或 License/反破解。
+
+### 环境、命令与结果
+
+Node v20.19.0；专用验证目录 /private/tmp/forge-plugin-t10.ycT4CV/。
+从仓库根执行（数据库测试全用桩）：
+
+```bash
+/Users/mini32g/.nvm/versions/node/v20.19.0/bin/node --test \
+  scripts/guards/*.test.mjs scripts/forge-plugin/*.test.mjs scripts/forge-create/*.test.mjs \
+  scripts/forge-shared/*.test.mjs code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
+  forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+PATH=/Users/mini32g/.nvm/versions/node/v20.19.0/bin:$PATH pnpm check:edition
+node /private/tmp/forge-plugin-t10.ycT4CV/shape.mjs
+git diff --check
+git diff --cached --check
+```
+
+- node-validation-final.log：295/295，29.44s，无失败/取消/跳过；其中 41 项为新 guard 契约。
+  guard-tests-final.log 41/41、8.76s；审查后提取 POM 小函数，再跑 guard-tests-reviewed.log 41/41、9.05s。
+- 暂存前命令准确报出旧索引 Spec/feasibility 的两个包名引用，工作区分段修正文档后也未漏检旧 blob；
+  显式只暂存本轮文件后 edition-command.log 退出 0：索引/工作区各 9519 个文件通过。
+  .DS_Store 未暂存，命令没有修改任何文件。收尾文档完成后再次暂存并检查再提交。
+- 覆盖：四类违规，未跟踪/已跟踪/忽略后强制暂存，暂存违规而工作区正常、暂存删除，
+  文档/测试/路径/二进制/中文换行名，严格描述/POM、链接/外部父目录/子模块/合并冲突，
+  Git 不可用/对象缺失/重定向/replace refs/并发索引，>64 MiB，270 文件多批 blob 边界。
+- shape.log：60 个函数，最大 26 行、3 参数、3 层嵌套；五份 .mjs 的语法及行宽 <=120 通过。
+  生产方法复杂度人工检查，无复杂多层分支；工作区和暂存 diff 检查通过。
+
+### 生成边界与基线
+
+```bash
+node /private/tmp/forge-plugin-t10.ycT4CV/qa.mjs prepare
+node /private/tmp/forge-plugin-t10.ycT4CV/qa.mjs final
+```
+
+- 复用 T9 frozen-template，只替换本轮根 package、实际 .gitignore 和新增 guard；生成器/业务源码不变。
+  T9 冻结输入已带 T6 专用测试忽略块，两块分别剥离后剩余字节相同；未修改旧证据。
+  对生成输出逐文件原始 SHA-256 比较，没有路径忽略或内容归一化：full 8343/minimal-admin 5077，
+  missing/added/changed 各为空；T0 原清单未变。
+- 实时 live-final 两套：full 8383/minimal-admin 5116，missing/added 为空，changed 精确 AGENTS.md。
+  精确删除新 5.18 段即恢复 T9 旧字节，未混入其它规范或业务变化；delta JSON 保存完整结果。
+- 两套没有 guard、check:edition 或样例目录；plugins=[]，真实忽略块去除，插件工具帮助可执行。
+  随后使用各自已生成 CLI 安装真实 hello 社区包；后端 META-INF/forge-plugin.json 与前端页面均可 git add，
+  验证客户正常提交插件，不把模板限制带过去。临时安装保留，没有修改外部样例。
+- 在 live-final/forge-baseline-full/forge-baseline-full-server/scripts/db 执行：
+
+```bash
+/Users/mini32g/.nvm/versions/node/v20.19.0/bin/node --test init-db.test.mjs clean-db.test.mjs
+```
+
+- generated-db.log：30/30、45.95s，无失败/取消/跳过，全部 MySQL/Maven 调用为桩；未执行真实清库或迁移。
+
+### 初轮修正及限制
+
+- 新测试初轮 36/38：索引总数应为 8 而非 7；用 /docs/ 放未跟踪文档碰到原有忽略规则。
+  修正夹具为准确 8 个文件及未忽略 forge-docs 文档，验证真实“可提交集合”，没有修改生产扫描范围。
+- 增强 FIFO 初轮全量 294/295：Git 不枚举未跟踪 FIFO；改为已跟踪普通文件被 FIFO 替换，验证无法读取的
+  可提交路径及时失败而不阻塞。最终 295/295；未降低断言或宣称未跟踪特殊文件可被 Git 提交。
+- 临时生成审计初轮分别误认为 T9 输入没有测试忽略块、AGENTS 会镜像到 code-copilot/AGENTS，
+  以及安装目录含根描述。按已有生成规则/安装结果核对：只改根 AGENTS，运行描述在 META-INF；
+  新开 live-final 保留失败证据后完整再验证。没有改生成器、扩大摘要忽略或覆盖 T0/旧清单。
+- 不新增依赖/Java/UI/SQL；本轮不重复 Maven/UI 构建，不启动 Admin/Flow/Vite 或真实 MySQL/Redis，
+  无需停止服务。临时工程/日志保留，不提交。T11 文档与 T12 真实数据库/授权全链路仍未完成。
+- 仅本地中文提交到 codex/plugin-foundation，不 push、不合并 main；既有 .DS_Store 不进入提交。
