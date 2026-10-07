@@ -41,6 +41,13 @@
   - 新增 25 项 Node 测试，模板 60/60、当前改名 full DB 桩 30/30 通过；两套 POM/依赖/配置检查通过；
   - 生成 Admin 聚合编译被原有打印模块依赖遗漏阻断，另有启动类名与文件名冲突；待单独确认修复，
     未改写 T0 基线，不把兼容抽取通过表述为生成工程全量编译通过。
+- [x] T5-F1 生成工程编译修复（2026-10-07 用户确认继续，先于 T6）：
+  - 裁剪缺少能力开放依赖的生成 Admin 应用集成源码/测试/Mapper，完整预设保持不变。
+  - 保留 T0 原清单，品牌替换不再抢先改掉 Admin 启动类；验证声明、main 引用和文件名一致；
+  - 登记 plugin-print，补齐 generator/data 的真实打印依赖及 generator 的 data/external 编译闭包；
+  - 增量 Node 测试与两套生成工程 Admin 聚合构建，单列输出允许差异，不混入 T6 工具扩展。
+  - 新增 16 项，模板 76/76、生成 full DB 桩 30/30 通过；两套 Admin 聚合 package 通过。
+  - 冻结 full/minimal-admin 的差异逐文件核对，保留原 T0 清单，未连接真实数据库或启动服务。
 - [ ] T6 脚手架扩展（F4）：
   - `forge.config.json` 增加 `forgeVersion`、`plugins`；
   - 生成工程包含根 `package.json`、`scripts/forge-plugin/`、`scripts/forge-shared/`、`module-catalog.json`；

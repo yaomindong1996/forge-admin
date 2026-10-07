@@ -50,6 +50,7 @@
         "plugin-capability-parent",
         "plugin-mcp",
         "plugin-generator",
+        "plugin-print",
         "plugin-ai",
         "plugin-external",
         "plugin-data",
@@ -288,6 +289,19 @@
         "starter-web"
       ]
     },
+    "plugin-print": {
+      "type": "plugin",
+      "artifactId": "forge-plugin-print",
+      "path": "forge-server/forge-framework/forge-plugin-parent/forge-plugin-print",
+      "dependencies": [
+        "starter-core",
+        "starter-orm",
+        "starter-auth",
+        "starter-log",
+        "starter-tenant",
+        "starter-crypto"
+      ]
+    },
     "plugin-generator": {
       "type": "plugin",
       "artifactId": "forge-plugin-generator",
@@ -305,6 +319,9 @@
         "starter-file",
         "starter-job",
         "starter-id",
+        "plugin-external",
+        "plugin-data",
+        "plugin-print",
         "plugin-message",
         "flow-client"
       ]
@@ -342,6 +359,7 @@
       "path": "forge-server/forge-framework/forge-plugin-parent/forge-plugin-data",
       "dependencies": [
         "starter-core",
+        "plugin-print",
         "starter-orm",
         "starter-auth",
         "starter-log",

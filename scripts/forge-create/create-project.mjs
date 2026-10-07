@@ -10,6 +10,7 @@ import {
   moveJavaPackageDirectories, renameFilesByBasename, renameArtifactDirectories, dockerDirName, toSnakeCase,
 } from '../forge-shared/rename.mjs'
 import { collectFiles, exists } from '../forge-shared/files.mjs'
+import { pruneOptionalAdminGlue } from './source-glue.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -412,6 +413,7 @@ async function pruneBackend(serverRoot, catalog, selection) {
 
 async function pruneBackendSourceGlue(serverRoot, selectedArtifacts) {
   const adminServerRoot = path.join(serverRoot, 'forge-admin-server')
+  await pruneOptionalAdminGlue(adminServerRoot, selectedArtifacts)
   if (!selectedArtifacts.has('forge-plugin-generator')) {
     await fs.rm(path.join(adminServerRoot, 'src/main/java/com/mdframe/forge/admin/bridge'), {
       recursive: true,

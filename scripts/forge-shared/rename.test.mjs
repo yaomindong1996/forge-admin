@@ -59,6 +59,28 @@ test('启动类映射与文本替换分开维护，不能修改调用者选项',
   assert.equal(options.javaName, 'Acme')
 })
 
+test('品牌替换不再抢先改掉 Admin 启动类，普通品牌文本仍按原位置替换', () => {
+  assert.equal(replace('ForgeAdmin|ForgeAdminApplication|ForgeAdminClient'),
+    'Acme|AcmeAdminApplication|AcmeClient')
+  assert.equal(replace('new ForgeAdminApplication(); ForgeAdminApplication.class'),
+    'new AcmeAdminApplication(); AcmeAdminApplication.class')
+})
+
+test('真实 Admin 源码的声明、main 引用和文件名一致，目标包含品牌前缀也不重复替换', async (t) => {
+  const sourceFile = new URL('../../forge-server/forge-admin-server/src/main/java/'
+    + 'com/mdframe/forge/admin/ForgeAdminApplication.java', import.meta.url)
+  const source = await fs.readFile(sourceFile, 'utf8')
+  for (const javaName of ['Acme', 'ForgeAdminCustom', 'ForgeAdmin']) {
+    const directory = await fixture(t, { 'src/main/java/com/mdframe/forge/admin/ForgeAdminApplication.java': source })
+    await renameSourceTree(directory, { options: { ...options, javaName }, catalog, selection })
+    const filename = `src/main/java/com/acme/runtime/admin/${javaName}AdminApplication.java`
+    const content = await read(directory, filename)
+    assert.ok(content.includes(`public class ${javaName}AdminApplication {`))
+    assert.ok(content.includes(`SpringApplication.run(${javaName}AdminApplication.class, args);`))
+    assert.equal(await exists(path.join(directory, 'src/main/java/com/mdframe/forge')), false)
+  }
+})
+
 test('文本替换按给定顺序执行，按字面量处理正则字符及替换值中的美元符号', () => {
   assert.equal(applyTextReplacements('a.b|aXb', [['a.b', '$1'], ['$1', '${value}']]), '${value}|aXb')
   assert.equal(applyTextReplacements('aa', [['a', 'b'], ['b', 'c']]), 'cc')

@@ -585,3 +585,113 @@ JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home \
 - 本轮无 Java 新源码/UI/Flyway 改动，不重跑此前相关 Java 单测或 UI 构建，不启动服务或连接真实数据库。
   没有业务服务 PID；隔离验证工程留存且不提交，不执行生成器打印的真实初始化/清理命令。
 - 按仓库规则本地单独提交 T5 的脚本与文档，不 push、不合并 main，原有 .DS_Store 修改保留。
+
+## 2026-10-07：T5-F1 生成工程编译修复
+
+### 授权与范围
+
+- 用户在 T5 的两个旧编译问题与修复建议后回复“继续”，本轮先独立修复生成工程，不提前实现 T6。
+- 使用 forge-project-init 技能，增量复用既有 Spec/test-spec、隔离生成及模板/生成工程 DB 桩验证。
+  保留 codex/plugin-foundation，不推送或合并 main；原有 .DS_Store 修改不纳入提交。
+- module-catalog 登记既有 plugin-print，补齐 generator 的 print/data/external 和 data 的 print 依赖；
+  共享品牌规则避开完整 ForgeAdminApplication，其它顺序与文本语义不变。
+- 首次实时 full 的 BOM install/package 均成功；minimal-admin 的 BOM install 成功、package 失败，
+  最先报 Admin 应用集成引用未选中的 capability.controlplane/flowaction/secureaction 类型不存在。
+  在 Spec 中追加明确裁剪边界后，新增 source-glue.mjs，仅在缺依赖时裁剪新生成工程的可选接入层。
+  不删除模板 Java 文件，不把能力开放套件强塞入最小预设，不修改生产 POM/SQL/UI。
+
+### 最终生成与打包
+
+- 专用目录 /private/tmp/forge-plugin-t5-fix.0Phyoo；最终两套实时工程位于 final-live/，
+  两套冻结工程位于 final-frozen/。首次验证工程保留在 live-output/frozen-output，无 --force 或覆盖。
+- 冻结模板仍为 e416f7902834763ef43989c4525738441e49bd4c 的 Git archive + 原版本补丁。
+  带入最终 create-project.mjs、source-glue.mjs、forge-shared/，目录清单只应用本节 print/依赖增量。
+  不复制实时 forge-server/AGENTS/code-copilot，不混入 T1–T4（冻结目录没有 starter-plugin）。
+- 生成参数：末级目录 forge-baseline-full/forge-baseline-min，--base-package com.acme.demo，
+  --preset full/minimal-admin，其它沿用 T0 默认；在两类源根执行同一生成命令，例如：
+
+```bash
+node scripts/forge-create/create-project.mjs \
+  /private/tmp/forge-plugin-t5-fix.0Phyoo/final-live/forge-baseline-full \
+  --base-package com.acme.demo --preset full
+node scripts/forge-create/create-project.mjs \
+  /private/tmp/forge-plugin-t5-fix.0Phyoo/final-live/forge-baseline-min \
+  --base-package com.acme.demo --preset minimal-admin
+```
+
+- Node v20.19.0；JDK=/private/tmp/lawhub-october-jdk/Contents/Home；
+  Maven=/private/tmp/apache-maven-3.9.11/bin/mvn。对每套 final-live 的 server 根执行：
+
+```bash
+JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home \
+  /private/tmp/apache-maven-3.9.11/bin/mvn -q -o \
+  -pl forge-baseline-full-framework/forge-baseline-full-dependencies install -DskipTests
+JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home \
+  /private/tmp/apache-maven-3.9.11/bin/mvn -q -o \
+  -pl forge-baseline-full-admin-server -am package -DskipTests
+JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home \
+  /private/tmp/apache-maven-3.9.11/bin/mvn -q -o \
+  -pl forge-baseline-min-framework/forge-baseline-min-dependencies install -DskipTests
+JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home \
+  /private/tmp/apache-maven-3.9.11/bin/mvn -q -o \
+  -pl forge-baseline-min-admin-server -am package -DskipTests
+```
+
+- 四个最终 Maven 命令全部退出 0。两套工程路径/坐标独立，没有同 checkout 的并发构建。
+  两个包内 Start-Class 均为 com.acme.demo.admin.<JavaName>AdminApplication，与源码/文件名/main 一致。
+- 包内打印 jar 与本轮 Reactor target jar 摘要一致：
+  full=c3733a092585de10b0854fbdf6789ebe3f3b5619a4dd735b7466c96168f2b137；
+  minimal-admin=e75e92084987c55b14e32126aab875b52db9afdec9200d2e99a52263c3d0ffb0。
+  未用本机旧打印 jar 冒充改名集成成功。
+- 所有 POM 用 xmllint --noout 验证：full 54、minimal-admin 37，通过。
+  full 的 integration 主/测试/Mapper 共 11 文件保留，minimal-admin 为 0；AI 降级适配器仍含 Flux.empty()。
+  forge.config.json 仍没有 T6 的 forgeVersion/plugins 字段。
+
+### 增量测试
+
+```bash
+node --test scripts/forge-create/module-catalog.test.mjs scripts/forge-create/source-glue.test.mjs \
+  scripts/forge-shared/rename.test.mjs code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
+  forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+```
+
+- 新增 16 项：目录清单 9、可选接入层 5、品牌边界/真实启动类 2；模板共 76/76，约 83.93 秒。
+  生成 final-live/full 根复跑 server/scripts/db/init-db.test.mjs、clean-db.test.mjs，30/30，约 84.17 秒。
+  总计 106 项，失败/取消/跳过均为 0，数据库执行及迁移调用都是桩，不接真实库。
+- Node --check 生成器/source-glue/rename、git diff --check 通过。新增测试/工具行宽 <=120、辅助方法 <=80；
+  source-glue 22 行，其测试 73 行，目录测试 79 行，共享规则测试 300 行。
+
+### 冻结输出完整差异审计（不是重新录制基线）
+
+- 用原始 collectManifest/compareManifests 对 T0 清单读取比较，无路径忽略或内容归一化：
+  full 8324 文件，missing=112/added=112/changed=10；minimal-admin 5058 文件，missing=125/added=317/changed=9。
+- full 的 112 个 missing/added 一一对应打印模块目录改名，原来是未登记/未映射的 forge-plugin-print。
+  对每个文件验证唯一坐标替换为 forge-baseline-full-plugin-print 后的原始内容与新文件逐字节一致。
+  minimal-admin 的同类 112 文件也做完全相同的对应验证，不整目录放行。
+- minimal-admin 另外新增 plugin-data 120 文件、plugin-external 74 文件，全部与最终冻结 full 的同源文件
+  按 full -> min 项目/Java 前缀替换后的字节一致；未从实时工作区混入新业务代码。
+- minimal-admin 新增 SQL 文件为 9 个 data/external 来源加 2 个消息 SQL 重排文件，旧的 2 个消息序号文件删除。
+  两个 manifest 中所有 54/41 个脚本按冻结 source 路径和完整有序改名规则逐字节核对。
+  min manifest 保留旧来源列表/相对次序，仅插入 9 个来源并顺延消息序号，没有业务 SQL 修改。
+- 首次 SQL 来源审计期望只替换 forge_admin，遗漏了原规则先替换 forge_admin_new；报表 SQL 审计失败。
+  改为显式使用完整原改名规则验证后全部通过，未修改生成器/SQL 迁就审计。
+- minimal-admin 另外删除精确 11 个可选集成文件：6 个主 Java（Controller/Service/Mapper/3 DTO）、
+  4 个测试（Controller/Service/Source/MessageIntegration）、1 个 ApplicationIntegrationMapper.xml。
+  没有删除其它源码、测试、XML 或资源；完整预设保留全部文件。
+- 两套所有 19 个 changed 文件完整 git diff --no-index 已人工审核：
+  - full：Admin POM/启动类、business-core POM、BOM、data POM、generator POM/PrintCodegenContributor.java/
+    PRINTING.md.vm、plugin-parent POM、forge.config.json，共 10 文件。
+  - min：db/manifest.json、Admin POM/启动类、BOM、generator POM/上述两个打印坐标提示文件、
+    plugin-parent POM、forge.config.json，共 9 文件。
+  - 内容只为启动类纠正、打印坐标/模块与依赖登记、min data/external 依赖和相应 SQL/config 选择。
+    min Admin 同时恢复源 POM 已有的 spring-boot-starter-test：旧裁剪正则把它随相邻 external 依赖一起删掉，
+    保留 external 后自然恢复；本轮不修改裁剪正则，不引入源 POM 之外的新外部依赖。
+- git diff --name-only -- code-copilot/changes/plugin-foundation/baseline 输出为空；
+  原 full/minimal-admin 清单、provenance、version-bump.patch 均未更新，T5 零差异历史证据保留。
+
+### 状态与限制
+
+- T5-F1 完成；T6–T12 仍待完成。本轮只修生成器兼容性，没有新增插件安装/升级/卸载命令或 License。
+- 没有 Java 业务源码/UI/生产 SQL 变更，不重跑既有全部 Java 单测，不启动服务或连接真实 MySQL。
+  package 和 DB 桩不能代替真实迁移、应用启动、Sa-Token/Redis 或端到端插件验收；没有业务服务 PID。
+- 最终验证目录保留，不提交生成工程或构件。按仓库规则本地单独提交脚本/文档，不 push、不合并 main。

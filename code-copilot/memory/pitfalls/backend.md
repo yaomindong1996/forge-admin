@@ -202,11 +202,14 @@ mvn -pl forge-admin-server -am compile -DskipTests
 **验证建议**:
 修复 forge-create 裁剪逻辑后，必须重新生成临时 `minimal-admin` 工程，检查生成后的 `admin-server` 存在降级 `AiClientAdapterImpl` 且没有引用 `plugin-ai`，再执行 `mvn -pl <project>-admin-server -am compile -DskipTests` 或 `package -DskipTests`。
 
-**2026-10-07 增量发现（未修复）**:
+**2026-10-07 增量发现及修复（plugin-foundation T5-F1）**:
 `full` 在 `plugin-data`、`minimal-admin` 在 `plugin-generator` 聚合编译时都报 `plugin.print` 类型不存在。
-两个源 POM 已依赖 `forge-plugin-print`，但 module-catalog 未登记该模块；生成器裁剪后删除模块及依赖。
+两个源 POM 已依赖 `forge-plugin-print`，但 module-catalog 未登记该模块；生成目录留有未映射的孤立打印模块，
+却没有 Reactor 登记，引用者的打印依赖被裁掉。生成工程还需补齐 generator 的 data/external 直接依赖。
 冻结 T0 输出也有此问题，不能把输出零差异当成可编译。新增模块时需要同步目录清单和所有直接引用者的闭包，
 再分别执行改名工程 Admin 聚合构建；只跑 System/starter 模块测试无法覆盖此缺失。
+现已补齐目录清单和闭包；最终重新生成 full/minimal-admin，两套离线 Admin package 均通过。
+生成打印目录/坐标、父 POM/BOM 登记和包内 jar 摘要一起验证，T0 原清单保留，修复差异单列审核。
 
 ## 74. Spring Boot 3.5 与 Redisson 3.34.1 会触发登录 Redis 适配死循环
 
@@ -705,3 +708,23 @@ minimal-admin 和冻结 T0 输出也有此问题，不是共享改名抽取引�
 原替换表先执行 `ForgeAdmin -> javaName` 品牌规则，随后 `ForgeAdminApplication` 启动类规则已无法命中；
 文件改名却独立使用完整启动类映射。应单独修复前缀重叠，验证声明、文件名、main 引用和构建配置一致。
 零差异抽取期间不能静默更改这条行为或重录 T0；修复要单列允许差异，再重新生成并聚合构建。
+
+**2026-10-07 已修复（plugin-foundation T5-F1）**:
+品牌规则使用负向前缀边界避开完整启动类，完整类名仍由原映射改名。普通品牌文本不变，
+覆盖目标前缀含 ForgeAdmin 的场景；两套生成 Admin package 和包内 Start-Class 验证通过。
+
+## 最小生成工程裁模块时必须同时裁剪 Admin 的可选接入层
+
+**发现日期**: 2026-10-07
+
+**问题描述**:
+补齐打印依赖后，minimal-admin 在 ApplicationIntegrationController/Service/Mapper 编译时
+报 capability.controlplane、capability.flowaction 和 capability.secureaction 类型不存在。
+目录预设未选择能力开放模块，却把 Admin 的应用集成组合代码和测试、Mapper XML 全部保留下来。
+
+**解决方案**:
+生成器在改包名之前，检查 generator、capability-platform、capability-actions 是否全部选择；
+缺任一项只裁剪新生成 Admin 工程的 integration 主/测试包和 ApplicationIntegrationMapper.xml。
+不要为编译强行把能力开放套件并入最小预设。测试逐项缺依赖、幂等、其它文件不变及完整预设保留，
+再用新目录重新生成并聚合 package。最终 full 保留 11 文件、minimal-admin 移除 11 文件，两套打包通过；
+模板源码未删，回滚还原生成器后重新生成工程，原冻结清单不重录。

@@ -98,7 +98,8 @@ function projectTextReplacements(artifactMap, options) {
     ['com.mdframe.forge', options.basePackage],
     ['com/mdframe/forge', options.basePackage.replaceAll('.', '/')],
     ['Forge AI', options.javaName],
-    ['ForgeAdmin', options.javaName],
+    // 完整启动类留给后面的类映射；品牌前缀不能抢先把它改成 <prefix>Application。
+    [/ForgeAdmin(?!Application)/, options.javaName],
     ['Forge Admin', options.displayName],
     ['Forge 工作台', `${options.javaName} 工作台`],
     ['企业级中后台基础框架', options.displayName],

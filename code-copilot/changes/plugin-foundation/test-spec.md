@@ -210,3 +210,34 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
 - 直接 javac -proc:none 对生成 Admin 源文件确认 public 类名/文件名冲突；未提供外部类路径，该调用只用于
   命名错误诊断，不视作聚合编译或其它依赖验证。两个旧问题待单独修复，T5 未改变其冻结输出。
 - 未执行 Java 新测试/UI 构建/真实数据库迁移：本轮没有这些源码或协议变动；不启动业务服务，暂无服务 PID。
+
+## 11. T5-F1 增量验证（2026-10-07）
+
+- P0：品牌替换与 AdminApplication 不再前缀冲突，普通品牌文本仍改名；main 引用和类文件与映射一致，
+  覆盖自定义类前缀、含 ForgeAdmin 的目标前缀、原包名 no-op 及扩展插件类。
+- P0：plugin-print 描述、目录和内部直接 POM 依赖齐全；generator/data 的编译闭包包含打印模块，
+  generator 的 data/external 直接依赖不会被裁掉；四个 preset 的依赖解析均无未知 ID。
+- P0：重新生成实时 full/minimal-admin，解析所有 POM，安装独立 BOM，再 Admin 聚合 package。
+  确认启动类文件/类名/main 引用一致、打印模块登记/坐标一致、minimal-admin 保留 AI 降级适配器。
+- P0：应用集成的三项依赖全部选中时保留，分别缺失时仅裁剪 integration 主/测试包和精确 Mapper 文件；
+  缺失目录可安全重复处理，其它源码/测试/Mapper 不变。生成 full 保留 11 个文件，minimal-admin 不残留。
+- 冻结输入单独生成并对照 T0：列出完整差异，核对仅本轮声明的命名/坐标/模块登记/闭包/config 变化；
+  SQL 模块按来源和内容逐文件验证，额外移除的应用集成文件必须是上述 11 个精确路径。
+  不重录原清单，不以目录全忽略代替内容审核。T6 仍未实现，不允许新增其工具/config 字段。
+- node --test 共享规则/新增目录清单测试/基线工具/模板 DB 桩，生成 full 复跑 DB 桩；
+  Node 语法、XML、行宽/规模及 git diff --check。无 Java 业务修改，不重跑已有全部 Java 单测或真实 DB/UI 联调。
+
+### T5-F1 执行结果
+
+- 目录清单 9 项、可选接入层裁剪 5 项、共享规则新增 2 项；本轮增量 16 项。
+  模板合计 76/76（含已有共享规则/清单工具/DB 桩）、实时 full DB 桩 30/30，失败/取消/跳过均为 0。
+- 初次修复后 full package 成功；minimal-admin 失败于未选择能力开放模块但保留了 Admin 应用集成。
+  明确追加 Spec 边界并增加裁剪测试后，从最终脚本重新生成，两套 BOM install/Admin package 均退出 0。
+- 54/37 个 POM XML、声明/文件名/main/包内 Start-Class、打印 jar 摘要、最小预设 AI 降级及 full 保留
+  11 个应用集成文件/minimal-admin 全部裁掉均通过。Node 语法/新增行宽/辅助方法规模/diff 检查通过。
+- 冻结 full missing=112/added=112/changed=10；minimal-admin missing=125/added=317/changed=9。
+  打印模块移路径文件按唯一坐标替换逐字节验证；新增 data/external 与冻结 full 的同源改名内容一致；
+  两套 54/41 个 SQL 按冻结源与明确改名规则逐字节验证，新增只有 9 个 data/external 来源，消息仅重排序号。
+- 所有 19 个 changed 文件的完整 diff 人工审核；应用集成删除精确为 6 个主源码、4 个测试、1 个 Mapper。
+  未修改 T0 原始清单。首次 SQL 来源审计误漏 forge_admin_new 的先替换规则，修正审计期望后完整通过，
+  未改生成器或 SQL 迁就审计。没有真实数据库/UI/服务启动或 Java 全量单测验收。

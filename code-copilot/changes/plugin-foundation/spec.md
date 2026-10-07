@@ -506,3 +506,39 @@ ALTER TABLE sys_resource
   直接 javac 给出类名/文件名不匹配诊断。聚合编译在更早的依赖失败处停止，不能声称已编译到 Admin。
 - T5 兼容抽取完成不代表生成工程已可完整编译；上述两项应单独确认修复并列出允许差异，不能改写冻结基线
   或把旧缺陷修复夹入零差异重构。T6–T12 与真实数据库验收未完成，本轮未启动业务服务或连接真实库。
+
+### 2026-10-07 T5-F1 生成工程编译修复边界
+
+- 用户在两项旧问题及修复建议后确认“继续”，本轮先做独立兼容修复，不与 T5 零差异抽取混合。
+  T0 原始清单/provenance/版本补丁保持不变，后续 T6 的增量比对必须同时识别本节明确允许的修复差异。
+- 修正 ForgeAdmin 品牌替换的匹配边界，避免命中 ForgeAdminApplication；完整启动类仍走同一份映射。
+  不调整其它替换阶段或通用字面量语义；声明、main 引用、文件名及文档/构建中的启动类引用一起保持一致。
+- 目录清单新增现有 plugin-print 及其真实 POM 依赖，full 显式保留；generator/data 保留打印依赖。
+  generator POM 还直接依赖 plugin-data、plugin-external，同一处目录闭包遗漏一并补齐，不裁掉仍被源码引用的能力。
+  不修改生产 POM/Java/SQL，不引入外部新依赖，不靠本地仓库旧 jar 补齐生成工程。
+- 相对 T0 允许差异只包括：启动类引用纠正；打印模块坐标/目录改名及 Maven 登记；minimal-admin 补回
+  data/external 编译依赖模块和 Maven 登记；对应 SQL 模块选择/顺序/manifest 与 forge.config.json 变化。
+  生产 SQL 不变，输出的 SQL 逐文件核对来源与改名；其它输出不得任意忽略。
+  用冻结源 + 原版本补丁 + 本轮生成器/共享依赖 + 仅本节目录清单增量验证，不能混入 T1–T4 的模块新增。
+- 新增 Node 用例覆盖前缀重叠、实际源码声明/引用/文件名与 POM/目录闭包；在实时 full/minimal-admin
+  重新生成后先 install 独立 BOM，再 Admin 聚合 package -am -DskipTests；复跑模板和生成 full 的 DB 桩。
+  不连接真实 MySQL、启动业务服务或执行 UI 构建；这些业务源码均未改变，真实联调仍由用户验收。
+- 首次修复验证：full 已打包通过，minimal-admin 在 Admin 的应用集成代码引用未选择的能力开放模块时失败。
+  应用集成依赖 generator、capability-platform、capability-actions，缺任一模块时仅裁剪生成工程的
+  admin/integration 主/测试源码和 ApplicationIntegrationMapper.xml（共 11 个文件）；full 全部保留。
+  不为编译把能力开放套件强塞入最小预设，不改变模板业务代码。回滚方式为还原生成器后重新生成工程。
+  该额外缺陷由本轮聚合构建发现，作为同一编译修复的明确输出差异；增加缺依赖和保留其它文件的桩测试。
+- minimal-admin 的 Admin POM 同时恢复源文件已有的 spring-boot-starter-test：原裁剪正则把它与后面的
+  external 依赖一起删除，保留 external 后该块自然保留。本轮未修改裁剪正则或新增外部依赖声明。
+
+### T5-F1 交付与验证结果
+
+- 三项旧编译问题已修复：打印模块登记/依赖闭包、Admin 启动类命名、最小预设可选接入层裁剪。
+  本轮新增 16 项 Node 测试；模板 76/76、实时改名 full DB 桩 30/30 通过，无失败/取消/跳过。
+- 从最终脚本重新生成两套实时工程，分别安装 BOM 后离线 Admin 聚合 package 通过；54/37 个 POM XML
+  解析通过，包内 Start-Class 正确，嵌入打印 jar 与本轮 Reactor 构件 SHA-256 一致。
+- 冻结 full 为 8324 文件：112 个打印模块文件移路径、10 个其它文件内容变化；minimal-admin 为 5058 文件：
+  112 个打印文件移路径，新增 data/external 194 文件和 9 个 SQL，2 个消息 SQL 改序号，移除 11 个集成文件，
+  9 个其它文件内容变化。全部新增/删除/变化均单列审核，不归一化原清单，详细分类见 execution-log。
+- T0 清单/provenance/版本补丁未改，T5 的历史零差异证据保留。T6–T12 尚未完成；不把打包或数据库桩
+  当成真实数据库迁移、运行启动或端到端插件安装验收。没有 push/合并 main，无 Java/UI/生产 SQL 改动。
