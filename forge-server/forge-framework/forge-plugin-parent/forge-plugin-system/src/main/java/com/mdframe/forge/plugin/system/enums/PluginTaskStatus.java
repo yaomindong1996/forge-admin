@@ -2,7 +2,8 @@ package com.mdframe.forge.plugin.system.enums;
 
 public enum PluginTaskStatus {
     AWAIT_CONFIRMATION("await_confirmation"), BLOCKED("blocked"), QUEUED("queued"), CANCELLED("cancelled"),
-    BUILDING("building"), BUILT("built"), BUILD_FAILED("build_failed");
+    BUILDING("building"), BUILT("built"), BUILD_FAILED("build_failed"),
+    RELEASE_READY("release_ready"), CLOSED("closed");
     private final String code;
 
     PluginTaskStatus(String code) {

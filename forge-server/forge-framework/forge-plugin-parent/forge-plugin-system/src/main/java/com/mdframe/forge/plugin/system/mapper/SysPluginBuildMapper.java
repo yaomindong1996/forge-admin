@@ -11,6 +11,9 @@ import java.time.LocalDateTime;
 public interface SysPluginBuildMapper extends BaseMapper<SysPluginBuild> {
     SysPluginBuild selectBuild(@Param("tenantId") Long tenantId, @Param("id") String id);
     SysPluginBuild selectSummary(@Param("tenantId") Long tenantId, @Param("id") String id);
+    SysPluginBuild lockSummary(@Param("tenantId") Long tenantId, @Param("id") String id);
+    int seal(@Param("tenantId") Long tenantId, @Param("id") String id,
+             @Param("actorId") Long actorId, @Param("now") LocalDateTime now);
     int heartbeat(@Param("build") SysPluginBuild build, @Param("previousPhase") String previousPhase,
                   @Param("now") LocalDateTime now);
     int finish(@Param("build") SysPluginBuild build, @Param("previousPhase") String previousPhase,

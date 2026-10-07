@@ -51,3 +51,25 @@ test('workbench persists bounded private packages, additive RBAC/dictionaries an
   assert.doesNotMatch(xml, /DELETE FROM/)
   assert.match(xml, /task_status = #\{expectedStatus\} AND revision = #\{expectedRevision\}/)
 })
+
+test('review is an additive platform permission with immutable audit, not a deployment path', async () => {
+  const migration = await fs.readFile(path.join(repository,
+    'forge-server/db/migration/V1.0.213__add_plugin_task_review.sql'), 'utf8')
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS sys_plugin_task_review/)
+  assert.match(migration, /'system:plugin:review'/)
+  assert.match(migration, /'POST' AS method/)
+  assert.match(migration, /'\/system\/plugin-task\/\*\/review' AS url/)
+  assert.match(migration, /sys_plugin_review_decision/)
+  assert.match(migration, /'release_ready'/)
+  assert.match(migration, /'closed'/)
+  assert.doesNotMatch(migration, /sys_role_resource|DELETE FROM|\$\{/)
+  const ui = await fs.readFile(path.join(repository, 'forge-admin-ui/src/stores/plugin/reviewStore.js'), 'utf8')
+  assert.match(ui, /Object\.freeze/)
+  assert.doesNotMatch(ui, /localStorage|sessionStorage/)
+  const xml = await fs.readFile(path.join(repository,
+    'forge-server/forge-framework/forge-plugin-parent/forge-plugin-system/src/main/resources/mapper/'
+      + 'SysPluginTaskReviewMapper.xml'), 'utf8')
+  assert.doesNotMatch(xml, /DELETE FROM|\$\{/)
+  assert.match(xml, /tenant_id = #\{tenantId\}/)
+  assert.match(xml, /del_flag = 0/)
+})

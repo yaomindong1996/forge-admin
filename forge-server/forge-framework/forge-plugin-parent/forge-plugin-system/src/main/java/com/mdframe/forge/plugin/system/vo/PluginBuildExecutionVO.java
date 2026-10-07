@@ -8,5 +8,5 @@ import java.time.LocalDateTime;
 public record PluginBuildExecutionVO(String workerId, String phase, String sourceCommit, String image,
                                       LocalDateTime startedTime, LocalDateTime leaseExpiresTime,
                                       LocalDateTime deadlineTime, LocalDateTime finishedTime,
-                                      boolean leaseExpired, PluginBuildResultDTO result) {
+                                      boolean leaseExpired, PluginBuildResultDTO result, String resultSha256) {
 }

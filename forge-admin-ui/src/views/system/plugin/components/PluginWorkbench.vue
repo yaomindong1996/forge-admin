@@ -32,7 +32,7 @@
         查询
       </NButton>
     </form>
-    <NAlert v-if="actions.actionError.value" type="error">
+    <NAlert v-if="actions.actionError.value && !actions.visible.value" type="error">
       {{ actions.actionError.value }}
       <NButton v-if="actions.pendingUpload.value" text @click="actions.retryUpload">
         重试同一上传
@@ -62,6 +62,7 @@
       :loading="actions.detailLoading.value" :error="actions.detailError.value"
       :action-error="actions.actionError.value"
       @close="actions.close" @retry="actions.refreshDetail" @confirm="actions.confirm" @cancel="actions.cancel"
+      @review="actions.review"
     />
   </section>
 </template>

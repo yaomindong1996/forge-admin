@@ -9,6 +9,10 @@
         </NButton>
       </NAlert>
       <div v-else-if="task" class="plugin-preview">
+        <!-- 操作错误集中在当前详情，避免背景列表重复提示 -->
+        <NAlert v-if="actionError" type="error">
+          {{ actionError }}
+        </NAlert>
         <!-- 摘要与状态 -->
         <NDescriptions bordered :column="1" size="small" label-placement="left">
           <NDescriptionsItem label="插件">
@@ -43,6 +47,7 @@
           </NDescriptionsItem>
         </NDescriptions>
         <PluginBuildExecution :execution="task.execution" :busy="busy" @refresh="emit('retry')" />
+        <PluginTaskReview :task="task" :busy="busy" @review="emit('review')" />
         <!-- 已知阻断与尚未核验范围 -->
         <NAlert v-for="blocker in task.preview.blockers" :key="blocker" type="error">
           {{ blocker }}
@@ -65,9 +70,6 @@
         <NCheckbox v-if="canConfirm && task.status === 'await_confirmation'" v-model:checked="acknowledged">
           已理解整包替换及数据库风险；确认仅进入待构建，不立即安装或部署。
         </NCheckbox>
-        <NAlert v-if="actionError" type="error">
-          {{ actionError }}
-        </NAlert>
       </div>
       <template #footer>
         <NSpace>
@@ -108,6 +110,7 @@ import { useDict } from '@/composables/useDict'
 import { pluginTime } from '../pluginTaskUtils'
 import { usePluginPermission } from '../usePluginPermission'
 import PluginBuildExecution from './PluginBuildExecution.vue'
+import PluginTaskReview from './PluginTaskReview.vue'
 
 const props = defineProps({
   show: Boolean,
@@ -117,7 +120,7 @@ const props = defineProps({
   error: { type: String, default: '' },
   actionError: { type: String, default: '' },
 })
-const emit = defineEmits(['close', 'retry', 'confirm', 'cancel'])
+const emit = defineEmits(['close', 'retry', 'confirm', 'cancel', 'review'])
 const { dict } = useDict('sys_plugin_task_status', 'sys_plugin_task_operation')
 const permission = usePluginPermission()
 const canConfirm = computed(() => permission('system:plugin:confirm'))

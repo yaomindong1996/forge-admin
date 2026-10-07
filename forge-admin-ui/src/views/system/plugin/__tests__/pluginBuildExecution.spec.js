@@ -24,6 +24,13 @@ function mount(value, busy = false) {
   })
 }
 describe('构建执行记录', () => {
+  it('人工封存没有worker报告，不能冒充执行结果', () => {
+    const wrapper = mount({ ...execution, finishedTime: '2026-10-08T10:30:00' })
+    expect(wrapper.text()).toContain('结束时间为人工关闭时间')
+    expect(wrapper.text()).toContain('没有执行器结果报告')
+    expect(wrapper.text()).not.toContain('个文件')
+    wrapper.unmount()
+  })
   it('未领取不显示执行记录，正常记录展示固定输入且刷新有真实事件', async () => {
     const empty = mount(null)
     expect(empty.find('section').exists()).toBe(false)

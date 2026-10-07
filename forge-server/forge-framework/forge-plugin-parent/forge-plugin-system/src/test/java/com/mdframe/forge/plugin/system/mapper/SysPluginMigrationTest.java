@@ -37,8 +37,16 @@ class SysPluginMigrationTest {
             assertThat(count(connection, "SELECT COUNT(*) FROM sys_resource")).isEqualTo(15);
             assertThat(count(connection, "SELECT COUNT(*) FROM sys_resource WHERE perms = 'system:plugin:snapshot'"))
                     .isEqualTo(1);
+            run(connection, "V1.0.213__add_plugin_task_review.sql");
+            run(connection, "V1.0.213__add_plugin_task_review.sql");
+            assertThat(count(connection, "SELECT COUNT(*) FROM sys_resource")).isEqualTo(17);
+            assertThat(count(connection, "SELECT COUNT(*) FROM sys_resource WHERE perms = 'system:plugin:review'"
+                    + " AND min_user_type = 0")).isEqualTo(2);
+            assertThat(count(connection, "SELECT COUNT(*) FROM sys_dict_type")).isEqualTo(8);
+            assertThat(count(connection, "SELECT COUNT(*) FROM sys_dict_data")).isEqualTo(26);
             checkCustomerMenu(connection);
             checkPermissionCollision(connection);
+            checkReviewCollision(connection);
         }
     }
 
@@ -50,6 +58,7 @@ class SysPluginMigrationTest {
                     + " VALUES (1, '客户菜单', 2, '/system/plugin', 'customer:view')");
         }
         run(connection, "V1.0.211__add_plugin_install_workbench.sql");
+        run(connection, "V1.0.213__add_plugin_task_review.sql");
         assertThat(count(connection, "SELECT COUNT(*) FROM sys_resource")).isEqualTo(1);
     }
 
@@ -79,5 +88,18 @@ class SysPluginMigrationTest {
             result.next();
             return result.getInt(1);
         }
+    }
+
+    private void checkReviewCollision(Connection connection) throws Exception {
+        try (var statement = connection.createStatement()) {
+            statement.execute("INSERT INTO sys_resource(tenant_id, resource_type, perms, client_code, api_url)"
+                    + " VALUES (1, 4, 'system:plugin:review', 'pc', '/customer/review')");
+        }
+        run(connection, "V1.0.213__add_plugin_task_review.sql");
+        run(connection, "V1.0.213__add_plugin_task_review.sql");
+        assertThat(count(connection, "SELECT COUNT(*) FROM sys_resource WHERE resource_type = 4"
+                + " AND perms = 'system:plugin:review'")).isEqualTo(1);
+        assertThat(count(connection, "SELECT COUNT(*) FROM sys_resource WHERE api_url = '/customer/review'"))
+                .isEqualTo(1);
     }
 }

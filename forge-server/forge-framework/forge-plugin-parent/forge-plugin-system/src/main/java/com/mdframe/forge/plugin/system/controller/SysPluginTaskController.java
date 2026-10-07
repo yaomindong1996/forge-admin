@@ -4,10 +4,12 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.mdframe.forge.plugin.system.dto.SysPluginTaskCommandDTO;
 import com.mdframe.forge.plugin.system.dto.SysPluginTaskQuery;
 import com.mdframe.forge.plugin.system.dto.SysPluginUploadDTO;
+import com.mdframe.forge.plugin.system.dto.PluginTaskReviewDTO;
 import com.mdframe.forge.plugin.system.service.plugin.PluginTaskActor;
 import com.mdframe.forge.plugin.system.service.plugin.PluginTaskCommandService;
 import com.mdframe.forge.plugin.system.service.plugin.PluginTaskQueryService;
 import com.mdframe.forge.plugin.system.service.plugin.PluginTaskUploadService;
+import com.mdframe.forge.plugin.system.service.plugin.PluginTaskReviewService;
 import com.mdframe.forge.plugin.system.vo.SysPluginTaskPageVO;
 import com.mdframe.forge.plugin.system.vo.SysPluginTaskVO;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
@@ -35,6 +37,7 @@ public class SysPluginTaskController {
     private final PluginTaskUploadService uploads;
     private final PluginTaskQueryService queries;
     private final PluginTaskCommandService commands;
+    private final PluginTaskReviewService reviews;
 
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
     @SaCheckPermission("system:plugin:upload")
@@ -70,5 +73,15 @@ public class SysPluginTaskController {
             saveRequestParams = false, saveResponseResult = false)
     public RespInfo<SysPluginTaskVO> cancel(@PathVariable String id, @Valid @RequestBody SysPluginTaskCommandDTO dto) {
         return RespInfo.success(commands.cancel(id, dto, PluginTaskActor.current()));
+    }
+
+    @PostMapping("/{id}/review")
+    @SaCheckPermission("system:plugin:review")
+    @OperationLog(module = "插件中心", type = OperationType.UPDATE, desc = "人工核查插件构建任务",
+            saveRequestParams = false, saveResponseResult = false)
+    public RespInfo<SysPluginTaskVO> review(@PathVariable String id, @Valid @RequestBody PluginTaskReviewDTO dto) {
+        var actor = PluginTaskActor.current();
+        reviews.review(id, dto, actor);
+        return RespInfo.success(queries.detail(id, actor));
     }
 }

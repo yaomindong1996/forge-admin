@@ -1,10 +1,12 @@
 import { onScopeDispose, ref } from 'vue'
-import { cancelPluginTask, confirmPluginTask, getPluginTask } from '@/api/system/pluginTask'
+import { cancelPluginTask, confirmPluginTask, getPluginTask, reviewPluginTask } from '@/api/system/pluginTask'
+import { usePluginReviewStore } from '@/stores/plugin/reviewStore'
 import { taskResponse } from './pluginTaskUtils'
 import { useLatestPluginRequest } from './useLatestPluginRequest'
 import { usePluginUpload } from './usePluginUpload'
 
 export function usePluginTaskActions(refresh) {
+  const reviewStore = usePluginReviewStore()
   const detailRequest = useLatestPluginRequest(async id => taskResponse(await getPluginTask(id)), true)
   const visible = ref(false)
   const busy = ref(false)
@@ -14,15 +16,18 @@ export function usePluginTaskActions(refresh) {
   let disposed = false
   onScopeDispose(() => {
     disposed = true
+    reviewStore.clear()
   })
 
-  function open(id = selectedId) {
+  async function open(id = selectedId) {
     if (busy.value)
       return
     selectedId = id
     visible.value = true
     actionError.value = ''
-    return detailRequest.run(id)
+    await detailRequest.run(id)
+    if (!disposed)
+      reviewStore.reconcile(detailRequest.data.value)
   }
   function close() {
     if (busy.value)
@@ -64,6 +69,17 @@ export function usePluginTaskActions(refresh) {
   const task = detailRequest.data
   const confirm = () => run(() => confirmPluginTask(task.value))
   const cancel = () => run(() => cancelPluginTask(task.value))
+  const review = () => {
+    if (!reviewStore.pending || reviewStore.pending.taskId !== selectedId)
+      return
+    const command = reviewStore.pending
+    return run(() => reviewPluginTask(command).then((response) => {
+      taskResponse(response)
+      if (!disposed && reviewStore.pending?.requestId === command.requestId)
+        reviewStore.clear()
+      return response
+    }))
+  }
   const { pendingUpload, upload, retryUpload } = uploader
   return {
     task,
@@ -78,6 +94,7 @@ export function usePluginTaskActions(refresh) {
     refreshDetail,
     confirm,
     cancel,
+    review,
     detailLoading: detailRequest.loading,
     detailError: detailRequest.error,
   }

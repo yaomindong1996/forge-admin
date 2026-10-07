@@ -271,10 +271,13 @@ for (const name of [MAIN_HISTORY_TABLE, MAIN_HISTORY_TABLE.toUpperCase(), ...PLU
 }
 
 test('插件工作台任务及私有ZIP不会留在清理后的模板库', () => {
-  const { result } = runClean(['--print-sql'], { tables: [...realTables(), 'sys_plugin_task', 'sys_plugin_build'] })
+  const { result } = runClean(['--print-sql'], {
+    tables: [...realTables(), 'sys_plugin_task', 'sys_plugin_build', 'sys_plugin_task_review'],
+  })
   assert.equal(result.status, 0, result.stdout + result.stderr)
   assert.match(result.stdout, /TRUNCATE TABLE `sys_plugin_task`;/)
   assert.match(result.stdout, /TRUNCATE TABLE `sys_plugin_build`;/)
+  assert.match(result.stdout, /TRUNCATE TABLE `sys_plugin_task_review`;/)
 })
 
 test('迁移历史保护不扩大到普通历史与备份副本', () => {

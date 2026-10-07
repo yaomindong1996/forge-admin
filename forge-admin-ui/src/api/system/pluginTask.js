@@ -29,3 +29,19 @@ export function cancelPluginTask(task) {
     sha256: task.sha256,
   }, { needTip: false })
 }
+
+export function reviewPluginTask(command) {
+  // 只发送白名单字段；不接收调用者身份、部署地址或机器命令。
+  return request.post(`/system/plugin-task/${encodeURIComponent(command.taskId)}/review`, {
+    requestId: command.requestId,
+    revision: command.revision,
+    sha256: command.sha256,
+    resultSha256: command.resultSha256,
+    decision: command.decision,
+    executorStopped: command.executorStopped,
+    notDeployed: command.notDeployed,
+    artifactsReviewed: command.artifactsReviewed,
+    migrationsReviewed: command.migrationsReviewed,
+    note: command.note,
+  }, { needTip: false })
+}

@@ -24,7 +24,7 @@ public class PluginBuildViews {
         }
         return new PluginBuildExecutionVO(build.getWorkerId(), build.getPhase(), build.getSourceCommit(),
                 build.getImage(), build.getStartedTime(), build.getLeaseExpiresTime(), build.getDeadlineTime(),
-                build.getFinishedTime(), expired(build), decode(build.getResultJson()));
+                build.getFinishedTime(), expired(build), decode(build.getResultJson()), build.getResultSha256());
     }
 
     public String encode(PluginBuildResultDTO result) {

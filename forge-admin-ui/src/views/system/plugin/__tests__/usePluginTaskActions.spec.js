@@ -1,6 +1,8 @@
+import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope } from 'vue'
-import { confirmPluginTask, getPluginTask, uploadPluginPackage } from '@/api/system/pluginTask'
+import { confirmPluginTask, getPluginTask, reviewPluginTask, uploadPluginPackage } from '@/api/system/pluginTask'
+import { usePluginReviewStore } from '@/stores/plugin/reviewStore'
 import { usePluginTaskActions } from '../usePluginTaskActions'
 
 vi.mock('@/api/system/pluginTask', () => ({
@@ -8,6 +10,7 @@ vi.mock('@/api/system/pluginTask', () => ({
   uploadPluginPackage: vi.fn(),
   confirmPluginTask: vi.fn(),
   cancelPluginTask: vi.fn(),
+  reviewPluginTask: vi.fn(),
 }))
 const response = status => ({ code: 200, data: { id: 'task', status, revision: 0, sha256: 'hash' } })
 const scopes = []
@@ -18,7 +21,10 @@ function setup() {
   return { state: scope.run(() => usePluginTaskActions(refresh)), refresh, scope }
 }
 describe('workbench actions', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    setActivePinia(createPinia())
+  })
   afterEach(() => scopes.splice(0).forEach(scope => scope.stop()))
   it('keeps one upload id for retry after an uncertain network failure', async () => {
     const { state, refresh } = setup()
@@ -67,5 +73,57 @@ describe('workbench actions', () => {
     await pending
     expect(state.visible.value).toBe(false)
     expect(refresh).not.toHaveBeenCalled()
+  })
+  it('uncertain review retry retains exact frozen request and refresh reconciles a changed revision', async () => {
+    const { state } = setup()
+    getPluginTask.mockResolvedValue(response('built'))
+    await state.open('task')
+    const store = usePluginReviewStore()
+    store.prepare(state.task.value, 'close_task', {
+      executorStopped: true,
+      notDeployed: true,
+      note: '完整核查说明已停止执行器',
+    })
+    const command = store.pending
+    reviewPluginTask.mockRejectedValueOnce(new Error('结果不确定')).mockResolvedValueOnce(response('closed'))
+    await state.review()
+    expect(store.pending).toBe(command)
+    await state.review()
+    expect(reviewPluginTask.mock.calls[0][0]).toBe(reviewPluginTask.mock.calls[1][0])
+    expect(store.pending).toBeNull()
+    expect(state.task.value.status).toBe('closed')
+    store.prepare(state.task.value, 'close_task', {
+      executorStopped: true,
+      notDeployed: true,
+      note: '完整核查说明已停止执行器',
+    })
+    getPluginTask.mockResolvedValue({ code: 200, data: { ...state.task.value, revision: 1 } })
+    await state.refreshDetail()
+    expect(store.pending).toBeNull()
+  })
+  it('late disposed review response cannot clear a new page draft', async () => {
+    const { state, scope } = setup()
+    getPluginTask.mockResolvedValue(response('built'))
+    await state.open('task')
+    const store = usePluginReviewStore()
+    store.prepare(state.task.value, 'close_task', {
+      executorStopped: true,
+      notDeployed: true,
+      note: '完整核查说明已停止执行器',
+    })
+    let finish
+    reviewPluginTask.mockReturnValue(new Promise((resolve) => {
+      finish = resolve
+    }))
+    const pending = state.review()
+    scope.stop()
+    store.prepare({ ...state.task.value, id: 'next' }, 'close_task', {
+      executorStopped: true,
+      notDeployed: true,
+      note: '下一个页面独立核查的说明',
+    })
+    finish(response('closed'))
+    await pending
+    expect(store.pending.taskId).toBe('next')
   })
 })

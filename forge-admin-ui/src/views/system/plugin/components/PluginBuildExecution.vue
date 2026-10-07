@@ -10,6 +10,9 @@
     <NAlert v-if="execution.leaseExpired" type="warning" title="执行器租约已到期">
       已停止接收续期和结果，插件占用仍保留。请核查执行器及本次容器；系统不会自动抢占或重试。
     </NAlert>
+    <NAlert v-if="execution.finishedTime && !execution.result" type="info" title="管理员已封存构建">
+      结束时间为人工关闭时间，没有执行器结果报告。不会据此判定构建通过或失败。
+    </NAlert>
     <NDescriptions :column="1" bordered size="small" label-placement="left">
       <NDescriptionsItem label="执行器">
         {{ execution.workerId }}
@@ -32,6 +35,9 @@
       <NDescriptionsItem v-if="execution.result?.failureCode" label="失败代码">
         {{ execution.result.failureCode }}
       </NDescriptionsItem>
+      <NDescriptionsItem v-if="execution.resultSha256" label="报告 SHA-256">
+        <code>{{ execution.resultSha256 }}</code>
+      </NDescriptionsItem>
       <NDescriptionsItem v-if="execution.result?.sourceSha256" label="源码快照 SHA-256">
         <code>{{ execution.result.sourceSha256 }}</code>
       </NDescriptionsItem>
@@ -41,7 +47,12 @@
         <div><code>{{ execution.result.artifactManifestSha256 }}</code></div>
       </NDescriptionsItem>
     </NDescriptions>
-    <p>以上是独立执行器报告。产物保留在私有工作区，尚未部署，也未完成运行健康或授权核验。</p>
+    <p v-if="execution.result">
+      以上是独立执行器报告。产物保留在私有工作区，尚未部署，也未完成运行健康或授权核验。
+    </p>
+    <p v-else>
+      此处记录执行输入及状态，没有执行器结果报告；不代表构建通过、已部署或运行正常。
+    </p>
   </section>
 </template>
 

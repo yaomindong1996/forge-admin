@@ -7,6 +7,7 @@ import com.mdframe.forge.plugin.system.vo.SysPluginPreviewVO;
 import com.mdframe.forge.plugin.system.vo.SysPluginTaskVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -25,7 +26,7 @@ public class PluginTaskViews {
         return new SysPluginTaskVO(task.getId(), task.getPluginId(), task.getPluginName(), task.getPluginVersion(),
                 task.getOperationType(), task.getTaskStatus(), task.getRevision(), task.getArchiveSha256(),
                 task.getFileName(), task.getArchiveBytes(), task.getCreateTime(), task.getConfirmedTime(),
-                task.getCancelledTime(), detail ? decode(task.getPreviewJson()) : null, null);
+                task.getCancelledTime(), detail ? decode(task.getPreviewJson()) : null, null, List.of());
     }
 
     private SysPluginPreviewVO decode(String value) {

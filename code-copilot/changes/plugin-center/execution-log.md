@@ -1,5 +1,75 @@
 # 插件中心执行记录
 
+## 2026-10-08：P3.3a 构建验收与失联关闭交付
+
+### 范围与两阶段增量自审
+
+- Stage 1：按先补充的Spec，只做部署前人工审查/关闭，不执行制品发布或部署。
+  approve_build仅built且绑定成功报告→release_ready，保留占用；close_task允许终态或过期building，
+  明确停止执行器/未部署/说明后→closed并释放占用，活跃构建拒绝关闭。
+- 独立system:plugin:review权限、平台管理员双重检查、显式DTO及正常加解密链路；
+  不接受调用者身份/路径/命令/部署URL，不提供审计删除，操作日志不保存说明和响应。
+- build→task锁顺序与finish一致，按唯一tenant/id锁，无ORDER/LIMIT；封存只设置结束时间和可信操作人，
+  不生成worker结果。旧缓存续期/finish的SQL CAS拒绝穿过finished_time，审计/封存/任务CAS同事务。
+- requestId绑定tenant/task/actor及规范化请求摘要，同内容幂等、变更拒绝；保留ZIP及已有报告。
+  V1.0.213只新增审计表、两个平台资源及字典，不修改210–212或授予普通角色/覆盖客户资源。
+- Stage 2：核对报告SHA/成功元数据/固定源码镜像包绑定、人工声明而非平台验证、租户/逻辑删除过滤，
+  UI无HTML执行/本地存储说明/机器凭据；冻结请求用Pinia而不是多层props状态中转。
+  延迟响应不清理新页面草稿、活跃请求不重复发送，错误集中详情避免背景列表重复显示。
+  新生产类/SFC及方法符合规模要求；原CLI/worker调用协议不变，未新增运行时依赖。
+- project-init Skill影响：沿用源码交付格式和原工具；对最终完整改名工程验证，
+  工具改名后原样交付。实际停容器/核验产物是管理员义务，页面勾选不伪装为平台远程核验。
+
+### 环境、最终回归与生成工程
+
+- 独占QA_DIR：`/private/tmp/forge-plugin-review-p3.1assTa`；Node20.19.0/JDK17/Maven3.9.11，
+  离线Maven，复用已有Byte Buddy agent，不安装依赖或访问共享158库。
+- 模板`java-final.log`退出0，选定25份surefire报告：starter-plugin188/system68，共256/256，
+  失败/错误/跳过0。新增6项实际核查事务/并发/XML测试和1项Controller DTO/权限契约测试。
+  `admin-package.log`聚合包退出0；命令：
+
+```sh
+mvn -o -q -pl forge-framework/forge-plugin-parent/forge-plugin-system -am test -Penable-tests \
+  '-Dtest=SourcePluginPackageReaderTest,Plugin*Test,RuntimePluginCatalogTest,CommunityFeatureGateTest,ForgeVersionTest,SysPlugin*Test,*FeatureGateTest' \
+  -Dsurefire.failIfNoSpecifiedTests=false -Dmaven.test.redirectTestOutputToFile=true
+mvn -o -q -pl forge-admin-server -am package -DskipTests
+```
+
+- 沿用上一轮完整Node矩阵，`node-full.tap`397/397、失败/跳过0，20.40秒；新增review交付门禁。
+  UI `ui-final.log`范围ESLint及Vitest25/25，`ui-final-build.log`退出0，28.23秒。
+  构建仍有既有chunk/UnoCSS性能提示，不将其当作本轮新增故障。
+- Vite43130明确标注模拟接口，系统Chrome独立无登录会话实际点击：审查四项声明、失败同请求重试、
+  关闭两项声明、活跃无关闭入口、失联关闭/无报告封存、历史与明暗。`browser-final.log`pageerror=[]，
+  document宽320，提交按钮x68/y513.08/w154/h34；查看review-narrow-dark/review-sealed-light。
+- 最后生产修复后重新从完整源码生成`QA_DIR/release-generated`，full、com.acme.review包名、
+  com.acme.maven坐标、review-host宿主/kernel模块前缀，`release-generate.log`退出0。
+  UI实际目录是plugin-review-check-admin-ui，而不是按artifact前缀猜测的review-host-ui。
+- `release-generated-db.tap`31/31、失败/跳过0，49.52秒；mysql/Maven为桩，无真实库写入。
+  改名后system -am选择SourcePluginPackageReaderTest,PluginAutoConfigurationTest,SysPlugin*Test，
+  13份报告76/76、失败/错误/跳过0；`release-generated-java.log`及Admin聚合package退出0。
+- 15份执行mjs/README逐字节一致，213迁移及核查Store/组件原样交付；Java已改包，
+  /internal/plugin-build、forge.plugin-build.worker和system:plugin:review保持稳定协议。
+  edition、git diff --check通过；用户.DS_Store保持未提交，不push、不合并main。
+
+### 失败修正与验收边界
+
+- UI初次lint发现多语句/列表换行，整理后通过。Naive Checkbox不是原生input，
+  单测改为真实组件的update:checked事件/checked断言，并由浏览器真实点击补证，未削弱校验。
+- 新Node静态断言初次把权限资源的通配符路径误当Controller的{id}路径；按实际SQL修正后完整397通过。
+  浏览器初次发现背景/详情重复错误提示，集中到详情；最终点击、截图及布局断言通过。
+- 收尾修正封存build.update_by为实际审查人，新增不同确认人/核查人断言，
+  重跑最终模板矩阵、Admin包并全新生成工程验证，不沿用修复前包。
+- 仅停止本轮模拟Vite会话9403（退出130），lsof复核43130无监听；不停止用户服务，保留QA证据。
+- 未连接真实MySQL/Redis、执行Flyway/正常登录/加密业务请求、rootless容器或制品发布/部署。
+  H2/MockMvc/模拟页面不是目标环境验收。权限/状态流转迁移上线前须人工审查，
+  P3.3b目标/制品仓库/健康核验仍需单独确认；不能宣称“插件已安装”或P3整体完成。
+
+## 2026-10-08：P3.3a 开始
+
+- 用户继续；基线9a4cadfe，codex/plugin-foundation，仅用户.DS_Store未提交。
+- 先补部署前人工验收/失联关闭契约和测试计划；复用 project-init 原工具及生成工程规则。
+- 本轮不执行真实部署、共享数据库迁移、服务启动或商业/Pro实现；目标环境需另确认。
+
 ## 2026-10-08：P3.2 认证桥接交付
 
 ### 范围与两阶段增量自审

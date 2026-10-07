@@ -14,6 +14,16 @@
         SELECT <include refid="Summary"/> FROM sys_plugin_build
         WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
     </select>
+    <!-- 按唯一条件锁定，禁止叠加 ORDER BY/LIMIT，兼容租户 SQL 重写。 -->
+    <select id="lockSummary" resultType="com.mdframe.forge.plugin.system.entity.SysPluginBuild">
+        SELECT <include refid="Summary"/> FROM sys_plugin_build
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0 FOR UPDATE
+    </select>
+    <!-- 人工封存不是 worker 回报；保持 result_json/result_sha256 原样，旧续期 CAS 必须失败。 -->
+    <update id="seal">
+        UPDATE sys_plugin_build SET finished_time = #{now}, update_by = #{actorId}, update_time = #{now}
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0 AND finished_time IS NULL
+    </update>
     <!-- 续期不增加任务 revision；阶段单向推进由服务校验，此处 CAS 阻止旧阶段覆盖。 -->
     <update id="heartbeat">
         UPDATE sys_plugin_build SET phase = #{build.phase}, lease_expires_time = #{build.leaseExpiresTime},
