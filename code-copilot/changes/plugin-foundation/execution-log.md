@@ -408,3 +408,70 @@ node --test code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
   隔离生成工程保留，不纳入提交；T0 冻结清单不变，用户原有 .DS_Store 修改保留且不提交。
 - 本轮本地提交到 codex/plugin-foundation，不 push、不合并 main。T4 清理历史保护未接入，
   当前仍不要对安装了插件的数据库运行旧清理脚本。
+
+## 2026-10-07 10:55 CST：T4 清理脚本保护迁移历史
+
+### 范围与实现
+
+- 从 codex/plugin-foundation 的 ed197302 继续，只修改 clean-db.sh、对应测试和阶段文档，
+  用户原有 .DS_Store 修改保留、不提交。未改 Java、UI、迁移 SQL 或 T0 冻结基线。
+- 按 forge-project-init Skill 检查既有分类/显式删表/行级清理，并在模板及改名 full 工程复跑桩测试。
+  主历史表精确匹配，插件历史按 _plugin_[a-z0-9_]+_history$ 优先保护，兼容任意工程前缀。
+- DROP/TRUNCATE 及 tenant_id/del_flag/deleted 通用清理都绕开迁移历史；--drop-table 指向历史表时
+  在调用 MySQL 前失败，keep/drop 冲突也不能掩盖非法参数。普通表清理保持原行为。
+- 自定义 --extra-sql 仍原样追加，必须人工审核；不声称 SQL 解析防护，也不扩展到 --recreate。
+
+### 模板验证
+
+环境：Node v20.19.0、pnpm 11.19.0、系统 /bin/bash 3.2.57。仓库根目录执行：
+
+```bash
+/bin/bash -n forge-server/scripts/db/clean-db.sh
+node --check forge-server/scripts/db/clean-db.test.mjs
+node --test code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
+  forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+git diff --check
+```
+
+- 最终回归退出 0：35/35，约 27.0 秒；clean-db 18（新增 12）、init-db 12、基线工具 5。
+  失败/错误/取消/跳过均为 0。初轮与补充主历史表大小写用例后的回归也通过，未删测试或放宽断言。
+- 7 种表名的显式删除各验证有/无 --keep-table 两种情况，调用计数均为 0；默认预览无写入，
+  --execute --yes 将计划交给 MySQL 函数桩，计划中没有任何主库/插件迁移历史表引用。
+- 模拟历史表含 tenant_id/del_flag/deleted 仍无 DELETE；普通密码历史仍 TRUNCATE，
+  备份/临时副本仍 DROP，普通表的显式 drop 与 --keep-business-tables 仍生效。
+- bash 与 Node 语法检查退出 0；新增代码行宽 <=120，辅助函数均小于 80 行；git diff --check 通过。
+
+### 改名工程验证
+
+用 mktemp 新建专用目录，无 --force，不覆盖已有工程；最终脚本版本的工程位于
+`/private/tmp/forge-plugin-t4.lSjaH7/forge-baseline-full`。使用 T0 已确认的生成参数：
+
+```bash
+pnpm forge:create -- /private/tmp/forge-plugin-t4.lSjaH7/forge-baseline-full \
+  --base-package com.acme.demo --preset full
+```
+
+生成 full 工程根目录执行：
+
+```bash
+/bin/bash -n forge-baseline-full-server/scripts/db/clean-db.sh
+node --check forge-baseline-full-server/scripts/db/clean-db.test.mjs
+node --test forge-baseline-full-server/scripts/db/init-db.test.mjs \
+  forge-baseline-full-server/scripts/db/clean-db.test.mjs
+```
+
+- 生成成功，最终同类 DB 桩回归 30/30，约 25.3 秒，失败/错误/取消/跳过均为 0。
+  前一轮隔离工程 /private/tmp/forge-plugin-t4.CvFEKp 中的同类回归也为 30/30。
+- 额外使用 Node 严格比较：生成 clean-db.sh 与当前模板按数据库名、主历史表名及 Admin 模块名
+  替换后的完整内容一致；主历史表 forge_baseline_full_schema_history 与生成全量 SQL 的建表名称一致。
+- 原前缀、改名前缀、Acme 大小写、数字/下划线插件 ID、tmp_ 工程前缀的插件历史均不被自动清理。
+  git diff --name-only -- code-copilot/changes/plugin-foundation/baseline 输出为空，未重新录制基线。
+
+### 状态与限制
+
+- T4 完成，T5–T12 待继续；下一步抽取共享改名规则，在冻结输入上验证与 T0 输出逐字节一致。
+- 本轮无 Java/UI/Flyway SQL 改动，复用 T3 聚合构建证据，不重复跑 Maven/UI 构建；本轮 Shell/Node
+  语法和行为检查均已执行。真实 MySQL 清理后重启、checksum、业务插件完整链路仍待 T12 人工验收。
+- 没有连接真实 MySQL、没有重建或清理真实库、没有启动业务服务，无需停止业务 PID。
+  专用隔离工程保留但不纳入提交；生成器输出的真实初始化命令未执行，自定义 SQL 不在自动保护范围。
+- 按仓库规则本地单独提交 T4，不 push、不合并 main，.DS_Store 原有修改不纳入提交。

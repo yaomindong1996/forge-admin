@@ -30,7 +30,11 @@
   - 新增 32 项测试，System 160 项 + starter-plugin 154 项在模板/full/minimal-admin 各通过；
   - Admin 聚合 package 与 41 项 Node 回归通过；旧安全测试对齐现用初始化路径后完整复跑；
   - 真实 MySQL DDL/登录端到端未执行；管理员配置树和通配权限保留，企业接口仍必须加 RequiresFeature。
-- [ ] T4 `clean-db.sh` 保留插件历史表，更新 `clean-db.test.mjs`。
+- [x] T4 清理脚本保护迁移历史（2026-10-07）：
+  - 主库历史与任意工程前缀的插件历史优先保留，不进入 DROP/TRUNCATE/租户或逻辑删除清理；
+  - 显式 --drop-table 删除历史表时，在连接 MySQL 前拒绝；普通历史与备份/临时副本清理不变；
+  - 新增 12 项清理测试，模板 35 项、改名 full 30 项回归均通过；使用系统 bash 3.2 与 MySQL 桩；
+  - 更新帮助和自定义 SQL 审核边界；T0 基线不变，未连接真实库，清理后重启验收仍待 T12。
 - [ ] T5 抽出共用改名规则（F4）：
   - 新增 `scripts/forge-shared/rename.mjs`，`create-project.mjs` 改为引用；
   - 与 T0 基线逐文件比对，必须完全一致。

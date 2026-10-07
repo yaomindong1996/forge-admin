@@ -37,7 +37,7 @@ node --test forge-server/scripts/db/clean-db.test.mjs
 | plugin add `--dev` | 模板仓库创建软链接；生成工程拒绝 |
 | plugin list / remove | 列表正确；删除目录、标记区块和配置记录，不触碰数据库 |
 | check-edition | `ee` 包名、`ee` 描述、非空标记区块、被跟踪的插件目录各报一次错；干净仓库通过 |
-| clean-db | `forge_plugin_hello_history` 归入保留，不在清空列表 |
+| clean-db | 主库/插件历史表不在 DROP/TRUNCATE/逐行 DELETE 计划中，显式删除在连接数据库前拒绝 |
 | forge:create | `.gitignore` 无模板区块；`forge.config.json` 含 `forgeVersion`、`plugins` |
 
 ## 3. Java 单测（需 Maven；T1 已用临时工具执行）
@@ -159,3 +159,26 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
 - 模板 DB 桩 18 项、生成 full DB 桩 18 项、基线工具 5 项通过。新增迁移无业务占位符；旧 V1.0.72 的
   4 处存量命中未修改，主配置原本关闭 placeholder replacement。未将静态迁移契约表述为 MySQL 执行通过。
 - 未改前端、不执行 UI 构建；无真实服务/数据库写入或待清理业务进程，T4 清理历史保护仍未完成。
+
+## 9. T4 增量验证（2026-10-07）
+
+- 复用已通过的 DB 脚本桩测试和 T0 清单工具，不连接真实 MySQL；固定用 /bin/bash 验证 macOS bash 3.2。
+- P0：模板主历史表、原前缀/任意改名前缀插件历史表、大小写表名、含数字和下划线的插件 ID 均保留。
+  预览 DROP/TRUNCATE 列表、打印 SQL、--execute --yes 交给 MySQL 桩的计划均不得包含这些表。
+- P0：给历史表额外提供 tenant_id/del_flag/deleted 列，证明不会被通用逐行清理误删；
+  显式 --drop-table（含大小写或同时 --keep-table）指向历史表时，非零退出且没有任何 MySQL 调用/写入。
+- P1：普通业务历史和备份/临时副本仍清理，普通表显式删除与 --keep-business-tables 的行为不变；
+  缺主迁移、缺管理员仍拒绝，追加自定义 SQL 保持原有顺序，帮助文本说明保护范围与自定义 SQL 责任。
+- 命令：/bin/bash -n clean-db.sh；node --check clean-db.test.mjs；模板运行 init-db/clean-db 桩测试与
+  baseline/manifest.test.mjs。生成改名 full 工程后复跑同类 DB 测试，核对主历史表名称替换与全量 SQL 一致。
+- 本轮只有 Shell/Node 脚本与阶段文档变更，不跑 Java/UI 全量构建；真实 MySQL 清理后重启、插件 checksum
+  与二次启动验收仍留给 T12，不把测试桩中的 SQL 计划通过表述为真实数据库验收通过。
+
+### T4 执行结果
+
+- clean-db 新增 12 项，共 18 项；加上 init-db 12 项和基线工具 5 项，模板 35/35 通过。
+  改名 full 的两类 DB 桩共 30/30 通过，失败/错误/跳过均为 0，全部数据库执行为桩。
+- --drop-table 的 7 个表名变体各验证单独 drop 和 keep/drop 冲突，均在 MySQL 调用前失败；
+  其它 5 项新测试覆盖预览/执行保留、备份副本、业务表模式、帮助边界，普通表写入断言仍保留。
+- bash 3.2.57、Node 语法、新增行宽 <=120、改名一致性与 diff 检查通过；T0 清单未变。
+- 未修改 Java/UI/Flyway SQL，不执行相应全量构建或真实数据库清理；无本轮业务服务或残留服务 PID。

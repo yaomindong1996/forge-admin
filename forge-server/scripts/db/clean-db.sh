@@ -24,6 +24,8 @@ DROP_BUSINESS_TABLES="true"
 ALLOW_PENDING_MIGRATIONS="false"
 PRINT_SQL="false"
 BACKUP_FILE=""
+# 迁移历史一旦被清空，重启会重跑已执行 SQL；改名工程的插件历史也必须优先保护。
+MIGRATION_HISTORY_REGEX='^forge_schema_history$|_plugin_[a-z0-9_]+_history$'
 EXTRA_KEEP_TABLES=()
 EXTRA_DROP_TABLES=()
 EXTRA_SQL_FILES=()
@@ -35,7 +37,8 @@ Usage: clean-db.sh [options]
 把已完成「全量 SQL + Flyway 增量」的库清理成干净模板库。默认只预览（dry-run），加 --execute 才会真正执行。
 
 保留：默认租户、超级管理员（及其角色/根组织）、菜单与权限、字典、系统参数、行政区划、
-      客户端配置、消息模板、定时任务配置、内置模板（页面/提示词/公式/编码规则/流程表达式等）。
+      客户端配置、消息模板、定时任务配置、内置模板（页面/提示词/公式/编码规则/流程表达式等）、
+      主库与插件 Flyway 迁移历史（包括改名工程的 *_plugin_*_history）。
 清空：登录/操作/任务等日志、在线用户、消息公告、文件记录、全部流程数据（含 Flowable ACT_*）、
       低代码应用/对象/发布记录及其菜单、报表大屏、AI 模型/供应商/知识库、代码生成记录、
       测试用户/租户/组织/角色/岗位、其它租户数据、逻辑删除残留。
@@ -52,9 +55,10 @@ Options:
   --keep-org-id ID           超级管理员保留的根组织 ID, default 1（不存在时取该租户第一个根组织）
   --keep-agent-codes CODES   保留的内置 AI Agent 编码，逗号分隔, default dashboard_generator
   --keep-table TABLE         额外保护的表（不删不清），可重复
-  --drop-table TABLE         额外删除的表，可重复
+  --drop-table TABLE         额外删除的表，可重复；禁止指定主库或插件迁移历史表
   --keep-business-tables     业务表只清空数据，不 DROP
-  --extra-sql FILE           清理末尾追加执行的项目自定义 SQL（可用 @tenant_id/@admin_user_id 等变量），可重复
+  --extra-sql FILE           清理末尾追加的自定义 SQL，可重复；需人工审核，不受迁移历史保护规则拦截
+                             可用 @tenant_id/@admin_user_id 等变量
   --allow-pending-migrations 允许在增量未全部执行时清理（不推荐）
   --backup-file FILE         执行前用 mysqldump 备份整库到 FILE
   --print-sql                打印将要执行的 SQL
@@ -119,7 +123,12 @@ if [[ ${#EXTRA_KEEP_TABLES[@]} -gt 0 ]]; then
   for t in "${EXTRA_KEEP_TABLES[@]}"; do validate_identifier "$t" "--keep-table"; done
 fi
 if [[ ${#EXTRA_DROP_TABLES[@]} -gt 0 ]]; then
-  for t in "${EXTRA_DROP_TABLES[@]}"; do validate_identifier "$t" "--drop-table"; done
+  for t in "${EXTRA_DROP_TABLES[@]}"; do
+    validate_identifier "$t" "--drop-table"
+    if [[ "$t" =~ $MIGRATION_HISTORY_REGEX ]]; then
+      die "迁移历史表不能通过 --drop-table 删除: $t"
+    fi
+  done
 fi
 if [[ ${#EXTRA_SQL_FILES[@]} -gt 0 ]]; then
   for f in "${EXTRA_SQL_FILES[@]}"; do [[ -r "$f" ]] || die "--extra-sql 文件不可读: $f"; done
@@ -166,8 +175,9 @@ TRUNCATE_FILE="$WORK_DIR/truncate.txt"
 # 框架表前缀：不会被当作业务表 DROP
 FRAMEWORK_REGEX='^(sys_|ai_|gen_|qrtz_|act_|flw_|forge_)|^(worker_node|config_properties)$'
 
-# 永远保留原样的表
-KEEP_EXACT_REGEX='^(forge_schema_history|qrtz_locks|act_ge_property|act_id_property|sys_flow_spel_template|sys_flow_template|sys_flow_comment_phrase|ai_business_field_template)$|databasechangelog'
+# 保留表结构/内置数据，仍允许后续按租户和逻辑删除过滤；迁移历史由专用规则完整保护。
+KEEP_EXACT_REGEX='^(qrtz_locks|act_ge_property|act_id_property|sys_flow_spel_template|'
+KEEP_EXACT_REGEX+='sys_flow_template|sys_flow_comment_phrase|ai_business_field_template)$|databasechangelog'
 
 # 框架前缀下的垃圾表（备份/临时副本），直接 DROP
 JUNK_REGEX='_(bak|backup|old|copy|tmp)$|_[0-9]{4,8}$|^tmp_'
@@ -316,6 +326,7 @@ collect_code_tables
 
 while IFS=$'\t' read -r original name; do
   [[ -n "$name" ]] || continue
+  [[ "$name" =~ $MIGRATION_HISTORY_REGEX ]] && continue
   if [[ ${#EXTRA_KEEP_TABLES[@]} -gt 0 ]] && in_list "$name" "${EXTRA_KEEP_TABLES[@]}"; then
     continue
   fi
@@ -470,6 +481,7 @@ emit ""
 emit "-- 6. 删除其它租户的数据（tenant_id 为 0 的全局数据保留）"
 while IFS=$'\t' read -r original name; do
   [[ -n "$name" ]] || continue
+  [[ "$name" =~ $MIGRATION_HISTORY_REGEX ]] && continue
   is_cleared "$original" && continue
   [[ "$name" == "sys_tenant" ]] && continue
   has_column "$name" tenant_id && emit "DELETE FROM \`$original\` WHERE tenant_id NOT IN (0, @tenant_id);"
@@ -479,6 +491,7 @@ emit ""
 emit "-- 7. 清除逻辑删除残留"
 while IFS=$'\t' read -r original name; do
   [[ -n "$name" ]] || continue
+  [[ "$name" =~ $MIGRATION_HISTORY_REGEX ]] && continue
   is_cleared "$original" && continue
   for column in del_flag deleted; do
     has_column "$name" "$column" && emit "DELETE FROM \`$original\` WHERE \`$column\` <> 0;"

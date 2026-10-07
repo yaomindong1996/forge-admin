@@ -48,6 +48,14 @@ const codeBacked = name => new RegExp(`@TableName\\((value\\s*=\\s*)?"${name}"`)
 const CODE_BACKED_DEMO = ['sample_purchase_order', 'biz_leave_request', 'business_datasource_demo']
   .filter(codeBacked)
 
+// 主历史表名称随 forge:create 替换，插件还需支持不属于框架前缀的自定义工程名。
+const MAIN_HISTORY_TABLE = 'forge_schema_history'
+const PLUGIN_HISTORY_TABLES = [
+  `${MAIN_HISTORY_TABLE.replace(/_schema_history$/, '')}_plugin_hello_history`,
+  'forge_plugin_api_2_history', 'acme_plugin_hello_history', 'Acme_Plugin_Order_2_History',
+  'tmp_project_plugin_demo_history',
+]
+
 const COLUMNS = {
   sys_user: ['id', 'tenant_id', 'username', 'avatar', 'last_login_time', 'last_login_ip', 'login_count', 'del_flag'],
   sys_tenant: ['id', 'default_business_datasource_id', 'default_business_datasource_code', 'del_flag'],
@@ -65,20 +73,25 @@ function allVersions() {
     .filter(Boolean)
 }
 
-function runClean(args = [], { applied = allVersions(), adminFound = true, tables = realTables() } = {}) {
+function runClean(args = [], {
+  applied = allVersions(), adminFound = true, tables = realTables(), columns = COLUMNS,
+} = {}) {
   const tmp = mkdtempSync(path.join(tmpdir(), 'forge-clean-db-'))
   const files = {
     tables: path.join(tmp, 'tables.tsv'),
     columns: path.join(tmp, 'columns.txt'),
     applied: path.join(tmp, 'applied.txt'),
     executed: path.join(tmp, 'executed.sql'),
+    calls: path.join(tmp, 'mysql-calls.txt'),
   }
   writeFileSync(files.tables, tables.map(name => `${name}\t${name.toLowerCase()}`).join('\n') + '\n')
-  writeFileSync(files.columns, Object.entries(COLUMNS)
-    .flatMap(([table, columns]) => columns.map(column => `${table} ${column}`)).join('\n') + '\n')
+  writeFileSync(files.columns, Object.entries(columns)
+    .flatMap(([table, fields]) => fields.map(column => `${table.toLowerCase()} ${column}`)).join('\n') + '\n')
   writeFileSync(files.applied, applied.join('\n') + '\n')
-  const result = spawnSync('bash', ['--noprofile', '--norc', '-c', `
+  // 不依赖 PATH 中可能安装的新版 bash，确保 macOS 系统自带的 3.2 也能执行保护逻辑。
+  const result = spawnSync('/bin/bash', ['--noprofile', '--norc', '-c', `
 mysql() {
+  printf 'mysql\\n' >> ${JSON.stringify(files.calls)}
   local q="" a
   for a in "$@"; do case "$a" in --execute=*) q="\${a#--execute=}" ;; esac; done
   if [ -z "$q" ]; then cat > ${JSON.stringify(files.executed)}; return 0; fi
@@ -98,7 +111,8 @@ ${source}
     env: { ...process.env, BASH_ENV: '', ENV: '' },
   })
   const executed = existsSync(files.executed) ? readFileSync(files.executed, 'utf8') : ''
-  return { result, executed }
+  const mysqlCalls = existsSync(files.calls) ? readFileSync(files.calls, 'utf8').trim().split('\n').length : 0
+  return { result, executed, mysqlCalls }
 }
 
 function section(stdout, title) {
@@ -197,4 +211,92 @@ test('--keep-table / --keep-business-tables / --extra-sql 可调整清理范围'
   assert.match(result.stdout, /TRUNCATE TABLE `pw_purchase_order`;/)
   assert.doesNotMatch(result.stdout, /DROP TABLE IF EXISTS `pw_purchase_order`;/)
   assert.match(result.stdout, /-- 9\. 项目自定义清理[\s\S]*DELETE FROM sys_resource WHERE path = '\/pages\/test';/)
+})
+
+function historyFixture() {
+  const names = [MAIN_HISTORY_TABLE, ...PLUGIN_HISTORY_TABLES]
+  return {
+    names,
+    tables: [...new Set([...realTables(), ...names])],
+    // Flyway 默认没有这些列；模拟扩展列，防止通用行级规则成为清理保护的旁路。
+    columns: { ...COLUMNS, ...Object.fromEntries(names.map(name => [name, ['tenant_id', 'del_flag', 'deleted']])) },
+  }
+}
+
+function assertHistoryUntouched(sql, names) {
+  for (const name of names) {
+    assert.doesNotMatch(sql, new RegExp(`\\b${name}\\b`, 'i'), `${name} must not occur in the cleanup SQL`)
+  }
+}
+
+test('默认预览与 SQL 计划完整保护主库和插件迁移历史，兼容任意前缀与大小写', () => {
+  const fixture = historyFixture()
+  const { result, executed } = runClean(['--print-sql'], fixture)
+  assert.equal(result.status, 0, result.stdout + result.stderr)
+  assert.equal(executed, '')
+  for (const title of ['将删除的表（DROP）', '将清空的表（TRUNCATE）']) {
+    assertHistoryUntouched(section(result.stdout, title), fixture.names)
+  }
+  assertHistoryUntouched(result.stdout.slice(result.stdout.indexOf('== SQL ==')), fixture.names)
+  // 保护不能误伤普通历史或原有租户/逻辑删除规则。
+  assert.match(result.stdout, /TRUNCATE TABLE `sys_user_password_history`;/)
+  assert.match(result.stdout, /DELETE FROM `sys_dict_data` WHERE tenant_id NOT IN \(0, @tenant_id\);/)
+  assert.match(result.stdout, /DELETE FROM `sys_job_config` WHERE `del_flag` <> 0;/)
+})
+
+test('执行模式交给 MySQL 的计划同样不写入迁移历史', () => {
+  const fixture = historyFixture()
+  const { result, executed, mysqlCalls } = runClean(['--execute', '--yes'], fixture)
+  assert.equal(result.status, 0, result.stdout + result.stderr)
+  assert.ok(mysqlCalls > 0)
+  assert.ok(executed.length > 0)
+  assertHistoryUntouched(executed, fixture.names)
+  assert.match(executed, /TRUNCATE TABLE `sys_login_log`;/)
+  assert.match(executed, /SET FOREIGN_KEY_CHECKS = @OLD_FOREIGN_KEY_CHECKS;\n$/)
+})
+
+for (const name of [MAIN_HISTORY_TABLE, MAIN_HISTORY_TABLE.toUpperCase(), ...PLUGIN_HISTORY_TABLES]) {
+  test(`显式删除 ${name} 在连接 MySQL 前拒绝，keep 参数不能掩盖非法 drop`, () => {
+    for (const keep of [[], ['--keep-table', name]]) {
+      const { result, executed, mysqlCalls } = runClean([
+        '--execute', '--yes', ...keep, '--drop-table', 'sys_job_log', '--drop-table', name,
+      ])
+      assert.equal(result.status, 1, result.stdout + result.stderr)
+      assert.match(result.stderr, /迁移历史表不能通过 --drop-table 删除/)
+      assert.match(result.stderr, new RegExp(name.toLowerCase()))
+      assert.equal(executed, '')
+      assert.equal(mysqlCalls, 0)
+    }
+  })
+}
+
+test('迁移历史保护不扩大到普通历史与备份副本', () => {
+  const dropped = ['acme_plugin_hello_history_bak', 'forge_plugin_hello_history_tmp',
+    'forge_plugin_hello_history_20261007', 'business_approval_history']
+  const truncated = ['sys_user_password_history', 'forge_business_history', 'forge_plugin_history']
+  const { result } = runClean(['--print-sql'], { tables: [...new Set([...realTables(), ...dropped, ...truncated])] })
+  assert.equal(result.status, 0, result.stdout + result.stderr)
+  for (const name of dropped) assert.match(result.stdout, new RegExp(`DROP TABLE IF EXISTS \`${name}\`;`))
+  for (const name of truncated) assert.match(result.stdout, new RegExp(`TRUNCATE TABLE \`${name}\`;`))
+})
+
+test('保留业务表模式仍保护迁移历史，普通表显式 drop 继续生效', () => {
+  const fixture = historyFixture()
+  const { result } = runClean(['--keep-business-tables', '--drop-table', 'sys_job_log', '--print-sql'], fixture)
+  assert.equal(result.status, 0, result.stdout + result.stderr)
+  const sql = result.stdout.slice(result.stdout.indexOf('== SQL =='))
+  assertHistoryUntouched(sql, fixture.names)
+  assert.match(sql, /DROP TABLE IF EXISTS `sys_job_log`;/)
+  assert.doesNotMatch(sql, /TRUNCATE TABLE `sys_job_log`;/)
+  assert.match(sql, /TRUNCATE TABLE `crm_customer`;/)
+})
+
+test('帮助文本说明迁移历史保护及自定义 SQL 的人工审核边界', () => {
+  const { result, executed, mysqlCalls } = runClean(['--help'])
+  assert.equal(result.status, 0, result.stdout + result.stderr)
+  assert.match(result.stdout, /主库与插件 Flyway 迁移历史/)
+  assert.match(result.stdout, /禁止指定主库或插件迁移历史表/)
+  assert.match(result.stdout, /需人工审核，不受迁移历史保护规则拦截/)
+  assert.equal(executed, '')
+  assert.equal(mysqlCalls, 0)
 })
