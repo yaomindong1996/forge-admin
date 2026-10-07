@@ -241,3 +241,34 @@ mvn -pl forge-framework/forge-starter-parent/forge-starter-plugin,forge-framewor
 - 所有 19 个 changed 文件的完整 diff 人工审核；应用集成删除精确为 6 个主源码、4 个测试、1 个 Mapper。
   未修改 T0 原始清单。首次 SQL 来源审计误漏 forge_admin_new 的先替换规则，修正审计期望后完整通过，
   未改生成器或 SQL 迁就审计。没有真实数据库/UI/服务启动或 Java 全量单测验收。
+
+## 12. T6 增量验证（2026-10-07）
+
+- P0：revision 从根 POM properties 读取，注释不参与；缺失/重复/变量/非法版本拒绝，支持合法预发布/构建信息。
+  CLI 在版本错误时不创建目标；生成配置 only forgeVersion/plugins 新增，plugins=[]。
+- P0：根 package 只有 forge:plugin，运行入口/共享模块/原始 catalog 完整可导入，工具字节不参与业务改名；
+  不复制测试/夹具/本地文件或 forge:create。验证不同项目/artifact/包名前缀时映射仍从原始模块到目标模块。
+- P0：.gitignore 无区块保持字节，完整区块只移除内部内容，LF/CRLF/无末尾换行和相邻规则保留；
+  嵌套/重复/未闭合/反向标记报错，不扩大忽略删除范围。
+- P1：--help 与无参可运行；add/list/remove 尚未开放时非零且无文件写入，未知命令明确报错。
+  在生成工程任意 cwd 用绝对入口验证，再从工程根用 pnpm forge:plugin --help 验证脚本目标。
+- 冻结源先运行 T5-F1，再运行 T6，两套预设完整 SHA-256 比较：只允许显式新增运行文件/package、
+  forge.config.json 两字段和模板区块删除；原业务源码/POM/SQL/图片/点文件原始字节不变，不重录 T0。
+- Node 语法/新测试/既有共享规则与目录测试/基线工具/模板 DB 桩；实时 full DB 桩；
+  POM XML、生成工具路径/导入/原字节及 diff 检查。无 UI/生产 SQL/Java 业务变动，不跑真实 DB 或服务联调。
+
+### T6 执行结果
+
+- 新增 project-tools 25 项、插件入口 8 项；最终模板共 109/109，生成 full DB 桩 30/30。
+  合计 139 项，失败/取消/跳过均为 0；数据库脚本和迁移调用全部为桩。
+- 版本读取含合法预发布/构建信息、非法及重复配置、CLI 失败前不建目标；精确区块剥离及损坏标记拒绝，
+  工具递归复制/本地文件排除/软链接拒绝、配置原字段保持、实际共享模块二次改名均通过。
+- 最终冻结输出 full 8329/minimal-admin 5063 文件；相对 T5-F1 两套 missing=0/added=5/changed=1。
+  唯一改变的 config 删掉 forgeVersion/plugins 后与旧字节相同；新增工具/catalog 原字节、根 package 精确核对。
+  夹具模板区块删除后 .gitignore 与 T5-F1 相同；配置写入抽取前后全文件 manifest 零差异，不更新原 T0 清单。
+- 最终实时工程 54/37 个 POM XML、任意 cwd 的工具帮助/拒绝安装及 config 不变检查通过。
+  两套 pnpm forge:plugin --help 在前一轮实时工程通过；pnpm 自身产生 node_modules/lock 文件，
+  这些只在临时验证目录出现，不属于生成输出，也未混入冻结清单比较。
+- 两套最终实时工程先 install 独立 BOM 再 Admin 聚合 package -am -DskipTests，四个命令全部退出 0。
+  Start-Class 与生成类名一致，包内打印 jar 与本轮 Reactor jar 摘要一致；Node 语法/规模/行宽/diff 检查通过。
+- 无生产 Java/UI/SQL 改动，不重跑全部 Java 单测，不启动服务或真实 MySQL/Redis；安装全链路仍待 T8–T12。

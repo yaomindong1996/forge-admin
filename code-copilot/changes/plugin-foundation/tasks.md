@@ -48,11 +48,15 @@
   - 增量 Node 测试与两套生成工程 Admin 聚合构建，单列输出允许差异，不混入 T6 工具扩展。
   - 新增 16 项，模板 76/76、生成 full DB 桩 30/30 通过；两套 Admin 聚合 package 通过。
   - 冻结 full/minimal-admin 的差异逐文件核对，保留原 T0 清单，未连接真实数据库或启动服务。
-- [ ] T6 脚手架扩展（F4）：
+- [x] T6 脚手架扩展（F4，2026-10-07）：
   - `forge.config.json` 增加 `forgeVersion`、`plugins`；
   - 生成工程包含根 `package.json`、`scripts/forge-plugin/`、`scripts/forge-shared/`、`module-catalog.json`；
   - 复制 `.gitignore` 时去除“仅模板仓库”区块；
   - 除上述新增项外，其余文件仍与基线一致。
+  - 版本从根 POM 明文 revision 读取，工具原样复制在业务改名之后；暂只提供帮助，安装命令留给 T8。
+  - 新增 33 项测试，模板 109/109、生成 full DB 桩 30/30 通过；最终两套 Admin 聚合 package 通过。
+  - 相对已审计 T5-F1 两套均只新增 5 文件/改变 1 配置文件，配置仅加两字段；保留原 T0 基线。
+  - 54/37 个 POM XML、工具二次改名、pnpm 帮助入口与精确 .gitignore 剥离通过；无真实库或服务验收。
 - [ ] T7 pom 插件标记区块：`forge-server/pom.xml` 的 modules、`forge-admin-server/pom.xml` 的 dependencies 各加一组空标记；确认 `forge:create` 改名后标记保留。
 - [ ] T8 `forge:plugin` 命令（F5）：`add`、`--force`、`--dev`、`list`、`remove`；Node 单测。
 - [ ] T9 示例插件 `plugins-samples/forge-plugin-hello/`（F6）：后端模块、菜单迁移、前端页面、`forge-plugin.json`。

@@ -695,3 +695,108 @@ node --test scripts/forge-create/module-catalog.test.mjs scripts/forge-create/so
 - 没有 Java 业务源码/UI/生产 SQL 变更，不重跑既有全部 Java 单测，不启动服务或连接真实 MySQL。
   package 和 DB 桩不能代替真实迁移、应用启动、Sa-Token/Redis 或端到端插件验收；没有业务服务 PID。
 - 最终验证目录保留，不提交生成工程或构件。按仓库规则本地单独提交脚本/文档，不 push、不合并 main。
+
+## 2026-10-07 T6：生成工程携带插件工具链与版本配置
+
+### 实现范围与规则
+
+- 只实现 T6；插件 CLI 当前是明确的阶段入口，支持无参/--help/-h，安装相关命令非零退出且不写文件。
+  模板根 package 的命令注册仍属 T8；模板实际忽略区块属 T10，本轮不提前实现安装或防误提交门禁。
+- 根 POM 唯一明文 revision 作为 forgeVersion；注释不参与读取，缺失/重复/变量/非法 SemVer 在目标创建前失败。
+  配置只增加 forgeVersion 和 plugins=[]，既有键值/排列/选择不变；配置写入提取到 project-tools。
+- 生成工程根 package 仅包含 forge:plugin 脚本，没有新增 npm 依赖、模板 forge:create 或维护命令。
+  runtime 工具目录递归复制，排除测试/夹具/.git/.DS_Store/node_modules/.env*/本地文件，拒绝软链接和特殊文件。
+- 运行入口、共享改名/文件模块和原始 catalog 在业务源码/SQL/Docker 改写完成后复制，不参与工程改名。
+  保留 canonical Forge 匹配表与路径，避免后续插件二次改名使用已被替换的规则。
+- .gitignore 只删除单个完整 forge-template-only:begin/end 区块；无区块原样，保留其它换行/末尾字节。
+  嵌套/重复/未闭合/反向标记失败，不静默删除其它规则。真实模板还没有区块，用单测及冻结夹具证明行为。
+
+### 隔离目录与冻结来源
+
+- 验证根目录：/private/tmp/forge-plugin-t6.BJerbU；所有工程与构件仅在临时目录保留，未覆盖用户工程。
+- frozen-template 从原 T0 的 e416f7902834763ef43989c4525738441e49bd4c 导出，应用原 version-bump.patch；
+  带入 a8adba85 的 T5-F1 生成器、source-glue、共享依赖及精确目录清单增量，不带入 T1–T4 的业务/模块变更。
+- 先生成 f1-output，两套全部文件与上一阶段 /private/tmp/forge-plugin-t5-fix.0Phyoo/final-frozen 对比，
+  missing/added/changed 全部为 []；full 8324、minimal-admin 5058 文件，验证旧允许差异的来源没有变化。
+- 随后只带入 T6 生成器/project-tools/插件入口；给冻结夹具 .gitignore 增加精确模板区块，
+  先生成 frozen-output，再配置写入抽取后生成 final-frozen。两轮完整 manifest 差异为 0，未改变 README 字节。
+- 实时模板首次输出在 live-output，最终代码重新生成到 final-live。最终生成命令：
+
+```bash
+node scripts/forge-create/create-project.mjs \
+  /private/tmp/forge-plugin-t6.BJerbU/final-live/forge-baseline-full \
+  --base-package com.acme.demo --preset full
+node scripts/forge-create/create-project.mjs \
+  /private/tmp/forge-plugin-t6.BJerbU/final-live/forge-baseline-min \
+  --base-package com.acme.demo --preset minimal-admin
+```
+
+### 增量测试与生成工具检查
+
+```bash
+node --test scripts/forge-create/module-catalog.test.mjs scripts/forge-create/source-glue.test.mjs \
+  scripts/forge-create/project-tools.test.mjs scripts/forge-shared/rename.test.mjs \
+  scripts/forge-plugin/index.test.mjs code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
+  forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+```
+
+- Node v20.19.0；新 project-tools 25 项、插件入口 8 项，共新增 33 项；最终模板 109/109，约 53.85 秒。
+  在 final-live/full 根复跑 server/scripts/db/init-db.test.mjs、clean-db.test.mjs，30/30，约 54.33 秒。
+  合计 139 项，失败/取消/跳过均为 0；所有数据库/迁移调用为桩，不连接真实 MySQL。
+- 实时两套运行工具/catalog 与模板源文件逐字节相同；实际动态导入生成 rename 模块，
+  ForgeAdminApplication/com.mdframe.forge/forge-plugin-print 可二次改名到对应项目类/包/模块，均通过。
+- 两套绝对 Node 入口从 /private/tmp cwd 执行帮助返回 0；add /missing --force 返回 1，配置字节不变。
+  前一轮 live-output 中 pnpm 11.19.0 执行 forge:plugin --help 均退出 0，正确定位运行入口。
+  pnpm 自身产生无依赖的 node_modules/pnpm-lock.yaml，这些只是临时运行产物，不是生成器输出。
+  冻结工程未运行 pnpm，完整清单未混入上述产物，也未通过忽略规则隐藏差异。
+- Node --check 生成器/project-tools/插件入口及 git diff --check 通过；新文件分别 128/181/32/38 行，
+  新方法 <=80 行、行宽 <=120、参数 <=5。配置写入提取避免旧方法继续超限，README 保持原样。
+  行宽审查发现一条测试标题超限，仅缩短描述，未改断言或生产逻辑；最终审查通过。
+
+### 最终生成工程构建
+
+- JDK=/private/tmp/lawhub-october-jdk/Contents/Home；Maven=/private/tmp/apache-maven-3.9.11/bin/mvn，3.9.11。
+  在每套 final-live 的对应 server 根执行其 BOM install/Admin package，全部离线，跳过 Java 单测：
+
+```bash
+JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home \
+  /private/tmp/apache-maven-3.9.11/bin/mvn -q -o \
+  -pl forge-baseline-full-framework/forge-baseline-full-dependencies install -DskipTests
+JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home \
+  /private/tmp/apache-maven-3.9.11/bin/mvn -q -o \
+  -pl forge-baseline-full-admin-server -am package -DskipTests
+JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home \
+  /private/tmp/apache-maven-3.9.11/bin/mvn -q -o \
+  -pl forge-baseline-min-framework/forge-baseline-min-dependencies install -DskipTests
+JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home \
+  /private/tmp/apache-maven-3.9.11/bin/mvn -q -o \
+  -pl forge-baseline-min-admin-server -am package -DskipTests
+```
+
+- 四个最终命令全部退出 0，工程路径/坐标独立。所有 POM xmllint --noout 通过：full 54、minimal-admin 37。
+- 包内 Start-Class 正确：com.acme.demo.admin.ForgeBaselineFullAdminApplication / ForgeBaselineMinAdminApplication。
+  包内打印 jar 与本次 Reactor jar SHA-256 相同：
+  full=4400916c8a20cbd46773fb70bad21adea50b356d1d178b034715d22a13ef6868；
+  minimal-admin=a6d6b77c04dfefd93c8edd5c9a8e7858bbc8a33f2e0376e3e6ea63a856b573a0。
+
+### 冻结输出完整差异审计
+
+- 用原 collectManifest/compareManifests 对每个文件路径/SHA-256 比较，无路径忽略或内容归一化。
+  相对 f1-output：final-frozen/full 8329、minimal-admin 5063 文件，两套 missing=0/added=5/changed=1。
+- 两套 added 精确为 package.json、scripts/forge-plugin/index.mjs、scripts/forge-shared/files.mjs、
+  scripts/forge-shared/rename.mjs、scripts/forge-create/module-catalog.json；四个运行文件/catalog 与模板原字节一致。
+  根 package 字段与仅有的 forge:plugin 脚本逐项核对，没有模板 forge:create、测试文件或额外依赖。
+- 唯一 changed 为 forge.config.json。验证 forgeVersion=1.2.0/plugins=[]，删掉仅这两个新字段后
+  以原 JSON 缩进/结尾序列化，恢复原 T5-F1 的全部配置字节。其它业务源码/POM/SQL/图片/点文件不变。
+- 冻结夹具的模板忽略区块剥离后，两套 .gitignore 与 T5-F1 原始字节相同；没有其它规则删除或替换。
+- 相对原 T0：full missing=112/added=117/changed=10；minimal-admin missing=125/added=322/changed=9。
+  旧例外全部沿用上一节逐文件审计结果，新增只多上述 5 文件；config 已在旧 changed 中仅加两字段。
+  git diff --name-only -- code-copilot/changes/plugin-foundation/baseline 为空，没有改写原清单/provenance/版本补丁。
+
+### 状态与限制
+
+- T6 完成，T7–T12 待继续；下一阶段增加 POM 插件接入标记，再实现安装器。CLI 帮助不能替代安装全链路。
+- 无生产 Java/UI/SQL 改动，不执行全部 Java 单测、真实 MySQL/Redis、业务启动或迁移/权限端到端测试。
+  本轮 Maven package 与数据库桩验证不代表真实数据库或安装验收；没有本轮业务服务 PID。
+- 按工程初始化 Skill 重生成两预设并复跑模板/生成 full DB 桩；只提交本轮脚本/阶段文档，
+  保留既有 .DS_Store 改动，不提交临时工程/构件，不 push、不合并 main。

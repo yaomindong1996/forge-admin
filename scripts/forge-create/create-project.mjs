@@ -11,6 +11,9 @@ import {
 } from '../forge-shared/rename.mjs'
 import { collectFiles, exists } from '../forge-shared/files.mjs'
 import { pruneOptionalAdminGlue } from './source-glue.mjs'
+import {
+  readForgeVersion, copyGeneratedGitignore, copyGeneratedPluginTools, writeGeneratedProjectConfig,
+} from './project-tools.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -89,6 +92,7 @@ async function main() {
   const applicationClassMap = buildApplicationClassMap(options)
   const outputRoot = path.resolve(process.cwd(), options.target)
   const adminServerArtifactId = artifactMap['forge-admin-server']
+  const forgeVersion = await readForgeVersion(repoRoot)
 
   await assertWritableTarget(outputRoot, options.force)
   await fs.mkdir(outputRoot, { recursive: true })
@@ -119,7 +123,7 @@ async function main() {
 
   await copyOptionalRootFiles(outputRoot)
   await copyProjectContextFiles(outputRoot)
-  await writeGeneratedConfig(outputRoot, options, selection, catalog)
+  await writeGeneratedConfig(outputRoot, options, selection, catalog, forgeVersion)
 
   const replacements = buildTextReplacements(artifactMap, applicationClassMap, options, selection)
   const hasReportUi = selection?.frontendIds?.has('report-ui')
@@ -142,6 +146,7 @@ async function main() {
     )
   }
 
+  await copyGeneratedPluginTools({ repoRoot, outputRoot, projectName: options.projectName })
   printSummary(outputRoot, options, selection, catalog, adminServerArtifactId)
 }
 
@@ -663,7 +668,12 @@ async function copyOptionalRootFiles(outputRoot) {
   for (const fileName of ['LICENSE', '.gitignore']) {
     const source = path.join(repoRoot, fileName)
     if (await exists(source)) {
-      await fs.copyFile(source, path.join(outputRoot, fileName))
+      if (fileName === '.gitignore') {
+        await copyGeneratedGitignore(repoRoot, outputRoot)
+      }
+      else {
+        await fs.copyFile(source, path.join(outputRoot, fileName))
+      }
     }
   }
 }
@@ -819,28 +829,8 @@ async function copyProjectContextFiles(outputRoot) {
   }
 }
 
-async function writeGeneratedConfig(outputRoot, options, selection, catalog) {
-  const config = {
-    projectName: options.projectName,
-    javaName: options.javaName,
-    displayName: options.displayName,
-    basePackage: options.basePackage,
-    groupId: options.groupId,
-    artifactPrefix: options.artifactPrefix,
-    moduleArtifactPrefix: options.moduleArtifactPrefix,
-    stripModulePrefix: options.stripModulePrefix,
-    databaseName: options.databaseName,
-    preset: options.preset,
-    includedModules: options.includeModuleIds,
-    excludeLogData: options.excludeLogData,
-    modules: [...selection.selectedModuleIds].sort(),
-    frontends: [...selection.frontendIds].sort(),
-    deploy: [...selection.deployIds].sort(),
-  }
-  await fs.writeFile(
-    path.join(outputRoot, 'forge.config.json'),
-    `${JSON.stringify(config, null, 2)}\n`,
-  )
+async function writeGeneratedConfig(outputRoot, options, selection, catalog, forgeVersion) {
+  await writeGeneratedProjectConfig({ outputRoot, options, selection, forgeVersion })
 
   const presetDescription = catalog.presets[options.preset]?.description || options.preset
   const modulePrefixLine = options.moduleArtifactPrefix === options.artifactPrefix
