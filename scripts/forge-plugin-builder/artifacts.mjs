@@ -55,7 +55,7 @@ async function walk(root, relative, files) {
 }
 
 async function hashArtifact(file, jar) {
-  const handle = await fs.open(file, constants.O_RDONLY | constants.O_NOFOLLOW)
+  const handle = await fs.open(file, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK)
   try {
     const before = await handle.stat()
     ensure(before.isFile() && before.nlink === 1 && before.size <= limits.file, 'ARTIFACT_FILE_UNSAFE')

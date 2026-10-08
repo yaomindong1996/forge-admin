@@ -144,3 +144,9 @@ transfer-*/worker-result.json 保存脱敏结果；lease.json 为私有0600恢�
 raw Bearer 不落盘。report_pending 是网络/结果不确定，不能当成功，也不自动再领取。
 job-* 实际产物保留在私有工作区；Web 只展示执行器报告摘要，不是服务端再次核验或部署证明。
 模板完整运维说明在 forge-docs/guide/plugin-worker.md；真实 TLS/MySQL/rootless 验收仍待执行。
+
+## P3.3b1：本地候选制品封存
+
+成功的 job-*/result.json 可显式交给 forge:plugin-release，重新核验实际文件并流式复制为只读快照。
+配置与故障保留策略见 scripts/forge-plugin-release/README.md；原报告文件SHA不是服务端机器报告SHA。
+封存不复制源码/配置/收据/日志，不认证当前任务审批、远程发布或部署。

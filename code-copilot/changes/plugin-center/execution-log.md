@@ -1,5 +1,84 @@
 # 插件中心执行记录
 
+## 2026-10-08：P3.3b1 本地候选制品封存交付
+
+### 范围与两阶段增量自审
+
+- Stage 1：按先补充的Spec实现独立forge:plugin-release check/publish/verify，
+  不在Web读工作区/执行代码，不改后台任务/权限/状态/数据库，不选未授权远程仓库或部署目标。
+  publish必须本地--reviewed；快照明确liveTaskApprovalVerified=false、deployed=false。
+- 固定原始result.json SHA、jobId、源码/包/镜像/插件/核心版本及Admin范围；
+  复用现有严格JSON/ID/版本/路径/实际产物核验，有界读取与流式复制，声明逐项比对。
+  SHA算法与worker产物清单一致，但原报告文件SHA与服务端报告SHA明确区分。
+- 私有canonical非root目录、独占锁、随机暂存、逐文件再散列及规范清单内容寻址。
+  只创建新快照；已有同ID必须实际复验，损坏不覆盖，失败暂存/失联锁保留供人工核查。
+  文件0400/目录0500为工具约定，不是签名/防管理员写入；回执时间无签名认证。
+- Stage 2：核对配置白名单/JSON重复键/非字符串摘要、路径别名/重叠/软硬链接、
+  中断/锁冲突/复制中改变/已有快照破坏、POSIX身份/权限与输出脱敏；没有新依赖、密钥或真实数据。
+  只复制JAR/UI和固定元数据，不复制源码/配置/原ZIP/日志；部署准备仅artifact_integrity通过，
+  实时授权/目标/备份/迁移/部署健康全部pending。新生产模块26–95行，方法≤80行/参数≤5，按域拆分。
+- project-init技能影响：运行工具在改名之后原字节交付，保留原Forge协议及共享规则；
+  验证最终完整full生成工程，不拿局部目录复制冒充生成工程。
+
+### 环境、命令及证据
+
+- QA_DIR=`/private/tmp/forge-plugin-release-p3.TXIDli`，Node20.19.0；codex/plugin-foundation起点20c5e2b5。
+  没有安装依赖或连接158/生产环境，不启动任何服务；用户.DS_Store保留未提交。
+- 最终`node-sealed.tap`451/451、失败/跳过0、22.43秒；新增release54项。
+  source init/clean DB31已包含在完整矩阵，mysql/Maven为桩，未创建真实数据库。
+
+```bash
+node --test scripts/forge-shared scripts/forge-plugin scripts/forge-plugin-builder scripts/forge-plugin-release \
+  scripts/guards scripts/forge-create \
+  code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
+  code-copilot/changes/plugin-center/contracts.test.mjs \
+  code-copilot/changes/plugin-center/workbench-contract.test.mjs \
+  forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+node scripts/forge-create/create-project.mjs <QA_DIR>/sealed-generated --preset full \
+  --project-name plugin-release-check --java-name PluginReleaseCheck \
+  --base-package com.acme.release --group-id com.acme.maven \
+  --artifact-prefix release-host --module-artifact-prefix kernel \
+  --display-name 插件制品验证 --database-name plugin_release_check
+node --test <QA_DIR>/sealed-generated/release-host-server/scripts/db/init-db.test.mjs \
+  <QA_DIR>/sealed-generated/release-host-server/scripts/db/clean-db.test.mjs
+node <QA_DIR>/generated-smoke.mjs <QA_DIR>/sealed-generated
+node scripts/guards/check-edition.mjs
+git diff --check
+```
+
+- Node位于`/Users/mini32g/.nvm/versions/node/v20.19.0/bin/node`，没有依赖环境默认版本。
+  原完整矩阵有本机socket桩，需要沙箱外运行；仅隔离临时目录/桩，不访问业务服务。
+- `sealed-generate.log`退出0，最新fresh full含Admin/Report/H5/Docker、独立包名/坐标/宿主/模块前缀。
+  `sealed-db.tap`31/31、失败/跳过0、19.18秒；未执行真实MySQL/Flyway。
+- `sealed-cli.log`退出0，41份runtime mjs/README字节一致、无测试/fixtures，
+  从其它cwd实际CLI check不写vault、publish/重试already_sealed/verify成功，固定清单摘要一致。
+  明确标注synthetic UI产物；只核验工具，不假装编译/部署完整应用。
+- `edition-working.log`及`edition-staged.log`通过，暂存diff-check通过。未改Java/SQL/Vue/API，
+  复用P3.3a的编译/测试/UI成功记录，本轮不无差别重跑Maven/UI/浏览器。
+
+### 失败修正与未完成边界
+
+- 首轮release/project-tools74项中的13项因macOS只读顶层rename EACCES失败；
+  沙箱外诊断同样复现，不是审批限制。发布锁内短暂解锁顶层后rename，finally收敛并复验；
+  文件/子目录仍只读。修复后74/74通过，后续完整矩阵全部通过。
+- 完整矩阵首轮446/447，原edition测试精确脚本列表未包含新增命令；扩展为精确三项，
+  仍检查不交付guard，未删除/放宽安全断言。
+- 自审补强有界读取/产物散列/复制的O_NONBLOCK再fstat，避免FIFO/路径替换等待写者；
+  新真实子进程FIFO负例和跨64KiB分块复制通过；不改变原读取限额/构建协议。
+- 最后补强真实UID/有效UID均非root，补真实UID非root但有效UID为root的拒绝断言；
+  完整451及最终fresh full/41份原字节运行工具/实际CLI/DB桩31再次通过，不沿用修正前生成工程。
+- 未连接真实HTTPS/当前任务审批、rootless镜像、MySQL锁/Flyway/远程仓库或目标服务。
+  本地审查声明不等于服务端审批，sealed/verified不等于安装、认证发布、健康或商业许可有效。
+  P3.3b2与P3整体仍未完成；目标环境及权限需单独确认。无服务清理事项，QA证据/生成工程保留。
+
+## 2026-10-08：P3.3b1 开始
+
+- 按“继续”承接部署准备，先实现不依赖未选定远程仓库/主机的本地封存工具。
+  `--reviewed` 仅本地声明；当前任务审批桥接和真实部署仍属于后续阶段，不扩大权限。
+- 使用 forge-project-init 技能；工具在改名后原字节交付，保留固定 Forge 协议。
+- QA 独占目录 `/private/tmp/forge-plugin-release-p3.TXIDli`；分支 codex/plugin-foundation，
+  起点20c5e2b5，用户 .DS_Store 保留。不写158或任何共享库、不启动/停止用户服务。
+
 ## 2026-10-08：P3.3a 构建验收与失联关闭交付
 
 ### 范围与两阶段增量自审

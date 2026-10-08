@@ -25,7 +25,8 @@
 
 「安装工作台」已支持 ZIP 上传预检、人工确认和任务审计，但**确认仅进入待构建，不会安装**。
 已有[独立离线执行器](./plugin-builder.md)与[机器认证桥接](./plugin-worker.md)，可处理已审查的选定任务；
-已支持部署前人工审查与失联关闭，实际制品发布、部署及运行核验尚未接入。
+已支持部署前人工审查与失联关闭，以及独立[本地候选制品封存](./plugin-release.md)。
+实时任务审批与候选制品的认证绑定、远程发布、部署及运行核验尚未接入。
 机器入口默认禁用，须运维配置和真实环境验收。
 已有 `scripts/forge-plugin/index.mjs` 源码 CLI 仍可使用，
 操作前阅读工程内 `.agents/skills/forge-project-init/references/plugins.md` 的安装维护参考。

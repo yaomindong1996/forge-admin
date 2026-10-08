@@ -260,7 +260,9 @@
 - 167. DAG 分支路由必须同时处理跨层穿卡和三种顺序一致性
 - 183. 捕获参与当前事务的下游异常不能清除 rollback-only
 
-### [后端框架 / Spring / Maven](pitfalls/backend.md)（47）
+### [后端框架 / Spring / Maven](pitfalls/backend.md)（48）
+
+- macOS 封存目录先设只读会导致重命名提交失败
 
 - MyBatis BLOB 查询不能用 byte[] 作为整个 Mapper 返回类型
 - 生成工程的插件源包验证坐标不能跟随宿主包名改写

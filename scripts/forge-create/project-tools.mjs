@@ -71,7 +71,9 @@ export async function writeGeneratedProjectConfig({ outputRoot, options, selecti
 
 // 必须在业务源码改名后调用：这些工具保存原始 Forge 匹配表，供后续插件源码再改名。
 export async function copyGeneratedPluginTools({ repoRoot, outputRoot, projectName }) {
-  for (const directory of ['scripts/forge-plugin', 'scripts/forge-shared', 'scripts/forge-plugin-builder']) {
+  const directories = ['scripts/forge-plugin', 'scripts/forge-shared',
+    'scripts/forge-plugin-builder', 'scripts/forge-plugin-release']
+  for (const directory of directories) {
     await copyRuntimeToolDirectory(path.join(repoRoot, directory), path.join(outputRoot, directory))
   }
   const catalogDirectory = path.join(outputRoot, 'scripts/forge-create')
@@ -85,7 +87,8 @@ export async function copyGeneratedPluginTools({ repoRoot, outputRoot, projectNa
     private: true,
     type: 'module',
     scripts: { 'forge:plugin': 'node scripts/forge-plugin/index.mjs',
-      'forge:plugin-build': 'node scripts/forge-plugin-builder/index.mjs' },
+      'forge:plugin-build': 'node scripts/forge-plugin-builder/index.mjs',
+      'forge:plugin-release': 'node scripts/forge-plugin-release/index.mjs' },
   }
   await fs.writeFile(path.join(outputRoot, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`)
 }

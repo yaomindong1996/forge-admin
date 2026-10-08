@@ -8,7 +8,8 @@ import { ensure } from './errors.mjs'
 export const sha256 = data => createHash('sha256').update(data).digest('hex')
 
 export async function readRegular(file, limit) {
-  const handle = await fs.open(file, constants.O_RDONLY | constants.O_NOFOLLOW)
+  // 先非阻塞打开再 fstat；路径被换成 FIFO 时也不能等待外部写入者。
+  const handle = await fs.open(file, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK)
   try {
     const stat = await handle.stat()
     ensure(stat.isFile() && stat.nlink === 1 && stat.size <= limit, 'FILE_UNSAFE')

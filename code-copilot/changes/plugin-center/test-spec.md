@@ -1,5 +1,32 @@
 # 插件中心增量测试
 
+## 2026-10-08 P3.3b1 增量结果
+
+- 新 release 文件/协议/复制/并发/中断/CLI/构建桥接54项，`release-hardening.tap`54/54；
+  延续397项完整基线，最终`node-sealed.tap`451/451、失败/跳过0，22.43秒。
+  真实Git/ZIP/文件核验；Docker/socket/mysql/Maven为受控桩，不等于生产验收。
+- 首轮修正macOS只读顶层rename失败；共享读取加入O_NONBLOCK/fstat，FIFO子进程立即拒绝。
+  精确生成命令门禁新增forge:plugin-release，不删除或放宽原边界断言。
+- 从最终生产源码全新生成full改名工程，`sealed-generate.log`退出0；
+  `sealed-db.tap`31/31、失败/跳过0，19.18秒；模板DB31已在完整矩阵覆盖。
+- `sealed-cli.log`实际生成CLI从其它cwd执行check/publish/重试/verify退出0，
+  41份运行mjs/README逐字节一致，未复制测试/fixtures；产物为明确标注的synthetic文件。
+- edition及diff-check通过。未改Java/SQL/Vue/API，沿用P3.3a成功基线，不重复Maven/UI构建或浏览器测试。
+  无真实数据库/HTTPS/rootless部署；待办仍pending，liveTaskApprovalVerified/deployed=false。
+  最后补强真实UID/有效UID均非root，并重新完整回归及fresh full/实际CLI/DB桩验证。
+
+## P3.3b1 本轮增量计划
+
+- 复用 P3.3a 基线；仅新增独立封存工具、脚手架交付和文档，不重复规划 Java/UI 测试。
+- 真实临时文件：成功报告/实际 JAR/UI 一致、流式复制、只读封存、离线 verify 与幂等重试；
+  拒绝失败/checked/已部署、摘要篡改/增删文件、异常 JSON/元数据、链接/硬链接、越界与非私有根。
+  有界读取和流式复制使用非阻塞句柄并 fstat；FIFO 配置在真实子进程限时负例中立即拒绝。
+- 写边界：check/verify 不写目录；发布须显式 reviewed，锁冲突失败关闭，中断不出现最终快照；
+  损坏已有快照不覆盖，失败暂存可追溯；CLI 不出私有路径、不执行命令/网络/迁移。
+- 原工具完整 Node 矩阵增量加入 release；全新 full 改名工程核对工具原字节、实际 CLI 入口，
+  原模板/生成工程 init/clean DB 桩31项。Docker、MySQL及部署环境不以桩冒充真实验收。
+- 结果清单中 liveTaskApprovalVerified=false、deployed=false；部署准备剩余项必须 pending。
+
 ## 2026-10-08 P3.3a 增量结果
 
 - 模板 Java 256/256（新增7项）；实际 Mapper/XML、Spring事务、并发关闭、审计失败回滚、
