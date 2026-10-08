@@ -67,6 +67,9 @@
     <NTabPane name="tasks" tab="安装工作台" display-directive="if">
       <PluginWorkbench />
     </NTabPane>
+    <NTabPane name="license" tab="运行时授权" display-directive="if">
+      <RuntimeLicenseStatus />
+    </NTabPane>
   </NTabs>
 </template>
 
@@ -79,6 +82,7 @@ import { useDict } from '@/composables/useDict'
 import PluginBuildComparison from './plugin/components/PluginBuildComparison.vue'
 import PluginDetail from './plugin/components/PluginDetail.vue'
 import PluginWorkbench from './plugin/components/PluginWorkbench.vue'
+import RuntimeLicenseStatus from './plugin/components/RuntimeLicenseStatus.vue'
 import { usePluginCenter } from './plugin/usePluginCenter'
 import { usePluginPermission } from './plugin/usePluginPermission'
 

@@ -36,8 +36,9 @@
 
 ## 分类目录
 
-### [前端 / 构建 / 路由](pitfalls/frontend.md)（52）
+### [前端 / 构建 / 路由](pitfalls/frontend.md)（53）
 
+- Vitest 2 不能直接使用较新版本的合并 Mock 断言
 - Vue 指令 updated 钩子不能依赖 this 调用 mounted
 - 品牌 Logo/系统名不能链到 `/`，否则 Tab 会重复出现首页
 - 响应式侧栏不能同时隐藏菜单和恢复入口
