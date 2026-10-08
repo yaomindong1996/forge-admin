@@ -23,3 +23,15 @@
 - 接口状态与 website 实现核对为大写 PUBLISHED，Long ID 按精确字符串处理，无数字截断。
 - 本轮没有 Java / Vue 改动，不执行无关服务聚合构建；网站真实 SSO / MySQL / COS / Docker 验收未运行。
 - 测试服务全部由测试关闭，临时生成工程已由测试回收；用户服务和工作区存量文件未清理。
+
+## 2026-10-09：D2.2 离线 Compose 准备
+
+- D1 本地提交 14419e6a，只包含该阶段 17 个文件，原有候选制品登记改动没有暂存。
+- 新增 Compose check / prepare --reviewed / verify；复用封存清单、流式复制与实际字节核验。
+- 镜像锁定 digest，敏感配置不复制，仅挂载私有普通文件；准备不启动容器，deployed 保持 false。
+- `node --test scripts/forge-plugin-release/compose/compose.test.mjs`：15/15 通过。
+- 测试使用实际本地字节及合成 JAR / UI 夹具，不代表真实可启动应用或 Docker 运行验收。
+- full 生成工程源码 / Compose 模块原字节复制和 DB stub 基线复跑 1/1 通过；实际子测试 fail 0。
+- Compose 生产模块 `node --check`、本轮 `git diff --check` 通过；没有 Java / UI 改动。
+- COS SDK 依赖选择待用户答复；未引入依赖、未运行任何真实 COS 上传或目标环境操作。
+- D2.1 / D2.3 / D2.4 仍待完成，不能宣称第 2 项已经闭环。

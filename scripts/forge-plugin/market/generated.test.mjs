@@ -21,6 +21,11 @@ test('full generated project keeps market tools byte-for-byte and passes DB stub
     const source = await fs.readFile(path.join(repository, relative))
     assert.deepEqual(await fs.readFile(path.join(generated, relative)), source)
   }
+  for (const name of ['config', 'document', 'prepare', 'index']) {
+    const relative = `scripts/forge-plugin-release/compose/${name}.mjs`
+    const source = await fs.readFile(path.join(repository, relative))
+    assert.deepEqual(await fs.readFile(path.join(generated, relative)), source)
+  }
   await assert.rejects(fs.stat(path.join(generated, 'scripts/forge-plugin/market/fixtures')), { code: 'ENOENT' })
   const db = spawnSync(process.execPath, ['--test', 'init-db.test.mjs', 'clean-db.test.mjs'],
     { cwd: path.join(generated, 'delivery-check-server/scripts/db'), env, encoding: 'utf8', timeout: 60000 })

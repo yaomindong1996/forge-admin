@@ -20,6 +20,19 @@
 按确认后的 SDK / Compose 配置追加安全负例与实际本地制品验证。
 本地协议夹具不代表网站登录 / COS / Docker 已真实集成通过，未运行项明确保留待验收。
 
+### D2.2 Compose 部署包
+
+- check 不写入；prepare 要人工确认，仅使用已封存的实际制品，单端 / 双端都可用。
+- 固定镜像 digest、loopback 端口、只读根和挂载、禁提权、禁止缺失配置自动创建。
+- 目录重叠、公共权限、配置软 / 硬链接、额外命令、镜像 latest、重复端口必须拒绝。
+- verify 检查制品摘要、Compose 配置、准备回执与权限；篡改任一文件不能伪造部署成功。
+- full 生成工程复制 Compose 模块原始字节，DB stub 基线通过；不启动 Docker。
+
+```bash
+node --test scripts/forge-plugin-release/compose/compose.test.mjs
+node --test scripts/forge-plugin/market/generated.test.mjs
+```
+
 ## D1 执行命令
 
 ```bash
