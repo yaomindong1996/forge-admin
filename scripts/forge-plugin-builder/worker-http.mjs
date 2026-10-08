@@ -16,7 +16,7 @@ export function apiBase(value) {
 export function workerRequest(connection, action, body, options = {}) {
   const { taskId, token, baseUrl } = connection
   ensure(/^[a-f0-9-]{36}$/.test(taskId) && /^[a-f0-9]{64}$/.test(token), 'WORKER_IDENTITY_INVALID')
-  ensure(['claim', 'archive', 'heartbeat', 'finish'].includes(action), 'WORKER_ACTION_INVALID')
+  ensure(['claim', 'archive', 'heartbeat', 'finish', 'approval-check'].includes(action), 'WORKER_ACTION_INVALID')
   const payload = Buffer.from(JSON.stringify(body))
   ensure(payload.length <= 65536 && !options.signal?.aborted, 'WORKER_REQUEST_INVALID')
   const url = new URL(`${apiBase(baseUrl)}/internal/plugin-build/${taskId}/${action}`)

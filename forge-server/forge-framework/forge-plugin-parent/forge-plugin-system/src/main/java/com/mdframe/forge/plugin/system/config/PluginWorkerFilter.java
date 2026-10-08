@@ -44,7 +44,7 @@ public class PluginWorkerFilter extends OncePerRequestFilter {
     private boolean validRequest(HttpServletRequest request) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
         return request.isSecure() && "POST".equals(request.getMethod())
-                && path.matches("/internal/plugin-build/[a-f0-9-]{36}/(claim|archive|heartbeat|finish)")
+                && path.matches("/internal/plugin-build/[a-f0-9-]{36}/(claim|archive|heartbeat|finish|approval-check)")
                 && request.getQueryString() == null && request.getHeader("X-Inner-Call") == null
                 && request.getContentLengthLong() > 0 && request.getContentLengthLong() <= 65536
                 && request.getContentType() != null && request.getContentType().startsWith("application/json");

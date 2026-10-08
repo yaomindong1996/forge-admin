@@ -16,4 +16,19 @@
         WHERE tenant_id = #{tenantId} AND task_id = #{taskId} AND del_flag = 0
         ORDER BY create_time DESC, id DESC LIMIT 20
     </select>
+    <!-- 只读的时点核验，不查BLOB/租约/说明/人工身份；同一JOIN避免跨查询混合不同修订。 -->
+    <select id="selectApprovalSnapshot"
+            resultType="com.mdframe.forge.plugin.system.service.plugin.PluginReleaseApprovalSnapshot">
+        SELECT t.id AS task_id, t.plugin_id, t.plugin_version, t.operation_type, t.task_status,
+            t.active_plugin_id, t.revision, t.archive_sha256, t.preview_json,
+            b.worker_id, b.source_commit, b.image, b.phase AS build_phase, b.finished_time,
+            b.result_json, b.result_sha256,
+            r.id AS review_id, r.expected_revision, r.package_sha256 AS review_package_sha256,
+            r.result_sha256 AS review_result_sha256, r.decision, r.previous_status, r.target_status,
+            r.executor_stopped, r.not_deployed, r.artifacts_reviewed, r.migrations_reviewed
+        FROM sys_plugin_task t
+        INNER JOIN sys_plugin_build b ON b.id = t.id AND b.tenant_id = t.tenant_id AND b.del_flag = 0
+        INNER JOIN sys_plugin_task_review r ON r.task_id = t.id AND r.tenant_id = t.tenant_id AND r.del_flag = 0
+        WHERE t.tenant_id = #{tenantId} AND t.id = #{taskId} AND t.del_flag = 0 AND r.id = #{reviewId}
+    </select>
 </mapper>

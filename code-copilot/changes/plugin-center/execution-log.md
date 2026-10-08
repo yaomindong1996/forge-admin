@@ -1,5 +1,93 @@
 # 插件中心执行记录
 
+## 2026-10-08：P3.3b2a 当前审批只读认证核验交付
+
+### 范围与两阶段增量自审
+
+- Stage 1：按先补Spec，仅增加原构建机器的选定任务approval-check，不增加部署/审批/关闭权限。
+  仍由默认关闭的过滤器做HTTPS/Bearer/到期/固定租户/请求边界检查，不接用户Token或X-Inner-Call。
+  Controller先取认证属性再进可信租户上下文；新DTO/VO，无Map请求或客户端身份授权。
+- 单条XML JOIN给出同一数据库读取快照，三表按tenant及del_flag过滤、不读BLOB/租约/说明/人工身份。
+  核对release_ready、当前审批/修订、四项人工声明、占用、包/报告SHA及结束状态；
+  重算原保存报告摘要、全部强类型报告比较、核心同时匹配预览和当前服务，读取不写任务或审计。
+- CLI先后两次真实文件复验，固定HTTPS/任务单次请求，显式区分serverResultSha256与原文件SHA。
+  返回绑定随机checkId、期望审批/机器/修订/报告/清单及同步时钟（5秒偏差），不复用旧响应或自动重试。
+  凭证仅沿用worker环境，不出参数/配置/响应/日志，不写新的长期成功凭证、修改只读回执或部署目标。
+- Stage 2：核对snapshot只表示查询时点，关闭/变更后的新核验拒绝；不是签名或后续事务授权。
+  服务端仅看报告，serverArtifactBytesVerified/deploymentAuthorized/deployed仍false，剩余准备项pending。
+  新生产模块≤104行、方法≤80/参数≤5/行≤120，按认证配置/本地核验/HTTP及后端快照/服务/DTO分职责。
+  无运行时依赖/新表/迁移/角色授权/Pro收费实现，原worker构建/租约调用行为未改。
+- project-init技能影响：工具改名后原字节交付，最终完整full生成核对43份运行文件，
+  新Java命名空间与XML一起改名，/internal/plugin-build与forge.plugin-build.worker协议仍固定。
+
+### 环境、命令与证据
+
+- QA_DIR=/private/tmp/forge-plugin-approval-p3.dIeMT9；Node20.19.0；JDK17/Maven3.9.11离线缓存。
+  JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home；Maven=/private/tmp/apache-maven-3.9.11/bin/mvn。
+  测试设置JAVA_TOOL_OPTIONS为缓存byte-buddy-agent-1.17.8的-javaagent，发布package默认跳过测试。
+  起点0c3f0d3c、codex/plugin-foundation，用户.DS_Store保留，不推送/合并main。
+
+```bash
+node --test scripts/forge-plugin-release/approval.test.mjs
+node --test scripts/forge-shared scripts/forge-plugin scripts/forge-plugin-builder scripts/forge-plugin-release \
+  scripts/guards scripts/forge-create \
+  code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
+  code-copilot/changes/plugin-center/contracts.test.mjs \
+  code-copilot/changes/plugin-center/workbench-contract.test.mjs \
+  forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+# forge-server cwd，test与package串行；-Penable-tests不可省略
+mvn -o -q -pl forge-framework/forge-plugin-parent/forge-plugin-system -am test -Penable-tests \
+  '-Dtest=SourcePluginPackageReaderTest,Plugin*Test,RuntimePluginCatalogTest,CommunityFeatureGateTest,ForgeVersionTest,SysPlugin*Test,*FeatureGateTest' \
+  -Dsurefire.failIfNoSpecifiedTests=false -Dmaven.test.redirectTestOutputToFile=true
+mvn -o -q -pl forge-admin-server -am package -DskipTests
+node scripts/forge-create/create-project.mjs <QA_DIR>/approval-final-generated --preset full \
+  --project-name plugin-approval-check --java-name PluginApprovalCheck --base-package com.acme.approval \
+  --group-id com.acme.maven --artifact-prefix approval-host --module-artifact-prefix kernel \
+  --display-name 插件审批核验 --database-name plugin_approval_check
+node --test <QA_DIR>/approval-final-generated/approval-host-server/scripts/db/init-db.test.mjs \
+  <QA_DIR>/approval-final-generated/approval-host-server/scripts/db/clean-db.test.mjs
+node <QA_DIR>/generated-smoke.mjs <QA_DIR>/approval-final-generated
+# 生成approval-host-server cwd
+mvn -o -q -pl kernel-framework/kernel-plugin-parent/kernel-plugin-system -am test -Penable-tests \
+  '-Dtest=SysPlugin*Test,SourcePluginPackageReaderTest' -Dsurefire.failIfNoSpecifiedTests=false
+mvn -o -q -pl kernel-framework/kernel-plugin-parent/kernel-plugin-system -am test -Penable-tests \
+  -Dtest=PluginAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false
+mvn -o -q -pl kernel-admin-server -am package -DskipTests
+node scripts/guards/check-edition.mjs
+git diff --check
+```
+
+- node-focused-final.tap38/38；node-regression-unrestricted.tap489/489、失败/跳过0，33.66秒。
+  Unix socket是隔离Docker桩，不访问业务服务。原模板init/clean DB31在完整矩阵覆盖。
+- java-final.log退出0，相关27份Surefire295/295；新增H2/实际XML37与MockMvc2。
+  admin-package-final.log退出0，无启动服务；ByteBuddy预加载的既有JVM类共享提示不阻断。
+- final-generate.log退出0，最新fresh full含独立Admin/H5/Report/Docker及改名后端。
+  generated-java-final.log与generated-autoconfig.log退出0，总15份115/115；
+  generated-package-final.log退出0。最后仅安全测试断言行换行，模板/生成各2/2定向复验。
+- generated-db-final.tap31/31、失败/跳过0，36.11秒；mysql/Maven为桩，未创建真实库。
+  generated-cli-final.log退出0：43份运行文件逐字节一致、无fixtures/测试交付，
+  真CLI跨cwd执行全部四类入口；HTTPS传输由明确preload桩替代，关闭返回409后CLI失败，
+  未改封存回执，离线verify仍false，没有假装服务端读取了制品或执行部署。
+- edition/diff及行宽检查通过；未改Vue/SQL/迁移，沿用既有UI基线，不重复UI构建/浏览器验收。
+
+### 失败处理与未完成边界
+
+- 沙箱矩阵首轮485/489，四项Unix socket listen EPERM；允许仅隔离临时目录socket后原矩阵489全通过。
+  无测试跳过/门槛放宽。生成统计辅助脚本先误预期115，而所选SysPlugin/包校验只有106；
+  核对上一轮基线发现还需PluginAutoConfigurationTest9项，按同一最终工程增量补跑，不改业务断言。
+- 未连接真实HTTPS/当前后台登录、共享MySQL/Redis、rootless镜像、远程仓库或部署目标。
+  MockMvc/H2/传输桩不能代替真实机器过滤器、重放、数据库与目标环境验收。
+  当前输出只读、时点有效；制品登记/远程发布/目标部署/备份恢复与运行健康仍在P3.3b2b。
+  所有QA证据保留，没有本轮服务PID需要停止，未碰其它任务进程。
+
+## 2026-10-08：P3.3b2a 开始
+
+- 承接当前审批绑定，收敛为原构建机器只读核验；不扩大为部署权限、不新增表或持久成功标志。
+  当前授权快照不能用于后续部署；登记/远程发布/目标环境仍待确认和实现。
+- 使用forge-project-init，工具仍在改名后原字节交付；本轮不改UI/数据库/管理API。
+- QA_DIR=/private/tmp/forge-plugin-approval-p3.dIeMT9；codex/plugin-foundation，起点0c3f0d3c。
+  用户.DS_Store保留，不操作共享158或其它服务。先更新Spec及增量测试计划再编码。
+
 ## 2026-10-08：P3.3b1 本地候选制品封存交付
 
 ### 范围与两阶段增量自审

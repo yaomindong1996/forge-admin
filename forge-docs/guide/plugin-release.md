@@ -27,3 +27,17 @@ node scripts/forge-plugin-release/index.mjs verify /absolute/vault.json rel-<64�
 失败暂存和崩溃锁保留供运维核查，不自动清除或抢占。macOS提交时仅顶层目录短暂可写，
 子目录/文件始终只读；最终收敛并复验后才报告成功。未完成/损坏快照须人工调查并隔离。
 本阶段没有远程仓库适配、目标部署或自动恢复，须确认环境后继续建设。
+
+## 当前审批只读核验
+
+P3.3b2a提供`verify-approval /absolute/approval.json rel-<清单SHA>`，
+复用原构建机器的专用HTTPS认证，仅处理运维指定的任务，不自动运行队列。
+配置明确期望当前revision、approve_build审查ID、原worker和**服务端报告SHA**。
+成功报告、插件/核心版本、包/源码/镜像/产物摘要必须一致；已关闭、旧审批、其它租户/机器拒绝。
+Web单条XML查询当前审批快照，不读取本地制品、不写表、不审批/发布/部署。
+
+CLI先后两次复验实际文件，单次网络请求3秒超时、不重定向、响应有界，Bearer仅由环境读取。
+输出本次核验时间，liveTaskApprovalVerified=true只在该时点有效；
+本地只读回执仍false，不生成长期授权或部署令牌。服务端没有独立读取制品字节，
+deployed/deploymentAuthorized/serverArtifactBytesVerified仍false。
+目标、备份、迁移、健康核验尚未完成，制品登记/远程发布须继续开发；完整配置见工具README。

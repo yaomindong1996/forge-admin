@@ -3,7 +3,8 @@
 P3.3b1 将成功构建的 **Admin JAR/UI 实际文件** 封存为可复验的本地候选制品。
 没有远程发布、部署、数据库迁移、启动/停止服务、任务回写或商业授权功能。
 `--reviewed` 是本地操作者的声明，不是插件中心 `release_ready` 的实时认证。
-生产 Web 服务不运行本工具，也不读取工作目录。远程仓库/任务授权桥接属于下一阶段。
+生产 Web 服务不运行本工具，也不读取工作目录。P3.3b2a已加入当前审批的只读认证核验，
+远程仓库、制品登记和目标部署仍未接入。
 
 ## 前置条件与配置
 
@@ -73,8 +74,47 @@ rel-<sha256>/
 损坏不自动修复、不覆盖。重试还会核对原工作区；只检查已封存制品使用独立 verify。
 
 CLI 输出摘要和固定部署准备清单，不输出私有根目录/原报告。
-`deployed=false`、`liveTaskApprovalVerified=false` 始终保留，不能把 sealed/verified 当成服务端已发布。
+离线结果及封存回执的`deployed=false`、`liveTaskApprovalVerified=false`始终保留，
+不能把 sealed/verified 当成服务端已发布。
 只有 `artifact_integrity` 通过；当前任务授权、目标/权限、备份恢复、迁移资源、部署运行健康均为 pending。
+
+## 当前任务审批认证核验（P3.3b2a）
+
+从插件中心任务详情取得**当前revision、approve_build审查记录ID、execution.resultSha256**。
+后者填写serverResultSha256，不填写原result.json或manifest的文件SHA。
+核验只接受原构建机器、同租户、已结束且release_ready的任务；关闭/旧审批/报告不一致即拒绝。
+沿用默认关闭的`forge.plugin-build.worker`配置及专用HTTPS认证，启用前须人工安全审查。
+不申请部署权限，不使用用户Token或X-Inner-Call；Bearer只从FORGE_PLUGIN_WORKER_TOKEN读取，
+不得写进配置/命令行/日志。不要把凭证复制给浏览器、容器或其它用户。
+
+approval.json严格九个字段（无命令/用户/租户/凭证）：
+
+```json
+{
+  "protocolVersion": 1,
+  "repositoryId": "local-candidates",
+  "vaultRoot": "/absolute/private/vault",
+  "apiBaseUrl": "https://your-admin.example/forge",
+  "taskId": "替换成任务UUID",
+  "revision": 4,
+  "reviewId": "替换成当前approve_build审批UUID",
+  "serverResultSha256": "替换成服务端execution.resultSha256",
+  "workerId": "替换成原构建机器标识"
+}
+```
+
+```bash
+node scripts/forge-plugin-release/index.mjs verify-approval /absolute/approval.json rel-<64位清单摘要>
+```
+
+先复验实际快照，再单次POST选定服务/任务，最后重新复验文件，防止网络往返期间改写。
+返回须绑定随机checkId、期望任务revision/审批/机器/报告/清单SHA；不接受旧缓存响应。
+请求3秒超时/响应64KiB有界、不重定向；服务端与执行器时钟需同步（允许5秒偏差）。
+核验成功仅本次输出liveTaskApprovalVerified=true与checkedAt、validOnlyAtCheck=true，
+原封存回执不改、不落新的长期成功标志；下次操作须重新核对当前审批。
+服务端仅核对保存报告的元数据，实际文件由本地CLI复验，serverArtifactBytesVerified=false。
+结果不是部署凭证、签名或后续事务授权；deployed=false、deploymentAuthorized=false，
+目标/备份/迁移/部署及健康仍pending。当前审批通过不会登记制品、释放任务占用或宣称已安装。
 
 ## 失败、保留和恢复边界
 
@@ -85,4 +125,4 @@ CLI 输出摘要和固定部署准备清单，不输出私有根目录/原报告
 - commit 后通信/文件系统同步异常可能已经存在最终目录，先用 verify 核对，不能盲目重新发布。
   非只读/损坏目录必须人工调查并移出隔离；不得修改旧快照来冒充同一候选制品。
 - 容量与保留策略由运维管理。本阶段无垃圾收集器、远程存储凭证/上传或自动回退。
-- 真实任务授权、HTTPS、rootless离线镜像、MySQL锁/Flyway及目标服务/UI健康验收仍须单独执行。
+- 真实HTTPS/任务认证、rootless离线镜像、MySQL/Flyway及目标服务/UI健康验收仍须单独执行。

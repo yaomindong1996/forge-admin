@@ -79,7 +79,8 @@ pnpm forge:plugin-build worker /absolute/worker.json <任务ID> <revision> <包S
 结果包含源码/镜像/包绑定、稳定错误码、文件数/总字节/清单 SHA；不含日志、私有路径或下载 URL。
 服务端校验协议与租约，但**产物实际核验发生在 worker，不是服务端再次检查制品**。
 当前产物保存在私有 `job-*/artifacts/`，可显式使用[本地候选制品封存](./plugin-release.md)
-逐文件复验后保存只读快照；未接入实时任务审批绑定、远程仓库或部署流程。
+逐文件复验后保存只读快照；也可显式verify-approval核对当前审批，只在本次查询时点有效。
+只读核验不增加审批/关闭/发布/部署权限；远程仓库、制品登记及部署流程未接入。
 
 `transfer-*/worker-result.json` 保存桥接结果；`lease.json` 为权限0600的私有恢复收据，
 不要上传/公开，raw 机器 Bearer 不落盘。原 `job-*/result.json` 和产物仍保留。
