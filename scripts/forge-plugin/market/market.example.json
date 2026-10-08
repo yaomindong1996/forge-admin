@@ -1,0 +1,6 @@
+{
+  "protocolVersion": 1,
+  "apiBaseUrl": "https://api.example.invalid/website-api",
+  "authorizeUrl": "https://portal.example.invalid/account/sso",
+  "clientId": "forge-cli"
+}

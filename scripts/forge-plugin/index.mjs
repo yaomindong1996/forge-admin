@@ -11,6 +11,10 @@ const help = `Forge 插件工具
       pnpm forge:plugin check <目录|包.zip> [--force]
       pnpm forge:plugin list
       pnpm forge:plugin remove <插件ID>
+      pnpm forge:plugin market owned <市场配置.json>
+      pnpm forge:plugin market versions <市场配置.json> <插件ID>
+      pnpm forge:plugin market check <市场配置.json> <插件ID> <版本> [--force]
+      pnpm forge:plugin market add <市场配置.json> <插件ID> <版本> --reviewed [--force]
 
 --force 整包替换已安装源码；请先提交定制改动，升级/卸载会保留恢复备份。
 --dev   仅模板工程可用：宿主接入 POM + 外部源码软链接，不改动外部插件文件。
@@ -24,6 +28,10 @@ export async function runPluginCli(args, output = console, environment = {}) {
     return 0
   }
   try {
+    if (args[0] === 'market') {
+      const { runMarket } = await import('./market/commands.mjs')
+      return await runMarket(args.slice(1), output, { ...environment, root: environment.root || toolRoot })
+    }
     const command = parseArguments(args)
     const root = environment.root || toolRoot
     let result
