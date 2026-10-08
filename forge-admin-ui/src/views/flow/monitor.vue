@@ -1,6 +1,6 @@
 <template>
   <div class="flow-monitor-page">
-    <n-alert v-if="statistics.degraded" type="warning" class="mb-3" :show-icon="true">
+    <n-alert v-if="statistics.degraded" type="warning" class="monitor-alert" :show-icon="true">
       流程监控统计暂时不可用，请稍后重试。
       <template #action>
         <NButton text type="primary" @click="loadStatistics">
@@ -8,141 +8,113 @@
         </NButton>
       </template>
     </n-alert>
-    <!-- 统计卡片 -->
-    <n-grid :cols="4" :x-gap="16" :y-gap="16" class="stat-cards">
-      <n-gi>
-        <n-card size="small">
-          <n-statistic label="运行中流程" :value="statistics.runningInstances">
-            <template #prefix>
-              <i class="i-mdi:play-circle text-blue-500" />
-            </template>
-          </n-statistic>
-        </n-card>
-      </n-gi>
-      <n-gi>
-        <n-card size="small">
-          <n-statistic label="待办任务" :value="statistics.pendingTasks">
-            <template #prefix>
-              <i class="i-mdi:clipboard-list text-orange-500" />
-            </template>
-          </n-statistic>
-        </n-card>
-      </n-gi>
-      <n-gi>
-        <n-card size="small">
-          <n-statistic label="今日完成" :value="statistics.todayCompleted">
-            <template #prefix>
-              <i class="i-mdi:check-circle text-green-500" />
-            </template>
-          </n-statistic>
-        </n-card>
-      </n-gi>
-      <!-- 超时任务卡片：点击自动筛选到超时列表 -->
-      <n-gi>
-        <n-card
-          size="small"
-          class="timeout-card"
-          :class="{ 'timeout-active': searchForm.overdue === true }"
-          hoverable
-          style="cursor: pointer"
+
+    <div class="flow-workbench">
+      <!-- 摘要条：可点超时筛选，避免营销式指标卡 -->
+      <div class="monitor-summary" role="group" aria-label="流程监控摘要">
+        <span class="summary-item">
+          <small>运行中</small>
+          <strong>{{ statistics.runningInstances || 0 }}</strong>
+        </span>
+        <span class="summary-item">
+          <small>待办</small>
+          <strong>{{ statistics.pendingTasks || 0 }}</strong>
+        </span>
+        <span class="summary-item">
+          <small>今日完成</small>
+          <strong>{{ statistics.todayCompleted || 0 }}</strong>
+        </span>
+        <button
+          type="button"
+          class="summary-item is-action"
+          :class="{ 'is-active': searchForm.overdue === true }"
+          title="按超时任务筛选"
           @click="filterByTimeout"
         >
-          <n-statistic label="超时任务" :value="statistics.timeoutTasks">
-            <template #prefix>
-              <i class="i-mdi:alert-circle text-red-500" />
-            </template>
-            <template #suffix>
-              <span v-if="statistics.timeoutTasks > 0" class="timeout-hint">点击查看</span>
-            </template>
-          </n-statistic>
-        </n-card>
-      </n-gi>
-    </n-grid>
+          <small>超时</small>
+          <strong>{{ statistics.timeoutTasks || 0 }}</strong>
+        </button>
+      </div>
 
-    <!-- 搜索和操作区 -->
-    <n-card class="mt-4" size="small">
-      <n-form :model="searchForm" inline label-placement="left">
-        <n-form-item label="流程名称">
-          <n-input v-model:value="searchForm.processName" placeholder="请输入流程名称" clearable style="width: 200px" />
-        </n-form-item>
-        <n-form-item label="发起人">
-          <n-input v-model:value="searchForm.initiator" placeholder="请输入发起人" clearable style="width: 150px" />
-        </n-form-item>
-        <n-form-item label="流程状态">
+      <!-- 工具栏 -->
+      <div class="panel-toolbar">
+        <div class="toolbar-filters">
+          <n-input
+            v-model:value="searchForm.processName"
+            placeholder="流程名称"
+            clearable
+            class="filter-name"
+            @keydown.enter="handleSearch"
+          />
+          <n-input
+            v-model:value="searchForm.initiator"
+            placeholder="发起人"
+            clearable
+            class="filter-initiator"
+            @keydown.enter="handleSearch"
+          />
           <n-select
             v-model:value="searchForm.status"
             :options="statusOptions"
-            placeholder="请选择状态"
+            placeholder="流程状态"
             clearable
-            style="width: 150px"
+            class="filter-status"
           />
-        </n-form-item>
-        <n-form-item label="时间范围">
           <n-date-picker
             v-model:value="searchForm.dateRange"
             type="daterange"
             clearable
-            style="width: 260px"
+            class="filter-range"
           />
-        </n-form-item>
-        <n-form-item>
-          <NSpace>
-            <NButton type="primary" @click="handleSearch">
-              <template #icon>
-                <i class="i-mdi:magnify" />
-              </template>
-              查询
-            </NButton>
-            <NButton @click="handleReset">
-              <template #icon>
-                <i class="i-mdi:refresh" />
-              </template>
-              重置
-            </NButton>
-          </NSpace>
-        </n-form-item>
-      </n-form>
-    </n-card>
-
-    <!-- 流程实例列表 -->
-    <n-card class="mt-4" title="流程实例监控">
-      <template #header-extra>
-        <NSpace>
-          <NButton v-if="canCleanup" type="error" secondary :loading="cleanupLoading" :disabled="isDeletingProcess" @click="handleCleanupCurrentFilter">
-            <template #icon>
-              <i class="i-mdi:delete-sweep" />
-            </template>
-            删除当前筛选流程
+          <NButton type="primary" @click="handleSearch">
+            查询
           </NButton>
-          <NButton :disabled="isDeletingProcess" @click="loadData">
-            <template #icon>
-              <i class="i-mdi:refresh" />
-            </template>
+          <NButton quaternary @click="handleReset">
+            重置
+          </NButton>
+        </div>
+        <div class="toolbar-actions">
+          <NButton
+            v-if="canCleanup"
+            type="error"
+            secondary
+            :loading="cleanupLoading"
+            :disabled="isDeletingProcess"
+            @click="handleCleanupCurrentFilter"
+          >
+            删除当前筛选
+          </NButton>
+          <NButton secondary :disabled="isDeletingProcess" @click="loadData">
             刷新
           </NButton>
-        </NSpace>
-      </template>
+        </div>
+      </div>
 
-      <n-alert v-if="dataError" type="error" class="mb-3" :show-icon="true">
-        流程实例列表加载失败，请重试。
-        <template #action>
-          <NButton text type="primary" @click="loadData">
-            重试
-          </NButton>
-        </template>
-      </n-alert>
-
-      <n-data-table
-        :columns="columns"
-        :data="tableData"
-        :loading="loading || isDeletingProcess"
-        :pagination="pagination"
-        :remote="true"
-        :row-key="row => row.id"
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
-      />
-    </n-card>
+      <!-- 列表 -->
+      <div class="table-region">
+        <n-alert v-if="dataError" type="error" class="monitor-alert" :show-icon="true">
+          流程实例列表加载失败，请重试。
+          <template #action>
+            <NButton text type="primary" @click="loadData">
+              重试
+            </NButton>
+          </template>
+        </n-alert>
+        <n-data-table
+          size="medium"
+          :columns="columns"
+          :data="tableData"
+          :loading="loading || isDeletingProcess"
+          :pagination="pagination"
+          :remote="true"
+          :row-key="row => row.id"
+          flex-height
+          class="monitor-table"
+          @update:page="handlePageChange"
+          @update:page-size="handlePageSizeChange"
+        />
+      </div>
+    </div>
 
     <!-- 流程实例错误日志抽屉 -->
     <n-drawer v-model:show="instanceErrorDrawerVisible" :width="900" title="流程错误日志">
@@ -216,7 +188,7 @@
           <NButton v-if="canManage && currentErrorLog && (currentErrorLog.status === 0 || currentErrorLog.status === 3)" type="primary" @click="handleRetryError">
             重试节点
           </NButton>
-          <NButton v-if="canManage && currentErrorLog && currentErrorLog.status === 0" type="warning" @click="handleResolveError">
+          <NButton v-if="canManage && currentErrorLog && currentErrorLog.status === 0" type="warning" @click="handleResolveErrorLog">
             标记已解决
           </NButton>
         </NSpace>
@@ -246,33 +218,33 @@
       </template>
     </n-modal>
 
-    <!-- 任务统计图表 -->
-    <n-grid :cols="2" :x-gap="16" class="mt-4">
-      <n-gi>
-        <n-card title="任务处理趋势">
-          <template #header-extra>
-            <n-radio-group v-model:value="chartPeriod" size="small" @update:value="refreshCharts">
-              <n-radio-button :value="7">
-                近7天
-              </n-radio-button>
-              <n-radio-button :value="30">
-                近30天
-              </n-radio-button>
-            </n-radio-group>
-          </template>
-          <div class="chart-container">
-            <div ref="taskChartRef" />
-          </div>
-        </n-card>
-      </n-gi>
-      <n-gi>
-        <n-card title="流程分布统计">
-          <div class="chart-container">
-            <div ref="processChartRef" />
-          </div>
-        </n-card>
-      </n-gi>
-    </n-grid>
+    <!-- 图表区：并入下方紧凑面板，避免再套多层白卡 -->
+    <div class="monitor-charts">
+      <section class="chart-panel">
+        <header class="chart-panel-head">
+          <strong>任务处理趋势</strong>
+          <n-radio-group v-model:value="chartPeriod" size="small" @update:value="refreshCharts">
+            <n-radio-button :value="7">
+              近7天
+            </n-radio-button>
+            <n-radio-button :value="30">
+              近30天
+            </n-radio-button>
+          </n-radio-group>
+        </header>
+        <div class="chart-container">
+          <div ref="taskChartRef" />
+        </div>
+      </section>
+      <section class="chart-panel">
+        <header class="chart-panel-head">
+          <strong>流程分布统计</strong>
+        </header>
+        <div class="chart-container">
+          <div ref="processChartRef" />
+        </div>
+      </section>
+    </div>
 
     <!-- 流程图弹窗 -->
     <n-modal v-model:show="diagramModalVisible" preset="card" title="流程图" style="width: 90%; max-width: 1200px;">
@@ -514,19 +486,109 @@
   </div>
 </template>
 
-<script>
-import { flowMonitorLocalComponents } from './flowMonitorLocalComponents'
+<script setup>
+import UserAvatar from '@/components/common/UserAvatar.vue'
+import UserSelectModal from '@/components/common/UserSelectModal.vue'
+import DictTag from '@/components/DictTag.vue'
+import DingFlowViewer from '@/components/flow-designer/viewer/DingFlowViewer.vue'
+import FlowReadonlyFormPanel from '@/components/flow/FlowReadonlyFormPanel.vue'
+import FlowTaskDetailShell from '@/components/flow/FlowTaskDetailShell.vue'
 import { useFlowMonitor } from './composables/useFlowMonitor'
 
-export default {
-  name: 'FlowMonitor',
-  components: {
-    ...flowMonitorLocalComponents,
-  },
-  setup(_props, { expose }) {
-    return useFlowMonitor(expose)
-  },
-}
+defineOptions({ name: 'FlowMonitor' })
+
+const {
+  adminActionsModalVisible,
+  adminTaskColumns,
+  adminTaskContext,
+  adminTaskContextError,
+  adminTaskContextLoading,
+  adminTaskPagination,
+  adminTaskTree,
+  adminTaskTreeTruncated,
+  approvalHistory,
+  activitiesLoading,
+  activityOptions,
+  canCleanup,
+  canManage,
+  canMutateCurrent,
+  chartPeriod,
+  cleanupLoading,
+  columns,
+  confirmReassign,
+  confirmRetry,
+  confirmRollback,
+  confirmTerminate,
+  currentDiagramInstanceId,
+  currentErrorLog,
+  currentInstance,
+  currentTaskId,
+  currentTaskOptions,
+  dataError,
+  detailDrawerVisible,
+  diagramModalVisible,
+  errorColumns,
+  errorDetailVisible,
+  errorStatusOptions,
+  filterByTimeout,
+  formatVariableValue,
+  getErrorStageText,
+  getErrorTypeText,
+  getInstanceStatusClass,
+  getInstanceStatusIcon,
+  getInstanceStatusText,
+  handleActivate,
+  handleAdminTaskPageChange,
+  handleAdminTaskPageSizeChange,
+  handleCleanupCurrentFilter,
+  handleInstanceErrorPageChange,
+  handleInstanceErrorPageSizeChange,
+  handlePageChange,
+  handlePageSizeChange,
+  handleResolveErrorLog,
+  handleReset,
+  handleRetryError,
+  handleSearch,
+  handleSuspend,
+  handleUserSelect,
+  instanceErrorDrawerVisible,
+  instanceErrorLogData,
+  instanceErrorLogLoading,
+  instanceErrorPagination,
+  instanceErrorStatusFilter,
+  isAdminMutating,
+  isAdminMutationBusy,
+  isDeletingProcess,
+  isSuspendedCurrent,
+  loadAdminInstanceTasks,
+  loadData,
+  loadInstanceErrorLogs,
+  loadStatistics,
+  loading,
+  monitorFormRow,
+  openReassignUserSelect,
+  pagination,
+  processChartRef,
+  processVariables,
+  reassignReason,
+  reassignUserId,
+  reassignUserName,
+  refreshCharts,
+  retryModalVisible,
+  retryReason,
+  retrying,
+  rollbackReason,
+  rollbackTargetActivity,
+  searchForm,
+  statistics,
+  statusOptions,
+  tableData,
+  taskChartRef,
+  terminateReason,
+  userSelectModalVisible,
+  variablesLoading,
+  variablesModalVisible,
+} = useFlowMonitor()
 </script>
 
 <style scoped src="./flowMonitor.css"></style>
