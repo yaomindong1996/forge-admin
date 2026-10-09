@@ -80,20 +80,20 @@
 			{
 				"pagePath": "pages/index/index",
 				"text": "首页",
-				"iconPath": "static/icons/ai-icon/home.svg",
-				"selectedIconPath": "static/icons/ai-icon/home.svg"
+				"iconPath": "static/tabbar/home.png",
+				"selectedIconPath": "static/tabbar/home-active.png"
 			},
 			{
 				"pagePath": "pages/todo",
 				"text": "待办",
-				"iconPath": "static/icons/ai-icon/check-square.svg",
-				"selectedIconPath": "static/icons/ai-icon/check-square.svg"
+				"iconPath": "static/tabbar/todo.png",
+				"selectedIconPath": "static/tabbar/todo-active.png"
 			},
 			{
 				"pagePath": "pages/mine/index",
 				"text": "我的",
-				"iconPath": "static/icons/ai-icon/user.svg",
-				"selectedIconPath": "static/icons/ai-icon/user.svg"
+				"iconPath": "static/tabbar/mine.png",
+				"selectedIconPath": "static/tabbar/mine-active.png"
 			}
 		]
 	},
