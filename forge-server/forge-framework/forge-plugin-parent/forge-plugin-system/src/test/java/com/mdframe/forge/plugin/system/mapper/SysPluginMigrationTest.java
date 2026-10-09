@@ -44,9 +44,20 @@ class SysPluginMigrationTest {
                     + " AND min_user_type = 0")).isEqualTo(2);
             assertThat(count(connection, "SELECT COUNT(*) FROM sys_dict_type")).isEqualTo(8);
             assertThat(count(connection, "SELECT COUNT(*) FROM sys_dict_data")).isEqualTo(26);
+            run(connection, "V1.0.214__add_plugin_artifact_registration.sql");
+            run(connection, "V1.0.214__add_plugin_artifact_registration.sql");
+            assertThat(count(connection, "SELECT COUNT(*) FROM sys_resource")).isEqualTo(19);
+            assertThat(count(connection, "SELECT COUNT(*) FROM sys_resource"
+                    + " WHERE perms = 'system:plugin:artifact:register' AND min_user_type = 0")).isEqualTo(2);
+            run(connection, "V1.0.216__add_plugin_delivery_control.sql");
+            run(connection, "V1.0.216__add_plugin_delivery_control.sql");
+            assertThat(count(connection, "SELECT COUNT(*) FROM sys_resource")).isEqualTo(25);
+            assertThat(count(connection, "SELECT COUNT(*) FROM sys_dict_type")).isEqualTo(10);
+            assertThat(count(connection, "SELECT COUNT(*) FROM sys_dict_data")).isEqualTo(35);
             checkCustomerMenu(connection);
             checkPermissionCollision(connection);
             checkReviewCollision(connection);
+            checkArtifactCollision(connection);
         }
     }
 
@@ -59,6 +70,8 @@ class SysPluginMigrationTest {
         }
         run(connection, "V1.0.211__add_plugin_install_workbench.sql");
         run(connection, "V1.0.213__add_plugin_task_review.sql");
+        run(connection, "V1.0.214__add_plugin_artifact_registration.sql");
+        run(connection, "V1.0.216__add_plugin_delivery_control.sql");
         assertThat(count(connection, "SELECT COUNT(*) FROM sys_resource")).isEqualTo(1);
     }
 
@@ -100,6 +113,19 @@ class SysPluginMigrationTest {
         assertThat(count(connection, "SELECT COUNT(*) FROM sys_resource WHERE resource_type = 4"
                 + " AND perms = 'system:plugin:review'")).isEqualTo(1);
         assertThat(count(connection, "SELECT COUNT(*) FROM sys_resource WHERE api_url = '/customer/review'"))
+                .isEqualTo(1);
+    }
+
+    private void checkArtifactCollision(Connection connection) throws Exception {
+        try (var statement = connection.createStatement()) {
+            statement.execute("INSERT INTO sys_resource(tenant_id, resource_type, perms, client_code, api_url)"
+                    + " VALUES (1, 4, 'system:plugin:artifact:register', 'pc', '/customer/artifact')");
+        }
+        run(connection, "V1.0.214__add_plugin_artifact_registration.sql");
+        run(connection, "V1.0.214__add_plugin_artifact_registration.sql");
+        assertThat(count(connection, "SELECT COUNT(*) FROM sys_resource WHERE resource_type = 4"
+                + " AND perms = 'system:plugin:artifact:register'")).isEqualTo(1);
+        assertThat(count(connection, "SELECT COUNT(*) FROM sys_resource WHERE api_url = '/customer/artifact'"))
                 .isEqualTo(1);
     }
 }

@@ -30,7 +30,8 @@ class SysPluginReleaseCheckTest {
     @BeforeEach
     void database() throws Exception {
         db = new PluginReviewTestDatabase();
-        service = new PluginReleaseCheckService(db.reviews, db.json);
+        service = new PluginReleaseCheckService(db.reviews,
+                new com.mdframe.forge.plugin.system.service.plugin.PluginReleaseApprovalValidator(db.json));
         var build = db.builds.selectBuild(1L, "task");
         var result = new PluginBuildResultDTO();
         result.setSuccess(true);

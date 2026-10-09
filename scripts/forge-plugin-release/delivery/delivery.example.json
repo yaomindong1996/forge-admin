@@ -1,0 +1,12 @@
+{
+  "protocolVersion": 1,
+  "apiBaseUrl": "https://control.example.com",
+  "workerId": "delivery-worker",
+  "targetId": "staging-admin",
+  "cosConfig": "/srv/forge-delivery/cos.json",
+  "composeConfig": "/srv/forge-delivery/compose.json",
+  "dockerExecutable": "/usr/bin/docker",
+  "dockerSocket": "/run/user/1000/docker.sock",
+  "clientConfigRoot": "/srv/forge-delivery/docker-empty",
+  "stateRoot": "/srv/forge-delivery/state"
+}

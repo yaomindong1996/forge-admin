@@ -70,6 +70,9 @@
     <NTabPane name="license" tab="运行时授权" display-directive="if">
       <RuntimeLicenseStatus />
     </NTabPane>
+    <NTabPane v-if="hasPermission('system:plugin:delivery:list')" name="delivery" tab="发布与部署" display-directive="if">
+      <PluginDeliveryWorkbench />
+    </NTabPane>
   </NTabs>
 </template>
 
@@ -80,6 +83,7 @@ import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
 import PluginBuildComparison from './plugin/components/PluginBuildComparison.vue'
+import PluginDeliveryWorkbench from './plugin/components/PluginDeliveryWorkbench.vue'
 import PluginDetail from './plugin/components/PluginDetail.vue'
 import PluginWorkbench from './plugin/components/PluginWorkbench.vue'
 import RuntimeLicenseStatus from './plugin/components/RuntimeLicenseStatus.vue'

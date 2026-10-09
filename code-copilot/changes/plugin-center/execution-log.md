@@ -1,5 +1,118 @@
 # 插件中心执行记录
 
+## 2026-10-08：P3.3b2b1 候选制品人工登记交付
+
+### 范围与两阶段增量自审
+
+- 用户对上一轮新增表/独立权限的确认问题回复「继续」，先更新执行契约再编码；
+  承接89a35ae9，保持codex/plugin-foundation和用户.DS_Store，不推送/合并main。
+- Stage 1：prepare-registration只在本地逐文件前后复验，输出≤64KiB固定元数据；
+  原文件报告SHA与服务端报告SHA分离，不读worker凭证、不联网、不改只读清单/回执。
+  平台管理员在现有任务详情人工导入/预览、两项显式确认和核查说明，不增加重复菜单。
+- 新typed DTO/VO、独立API/权限、追加式审计表及214迁移；可信当前租户/用户并同时要求登记/详情权限。
+  沿用JSON加解密，不存操作日志请求/响应；机器过滤器与权限保持原样，不授予普通角色。
+- 事务采用build→task统一锁序，锁内重新核验当前审批/修订/核心/全部成功报告，不能使用旧核验授权。
+  同租户/任务/操作者/requestId绑定规范请求摘要，同内容幂等、异内容/覆盖拒绝，审计失败回滚。
+  不改任务状态/占用/报告；关闭保留记录，历史幂等返回重新显示当前匹配，不生成永久有效标记。
+- Stage 2：独立共享审批validator保持原只读核验行为，登记历史再核对元数据与审计身份列。
+  详情一次读取审批投影，不在stream/记录循环中查库；界面只表示人工登记及查询时点，始终未部署。
+  Pinia仅内存草稿/冻结请求，文件导入禁止NUpload自动发送；审批/登记动作按领域拆composable，
+  失败刷新、不同任务、销毁后的旧响应隔离。新增/修改生产和测试行宽≤120，
+  生产Java/SFC最大222行，JS函数最大80行/参数≤5，无新第三方运行依赖。
+- forge-project-init技能影响：214进入模板受控清理清单，改名后工具按原字节交付；
+  最终使用完整fresh full生成工程验证Java/XML/迁移、UI导入相对路径和实际CLI，不以目录复制替代。
+
+### 环境、命令与证据
+
+- QA_DIR=/private/tmp/forge-plugin-registration.K5GmAF；Node20.19.0、JDK17/Maven3.9.11离线缓存。
+  JAVA_HOME=/private/tmp/lawhub-october-jdk/Contents/Home；Maven=/private/tmp/apache-maven-3.9.11/bin/mvn。
+  测试JAVA_TOOL_OPTIONS沿用byte-buddy-agent-1.17.8缓存-javaagent，发布package跳过测试。
+
+```bash
+node --test scripts/forge-plugin-release/registration.test.mjs
+node --test scripts/forge-shared scripts/forge-plugin scripts/forge-plugin-builder scripts/forge-plugin-release \
+  scripts/guards scripts/forge-create \
+  code-copilot/changes/plugin-foundation/baseline/manifest.test.mjs \
+  code-copilot/changes/plugin-center/contracts.test.mjs \
+  code-copilot/changes/plugin-center/workbench-contract.test.mjs \
+  forge-server/scripts/db/init-db.test.mjs forge-server/scripts/db/clean-db.test.mjs
+# forge-server cwd，test与package串行，测试必须启用enable-tests
+mvn -o -q -pl forge-framework/forge-plugin-parent/forge-plugin-system -am test -Penable-tests \
+  '-Dtest=SourcePluginPackageReaderTest,Plugin*Test,RuntimePluginCatalogTest,CommunityFeatureGateTest,ForgeVersionTest,SysPlugin*Test,*FeatureGateTest' \
+  -Dsurefire.failIfNoSpecifiedTests=false -Dmaven.test.redirectTestOutputToFile=true
+mvn -o -q -pl forge-admin-server -am package -DskipTests
+# forge-admin-ui cwd
+node node_modules/eslint/bin/eslint.js src/views/system/plugin src/stores/plugin/artifactStore.js \
+  src/stores/plugin/reviewStore.js src/api/system/pluginTask.js
+node node_modules/vitest/vitest.mjs run src/views/system/plugin/__tests__
+node --max-old-space-size=8192 node_modules/vite/bin/vite.js build
+# repo cwd，全新生成，不覆盖先前QA工程
+node scripts/forge-create/create-project.mjs <QA_DIR>/registration-final-generated --preset full \
+  --project-name plugin-registration-check --java-name PluginRegistrationCheck \
+  --base-package com.acme.registration --group-id com.acme.maven --artifact-prefix registration-host \
+  --module-artifact-prefix kernel --display-name 插件制品登记 --database-name plugin_registration_check
+node <QA_DIR>/generated-smoke.mjs <QA_DIR>/registration-final-generated
+node --test <QA_DIR>/registration-final-generated/registration-host-server/scripts/db/init-db.test.mjs \
+  <QA_DIR>/registration-final-generated/registration-host-server/scripts/db/clean-db.test.mjs
+# 最终生成registration-host-server cwd
+mvn -o -q -pl kernel-framework/kernel-plugin-parent/kernel-plugin-system -am test -Penable-tests \
+  '-Dtest=SysPlugin*Test,SourcePluginPackageReaderTest,PluginAutoConfigurationTest' \
+  -Dsurefire.failIfNoSpecifiedTests=false -Dmaven.test.redirectTestOutputToFile=true
+mvn -o -q -pl kernel-admin-server -am package -DskipTests
+node <QA_DIR>/shape-check.mjs
+node scripts/guards/check-edition.mjs
+git diff --check
+```
+
+- node-regression.log496/496、失败/跳过0，23.68秒；node-registration-final.log7/7。
+  全矩阵允许隔离本地Unix socket桩，无真实Docker/业务服务连接，没有跳过或削弱断言。
+- java-final3.log退出0，29份相关Surefire315/315、错误/失败/跳过0；
+  新实际XML/H2事务18项+MockMvc/权限契约2项，原approval-check37项保留。
+  admin-package-final3.log退出0；ByteBuddy引起的既有JVM类共享提示不阻断。
+- ui-tests-final4.log31/31、7个文件；lint-final4.log退出0、0错误/警告；
+  ui-build-final4.log退出0、30.09秒，保留现有构建插件计时提示，不视为功能失败。
+- browser-final.log实际点击JSON文件导入、预览、确认、模拟失败、原请求重试/记录；
+  两次payload完全相同，320×720按钮bounds在视口内、scrollWidth=320、pageerror=[]。
+  registration-narrow-dark.png与registration-stale-light.png已人工查看，模拟关闭显示失配而非部署。
+- final-generate.log退出0；最终registration-final-generated含改名后端及Admin/H5/Report/Docker。
+  final-generated-java.log135/135、17份报告，无错误/失败/跳过；final-generated-package.log退出0。
+  final-generated-db.log31/31、失败/跳过0，45.13秒；mysql/Maven为桩，未创建真实数据库。
+- final-generated-cli.log核对44份运行mjs/README原字节一致，无测试/fixtures交付；
+  新214和UI/store/动作同字节、UI共享解析路径有效。实际生成CLI跨cwd执行五类入口，
+  HTTPS为明确传输桩，登记API未调用，回执未修改，离线verify仍false、deployed=false。
+- shape-final3.log新增/修改生产和测试行宽通过，生产类/SFC与JS函数/参数约束通过；
+  edition-final2.log索引9703/工作区9726通过。最终diff-check退出0。
+
+### 失败修正、清理及未完成边界
+
+- 首轮后端package发现误引用注解/响应包，按仓库真实签名修正后聚合构建通过。
+  UI首次30/31暴露旧reviewStore在失败刷新后读取空task，修复卫语句并新增回归；最终31/31。
+  ESLint标题/导入顺序/语句及长行均修正，未禁用规则。浅色QA最初截到主题过渡帧，
+  等待主题转换并重新截图后已确认可读；不因此改生产主题CSS。
+  临时形态检查最初Babel路径未找到，定位已有pnpm缓存后执行通过，不安装依赖或改业务断言。
+- 最终收敛动作composable及一次审批读取后，重新执行相关Java315、UI31/lint/build、
+  fresh full/生成Java135/聚合package/DB桩31及实际CLI，不使用早期工程冒充最终交付。
+- 临时Vite43146只提供模拟组件，session88083已Ctrl-C停止（exit130），lsof无监听；
+  Chrome在finally关闭，未停止用户其它进程，QA文件/日志/生成工程保留。
+- 没有连接共享158、真实MySQL/Redis、执行Flyway214、正常登录/RBAC/加密或HTTPS/rootless镜像。
+  H2/XML/MockMvc/浏览器模拟不是目标环境验收；真实行锁、迁移、认证须后续确认环境验证。
+  未远程发布、部署、启动后端或创建Pro工程；P3.3b2b2及P3整体保持未完成。
+  登记没有证明制品安全/来源，不是平台读取字节的认证或部署许可；未提交/推送/合并main。
+
+## 2026-10-08：P3.3b2b1 候选制品登记提案（待确认）
+
+- 用户要求继续；承接89a35ae9的当前审批只读核验，定位下阶段为候选制品人工登记。
+  发现该阶段需要新增持久化表/独立写权限，按coding-style §12先补Spec并请人确认。
+  目前仅修改Spec/tasks/test-spec/本记录，未编写SQL/Java/CLI/Vue实现，不将功能标为完成。
+- 推荐平台管理员导入经本地复验的小型元数据，事务内重新核对当前审批并追加审计；
+  原构建机器不新增登记权限，不复用时点核验为永久许可，不声明平台读过实际制品或已经部署。
+- forge-project-init用于设计生成工程的工具原字节/迁移/模板清理交付边界；尚无工具或清理脚本改动。
+  复用上一阶段测试证据，新增功能测试明确未执行。本轮`git diff --check`退出0；
+  `git diff --stat`仅四份变更文档及原有.DS_Store，`rg`检查Spec/Task/测试计划均明确待确认/未实现。
+  仅文档变更，不重复Java/Node/UI构建或功能测试，不将既有测试数字当成本轮新实现的证据。
+- 保持codex/plugin-foundation；用户.DS_Store保留。未连接共享158、未启动服务/容器、
+  未创建新QA工程、未执行数据库迁移/构建/发布/部署，未提交/推送/合并main；无服务PID需清理。
+
 ## 2026-10-08：P3.3b2a 当前审批只读认证核验交付
 
 ### 范围与两阶段增量自审
@@ -647,3 +760,10 @@ node --test <生成工程>/center-host-server/scripts/db/init-db.test.mjs \
   QA_DIR 日志/截图/生成工程保留供复查，无真实 DB 需删除，无后台真实服务遗留。
 - 临时 Vite 会话 92021 Ctrl-C 结束（退出 130）；lsof 复核 43127 无监听。
 - 本地中文提交在 codex/plugin-foundation；不 push、不合并 main，用户 .DS_Store 保留未提交。
+
+## 2026-10-09：后续交付开发已补齐
+
+- P3.3b2b2复用本提案的候选登记，接入真实COS SDK、授权目标、可视化发布/部署、运行核验和恢复。
+- 当前契约、测试与部署说明见 `../plugin-delivery-closure/`，以上历史阶段的“尚未开发”保留为时点记录。
+- 原候选登记与本轮交付统一增量验证：Java72、Vue51、Node550用例通过，Admin/UI生产构建成功。
+- 真实环境验收仍保留，不上传对象或迁移共享数据库；独立Pro工程及热安装未纳入本轮范围。

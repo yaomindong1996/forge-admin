@@ -1,10 +1,11 @@
-# 私有本地候选制品库
+# 插件候选制品和交付工具
 
-P3.3b1 将成功构建的 **Admin JAR/UI 实际文件** 封存为可复验的本地候选制品。
-没有远程发布、部署、数据库迁移、启动/停止服务、任务回写或商业授权功能。
+离线封存入口将成功构建的 **Admin JAR/UI 实际文件** 保存为可复验的本地候选制品。
+该入口不远程发布或部署；独立 COS/Compose 执行器及插件中心“发布与部署”见
+[交付配置与故障恢复](./delivery/README.md)。两者不执行数据库回滚，也不签发商业授权。
 `--reviewed` 是本地操作者的声明，不是插件中心 `release_ready` 的实时认证。
 生产 Web 服务不运行本工具，也不读取工作目录。P3.3b2a已加入当前审批的只读认证核验，
-远程仓库、制品登记和目标部署仍未接入。
+离线登记元数据导出后，由平台管理员登记候选；随后通过独立权限创建发布/部署任务。
 
 ## 前置条件与配置
 
@@ -115,6 +116,37 @@ node scripts/forge-plugin-release/index.mjs verify-approval /absolute/approval.j
 服务端仅核对保存报告的元数据，实际文件由本地CLI复验，serverArtifactBytesVerified=false。
 结果不是部署凭证、签名或后续事务授权；deployed=false、deploymentAuthorized=false，
 目标/备份/迁移/部署及健康仍pending。当前审批通过不会登记制品、释放任务占用或宣称已安装。
+
+## 候选制品人工登记（P3.3b2b1）
+
+在任务已审查后，从插件中心取得当前任务UUID/revision、approve_build审批UUID及
+execution.resultSha256。registration.json严格七个字段，不需要worker凭证或网络目标：
+
+```json
+{
+  "protocolVersion": 1,
+  "repositoryId": "local-candidates",
+  "vaultRoot": "/absolute/private/vault",
+  "taskId": "替换成任务UUID",
+  "revision": 4,
+  "reviewId": "替换成当前审批UUID",
+  "serverResultSha256": "替换成服务端execution.resultSha256"
+}
+```
+
+```bash
+node scripts/forge-plugin-release/index.mjs prepare-registration /absolute/registration.json rel-<64位清单摘要>
+```
+
+此命令复验实际文件并输出≤64KiB小型JSON，不联网/写登记，不改变封存回执。
+将输出另存JSON，在任务详情「候选制品」导入或粘贴，核对各摘要，确认本地已复验、尚未部署并填写说明。
+操作需平台管理员及system:plugin:artifact:register、system:plugin:task:detail权限。
+服务器在事务锁内重新核对当前审批/核心版本/完整成功报告；旧页面、关闭或异内容重试均拒绝。
+同一审批只追加一个登记，不覆盖；结果不确定先刷新，重试仍使用原请求编号/内容。
+
+repositoryId只是人工本地标签，不是可访问的远程仓库。manifestSha256及原报告文件SHA来自人工导入，
+平台没有实际清单/文件字节，不能独立重算它们；页面明确serverArtifactBytesVerified=false、deployed=false。
+当前审批匹配仅查询时点有效，关闭后保留记录并显示不匹配；登记不是发布、部署许可或制品下载入口。
 
 ## 失败、保留和恢复边界
 

@@ -1,7 +1,8 @@
 # Docker Compose 部署包准备
 
 本工具将已经核验、封存的 community Admin JAR / UI 制品复制成只读 Compose 部署包。
-它不会启动 Docker、上传 COS、运行数据库迁移或写入“已部署”状态；可视化部署执行器仍需接通。
+此离线入口不会启动 Docker、上传 COS、运行数据库迁移或写入“已部署”状态；
+实际执行见 [独立交付执行器](../delivery/README.md)，插件中心提供真实任务控制面。
 
 ## 配置
 

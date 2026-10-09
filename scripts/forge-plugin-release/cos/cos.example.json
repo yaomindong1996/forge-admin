@@ -1,0 +1,9 @@
+{
+  "protocolVersion": 1,
+  "repositoryId": "admin-artifacts",
+  "vaultRoot": "/srv/forge-delivery/vault",
+  "bucket": "replace-bucket-1250000000",
+  "region": "ap-beijing",
+  "prefix": "build-artifacts/",
+  "sourcePrefix": "plugin-sources/"
+}

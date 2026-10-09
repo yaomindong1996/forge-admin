@@ -26,6 +26,15 @@ test('full generated project keeps market tools byte-for-byte and passes DB stub
     const source = await fs.readFile(path.join(repository, relative))
     assert.deepEqual(await fs.readFile(path.join(generated, relative)), source)
   }
+  for (const relative of ['scripts/forge-plugin-release/cos/config.mjs',
+    'scripts/forge-plugin-release/cos/store.mjs', 'scripts/forge-plugin-release/cos/transfer.mjs',
+    'scripts/forge-plugin-release/delivery/executor.mjs', 'scripts/forge-plugin-release/delivery/session.mjs',
+    'scripts/forge-plugin-release/delivery/runtime.mjs', 'scripts/forge-plugin-release/package.json',
+    'scripts/forge-plugin-release/package-lock.json']) {
+    assert.deepEqual(await fs.readFile(path.join(generated, relative)), await fs.readFile(path.join(repository, relative)))
+  }
+  await assert.rejects(fs.stat(path.join(generated, 'scripts/forge-plugin-release/node_modules')), { code: 'ENOENT' })
+  await assert.rejects(fs.stat(path.join(generated, 'scripts/forge-plugin-release/cos/fixtures')), { code: 'ENOENT' })
   await assert.rejects(fs.stat(path.join(generated, 'scripts/forge-plugin/market/fixtures')), { code: 'ENOENT' })
   const db = spawnSync(process.execPath, ['--test', 'init-db.test.mjs', 'clean-db.test.mjs'],
     { cwd: path.join(generated, 'delivery-check-server/scripts/db'), env, encoding: 'utf8', timeout: 60000 })

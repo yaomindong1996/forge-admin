@@ -189,6 +189,8 @@ TRUNCATE_REGEXES=(
   # 会话与运行态
   '^sys_auth_online_user$' '^worker_node$' '^qrtz_(fired_triggers|scheduler_state)$'
   '^sys_job_api_token$' '^sys_plugin_task$' '^sys_plugin_build$' '^sys_plugin_task_review$'
+  '^sys_plugin_artifact_registration$'
+  '^sys_plugin_delivery$' '^sys_plugin_delivery_target$'
   '^ai_crud_export_task$' '^ai_chat_' '^ai_agent_event$'
   # 消息、公告、文件
   '^sys_message$' '^sys_message_receiver$' '^sys_notice' '^sys_file_(metadata|group|storage_config)$'

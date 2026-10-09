@@ -45,3 +45,13 @@ export function reviewPluginTask(command) {
     note: command.note,
   }, { needTip: false })
 }
+
+export function registerPluginArtifact(command) {
+  return request.post(`/system/plugin-task/${encodeURIComponent(command.taskId)}/artifact`, {
+    requestId: command.requestId,
+    metadataJson: command.metadataJson,
+    localVerified: command.localVerified,
+    notDeployed: command.notDeployed,
+    note: command.note,
+  }, { needTip: false })
+}

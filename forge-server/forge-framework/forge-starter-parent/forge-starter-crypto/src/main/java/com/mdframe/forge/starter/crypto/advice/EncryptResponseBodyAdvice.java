@@ -75,7 +75,8 @@ public class EncryptResponseBodyAdvice implements ResponseBodyAdvice<Object> {
             return false;
         }
         HttpServletRequest request = attributes.getRequest();
-        if (isPlaintextControlEndpoint(request)) {
+        if (isPlaintextControlEndpoint(request) || Boolean.TRUE.equals(request.getAttribute(
+                com.mdframe.forge.starter.core.util.MachineProtocolAttributes.VERIFIED_JSON))) {
             return false;
         }
         // 内部服务调用（如 FlowClient）需要明文 JSON 响应，跳过响应加密

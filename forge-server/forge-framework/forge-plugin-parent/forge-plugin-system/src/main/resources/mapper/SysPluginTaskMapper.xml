@@ -27,6 +27,11 @@
         SELECT <include refid="Columns"/>, preview_json FROM sys_plugin_task
         WHERE tenant_id = #{tenantId} AND create_by = #{actorId} AND request_id = #{requestId} AND del_flag = 0
     </select>
+    <!-- 唯一条件锁，不加LIMIT，避免租户SQL重排导致MySQL语法异常。 -->
+    <select id="lockTask" resultType="com.mdframe.forge.plugin.system.entity.SysPluginTask">
+        SELECT id, tenant_id FROM sys_plugin_task
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0 FOR UPDATE
+    </select>
     <!-- ZIP 仅内部确认校验读取，没有公开下载接口。 -->
     <select id="selectArchive" resultType="com.mdframe.forge.plugin.system.entity.SysPluginTask">
         SELECT archive_data FROM sys_plugin_task WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0

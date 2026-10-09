@@ -64,6 +64,24 @@ class SysConfigServiceCryptoGuardTest {
         assertTrue(stub.inserted.get());
     }
 
+    @Test
+    void deliveryAndRuntimeProbeIdentityMustRemainDeploymentOnly() {
+        MapperStub stub = new MapperStub();
+        SysConfigServiceImpl service = new SysConfigServiceImpl(stub.mapper());
+        String[] keys = {
+                "forge.plugin-delivery.enabled",
+                "forge.pluginDelivery.worker.tokenSha256",
+                "forge.plugin-delivery.worker.tenant-id",
+                "forge.plugin-delivery.targets[0].id",
+                "forge.plugin-runtime-probe.token-sha256",
+                "forge.pluginRuntimeProbe.allowLoopbackHttp"
+        };
+        for (String key : keys) {
+            assertThrows(BusinessException.class, () -> service.insertConfig(dto(null, key)));
+        }
+        assertFalse(stub.inserted.get());
+    }
+
     private SysConfigDTO dto(Long id, String key) {
         SysConfigDTO dto = new SysConfigDTO();
         dto.setConfigId(id);

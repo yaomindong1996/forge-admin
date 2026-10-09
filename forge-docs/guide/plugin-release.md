@@ -1,4 +1,9 @@
-# 本地候选制品封存
+# 插件候选制品和部署
+
+本地封存、候选登记与远程交付分为独立操作。插件中心“发布与部署”使用真实控制面接口，
+独立执行器接腾讯 COS 和 rootless Docker Compose；完整配置与恢复步骤见仓库
+`scripts/forge-plugin-release/delivery/README.md`。
+仅支持已核验的 community Admin 制品，不改变付费源码构建和许可证边界。
 
 P3.3b1 提供独立 `forge:plugin-release`，接在[离线构建](./plugin-builder.md)之后，
 将通过复验的 Admin JAR/UI 保存为本地只读候选快照。它不会回写任务、选择部署主机、远程上传、
@@ -26,7 +31,7 @@ node scripts/forge-plugin-release/index.mjs verify /absolute/vault.json rel-<64�
 
 失败暂存和崩溃锁保留供运维核查，不自动清除或抢占。macOS提交时仅顶层目录短暂可写，
 子目录/文件始终只读；最终收敛并复验后才报告成功。未完成/损坏快照须人工调查并隔离。
-本阶段没有远程仓库适配、目标部署或自动恢复，须确认环境后继续建设。
+离线入口不包含远程动作；远程发布和部署须使用独立交付执行器、权限和备份确认。
 
 ## 当前审批只读核验
 
@@ -40,4 +45,15 @@ CLI先后两次复验实际文件，单次网络请求3秒超时、不重定向�
 输出本次核验时间，liveTaskApprovalVerified=true只在该时点有效；
 本地只读回执仍false，不生成长期授权或部署令牌。服务端没有独立读取制品字节，
 deployed/deploymentAuthorized/serverArtifactBytesVerified仍false。
-目标、备份、迁移、健康核验尚未完成，制品登记/远程发布须继续开发；完整配置见工具README。
+此只读核验不是部署授权；实际部署须创建独立交付任务并完成目标、备份、迁移与运行核验。
+
+## 候选制品人工登记
+
+P3.3b2b1新增`prepare-registration /absolute/registration.json rel-<清单SHA>`，
+离线复验实际文件并输出小型登记JSON；不读取worker凭证、不联网或登记。
+配置七个字段：protocolVersion、repositoryId、vaultRoot、taskId、revision、reviewId、serverResultSha256。
+
+平台管理员在插件任务详情导入/预览JSON、确认本地已复验且尚未部署并填写核查说明；
+需要独立登记及任务详情权限。服务端在事务锁内重新验证当前审批/完整报告，只追加审计记录。
+记录不是制品上传、远程发布或部署许可；关闭后保留历史并显示当前审批不匹配。
+本地标签、清单/原文件SHA为人工导入；平台没有读取制品字节，不能独立核验其真实性。

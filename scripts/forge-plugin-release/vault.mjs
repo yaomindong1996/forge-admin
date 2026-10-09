@@ -73,7 +73,7 @@ async function writeMetadata(root, manifest) {
   }
 }
 
-async function acquireLock(root) {
+export async function acquireLock(root) {
   const lock = await safeTarget(root, '.publish-lock')
   try { await fs.mkdir(lock, { mode: 0o700 }) }
   catch (error) {

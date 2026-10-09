@@ -1,6 +1,6 @@
 // 原生 JSON.parse 会吞掉重复键；先扫描结构和键，再交给它校验完整 JSON 语法。
 export function parseStrictJson(text, maxBytes = 64 * 1024) {
-  if (Buffer.byteLength(text) > maxBytes) {
+  if (new TextEncoder().encode(text).byteLength > maxBytes) {
     throw new Error('JSON 文件超过大小限制')
   }
   const value = JSON.parse(text)

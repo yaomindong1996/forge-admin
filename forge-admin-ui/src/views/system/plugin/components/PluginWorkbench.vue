@@ -63,6 +63,7 @@
       :action-error="actions.actionError.value"
       @close="actions.close" @retry="actions.refreshDetail" @confirm="actions.confirm" @cancel="actions.cancel"
       @review="actions.review"
+      @register-artifact="actions.registerArtifact"
     />
   </section>
 </template>

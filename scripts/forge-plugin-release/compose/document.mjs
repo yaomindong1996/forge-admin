@@ -29,9 +29,9 @@ function port(published, target) {
 function service(image, manifest) {
   return { image, pull_policy: 'never', read_only: true, restart: 'no',
     // 只用于 rootless Docker：容器 0 映射为宿主普通用户，才能读取私有只读挂载。
-    // 本工具不运行 Docker；真正执行器必须先验证 rootless，不得在 rootful 环境直接复用。
+    // 离线准备不运行Docker；实际交付执行器须先验证rootless，禁止rootful直接复用。
     user: '0:0', cap_drop: ['ALL'], security_opt: ['no-new-privileges:true'],
-    pids_limit: 256, mem_limit: '2048m', cpus: 2,
+    pids_limit: 256, mem_limit: '2048m', memswap_limit: '2048m', cpus: 2,
     tmpfs: ['/tmp:rw,noexec,nosuid,size=256m'],
     labels: { 'forge.release-id': `rel-${manifest.digest}`, 'forge.plugin-id': manifest.plugin.id,
       'forge.plugin-version': manifest.plugin.version } }

@@ -29,7 +29,7 @@ export const usePluginReviewStore = defineStore('plugin-review', () => {
   }
   function reconcile(task) {
     // 新版本说明任务已经流转，不能用旧页面再提交新操作；重新查看历史判断结果。
-    if (pending.value?.taskId === task?.id && task.revision > pending.value.revision)
+    if (pending.value && task && pending.value.taskId === task.id && task.revision > pending.value.revision)
       clear()
   }
   return { pending, prepare, clear, reconcile }

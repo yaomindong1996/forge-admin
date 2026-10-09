@@ -6,16 +6,19 @@ import { checkRelease, publishRelease } from './vault.mjs'
 import { verifyRelease } from './verify.mjs'
 import { readApprovalConfig } from './approval-config.mjs'
 import { verifyApproval } from './approval.mjs'
+import { prepareRegistration, readRegistrationConfig } from './registration.mjs'
 
 const help = `forge:plugin-release（本地候选制品，不部署）
   check <absolute-release.json>
   publish <absolute-release.json> --reviewed
   verify <absolute-vault.json> <rel-sha256>
   verify-approval <absolute-approval.json> <rel-sha256>
+  prepare-registration <absolute-registration.json> <rel-sha256>
 release.json: protocolVersion=1, repositoryId, vaultRoot, jobRoot, resultSha256
 vault.json: protocolVersion=1, repositoryId, vaultRoot
 目录须预创建、canonical、当前非 root 用户私有；--reviewed 不代表服务端审批。
-verify-approval 只核对指定任务的当前审批，不登记/部署；凭证仅从 worker 环境读取。`
+verify-approval 只核对指定任务的当前审批，不登记/部署；凭证仅从 worker 环境读取。
+prepare-registration 只复验并输出人工导入元数据，不联网/登记/部署；不含本地目录和凭证。`
 
 export async function runReleaseCli(args, output = console) {
   if (args.length === 1 && ['help', '--help', '-h'].includes(args[0])) {
@@ -47,9 +50,11 @@ async function dispatch(args, signal) {
   const valid = typeof file === 'string' && file.startsWith('/') && (
     (command === 'check' && args.length === 2)
     || (command === 'publish' && args.length === 3 && extra === '--reviewed')
-    || (['verify', 'verify-approval'].includes(command) && args.length === 3))
+    || (['verify', 'verify-approval', 'prepare-registration'].includes(command) && args.length === 3))
   if (!valid) throw new BuildError('RELEASE_COMMAND_INVALID')
   if (command === 'verify-approval') return verifyApproval(await readApprovalConfig(file), extra, { signal })
+  if (command === 'prepare-registration')
+    return prepareRegistration(await readRegistrationConfig(file), extra, signal)
   const config = await readReleaseConfig(file, command === 'verify' ? 'verify' : 'publish')
   if (command === 'check') return checkRelease(config, signal)
   if (command === 'verify') return verifyRelease(config, extra, signal)

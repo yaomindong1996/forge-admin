@@ -27,32 +27,47 @@ final class PluginReviewTestDatabase {
     final SysPluginTaskMapper tasks;
     final SysPluginBuildMapper builds;
     final SysPluginTaskReviewMapper reviews;
+    final SysPluginArtifactMapper artifacts;
+    final SysPluginDeliveryMapper deliveries;
     final PluginTaskReviewService service;
 
     PluginReviewTestDatabase() throws Exception {
         source.setURL("jdbc:h2:mem:" + UUID.randomUUID() + ";MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE");
         for (String file : new String[]{"V1.0.211__add_plugin_install_workbench.sql",
-                "V1.0.212__add_plugin_build_leases.sql", "V1.0.213__add_plugin_task_review.sql"}) {
+                "V1.0.212__add_plugin_build_leases.sql", "V1.0.213__add_plugin_task_review.sql",
+                "V1.0.214__add_plugin_artifact_registration.sql"}) {
             String sql = Files.readString(Path.of("../../../db/migration", file));
             int start = sql.indexOf("CREATE TABLE");
             execute(sql.substring(start, sql.indexOf(';', start)));
         }
         var configuration = new MybatisConfiguration();
+        String deliverySql = Files.readString(Path.of("../../../db/migration",
+                "V1.0.216__add_plugin_delivery_control.sql"));
+        int first = deliverySql.indexOf("CREATE TABLE");
+        int second = deliverySql.indexOf("CREATE TABLE", first + 1);
+        execute(deliverySql.substring(first, deliverySql.indexOf(';', first)));
+        execute(deliverySql.substring(second, deliverySql.indexOf(';', second)));
         configuration.setMapUnderscoreToCamelCase(true);
         configuration.addMapper(SysPluginTaskMapper.class);
         configuration.addMapper(SysPluginBuildMapper.class);
         configuration.addMapper(SysPluginTaskReviewMapper.class);
+        configuration.addMapper(SysPluginArtifactMapper.class);
+        configuration.addMapper(SysPluginDeliveryMapper.class);
         var factory = new MybatisSqlSessionFactoryBean();
         factory.setDataSource(source);
         factory.setConfiguration(configuration);
         factory.setMapperLocations(new ClassPathResource("mapper/SysPluginTaskMapper.xml"),
                 new ClassPathResource("mapper/SysPluginBuildMapper.xml"),
-                new ClassPathResource("mapper/SysPluginTaskReviewMapper.xml"));
+                new ClassPathResource("mapper/SysPluginTaskReviewMapper.xml"),
+                new ClassPathResource("mapper/SysPluginArtifactMapper.xml"),
+                new ClassPathResource("mapper/SysPluginDeliveryMapper.xml"));
         factory.afterPropertiesSet();
         var session = new SqlSessionTemplate(factory.getObject());
         tasks = session.getMapper(SysPluginTaskMapper.class);
         builds = session.getMapper(SysPluginBuildMapper.class);
         reviews = session.getMapper(SysPluginTaskReviewMapper.class);
+        artifacts = session.getMapper(SysPluginArtifactMapper.class);
+        deliveries = session.getMapper(SysPluginDeliveryMapper.class);
         var proxy = new ProxyFactory(new PluginTaskReviewService(tasks, builds, reviews, json));
         proxy.setProxyTargetClass(true);
         proxy.addAdvice(new TransactionInterceptor(new DataSourceTransactionManager(source),

@@ -1,12 +1,15 @@
 import { onScopeDispose, ref } from 'vue'
-import { cancelPluginTask, confirmPluginTask, getPluginTask, reviewPluginTask } from '@/api/system/pluginTask'
-import { usePluginReviewStore } from '@/stores/plugin/reviewStore'
+import {
+  cancelPluginTask,
+  confirmPluginTask,
+  getPluginTask,
+} from '@/api/system/pluginTask'
 import { taskResponse } from './pluginTaskUtils'
 import { useLatestPluginRequest } from './useLatestPluginRequest'
+import { usePluginApprovalActions } from './usePluginApprovalActions'
 import { usePluginUpload } from './usePluginUpload'
 
 export function usePluginTaskActions(refresh) {
-  const reviewStore = usePluginReviewStore()
   const detailRequest = useLatestPluginRequest(async id => taskResponse(await getPluginTask(id)), true)
   const visible = ref(false)
   const busy = ref(false)
@@ -16,8 +19,8 @@ export function usePluginTaskActions(refresh) {
   let disposed = false
   onScopeDispose(() => {
     disposed = true
-    reviewStore.clear()
   })
+  const approval = usePluginApprovalActions(run, id => id === selectedId, () => disposed)
 
   async function open(id = selectedId) {
     if (busy.value)
@@ -27,7 +30,7 @@ export function usePluginTaskActions(refresh) {
     actionError.value = ''
     await detailRequest.run(id)
     if (!disposed)
-      reviewStore.reconcile(detailRequest.data.value)
+      approval.reconcile(detailRequest.data.value)
   }
   function close() {
     if (busy.value)
@@ -53,6 +56,7 @@ export function usePluginTaskActions(refresh) {
       detailRequest.error.value = ''
       detailRequest.data.value = task
       selectedId = task.id
+      approval.reconcile(task)
       visible.value = true
       uploader.clear()
       await refresh()
@@ -66,35 +70,21 @@ export function usePluginTaskActions(refresh) {
         busy.value = false
     }
   }
-  const task = detailRequest.data
-  const confirm = () => run(() => confirmPluginTask(task.value))
-  const cancel = () => run(() => cancelPluginTask(task.value))
-  const review = () => {
-    if (!reviewStore.pending || reviewStore.pending.taskId !== selectedId)
-      return
-    const command = reviewStore.pending
-    return run(() => reviewPluginTask(command).then((response) => {
-      taskResponse(response)
-      if (!disposed && reviewStore.pending?.requestId === command.requestId)
-        reviewStore.clear()
-      return response
-    }))
-  }
-  const { pendingUpload, upload, retryUpload } = uploader
   return {
-    task,
+    task: detailRequest.data,
     visible,
     busy,
     actionError,
-    pendingUpload,
+    pendingUpload: uploader.pendingUpload,
     open,
     close,
-    upload,
-    retryUpload,
+    upload: uploader.upload,
+    retryUpload: uploader.retryUpload,
     refreshDetail,
-    confirm,
-    cancel,
-    review,
+    confirm: () => run(() => confirmPluginTask(detailRequest.data.value)),
+    cancel: () => run(() => cancelPluginTask(detailRequest.data.value)),
+    review: approval.review,
+    registerArtifact: approval.registerArtifact,
     detailLoading: detailRequest.loading,
     detailError: detailRequest.error,
   }

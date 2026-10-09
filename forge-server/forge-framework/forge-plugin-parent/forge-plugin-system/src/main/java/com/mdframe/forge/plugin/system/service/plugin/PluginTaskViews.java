@@ -26,7 +26,7 @@ public class PluginTaskViews {
         return new SysPluginTaskVO(task.getId(), task.getPluginId(), task.getPluginName(), task.getPluginVersion(),
                 task.getOperationType(), task.getTaskStatus(), task.getRevision(), task.getArchiveSha256(),
                 task.getFileName(), task.getArchiveBytes(), task.getCreateTime(), task.getConfirmedTime(),
-                task.getCancelledTime(), detail ? decode(task.getPreviewJson()) : null, null, List.of());
+                task.getCancelledTime(), detail ? decode(task.getPreviewJson()) : null, null, List.of(), List.of());
     }
 
     private SysPluginPreviewVO decode(String value) {

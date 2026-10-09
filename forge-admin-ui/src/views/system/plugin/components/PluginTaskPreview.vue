@@ -48,6 +48,7 @@
         </NDescriptions>
         <PluginBuildExecution :execution="task.execution" :busy="busy" @refresh="emit('retry')" />
         <PluginTaskReview :task="task" :busy="busy" @review="emit('review')" />
+        <PluginArtifactRegistration :task="task" :busy="busy" @register="emit('registerArtifact')" />
         <!-- 已知阻断与尚未核验范围 -->
         <NAlert v-for="blocker in task.preview.blockers" :key="blocker" type="error">
           {{ blocker }}
@@ -109,6 +110,7 @@ import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
 import { pluginTime } from '../pluginTaskUtils'
 import { usePluginPermission } from '../usePluginPermission'
+import PluginArtifactRegistration from './PluginArtifactRegistration.vue'
 import PluginBuildExecution from './PluginBuildExecution.vue'
 import PluginTaskReview from './PluginTaskReview.vue'
 
@@ -120,7 +122,7 @@ const props = defineProps({
   error: { type: String, default: '' },
   actionError: { type: String, default: '' },
 })
-const emit = defineEmits(['close', 'retry', 'confirm', 'cancel', 'review'])
+const emit = defineEmits(['close', 'retry', 'confirm', 'cancel', 'review', 'registerArtifact'])
 const { dict } = useDict('sys_plugin_task_status', 'sys_plugin_task_operation')
 const permission = usePluginPermission()
 const canConfirm = computed(() => permission('system:plugin:confirm'))

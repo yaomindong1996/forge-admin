@@ -1,9 +1,17 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope } from 'vue'
-import { confirmPluginTask, getPluginTask, reviewPluginTask, uploadPluginPackage } from '@/api/system/pluginTask'
+import {
+  confirmPluginTask,
+  getPluginTask,
+  registerPluginArtifact,
+  reviewPluginTask,
+  uploadPluginPackage,
+} from '@/api/system/pluginTask'
+import { usePluginArtifactStore } from '@/stores/plugin/artifactStore'
 import { usePluginReviewStore } from '@/stores/plugin/reviewStore'
 import { usePluginTaskActions } from '../usePluginTaskActions'
+import { artifactMetadata, artifactTask } from './artifactFixtures'
 
 vi.mock('@/api/system/pluginTask', () => ({
   getPluginTask: vi.fn(),
@@ -11,6 +19,7 @@ vi.mock('@/api/system/pluginTask', () => ({
   confirmPluginTask: vi.fn(),
   cancelPluginTask: vi.fn(),
   reviewPluginTask: vi.fn(),
+  registerPluginArtifact: vi.fn(),
 }))
 const response = status => ({ code: 200, data: { id: 'task', status, revision: 0, sha256: 'hash' } })
 const scopes = []
@@ -125,5 +134,31 @@ describe('workbench actions', () => {
     finish(response('closed'))
     await pending
     expect(store.pending.taskId).toBe('next')
+  })
+  it('uncertain artifact writes keep payload through failed refresh and reconcile only returned audit', async () => {
+    const { state } = setup()
+    const task = artifactTask()
+    getPluginTask.mockResolvedValue({ code: 200, data: task })
+    await state.open(task.id)
+    const store = usePluginArtifactStore()
+    store.draft.text = JSON.stringify(artifactMetadata(task))
+    store.draft.note = '已经核查本地所有制品且尚未部署'
+    store.draft.localVerified = true
+    store.draft.notDeployed = true
+    store.prepare(task)
+    const pending = store.pending
+    registerPluginArtifact.mockRejectedValueOnce(new Error('网络结果不确定'))
+    await state.registerArtifact()
+    expect(store.pending).toBe(pending)
+    getPluginTask.mockRejectedValueOnce(new Error('刷新失败'))
+    await state.refreshDetail()
+    expect(store.pending).toBe(pending)
+    registerPluginArtifact.mockResolvedValueOnce({
+      code: 200,
+      data: { ...task, artifacts: [{ requestId: pending.requestId }] },
+    })
+    await state.registerArtifact()
+    expect(registerPluginArtifact.mock.calls[0][0]).toBe(registerPluginArtifact.mock.calls[1][0])
+    expect(store.pending).toBeNull()
   })
 })

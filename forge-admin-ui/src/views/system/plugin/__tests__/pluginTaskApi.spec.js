@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { cancelPluginTask, confirmPluginTask, reviewPluginTask, uploadPluginPackage } from '@/api/system/pluginTask'
+import {
+  cancelPluginTask,
+  confirmPluginTask,
+  registerPluginArtifact,
+  reviewPluginTask,
+  uploadPluginPackage,
+} from '@/api/system/pluginTask'
 import { request } from '@/utils/request'
 
 vi.mock('@/utils/request', () => ({ request: { get: vi.fn(), post: vi.fn() } }))
@@ -48,5 +54,22 @@ describe('plugin workbench protocol', () => {
     expect(body).not.toHaveProperty('command')
     expect(body.requestId).toBe('id')
     expect(config).toEqual({ needTip: false })
+  })
+  it('artifact registration uses fixed encrypted fields, no credentials or caller identity', () => {
+    registerPluginArtifact({
+      taskId: 'a/b',
+      requestId: 'id',
+      metadataJson: '{}',
+      localVerified: true,
+      notDeployed: true,
+      note: '核查说明',
+      tenantId: 99,
+      token: 'not-sent',
+    })
+    expect(request.post.mock.calls[0]).toEqual([
+      '/system/plugin-task/a%2Fb/artifact',
+      { requestId: 'id', metadataJson: '{}', localVerified: true, notDeployed: true, note: '核查说明' },
+      { needTip: false },
+    ])
   })
 })
