@@ -1,71 +1,60 @@
 <template>
-  <div class="condition-rule-page">
-    <!-- 搜索和操作区 -->
-    <n-card size="small" class="mb-4">
-      <n-form :model="searchForm" inline label-placement="left">
-        <n-form-item label="规则名称">
-          <n-input v-model:value="searchForm.ruleName" placeholder="请输入规则名称" clearable style="width: 200px" />
-        </n-form-item>
-        <n-form-item label="规则类型">
-          <n-select
-            v-model:value="searchForm.ruleType"
-            :options="ruleTypeOptions"
-            placeholder="请选择类型"
-            clearable
-            style="width: 150px"
-          />
-        </n-form-item>
-        <n-form-item label="状态">
-          <n-select
-            v-model:value="searchForm.status"
-            :options="statusOptions"
-            placeholder="请选择状态"
-            clearable
-            style="width: 120px"
-          />
-        </n-form-item>
-        <n-form-item>
-          <NSpace>
-            <NButton type="primary" @click="handleSearch">
-              <template #icon>
-                <i class="i-mdi:magnify" />
-              </template>
-              查询
-            </NButton>
-            <NButton @click="handleReset">
-              <template #icon>
-                <i class="i-mdi:refresh" />
-              </template>
-              重置
-            </NButton>
-          </NSpace>
-        </n-form-item>
-      </n-form>
-    </n-card>
-
-    <!-- 表格 -->
-    <n-card size="small">
-      <template #header>
-        <span>条件规则列表</span>
-      </template>
-      <template #header-extra>
+  <div class="flow-workbench-page">
+    <!-- 工具栏 -->
+    <div class="panel-toolbar">
+      <div class="toolbar-filters">
+        <n-input
+          v-model:value="searchForm.ruleName"
+          placeholder="规则名称"
+          clearable
+          style="width: 180px"
+          @keydown.enter="handleSearch"
+        />
+        <n-select
+          v-model:value="searchForm.ruleType"
+          :options="ruleTypeOptions"
+          placeholder="规则类型"
+          clearable
+          style="width: 140px"
+        />
+        <n-select
+          v-model:value="searchForm.status"
+          :options="statusOptions"
+          placeholder="状态"
+          clearable
+          style="width: 110px"
+        />
+        <NButton secondary @click="handleSearch">
+          查询
+        </NButton>
+        <NButton quaternary @click="handleReset">
+          重置
+        </NButton>
+      </div>
+      <div class="toolbar-actions">
         <NButton type="primary" @click="handleAdd">
           <template #icon>
             <i class="i-mdi:plus" />
           </template>
           新增规则
         </NButton>
-      </template>
+      </div>
+    </div>
 
+    <!-- 表格 -->
+    <div class="table-region">
       <n-data-table
+        size="medium"
+        class="workbench-table"
         :columns="columns"
         :data="tableData"
         :loading="loading"
         :pagination="pagination"
         :row-key="row => row.id"
+        flex-height
         @update:page="handlePageChange"
       />
-    </n-card>
+    </div>
 
     <!-- 新增/编辑弹窗 -->
     <n-modal v-model:show="modalVisible" preset="card" :title="modalTitle" :style="{ width: '800px' }">
@@ -277,18 +266,31 @@ const columns = [
   {
     title: '操作',
     key: 'actions',
-    width: 200,
-    render(row) {
-      return h(NSpace, null, {
-        default: () => [
-          h(NButton, { text: true, type: 'primary', onClick: () => handleEdit(row) }, { default: () => '编辑' }),
-          h(NButton, { text: true, type: 'info', onClick: () => handleTestRule(row) }, { default: () => '测试' }),
-          h(NButton, { text: true, type: 'error', onClick: () => handleDelete(row) }, { default: () => '删除' }),
-        ],
-      })
-    },
+    width: 148,
+    fixed: 'right',
+    render: row => renderRuleActions(row),
   },
 ]
+
+function renderRuleActions(row) {
+  return h('div', {
+    class: 'flow-row-actions',
+    onClick: event => event.stopPropagation(),
+  }, [
+    h('a', {
+      class: 'text-primary cursor-pointer hover:text-primary-hover',
+      onClick: () => handleEdit(row),
+    }, '编辑'),
+    h('a', {
+      class: 'text-primary cursor-pointer hover:text-primary-hover',
+      onClick: () => handleTestRule(row),
+    }, '测试'),
+    h('a', {
+      class: 'text-error cursor-pointer hover:text-error-hover',
+      onClick: () => handleDelete(row),
+    }, '删除'),
+  ])
+}
 
 // 弹窗
 const modalVisible = ref(false)
@@ -521,15 +523,9 @@ onMounted(() => {
 })
 </script>
 
+<style src="./flow-workbench.css"></style>
+
 <style scoped>
-.condition-rule-page {
-  padding: 16px;
-}
-
-.mb-4 {
-  margin-bottom: 16px;
-}
-
 .condition-items {
   width: 100%;
 }

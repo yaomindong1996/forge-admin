@@ -49,6 +49,9 @@ describe('collaboration connection editing contract', () => {
     expect(source).toContain('编辑时留空表示保留原值')
     expect(source).toContain('编辑基础信息')
     expect(source).not.toContain('物理应用')
+    // 配置内容区铺满工作台，避免宽屏右侧大块空白
+    expect(source).not.toContain('max-width: 1280px')
+    expect(source).toContain('.setup-panel {\n  width: 100%')
   })
 })
 

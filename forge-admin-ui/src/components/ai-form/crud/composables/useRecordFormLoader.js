@@ -9,10 +9,11 @@ export function useRecordFormLoader({
   resolveRowKeyValue,
   detailRuntime,
   detailRuntimeLoading,
-  showLoading,
-  closeLoading,
+  // 兼容旧签名：详情读取不再打全屏遮罩，由调用方先打开表单容器再拉取
+  showLoading: _showLoading,
+  closeLoading: _closeLoading,
   warn = console.warn,
-}) {
+} = {}) {
   let runtimeSequence = 0
 
   async function loadDetailRuntime(row) {
@@ -41,21 +42,13 @@ export function useRecordFormLoader({
 
   async function loadRecordForm(row) {
     const needsDetail = loadDetailOnEdit()
-    if (needsDetail)
-      showLoading()
-    try {
-      const [loaded] = await Promise.all([
-        needsDetail
-          ? loadDetail(row)
-          : callHook('beforeRenderDetail', row, data => data).then(applyDetailData),
-        loadDetailRuntime(row),
-      ])
-      return loaded !== false
-    }
-    finally {
-      if (needsDetail)
-        closeLoading()
-    }
+    const [loaded] = await Promise.all([
+      needsDetail
+        ? loadDetail(row)
+        : callHook('beforeRenderDetail', row, data => data).then(applyDetailData),
+      loadDetailRuntime(row),
+    ])
+    return loaded !== false
   }
 
   return { loadRecordForm, loadDetailRuntime }

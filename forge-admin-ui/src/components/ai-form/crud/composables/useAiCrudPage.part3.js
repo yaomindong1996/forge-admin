@@ -908,8 +908,20 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
     return prototype === Object.prototype || prototype === null
   }
 
+  /** 详情拉取失败时收起已先打开的表单容器，避免留下空白弹窗/页签 */
+  function discardOpenedFormContainer() {
+    if (usesInlineFormWorkspace.value && !props.formOnly) {
+      const key = activeInlineFormTabKey.value
+      if (key)
+        closeInlineFormTab(key, true)
+      return
+    }
+    modalVisible.value = false
+  }
+
   /**
    * 编辑
+   * 先用列表行数据打开表单，再拉详情回填，避免等接口时全屏 loading 闪一下。
    */
   async function handleEdit(row) {
     if (row?._dataScopeAccess === 'RELATED') {
@@ -934,19 +946,25 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
     const processedRow = await callHook('beforeRenderForm', row, data => data)
     const renderRow = mergeHookRowWithOriginal(row, processedRow)
 
-    if (!await loadRecordForm(renderRow))
+    // 先铺开表单，再异步补全详情
+    applyDetailData(renderRow)
+    if (!openFormContainer('edit', modalTitle.value, row))
       return
+
+    if (!await loadRecordForm(renderRow)) {
+      discardOpenedFormContainer()
+      return
+    }
 
     offlineBaseRecordVersion.value = readOfflineRecordVersion(renderRow)
     await restoreOfflineDraft(resolveRowKeyValue(row))
 
-    if (!openFormContainer('edit', modalTitle.value, row))
-      return
     // 清除上一次潜留的表单校验状态
     await nextTick()
     formRef.value?.restoreValidation()
     refreshRuntimeFormulas(0)
     markActiveInlineFormClean()
+    persistActiveInlineFormTab()
 
     emit('edit', row)
     emit('modal-open', { status: 'edit', row })
@@ -954,6 +972,7 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
 
   /**
    * 查看详情
+   * 先打开容器再拉详情，避免全屏遮罩闪烁。
    */
   async function handleDetail(row) {
     if (activateReusableInlineFormTab('detail', row)) {
@@ -975,14 +994,19 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
     const processedRow = await callHook('beforeRenderForm', row, data => data)
     const renderRow = mergeHookRowWithOriginal(row, processedRow)
 
-    if (!await loadRecordForm(renderRow))
-      return
-
+    applyDetailData(renderRow)
     if (!openFormContainer('detail', modalTitle.value, row))
       return
+
+    if (!await loadRecordForm(renderRow)) {
+      discardOpenedFormContainer()
+      return
+    }
+
     await nextTick()
     formRef.value?.restoreValidation()
     markActiveInlineFormClean()
+    persistActiveInlineFormTab()
 
     emit('detail', row)
     emit('modal-open', { status: 'detail', row })

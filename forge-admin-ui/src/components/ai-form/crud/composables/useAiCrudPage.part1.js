@@ -333,8 +333,6 @@ export function applyAiCrudPagePart1(props, emit, deps = {}) {
     resolveRowKeyValue,
     detailRuntime,
     detailRuntimeLoading,
-    showLoading: () => window.$loading.show('加载中...'),
-    closeLoading: () => window.$loading.close(),
   })
 
   const detailActiveTab = ref('business')

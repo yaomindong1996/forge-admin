@@ -20,8 +20,6 @@ function fixture(overrides = {}) {
     resolveRowKeyValue: row => row?.id,
     detailRuntime: { value: null },
     detailRuntimeLoading: { value: false },
-    showLoading: vi.fn(),
-    closeLoading: vi.fn(),
     warn: vi.fn(),
     ...overrides,
   }
@@ -29,21 +27,18 @@ function fixture(overrides = {}) {
 }
 
 describe('record form loading', () => {
-  it('starts independent requests together and waits for both', async () => {
+  it('starts independent requests together and waits for both without fullscreen loading', async () => {
     const detail = deferred()
     const runtime = deferred()
     const state = fixture({ loadDetail: vi.fn(() => detail.promise), fetchRuntime: vi.fn(() => runtime.promise) })
     const loading = state.loadRecordForm({ id: '9001' })
     expect(state.loadDetail).toHaveBeenCalledOnce()
     expect(state.fetchRuntime).toHaveBeenCalledWith('order', '9001')
-    expect(state.showLoading).toHaveBeenCalledOnce()
     detail.resolve(true)
     await Promise.resolve()
-    expect(state.closeLoading).not.toHaveBeenCalled()
     runtime.resolve({ data: { flowStatus: 'CANCELED' } })
     expect(await loading).toBe(true)
     expect(state.detailRuntime.value.flowStatus).toBe('CANCELED')
-    expect(state.closeLoading).toHaveBeenCalledOnce()
   })
 
   it('ignores stale runtime responses after switching records', async () => {
@@ -62,10 +57,9 @@ describe('record form loading', () => {
     expect(state.detailRuntimeLoading.value).toBe(false)
   })
 
-  it('does not open a stale form when detail fails and always releases loading', async () => {
+  it('returns false when detail fails so caller can discard the opened form', async () => {
     const state = fixture({ loadDetail: vi.fn().mockResolvedValue(false) })
     expect(await state.loadRecordForm({ id: '1' })).toBe(false)
-    expect(state.closeLoading).toHaveBeenCalledOnce()
   })
 
   it('preserves the selected row snapshot on runtime failure, not the previous record', async () => {
@@ -83,6 +77,5 @@ describe('record form loading', () => {
     expect(state.applyDetailData).toHaveBeenCalledWith({ title: 'unsaved' })
     expect(state.loadDetail).not.toHaveBeenCalled()
     expect(state.fetchRuntime).not.toHaveBeenCalled()
-    expect(state.showLoading).not.toHaveBeenCalled()
   })
 })

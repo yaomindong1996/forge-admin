@@ -1,30 +1,13 @@
 <template>
-  <div class="h-full flex flex-col p-16">
-    <div class="flex flex-col flex-1 overflow-hidden rounded bg-white p-16">
-      <div class="mb-16 flex items-center justify-between">
-        <h2 class="text-18 font-bold">
-          表单管理
-        </h2>
-        <NSpace>
-          <NButton type="primary" @click="handleAdd">
-            <template #icon>
-              <i class="i-material-symbols:add" />
-            </template>
-            新增表单
-          </NButton>
-        </NSpace>
-      </div>
-      <n-alert type="info" :bordered="false" class="mb-16">
-        该列表仅用于未绑定业务应用的独立流程，业务应用请到应用中心配置表单与流程。
-      </n-alert>
-
-      <!-- 搜索栏 -->
-      <NSpace class="mb-16" :vertical="false">
+  <div class="flow-workbench-page">
+    <!-- 工具栏 -->
+    <div class="panel-toolbar">
+      <div class="toolbar-filters">
         <n-input
           v-model:value="queryParams.formName"
-          placeholder="搜索表单名称"
+          placeholder="表单名称"
           clearable
-          style="width: 200px"
+          style="width: 180px"
           @keyup.enter="handleSearch"
         >
           <template #prefix>
@@ -35,31 +18,41 @@
           v-model:value="queryParams.status"
           placeholder="状态"
           clearable
-          style="width: 120px"
+          style="width: 110px"
           :options="statusOptions"
         />
-        <NButton type="primary" @click="handleSearch">
-          <template #icon>
-            <i class="i-material-symbols:search" />
-          </template>
-          搜索
+        <NButton secondary @click="handleSearch">
+          查询
         </NButton>
-        <NButton @click="handleReset">
-          <template #icon>
-            <i class="i-material-symbols:refresh" />
-          </template>
+        <NButton quaternary @click="handleReset">
           重置
         </NButton>
-      </NSpace>
-
-      <!-- 数据表格 -->
+      </div>
+      <div class="toolbar-actions">
+        <NButton type="primary" @click="handleAdd">
+          <template #icon>
+            <i class="i-material-symbols:add" />
+          </template>
+          新增表单
+        </NButton>
+      </div>
+    </div>
+    <div class="panel-hint">
+      <n-alert type="info" :bordered="false">
+        该列表仅用于未绑定业务应用的独立流程，业务应用请到应用中心配置表单与流程。
+      </n-alert>
+    </div>
+    <!-- 表格 -->
+    <div class="table-region">
       <n-data-table
+        size="medium"
+        class="workbench-table"
         :columns="columns"
         :data="dataSource"
         :loading="loading"
         :pagination="pagination"
         :row-key="row => row.id"
-        class="flex-1"
+        flex-height
       />
     </div>
 
@@ -160,7 +153,7 @@
 </template>
 
 <script setup>
-import { NButton, NPopconfirm, NSpace, NSwitch, NTag } from 'naive-ui'
+import { NButton, NDropdown, NSpace, NSwitch, NTag } from 'naive-ui'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import api from '@/api/flow'
 import DictTag from '@/components/DictTag.vue'
@@ -312,62 +305,81 @@ const columns = [
   {
     title: '操作',
     key: 'actions',
-    width: 340,
+    width: 168,
     fixed: 'right',
-    render: (row) => {
-      return h(NSpace, { size: 'small' }, {
-        default: () => [
-          h(NButton, {
-            size: 'small',
-            type: 'primary',
-            text: true,
-            onClick: () => handleDesign(row),
-          }, { default: () => '设计' }),
-          h(NButton, {
-            size: 'small',
-            type: 'info',
-            text: true,
-            onClick: () => handlePreview(row),
-          }, { default: () => '预览' }),
-          h(NButton, {
-            size: 'small',
-            type: 'success',
-            text: true,
-            disabled: !row.formSchema || isMutationLocked('publish', row),
-            loading: isMutationLocked('publish', row),
-            onClick: () => handlePublish(row),
-          }, { default: () => '发布' }),
-          h(NButton, {
-            size: 'small',
-            type: 'warning',
-            text: true,
-            onClick: () => handleEdit(row),
-          }, { default: () => '编辑' }),
-          h(NButton, {
-            size: 'small',
-            type: 'info',
-            text: true,
-            disabled: isMutationLocked('copy', row),
-            loading: isMutationLocked('copy', row),
-            onClick: () => handleCopy(row),
-          }, { default: () => '复制' }),
-          h(NPopconfirm, {
-            onPositiveClick: () => handleDelete(row),
-          }, {
-            trigger: () => h(NButton, {
-              size: 'small',
-              type: 'error',
-              text: true,
-              disabled: isMutationLocked('delete', row),
-              loading: isMutationLocked('delete', row),
-            }, { default: () => '删除' }),
-            default: () => '确定要删除此表单吗？',
-          }),
-        ],
-      })
-    },
+    render: row => renderFormActions(row),
   },
 ]
+
+function renderFormActions(row) {
+  const moreOptions = [
+    { label: '预览', key: 'preview' },
+    {
+      label: '发布',
+      key: 'publish',
+      disabled: !row.formSchema || isMutationLocked('publish', row),
+    },
+    { label: '编辑', key: 'edit' },
+    {
+      label: '复制',
+      key: 'copy',
+      disabled: isMutationLocked('copy', row),
+    },
+    {
+      label: '删除',
+      key: 'delete',
+      disabled: isMutationLocked('delete', row),
+      props: { style: { color: 'var(--error-color, #ef4444)' } },
+    },
+  ]
+
+  return h('div', {
+    class: 'flow-row-actions',
+    onClick: event => event.stopPropagation(),
+  }, [
+    h('a', {
+      class: 'text-primary cursor-pointer hover:text-primary-hover',
+      onClick: () => handleDesign(row),
+    }, '设计'),
+    h(NDropdown, {
+      trigger: 'click',
+      options: moreOptions,
+      onSelect: (key) => {
+        if (key === 'preview')
+          handlePreview(row)
+        else if (key === 'publish')
+          handlePublish(row)
+        else if (key === 'edit')
+          handleEdit(row)
+        else if (key === 'copy')
+          handleCopy(row)
+        else if (key === 'delete')
+          confirmDeleteForm(row)
+      },
+    }, {
+      default: () => h(NButton, {
+        'text': true,
+        'size': 'tiny',
+        'quaternary': true,
+        'class': 'flow-row-more-btn',
+        'aria-label': `${row.formName || '此表单'}的更多操作`,
+        'title': '更多操作',
+      }, {
+        icon: () => h('i', { 'class': 'i-lucide:ellipsis', 'aria-hidden': true }),
+      }),
+    }),
+  ])
+}
+
+function confirmDeleteForm(row) {
+  window.$dialog?.warning({
+    title: '确认删除',
+    content: `确定要删除表单「${row.formName || row.formKey || ''}」吗？`,
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: () => handleDelete(row),
+  })
+}
 
 function toNumberOptions(options = []) {
   return options.map(item => ({
@@ -640,16 +652,10 @@ onMounted(() => {
 })
 </script>
 
+<style src="./flow-workbench.css"></style>
+
 <style scoped>
 .h-full {
   height: 100%;
-}
-
-.flex-1 {
-  flex: 1;
-}
-
-.overflow-hidden {
-  overflow: hidden;
 }
 </style>

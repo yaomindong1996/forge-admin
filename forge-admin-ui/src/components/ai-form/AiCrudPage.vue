@@ -383,16 +383,83 @@
           </header>
 
           <div class="inline-form-panel-body">
-            <n-tabs
-              v-if="showDetailExtraTabs"
-              v-model:value="detailActiveTab"
-              type="line"
-              animated
-              class="ai-crud-detail-tabs"
-            >
-              <n-tab-pane name="business" tab="业务数据">
+            <n-spin :show="confirmLoading" class="ai-crud-record-spin">
+              <n-tabs
+                v-if="showDetailExtraTabs"
+                v-model:value="detailActiveTab"
+                type="line"
+                animated
+                class="ai-crud-detail-tabs"
+              >
+                <n-tab-pane name="business" tab="业务数据">
+                  <AiForm
+                    v-if="showDefaultDetailContent"
+                    ref="formRef"
+                    v-model:value="formData"
+                    :class="resolvedEditFormClass"
+                    :style="editFormStyle"
+                    :schema="modalFormSchema"
+                    :grid-cols="tiledEditGridCols"
+                    :label-width="editLabelWidth"
+                    :label-placement="editLabelPlacement"
+                    :label-align="editLabelAlign"
+                    :size="editSize"
+                    :x-gap="editXGap"
+                    :y-gap="editYGap"
+                    :show-feedback="editShowFeedback"
+                    :enable-collapse="editEnableCollapse"
+                    :max-visible-fields="editMaxVisibleFields"
+                    :hide-section-nav="hideFormSectionNav"
+                    :show-actions="false"
+                    :context="formContext"
+                    :form-assets="formAssets"
+                    @update:value="handleFormValueUpdate"
+                  >
+                    <template v-for="slotName in formSlots" #[slotName]="slotProps">
+                      <slot :name="`form-${slotName}`" v-bind="slotProps" />
+                    </template>
+                  </AiForm>
+                  <ChildTableEditor
+                    v-if="showDefaultDetailChildren"
+                    ref="childFormRef"
+                    v-model:value="childFormData"
+                    :children-config="visibleChildrenConfig"
+                    :readonly="isDetailMode"
+                    :parent-form-data="formData"
+                    :context="formContext"
+                    :row-action-visible="isChildRowActionVisible"
+                    :row-action-loading="isChildRowActionLoading"
+                    @row-action="handleChildRowAction"
+                    @toolbar-action="handleChildToolbarAction"
+                  />
+                  <AiCrudRowExpand
+                    v-if="showDetailPanels"
+                    class="ai-crud-detail-panels"
+                    :config="normalizedDetailPanelConfig"
+                    :row="formData"
+                    :row-key-value="detailPanelRowKeyValue"
+                    :context="formContext"
+                  />
+                </n-tab-pane>
+                <n-tab-pane v-if="showDetailFlowTabs" name="flow" tab="流程进度" display-directive="show:lazy">
+                  <AiCrudFlowDetail
+                    :runtime="detailRuntime"
+                    :loading="detailRuntimeLoading"
+                    :show-timeline="detailFlowTimelineVisible"
+                    :show-diagram="detailFlowDiagramVisible"
+                  />
+                </n-tab-pane>
+                <n-tab-pane v-if="showDataChangeLogTab" name="audit" tab="变更记录" display-directive="show:lazy">
+                  <DataAuditRecordPanel
+                    :object-id="dataAuditObjectId"
+                    :record-id="dataAuditRecordId"
+                    :enabled="dataAuditEnabled"
+                    :history-available="dataAuditHistoryAvailable"
+                  />
+                </n-tab-pane>
+              </n-tabs>
+              <template v-else>
                 <AiForm
-                  v-if="showDefaultDetailContent"
                   ref="formRef"
                   v-model:value="formData"
                   :class="resolvedEditFormClass"
@@ -439,73 +506,8 @@
                   :row-key-value="detailPanelRowKeyValue"
                   :context="formContext"
                 />
-              </n-tab-pane>
-              <n-tab-pane v-if="showDetailFlowTabs" name="flow" tab="流程进度" display-directive="show:lazy">
-                <AiCrudFlowDetail
-                  :runtime="detailRuntime"
-                  :loading="detailRuntimeLoading"
-                  :show-timeline="detailFlowTimelineVisible"
-                  :show-diagram="detailFlowDiagramVisible"
-                />
-              </n-tab-pane>
-              <n-tab-pane v-if="showDataChangeLogTab" name="audit" tab="变更记录" display-directive="show:lazy">
-                <DataAuditRecordPanel
-                  :object-id="dataAuditObjectId"
-                  :record-id="dataAuditRecordId"
-                  :enabled="dataAuditEnabled"
-                  :history-available="dataAuditHistoryAvailable"
-                />
-              </n-tab-pane>
-            </n-tabs>
-            <template v-else>
-              <AiForm
-                ref="formRef"
-                v-model:value="formData"
-                :class="resolvedEditFormClass"
-                :style="editFormStyle"
-                :schema="modalFormSchema"
-                :grid-cols="tiledEditGridCols"
-                :label-width="editLabelWidth"
-                :label-placement="editLabelPlacement"
-                :label-align="editLabelAlign"
-                :size="editSize"
-                :x-gap="editXGap"
-                :y-gap="editYGap"
-                :show-feedback="editShowFeedback"
-                :enable-collapse="editEnableCollapse"
-                :max-visible-fields="editMaxVisibleFields"
-                :hide-section-nav="hideFormSectionNav"
-                :show-actions="false"
-                :context="formContext"
-                :form-assets="formAssets"
-                @update:value="handleFormValueUpdate"
-              >
-                <template v-for="slotName in formSlots" #[slotName]="slotProps">
-                  <slot :name="`form-${slotName}`" v-bind="slotProps" />
-                </template>
-              </AiForm>
-              <ChildTableEditor
-                v-if="showDefaultDetailChildren"
-                ref="childFormRef"
-                v-model:value="childFormData"
-                :children-config="visibleChildrenConfig"
-                :readonly="isDetailMode"
-                :parent-form-data="formData"
-                :context="formContext"
-                :row-action-visible="isChildRowActionVisible"
-                :row-action-loading="isChildRowActionLoading"
-                @row-action="handleChildRowAction"
-                @toolbar-action="handleChildToolbarAction"
-              />
-              <AiCrudRowExpand
-                v-if="showDetailPanels"
-                class="ai-crud-detail-panels"
-                :config="normalizedDetailPanelConfig"
-                :row="formData"
-                :row-key-value="detailPanelRowKeyValue"
-                :context="formContext"
-              />
-            </template>
+              </template>
+            </n-spin>
           </div>
 
           <footer v-if="!hideModalFooter && !isDetailMode" class="inline-form-panel-footer">
@@ -515,6 +517,7 @@
             <n-button
               type="primary"
               :loading="confirmLoading"
+              :disabled="confirmLoading"
               @click="handleModalConfirm"
             >
               确定
@@ -557,7 +560,7 @@
             :circle="isPrintRuntimeAction(action)"
             :type="isPrintRuntimeAction(action) ? 'default' : resolveButtonType(action)"
             :loading="isActionLoading(action, formData)"
-            :disabled="isActionDisabled(action, formData) || isActionLoading(action, formData)"
+            :disabled="isActionDisabled(action, formData) || isActionLoading(action, formData) || confirmLoading"
             :aria-label="resolveActionDisplayLabel(action, formData)"
             :title="resolveActionDisplayLabel(action, formData)"
             @click="handleActionClick(action, formData)"
@@ -571,16 +574,83 @@
           </n-button>
         </n-space>
       </template>
-      <n-tabs
-        v-if="showDetailExtraTabs"
-        v-model:value="detailActiveTab"
-        type="line"
-        animated
-        class="ai-crud-detail-tabs"
-      >
-        <n-tab-pane name="business" tab="业务数据">
+      <n-spin :show="confirmLoading" class="ai-crud-record-spin">
+        <n-tabs
+          v-if="showDetailExtraTabs"
+          v-model:value="detailActiveTab"
+          type="line"
+          animated
+          class="ai-crud-detail-tabs"
+        >
+          <n-tab-pane name="business" tab="业务数据">
+            <AiForm
+              v-if="showDefaultDetailContent"
+              ref="formRef"
+              v-model:value="formData"
+              :class="resolvedEditFormClass"
+              :style="editFormStyle"
+              :schema="modalFormSchema"
+              :grid-cols="editGridCols"
+              :label-width="editLabelWidth"
+              :label-placement="editLabelPlacement"
+              :label-align="editLabelAlign"
+              :size="editSize"
+              :x-gap="editXGap"
+              :y-gap="editYGap"
+              :show-feedback="editShowFeedback"
+              :enable-collapse="editEnableCollapse"
+              :max-visible-fields="editMaxVisibleFields"
+              :hide-section-nav="hideFormSectionNav"
+              :show-actions="false"
+              :context="formContext"
+              :form-assets="formAssets"
+              @update:value="handleFormValueUpdate"
+            >
+              <template v-for="slotName in formSlots" #[slotName]="slotProps">
+                <slot :name="`form-${slotName}`" v-bind="slotProps" />
+              </template>
+            </AiForm>
+            <ChildTableEditor
+              v-if="showDefaultDetailChildren"
+              ref="childFormRef"
+              v-model:value="childFormData"
+              :children-config="visibleChildrenConfig"
+              :readonly="isDetailMode"
+              :parent-form-data="formData"
+              :context="formContext"
+              :row-action-visible="isChildRowActionVisible"
+              :row-action-loading="isChildRowActionLoading"
+              @row-action="handleChildRowAction"
+              @toolbar-action="handleChildToolbarAction"
+            />
+            <AiCrudRowExpand
+              v-if="showDetailPanels"
+              class="ai-crud-detail-panels"
+              :config="normalizedDetailPanelConfig"
+              :row="formData"
+              :row-key-value="detailPanelRowKeyValue"
+              :context="formContext"
+            />
+          </n-tab-pane>
+          <n-tab-pane v-if="showDetailFlowTabs" name="flow" tab="流程进度" display-directive="show:lazy">
+            <AiCrudFlowDetail
+              :runtime="detailRuntime"
+              :loading="detailRuntimeLoading"
+              :show-timeline="detailFlowTimelineVisible"
+              :show-diagram="detailFlowDiagramVisible"
+            />
+          </n-tab-pane>
+          <n-tab-pane v-if="showDataChangeLogTab" name="audit" tab="变更记录" display-directive="show:lazy">
+            <DataAuditRecordPanel
+              :object-id="dataAuditObjectId"
+              :record-id="dataAuditRecordId"
+              :enabled="dataAuditEnabled"
+              :history-available="dataAuditHistoryAvailable"
+            />
+          </n-tab-pane>
+        </n-tabs>
+        <template v-else>
           <AiForm
-            v-if="showDefaultDetailContent"
             ref="formRef"
             v-model:value="formData"
             :class="resolvedEditFormClass"
@@ -602,6 +672,7 @@
             :form-assets="formAssets"
             @update:value="handleFormValueUpdate"
           >
+            <!-- 透传表单插槽 -->
             <template v-for="slotName in formSlots" #[slotName]="slotProps">
               <slot :name="`form-${slotName}`" v-bind="slotProps" />
             </template>
@@ -627,74 +698,8 @@
             :row-key-value="detailPanelRowKeyValue"
             :context="formContext"
           />
-        </n-tab-pane>
-        <n-tab-pane v-if="showDetailFlowTabs" name="flow" tab="流程进度" display-directive="show:lazy">
-          <AiCrudFlowDetail
-            :runtime="detailRuntime"
-            :loading="detailRuntimeLoading"
-            :show-timeline="detailFlowTimelineVisible"
-            :show-diagram="detailFlowDiagramVisible"
-          />
-        </n-tab-pane>
-        <n-tab-pane v-if="showDataChangeLogTab" name="audit" tab="变更记录" display-directive="show:lazy">
-          <DataAuditRecordPanel
-            :object-id="dataAuditObjectId"
-            :record-id="dataAuditRecordId"
-            :enabled="dataAuditEnabled"
-            :history-available="dataAuditHistoryAvailable"
-          />
-        </n-tab-pane>
-      </n-tabs>
-      <template v-else>
-        <AiForm
-          ref="formRef"
-          v-model:value="formData"
-          :class="resolvedEditFormClass"
-          :style="editFormStyle"
-          :schema="modalFormSchema"
-          :grid-cols="editGridCols"
-          :label-width="editLabelWidth"
-          :label-placement="editLabelPlacement"
-          :label-align="editLabelAlign"
-          :size="editSize"
-          :x-gap="editXGap"
-          :y-gap="editYGap"
-          :show-feedback="editShowFeedback"
-          :enable-collapse="editEnableCollapse"
-          :max-visible-fields="editMaxVisibleFields"
-          :hide-section-nav="hideFormSectionNav"
-          :show-actions="false"
-          :context="formContext"
-          :form-assets="formAssets"
-          @update:value="handleFormValueUpdate"
-        >
-          <!-- 透传表单插槽 -->
-          <template v-for="slotName in formSlots" #[slotName]="slotProps">
-            <slot :name="`form-${slotName}`" v-bind="slotProps" />
-          </template>
-        </AiForm>
-        <ChildTableEditor
-          v-if="showDefaultDetailChildren"
-          ref="childFormRef"
-          v-model:value="childFormData"
-          :children-config="visibleChildrenConfig"
-          :readonly="isDetailMode"
-          :parent-form-data="formData"
-          :context="formContext"
-          :row-action-visible="isChildRowActionVisible"
-          :row-action-loading="isChildRowActionLoading"
-          @row-action="handleChildRowAction"
-          @toolbar-action="handleChildToolbarAction"
-        />
-        <AiCrudRowExpand
-          v-if="showDetailPanels"
-          class="ai-crud-detail-panels"
-          :config="normalizedDetailPanelConfig"
-          :row="formData"
-          :row-key-value="detailPanelRowKeyValue"
-          :context="formContext"
-        />
-      </template>
+        </template>
+      </n-spin>
 
       <!-- 弹窗底部按钮：详情动作只放标题栏，避免上下重复 -->
       <template v-if="!hideModalFooter && !isDetailMode" #footer>
@@ -705,6 +710,7 @@
           <n-button
             type="primary"
             :loading="confirmLoading"
+            :disabled="confirmLoading"
             @click="handleModalConfirm"
           >
             确定
@@ -743,7 +749,7 @@
               :circle="isPrintRuntimeAction(action)"
               :type="isPrintRuntimeAction(action) ? 'default' : resolveButtonType(action)"
               :loading="isActionLoading(action, formData)"
-              :disabled="isActionDisabled(action, formData) || isActionLoading(action, formData)"
+              :disabled="isActionDisabled(action, formData) || isActionLoading(action, formData) || confirmLoading"
               :aria-label="resolveActionDisplayLabel(action, formData)"
               :title="resolveActionDisplayLabel(action, formData)"
               @click="handleActionClick(action, formData)"
@@ -757,46 +763,48 @@
             </n-button>
           </n-space>
         </template>
-        <AiForm
-          ref="formRef"
-          v-model:value="formData"
-          :class="resolvedEditFormClass"
-          :style="editFormStyle"
-          :schema="modalFormSchema"
-          :grid-cols="editGridCols"
-          :label-width="editLabelWidth"
-          :label-placement="editLabelPlacement"
-          :label-align="editLabelAlign"
-          :size="editSize"
-          :x-gap="editXGap"
-          :y-gap="editYGap"
-          :show-feedback="editShowFeedback"
-          :enable-collapse="editEnableCollapse"
-          :max-visible-fields="editMaxVisibleFields"
-          :hide-section-nav="hideFormSectionNav"
-          :show-actions="false"
-          :context="formContext"
-          :form-assets="formAssets"
-          @update:value="handleFormValueUpdate"
-        >
-          <!-- 透传表单插槽 -->
-          <template v-for="slotName in formSlots" #[slotName]="slotProps">
-            <slot :name="`form-${slotName}`" v-bind="slotProps" />
-          </template>
-        </AiForm>
-        <ChildTableEditor
-          v-if="hasChildrenConfig"
-          ref="childFormRef"
-          v-model:value="childFormData"
-          :children-config="visibleChildrenConfig"
-          :readonly="isDetailMode"
-          :parent-form-data="formData"
-          :context="formContext"
-          :row-action-visible="isChildRowActionVisible"
-          :row-action-loading="isChildRowActionLoading"
-          @row-action="handleChildRowAction"
-          @toolbar-action="handleChildToolbarAction"
-        />
+        <n-spin :show="confirmLoading" class="ai-crud-record-spin">
+          <AiForm
+            ref="formRef"
+            v-model:value="formData"
+            :class="resolvedEditFormClass"
+            :style="editFormStyle"
+            :schema="modalFormSchema"
+            :grid-cols="editGridCols"
+            :label-width="editLabelWidth"
+            :label-placement="editLabelPlacement"
+            :label-align="editLabelAlign"
+            :size="editSize"
+            :x-gap="editXGap"
+            :y-gap="editYGap"
+            :show-feedback="editShowFeedback"
+            :enable-collapse="editEnableCollapse"
+            :max-visible-fields="editMaxVisibleFields"
+            :hide-section-nav="hideFormSectionNav"
+            :show-actions="false"
+            :context="formContext"
+            :form-assets="formAssets"
+            @update:value="handleFormValueUpdate"
+          >
+            <!-- 透传表单插槽 -->
+            <template v-for="slotName in formSlots" #[slotName]="slotProps">
+              <slot :name="`form-${slotName}`" v-bind="slotProps" />
+            </template>
+          </AiForm>
+          <ChildTableEditor
+            v-if="hasChildrenConfig"
+            ref="childFormRef"
+            v-model:value="childFormData"
+            :children-config="visibleChildrenConfig"
+            :readonly="isDetailMode"
+            :parent-form-data="formData"
+            :context="formContext"
+            :row-action-visible="isChildRowActionVisible"
+            :row-action-loading="isChildRowActionLoading"
+            @row-action="handleChildRowAction"
+            @toolbar-action="handleChildToolbarAction"
+          />
+        </n-spin>
 
         <!-- 抽屉底部按钮：详情动作只放标题栏，避免上下重复 -->
         <template v-if="!hideModalFooter && !isDetailMode" #footer>
@@ -807,6 +815,7 @@
             <n-button
               type="primary"
               :loading="confirmLoading"
+              :disabled="confirmLoading"
               @click="handleModalConfirm"
             >
               确定
@@ -989,30 +998,29 @@
   </div>
 </template>
 
-
 <script>
-import { useAiCrudPage } from './crud/composables/useAiCrudPage'
 import { aiCrudPageLocalComponents } from './aiCrudPageLocalComponents'
 import { aiCrudPageProps } from './AiCrudPageProps'
+import { useAiCrudPage } from './crud/composables/useAiCrudPage'
 
 export default {
   name: 'AiCrudPage',
   components: { ...aiCrudPageLocalComponents },
   props: aiCrudPageProps,
   emits: [
-  'load-list-success',
-  'load-list-error',
-  'add',
-  'edit',
-  'detail',
-  'delete',
-  'submit-success',
-  'submit-error',
-  'selection-change',
-  'modal-open',
-  'modal-close',
-  'render-mode-change',
-  'custom-action',
+    'load-list-success',
+    'load-list-error',
+    'add',
+    'edit',
+    'detail',
+    'delete',
+    'submit-success',
+    'submit-error',
+    'selection-change',
+    'modal-open',
+    'modal-close',
+    'render-mode-change',
+    'custom-action',
   ],
   setup(props, { emit, expose }) {
     const api = useAiCrudPage(props, emit)

@@ -1,32 +1,11 @@
 <template>
   <div class="flow-page">
-    <!-- 统计卡片 -->
-    <FlowModelStats
-      :total-count="totalCount"
-      :designing-count="designingCount"
-      :deployed-count="deployedCount"
-      :suspended-count="suspendedCount"
-      :disabled-count="disabledCount"
-      :active-status="activeStatsStatus"
-      @filter="handleFilter"
-    />
-
-    <!-- 页面头部 -->
+    <!-- 工具栏：与流程分类/模板同套，状态筛选替代原统计卡 -->
     <div class="page-header">
-      <div class="header-left">
-        <div class="title-row">
-          <div class="title-icon">
-            <WorkspaceIllustration artwork="workflow" size="card" />
-          </div>
-          <h2 class="page-title">
-            流程模型
-          </h2>
-        </div>
-      </div>
       <div class="header-right">
         <n-input
           v-model:value="queryParams.modelName"
-          placeholder="搜索模型名称或 Key"
+          placeholder="模型名称或 Key"
           clearable
           class="search-input"
           @keyup.enter="handleSearch"
@@ -51,19 +30,13 @@
           :options="statusOptions"
           @update:value="handleStatusSelect"
         />
+        <n-button secondary @click="handleSearch">
+          查询
+        </n-button>
+        <n-button quaternary @click="handleReset">
+          重置
+        </n-button>
         <div class="toolbar-actions">
-          <n-button type="primary" @click="handleSearch">
-            <template #icon>
-              <i class="i-material-symbols:search" />
-            </template>
-            查询
-          </n-button>
-          <n-button @click="handleReset">
-            <template #icon>
-              <i class="i-material-symbols:restart-alt" />
-            </template>
-            清空
-          </n-button>
           <n-button type="primary" @click="handleAdd">
             <template #icon>
               <i class="i-material-symbols:add" />
@@ -73,6 +46,7 @@
           <n-button
             v-if="dataSource.length"
             :type="sortMode ? 'primary' : 'default'"
+            secondary
             :loading="sortSaving"
             @click="sortMode ? saveModelOrder() : (sortMode = true)"
           >
@@ -85,7 +59,7 @@
       </div>
     </div>
 
-    <!-- 模型列表 -->
+    <!-- 模型卡片列表 -->
     <section class="model-workbench">
       <n-spin :show="loading" class="model-list-spin">
         <div class="model-list-body">

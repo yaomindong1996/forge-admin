@@ -1,0 +1,102 @@
+/**
+ * 流程管理页统一工作台外壳（非 AiCrudPage 场景）
+ * 结构：工具栏 + 表格区，单层细边框面板，无营销大标题/指标卡
+ */
+.flow-workbench-page {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 6px;
+}
+
+.flow-workbench-page:not(:has(> .panel-hint)) {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.flow-workbench-page > .panel-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-light, #e5e7eb);
+}
+
+.flow-workbench-page > .panel-toolbar .toolbar-filters,
+.flow-workbench-page > .panel-toolbar .toolbar-actions {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.flow-workbench-page > .panel-toolbar .toolbar-actions {
+  margin-left: auto;
+}
+
+.flow-workbench-page > .panel-hint {
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border-light, #e5e7eb);
+}
+
+.flow-workbench-page > .panel-hint :deep(.n-alert) {
+  margin: 8px 0;
+}
+
+.flow-workbench-page > .table-region {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 8px 12px 12px;
+}
+
+.flow-workbench-page > .table-region .workbench-table {
+  flex: 1;
+  min-height: 0;
+}
+
+.flow-workbench-page .result-summary {
+  color: var(--text-tertiary, #6b7280);
+  font-size: 12px;
+}
+
+/* 表格 render 节点需 :deep */
+.flow-workbench-page :deep(.flow-row-actions) {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.flow-workbench-page :deep(.flow-row-actions > a) {
+  flex: 0 0 auto;
+  font-size: 13px;
+  line-height: 22px;
+}
+
+.flow-workbench-page :deep(.flow-row-more-btn) {
+  width: 22px;
+  height: 22px;
+  color: var(--text-tertiary, #6b7280);
+}
+
+.flow-workbench-page :deep(.flow-row-more-btn:hover) {
+  color: var(--primary-color, #165dff);
+}
+
+@media (max-width: 760px) {
+  .flow-workbench-page > .panel-toolbar .toolbar-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

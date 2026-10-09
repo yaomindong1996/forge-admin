@@ -123,29 +123,51 @@ export function setupNaiveDiscreteApi() {
   window.$homePath = import.meta.env.VITE_HOME_PATH
 }
 
-// 设置全屏 Loading
+// 设置全屏 Loading（短请求默认延迟展示，避免“闪一下”）
 export function setupLoading() {
   let loadingInstance = null
+  let showTimer = null
+
+  function clearShowTimer() {
+    if (showTimer) {
+      clearTimeout(showTimer)
+      showTimer = null
+    }
+  }
+
+  function mountLoading(config) {
+    loadingInstance = loadingService.show({
+      text: config.text || '加载中...',
+      background: config.background || '255, 255, 255, 0.55',
+      color: config.color || '#333333',
+      fontSize: config.fontSize,
+    })
+    return loadingInstance
+  }
 
   return {
-    // 打开遮罩层
+    // 打开遮罩层；delay 默认 280ms，接口更快时不展示，避免闪烁
     show(options) {
       const config = typeof options === 'string'
         ? { text: options }
         : options || {}
+      const delay = Number.isFinite(config.delay) ? config.delay : 280
 
-      loadingInstance = loadingService.show({
-        text: config.text || '加载中...',
-        background: config.background || '0, 0, 0, 0.7',
-        color: config.color,
-        fontSize: config.fontSize,
-      })
+      clearShowTimer()
+      if (delay <= 0) {
+        return mountLoading(config)
+      }
 
-      return loadingInstance
+      showTimer = setTimeout(() => {
+        showTimer = null
+        mountLoading(config)
+      }, delay)
+      return null
     },
 
     // 关闭遮罩层
     close() {
+      clearShowTimer()
       loadingService.close()
       loadingInstance = null
     },

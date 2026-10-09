@@ -12,8 +12,6 @@ import { defineAsyncComponent, h } from 'vue'
 import AiForm from '@/components/ai-form/AiForm.vue'
 import IllustratedEmpty from '@/components/common/IllustratedEmpty.vue'
 import UserSelectPicker from '@/components/common/UserSelectPicker.vue'
-import WorkspaceIllustration from '@/components/common/WorkspaceIllustration.vue'
-import FlowModelStats from '@/components/flow/FlowModelStats.vue'
 import DesignerAsyncLoader from '@/views/app-center/components/designer/DesignerAsyncLoader.vue'
 import FlowModelCard from './components/FlowModelCard.vue'
 
@@ -72,8 +70,6 @@ export const flowModelLocalComponents = {
   AiForm,
   UserSelectPicker,
   IllustratedEmpty,
-  WorkspaceIllustration,
-  FlowModelStats,
   FlowModelCard,
   DesignerAsyncLoader,
   FlowDesignPage,

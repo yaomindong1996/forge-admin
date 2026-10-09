@@ -7,7 +7,6 @@ import { businessFlowFormAssets, businessFlowModelBindings } from '@/api/busines
 import flowApi from '@/api/flow'
 import AiForm from '@/components/ai-form/AiForm.vue'
 import UserSelectPicker from '@/components/common/UserSelectPicker.vue'
-import FlowModelStats from '@/components/flow/FlowModelStats.vue'
 import { useDict } from '@/composables/useDict'
 import { collectInitiatorSelectSelections } from '@/utils/initiatorSelect'
 import DesignerAsyncLoader from '@/views/app-center/components/designer/DesignerAsyncLoader.vue'

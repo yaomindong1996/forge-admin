@@ -16,3 +16,14 @@
 .ai-crud-form-modal .n-card__footer {
   flex: 0 0 auto;
 }
+
+/* 详情/编辑在弹窗内加载，替代全屏遮罩 */
+.ai-crud-record-spin {
+  width: 100%;
+  min-height: 120px;
+}
+
+.ai-crud-record-spin.n-spin-container,
+.ai-crud-record-spin > .n-spin-content {
+  width: 100%;
+}

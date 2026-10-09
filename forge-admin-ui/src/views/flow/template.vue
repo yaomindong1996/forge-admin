@@ -1,20 +1,14 @@
 <template>
-  <div class="p-16">
-    <div class="rounded bg-white p-16">
-      <h2 class="text-18 mb-16 font-bold">
-        流程模板
-      </h2>
-      <n-alert type="info" :bordered="false" class="mb-16">
-        该列表用于维护独立流程模板；已绑定业务应用的流程请从应用中心进入配置。
-      </n-alert>
-
-      <!-- 搜索栏 -->
-      <NSpace class="mb-16" :vertical="false">
+  <div class="flow-workbench-page">
+    <!-- 工具栏 -->
+    <div class="panel-toolbar">
+      <div class="toolbar-filters">
         <n-input
           v-model:value="queryParams.templateName"
-          placeholder="搜索模板名称"
+          placeholder="模板名称"
           clearable
-          style="width: 200px"
+          style="width: 180px"
+          @keydown.enter="handleSearch"
         >
           <template #prefix>
             <i class="i-material-symbols:search" />
@@ -24,7 +18,7 @@
           v-model:value="queryParams.category"
           placeholder="流程分类"
           clearable
-          style="width: 150px"
+          style="width: 140px"
           :options="categoryTreeOptions"
           :default-expand-all="true"
         />
@@ -32,36 +26,41 @@
           v-model:value="queryParams.status"
           placeholder="状态"
           clearable
-          style="width: 120px"
+          style="width: 110px"
           :options="statusOptions"
         />
-        <NButton type="primary" @click="handleSearch">
-          <template #icon>
-            <i class="i-material-symbols:search" />
-          </template>
-          搜索
+        <NButton secondary @click="handleSearch">
+          查询
         </NButton>
-        <NButton @click="handleReset">
-          <template #icon>
-            <i class="i-material-symbols:refresh" />
-          </template>
+        <NButton quaternary @click="handleReset">
           重置
         </NButton>
+      </div>
+      <div class="toolbar-actions">
         <NButton type="primary" @click="handleAdd">
           <template #icon>
             <i class="i-material-symbols:add" />
           </template>
           新增模板
         </NButton>
-      </NSpace>
-
-      <!-- 数据表格 -->
+      </div>
+    </div>
+    <div class="panel-hint">
+      <n-alert type="info" :bordered="false">
+        该列表用于维护独立流程模板；已绑定业务应用的流程请从应用中心进入配置。
+      </n-alert>
+    </div>
+    <!-- 表格 -->
+    <div class="table-region">
       <n-data-table
+        size="medium"
+        class="workbench-table"
         :columns="columns"
         :data="dataSource"
         :loading="loading"
         :pagination="pagination"
         :row-key="row => row.id"
+        flex-height
       />
     </div>
 
@@ -175,7 +174,7 @@
 </template>
 
 <script setup>
-import { NButton, NSpace, NTreeSelect } from 'naive-ui'
+import { NButton, NDropdown, NSpace, NTreeSelect } from 'naive-ui'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import flowApi from '@/api/flow'
@@ -250,55 +249,62 @@ const columns = [
   {
     title: '操作',
     key: 'actions',
-    width: 300,
-    render: (row) => {
-      const actions = [
-        h(NButton, {
-          size: 'small',
-          type: 'primary',
-          quaternary: true,
-          onClick: () => handleCreateFromTemplate(row),
-        }, { default: () => '创建流程' }),
-        h(NButton, {
-          size: 'small',
-          quaternary: true,
-          onClick: () => handleEdit(row),
-        }, { default: () => '编辑' }),
-        h(NButton, {
-          size: 'small',
-          quaternary: true,
-          onClick: () => handleCopy(row),
-        }, { default: () => '复制' }),
-      ]
-
-      if (row.status === 1) {
-        actions.push(h(NButton, {
-          size: 'small',
-          quaternary: true,
-          onClick: () => handleDisable(row),
-        }, { default: () => '禁用' }))
-      }
-      else {
-        actions.push(h(NButton, {
-          size: 'small',
-          quaternary: true,
-          onClick: () => handleEnable(row),
-        }, { default: () => '启用' }))
-      }
-
-      if (row.isSystem !== 1) {
-        actions.push(h(NButton, {
-          size: 'small',
-          type: 'error',
-          quaternary: true,
-          onClick: () => handleDelete(row),
-        }, { default: () => '删除' }))
-      }
-
-      return h(NSpace, { size: 'small' }, { default: () => actions })
-    },
+    width: 180,
+    fixed: 'right',
+    render: row => renderTemplateActions(row),
   },
 ]
+
+function renderTemplateActions(row) {
+  const moreOptions = [
+    { label: '复制', key: 'copy' },
+    { label: Number(row.status) === 1 ? '禁用' : '启用', key: 'toggle' },
+  ]
+  if (row.isSystem !== 1) {
+    moreOptions.push({
+      label: '删除',
+      key: 'delete',
+      props: { style: { color: 'var(--error-color, #ef4444)' } },
+    })
+  }
+
+  return h('div', {
+    class: 'flow-row-actions',
+    onClick: event => event.stopPropagation(),
+  }, [
+    h('a', {
+      class: 'text-primary cursor-pointer hover:text-primary-hover',
+      onClick: () => handleCreateFromTemplate(row),
+    }, '创建流程'),
+    h('a', {
+      class: 'text-primary cursor-pointer hover:text-primary-hover',
+      onClick: () => handleEdit(row),
+    }, '编辑'),
+    h(NDropdown, {
+      trigger: 'click',
+      options: moreOptions,
+      onSelect: (key) => {
+        if (key === 'copy')
+          handleCopy(row)
+        else if (key === 'toggle')
+          Number(row.status) === 1 ? handleDisable(row) : handleEnable(row)
+        else if (key === 'delete')
+          handleDelete(row)
+      },
+    }, {
+      default: () => h(NButton, {
+        'text': true,
+        'size': 'tiny',
+        'quaternary': true,
+        'class': 'flow-row-more-btn',
+        'aria-label': `${row.templateName || '此模板'}的更多操作`,
+        'title': '更多操作',
+      }, {
+        icon: () => h('i', { 'class': 'i-lucide:ellipsis', 'aria-hidden': true }),
+      }),
+    }),
+  ])
+}
 
 function toNumberOptions(options = []) {
   return options.map(item => ({
@@ -604,10 +610,12 @@ onMounted(() => {
 })
 </script>
 
+<style src="./flow-workbench.css"></style>
+
 <style scoped>
 .bpmn-container {
   height: 400px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-light, #e5e7eb);
   border-radius: 4px;
   overflow: hidden;
 }

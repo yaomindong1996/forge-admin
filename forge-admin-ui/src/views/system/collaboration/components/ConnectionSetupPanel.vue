@@ -74,7 +74,7 @@
                 新增应用
               </n-button>
             </div>
-            <n-data-table v-if="(detail.apps || []).length" :columns="appColumns" :data="detail.apps || []" :scroll-x="820" :bordered="false" size="small" />
+            <n-data-table v-if="(detail.apps || []).length" :columns="appColumns" :data="detail.apps || []" :scroll-x="960" :bordered="false" size="small" class="setup-table" />
             <n-empty v-else description="还没有平台应用，请先新增应用凭据" size="small" />
           </section>
 
@@ -92,7 +92,7 @@
                 启用能力
               </n-button>
             </div>
-            <n-data-table v-if="(detail.bindings || []).length" :columns="bindingColumns" :data="detail.bindings || []" :scroll-x="520" :bordered="false" size="small" />
+            <n-data-table v-if="(detail.bindings || []).length" :columns="bindingColumns" :data="detail.bindings || []" :scroll-x="720" :bordered="false" size="small" class="setup-table" />
             <n-empty v-else description="尚未启用能力" size="small" />
           </section>
         </div>
@@ -475,7 +475,8 @@ function handleUnbind(row) {
   color: var(--text-secondary);
 }
 .setup-panel {
-  max-width: 1280px;
+  width: 100%;
+  min-width: 0;
 }
 .setup-section__desc {
   margin-top: 4px;
@@ -491,6 +492,10 @@ function handleUnbind(row) {
   margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid var(--border-light);
+}
+
+.setup-table {
+  width: 100%;
 }
 .setup-section__heading {
   display: flex;
