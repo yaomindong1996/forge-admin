@@ -549,7 +549,10 @@ A: 立即更换相关密码或密钥，然后从仓库历史和当前索引中�
 
 ## 🤝 贡献指南
 
-欢迎提交 Issue 和 Pull Request。建议提交前先说明问题背景、复现步骤或功能目标，便于更快讨论和合并。
+欢迎提交 Issue 和 Pull Request。请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)（Fork + PR，勿直接申请写权限）。
+
+- **Bug / 需求**：请使用仓库 Issue 模板（Bug 反馈、功能建议）
+- **第一次贡献**：优先认领 [good first issue](https://gitee.com/ForgeLab/forge-admin/issues?q=is%3Aopen+label%3A%22good+first+issue%22)；任务文案见 [docs/community/good-first-issues.md](docs/community/good-first-issues.md)
 
 ---
 

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 贡献指南
+    url: https://gitee.com/ForgeLab/forge-admin/blob/main/CONTRIBUTING.md
+    about: 提 Issue / PR 前请先阅读协作约定与开发流程
+  - name: 新人可认领任务
+    url: https://gitee.com/ForgeLab/forge-admin/blob/main/docs/community/good-first-issues.md
+    about: 适合第一次贡献的任务清单与粘贴文案
