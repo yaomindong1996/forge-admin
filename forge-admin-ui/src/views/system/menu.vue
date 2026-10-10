@@ -158,6 +158,13 @@
                   </div>
                 </div>
               </n-popover>
+              <!-- 左侧树选中的是「当前层」本身；列表只展示下级，本级配置必须单独入口 -->
+              <NButton v-if="currentNode" size="small" secondary @click="openResourceDetail(currentNode)">
+                本级详情
+              </NButton>
+              <NButton v-if="currentNode" size="small" @click="handleEdit(currentNode)">
+                编辑本级
+              </NButton>
               <NButton v-if="currentNode" size="small" type="primary" @click="handleAdd(currentNode)">
                 <template #icon>
                   <i class="i-lucide:plus" />
@@ -186,7 +193,9 @@
               取消选择
             </NButton>
           </template>
-          <span v-else class="selection-hint">点击名称进入下级，点击行查看详情</span>
+          <span v-else class="selection-hint">
+            {{ currentNode ? '右侧为下级列表；改本级请用「编辑本级」' : '点击名称进入下级，点击行查看详情' }}
+          </span>
         </div>
         <!-- 当前层资源列表，自身滚动 -->
         <div class="resource-list-scroll cus-scroll-y">
@@ -205,10 +214,25 @@
           <template v-else>
             <div v-if="displayRows.length === 0" class="resource-list-empty">
               <i class="i-material-symbols:database-off-outline" />
-              <span>{{ hasSearch ? '没有匹配的资源' : '当前层级暂无资源' }}</span>
-              <NButton v-if="hasSearch" size="small" text type="primary" @click="resetResourceFilters">
-                清除查询条件
-              </NButton>
+              <template v-if="hasSearch">
+                <span>没有匹配的资源</span>
+                <NButton size="small" text type="primary" @click="resetResourceFilters">
+                  清除查询条件
+                </NButton>
+              </template>
+              <template v-else-if="currentNode">
+                <span>「{{ currentNode.resourceName }}」下暂无子资源</span>
+                <span class="empty-hint">可先编辑本级配置，或新增子项</span>
+                <div class="empty-actions">
+                  <NButton size="small" @click="handleEdit(currentNode)">
+                    编辑本级
+                  </NButton>
+                  <NButton size="small" type="primary" @click="handleAdd(currentNode)">
+                    新增子项
+                  </NButton>
+                </div>
+              </template>
+              <span v-else>当前层级暂无资源</span>
             </div>
 
             <div

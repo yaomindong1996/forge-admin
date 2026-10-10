@@ -788,7 +788,7 @@ export function applyMenuPagePart1() {
 
   async function handleDrawerSubmit() {
     try {
-      await formRef.value?.validate()
+      await formRef.value?.validate?.()
       const normalized = beforeSubmit(formRef.value?.getFormData?.() || formData.value)
       if (normalized === false)
         return
@@ -820,11 +820,18 @@ export function applyMenuPagePart1() {
     if (!resource?.id)
       return
     const saved = flatResources.value.find(item => item.id === resource.id)
-    if (saved) {
-      expandResourcePath(saved)
-      selectedResourceId.value = saved.parentId || 0
-      selectedRow.value = saved
-    }
+    if (!saved)
+      return
+
+    expandResourcePath(saved)
+    // 编辑本级：左侧上下文已是该资源，保存后保持选中；
+    // 在父级列表里编辑子项：仍回到父级，方便继续看同级。
+    const editingCurrentContext = selectedResourceId.value === resource.id
+      || selectedResourceId.value === saved.id
+    selectedResourceId.value = editingCurrentContext
+      ? saved.id
+      : (saved.parentId || 0)
+    selectedRow.value = saved
   }
 
   function expandResourcePath(resource) {

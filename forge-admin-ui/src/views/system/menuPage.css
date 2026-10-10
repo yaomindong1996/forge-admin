@@ -242,6 +242,18 @@
   color: var(--text-tertiary);
 }
 
+.resource-list-empty .empty-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.resource-list-empty .empty-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
 .resource-list-row {
   display: grid;
   grid-template-columns: 24px minmax(160px, 1fr) minmax(110px, 0.65fr) 48px 32px 100px;
