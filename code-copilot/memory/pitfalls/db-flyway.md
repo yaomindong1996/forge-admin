@@ -301,3 +301,20 @@ forge-admin-server/sql/初始化脚本.sql；副本已在 d2c4f0ee 移除，当�
 - 用新 Flyway 版本扩为 TEXT，同步全量和 Docker 初始化 SQL，保留现有 String 接口协议和完整配置。
 - 迁移限定当前数据库与目标列，保留字符集/排序规则；重复执行和已有更大文本/JSON 列时不缩列。
 - 仅提交代码不会修复已部署数据库；确认迁移成功后再验证真实保存。应用回滚不要求缩列。
+
+## 独立 JAR 正确但 filesystem 仍读取服务器残留旧迁移
+
+**发现日期**: 2026-10-10
+
+**问题描述**:
+Admin 本地启动正常，生产同一项目打包后出现大量 checksum mismatch。生产 JAR 中迁移与数据库
+217 条历史全部一致，但工作目录中的旧 `db/migration` 被默认 filesystem 路径读取。
+因此报错中的 `Resolved locally` 指实际扫描到的服务器脚本，不一定是 JAR 内资源。
+
+**解决方案**:
+
+- 先核对 systemd 工作目录、启动脚本、EnvironmentFile、活动 profile，再核对实际迁移来源。
+- 独立 JAR 部署设置 `FORGE_FLYWAY_LOCATIONS=classpath:db/migration`，确认进程实际收到变量；
+  不混扫旧目录。示例见 `forge-server/scripts/deployment/`。
+- 修改前比较全部迁移与历史，确认 pending；保留 JAR、历史表和外部 SQL，不 repair、不关闭校验。
+- 服务器存在未激活的 profile 文件，不代表其配置正在生效；不要误改其数据源或历史表。
