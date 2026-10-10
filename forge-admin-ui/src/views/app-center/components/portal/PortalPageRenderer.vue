@@ -935,27 +935,31 @@ function readLength(value) {
   height: auto !important;
 }
 
+/* 内联编辑/详情：保持填满高度，由 AiCrudPage 表单区域内部滚动 */
 .portal-page-flow:has(.ai-crud-page.is-inline-form-active) {
   display: flex;
   min-height: 0 !important;
-  height: auto;
+  flex: 1 1 auto;
   flex-direction: column;
   padding: 8px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .portal-page-block:has(.ai-crud-page.is-inline-form-active) {
   position: relative !important;
   inset: auto !important;
   width: 100% !important;
-  height: auto !important;
-  bottom: auto !important;
+  flex: 1 1 auto;
   min-height: 0 !important;
+  height: auto !important;
+  overflow: hidden;
 }
 
 .portal-page-block:has(.ai-crud-page.is-inline-form-active) :deep(.grid-block) {
-  height: auto !important;
-  overflow: visible;
+  height: 100% !important;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .portal-external-frame {

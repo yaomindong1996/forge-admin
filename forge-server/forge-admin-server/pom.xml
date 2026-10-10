@@ -171,6 +171,16 @@
                 <directory>src/main/resources</directory>
                 <filtering>false</filtering>
             </resource>
+            <!-- 子模块 resources 会覆盖父 POM，须单独恢复 application* 占位符过滤。 -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>application*</include>
+                    <include>bootstrap*</include>
+                    <include>banner*</include>
+                </includes>
+                <filtering>true</filtering>
+            </resource>
             <!-- 独立JAR部署不能依赖宿主源码目录；由外部配置明确选择classpath迁移。 -->
             <resource>
                 <directory>${project.basedir}/../db/migration</directory>

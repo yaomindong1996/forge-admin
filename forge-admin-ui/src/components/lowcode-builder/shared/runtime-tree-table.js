@@ -9,15 +9,20 @@ export function isEmbeddedTreeTableRuntime(config = {}) {
   const treeConfig = options.treeConfig
   if (!treeConfig || typeof treeConfig !== 'object')
     return false
-  // 与 views/ai/crud-page.vue 对齐：有 treeConfig 且未显式关闭即视为嵌入式树表。
-  // 仅 enabled===false 时降级；layoutType=tree-crud 走左树右表，不算嵌入式。
-  if (isTreeDisabledFlag(treeConfig.enabled))
+  // 必须显式 enabled=true。table/zone 残留的空 treeConfig（仅 parentField 默认值）
+  // 不能把普通列表改写成 /tree，否则非树表会报「树形父级字段不存在: parentId」。
+  if (!isTreeEnabledFlag(treeConfig.enabled))
     return false
   const layoutType = String(config.layoutType || options.layoutType || 'simple-crud')
+  // 左树右表仍走筛选树壳；本表「已启用」只在设计器/模型侧表达，不在此把右表改成嵌入式树表
   // appType 误写入 layoutType（SINGLE/TREE）时仍按嵌入式树表处理
   if (layoutType === 'tree-crud')
     return false
   return true
+}
+
+function isTreeEnabledFlag(value) {
+  return value === true || value === 1 || value === '1' || value === 'true'
 }
 
 function isTreeDisabledFlag(value) {

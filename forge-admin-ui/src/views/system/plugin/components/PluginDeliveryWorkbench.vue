@@ -1,8 +1,11 @@
 <template>
   <section class="delivery-workbench">
-    <!-- 交付工作台工具栏 -->
+    <!-- 运维交付：远程制品发布 / 目标部署，不是本机插件浏览 -->
     <header>
-      <span>制品发布与部署</span>
+      <div>
+        <strong>运维交付工作台</strong>
+        <p>锁定已审核制品 → 发布到目标 → 部署核验。不替代「已加载插件」清单。</p>
+      </div>
       <NButton :loading="store.loading" @click="store.load">
         <template #icon>
           <i class="i-lucide:refresh-cw" />
@@ -115,9 +118,20 @@ onMounted(() => {
 }
 header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
+}
+header strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+}
+header p {
+  margin: 4px 0 0;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.5;
 }
 .hint {
   margin: 0;

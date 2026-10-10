@@ -1,18 +1,31 @@
 <template>
-  <div v-if="normalizedChildren.length" class="child-table-editor">
+  <div
+    v-if="normalizedChildren.length"
+    class="child-table-editor"
+    :class="{ 'is-single-child': normalizedChildren.length === 1 }"
+  >
     <n-tabs type="line">
       <n-tab-pane
         v-for="child in normalizedChildren"
         :key="resolveChildKey(child)"
         :name="resolveChildKey(child)"
-        :tab="child.tabTitle || child.relationName || child.modelName || child.modelCode || child.tableName"
+        :tab="resolveChildPanelTitle(child)"
       >
         <div class="child-table-panel">
           <div class="child-table-head">
-            <div class="child-table-title">
-              {{ child.tabTitle || child.relationName || child.modelName || child.modelCode || '子表明细' }}
+            <!-- 多子表时页签已展示名称；单子表时表单分区标题已展示，避免「页签+面板标题」叠两行 -->
+            <div
+              v-if="normalizedChildren.length === 1"
+              class="child-table-title child-table-title--sr-only"
+            >
+              {{ resolveChildPanelTitle(child) }}
             </div>
-            <n-space v-if="!props.readonly || visibleToolbarActions(child).length" size="small">
+            <div class="child-table-title-spacer" aria-hidden="true" />
+            <n-space
+              v-if="!props.readonly || visibleToolbarActions(child).length"
+              class="child-table-head-actions"
+              size="small"
+            >
               <n-button v-if="hasRecordSelector(child) && canCreateRows(child) && child.allowSelectExisting !== false" size="small" secondary @click="openRecordSelector(child)">
                 {{ resolveSelectorButtonText(child) }}
               </n-button>
@@ -311,6 +324,10 @@ const normalizedChildren = computed(() => {
     }))
     .filter(child => child.fields.length)
 })
+
+function resolveChildPanelTitle(child = {}) {
+  return child.tabTitle || child.relationName || child.modelName || child.modelCode || child.tableName || '子表明细'
+}
 
 watch(
   () => {
@@ -1320,6 +1337,15 @@ defineExpose({
   padding-top: 14px;
 }
 
+/* 仅一个子表时隐藏页签栏，避免与表单分区标题再叠一层同名页签 */
+.child-table-editor.is-single-child :deep(.n-tabs-nav) {
+  display: none;
+}
+
+.child-table-editor.is-single-child :deep(.n-tab-pane) {
+  padding-top: 0;
+}
+
 .child-table-panel {
   display: grid;
   gap: 10px;
@@ -1336,6 +1362,28 @@ defineExpose({
   color: #0f172a;
   font-size: 14px;
   font-weight: 600;
+}
+
+.child-table-title--sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.child-table-title-spacer {
+  flex: 1;
+  min-width: 0;
+}
+
+.child-table-head-actions {
+  flex: none;
+  margin-left: auto;
 }
 
 .child-table-scroll {

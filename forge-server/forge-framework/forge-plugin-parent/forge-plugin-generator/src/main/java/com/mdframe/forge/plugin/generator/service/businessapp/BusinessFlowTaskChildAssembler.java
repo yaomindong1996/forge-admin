@@ -470,9 +470,13 @@ final class BusinessFlowTaskChildAssembler {
                 }
             }
         }
-        if (ownProps.get("optionSource") instanceof Map<?, ?>) {
-            // 动态选项源下不能混入注册表静态 options，否则运行态优先读静态选项
-            registryProps.remove("options");
+        if (ownProps.get("optionSource") instanceof Map<?, ?> os) {
+            Object rawType = os.get("type");
+            String type = rawType == null ? "" : String.valueOf(rawType).trim();
+            // 动态选项源下不能混入注册表静态 options；STATIC 保留 options
+            if (!type.isEmpty() && !"STATIC".equalsIgnoreCase(type.replace('-', '_'))) {
+                registryProps.remove("options");
+            }
         }
         if (registryProps.isEmpty()) {
             return;

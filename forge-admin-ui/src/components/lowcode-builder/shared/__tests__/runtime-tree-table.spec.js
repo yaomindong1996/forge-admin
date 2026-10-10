@@ -36,11 +36,16 @@ describe('runtime tree table', () => {
     expect(isEmbeddedTreeTableRuntime({
       options: { treeConfig: { enabled: false } },
     })).toBe(false)
-    // appType 误写入 layoutType=SINGLE 时，只要有 treeConfig 且未显式关闭，仍走嵌入式树表
+    // appType 误写入 layoutType=SINGLE 时，仍须显式 enabled=true
+    expect(isEmbeddedTreeTableRuntime({
+      layoutType: 'SINGLE',
+      options: { treeConfig: { enabled: true, parentField: 'parentId' } },
+    })).toBe(true)
+    // zone 残留 parentField 默认值、未 enabled：不能当嵌入式树表
     expect(isEmbeddedTreeTableRuntime({
       layoutType: 'SINGLE',
       options: { treeConfig: { parentField: 'parentId' } },
-    })).toBe(true)
+    })).toBe(false)
   })
 
   it('aligns search treeSelect with left-tree optionSource sort and includeChildren', () => {
@@ -168,7 +173,7 @@ describe('runtime tree table', () => {
     expect(props.publicParams.loadMode).toBe('full')
   })
 
-  it('activates embedded tree when treeConfig exists but enabled is omitted', () => {
+  it('does not activate embedded tree when enabled is omitted (leftover treeConfig)', () => {
     const props = buildRuntimeCrudProps({
       configKey: 'org_tree',
       layoutType: 'SINGLE',
@@ -184,9 +189,9 @@ describe('runtime tree table', () => {
         },
       },
     })
-    expect(props.apiConfig.list).toContain('/tree')
-    expect(props.showPagination).toBe(false)
-    expect(props.tableProps.childrenKey).toBe('children')
+    // 非树表 zone 常残留 parentField=parentId；未显式 enabled 时必须走 /page
+    expect(props.apiConfig.list).toContain('/page')
+    expect(props.tableProps?.childrenKey).toBeUndefined()
   })
 
   it('does not activate embedded tree when enabled is explicitly false', () => {
@@ -239,17 +244,39 @@ describe('runtime tree table', () => {
     expect(props.apiConfig.list).toBe('get@/x/tree')
   })
 
-  it('forces enableTreeAddChild off for left-tree-right-table layout', () => {
+  it('forces enableTreeAddChild off for left-tree-right-table when right table is flat', () => {
     const props = buildRuntimeCrudProps({
       layoutType: 'tree-crud',
       options: {
         enableTreeAddChild: true,
-        treeConfig: { enabled: true },
+        treeConfig: { enabled: false },
       },
       columnsSchema: [],
       searchSchema: [],
       editSchema: [],
     })
     expect(props.enableTreeAddChild).toBe(false)
+  })
+
+  it('keeps enableTreeAddChild when left-tree layout marks model embedded tree enabled', () => {
+    const props = buildRuntimeCrudProps({
+      configKey: 'org_tree',
+      layoutType: 'tree-crud',
+      apiConfig: {
+        list: 'get@/ai/crud/org_tree/page',
+        tree: 'get@/ai/crud/org_tree/tree',
+      },
+      options: {
+        enableTreeAddChild: true,
+        treeConfig: { enabled: true, parentField: 'parentId' },
+      },
+      columnsSchema: [],
+      searchSchema: [],
+      editSchema: [],
+    })
+    // 左树右表仍不走嵌入式 /tree；但「添加下级」开关可按本表启用状态保留
+    expect(props.enableTreeAddChild).toBe(true)
+    expect(props.apiConfig.list).toContain('/page')
+    expect(props.tableProps?.childrenKey).toBeUndefined()
   })
 })

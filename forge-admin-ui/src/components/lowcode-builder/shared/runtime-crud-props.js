@@ -89,10 +89,19 @@ export function buildRuntimeCrudProps(config = {}, { designPreview = false } = {
     showExport: options.showExport ?? config.showExport ?? false,
     enableCustomQuery: options.enableCustomQuery ?? config.enableCustomQuery ?? true,
     customQueryConfigKey: config.configKey || '',
-    // 左树右表强制关闭「添加下级」；其它场景才读 options
-    ...(String(config.layoutType || options.layoutType || '') === 'tree-crud'
-      ? { enableTreeAddChild: false }
-      : (typeof options.enableTreeAddChild === 'boolean' ? { enableTreeAddChild: options.enableTreeAddChild } : {})),
+    // 左树右表：右表未开嵌入式树时强制关闭「添加下级」；已启用则跟随 options
+    ...((() => {
+      const layoutType = String(config.layoutType || options.layoutType || '')
+      const embeddedOn = options.treeConfig?.enabled === true
+        || options.treeConfig?.enabled === 1
+        || options.treeConfig?.enabled === '1'
+        || options.treeConfig?.enabled === 'true'
+      if (layoutType === 'tree-crud' && !embeddedOn)
+        return { enableTreeAddChild: false }
+      return typeof options.enableTreeAddChild === 'boolean'
+        ? { enableTreeAddChild: options.enableTreeAddChild }
+        : {}
+    })()),
     treeConfig: options.treeConfig && typeof options.treeConfig === 'object' ? options.treeConfig : {},
     // 左树 / TreeCrudTemplate 从 publicParams 读 orderBy；把 options.defaultSort 一并灌入
     publicParams: {

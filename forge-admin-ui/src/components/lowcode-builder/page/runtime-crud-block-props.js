@@ -130,8 +130,16 @@ export function buildRuntimeCrudBlockProps({
       return [key, designPreview ? appendDesignPreviewToApiValue(resolved) : resolved]
     })
     .filter(([, value]) => value))
-  // 嵌入式树表：运行配置已把 list 改写成 /tree；区块 listApi 默认 /page 不能盖掉
-  if (runtimeProps.showPagination === false && runtimeProps.apiConfig?.tree) {
+  // 嵌入式树表：仅显式 enabled 时保留 /tree；残留 showPagination=false + tree 不能误改写
+  const treeEnabled = runtimeProps.treeConfig?.enabled === true
+    || runtimeProps.treeConfig?.enabled === 1
+    || runtimeProps.treeConfig?.enabled === '1'
+    || runtimeProps.treeConfig?.enabled === 'true'
+    || runtimeProps.options?.treeConfig?.enabled === true
+    || runtimeProps.options?.treeConfig?.enabled === 1
+    || runtimeProps.options?.treeConfig?.enabled === '1'
+    || runtimeProps.options?.treeConfig?.enabled === 'true'
+  if (treeEnabled && runtimeProps.showPagination === false && runtimeProps.apiConfig?.tree) {
     const treeList = runtimeProps.apiConfig.list || runtimeProps.apiConfig.tree
     if (treeList)
       runtimeBlockApiConfig.list = treeList

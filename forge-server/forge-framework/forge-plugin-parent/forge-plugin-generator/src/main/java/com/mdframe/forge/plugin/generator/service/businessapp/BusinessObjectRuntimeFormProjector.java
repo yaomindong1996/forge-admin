@@ -290,12 +290,11 @@ final class BusinessObjectRuntimeFormProjector {
         Map<String, Object> props = sanitizeRuntimeFieldProps(rawProps);
         copyRuntimeFieldProps(setting, props);
         applyRuntimeFieldMeta(setting, component, props, formCreateMeta);
-        // optionSource 存在时清除残留的静态 options，避免运行时优先级链中静态选项抢占远程数据源
-        if (props.get("optionSource") instanceof Map<?, ?> os
-                && !String.valueOf(os.get("type") != null ? os.get("type") : "").isEmpty()) {
+        // 仅动态 optionSource 清除残留静态 options；STATIC 必须保留 options 供 value→label
+        if (props.get("optionSource") instanceof Map<?, ?> os && isDynamicOptionSource(os)) {
             props.remove("options");
             // 动态选项来源：冗余保存显示名称到 <field>Name，回显无需再查源表
-            if (isDynamicOptionSource(os) && StringUtils.isBlank(text(props.get("labelValueField")))) {
+            if (StringUtils.isBlank(text(props.get("labelValueField")))) {
                 String fieldCode = StringUtils.firstNonBlank(
                         text(mapValue(component.get("fieldBinding")).get("fieldCode")),
                         text(component.get("field")),

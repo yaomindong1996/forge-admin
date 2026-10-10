@@ -69,6 +69,7 @@ import {
 import AuthImage from '@/components/common/AuthImage.vue'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
+import { flattenOptionNodes, isSameOptionValue } from '../../aiFormItemUtils'
 import AiCrudRowExpand from '../../AiCrudRowExpand.vue'
 import AiForm from '../../AiForm.vue'
 
@@ -1012,6 +1013,9 @@ export function applyAiCrudPagePart2(props, emit, deps = {}) {
     const source = editField?.optionSource || editField?.props?.optionSource
     if (key && hasDynamicOptionSourceForColumn(source))
       return `${key}Name`
+    // 静态选项走 options 映射，不再误读空的 xxxName
+    if (resolveStaticOptionsFromField(editField).length)
+      return ''
     // 普通 select 也可能冗余了 xxxName（历史发布缺 optionSource 元数据时仍尽量回显名称）
     const fieldType = String(editField?.type || editField?.componentType || editField?.componentKey || '').trim()
     if (key && ['select', 'dictSelect', 'radio', 'radioButton', 'checkbox', 'cascader', 'treeSelect'].includes(fieldType))
@@ -1025,8 +1029,41 @@ export function applyAiCrudPagePart2(props, emit, deps = {}) {
     const type = String(source.type || '').trim().toUpperCase().replace(/-/g, '_')
     if (!type || type === 'STATIC')
       return false
-    return ['QUERY_SOURCE', 'BUSINESS_OBJECT', 'REMOTE', 'API', 'DICT'].includes(type)
+    return ['QUERY_SOURCE', 'BUSINESS_OBJECT', 'REMOTE', 'API', 'DICT', 'CURRENT_CHILDREN'].includes(type)
       || Boolean(source.api || source.url || source.sourceKey)
+  }
+
+  /** 编辑 schema 上的静态选项（非动态 optionSource） */
+  function resolveStaticOptionsFromField(editField = null) {
+    if (!editField || typeof editField !== 'object')
+      return []
+    const source = editField.optionSource || editField.props?.optionSource
+    if (hasDynamicOptionSourceForColumn(source))
+      return []
+    if (Array.isArray(editField.options) && editField.options.length)
+      return editField.options
+    if (Array.isArray(editField.props?.options) && editField.props.options.length)
+      return editField.props.options
+    return []
+  }
+
+  function mapValueToStaticOptionLabels(rawValue, options = []) {
+    if (!Array.isArray(options) || !options.length)
+      return null
+    if (rawValue === null || rawValue === undefined || rawValue === '')
+      return null
+    const values = Array.isArray(rawValue)
+      ? rawValue
+      : (typeof rawValue === 'string' && rawValue.includes(',')
+          ? rawValue.split(',').map(item => item.trim()).filter(item => item !== '')
+          : [rawValue])
+    if (!values.length)
+      return null
+    const flat = flattenOptionNodes(options)
+    return values.map((value) => {
+      const matched = flat.find(option => isSameOptionValue(option?.value ?? option?.key, value))
+      return matched?.label ?? value
+    })
   }
 
   function resolveRowCompanionText(row = {}, textField = '', valueField = '') {
@@ -1072,8 +1109,22 @@ export function applyAiCrudPagePart2(props, emit, deps = {}) {
 
     // 动态下拉等把名称冗余到 xxxName / renderConfig.textField；列表优先显示名称
     const companionTextField = resolveColumnCompanionTextField(col, editField, key)
+    const staticOptions = resolveStaticOptionsFromField(editField)
 
     if (!col.render || typeof col.render !== 'object') {
+      if (staticOptions.length) {
+        nextCol.render = (row) => {
+          const labels = mapValueToStaticOptionLabels(row?.[key], staticOptions)
+          return h(SystemTableCell, {
+            values: splitTableCellValues(
+              labels != null
+                ? labels
+                : resolveRowCompanionText(row, companionTextField, key),
+            ),
+          })
+        }
+        return nextCol
+      }
       if (companionTextField) {
         nextCol.render = row => h(SystemTableCell, {
           values: splitTableCellValues(resolveRowCompanionText(row, companionTextField, key)),
@@ -1083,7 +1134,22 @@ export function applyAiCrudPagePart2(props, emit, deps = {}) {
     }
 
     const renderType = col.render.type
-    if (renderType === 'dictTag') {
+    if (renderType === 'staticOptions') {
+      const options = Array.isArray(col.render.options) && col.render.options.length
+        ? col.render.options
+        : staticOptions
+      nextCol.render = (row) => {
+        const labels = mapValueToStaticOptionLabels(row?.[key], options)
+        return h(SystemTableCell, {
+          values: splitTableCellValues(
+            labels != null
+              ? labels
+              : resolveRowCompanionText(row, companionTextField, key),
+          ),
+        })
+      }
+    }
+    else if (renderType === 'dictTag') {
       nextCol.render = row => h(DictTag, {
         dictType: col.render.dictType,
         value: row[key],

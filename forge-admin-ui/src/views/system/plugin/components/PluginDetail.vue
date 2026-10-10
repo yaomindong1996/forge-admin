@@ -11,13 +11,16 @@
       </NAlert>
       <!-- 运行时声明 -->
       <div v-else-if="plugin" class="plugin-detail">
+        <header class="plugin-detail__hero">
+          <span class="plugin-detail__glyph" aria-hidden="true">
+            <i class="i-lucide:puzzle" />
+          </span>
+          <div>
+            <h3>{{ plugin.name || plugin.id }}</h3>
+            <code>{{ plugin.id }}</code>
+          </div>
+        </header>
         <NDescriptions label-placement="left" :column="1" bordered size="small">
-          <NDescriptionsItem label="插件名称">
-            {{ plugin.name }}
-          </NDescriptionsItem>
-          <NDescriptionsItem label="稳定标识">
-            {{ plugin.id }}
-          </NDescriptionsItem>
           <NDescriptionsItem label="插件版本">
             {{ plugin.version }}
           </NDescriptionsItem>
@@ -78,6 +81,34 @@ const { dict } = useDict('sys_plugin_origin', 'sys_plugin_edition', 'sys_plugin_
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+.plugin-detail__hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  background: linear-gradient(160deg, #f8fafc, #eef2ff);
+}
+.plugin-detail__glyph {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--primary-color, #0e42d2);
+  font-size: 20px;
+}
+.plugin-detail__hero h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.plugin-detail__hero code {
+  color: var(--text-tertiary, #86909c);
+  font-size: 12px;
 }
 .plugin-detail :deep(.n-descriptions-table-content) {
   overflow-wrap: anywhere;

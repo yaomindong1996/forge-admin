@@ -55,11 +55,11 @@
 - **点赞少根因**：读者感受是"他踩坑了，我知道了"——**知道了≠能用了**。赞的本质是收藏
 - **0919 结构改版**：①开篇 4 句钩子 + **TL;DR 六条结论清单**（结论从结尾挪到开头，适配扫读）②每坑统一「现象→源码→为什么→怎么改」四段 ③独立「可带走 N 条诀窍」+ 接入实战可复制代码 ④求赞先给联想场景
 
-### 已写 21 篇（避免重复）
-订单系统业务设计 / 零代码搭进销存 / AI能力治理规划 / 从零搭CRM / 低代码与Flowable工作流整合 / Flowable注解化接入 / MCP-Server插件源码拆解 / 协作SPI解耦设计(0906) / 数据权限拦截器SQL改写(0907) / 协议驱动vs代码生成 / crypto接口加解密全链路(0909) / 多租户tenant(0910) / 多租户×数据权限共存-拦截器注册顺序(0911) / 幂等1279行5坑(0915) / log操作日志1383行(0916) / auth认证链路4091行账号锁定失效(0917) / excel 4223行@Async三重叠加(0918) / websocket 599行内存Broker(0919) / config 动态配置@Scheduled被注释(0920) / cache 多级缓存5个静默失效坑-泛型擦除恢复(0921) / Redisson锁配600秒只防5秒-watchdog未启动(0922) / **开放API安全三件套-限流阈值不生效+防重放在验签前(0926)**
+### 已写 22 篇（避免重复）
+订单系统业务设计 / 零代码搭进销存 / AI能力治理规划 / 从零搭CRM / 低代码与Flowable工作流整合 / Flowable注解化接入 / MCP-Server插件源码拆解 / 协作SPI解耦设计(0906) / 数据权限拦截器SQL改写(0907) / 协议驱动vs代码生成 / crypto接口加解密全链路(0909) / 多租户tenant(0910) / 多租户×数据权限共存-拦截器注册顺序(0911) / 幂等1279行5坑(0915) / log操作日志1383行(0916) / auth认证链路4091行账号锁定失效(0917) / excel 4223行@Async三重叠加(0918) / websocket 599行内存Broker(0919) / config 动态配置@Scheduled被注释(0920) / cache 多级缓存5个静默失效坑-泛型擦除恢复(0921) / Redisson锁配600秒只防5秒-watchdog未启动(0922) / **开放API安全三件套-限流阈值不生效+防重放在验签前(0926)** / **file 文件存储2912行-分片上传丢isPrivate+秒传共享fileId(1007)**
 
 ### "框架源码拆解"系列进度
-① datascope → ② tenant → ③ 共存 → ④ 幂等 → ⑤ log → ⑥ auth → ⑦ excel → ⑧ websocket → ⑨ config → ⑩ cache(0921) → ⑪ Redisson 锁续期(0922) → ⑫ **openapi-security 446行(0926)** → ⑬ **file 文件存储（已预告）**
+① datascope → ② tenant → ③ 共存 → ④ 幂等 → ⑤ log → ⑥ auth → ⑦ excel → ⑧ websocket → ⑨ config → ⑩ cache(0921) → ⑪ Redisson 锁续期(0922) → ⑫ **openapi-security 446行(0926)** → ⑬ **file 文件存储 2912 行(1007)** → ⑭ **orm（已预告：List<InnerInterceptor> + COUNT(1) 改写 + 拦截器顺序隐式契约）**
 
 ### 通用可复用硬核事实
 - **MyBatis-Plus 3.5.7**；`MybatisPlusConfig` 用 `List<InnerInterceptor>` 注入
@@ -72,9 +72,9 @@
 - plugin-ai：`PermissionEngine` 63 行三态判决（工具名含 delete/submit/commit 触发人工审批）；`AiModelInvocationLog` 记 token + 调用时单价快照（按"分"存）
 
 ### starter 剩余矿脉（按行数）
-tenant/idempotent/log/auth/excel/websocket/config/cache/openapi-security（均已写） | **file（已预告）** | orm | message | job | id | trans | social | outbound | api-config
+tenant/idempotent/log/auth/excel/websocket/config/cache/openapi-security/file（均已写） | **orm（已预告）** | message | job | id | trans | social | outbound | api-config
 
-### ⚠️ 待修真实缺陷（17 个，均未修复）
+### ⚠️ 待修真实缺陷（22 个，均未修复）
 > 完整源码细节见 output/ 下对应掘金文，此处只留索引
 1. **【高危】账号锁定密码错误场景完全失效**：`UsernamePasswordAuthStrategy.doAuthenticate` 的 `if (loginUser == null)` 是死代码（认证失败抛异常不返回 null）；`recordLoginFailure(null,...)` 首行即 throw。**暴力破解不会被锁**
 2. 死常量 `LOGIN_LOCK_KEY_PREFIX`（只有声明+delete，从无写入）；真正锁定走 `StpUtil.disable()`
@@ -97,6 +97,11 @@ tenant/idempotent/log/auth/excel/websocket/config/cache/openapi-security（均�
 19. **`RRateLimiter.trySetRate()` 只在首次生效** → 开放接口限流阈值改配置不生效（key 不含速率值）；且每请求都调一次多一次 Redis 往返
 20. **幂等快照反序列化失败被归为 503** → 该 Idempotency-Key 永久不可用、不可自愈
 21. **幂等快照写失败返回 503 但业务已执行** → 503 语义是"可重试" → 重复执行，幂等失效
+22. **【高危】分片上传的 isPrivate 永远为 false**：`FileManager.completeMultipartUpload` 签名无 isPrivate，`LocalFileStorage` 构造 metadata 硬编码 `.isPrivate(false)`，DB 字段 `is_private DEFAULT '0'` → 走分片的大文件全公开，任何登录用户可下载
+23. **本地存储 `getAccessUrl` 丢弃 expires 参数**（返回永久 `/api/file/download/{fileId}`），而 COS 实现正确用预签名 → "临时链接"实为永久链接，契约在接口层没写清
+24. **`FileManager.getFileBytes` 无权限校验**（对比 `getFileContentBase64` 有 `assertReadPermission`），唯一调用方 `ExcelImageWriteHandler` 用**反射**调用 → 静态分析不可见 + Excel 导出可带出他人私有图片；且 `readAllBytes()` 无大小上限
+25. **InputStream 上传路径大小限制失效**：`validateFilePolicy` 的 `if (fileSize != null)` 在 fileSize=null 时整段跳过 + `Files.copy` 无字节上限 → 配的 100MB 对流上传无效（DoS）
+26. **秒传复用同一 fileId 但无引用计数**：`getByMd5` 全表 `LIMIT 1`（且手写 SQL 无 tenant_id，隔离靠拦截器）→ 一人删除，所有秒传引用者 404；表无 ref_count 字段。另：`DEFAULT_ALLOWED_TYPES` 是零引用死常量（配置缺失时直接抛异常，对比 maxFileSize 有兜底）；分片上下文在单机 `ConcurrentHashMap`（多实例 uploadId 不认），`@Scheduled` 清理依赖外部 starter 的 `@EnableScheduling`（file 自身没有，但 init 里有兜底调用）
 
 ### 其他候选切面
 能力开放网关 SPI（capability-parent，REST+MCP 双出口）/ 11 个 plugin 注册顺序 / CRUD Velocity 模板扩展点 / 部署上线踩坑 / 运维故障救回
@@ -104,7 +109,7 @@ tenant/idempotent/log/auth/excel/websocket/config/cache/openapi-security（均�
 ## 4. 头条已写 26 篇长文 + 8 条微头条（角度清单）
 踩坑8个 / 4框架横评 / 协议驱动vs代码生成 / 业务闭环更新 / 反常识观点 / ForgeAdmin实测能力全景(0725 唯一热过) / 搭审批系统实战(0726) / 接私活8000块2天 / 半天搞定CRM / 企业集成与开放平台(0804) / AI-Agent安全操作后台(0826) / 开源项目介绍横评(0903) / 同事离职3天重构(0906) / 一张表生成多少代码2123行实测(0907) / 企业6大真实业务场景(0907) / AI写完100万行怎么管(0908) / DHH那篇反共识(0908) / GitSpawn 7款工具中毒(0909) / DeepSeek降价算账(0909) / 等保测评师查5样(0910) / 手机号明文3行SQL(0911) / 操作日志接口慢10倍676行(0915) / 异步导出卡3分钟(0916) / 500并发同订单扣3次款(0917)
 - **微头条实测数据（7 次）**：第1条·扣3次款 **7981/1330/16.7%** | 第2条·@Async 319/15/4.7% | 第6条·错100次没锁 528/71/13.4%(同发) | 第9条·锁定窗口 1050/170/16%(单发18:00) | 第12条·密码能一直猜 **280/30/10.7%**(19:00) | 第15条·63行拦AI **461/12/2.6%**(19:30) | 第18条·手机号明文 **~700/~30/4.3%**
-- 批次：0916 第1批 / 0917 第2批 / 0918 第3批 / 0920 第4批 / 0921 第5批 / 0922 第6批 / **0926 第7批（第20条·验证码短信5分钱+限流改阈值不生效 / 第21条·密码明文 / 第22条·退款退两次）**
+- 批次：0916 第1批 / 0917 第2批 / 0918 第3批 / 0920 第4批 / 0921 第5批 / 0922 第6批 / 0926 第7批（第20·短信5分钱 21·密码明文 22·退款两次）/ **1007 第8批（第23条·大文件分片上传后人人可下载，建议19:00单发）**
 - **【0926】第 18 条 700/30/4.3% 符合定案，未做新分析**。展现落在水位区间内；点击率低于 13-16% 线但高于第 15 条。判定为"数字门票有、落差与读者本人利益不足"
 
 ### 关键事实备查

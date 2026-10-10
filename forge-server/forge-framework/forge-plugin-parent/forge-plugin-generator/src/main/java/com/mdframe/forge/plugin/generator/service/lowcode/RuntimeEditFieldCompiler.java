@@ -156,10 +156,9 @@ final class RuntimeEditFieldCompiler {
             applyFormCreateMeta(item, formCreateMeta, props);
         }
         LowcodeFieldConstraintSupport.applyRuntimeConstraints(field, componentType, props);
-        // optionSource 配置存在时清除残留的静态 options，避免 currentOptions 优先级链中
-        // 静态 options 抢在 remoteOptionSource 之前返回，导致 QUERY_SOURCE/REMOTE 不生效
-        if (props.containsKey("optionSource") && props.get("optionSource") instanceof Map<?, ?> os
-                && !String.valueOf(os.get("type") != null ? os.get("type") : "").isEmpty()) {
+        // 仅动态 optionSource 时清除残留静态 options，避免抢在 remoteOptionSource 之前返回；
+        // STATIC（含仅声明 type=STATIC）必须保留 options，供编辑/详情/列表 value→label。
+        if (props.get("optionSource") instanceof Map<?, ?> os && isDynamicOptionSourceType(os.get("type"))) {
             props.remove("options");
         }
         copyRuntimePropsToField(item, props);
@@ -289,6 +288,18 @@ final class RuntimeEditFieldCompiler {
             return new LinkedHashMap<>((Map<String, Object>) map);
         }
         return new LinkedHashMap<>();
+    }
+
+    /** 非 STATIC（含 QUERY_SOURCE/REMOTE/DICT 等）才视为动态选项源。 */
+    private static boolean isDynamicOptionSourceType(Object rawType) {
+        if (rawType == null) {
+            return false;
+        }
+        String type = String.valueOf(rawType).trim();
+        if (type.isEmpty()) {
+            return false;
+        }
+        return !"STATIC".equalsIgnoreCase(type.replace('-', '_'));
     }
 
 }

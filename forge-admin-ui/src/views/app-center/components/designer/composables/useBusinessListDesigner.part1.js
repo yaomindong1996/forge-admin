@@ -1033,9 +1033,18 @@ export function applyBusinessListDesignerPart1(props, emit) {
         : (treePanelBlock?.props?.sourceModelCode
             ? `get@/ai/crud/${treePanelBlock.props.sourceModelCode}/tree`
             : ''))
-    // 左树右表：右表平铺，绝不显示「添加下级」（忽略区块/表区残留 true）
+    // 左树右表：右表平铺默认不显示「添加下级」；本表嵌入式树已启用时跟随配置
+    const embeddedTreeOnRight = modelTreeConfig.enabled === true || modelSchema.appType === 'TREE'
     const enableTreeAddChild = schema.layoutType === 'tree-crud'
-      ? false
+      ? (embeddedTreeOnRight
+          ? (typeof modelTreeConfig.enableTreeAddChild === 'boolean'
+              ? modelTreeConfig.enableTreeAddChild
+              : typeof crudBlock?.props?.enableTreeAddChild === 'boolean'
+                ? crudBlock.props.enableTreeAddChild
+                : typeof tableProps.enableTreeAddChild === 'boolean'
+                  ? tableProps.enableTreeAddChild
+                  : true)
+          : false)
       : treeEnabled
         ? (typeof modelTreeConfig.enableTreeAddChild === 'boolean'
             ? modelTreeConfig.enableTreeAddChild

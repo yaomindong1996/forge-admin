@@ -56,6 +56,7 @@ final class RuntimeFieldPresentationSupport {
         copyBasicProp(field.getBasicProps(), props, "filterable");
         copyBasicProp(field.getBasicProps(), props, "multiple");
         copyBasicProp(field.getBasicProps(), props, "optionSource");
+        copyBasicProp(field.getBasicProps(), props, "options");
         copyBasicProp(field.getBasicProps(), props, "fieldMappings");
         copyBasicProp(field.getBasicProps(), props, "mappings");
         copyBasicProp(field.getBasicProps(), props, "labelValueField");

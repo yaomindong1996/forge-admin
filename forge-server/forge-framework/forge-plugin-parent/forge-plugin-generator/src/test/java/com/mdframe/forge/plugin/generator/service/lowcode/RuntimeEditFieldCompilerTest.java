@@ -67,6 +67,50 @@ class RuntimeEditFieldCompilerTest {
     }
 
     @Test
+    void staticOptionSourceKeepsOptionsForLabelMapping() {
+        LowcodeFieldSchema field = field("cooperationStatus", "radioButton");
+        field.setBasicProps(Map.of(
+                "optionSource", Map.of("type", "STATIC"),
+                "options", List.of(
+                        Map.of("label", "正常", "value", "1"),
+                        Map.of("label", "终止", "value", "2")
+                )
+        ));
+        Map<String, Object> item = RuntimeEditFieldCompiler.buildEditField(field, Map.of(
+                "props", Map.of(
+                        "optionSource", Map.of("type", "STATIC"),
+                        "options", List.of(
+                                Map.of("label", "正常", "value", "1"),
+                                Map.of("label", "终止", "value", "2")
+                        )
+                )
+        ));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> props = (Map<String, Object>) item.get("props");
+        assertTrue(props.containsKey("options"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> options = (List<Map<String, Object>>) props.get("options");
+        assertEquals(2, options.size());
+        assertEquals("正常", options.get(0).get("label"));
+        assertFalse(props.containsKey("labelValueField"));
+    }
+
+    @Test
+    void dynamicOptionSourceStillDropsStaleStaticOptions() {
+        LowcodeFieldSchema field = field("ownerId", "select");
+        Map<String, Object> item = RuntimeEditFieldCompiler.buildEditField(field, Map.of(
+                "props", Map.of(
+                        "optionSource", Map.of("type", "REMOTE", "api", "/users"),
+                        "options", List.of(Map.of("label", "选项1", "value", "1"))
+                )
+        ));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> props = (Map<String, Object>) item.get("props");
+        assertFalse(props.containsKey("options"));
+        assertEquals("ownerIdName", props.get("labelValueField"));
+    }
+
+    @Test
     void systemFieldCannotBeEditedEvenWhenDesignerMarksRequired() {
         LowcodeFieldSchema field = field("tenantId", "number");
         field.setSystemField(true);

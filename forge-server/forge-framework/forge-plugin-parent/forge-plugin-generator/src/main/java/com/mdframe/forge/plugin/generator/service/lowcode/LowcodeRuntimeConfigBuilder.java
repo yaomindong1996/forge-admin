@@ -136,7 +136,8 @@ public class LowcodeRuntimeConfigBuilder {
         List<Map<String, Object>> columns = resolveFields(modelSchema, pageSchema, "table",
                 field -> field.getListVisible() == null || Boolean.TRUE.equals(field.getListVisible()))
                 .stream()
-                .map(field -> tableColumnCompiler.buildTableColumn(field, resolveRuntimeFieldSetting(pageSchema, "table", field.getField()),
+                .map(field -> tableColumnCompiler.buildTableColumn(field,
+                        resolveTableColumnSetting(pageSchema, field.getField()),
                         modelSchema, pageSchema))
                 .collect(Collectors.toCollection(ArrayList::new));
 
@@ -512,9 +513,26 @@ public class LowcodeRuntimeConfigBuilder {
                 return true;
             }
         }
+        // 仅布局 / 真实 tree-panel 算树运行时。
+        // table zone 残留的空 treeConfig（无 source、未 enabled）不能再挂 /tree，
+        // 否则普通列表预览会报「树形父级字段不存在: parentId」。
         return (pageSchema != null && "tree-crud".equals(pageSchema.getLayoutType()))
-                || extractTreeConfigOverrides(pageSchema) instanceof Map<?, ?>
-                || hasTreePanelBlock(pageSchema);
+                || hasTreePanelBlock(pageSchema)
+                || isEnabledTreeOverride(extractTreeConfigOverrides(pageSchema));
+    }
+
+    private boolean isEnabledTreeOverride(Object overrides) {
+        if (!(overrides instanceof Map<?, ?> map) || map.isEmpty()) {
+            return false;
+        }
+        Object enabled = map.get("enabled");
+        if (Boolean.TRUE.equals(enabled) || Integer.valueOf(1).equals(enabled)
+                || "true".equalsIgnoreCase(String.valueOf(enabled)) || "1".equals(String.valueOf(enabled))) {
+            return true;
+        }
+        // 外部树源（左树绑分类对象）也算有效树配置
+        return StringUtils.isNotBlank(text(map.get("sourceConfigKey")))
+                || StringUtils.isNotBlank(text(map.get("sourceModelCode")));
     }
 
     private boolean isMasterDetailRuntime(LowcodePageSchema pageSchema) {
@@ -752,6 +770,30 @@ public class LowcodeRuntimeConfigBuilder {
         Map<String, Object> result = new LinkedHashMap<>(resolveFieldSetting(pageSchema, zoneKey, fieldName));
         Map<String, Object> gridSetting = resolveGridFieldSetting(pageSchema, zoneKey, fieldName);
         result.putAll(gridSetting);
+        return result;
+    }
+
+    /**
+     * 列表列设置：以 table zone 为主，并从 edit 区补齐静态 options（选项只配在表单设计里）。
+     */
+    private Map<String, Object> resolveTableColumnSetting(LowcodePageSchema pageSchema, String fieldName) {
+        Map<String, Object> result = new LinkedHashMap<>(resolveRuntimeFieldSetting(pageSchema, "table", fieldName));
+        Map<String, Object> editSetting = resolveEditFieldSetting(pageSchema, fieldName);
+        Object editPropsValue = editSetting.get("props");
+        if (editPropsValue instanceof Map<?, ?> editProps) {
+            Object options = editProps.get("options");
+            if (options instanceof List<?> list && !list.isEmpty()) {
+                Map<String, Object> props = mapValue(result.get("props"));
+                if (!(props.get("options") instanceof List<?> existing) || existing.isEmpty()) {
+                    props.put("options", options);
+                }
+                Object optionSource = editProps.get("optionSource");
+                if (optionSource != null && props.get("optionSource") == null) {
+                    props.put("optionSource", optionSource);
+                }
+                result.put("props", props);
+            }
+        }
         return result;
     }
 

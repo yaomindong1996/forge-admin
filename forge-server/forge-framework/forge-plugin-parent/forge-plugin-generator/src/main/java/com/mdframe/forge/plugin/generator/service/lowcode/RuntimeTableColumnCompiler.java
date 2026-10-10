@@ -6,8 +6,11 @@ import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePageModelRef;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePageSchema;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.mdframe.forge.plugin.generator.service.lowcode.RuntimeDesignerLayoutReader.text;
 import static com.mdframe.forge.plugin.generator.service.lowcode.RuntimeFieldPresentationSupport.applyAlignment;
@@ -119,6 +122,15 @@ final class RuntimeTableColumnCompiler {
             render.put("type", "relationName");
             render.put("targetField", field.getField() + "Name");
             item.put("render", render);
+        } else if (isStaticOptionComponent(componentType)) {
+            // 静态下拉/单选：把 options 打进列协议，列表直接 value→label，不依赖 xxxName
+            List<Map<String, Object>> staticOptions = resolveStaticOptions(field, pageSetting);
+            if (!staticOptions.isEmpty()) {
+                Map<String, Object> render = new LinkedHashMap<>();
+                render.put("type", "staticOptions");
+                render.put("options", staticOptions);
+                item.put("render", render);
+            }
         } else if ("switch".equals(renderType) || "switch".equals(componentType)) {
             Map<String, Object> render = new LinkedHashMap<>();
             render.put("type", "switch");
@@ -172,6 +184,38 @@ final class RuntimeTableColumnCompiler {
             case "fileUpload", "imageUpload", "switch" -> componentType;
             default -> "";
         };
+    }
+
+    private boolean isStaticOptionComponent(String componentType) {
+        return Set.of("select", "radio", "radioButton", "checkbox", "cascader", "treeSelect", "transfer")
+                .contains(StringUtils.defaultString(componentType));
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> resolveStaticOptions(LowcodeFieldSchema field,
+                                                           Map<String, Object> pageSetting) {
+        Object fromPage = null;
+        Object designerProps = pageSetting == null ? null : pageSetting.get("props");
+        if (designerProps instanceof Map<?, ?> propsMap) {
+            fromPage = propsMap.get("options");
+        }
+        if (fromPage == null && pageSetting != null) {
+            fromPage = pageSetting.get("options");
+        }
+        Object fromField = field != null && field.getBasicProps() != null
+                ? field.getBasicProps().get("options")
+                : null;
+        Object source = fromPage != null ? fromPage : fromField;
+        if (!(source instanceof List<?> list) || list.isEmpty()) {
+            return List.of();
+        }
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Object item : list) {
+            if (item instanceof Map<?, ?> map) {
+                result.add(new LinkedHashMap<>((Map<String, Object>) map));
+            }
+        }
+        return result;
     }
 
     private String resolveTableColumnTitle(LowcodeFieldSchema field,
