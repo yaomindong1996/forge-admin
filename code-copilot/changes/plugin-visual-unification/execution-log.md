@@ -73,3 +73,53 @@ node node_modules/vitest/vitest.mjs run \
 - 已读取版本维护及生产部署手册；服务器 ED25519 指纹与用户此前确认值一致，SSH 严格验证。
 - 版本检查、开源边界检查和 diff 空白检查通过；复用上一阶段增量测试与视觉证据。
 - 构建、备份和生产验收结果待追加；不将提交完成视为部署完成。
+
+### 2026-10-10 22:10 起：提交、构建与部署结果
+
+- 功能提交 `561ba23f5e8735dd2a5fa87a5ff5af069f3f64ef` 已普通快进推送 origin/main，24 个文件。
+  其它任务文档与 .DS_Store 均未暂存、修改或提交。
+- 提交前重新运行既有 8 文件 / 44 个测试，全部通过；版本与开源边界检查通过。
+- 在 `/private/tmp/forge-plugin-deploy.cHdaDM/source` 从该提交创建独立本地副本、detached HEAD，
+  仅复用已安装 node_modules；副本构建前后 git status 均干净，没有复制本地环境覆盖文件。
+- Node 20.19.0 构建命令：
+
+  ```sh
+  VITE_PUBLIC_PATH=/forge VITE_BASE_URL=/forge VITE_REQUEST_PREFIX=/forge-api VITE_OUT_DIR=dist \
+  NODE_OPTIONS=--max-old-space-size=8192 node node_modules/vite/bin/vite.js build --mode production --logLevel warn
+  ```
+
+- 构建成功，10130 modules / 954 chunks；仅已有 PLUGIN_TIMINGS 性能提示。
+  version.json：1.2.0，admin-ui，commit 为功能提交，builtAt 为 `2026-10-10T14:12:24.697Z`。
+  构建日志：`/private/tmp/forge-plugin-deploy.cHdaDM/build.log`。
+- UI 包 SHA-256：`3dc7a867a4651650f0a2c80d5aa8e83755fd16f3c06f201ee89efef92b602fd6`。
+  1041 文件 SHA256SUMS 清单摘要：`fa2c76a518b0d5a97172a01b621bac67e966db394fbc9e4b5bec089390d91048`。
+  上传到专用暂存目录后先核验包、清单和脚本摘要，解包拒绝越界路径或链接。
+- 生产旧 UI 备份：`/www/wwwroot/admin-service/backups/plugin-visual-561ba23f/ui.tar`，
+  摘要 `c610f1cd06a2ed43d26a4a44049036a4682c108422d73da6521e61dbf01678c0`。
+  备份目录 0700，未覆盖上轮备份。
+- 第一次暂存时，GNU coreutils 9.4 的 `cp -an` 对已有文件返回非零，部署在切换前停止。
+  只读确认旧 index 摘要、后端 PID 与启动时间均未变；改为逐项比较同名资源、仅复制缺失文件后重试。
+  没有忽略复制失败、跳过摘要校验或删除旧资源。
+- 暂存新包保留旧哈希资源，1041 项新文件再次全部校验通过；用 Linux renameat2 原子交换 UI 目录。
+  切换后再次核验 1041 项，失败保护会交换恢复；本次最终检查成功，没有执行回退。
+- 当前目录 `/www/wwwroot/html/dist`；完整上一版仍保存在
+  `/www/wwwroot/admin-service/releases/plugin-visual-561ba23f/ui`。
+  原子交换双方目录即可回退；后续若有其它部署，必须重新核对当前 commit，不能盲目重放脚本。
+- 公网 `/forge/` 的 index.html、version.json、预加载 JS/CSS、插件组件、ForgeSymbol、关于系统及新插画
+  共 170 项 HTTP 200，摘要与构建逐项一致，JS/图片 Content-Type 正确。
+  验证脚本：`/private/tmp/forge-plugin-deploy.cHdaDM/verify-public.mjs`。
+- 公网 `/forge-api/auth/loginConfig` 返回 code=200；匿名 `/forge-api/system/version` 仍返回 code=401。
+  未使用伪造 Token 或登录旁路；登录后完整业务交互仍复用本轮隔离组件验收，不冒充生产账号验收。
+- 后端 spring_forge-admin 保持 active/running，PID 2199367，NRestarts=0，启动时间仍为 21:22:36，
+  readiness 为 UP。Nginx 配置检查通过且摘要保持
+  `613ce14a3c0921936d22e74e1c7a7dae2f1922f9eadad38881677bb008e667c5`，未 reload 或改配置。
+- 只部署 Admin UI，不部署 Admin JAR/App/Flow/Report/H5/Website，不执行生产 SQL。
+  后端仍是上一轮 100ce072 构建，前后端版本均为 1.2.0 但 commit 不同；“关于系统”的来源差异提示
+  仍按既有规则展示，本轮不伪造统一提交号。
+- 版本保持不变、CHANGELOG 为 Unreleased；没有创建发布标签或宣称新语义版本发行。
+  后续文档提交只记录结果，不改变已部署源码锚点 561ba23f。
+- 独立无登录态浏览器访问生产 `/forge/system/plugin`，HTTP 200，正常跳转 `/forge/login`，
+  登录输入区可见，pageerror=0；没有尝试验证码、读取用户会话或执行登录/业务操作。
+  截图 `/private/tmp/forge-plugin-deploy.cHdaDM/production-login.png` 已检查。
+- 本轮浏览器实例已关闭，临时 SSH 控制连接已退出；未留下新增开发服务。
+  构建包、干净源码副本与远端回退备份保留供核验。
