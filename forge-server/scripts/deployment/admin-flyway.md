@@ -1,7 +1,8 @@
 # Admin 独立 JAR 部署与 Flyway 迁移来源
 
 `forge-admin-server.jar` 已通过 Admin POM 打包 `db/migration/*.sql`。
-独立部署时显式设置：
+新版默认读取 `classpath:db/migration`，本地、独立 JAR 和 Docker 无需额外复制或挂载 SQL 目录。
+目录缺失时启动失败，不自动回退到服务器旧文件。旧版本兼容或需要显式固定来源时可以设置：
 
 ```dotenv
 FORGE_FLYWAY_LOCATIONS=classpath:db/migration
@@ -11,11 +12,21 @@ FORGE_FLYWAY_LOCATIONS=classpath:db/migration
 EnvironmentFile，不覆盖现有变量。服务管理器须将它传给 Java 进程；修改 EnvironmentFile 后需要重启服务。
 若修改了 systemd unit 本身，再执行 `systemctl daemon-reload`。不要把此示例作为 Spring YAML 使用。
 
-## 为什么不能只替换 JAR
+## 升级时检查旧配置覆盖
 
-源码本地启动默认使用 filesystem 路径。服务器工作目录中的旧 `db/migration` 可能仍被优先读取，
-导致 JAR 正确但 Flyway 校验失败。不要同时扫描旧文件系统目录与新 classpath 目录。
+旧版默认使用 filesystem 路径。若外置配置、环境变量或 JVM 参数仍显式指向旧目录，
+它们会覆盖新版 JAR 的默认值，导致 JAR 正确但 Flyway 校验失败；升级时应移除覆盖或改为 classpath。
+不要同时扫描旧文件系统目录与新 classpath 目录。
 不要通过 `repair`、关闭校验、删除历史表或修改历史 checksum 掩盖这一问题。
+
+## 本地开发与 IDE
+
+- SQL 源文件仍维护在 `forge-server/db/migration`，不要复制第二套到 `src/main/resources`。
+- Maven 的 resources 阶段会把 SQL 不经占位符过滤地复制到 Admin 的 `target/classes/db/migration`。
+- IDE 首次运行或新增 SQL 后，刷新 Maven 项目并构建资源；可在 `forge-server` 执行
+  `mvn -pl forge-admin-server -am process-resources -DskipTests`。IDE 输出目录应包含相同的资源根。
+- 确有外部路径需求时仍可通过 `FORGE_FLYWAY_LOCATIONS=filesystem:/绝对路径` 覆盖，
+  但须自行保证该目录和应用版本一致；错误/缺失路径不会静默跳过。
 
 ## 部署检查
 
@@ -24,7 +35,7 @@ EnvironmentFile，不覆盖现有变量。服务管理器须将它传给 Java �
 3. 确认 JAR 内所有已执行脚本与历史记录一致，明确 pending 列表。存在新迁移时，先审查 SQL、
    备份目标数据库并确认升级范围，不能将首次启动当作只读健康检查。
 4. 备份该服务 EnvironmentFile、启动脚本及 unit；记录当前 JAR 的 SHA-256。
-5. 合并上面的配置，再重启 **Admin 单个服务**；不得顺带重启其它模块。
+5. 确认没有旧路径覆盖，按需合并上面的可选配置，再重启 **Admin 单个服务**；不得顺带重启其它模块。
 6. 确认日志出现 Flyway 校验成功和应用启动完成；检查进程、端口、健康及公开接口。
 7. 复查历史表无失败记录。只改来源且没有 pending 时，迁移历史内容不应变化。
 
@@ -42,4 +53,11 @@ EnvironmentFile，不覆盖现有变量。服务管理器须将它传给 Java �
 
 ```bash
 node --test forge-server/scripts/deployment/admin-flyway.test.mjs
+```
+
+Admin 配置绑定及 SQL 原字节复制测试不启动应用、不连接数据库。在 `forge-server` 中执行：
+
+```bash
+mvn -pl forge-admin-server -am install -DskipTests
+mvn -pl forge-admin-server test -Pdev,enable-tests -Dtest=FlywayClasspathConfigurationTest
 ```

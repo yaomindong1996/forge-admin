@@ -314,7 +314,8 @@ Admin 本地启动正常，生产同一项目打包后出现大量 checksum mism
 **解决方案**:
 
 - 先核对 systemd 工作目录、启动脚本、EnvironmentFile、活动 profile，再核对实际迁移来源。
-- 独立 JAR 部署设置 `FORGE_FLYWAY_LOCATIONS=classpath:db/migration`，确认进程实际收到变量；
-  不混扫旧目录。示例见 `forge-server/scripts/deployment/`。
+- 新版默认 `classpath:db/migration` 并启用目录缺失失败；旧版可设置
+  `FORGE_FLYWAY_LOCATIONS=classpath:db/migration`。升级时核对已有覆盖项，不混扫旧目录。
+  IDE 需刷新 Maven 并构建资源；示例见 `forge-server/scripts/deployment/`。
 - 修改前比较全部迁移与历史，确认 pending；保留 JAR、历史表和外部 SQL，不 repair、不关闭校验。
 - 服务器存在未激活的 profile 文件，不代表其配置正在生效；不要误改其数据源或历史表。

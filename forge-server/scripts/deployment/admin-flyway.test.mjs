@@ -9,6 +9,14 @@ const read = name => readFileSync(path.join(server, name), 'utf8')
 const example = read('scripts/deployment/forge-admin.env.example')
 const pom = read('forge-admin-server/pom.xml')
 const application = read('forge-admin-server/src/main/resources/application.yml')
+const compose = readFileSync(path.join(server, '../docker-forge-admin/docker-compose.yml'), 'utf8')
+
+test('Admin defaults to bundled migrations and fails when the location is missing', () => {
+  const location = application.split(/\r?\n/).find(line => /^\s+locations:/.test(line))?.trim()
+  const strict = application.split(/\r?\n/).find(line => /fail-on-missing-locations:/.test(line))?.trim()
+  assert.equal(location, 'locations: ${FORGE_FLYWAY_LOCATIONS:classpath:db/migration}')
+  assert.equal(strict, 'fail-on-missing-locations: true')
+})
 
 test('standalone deployment scans only migrations bundled in the JAR', () => {
   const entries = example.split(/\r?\n/).filter(line => line.trim() && !line.startsWith('#'))
@@ -30,4 +38,11 @@ test('deployment override is consumed without changing Admin history or disablin
   assert.match(application, /table:\s*forge_schema_history\b/)
   assert.doesNotMatch(application, /validate-on-migrate:\s*false/)
   assert.doesNotMatch(example, /(?:ENABLED=false|VALIDATE_ON_MIGRATE=false|SCHEMA_HISTORY|REPAIR)/)
+})
+
+test('Admin Docker deployment does not depend on a host migration directory', () => {
+  const admin = compose.match(/^  forge-admin:\n([\s\S]*?)(?=^  forge-ui:)/m)?.[1]
+  assert.ok(admin, 'Admin service configuration is missing')
+  assert.equal(admin.includes('db/migration'), false, 'Admin must not mount host migration SQL')
+  assert.match(admin, /application-datasource\.yml:\/app\/application-prod\.yml/)
 })

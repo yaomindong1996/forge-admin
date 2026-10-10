@@ -28,12 +28,34 @@
 
 ## 仓库交付
 
-保留独立 JAR 部署配置示例与回归约束，不改变本地 filesystem 默认行为，兼容 IDE 启动。
+第一阶段保留独立 JAR 部署配置示例与回归约束，未改变本地 filesystem 默认行为。
 首次部署不自动提交或 push。部署完成后用户要求提交，按当前 `codex/plugin-foundation` 分支
 提交本次部署示例、测试与记录；不自动 push，保留用户 `.DS_Store` 修改。
+
+## 第二阶段：代码默认行为修复
+
+用户进一步确认“按照这种修改”：避免其它部署者重复遇到同一问题。
+
+- Admin 默认 `locations` 改为 `${FORGE_FLYWAY_LOCATIONS:classpath:db/migration}`。
+- `fail-on-missing-locations=true`：缺失迁移目录时失败，不静默当成没有迁移。
+- 复用既有 Maven resource，将源 SQL 原字节复制到 classes/JAR，不改任何历史 SQL。
+- IDE/Maven/JAR 使用相同资源来源；IDE 需刷新 Maven 项目并构建资源，不自动回退到文件系统。
+- 保留显式外部路径覆盖。升级文档提示检查旧环境变量、JVM 参数与外置配置。
+- Admin Docker 示例不再挂载主机 SQL 目录，其它服务配置不在本轮改动范围。
+- 同步 README、AGENTS 与部署说明，扩展默认配置、缺失目录和完整资源测试。
+- 仅本地实现/验证；不重启生产、不写数据库、不自动提交或 push 新一轮改动。
 
 ## 验收结果
 
 已完成配置部署。实际 Java 进程收到 classpath 路径；Flyway 校验 217 条通过、无待迁移。
 Admin 启动完成、健康检查均 UP；公网 `/forge-api/auth/loginConfig` 返回 code=200。
 生产 JAR 未替换，未执行数据库修复或变更迁移历史。详见 execution-log.md。
+
+第二阶段源码修复完成：配置检查 5/5、Admin 定向测试 4/4 通过，发布打包成功；新 JAR 中
+217 个 SQL 与源文件逐字节一致。原有 AI 模块测试编译问题不在此轮修复范围，未将联编测试记为通过。
+本轮未提交/推送、未替换生产 JAR；第一阶段已部署的环境变量继续生效。
+
+## 提交与推送授权
+
+2026-10-10 用户要求“代码都 push”：将两阶段仓库改动推送到当前
+`codex/plugin-foundation` 分支，不合并 main，不触发生产部署；保留未纳入任务的 `.DS_Store`。

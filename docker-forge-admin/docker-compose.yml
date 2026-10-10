@@ -130,7 +130,6 @@ services:
     volumes:
       - crypto_secrets:/var/lib/forge/secrets
       - ./application-datasource.yml:/app/application-prod.yml
-      - ../forge-server/db/migration:/app/db/migration
     ports:
       - "${ADMIN_PORT:-8580}:8580"
     networks:

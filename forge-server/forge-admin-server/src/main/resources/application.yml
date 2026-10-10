@@ -70,8 +70,9 @@ spring:
       fail_on_unknown_properties: false
   flyway:
     enabled: ${FORGE_FLYWAY_ENABLED:true}
-    locations: ${FORGE_FLYWAY_LOCATIONS:filesystem:./db/migration,filesystem:../db/migration,filesystem:forge-server/db/migration}
-    fail-on-missing-locations: false
+    # 迁移跟随应用版本打包，避免读取启动目录中残留的旧 SQL；外部路径必须显式覆盖。
+    locations: ${FORGE_FLYWAY_LOCATIONS:classpath:db/migration}
+    fail-on-missing-locations: true
     baseline-on-migrate: true
     baseline-version: 1.0.0
     table: forge_schema_history
