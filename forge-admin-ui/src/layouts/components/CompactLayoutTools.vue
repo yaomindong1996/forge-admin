@@ -24,6 +24,9 @@
         <button type="button" @click="openAppearance">
           <i class="i-lucide:panels-top-left" /><span>布局与外观</span>
         </button>
+        <button type="button" @click="openAbout">
+          <i class="i-lucide:info" /><span>关于系统</span>
+        </button>
       </div>
       <div class="account-actions">
         <button class="logout-action" type="button" @click="logout">
@@ -53,6 +56,10 @@ const { handleAccountAction } = useAccountActions()
 function openProfile() {
   visible.value = false
   handleAccountAction('profile')
+}
+function openAbout() {
+  visible.value = false
+  handleAccountAction('about')
 }
 function logout() {
   visible.value = false

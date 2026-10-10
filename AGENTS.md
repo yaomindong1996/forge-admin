@@ -538,6 +538,26 @@ ORDER BY installed_rank DESC;
 - 提交模板前执行 `pnpm check:edition`，检查工作区可提交文件及暂存原始内容；社区样例允许独立提交。
   不自动修改 Git 索引，不取代代码审查。生成器去除模板专用忽略区块，也不复制此检查工具和命令。
 
+### 5.19 系统版本与发版规范（AI 必须执行）
+
+- **每次代码交付前明确本轮是否正式发版**；涉及版本调整、打包交付或发布时，必须先完整读取
+  [系统版本与发布维护](forge-docs/guide/release-version.md)，复用当前变更的 Spec、Tasks 和验证记录。
+- **唯一发行版本源**是 `forge-server/pom.xml` 的 `revision`，从 1.2.0 建立记录基线。
+  以后必须读取当前值，不得将本文示例当作永远的当前版本；禁止在页面硬编码版本或用数据库迁移号代替。
+- **日常开发不自动升版**：用户可感知功能、修复和升级注意事项写入 `CHANGELOG.md` 的 `Unreleased`。
+  只有明确进入发版流程且目标版本已确认时才升版；“继续优化”“提交代码”“push”不等于同意发布新版本。
+- 正式版本按兼容性选择：兼容修复升补丁号、兼容新增能力升次版本、不兼容变更升主版本。
+  用户未指定目标版本时先给建议并确认；不得重复使用已发布版本，禁止改写历史标签和发布产物。
+- 升版后执行 `pnpm version:sync`、`pnpm version:check`，维护精确版本的 CHANGELOG 段落；
+  生成工程额外核对 `forge.config.json`。插件、原生 App 和 Flyway 版本独立维护，禁止全仓库替换版本串。
+- **发布前必须验证**：按变更风险跑增量测试，发布构建默认跳过测试但不替代测试证据；
+  从同一干净发布提交构建交付范围内的各端，核对后端 build-info、前端 version.json 和“关于系统”。
+  发布提交、Git 标识、构建时间必须真实；未知信息明确缺省，不得伪造、拿前端信息冒充后端或隐瞒跳过项。
+- **分别确认操作授权**：实现、提交、推送、创建/推送标签、发布制品、部署及执行生产迁移不是同一个动作。
+  只执行用户授权范围内的操作，不因“发版规范”自动操作生产；禁止用 repair、关闭校验或改旧 SQL 掩盖迁移问题。
+- 收尾在 `execution-log.md` 记录当前/目标版本、CHANGELOG 归属、验证结果、跳过项与发布状态。
+  没有真实证据只能报告“待提交 / 待发布 / 待部署”，不能把代码完成或构建通过称为上线成功。
+
 ---
 
 ## 6. 本地开发及验证流程
@@ -698,6 +718,7 @@ curl -s -X DELETE http://localhost:8580/system/user/123 \
 | 项目决策 | `code-copilot/memory/decisions.md` | 架构决策记录 |
 | 用户偏好 | `code-copilot/memory/preferences.md` | 编码风格偏好 |
 | 更新日志 | `CHANGELOG.md` | 版本变更记录 |
+| 系统版本与发版 | `forge-docs/guide/release-version.md` | AI 发版必读、版本同步、用户入口与验收清单 |
 | Nginx 部署 | `NGINX_CONFIG.md` | 生产环境 Nginx 配置 |
 | 字典管理 | `forge-admin-ui/DICT_MANAGEMENT_SETUP.md` | 字典功能配置说明 |
 | 文件 URL 指南 | `forge-admin-ui/FILE_URL_GUIDE.md` | 文件访问 URL 规范 |

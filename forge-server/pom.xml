@@ -12,6 +12,8 @@
     <properties>
         <revision>1.2.0</revision>
         <forge-framework.version>${revision}</forge-framework.version>
+        <!-- 发布构建可用 -Dforge.build.commit=<Git SHA> 写入；未知时不伪造提交标识。 -->
+        <forge.build.commit>unknown</forge.build.commit>
         <spring-boot.version>3.5.13</spring-boot.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -217,6 +219,26 @@
     <packaging>pom</packaging>
     
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                    <executions>
+                        <execution>
+                            <id>forge-build-info</id>
+                            <goals><goal>build-info</goal></goals>
+                            <configuration>
+                                <additionalProperties>
+                                    <commit>${forge.build.commit}</commit>
+                                </additionalProperties>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

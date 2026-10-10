@@ -5,6 +5,7 @@ import { OUTPUT_DIR, brotliSize, chunkSizeWarningLimit, terserOptions, rollupOpt
 import viteCompression from 'vite-plugin-compression'
 import { viteMockServe } from 'vite-plugin-mock'
 import monacoEditorPlugin from 'vite-plugin-monaco-editor'
+import { pluginReleaseInfo } from '../scripts/forge-shared/release-info.mjs'
 
 function pathResolve(dir: string) {
   return resolve(process.cwd(), '.', dir)
@@ -73,6 +74,7 @@ export default defineConfig(({ mode }) => {
     __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'true'
   },
   plugins: [
+    pluginReleaseInfo(resolve(process.cwd(), '..'), 'report-ui'),
     vue({
       template: {
         compilerOptions: {

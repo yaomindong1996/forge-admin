@@ -202,3 +202,11 @@ Forge AI 中枢的真实 Flyway、Admin/Flow 服务启动、MCP Streamable HTTP 
 
 用户要求本仓库后续 commit message 必须用中文。可保留模块名、类名、文件路径等必要英文专有名词。仅 merge/revert、工具自动生成、或必须与外部英文仓库历史对齐时允许英文。已写入 `AGENTS.md` 5.17 与 `code-copilot/rules/coding-style.md` §5。
 
+## 28. AI 更新必须遵循统一发版流程
+
+**记录日期**：2026-10-10
+
+用户要求将发版规范留在仓库，后续 AI 更新工程时主动遵循，不依赖历史会话记忆。
+权威规则在根 `AGENTS.md` §5.19，操作与验收清单在 `forge-docs/guide/release-version.md`；
+此处只记录偏好与入口，不复制规则。
+

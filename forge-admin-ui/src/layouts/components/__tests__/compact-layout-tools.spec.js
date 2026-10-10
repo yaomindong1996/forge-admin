@@ -65,18 +65,21 @@ describe('无顶栏账户工具', () => {
     finally { wrapper.unmount() }
   })
 
-  it.each([['个人资料', 'profile'], ['退出登录', 'logout']])('%s 直接调用共用动作并关闭面板', async (label, key) => {
-    const wrapper = mount(CompactLayoutTools, options)
-    try {
-      await wrapper.find('button[aria-label="账户与工具"]').trigger('click')
-      expect(wrapper.text()).toContain('当前用户')
-      expect(wrapper.find('#user-dropdown').text()).toBe('个人资料')
-      const button = wrapper.findAll('button').find(item => item.text() === label)
-      await button.trigger('click')
-      expect(accountAction).toHaveBeenCalledOnce()
-      expect(accountAction).toHaveBeenCalledWith(key)
-      expect(wrapper.find('.compact-account-tools').exists()).toBe(false)
-    }
-    finally { wrapper.unmount() }
-  })
+  it.each([['个人资料', 'profile'], ['关于系统', 'about'], ['退出登录', 'logout']])(
+    '%s 直接调用共用动作并关闭面板',
+    async (label, key) => {
+      const wrapper = mount(CompactLayoutTools, options)
+      try {
+        await wrapper.find('button[aria-label="账户与工具"]').trigger('click')
+        expect(wrapper.text()).toContain('当前用户')
+        expect(wrapper.find('#user-dropdown').text()).toBe('个人资料')
+        const button = wrapper.findAll('button').find(item => item.text() === label)
+        await button.trigger('click')
+        expect(accountAction).toHaveBeenCalledOnce()
+        expect(accountAction).toHaveBeenCalledWith(key)
+        expect(wrapper.find('.compact-account-tools').exists()).toBe(false)
+      }
+      finally { wrapper.unmount() }
+    },
+  )
 })

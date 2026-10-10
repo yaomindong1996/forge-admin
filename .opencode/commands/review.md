@@ -46,6 +46,9 @@ agent: general
    - 是否有冗余代码
    - 是否有潜在风险（资金/状态流转/权限变更）
    - 是否遵循项目约定
+   - 依照根 AGENTS.md §5.19 核对版本策略与 CHANGELOG；正式发版还必须完整读取
+     `forge-docs/guide/release-version.md`，逐项核对发布证据、产物来源和未执行项
+   - 日常改动没有擅自升版；提交、推送、标签及部署的授权和实际状态没有混为一谈
 
 3. **读取审查标准**
    - 使用 `read` 工具读取 `code-copilot/agents/spec-reviewer.md`

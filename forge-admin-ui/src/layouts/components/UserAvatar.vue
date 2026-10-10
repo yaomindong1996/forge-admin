@@ -26,6 +26,7 @@ const props = defineProps({
 const { handleAccountAction } = useAccountActions(() => props.profileRoute)
 const dropdownOptions = [
   { label: '个人资料', key: 'profile', icon: () => h('i', { class: 'i-lucide:user-round text-14' }) },
+  { label: '关于系统', key: 'about', icon: () => h('i', { class: 'i-lucide:info text-14' }) },
   { label: '退出登录', key: 'logout', icon: () => h('i', { class: 'i-lucide:log-out text-14' }) },
 ]
 </script>

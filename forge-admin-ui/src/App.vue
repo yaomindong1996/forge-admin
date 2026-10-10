@@ -46,6 +46,7 @@
         <div v-if="watermarkConfig.enable" class="watermark-layer" :style="watermarkStyle" />
         <GlobalLoadingOverlay />
         <NoticeDetailModal />
+        <SystemAboutModal v-if="versionStore.visible" />
       </n-message-provider>
     </n-dialog-provider>
   </n-config-provider>
@@ -62,7 +63,8 @@ import SystemPageLayout from '@/components/common/SystemPageLayout.vue'
 import NoticeDetailModal from '@/components/notice/NoticeDetailModal.vue'
 import { useWatermark } from '@/composables/useWatermark'
 import { isApplicationPortalPath } from '@/router/guards/permission-guard'
-import { useAppStore, usePermissionStore, useTabStore, useUserStore } from '@/store'
+import { useAppStore, useAuthStore, usePermissionStore, useTabStore, useUserStore } from '@/store'
+import { useSystemVersionStore } from '@/stores/system/versionStore'
 import { initResponsiveFont } from '@/utils/responsive-font'
 import ApplicationPortalSkeleton from '@/views/app-center/components/portal/ApplicationPortalSkeleton.vue'
 import ApplicationRuntimeSkeleton from '@/views/app-center/components/portal/ApplicationRuntimeSkeleton.vue'
@@ -73,6 +75,10 @@ import { defaultLayout, layoutSettingVisible, normalizeLayout } from './settings
 
 // 使用 shallowRef 确保 Layout 引用稳定
 const LayoutComponent = shallowRef(null)
+const SystemAboutModal = defineAsyncComponent(() => import('@/components/common/SystemAboutModal.vue'))
+const versionStore = useSystemVersionStore()
+const versionAuth = useAuthStore()
+watch(() => versionAuth.accessToken, () => versionStore.close())
 
 const layouts = new Map()
 const layoutModules = import.meta.glob([

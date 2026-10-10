@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api'
 import { useAuthStore } from '@/store'
+import { useSystemVersionStore } from '@/stores/system/versionStore'
 import { isSilentAuthError } from '@/utils/http/helpers'
 
 // 顶栏与紧凑账户面板共用同一注销流程，门户可提供应用内资料路由。
@@ -50,6 +51,9 @@ export function useAccountActions(profileRoute = () => null) {
   }
 
   function handleAccountAction(key) {
+    if (key === 'about') {
+      return useSystemVersionStore().open()
+    }
     if (key === 'profile') {
       return openProfile()
     }

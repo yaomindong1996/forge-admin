@@ -263,13 +263,16 @@
       </view>
     </AiPopupSheet>
 
+    <SystemAboutSheet v-if="versionStore.visible" />
     <AiTabBar active="mine" />
   </view>
 </template>
 
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onHide, onShow } from '@dcloudio/uni-app'
+import SystemAboutSheet from '@/components/system/SystemAboutSheet.vue'
+import { useSystemVersionStore } from '@/store/modules/version'
 import AiAuthImage from '@/components/AiAuthImage.vue'
 import AiFeedbackHost from '@/components/feedback/AiFeedbackHost.vue'
 import AiButton from '@/components/AiButton.vue'
@@ -291,6 +294,8 @@ import { resolveStaticUrl } from '@/utils/assets'
 
 const authStore = useAuthStore()
 const appStore = useAppStore()
+const versionStore = useSystemVersionStore()
+onHide(() => versionStore.close())
 const defaultBrandLogo = resolveStaticUrl('/static/logo.png')
 const userInfo = computed(() => authStore.userInfo || {})
 
@@ -405,6 +410,7 @@ const menuGroups = computed(() => [
     items: [
       { key: 'settings', icon: '/static/icons/ai-icon/settings.svg', label: '通用设置', color: '#747677' },
       { key: 'help', icon: '/static/icons/ai-icon/help-circle.svg', label: '帮助与支持', color: MENU_TONES.cyan.color },
+      { key: 'about', icon: '/static/icons/ai-icon/info.svg', label: '关于系统', color: MENU_TONES.blue.color },
     ],
   },
 ])
@@ -431,6 +437,7 @@ function hideNativeTabBar() {
 
 function handleMenu(item) {
   const actionMap = {
+    about: () => versionStore.open(),
     profile: openProfileSheet,
     password: openPasswordSheet,
     security: () => { securitySheetVisible.value = true },

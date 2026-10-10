@@ -6,13 +6,21 @@ const mocks = vi.hoisted(() => ({
   logoutApi: vi.fn(),
   beginLogout: vi.fn(),
   logout: vi.fn(),
+  openAbout: vi.fn(),
 }))
 vi.mock('vue-router', () => ({ useRouter: () => ({ push: mocks.push }) }))
 vi.mock('@/api', () => ({ default: { logout: mocks.logoutApi } }))
 vi.mock('@/store', () => ({ useAuthStore: () => ({ beginLogout: mocks.beginLogout, logout: mocks.logout }) }))
 vi.mock('@/utils/http/helpers', () => ({ isSilentAuthError: error => error?.silent === true }))
+vi.mock('@/stores/system/versionStore', () => ({ useSystemVersionStore: () => ({ open: mocks.openAbout }) }))
 
 describe('共用账户动作', () => {
+  it('关于系统使用共享版本窗口，不跳转或注销', () => {
+    useAccountActions().handleAccountAction('about')
+    expect(mocks.openAbout).toHaveBeenCalledOnce()
+    expect(mocks.push).not.toHaveBeenCalled()
+    expect(mocks.logout).not.toHaveBeenCalled()
+  })
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.logoutApi.mockResolvedValue(undefined)

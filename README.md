@@ -556,6 +556,11 @@ A: 立即更换相关密码或密钥，然后从仓库历史和当前索引中�
 
 查看 [CHANGELOG.md](CHANGELOG.md) 了解项目版本变化。
 
+从 `1.2.0` 开始统一维护系统发行版本。用户可在 PC 的“个人菜单 → 关于系统”、
+H5 的“我的 → 关于系统”查看前后端版本和构建信息。
+开发者只维护根 POM 的 `revision`，使用 `pnpm version:sync` / `pnpm version:check` 同步与检查前端版本；
+具体发布与异常处理见 [系统版本维护](forge-docs/guide/release-version.md)。
+
 ## 🤝 贡献指南
 
 欢迎提交 Issue 和 Pull Request。请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)（Fork + PR，勿直接申请写权限）。

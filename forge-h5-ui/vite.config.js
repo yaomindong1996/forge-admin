@@ -8,6 +8,7 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import path from 'node:path'
 import { pluginIcons, pluginPagePathes } from './build/plugin-isme/index.js'
+import { pluginReleaseInfo } from '../scripts/forge-shared/release-info.mjs'
 
 const uni = uniPlugin.default
 
@@ -22,6 +23,7 @@ export default defineConfig(({ mode }) => {
     base: VITE_PUBLIC_PATH || '/',
     plugins: [
       uni(),
+      pluginReleaseInfo(path.resolve(process.cwd(), '..'), 'h5-ui'),
       Unocss(),
       AutoImport({
         imports: ['vue'],

@@ -1,7 +1,7 @@
 {
   "name": "vue-naive-admin",
   "type": "module",
-  "version": "2.0.0",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
     "dev": "node --max_old_space_size=8192 ./node_modules/vite/bin/vite.js",
