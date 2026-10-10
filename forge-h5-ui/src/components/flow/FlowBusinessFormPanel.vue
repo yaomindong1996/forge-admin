@@ -48,6 +48,15 @@ const {
 .form-schema-notice { padding: 16px 12px; border-radius: 10px; color: var(--forge-text-secondary); font-size: 13px; line-height: 1.6; text-align: center; background: var(--forge-surface-subtle); }
 .form-schema-notice text { display: block; }
 
+/* 分组底色是浅灰，可编辑控件统一白底加描边，只读字段为纯文本，一眼区分哪些能改 */
+.flow-business-form :deep(.ai-field__control:not(.is-disabled)),
+.flow-business-form :deep(.ai-textarea:not(.is-disabled)),
+.flow-business-form :deep(.wd-select-picker__cell),
+.flow-business-form :deep(.wd-datetime-picker__cell),
+.flow-business-form :deep(.lowcode-selector__trigger:not([disabled])) { border-color: var(--forge-border-strong, #e3e4e6); background: var(--forge-surface, #fff); }
+.flow-business-form :deep(.ai-field__control.is-focused),
+.flow-business-form :deep(.ai-textarea.is-focused) { border-color: var(--forge-color-primary, #0066ff); }
+
 /* 审批移动表单：单行控件使用左标签、右控件，避免桌面式纵向堆叠占满首屏。 */
 @media (max-width: 1023px) {
   .flow-business-form :deep(.card-section) { margin-bottom: 10px; padding: 12px; border-color: transparent; border-radius: 12px; background: var(--forge-surface-subtle); }

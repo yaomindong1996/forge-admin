@@ -79,7 +79,7 @@ provide('activeIndex', activeIndex)
       box-shadow: none;
     }
 
-    /* 钉钉式选中态：文字加粗 + 下方 3px 深色短横线 */
+    /* 选中态：文字加粗 + 下方 3px 深色短横线 */
     &--active::before {
       position: absolute;
       bottom: 2px;

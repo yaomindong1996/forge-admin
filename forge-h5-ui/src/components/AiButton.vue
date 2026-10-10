@@ -67,7 +67,7 @@ function handleClick(event) {
 .ai-button--sm { min-height: 44px; font-size: 14px; }
 .ai-button--md { min-height: 44px; }
 .ai-button--lg { min-height: 48px; }
-/* 次按钮：浅灰底 + 主色文字（钉钉“管理”按钮样式） */
+/* 次按钮：浅灰底 + 主色文字 */
 .ai-button--secondary { color: var(--forge-color-primary, #0066ff) !important; border-color: transparent !important; background: var(--forge-surface-muted, #ebecf0) !important; }
 .ai-button--outline { color: var(--forge-color-primary, #0066ff) !important; border-color: var(--forge-color-primary-border, #b3d1ff) !important; background: #fff !important; }
 .ai-button--ghost { color: var(--forge-color-primary, #0066ff) !important; background: transparent !important; }

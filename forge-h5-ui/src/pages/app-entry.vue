@@ -2,7 +2,7 @@
   <AiLayoutPage :title="title" subtitle="已从全部应用打开">
     <AiFeedbackHost />
     <view class="app-entry">
-      <AiAppIcon icon="/static/icons/ai-icon/layout.svg" :color="MENU_TONES.blue.color" :bg="MENU_TONES.blue.bg" />
+      <AiAppIcon :icon="appIconUrl('layout')" />
       <text class="app-entry__title">{{ title }}</text>
       <text class="app-entry__desc">该功能已由后台菜单授权。移动端页面完成配置后，将自动从这里进入。</text>
       <AiButton block @click="goHome">返回工作台</AiButton>
@@ -17,7 +17,7 @@ import AiAppIcon from '@/components/AiAppIcon.vue'
 import AiButton from '@/components/AiButton.vue'
 import AiFeedbackHost from '@/components/feedback/AiFeedbackHost.vue'
 import AiLayoutPage from '@/components/AiLayoutPage.vue'
-import { MENU_TONES } from '@/utils/mobile-menu'
+import { appIconUrl } from '@/utils/mobile-menu'
 
 const title = ref('应用功能')
 

@@ -1,4 +1,4 @@
-# H5 钉钉风格改版 Tasks
+# H5 移动办公风格改版 Tasks
 
 > 依赖：spec.md 第 8 章待澄清项确认。每个任务完成后执行 test-spec.md 对应检查，并追加到 execution-log.md。
 
@@ -18,7 +18,7 @@
   - `pages.json` 的 `tabBar.list` 改为五项，五个页签页设为 `custom`。
   - `TAB_ROUTES`、`STACK_ROUTES` 同步调整。
 - [x] T5 页签页顶栏组件
-  - 新建 `components/AiTabHeader.vue`：租户头像、标题、副标题、搜索、功能插槽、状态栏安全区，以及企业微信、钉钉内嵌环境下的退化处理。
+  - 新建 `components/AiTabHeader.vue`：租户头像、标题、副标题、搜索、功能插槽、状态栏安全区，以及企业微信等第三方 App 内嵌环境下的退化处理。
 - [x] T6 公共组件换肤
   - `AiCard`、`AiCell`、`AiCellGroup`、`AiTabs`（下划线样式）、`AiSearchBar`、`AiButton`（次按钮）、`AiPopupSheet`、`AiEmpty`、`AiListSkeleton`、`AiTag`。
 
@@ -49,3 +49,12 @@
 - [ ] T18 全量验证
   - 已完成：`node --test` 105/105 通过，`build:h5` 通过，本地 H5 预览截图已记录。
   - 剩余：后端 `mvn -pl forge-framework/forge-plugin-parent/forge-plugin-system -am compile` 及 T15 测试，需在有 JDK 的环境执行。
+
+## 阶段五：第二轮视觉修正（spec 第 10 章）
+
+- [x] T19 生成彩色应用图标与空状态插画，透明底处理后放入 `static/app-icons/`、`static/illustrations/`。
+- [x] T20 `mobile-menu.js` 图标映射改为彩色图标；`AiAppIcon` 支持图片图标；工作台、通讯录入口使用新图标。
+- [x] T21 `AiEmpty` 按类型选插画；通讯录顶栏去掉重复 logo，失败态加重新加载。
+- [x] T22 审批表单只读纯文本、可编辑白底描边。
+- [x] T23 消息列表彩色分类图标与已读/未读层级。
+- [x] T24 契约测试、`node --test`、`build:h5`、`build:mp-weixin`、页面预览截图。

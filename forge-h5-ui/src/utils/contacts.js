@@ -3,7 +3,7 @@ export const CONTACT_PAGE_SIZE = 20
 const CJK_PATTERN = /[\u3400-\u9FFF]/
 
 /**
- * 头像缺省时的文字：中文姓名取后两字（钉钉习惯），其余取前两个字母
+ * 头像缺省时的文字：中文姓名取后两字，其余取前两个字母
  */
 export function contactInitials(name) {
   const text = String(name || '').trim()

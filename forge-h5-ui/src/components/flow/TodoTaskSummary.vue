@@ -10,7 +10,7 @@
         <AiIcon icon="/static/icons/ai-icon/refresh-cw.svg" color="#747677" size="sm" />
       </button>
     </view>
-    <!-- 当前节点：钉钉详情页顶部的“审批中”提示条 -->
+    <!-- 当前节点：详情页顶部的“审批中”提示条 -->
     <view class="task-node">
       <AiIcon icon="/static/icons/ai-icon/file-text.svg" color="#fd8838" size="xs" />
       <text>当前节点：{{ task.taskName || task.name || '审批节点' }}</text>

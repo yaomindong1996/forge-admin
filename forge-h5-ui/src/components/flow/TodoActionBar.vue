@@ -39,7 +39,7 @@ const {
 </script>
 
 <style lang="scss" scoped>
-/* 钉钉审批底栏：更多 | 驳回（灰底次按钮）| 同意（主按钮），按钮等高同圆角 */
+/* 审批底栏：更多 | 驳回（灰底次按钮）| 同意（主按钮），按钮等高同圆角 */
 .action-bar { position: relative; z-index: 5; display: flex; align-items: center; gap: 8px; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid var(--forge-border); background: var(--forge-surface); box-shadow: none; }
 .action-bar :deep(.ai-button) { min-width: 0; min-height: 44px; flex: 1; padding: 0 12px; border-radius: var(--forge-radius-control) !important; font-size: 16px; }
 .action-bar :deep(.ai-button--block) { width: 100%; }

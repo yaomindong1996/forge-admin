@@ -1,6 +1,6 @@
 <template>
   <view class="ai-tabbar-host">
-    <!-- 悬浮胶囊底栏：选中项为灰色底块 + 深色图标，参照钉钉移动端 -->
+    <!-- 悬浮胶囊底栏：选中项为灰色底块 + 深色图标 -->
     <view class="ai-tabbar">
       <button
         v-for="tab in tabs"

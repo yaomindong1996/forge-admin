@@ -382,6 +382,7 @@ const fieldClasses = computed(() => ({
   [`is-status-${fieldProps.value.status}`]: Boolean(fieldProps.value.status),
 }))
 const readonlyClasses = computed(() => ({
+  'is-empty': displayValue.value === '-',
   'is-ellipsis': fieldProps.value.ellipsis === true,
   'is-strong': fieldProps.value.strong === true,
   'is-italic': fieldProps.value.italic === true,
@@ -612,7 +613,9 @@ defineExpose({ validate })
 .lowcode-field__label { display: flex; margin-bottom: 12rpx; color: #747677; font-size: 28rpx; font-weight: 400; line-height: 1.5; }
 .lowcode-field__required { margin-left: 6rpx; color: #ff5219; }
 .lowcode-field__control { min-height: 88rpx; }
-.lowcode-field__readonly { min-height: 88rpx; padding: 20rpx 24rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-control); color: #747677; background: #f7f8fa; box-sizing: border-box; line-height: 1.5; word-break: break-all; }
+/* 只读值按纯文本展示，与带底色的可编辑控件区分开 */
+.lowcode-field__readonly { min-height: 88rpx; padding: 12rpx 0; color: var(--forge-text-primary, #171a1d); font-size: 15px; box-sizing: border-box; line-height: 1.5; word-break: break-all; }
+.lowcode-field__readonly.is-empty { color: var(--forge-text-tertiary, #a2a3a5); }
 .lowcode-field__readonly { display: flex; align-items: center; gap: 12rpx; }
 .lowcode-field__readonly-value { min-width: 0; flex: 1; }
 .lowcode-field__readonly.is-ellipsis .lowcode-field__readonly-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -1,13 +1,16 @@
 <template>
   <view class="ai-tab-header" :class="{ 'is-gradient': gradient, 'is-embedded': embedded }" :style="{ paddingTop: `${statusBarHeight}px` }">
     <view class="ai-tab-header__bar">
-      <!-- 企业微信/钉钉内嵌浏览器自带标题栏，只保留搜索和功能区，避免出现双标题 -->
+      <!-- 企业微信等第三方 App 内嵌浏览器自带标题栏，只保留搜索和功能区，避免出现双标题 -->
       <view v-if="!embedded" class="ai-tab-header__brand" @click="emit('brand')">
-        <image v-if="logoUrl" class="ai-tab-header__logo" :src="logoUrl" mode="aspectFill" />
-        <text v-else class="ai-tab-header__logo ai-tab-header__logo--text">{{ initials }}</text>
+        <!-- showOrg=false：页面正文已有组织信息（如通讯录组织卡片），顶栏只留标题 -->
+        <template v-if="showOrg">
+          <image v-if="logoUrl" class="ai-tab-header__logo" :src="logoUrl" mode="aspectFill" />
+          <text v-else class="ai-tab-header__logo ai-tab-header__logo--text">{{ initials }}</text>
+        </template>
         <view class="ai-tab-header__copy">
           <text class="ai-tab-header__title">{{ title }}</text>
-          <text v-if="orgName" class="ai-tab-header__subtitle">{{ orgName }}</text>
+          <text v-if="showOrg && orgName" class="ai-tab-header__subtitle">{{ orgName }}</text>
         </view>
       </view>
       <view class="ai-tab-header__tools" :class="{ 'is-full': embedded }">
@@ -32,6 +35,7 @@ const props = defineProps({
   searchable: { type: Boolean, default: true },
   searchPlaceholder: { type: String, default: '搜索' },
   gradient: { type: Boolean, default: false },
+  showOrg: { type: Boolean, default: true },
 })
 const emit = defineEmits(['search', 'brand'])
 

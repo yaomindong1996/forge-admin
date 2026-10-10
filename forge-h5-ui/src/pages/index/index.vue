@@ -53,7 +53,7 @@
               <text class="shortcut-label">{{ item.label }}</text>
             </button>
             <button v-if="allMenuItems.length" class="shortcut-item shortcut-more" @click="openMenuSheet">
-              <AiAppIcon icon="/static/icons/ai-icon/grid.svg" color="#747677" bg="#ebecf0" />
+              <AiAppIcon :icon="appIconUrl('more')" />
               <text class="shortcut-label">全部应用</text>
             </button>
           </view>
@@ -148,7 +148,7 @@ import api from '@/api'
 import { useAppStore, useAuthStore, useBadgeStore, useNoticeStore } from '@/store'
 import { resolveStaticUrl } from '@/utils/assets'
 import { toast } from '@/utils/notify'
-import { buildMobileMenuGroups, flattenMobileMenus } from '@/utils/mobile-menu'
+import { appIconUrl, buildMobileMenuGroups, flattenMobileMenus } from '@/utils/mobile-menu'
 import { openTab } from '@/utils/tab-handoff'
 
 const authStore = useAuthStore()

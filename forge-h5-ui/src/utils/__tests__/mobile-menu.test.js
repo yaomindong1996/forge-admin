@@ -40,10 +40,13 @@ test('menu entries preserve meaningful icons and replace generic duplicates sema
     path: '/pages/lowcode-runtime?configKey=approval',
     icon: 'AppsOutline',
   }]
-  assert.equal(flattenMobileMenus(menus)[0].icon, '/static/icons/ai-icon/edit-3.svg')
-  assert.equal(resolveMobileMenuIcon({ icon: 'i-ai-icon:workflow' }), 'i-ai-icon:workflow')
-  assert.equal(resolveMobileMenuIcon({ id: 12, resourceName: '店铺', icon: 'AppsOutline' }), '/static/icons/ai-icon/shopping-bag.svg')
-  assert.notEqual(resolveMobileMenuIcon({ id: 12, resourceName: '未知应用', icon: '-1' }), '')
+  assert.equal(flattenMobileMenus(menus)[0].icon, '/static/app-icons/seal.png')
+  assert.equal(resolveMobileMenuIcon({ id: 12, resourceName: '店铺', icon: 'AppsOutline' }), '/static/app-icons/shop.png')
+  assert.equal(resolveMobileMenuIcon({ id: 13, resourceName: '测试', icon: 'i-ai-icon:workflow' }), '/static/app-icons/tool.png')
+  assert.equal(resolveMobileMenuIcon({ id: 14, resourceName: '店铺', icon: 'ionicons5:StorefrontOutline' }), '/static/app-icons/shop.png')
+  assert.equal(resolveMobileMenuIcon({ icon: 'https://cdn.example.com/app.png' }), 'https://cdn.example.com/app.png')
+  assert.equal(resolveMobileMenuIcon({ icon: '/static/custom/seal.png' }), '/static/custom/seal.png')
+  assert.match(resolveMobileMenuIcon({ id: 12, resourceName: '未知应用', icon: '-1' }), /^\/static\/app-icons\/[a-z]+\.png$/)
 })
 
 test('menu routes preserve configured queries and never use placeholder pages', () => {

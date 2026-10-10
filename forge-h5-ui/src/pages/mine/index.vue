@@ -46,7 +46,7 @@
         <AiIcon icon="/static/icons/ai-icon/chevron-right.svg" color="#c1c3c6" size="sm" @click="openProfileSheet" />
       </view>
 
-      <!-- 功能列表：钉钉式列表行，图标语义色 + 右侧附加信息 -->
+      <!-- 功能列表：移动端列表行，图标语义色 + 右侧附加信息 -->
       <view class="menu-groups">
         <view
           v-for="(group, groupIndex) in menuGroups"

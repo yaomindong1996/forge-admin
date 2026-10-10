@@ -15,7 +15,7 @@ cd forge-h5-ui && npx -y pnpm@9 install
 cd forge-h5-ui && node --test src/utils/__tests__ src/store/modules/__tests__
 ```
 
-基线：`h5-dingtalk-redesign` 完成后为 105 通过、0 失败。本变更只新增和追加用例，已有用例必须全部保持通过。
+基线：`h5-mobile-redesign` 完成后为 105 通过、0 失败。本变更只新增和追加用例，已有用例必须全部保持通过。
 
 | 用例 | 文件 | 预期 |
 |------|------|------|

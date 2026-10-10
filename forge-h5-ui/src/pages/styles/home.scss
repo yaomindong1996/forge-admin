@@ -97,7 +97,7 @@ button::after {
   font-size: 12px;
 }
 
-/* 发起审批：次按钮样式（灰底 + 主色文字），与钉钉"管理"按钮一致 */
+/* 发起审批：次按钮样式（灰底 + 主色文字），与 AiButton 次按钮一致 */
 .overview-start {
   display: flex;
   height: 32px;
@@ -253,9 +253,12 @@ button::after {
   font-weight: 600;
 }
 
+/* uni-app 按钮自带 ::after 描边（top: 0、border），需覆盖，否则短横线跑到文字上方 */
 .group-tab.active::after {
   position: absolute;
+  top: auto;
   bottom: 4px;
+  border: 0;
   left: 50%;
   display: block;
   width: 20px;

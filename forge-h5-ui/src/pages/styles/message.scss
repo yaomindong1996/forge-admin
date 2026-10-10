@@ -93,10 +93,14 @@ button::after {
   font-weight: 600;
 }
 
+/* 上方 button::after 统一隐藏了按钮描边，这里要显式恢复为下划线 */
 .message-scope-tab.active::after {
   position: absolute;
+  top: auto;
   bottom: 4px;
   left: 50%;
+  display: block;
+  border: 0;
   width: 20px;
   height: 3px;
   border-radius: 2px;
@@ -121,6 +125,15 @@ button::after {
   line-height: 16px;
   text-align: center;
   box-sizing: border-box;
+}
+
+.scope-count.is-plain {
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--forge-text-tertiary);
+  font-size: 12px;
+  font-weight: 400;
 }
 
 .mark-read-button {
@@ -168,6 +181,7 @@ button::after {
   height: 1px;
   background: var(--forge-border);
   content: '';
+  transform: scaleY(0.5);
 }
 
 .message-row:active {
@@ -176,19 +190,20 @@ button::after {
 
 .message-icon {
   position: relative;
-  display: flex;
+  flex: 0 0 44px;
   width: 44px;
   height: 44px;
-  flex: 0 0 44px;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--forge-radius-icon);
+}
+
+.message-icon .ai-app-icon {
+  width: 44px;
+  height: 44px;
 }
 
 .message-dot {
   position: absolute;
-  top: -3px;
-  right: -3px;
+  top: -2px;
+  right: -2px;
   width: 10px;
   height: 10px;
   border: 2px solid var(--forge-surface);
@@ -212,13 +227,15 @@ button::after {
   min-width: 0;
   flex: 1;
   overflow: hidden;
-  color: var(--forge-text-primary);
+  color: var(--forge-text-secondary);
   font-size: 16px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* 未读：标题加粗一级色；已读整体降一级，扫一眼就能看出哪些还没处理 */
 .message-row.unread .message-title {
+  color: var(--forge-text-primary);
   font-weight: 600;
 }
 
@@ -235,27 +252,27 @@ button::after {
 
 .message-category {
   flex: 0 0 auto;
-  color: var(--forge-text-secondary);
+  color: var(--forge-text-tertiary);
   font-size: 13px;
+}
+
+.message-row.unread .message-category {
+  color: var(--forge-color-primary);
 }
 
 .message-desc {
   min-width: 0;
   flex: 1;
   overflow: hidden;
-  color: var(--forge-text-secondary);
+  color: var(--forge-text-tertiary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* 分类色调，与应用图标色板一致 */
-.tone-blue { background: var(--forge-tone-blue-bg); color: var(--forge-tone-blue); }
-.tone-orange { background: var(--forge-tone-orange-bg); color: var(--forge-tone-orange); }
-.tone-emerald { background: var(--forge-tone-green-bg); color: var(--forge-tone-green); }
-.tone-purple { background: var(--forge-tone-purple-bg); color: var(--forge-tone-purple); }
-.tone-cyan { background: var(--forge-tone-cyan-bg); color: var(--forge-tone-cyan); }
-.tone-rose { background: var(--forge-tone-red-bg); color: var(--forge-tone-red); }
+.message-row.unread .message-desc {
+  color: var(--forge-text-secondary);
+}
 
 .message-filter-field {
   display: flex;

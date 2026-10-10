@@ -16,28 +16,30 @@ export const MENU_TONES = {
   red: { bg: '#ffe4e0', color: '#f04438' },
 }
 const TONE_KEYS = Object.keys(MENU_TONES)
-const GENERIC_MENU_ICONS = new Set([
-  '', '-1', 'apps', 'apps-outline', 'appsoutline', 'appstore', 'appstore-outline',
-  'grid', 'grid-outline', 'menu', 'menu-outline', 'application', 'applications',
-])
-const FALLBACK_MENU_ICONS = [
-  'layout', 'box', 'briefcase', 'file-text', 'database', 'layers', 'package', 'tool',
-]
+const FALLBACK_APP_ICONS = ['layout', 'briefcase', 'database', 'file', 'package', 'chart']
 const MENU_ICON_RULES = [
-  [/(印章|用印|签章|合同)/, 'edit-3', 'red'],
-  [/(店铺|门店|商城|商店)/, 'shopping-bag', 'orange'],
+  [/(印章|用印|签章|合同)/, 'seal', 'red'],
+  [/(店铺|门店|商城|商店)/, 'shop', 'orange'],
   [/(资产|物料|库存|领用|产品)/, 'package', 'cyan'],
-  [/(采购|购物|订单)/, 'shopping-cart', 'orange'],
-  [/(报销|费用|财务|付款|收款)/, 'credit-card', 'orange'],
+  [/(采购|购物|订单)/, 'cart', 'orange'],
+  [/(报销|费用|财务|付款|收款)/, 'finance', 'orange'],
   [/(请假|日程|排班|考勤)/, 'calendar', 'blue'],
   [/(用户|人员|员工|客户|成员)/, 'users', 'green'],
   [/(供应商|物流|运输)/, 'truck', 'cyan'],
-  [/(审批|流程|工单|任务)/, 'check-square', 'blue'],
-  [/(消息|通知|公告)/, 'message-square', 'blue'],
-  [/(报表|统计|分析|看板)/, 'bar-chart-2', 'purple'],
-  [/(文件|文档|资料|档案)/, 'file-text', 'cyan'],
+  [/(审批|流程|工单|任务)/, 'approval', 'blue'],
+  [/(消息|通知|公告)/, 'message', 'blue'],
+  [/(报表|统计|分析|看板)/, 'chart', 'purple'],
+  [/(文件|文档|资料|档案)/, 'file', 'cyan'],
   [/(测试|调试|工具)/, 'tool', 'purple'],
 ]
+
+export function appIconUrl(key) {
+  return `/static/app-icons/${key}.png`
+}
+
+export function isImageIcon(icon) {
+  return /^(?:https?:)?\/\//.test(icon) || /\.(?:png|jpe?g|webp|gif)(?:\?.*)?$/i.test(icon)
+}
 
 function visible(menu) {
   return menu && menu.visible !== 0 && menu.menuStatus !== 0
@@ -80,19 +82,14 @@ function sorted(list = []) {
 
 export function resolveMobileMenuIcon(menu = {}) {
   const icon = String(menu.icon || '').trim()
-  const normalized = icon
-    .replace(/^ionicons5:/i, '')
-    .replace(/^i-[^:]+:/i, '')
-    .replace(/[^a-z0-9-]/gi, '')
-    .toLowerCase()
-  // 接口配置了明确业务图标时仍原样使用；Apps/Grid 等通用占位图标
-  // 无法区分功能，按真实菜单语义生成稳定的移动端图标。
-  if (icon && !GENERIC_MENU_ICONS.has(normalized)) return icon
+  // 后台菜单图标是 PC 端线性图标（i-* / ionicons5:*），移动端按外链加载容易空白，
+  // 且与彩色应用图标风格不一致；只有后台明确配置图片地址时才原样使用。
+  if (icon && isImageIcon(icon)) return icon
 
   const identity = menuIdentity(menu)
   const semanticIcon = matchIconRule(identity)?.[1]
-  if (semanticIcon) return `/static/icons/ai-icon/${semanticIcon}.svg`
-  return `/static/icons/ai-icon/${FALLBACK_MENU_ICONS[stableHash(menu, identity) % FALLBACK_MENU_ICONS.length]}.svg`
+  if (semanticIcon) return appIconUrl(semanticIcon)
+  return appIconUrl(FALLBACK_APP_ICONS[stableHash(menu, identity) % FALLBACK_APP_ICONS.length])
 }
 
 // 同一个应用在常用应用、分组页签、全部应用弹层中必须同色，所以色调只由菜单本身决定。

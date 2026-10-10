@@ -22,9 +22,11 @@
               @click="switchTab(tab.key)"
             >
               {{ tab.label }}
+              <!-- 只有未读数用红色角标，其它页签数量只是信息提示 -->
               <text
                 v-if="tabBadgeVisible[tab.key]"
                 class="scope-count"
+                :class="{ 'is-plain': tab.key !== 'unread' }"
               >{{ tabBadgeText[tab.key] }}</text>
             </button>
           </view>
@@ -36,7 +38,7 @@
         </view>
       </view>
 
-      <!-- 消息列表：钉钉式会话行，左侧分类图标 + 未读红点 -->
+      <!-- 消息列表：会话式列表行，左侧分类图标 + 未读红点 -->
       <scroll-view class="message-list" scroll-y :show-scrollbar="false">
         <NoticeEntryRow />
         <AiListSkeleton v-if="loading" :rows="6" />
@@ -56,8 +58,8 @@
             :class="{ unread: isUnreadMessage(item) }"
             @click="openMessage(item)"
           >
-            <view class="message-icon" :class="messageCategoryTone(item)">
-              <AiIcon :name="messageCategoryIcon(item)" color="currentColor" size="md" class="message-icon__glyph" />
+            <view class="message-icon">
+              <AiAppIcon :icon="messageCategoryIcon(item)" />
               <view v-if="isUnreadMessage(item)" class="message-dot" />
             </view>
             <view class="message-main">
@@ -87,6 +89,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
+import AiAppIcon from '@/components/AiAppIcon.vue'
 import AiEmpty from '@/components/AiEmpty.vue'
 import AiFilterSheet from '@/components/AiFilterSheet.vue'
 import AiFeedbackHost from '@/components/feedback/AiFeedbackHost.vue'
@@ -108,6 +111,7 @@ import {
   resolveFlowMessageMode,
   resolveFlowMessageTaskId,
 } from '@/utils/message-flow-navigation'
+import { appIconUrl } from '@/utils/mobile-menu'
 import { toast } from '@/utils/notify'
 
 const badgeStore = useBadgeStore()
@@ -429,23 +433,9 @@ function getMessageCategory(item) {
 }
 
 function messageCategoryIcon(item = {}) {
-  if (isApprovalMessage(item)) return 'check-square'
-  const icons = { SYSTEM: 'settings', SMS: 'smartphone', EMAIL: 'mail' }
-  return icons[String(item.type || '').toUpperCase()] || 'bell'
-}
-
-function messageCategoryTone(item = {}) {
-  if (isApprovalMessage(item)) return 'tone-blue'
-  const identity = `${getMessageCategory(item)} ${item.type || ''} ${item.bizType || ''}`.toLowerCase()
-  const semanticTones = [
-    [/(系统|system)/, 'tone-purple'],
-    [/(短信|sms)/, 'tone-cyan'],
-    [/(邮件|email)/, 'tone-emerald'],
-    [/(通知|公告|notice|message|custom)/, 'tone-orange'],
-  ]
-  const matched = semanticTones.find(([pattern]) => pattern.test(identity))
-  if (matched) return matched[1]
-  return 'tone-rose'
+  if (isApprovalMessage(item)) return appIconUrl('approval')
+  const icons = { SYSTEM: 'system', SMS: 'sms', EMAIL: 'email' }
+  return appIconUrl(icons[String(item.type || '').toUpperCase()] || 'notice')
 }
 
 function stripHtml(value) {

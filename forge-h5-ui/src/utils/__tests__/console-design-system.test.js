@@ -35,7 +35,7 @@ function readProductionStyles() {
   return files.map(file => fs.readFileSync(file, 'utf8')).join('\n')
 }
 
-test('H5 theme exposes the DingTalk palette and sizing tokens', () => {
+test('H5 theme exposes the mobile office palette and sizing tokens', () => {
   const source = readSource('styles/theme.css').toLowerCase()
   assert.match(source, /--forge-color-primary:\s*#0066ff/)
   assert.match(source, /--forge-color-primary-soft:\s*#e8f1ff/)
@@ -387,7 +387,7 @@ test('approval actions, message cards and mine scrolling follow the reference mo
   assert.match(messageStyle, /\.message-scope-tab\.active/)
   assert.match(messageStyle, /\.message-query-row[\s\S]*align-items:\s*center/)
   assert.match(messageStyle, /\.message-query-row :deep\(\.ai-search-bar\)[^}]*flex:\s*1/)
-  // 消息改为钉钉会话行：分类图标 + 未读红点，分隔线从文字起始处开始
+  // 消息改为会话式列表行：分类图标 + 未读红点，分隔线从文字起始处开始
   assert.match(message, /class="message-row"[\s\S]*class="message-icon"[\s\S]*class="message-dot"/)
   assert.match(messageStyle, /\.message-row\s*\{[^}]*min-height:\s*72px/)
   assert.match(messageStyle, /\.message-row \+ \.message-row::before\s*\{[^}]*left:\s*72px/)
@@ -551,6 +551,38 @@ test('cc unread count stays on the todo page tab only', () => {
   assert.match(todo, /scope\.value === 'cc' && ccStore\.unreadText/)
   assert.match(todo, /<CcListPanel v-if="isCcScope"/)
   assert.doesNotMatch(`${tabBar}\n${badge}`, /getCcUnreadCount|useCcStore|ccStore/)
+})
+
+test('colored app icons and transparent illustrations replace line icon tiles', () => {
+  const menu = readSource('utils/mobile-menu.js')
+  const appIcon = readSource('components/AiAppIcon.vue')
+  const empty = readSource('components/AiEmpty.vue')
+  const message = readSource('pages/message/index.vue')
+  for (const key of ['approval', 'seal', 'shop', 'tool', 'layout', 'more', 'org', 'users', 'system', 'notice', 'sms', 'email']) {
+    assert.ok(fs.existsSync(path.join(srcDir, `static/app-icons/${key}.png`)), `missing app icon ${key}`)
+  }
+  for (const type of ['empty', 'error', 'search']) {
+    assert.ok(fs.existsSync(path.join(srcDir, `static/illustrations/${type}.png`)), `missing illustration ${type}`)
+    assert.match(empty, new RegExp(`@/static/illustrations/${type}\\.png`))
+  }
+  assert.doesNotMatch(empty, /no-data\.png/)
+  assert.match(menu, /if \(icon && isImageIcon\(icon\)\) return icon/)
+  assert.match(appIcon, /<image v-if="imageSrc"/)
+  assert.match(message, /<AiAppIcon :icon="messageCategoryIcon\(item\)" \/>/)
+  assert.match(message, /'is-plain': tab\.key !== 'unread'/)
+})
+
+test('contacts header avoids a second logo and approval forms separate editable from readonly fields', () => {
+  const contacts = readSource('pages/contacts/index.vue')
+  const header = readSource('components/AiTabHeader.vue')
+  const field = readSource('components/lowcode/LowcodeField.vue')
+  const panel = readSource('components/flow/FlowBusinessFormPanel.vue')
+  assert.match(contacts, /<AiTabHeader title="通讯录" :searchable="false" :show-org="false" \/>/)
+  assert.match(contacts, /<AiButton v-if="all\.failed\.value"[^>]*@click="refreshAll">重新加载<\/AiButton>/)
+  assert.match(header, /<template v-if="showOrg">/)
+  const readonlyRule = field.match(/\.lowcode-field__readonly \{[^}]*\}/)[0]
+  assert.doesNotMatch(readonlyRule, /background|border:/)
+  assert.match(panel, /\.flow-business-form :deep\(\.ai-field__control:not\(\.is-disabled\)\)[\s\S]*background: var\(--forge-surface, #fff\)/)
 })
 
 test('add sign is parallel and idempotent', () => {

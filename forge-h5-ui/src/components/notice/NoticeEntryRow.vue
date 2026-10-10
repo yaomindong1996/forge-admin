@@ -1,9 +1,7 @@
 <template>
   <!-- 消息页顶部公告入口：没有任何公告时整行隐藏 -->
   <view v-if="noticeStore.latest" class="notice-entry" @click="openList">
-    <view class="notice-entry__icon">
-      <AiIcon name="volume-2" color="currentColor" size="md" />
-    </view>
+    <AiAppIcon :icon="appIconUrl('notice')" />
     <view class="notice-entry__main">
       <text class="notice-entry__title">公告</text>
       <text class="notice-entry__desc">{{ noticeStore.latest.noticeTitle || '查看全部公告' }}</text>
@@ -15,9 +13,11 @@
 
 <script setup>
 import { computed } from 'vue'
+import AiAppIcon from '@/components/AiAppIcon.vue'
 import AiIcon from '@/components/AiIcon.vue'
 import { useBadgeStore, useNoticeStore } from '@/store'
 import { formatBadgeCount } from '@/store/modules/badge'
+import { appIconUrl } from '@/utils/mobile-menu'
 
 const noticeStore = useNoticeStore()
 const badgeStore = useBadgeStore()

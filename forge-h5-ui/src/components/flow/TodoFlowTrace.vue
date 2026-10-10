@@ -6,7 +6,7 @@
       <text v-if="!loading && items.length" class="trace-heading__count">{{ items.length }} 项</text>
     </view>
     <AiListSkeleton v-if="loading" :rows="4" compact />
-    <!-- 钉钉式时间线：办理人头像 + 状态角标，竖线串联节点 -->
+    <!-- 时间线：办理人头像 + 状态角标，竖线串联节点 -->
     <view v-else-if="items.length" class="trace-list">
       <view
         v-for="(item, index) in items"
