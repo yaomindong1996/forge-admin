@@ -1,6 +1,6 @@
 <template>
-  <view class="ai-tab-header" :class="{ 'is-gradient': gradient, 'is-embedded': embedded }" :style="{ paddingTop: `${statusBarHeight}px` }">
-    <view class="ai-tab-header__bar">
+  <view class="ai-tab-header" :class="{ 'is-gradient': gradient, 'is-embedded': embedded, 'is-capsule': navMetrics.barHeight > 0 }" :style="headerStyle">
+    <view class="ai-tab-header__bar" :style="barStyle">
       <!-- 企业微信等第三方 App 内嵌浏览器自带标题栏，只保留搜索和功能区，避免出现双标题 -->
       <view v-if="!embedded" class="ai-tab-header__brand" @click="emit('brand')">
         <!-- showOrg=false：页面正文已有组织信息（如通讯录组织卡片），顶栏只留标题 -->
@@ -29,6 +29,7 @@
 import { computed } from 'vue'
 import AiIcon from '@/components/AiIcon.vue'
 import { useAppStore, useAuthStore } from '@/store'
+import { isEmbeddedHost } from '@/utils/embedded-host'
 
 const props = defineProps({
   title: { type: String, required: true },
@@ -45,17 +46,33 @@ const authStore = useAuthStore()
 const orgName = computed(() => authStore.userInfo?.tenantName || appStore.brandName || '')
 const logoUrl = computed(() => appStore.brandLogoUrl || '')
 const initials = computed(() => (orgName.value || props.title).slice(0, 2))
-const statusBarHeight = resolveStatusBarHeight()
+const navMetrics = resolveNavMetrics()
 const embedded = isEmbeddedHost()
-
-function resolveStatusBarHeight() {
-  try { return Number(uni.getSystemInfoSync()?.statusBarHeight || 0) }
-  catch { return 0 }
+const headerStyle = {
+  paddingTop: `${navMetrics.statusBarHeight}px`,
+  ...(navMetrics.capsuleSpace ? { paddingRight: `${navMetrics.capsuleSpace}px` } : {}),
 }
+const barStyle = navMetrics.barHeight ? { minHeight: `${navMetrics.barHeight}px`, height: `${navMetrics.barHeight}px` } : {}
 
-function isEmbeddedHost() {
-  const ua = typeof navigator === 'undefined' ? '' : String(navigator.userAgent || '')
-  return /wxwork|DingTalk/i.test(ua)
+/**
+ * 小程序右上角胶囊按钮与自绘顶栏同一行：行高对齐胶囊，右侧让出胶囊宽度，否则搜索框和右侧按钮会被盖住。
+ * H5 / App 没有胶囊，barHeight、capsuleSpace 为 0 时沿用样式里的 56px 行高和页面边距。
+ */
+function resolveNavMetrics() {
+  const metrics = { statusBarHeight: 0, barHeight: 0, capsuleSpace: 0 }
+  try {
+    const system = uni.getSystemInfoSync() || {}
+    metrics.statusBarHeight = Number(system.statusBarHeight || 0)
+    // #ifdef MP
+    const capsule = uni.getMenuButtonBoundingClientRect?.()
+    if (capsule?.height && capsule.left) {
+      metrics.barHeight = (capsule.top - metrics.statusBarHeight) * 2 + capsule.height
+      metrics.capsuleSpace = Number(system.windowWidth || 0) - capsule.left + 8
+    }
+    // #endif
+  }
+  catch {}
+  return metrics
 }
 </script>
 
@@ -160,5 +177,30 @@ function isEmbeddedHost() {
 
 .ai-tab-header__search::after {
   display: none;
+}
+
+/* 胶囊行高约 40px，标题区和搜索框随之收紧 */
+.ai-tab-header.is-capsule .ai-tab-header__logo {
+  flex-basis: 30px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  line-height: 30px;
+}
+
+.ai-tab-header.is-capsule .ai-tab-header__title {
+  font-size: 17px;
+}
+
+.ai-tab-header.is-capsule .ai-tab-header__subtitle {
+  font-size: 10px;
+}
+
+.ai-tab-header.is-capsule .ai-tab-header__search {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 15px;
+  font-size: 13px;
+  line-height: 30px;
 }
 </style>

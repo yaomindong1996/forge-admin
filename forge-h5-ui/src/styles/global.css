@@ -62,6 +62,19 @@ textarea {
   --forge-page-height: calc(100vh - 44px);
 }
 
+/*
+ * 内嵌在自带标题栏的宿主 App 里（main.js 给 html 打标）：隐藏 uni 原生导航栏。
+ * uni 把 --window-top 写在 html 行内样式上，只有 !important 能覆盖，否则顶部会留出 44px 空白。
+ */
+html.forge-embedded-host {
+  --window-top: 0px !important;
+  --forge-page-height: 100vh;
+}
+
+html.forge-embedded-host uni-page-head {
+  display: none !important;
+}
+
 @media (min-width: 431px) {
   body { scrollbar-gutter: stable; }
   body::-webkit-scrollbar { width: 8px; }

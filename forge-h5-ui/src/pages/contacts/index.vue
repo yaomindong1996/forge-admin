@@ -8,7 +8,15 @@
       <AiSearchBar v-model="keyword" placeholder="搜索姓名或账号" @search="search.reload" @clear="search.reload" />
     </view>
 
-    <scroll-view class="contacts-scroll" scroll-y :show-scrollbar="false" @scrolltolower="handleScrollToLower">
+    <scroll-view
+      class="contacts-scroll"
+      scroll-y
+      :show-scrollbar="false"
+      refresher-enabled
+      :refresher-triggered="pullRefreshing"
+      @refresherrefresh="refreshByPull"
+      @scrolltolower="handleScrollToLower"
+    >
       <!-- 搜索结果：有关键字时替换首页内容 -->
       <view v-if="searching" class="contacts-section">
         <AiListSkeleton v-if="search.loading.value && !search.members.value.length" :rows="5" />
@@ -87,7 +95,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
+import { onShow } from '@dcloudio/uni-app'
 import AiAppIcon from '@/components/AiAppIcon.vue'
 import AiButton from '@/components/AiButton.vue'
 import AiEmpty from '@/components/AiEmpty.vue'
@@ -99,6 +107,7 @@ import AiTabHeader from '@/components/AiTabHeader.vue'
 import ContactMemberList from '@/components/contacts/ContactMemberList.vue'
 import api from '@/api'
 import { useContactMembers } from '@/composables/useContactMembers'
+import { usePullRefresh } from '@/composables/usePullRefresh'
 import { useAppStore, useAuthStore } from '@/store'
 import { buildContactOrgUrl } from '@/utils/contacts'
 import { appIconUrl } from '@/utils/mobile-menu'
@@ -166,10 +175,7 @@ onShow(() => {
   if (!all.members.value.length) refreshAll()
 })
 
-onPullDownRefresh(async () => {
-  try { await refreshAll() }
-  finally { uni.stopPullDownRefresh() }
-})
+const { refreshing: pullRefreshing, onRefresh: refreshByPull } = usePullRefresh(refreshAll)
 </script>
 
 <style lang="scss" scoped src="../styles/contacts.scss"></style>

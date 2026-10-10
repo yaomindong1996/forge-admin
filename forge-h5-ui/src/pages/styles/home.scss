@@ -30,15 +30,6 @@ button::after {
   display: none;
 }
 
-.header-icon-button {
-  display: flex;
-  width: 36px;
-  height: 36px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-
 /* —— 概览卡片 —— */
 .overview-card,
 .shortcut-section,
@@ -116,43 +107,44 @@ button::after {
   opacity: 0.7;
 }
 
+/* 三张浅色数据块：图标 + 数字 + 标签，色调区分待办、消息、我发起的 */
 .overview-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
   margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--forge-border);
 }
 
 .overview-item {
   display: flex;
-  min-height: 56px;
+  min-width: 0;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  border-radius: var(--forge-radius-control);
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 12px;
   line-height: 1.4;
+  text-align: left;
 }
 
-.overview-item + .overview-item {
-  position: relative;
+.overview-item.is-blue { background: linear-gradient(135deg, #eaf2ff 0%, #f4f8ff 100%); }
+.overview-item.is-orange { background: linear-gradient(135deg, #fff1e8 0%, #fff8f3 100%); }
+.overview-item.is-green { background: linear-gradient(135deg, #e6f7f2 0%, #f2fbf8 100%); }
+
+.overview-item:active {
+  opacity: 0.75;
 }
 
-.overview-item + .overview-item::before {
-  position: absolute;
-  top: 14px;
-  bottom: 14px;
-  left: 0;
-  width: 1px;
-  background: var(--forge-border);
-  content: '';
+.overview-icon {
+  width: 28px;
+  height: 28px;
 }
 
 .overview-value {
+  margin-top: 6px;
   color: var(--forge-text-primary);
   font-size: 22px;
   font-weight: 600;
+  line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
 
@@ -161,8 +153,19 @@ button::after {
 }
 
 .overview-label {
+  display: flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 1px;
+  margin-top: 2px;
   color: var(--forge-text-secondary);
   font-size: 12px;
+  white-space: nowrap;
+}
+
+.overview-label :deep(.ai-icon) {
+  width: 12px;
+  height: 12px;
 }
 
 /* —— 常用应用 / 分组应用 —— */
@@ -302,14 +305,11 @@ button::after {
   font-weight: 600;
 }
 
-.overview-item:active,
-.shortcut-item:active,
-.header-icon-button:active {
+.shortcut-item:active {
   background: var(--forge-surface-muted);
 }
 
 @media (hover: hover) {
-  .overview-item:hover,
   .shortcut-item:hover {
     background: var(--forge-surface-subtle);
   }
@@ -329,6 +329,7 @@ button::after {
   .home-dashboard {
     display: grid;
     grid-template-areas:
+      "banner groups"
       "overview groups"
       "apps groups";
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -336,6 +337,7 @@ button::after {
     gap: 16px;
   }
 
+  .home-banner-slot { grid-area: banner; }
   .overview-card { grid-area: overview; }
   .shortcut-section { grid-area: apps; }
   .group-section { grid-area: groups; }

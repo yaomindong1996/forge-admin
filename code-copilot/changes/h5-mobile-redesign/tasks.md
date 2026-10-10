@@ -58,3 +58,30 @@
 - [x] T22 审批表单只读纯文本、可编辑白底描边。
 - [x] T23 消息列表彩色分类图标与已读/未读层级。
 - [x] T24 契约测试、`node --test`、`build:h5`、`build:mp-weixin`、页面预览截图。
+
+## 阶段六：待办表单展示（spec 第 11 章）
+
+- [x] T25 `LowcodeField` 增加只读行样式类 `lowcode-field--readonly-row`（只读且非专用渲染器）。
+- [x] T26 `FlowBusinessFormPanel` 移动端：分组扁平化、只读描述列表、可编辑控件保持 44px、布局容器去间距。
+- [x] T27 子表条目卡片化：浅灰圆角卡片、“第 N 条”标题、条目内描述列表。
+- [x] T28 契约测试、`node --test`、`build:h5`、`build:mp-weixin`、改前改后预览截图（含子表、可编辑字段）。
+
+## 阶段七：工作台轮播图（spec 第 12 章）
+
+- [x] T29 生成两张横幅底图，裁剪导出到 `static/banners/`。
+- [x] T30 `HomeBanner` 组件（swiper、文字叠加、指示器、点击跳转），工作台引用，PC 端左列顶部。
+- [x] T31 契约测试、`node --test`、`build:h5`、`build:mp-weixin`、预览截图。
+
+## 阶段八：刷新方式、小程序顶栏、工作台概览（spec 第 13 章）
+
+- [x] T32 去掉工作台、审批详情的刷新按钮；审批详情、通讯录首页、组织架构改用 `scroll-view` 下拉刷新。
+- [x] T33 `AiTabHeader` 小程序胶囊避让（行高对齐胶囊、右侧留出胶囊宽度）。
+  - 剩余：需在微信开发者工具或真机上确认顶栏实际效果，本机浏览器无法模拟胶囊。
+- [x] T34 工作台概览三张浅色数据块。
+- [x] T35 契约测试、`node --test`、`build:h5`、`build:mp-weixin`（检查产物里的胶囊避让代码）、预览截图。
+
+## 阶段九：内嵌宿主 App 隐藏页面导航栏（spec 第 14 章）
+
+- [x] T36 `utils/embedded-host.js`：`isEmbeddedHost()`、`markEmbeddedHost()`；`AiTabHeader` 改为引用。
+- [x] T37 `main.js` 创建应用时标记 `<html>`；`global.css` 隐藏 `uni-page-head`、`--window-top` 置 0、页面高度改 `100vh`。
+- [x] T38 契约测试、`node --test`、`build:h5`、`build:mp-weixin`、改 UA 预览（内嵌 / 普通各一次）。宿主 App 真机效果待用户确认。

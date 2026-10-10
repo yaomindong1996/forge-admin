@@ -162,7 +162,7 @@ test('home uses real metrics, frequent apps and grouped app tabs', () => {
   // 最新提醒已由消息页签承担，工作台不再重复展示
   assert.doesNotMatch(source, /class="feed-section"/)
   assert.doesNotMatch(source, /class="attention-grid"/)
-  assert.match(styles, /grid-template-areas:\s*\n\s*"overview groups"\s*\n\s*"apps groups"/)
+  assert.match(styles, /grid-template-areas:\s*\n\s*"banner groups"\s*\n\s*"overview groups"\s*\n\s*"apps groups"/)
   assert.match(styles, /\.shortcut-grid,[\s\S]*?\{[^}]*grid-template-columns:\s*repeat\(4,/)
   assert.match(styles, /\n\.group-grid\s*\{[^}]*grid-template-columns:\s*repeat\(5,/)
 })
@@ -289,8 +289,10 @@ test('authenticated workspaces keep controls compact and avoid clipped nested sh
   assert.doesNotMatch(todo, /task-card__meta-grid/)
   assert.match(todoStyle, /\.task-card__footer[\s\S]*min-height:\s*44px/)
   assert.match(todoStyle, /\.claim-button[\s\S]*width:\s*64px[\s\S]*height:\s*36px[\s\S]*line-height:\s*1/)
-  assert.match(detail, /<TodoTaskSummary :task="task" @refresh="refresh"/)
-  assert.match(summary, /class="task-summary__refresh"[\s\S]*emit\('refresh'\)/)
+  assert.match(detail, /<TodoTaskSummary :task="task" \/>/)
+  assert.doesNotMatch(summary, /task-summary__refresh|refresh-cw/)
+  assert.match(detail, /class="detail-scroll"[\s\S]*refresher-enabled[\s\S]*:refresher-triggered="pullRefreshing"[\s\S]*@refresherrefresh="refreshByPull"/)
+  assert.match(detail, /usePullRefresh\(refresh\)/)
   assert.match(detailStyle, /\.user-row\s*\{[^}]*line-height:\s*1\.4/)
   assert.match(detailStyle, /\.user-meta\s*\{[^}]*overflow-wrap:\s*anywhere/)
   assert.match(detailStyle, /\.lowcode-field--compact-row[\s\S]*grid-template-columns:\s*78px minmax\(0, 1fr\)/)
@@ -583,6 +585,70 @@ test('contacts header avoids a second logo and approval forms separate editable 
   const readonlyRule = field.match(/\.lowcode-field__readonly \{[^}]*\}/)[0]
   assert.doesNotMatch(readonlyRule, /background|border:/)
   assert.match(panel, /\.flow-business-form :deep\(\.ai-field__control:not\(\.is-disabled\)\)[\s\S]*background: var\(--forge-surface, #fff\)/)
+})
+
+test('refresh buttons are replaced by pull-down refresh on the real scroll surface', () => {
+  const home = readSource('pages/index/index.vue')
+  const contacts = readSource('pages/contacts/index.vue')
+  const org = readSource('pages/contacts/org.vue')
+  const pull = readSource('composables/usePullRefresh.js')
+  assert.doesNotMatch(home, /refresh-cw|aria-label="刷新/)
+  assert.match(home, /<AiTabHeader title="工作台"[^>]*\/>/)
+  for (const [page, task] of [[contacts, 'refreshAll'], [org, 'reloadLevel']]) {
+    assert.match(page, /class="contacts-scroll[\s\S]*?refresher-enabled[\s\S]*?@refresherrefresh="refreshByPull"/)
+    assert.match(page, new RegExp(`usePullRefresh\\(${task}\\)`))
+    assert.doesNotMatch(page, /onPullDownRefresh/)
+  }
+  assert.match(pull, /if \(refreshing\.value\) return/)
+  assert.match(pull, /finally \{ refreshing\.value = false \}/)
+})
+
+test('mini program tab header leaves room for the capsule menu button', () => {
+  const header = readSource('components/AiTabHeader.vue')
+  assert.match(header, /\/\/ #ifdef MP[\s\S]*uni\.getMenuButtonBoundingClientRect[\s\S]*\/\/ #endif/)
+  assert.match(header, /barHeight = \(capsule\.top - metrics\.statusBarHeight\) \* 2 \+ capsule\.height/)
+  assert.match(header, /capsuleSpace = Number\(system\.windowWidth \|\| 0\) - capsule\.left \+ 8/)
+  assert.match(header, /paddingRight: `\$\{navMetrics\.capsuleSpace\}px`/)
+  assert.match(header, /class="ai-tab-header__bar" :style="barStyle"/)
+})
+
+test('workbench overview uses tinted stat tiles with icons', () => {
+  const home = readSource('pages/index/index.vue')
+  const homeStyle = readSource('pages/styles/home.scss')
+  assert.match(home, /class="overview-item" :class="`is-\$\{item\.tone\}`"/)
+  assert.match(home, /<image class="overview-icon" :src="item\.icon"/)
+  for (const [key, tone] of [['approval', 'blue'], ['notice', 'orange'], ['file', 'green']])
+    assert.match(home, new RegExp(`icon: overviewIcon\\('${key}'\\), tone: '${tone}'`))
+  assert.match(homeStyle, /\.overview-list \{[^}]*gap: 8px;/)
+  assert.doesNotMatch(homeStyle, /\.overview-item \+ \.overview-item::before/)
+  for (const tone of ['blue', 'orange', 'green'])
+    assert.match(homeStyle, new RegExp(`\\.overview-item\\.is-${tone} \\{ background: linear-gradient`))
+})
+
+test('workbench shows a two-slide banner above the overview card', () => {
+  const home = readSource('pages/index/index.vue')
+  const banner = readSource('components/home/HomeBanner.vue')
+  assert.match(home, /<HomeBanner class="home-banner-slot" \/>[\s\S]*class="overview-card"/)
+  assert.match(banner, /<swiper[\s\S]*:autoplay="banners\.length > 1"[\s\S]*circular/)
+  assert.match(banner, /import approvalBanner from '@\/static\/banners\/approval\.jpg'/)
+  assert.match(banner, /import teamBanner from '@\/static\/banners\/team\.jpg'/)
+  assert.match(banner, /url: '\/pages\/approval\/start'/)
+  assert.match(banner, /uni\.switchTab\(\{ url: '\/pages\/contacts\/index' \}\)/)
+  assert.match(banner, /padding-top: 45\.45%/)
+  for (const name of ['approval', 'team'])
+    assert.ok(fs.existsSync(path.join(srcDir, `static/banners/${name}.jpg`)), `missing banner ${name}`)
+})
+
+test('approval forms show readonly fields as a description list and child rows as cards', () => {
+  const field = readSource('components/lowcode/LowcodeField.vue')
+  const panel = readSource('components/flow/FlowBusinessFormPanel.vue')
+  assert.match(field, /'lowcode-field--readonly-row': showsReadonlyText\.value/)
+  assert.match(field, /v-else-if="showsReadonlyText"/)
+  assert.match(panel, /:deep\(\.card-section\) \{[^}]*padding: 0;[^}]*background: transparent;/)
+  assert.match(panel, /:deep\(\.lowcode-field--readonly-row\) \{ display: grid; grid-template-columns: 78px minmax\(0, 1fr\)/)
+  assert.match(panel, /:deep\(\.lowcode-field--readonly-row \.lowcode-field__readonly\) \{ min-height: 0; padding: 0;/)
+  assert.match(panel, /:deep\(\.section-card-row:last-child\) \{[^}]*border-radius: 10px;[^}]*background: var\(--forge-surface-subtle/)
+  assert.match(panel, /:deep\(\.lowcode-form\.lowcode-form--inline-grid\) \{ gap: 0; \}/)
 })
 
 test('add sign is parallel and idempotent', () => {

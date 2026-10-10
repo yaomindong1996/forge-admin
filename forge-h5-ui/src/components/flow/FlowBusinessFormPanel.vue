@@ -48,7 +48,7 @@ const {
 .form-schema-notice { padding: 16px 12px; border-radius: 10px; color: var(--forge-text-secondary); font-size: 13px; line-height: 1.6; text-align: center; background: var(--forge-surface-subtle); }
 .form-schema-notice text { display: block; }
 
-/* 分组底色是浅灰，可编辑控件统一白底加描边，只读字段为纯文本，一眼区分哪些能改 */
+/* 可编辑控件统一白底加描边，只读字段为纯文本，一眼区分哪些能改 */
 .flow-business-form :deep(.ai-field__control:not(.is-disabled)),
 .flow-business-form :deep(.ai-textarea:not(.is-disabled)),
 .flow-business-form :deep(.wd-select-picker__cell),
@@ -57,20 +57,52 @@ const {
 .flow-business-form :deep(.ai-field__control.is-focused),
 .flow-business-form :deep(.ai-textarea.is-focused) { border-color: var(--forge-color-primary, #0066ff); }
 
-/* 审批移动表单：单行控件使用左标签、右控件，避免桌面式纵向堆叠占满首屏。 */
+/*
+ * 审批移动表单：分组直接平铺在外层白卡里，只读字段是左标签、右值的描述列表，
+ * 子表每条记录是浅灰小卡片。行间距统一由字段行的上下内边距控制，
+ * 所以布局容器和低代码表单自带的 gap / margin 在这里都要归零。
+ */
 @media (max-width: 1023px) {
-  .flow-business-form :deep(.card-section) { margin-bottom: 10px; padding: 12px; border-color: transparent; border-radius: 12px; background: var(--forge-surface-subtle); }
-  .flow-business-form :deep(.card-section:last-child) { margin-bottom: 0; }
-  .flow-business-form :deep(.card-section__head) { min-height: 34px; margin: 0 0 8px; padding: 0; }
-  .flow-business-form :deep(.card-section__title) { font-size: 14px; font-weight: 700; }
-  .flow-business-form :deep(.lowcode-field) { margin-bottom: 12px; }
-  .flow-business-form :deep(.lowcode-field:last-child) { margin-bottom: 0; }
-  .flow-business-form :deep(.lowcode-field__label) { margin-bottom: 5px; font-size: 13px; line-height: 1.4; }
-  .flow-business-form :deep(.lowcode-field__control) { min-height: 44px; }
-  .flow-business-form :deep(.lowcode-field--compact-row) { display: grid; grid-template-columns: 78px minmax(0, 1fr); align-items: center; gap: 10px; }
-  .flow-business-form :deep(.lowcode-field--compact-row .lowcode-field__label) { margin: 0; }
-  .flow-business-form :deep(.lowcode-field--compact-row .lowcode-field__control) { min-width: 0; }
+  .flow-business-form :deep(.card-section) { margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; }
+  .flow-business-form :deep(.card-section + .card-section),
+  .flow-business-form :deep(.card-section + .section-child-tabs) { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--forge-border, #f0f1f2); }
+  .flow-business-form :deep(.section-child-tabs) { margin-bottom: 4px; }
+  .flow-business-form :deep(.card-section__head) { min-height: 0; margin: 0 0 4px; padding: 0; }
+  .flow-business-form :deep(.card-section__title) { color: var(--forge-text-primary, #171a1d); font-size: 15px; font-weight: 600; line-height: 22px; }
+
+  .flow-business-form :deep(.lowcode-layout-container.is-grid),
+  .flow-business-form :deep(.lowcode-layout-container.is-box),
+  .flow-business-form :deep(.lowcode-layout-container.is-table) { margin-bottom: 0; }
+  .flow-business-form :deep(.lowcode-layout-container.is-grid > .lowcode-layout),
+  .flow-business-form :deep(.lowcode-form.lowcode-form--inline-grid) { gap: 0; }
+
+  .flow-business-form :deep(.lowcode-field.lowcode-field) { margin: 0; padding: 8px 0; }
+  .flow-business-form :deep(.lowcode-field .lowcode-field__label) { min-height: 0; margin: 0 0 6px; color: var(--forge-text-secondary, #747677); font-size: 14px; line-height: 22px; }
+  .flow-business-form :deep(.lowcode-field__control) { min-height: 0; }
+  .flow-business-form :deep(.lowcode-field--compact-row),
+  .flow-business-form :deep(.lowcode-field--readonly-row) { display: grid; grid-template-columns: 78px minmax(0, 1fr); align-items: center; gap: 12px; }
+  .flow-business-form :deep(.lowcode-field.lowcode-field--readonly-row) { align-items: start; padding: 7px 0; }
+  .flow-business-form :deep(.lowcode-field--compact-row .lowcode-field__label),
+  .flow-business-form :deep(.lowcode-field--readonly-row .lowcode-field__label) { margin: 0; }
+  .flow-business-form :deep(.lowcode-field--compact-row .lowcode-field__control),
+  .flow-business-form :deep(.lowcode-field--readonly-row .lowcode-field__control) { min-width: 0; }
+  .flow-business-form :deep(.lowcode-field--readonly-row .lowcode-field__readonly) { min-height: 0; padding: 0; font-size: 15px; line-height: 22px; }
   .flow-business-form :deep(.lowcode-field--compact-row .lowcode-field__error),
   .flow-business-form :deep(.lowcode-field--compact-row .lowcode-field__hint) { grid-column: 2; margin-top: -4px; }
+
+  .flow-business-form :deep(.section-child-head) { margin: 4px 0 0; }
+  .flow-business-form :deep(.section-child-count) { color: var(--forge-text-tertiary, #a2a3a5); font-size: 12px; font-weight: 400; }
+  .flow-business-form :deep(.section-child-row),
+  .flow-business-form :deep(.section-child-row:first-child),
+  .flow-business-form :deep(.section-child-row:last-child),
+  .flow-business-form :deep(.section-card-row),
+  .flow-business-form :deep(.section-card-row:first-child),
+  .flow-business-form :deep(.section-card-row:last-child) { margin-top: 8px; padding: 8px 12px; border: 0; border-radius: 10px; background: var(--forge-surface-subtle, #f7f8fa); }
+  .flow-business-form :deep(.section-child-row__head) { min-height: 22px; margin: 2px 0 0; }
+  .flow-business-form :deep(.section-child-row__title) { color: var(--forge-text-secondary, #747677); font-size: 13px; font-weight: 500; }
+  .flow-business-form :deep(.section-child-row .lowcode-field--readonly-row),
+  .flow-business-form :deep(.section-card-row .lowcode-field--readonly-row) { grid-template-columns: 72px minmax(0, 1fr); padding: 5px 0; }
+  .flow-business-form :deep(.section-child-row .lowcode-field--compact-row),
+  .flow-business-form :deep(.section-card-row .lowcode-field--compact-row) { grid-template-columns: 72px minmax(0, 1fr); }
 }
 </style>

@@ -2,17 +2,14 @@
   <view class="home-page">
     <AiFeedbackHost />
     <!-- 顶栏：组织信息 + 应用搜索，浅蓝渐变过渡到页面底色 -->
-    <AiTabHeader title="工作台" gradient search-placeholder="搜索应用" @search="openMenuSheet" @brand="goMine">
-      <template #actions>
-        <button class="header-icon-button" aria-label="刷新工作台" @click="refreshWorkspace()">
-          <AiIcon icon="/static/icons/ai-icon/refresh-cw.svg" color="#171a1d" size="md" />
-        </button>
-      </template>
-    </AiTabHeader>
+    <AiTabHeader title="工作台" gradient search-placeholder="搜索应用" @search="openMenuSheet" @brand="goMine" />
 
     <view class="home-content">
       <HomeWorkspaceSkeleton v-if="workspaceLoading" />
       <view v-else class="home-dashboard">
+        <!-- 轮播图：固定两张宣传图 -->
+        <HomeBanner class="home-banner-slot" />
+
         <!-- 概览：问候 + 待办/未读/我发起，点击直达对应页签 -->
         <view class="overview-card">
           <view class="overview-greeting" @click="goMine">
@@ -30,9 +27,13 @@
             </button>
           </view>
           <view class="overview-list">
-            <button v-for="item in overviewItems" :key="item.key" class="overview-item" type="button" @click.stop="item.open">
+            <button v-for="item in overviewItems" :key="item.key" class="overview-item" :class="`is-${item.tone}`" type="button" @click.stop="item.open">
+              <image class="overview-icon" :src="item.icon" mode="aspectFit" />
               <text class="overview-value" :class="{ 'is-alert': item.alert && item.value > 0 }">{{ formatCount(item.value) }}</text>
-              <text class="overview-label">{{ item.label }}</text>
+              <view class="overview-label">
+                <text>{{ item.label }}</text>
+                <AiIcon icon="/static/icons/ai-icon/chevron-right.svg" color="#a2a3a5" size="xs" />
+              </view>
             </button>
           </view>
           <NoticeBanner />
@@ -142,6 +143,7 @@ import AiPopupSheet from '@/components/AiPopupSheet.vue'
 import AiSearchBar from '@/components/AiSearchBar.vue'
 import AiTabBar from '@/components/AiTabBar.vue'
 import AiTabHeader from '@/components/AiTabHeader.vue'
+import HomeBanner from '@/components/home/HomeBanner.vue'
 import HomeWorkspaceSkeleton from '@/components/home/HomeWorkspaceSkeleton.vue'
 import NoticeBanner from '@/components/notice/NoticeBanner.vue'
 import api from '@/api'
@@ -179,10 +181,20 @@ const greeting = computed(() => {
   return '晚上好'
 })
 
+const overviewIcon = key => resolveStaticUrl(appIconUrl(key))
 const overviewItems = computed(() => [
-  { key: 'todo', label: '待我处理', value: badgeStore.todoCount, alert: true, open: () => openTab('todo', '/pages/todo', { scope: 'todo' }) },
-  { key: 'unread', label: '未读消息', value: badgeStore.unreadCount, alert: true, open: () => openTab('message', '/pages/message/index', { tab: 'unread' }) },
-  { key: 'started', label: '我发起的', value: startedCount.value, open: () => openTab('todo', '/pages/todo', { scope: 'started' }) },
+  {
+    key: 'todo', label: '待我处理', icon: overviewIcon('approval'), tone: 'blue', value: badgeStore.todoCount, alert: true,
+    open: () => openTab('todo', '/pages/todo', { scope: 'todo' }),
+  },
+  {
+    key: 'unread', label: '未读消息', icon: overviewIcon('notice'), tone: 'orange', value: badgeStore.unreadCount, alert: true,
+    open: () => openTab('message', '/pages/message/index', { tab: 'unread' }),
+  },
+  {
+    key: 'started', label: '我发起的', icon: overviewIcon('file'), tone: 'green', value: startedCount.value,
+    open: () => openTab('todo', '/pages/todo', { scope: 'started' }),
+  },
 ])
 
 const filteredMenuGroups = computed(() => {

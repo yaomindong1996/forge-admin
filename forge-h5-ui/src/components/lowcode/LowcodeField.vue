@@ -12,7 +12,7 @@
         :value="modelValue"
       />
       <view
-        v-else-if="(readonly || descriptor.capability === MOBILE_COMPONENT_CAPABILITY.READONLY) && !usesDedicatedReadonlyRenderer"
+        v-else-if="showsReadonlyText"
         class="lowcode-field__readonly"
         :class="readonlyClasses"
       >
@@ -376,6 +376,7 @@ const compactRow = computed(() => [
 ].includes(descriptor.value.renderer))
 const fieldClasses = computed(() => ({
   'lowcode-field--compact-row': compactRow.value,
+  'lowcode-field--readonly-row': showsReadonlyText.value,
   'is-round': fieldProps.value.round === true,
   'is-loading': fieldProps.value.loading === true,
   [`is-size-${fieldProps.value.size}`]: Boolean(fieldProps.value.size),
@@ -423,6 +424,9 @@ const pairValue = computed(() => {
 })
 const control = computed(() => props.field.__runtimeControl || { visible: true, required: normalizedField.value.required === true })
 const readonly = computed(() => props.readonly || effectiveDisabled.value || normalizedField.value.readonly === true || control.value.readonly)
+const showsReadonlyText = computed(() => descriptor.value.capability !== MOBILE_COMPONENT_CAPABILITY.BLOCKED
+  && (readonly.value || descriptor.value.capability === MOBILE_COMPONENT_CAPABILITY.READONLY)
+  && !usesDedicatedReadonlyRenderer.value)
 const displayValue = computed(() => {
   const value = props.modelValue
   if (isNumberRangeField.value || descriptor.value.renderer === 'datetime-range') {

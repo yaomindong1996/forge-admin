@@ -19,7 +19,15 @@
       </view>
     </scroll-view>
 
-    <scroll-view class="contacts-scroll contacts-scroll--stack" scroll-y :show-scrollbar="false" @scrolltolower="memberList.loadMore">
+    <scroll-view
+      class="contacts-scroll contacts-scroll--stack"
+      scroll-y
+      :show-scrollbar="false"
+      refresher-enabled
+      :refresher-triggered="pullRefreshing"
+      @refresherrefresh="refreshByPull"
+      @scrolltolower="memberList.loadMore"
+    >
       <AiListSkeleton v-if="orgLoading && !orgs.length" :rows="4" />
 
       <!-- 下级部门 -->
@@ -68,7 +76,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
+import { onLoad } from '@dcloudio/uni-app'
 import AiAppIcon from '@/components/AiAppIcon.vue'
 import AiEmpty from '@/components/AiEmpty.vue'
 import AiIcon from '@/components/AiIcon.vue'
@@ -76,6 +84,7 @@ import AiListSkeleton from '@/components/AiListSkeleton.vue'
 import ContactMemberList from '@/components/contacts/ContactMemberList.vue'
 import api from '@/api'
 import { useContactMembers } from '@/composables/useContactMembers'
+import { usePullRefresh } from '@/composables/usePullRefresh'
 import { useAppStore, useAuthStore } from '@/store'
 import { safeDecode } from '@/utils/contacts'
 import { MENU_TONES } from '@/utils/mobile-menu'
@@ -143,10 +152,7 @@ onLoad((query = {}) => {
   reloadLevel()
 })
 
-onPullDownRefresh(async () => {
-  try { await reloadLevel() }
-  finally { uni.stopPullDownRefresh() }
-})
+const { refreshing: pullRefreshing, onRefresh: refreshByPull } = usePullRefresh(reloadLevel)
 </script>
 
 <style lang="scss" scoped src="../styles/contacts.scss"></style>

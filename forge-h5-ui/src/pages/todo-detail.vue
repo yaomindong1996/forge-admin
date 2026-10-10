@@ -9,10 +9,13 @@
       :show-scrollbar="true"
       :scroll-into-view="scrollTarget"
       scroll-with-animation
+      refresher-enabled
+      :refresher-triggered="pullRefreshing"
+      @refresherrefresh="refreshByPull"
     >
       <TodoDetailSkeleton v-if="loading" />
       <template v-else-if="task">
-        <TodoTaskSummary :task="task" @refresh="refresh" />
+        <TodoTaskSummary :task="task" />
 
         <view class="detail-content">
           <!-- 动态业务表单 -->
@@ -177,6 +180,7 @@ import { useFlowBusinessForm } from '@/composables/flow/useFlowBusinessForm'
 import { useTodoDetailLoader } from '@/composables/flow/useTodoDetailLoader'
 import { useTodoSignActions } from '@/composables/flow/useTodoSignActions'
 import { useTodoTaskActions } from '@/composables/flow/useTodoTaskActions'
+import { usePullRefresh } from '@/composables/usePullRefresh'
 import { useAuthStore, useTodoDetailStore } from '@/store'
 
 const authStore = useAuthStore()
@@ -222,6 +226,8 @@ async function refresh() {
   await refreshTask()
   await loadSignRelations()
 }
+
+const { refreshing: pullRefreshing, onRefresh: refreshByPull } = usePullRefresh(refresh)
 
 function scrollToApprovalComment() {
   scrollTarget.value = ''
