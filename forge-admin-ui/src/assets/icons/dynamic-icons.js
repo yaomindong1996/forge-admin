@@ -13,6 +13,8 @@ export default [
   'i-streamline-plump-color:ai-generate-variation-spark',
   'i-streamline-plump-color:ai-science-robot',
   'i-streamline-plump-color:application-add',
+  // 插件中心一级菜单来自数据库，显式注册以确保生产构建保留图标。
+  'i-streamline-plump-color:module',
   'i-streamline-plump-color:announcement-megaphone',
   'i-streamline-plump-color:arrow-curvy-both-direction-2',
   'i-streamline-plump-color:atom',

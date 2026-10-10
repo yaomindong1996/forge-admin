@@ -16,15 +16,20 @@
 此查询仍受平台管理员身份和 RBAC 保护，不向普通租户角色开放实例级清单或许可证信息。
 
 「发现插件」打开独立门户市场，不在客户端重复提供购买、签发或部署流程。
-公开环境配置 `VITE_PLUGIN_MARKET_URL` 设置市场完整 HTTP(S) 地址；开发缺省使用
-`http://localhost:5174/plugins`，生产未配置时显示配置提示，不猜测部署地址。
+开发和生产默认打开 [正式插件市场](http://www.dlforgelab.com:8084/forge-official-ui/plugins)，
+无需同时启动本地门户。私有部署可用 `VITE_PLUGIN_MARKET_URL` 覆盖完整 HTTP(S) 地址；
+空白值使用正式市场，非法协议或带凭证的地址会被拒绝并提示配置无效。
 `VITE_PLUGIN_GUIDE_URL` 可覆盖插件文档地址；跳转不携带客户身份或 Token。
 
-平台超级管理员从「平台管理 → 插件中心」查看**当前后端服务实例**包含的插件。
+平台超级管理员从一级菜单「插件中心」查看**当前后端服务实例**包含的插件。
+已有系统部署 `V1.0.217__promote_plugin_center_to_top_level.sql` 后，原「平台管理」下的入口
+会提升到一级并使用蓝白模块图标，菜单 ID、页面路径、按钮／API 子资源和角色授权保持不变。
+迁移重复执行无额外改动；旧登录会话若仍显示原位置，请重新登录刷新菜单。
 首次升级需要部署本轮后端/前端，主 Flyway 按序执行 `V1.0.210__add_plugin_center.sql`
 及 `V1.0.211__add_plugin_install_workbench.sql`、`V1.0.212__add_plugin_build_leases.sql`、
 `V1.0.213__add_plugin_task_review.sql`、`V1.0.214__add_plugin_artifact_registration.sql`，
-以及按序的 `V1.0.215`、`V1.0.216__add_plugin_delivery_control.sql`。
+以及按序的 `V1.0.215`、`V1.0.216__add_plugin_delivery_control.sql`、
+`V1.0.217__promote_plugin_center_to_top_level.sql`。
 权限资源及机器入口上线前需人工审查。
 菜单不会覆盖应用总览、打印中心或客户已有同路径菜单；同路径冲突需管理员人工核对。
 既有同权限编码或 API 路径也不覆盖；若被客户资源占用，需人工核对权限与路由绑定后再启用。

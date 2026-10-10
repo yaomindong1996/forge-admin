@@ -7,6 +7,22 @@ P3.3b2b1 于2026-10-08经用户回复「继续」确认，并完成编码/增量
 
 ## 目标与交付阶段
 
+### 2026-10-10 生产市场入口与一级菜单（用户已确认）
+
+- 开发、生产缺省均直达 `http://www.dlforgelab.com:8084/forge-official-ui/plugins`，
+  地址与门户 `VITE_PUBLIC_PATH=/forge-official-ui/` 和 `/plugins` 路由一致。
+  `VITE_PLUGIN_MARKET_URL` 可显式覆盖；空白配置使用缺省值，非法协议／带凭证地址继续拒绝。
+- 新增 V1.0.217 增量迁移，只将默认租户 PC 的内置插件菜单提升为 `parent_id=0`，
+  使用现有 Streamline 蓝白模块图标并加入构建 safelist；保留 ID、路径、组件、排序、资源类型、
+  可见状态、平台管理员边界、按钮／API 子资源和角色授权，不增加无意义的同名父目录。
+- 迁移精确匹配 `system:plugin:view`、`/system/plugin`、`system/plugin`、租户／客户端／类型／删除状态，
+  不改客户自定义菜单和其它租户资源；重复执行不重复改写审计时间，不改已发布的旧迁移。
+- 权限影响：只调整导航归属，不新增授权、公开状态或放宽 min_user_type。
+  回滚时按上线前记录恢复该菜单的 parent_id 和 icon；不删除资源或授权数据。
+- 开发阶段只交付代码／增量 SQL 并做隔离验证，不连接共享库执行迁移。
+  用户随后于 2026-10-10 要求「代码提上去」，授权提交并推送当前 `codex/plugin-foundation` 分支，
+  不合并 main，不包含无关改动。
+
 ### 2026-10-10 客户端体验调整（用户已确认 A 首页＋B 详情）
 
 - `/system/plugin` 使用轻量插画卡片首页；点击详情进入同页 `MasterDetailWorkspace`，

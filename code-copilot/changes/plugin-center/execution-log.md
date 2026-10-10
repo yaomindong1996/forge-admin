@@ -848,3 +848,63 @@ git diff --check
   真实后端验收仍保留 C5，不在本轮提交操作中启动服务或执行迁移。
 - 最终相关 Vitest 66/66、15 文件通过（4.13 秒）；索引／工作区 edition 门禁和暂存 diff-check 通过。
   推送前 fetch 核对当前分支与上游无分叉，仅包含本轮 26 个相关文件。
+
+## 2026-10-10：生产市场入口与一级插件中心
+
+### 范围与实现
+
+- 当前分支 `codex/plugin-foundation`，起点 `96ef27fb`。用户要求默认正式市场、插件中心提升一级与图标。
+- 只读核对 website 门户的生产 base 和 history 路由，正式入口为
+  `http://www.dlforgelab.com:8084/forge-official-ui/plugins`；开发与生产采用同一缺省值。
+  保留显式 HTTP(S) 覆盖，空白配置使用缺省，非法协议／带凭证 URL 不放行且提示配置无效。
+  本轮没有修改 website 工程，未传递 Token 或客户资料。
+- 新增 `V1.0.217__promote_plugin_center_to_top_level.sql`，仅匹配默认租户 PC 的内置菜单，
+  改父级及图标并更新审计列。原菜单 ID、路由、类型、排序、可见性、平台管理员限制和角色关联不变。
+  不增加重复目录，不修改旧迁移；回滚需上线前记录原 parent_id/icon 并恢复这两项。
+- 采用现有本地 `i-streamline-plump-color:module` 蓝白模块图标，补充动态 safelist 防止生产构建丢失。
+  同步环境示例、操作文档和本变更 Spec／tasks／test-spec。
+
+### 定向验证
+
+- Node 20.19.0 执行四个修改 JS/Vue 文件的 ESLint，以及插件目录相关 Vitest：67/67、15 文件通过。
+  生产 `vite build` 退出 0（约 78 秒），保留既有 PLUGIN_TIMINGS 耗时提示；
+  `dist/assets/style-DOO6LexV.css` 中存在新增图标的样式及内嵌 SVG。
+- Node 契约 4/4、edition 门禁、`git diff --check` 通过。
+- 使用已有 Temurin 17.0.20.1 和 Maven 3.9.11，离线执行：
+
+```sh
+mvn -o -q -pl forge-framework/forge-plugin-parent/forge-plugin-system -am test \
+  -Penable-tests -Dtest=PluginCenterMenuMigrationTest,SysPluginMigrationTest \
+  -Dsurefire.failIfNoSpecifiedTests=false -Dmaven.test.redirectTestOutputToFile=true
+```
+
+- 新迁移测试 11/11＋既有迁移测试 1/1，通过且无错误／失败／跳过。H2 MySQL 模式执行实际 SQL，
+  覆盖子资源／角色关联／权限保留、重复执行审计时间不变、8 类不匹配资源及菜单缺失不新增。
+  这不是目标 MySQL/Flyway 验收，没有运行 Spring Boot 或连接共享数据库。
+- 复用明确标注模拟 API 的隔离 UI 夹具，仅新增菜单图标展示样本。浏览器点“发现插件”，
+  页面头部与引导中的两个市场链接均为正式地址，target/rel 正确，不携带 Token；未实际跳转外站。
+  图标 DOM 22×22px，背景为本地 SVG；明暗主题人工复核可见，浏览器 warn/error 为空。
+- 证据目录 `/private/tmp/forge-plugin-client-ui.KKINz5`：`market-menu-build.log`、
+  `market-menu-migration.log`、`market-menu-light.jpg`、`market-menu-dark.jpg`。
+  预览首次监听被沙箱拒绝，经批准仅开放本机 43150 后验证；结束时仅停止该进程 PID 26530 并关闭标签。
+
+### 交付边界
+
+- 没有执行共享库 SQL、真实市场连通性验收、登录或部署。上线时由主服务 Flyway 按序执行迁移，
+  已登录会话需要重新登录刷新菜单；真实验收仍归 C5。
+- 本轮不提交、不推送；用户已有 `.DS_Store` 改动不动，既有 3001 前端服务保持运行。
+
+## 2026-10-10：用户要求提交生产入口及一级菜单改动
+
+- 用户授权「代码提上去」，沿当前 `codex/plugin-foundation` 提交并推送到 origin 同名分支；
+  不切分支、不合并 main、不改 website 工程，排除用户已有 `.DS_Store`。
+- `git fetch origin codex/plugin-foundation` 成功，提交前本地与远端 ahead/behind 为 0/0。
+  Git 元数据写入首次受沙箱限制，按原目标经批准后完成获取；未覆盖或改写提交历史。
+- Node 20.19.0 再执行本轮四个 JS/Vue 文件的 ESLint，以及
+  `node node_modules/vitest/vitest.mjs run src/views/system/plugin/__tests__`：67/67、15 文件通过（4.33 秒）。
+- `node --test code-copilot/changes/plugin-center/contracts.test.mjs`：4/4 通过；
+  `node scripts/guards/check-edition.mjs`、`git diff --check` 通过。
+- 源码未再变化，复用上节生产构建、浏览器及 H2 12/12 的验收记录，不重复运行完整构建或迁移测试。
+  本轮没有启动／停止服务或执行数据库 SQL；真实 Flyway／登录验收仍保留 C5。
+- 暂存范围最终为 13 个相关文件；`git diff --cached --check` 和暂存后的 edition 门禁通过，
+  `.DS_Store` 保留在未暂存区，不进入本次提交。

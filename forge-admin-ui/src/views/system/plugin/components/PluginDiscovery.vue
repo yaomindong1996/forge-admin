@@ -13,7 +13,7 @@
       打开插件市场
     </NButton>
     <NAlert v-else type="info" :bordered="false">
-      当前部署尚未配置插件市场地址，请由管理员设置 VITE_PLUGIN_MARKET_URL 后重新构建前端。
+      插件市场地址配置无效，请由管理员检查 VITE_PLUGIN_MARKET_URL 后重新构建前端。
     </NAlert>
     <p class="plugin-discovery__note">
       本页“我的插件”只展示当前服务实际加载的模块。

@@ -11,8 +11,14 @@ export function safePluginLink(value) {
   }
 }
 
-export const pluginMarketUrl = safePluginLink(import.meta.env.VITE_PLUGIN_MARKET_URL
-  || (import.meta.env.DEV ? 'http://localhost:5174/plugins' : ''))
+export const DEFAULT_PLUGIN_MARKET_URL = 'http://www.dlforgelab.com:8084/forge-official-ui/plugins'
+
+/** 客户端默认使用正式市场，本地开发也不依赖另起门户服务。 */
+export function resolvePluginMarketUrl(value) {
+  return safePluginLink(String(value || '').trim() || DEFAULT_PLUGIN_MARKET_URL)
+}
+
+export const pluginMarketUrl = resolvePluginMarketUrl(import.meta.env.VITE_PLUGIN_MARKET_URL)
 
 export const pluginGuideUrl = safePluginLink(import.meta.env.VITE_PLUGIN_GUIDE_URL
   || 'http://www.dlforgelab.com:8084/forge-docs/guide/plugin-center')

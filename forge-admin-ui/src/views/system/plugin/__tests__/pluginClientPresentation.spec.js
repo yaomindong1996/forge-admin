@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { pluginLicenseView } from '../pluginLicenseView'
-import { safePluginLink } from '../pluginLinks'
+import { resolvePluginMarketUrl, safePluginLink } from '../pluginLinks'
 import { builtinPresentations, pluginPresentation } from '../pluginPresentation'
 
 describe('客户端插件展示边界', () => {
@@ -24,6 +24,18 @@ describe('客户端插件展示边界', () => {
     for (const value of ['javascript:alert(1)', 'data:text/html,test', '//example.com', '/plugins', 'https://name:secret@example.com/plugins', undefined]) {
       expect(safePluginLink(value)).toBe('')
     }
+  })
+
+  it('开发和生产使用同一正式市场缺省值，允许合法覆盖且不掩盖错误配置', () => {
+    for (const value of [undefined, null, '', '  ']) {
+      expect(resolvePluginMarketUrl(value))
+        .toBe('http://www.dlforgelab.com:8084/forge-official-ui/plugins')
+    }
+    expect(resolvePluginMarketUrl(' https://customer.example/plugins '))
+      .toBe('https://customer.example/plugins')
+    expect(resolvePluginMarketUrl('http://localhost:5174/plugins')).toBe('http://localhost:5174/plugins')
+    expect(resolvePluginMarketUrl('javascript:alert(1)')).toBe('')
+    expect(resolvePluginMarketUrl('https://name:secret@example.com/plugins')).toBe('')
   })
 
   it('授权严格匹配插件 ID，只展示当前插件声明内的功能', () => {

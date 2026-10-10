@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import test from 'node:test'
 
@@ -47,4 +48,23 @@ test('页面没有未实现的安装操作，详情不是可独立访问的假�
   assert.match(api, /encodeURIComponent\(id\)/)
   assert.match(api, /request.get\('\/system\/plugin\/page'/)
   assert.doesNotMatch(api, /request\.(post|put|delete)/)
+})
+
+test('一级插件菜单迁移只调整导航与图标，不扩大权限，图标已加入本地构建', async () => {
+  const sql = await read('forge-server/db/migration/V1.0.217__promote_plugin_center_to_top_level.sql')
+  assert.doesNotMatch(sql, /\$\{[^}]+\}|DELETE\s+FROM|INSERT\s+INTO|ALTER\s+TABLE/i)
+  const changes = sql.match(/UPDATE\s+sys_resource\s+SET([\s\S]+?)WHERE/i)[1]
+    .split(',').map(item => item.trim().split('=')[0].trim())
+  assert.deepEqual(changes, ['parent_id', 'icon', 'update_by', 'update_time'])
+  for (const predicate of ["tenant_id = 1", "client_code = 'pc'", 'resource_type = 2', 'min_user_type = 0',
+    'del_flag = 0', "perms = 'system:plugin:view'", "path = '/system/plugin'", "component = 'system/plugin'"])
+    assert.ok(sql.includes(predicate))
+  assert.match(sql, /SET parent_id = 0/)
+  assert.match(sql, /parent_id IS NULL OR parent_id <> 0/)
+  const icons = await read('forge-admin-ui/src/assets/icons/dynamic-icons.js')
+  assert.ok(icons.includes("'i-streamline-plump-color:module'"))
+  const require = createRequire(resolve(root, 'forge-admin-ui/package.json'))
+  const iconPath = require.resolve('@iconify/json/json/streamline-plump-color.json')
+  const collection = JSON.parse(await readFile(iconPath, 'utf8'))
+  assert.ok(collection.icons.module.body.includes('<path'))
 })
