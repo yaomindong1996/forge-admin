@@ -5,6 +5,7 @@ import { getPermissions, getUserInfo } from '@/store/helper'
 import { initWebSocketClient, lStorage, request } from '@/utils'
 import { initKeyExchange } from '@/utils/crypto/key-exchange'
 import { applyTenantConfig } from '@/utils/tenant-config'
+import { SSO_BRIDGE_ROUTE } from '@/utils/sso-target'
 import { canAccessHiddenOpenPlatformTool, normalizeOpenPlatformPath } from '../open-platform-routes'
 import { recoverFromAuthBootstrapFailure } from './auth-bootstrap-recovery'
 
@@ -15,6 +16,8 @@ const AUTH_ROUTE_ALLOWLIST = new Set([
   '/system/notice-list',
   '/mcp-authorize',
   '/403',
+  // SSO 桥接页：菜单 path 是子系统目标（如 /project/items），实际跳转到此路由，不能按菜单 accessRoutes 校验
+  SSO_BRIDGE_ROUTE,
 ])
 
 const AUTH_ROUTE_PREFIX_ALLOWLIST = [
