@@ -15,6 +15,7 @@ import com.mdframe.forge.starter.auth.util.PasswordUtil;
 import com.mdframe.forge.starter.core.enums.EnableStatus;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.LoginUser;
+import com.mdframe.forge.starter.plugin.feature.FeatureGate;
 import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,6 +53,7 @@ public class UserLoadServiceImpl implements IUserLoadService {
     private final SysOrgMapper sysOrgMapper;
     
     private final SysRegionMapper regionMapper;
+    private final FeatureGate featureGate;
     
     @Override
     public LoginUser loadUserByUsername(String username, Long tenantId) {
@@ -403,6 +405,8 @@ public class UserLoadServiceImpl implements IUserLoadService {
 
                 if (CollUtil.isNotEmpty(resources)) {
                     Set<String> permissions = resources.stream()
+                            // 先按功能收窄，再写会话快照；不可把未开通资源的权限缓存进登录态。
+                            .filter(resource -> featureGate.isEnabled(resource.getFeatureCode()))
                             .map(SysResource::getPerms)
                             .filter(StrUtil::isNotBlank)
                             .collect(Collectors.toSet());
@@ -467,6 +471,8 @@ public class UserLoadServiceImpl implements IUserLoadService {
                 .isNotNull(SysResource::getApiUrl));
         apiResources = apiResources.stream()
                 .filter(resource -> canAccessByUserType(loginUser, resource.getMinUserType()))
+                // pattern 查询只能接收已开通资源 ID，不能过滤后又按原始角色 ID 重查。
+                .filter(resource -> featureGate.isEnabled(resource.getFeatureCode()))
                 .collect(Collectors.toList());
         List<String> apiPermissions = CollUtil.isEmpty(apiResources)
                 ? new ArrayList<>()

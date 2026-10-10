@@ -15,7 +15,7 @@ class UserLoadServiceImplCaptchaTest {
         ICaptchaService captchaService = mock(ICaptchaService.class);
         UserLoadServiceImpl service = new UserLoadServiceImpl(
                 null, null, null, null, null, null, null, null, null,
-                captchaService, null, null);
+                captchaService, null, null, null);
         when(captchaService.validateAndDeleteSmsCaptcha("13800138000", "123456"))
                 .thenReturn(true);
 

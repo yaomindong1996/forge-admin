@@ -93,6 +93,11 @@ public class SysResource extends TenantEntity {
     private String perms;
 
     /**
+     * 功能授权编码；为空时保持普通资源行为，独立于角色权限。
+     */
+    private String featureCode;
+
+    /**
      * 图标（菜单/目录用）
      */
     private String icon;

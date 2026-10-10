@@ -1,0 +1,6 @@
+{
+  "id": "plugin-capability-core",
+  "name": "能力内核",
+  "version": "${project.version}",
+  "module": "${project.artifactId}"
+}

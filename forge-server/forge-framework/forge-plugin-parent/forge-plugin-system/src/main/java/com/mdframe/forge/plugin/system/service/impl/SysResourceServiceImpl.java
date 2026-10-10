@@ -20,6 +20,7 @@ import com.mdframe.forge.starter.auth.domain.UserResourceTreeVO;
 import com.mdframe.forge.starter.auth.service.IMenuService;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.session.SessionHelper;
+import com.mdframe.forge.starter.plugin.feature.FeatureGate;
 import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -49,6 +50,7 @@ public class SysResourceServiceImpl extends ServiceImpl<SysResourceMapper, SysRe
     private final SysUserRoleMapper userRoleMapper;
     private final SysRoleResourceMapper roleResourceMapper;
     private final PermissionServiceImpl permissionService;
+    private final FeatureGate featureGate;
 
     @Override
     public boolean save(SysResource entity) {
@@ -450,7 +452,8 @@ public class SysResourceServiceImpl extends ServiceImpl<SysResourceMapper, SysRe
             applyClientScope(wrapper, clientCode)
                     .orderByAsc(SysResource::getSort)
                     .orderByDesc(SysResource::getCreateTime);
-            return resourceMapper.selectList(wrapper);
+            // 超管菜单也受功能使用权限制；通配权限仍由接口 RequiresFeature 单独把关。
+            return filterEnabledResources(resourceMapper.selectList(wrapper));
         }
 
         List<Long> roleIds = loginUser.getRoleIds();
@@ -482,7 +485,13 @@ public class SysResourceServiceImpl extends ServiceImpl<SysResourceMapper, SysRe
                 .orderByDesc(SysResource::getCreateTime);
         applyClientScope(resourceWrapper, clientCode);
         applyUserTypeScope(resourceWrapper, loginUser);
-        return resourceMapper.selectList(resourceWrapper);
+        return filterEnabledResources(resourceMapper.selectList(resourceWrapper));
+    }
+
+    private List<SysResource> filterEnabledResources(List<SysResource> resources) {
+        return resources.stream()
+                .filter(resource -> featureGate.isEnabled(resource.getFeatureCode()))
+                .collect(Collectors.toList());
     }
 
     private List<SysResource> buildEntityTree(List<SysResource> list, Long parentId) {

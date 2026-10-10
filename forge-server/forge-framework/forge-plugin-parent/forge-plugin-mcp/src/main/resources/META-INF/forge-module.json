@@ -1,0 +1,6 @@
+{
+  "id": "plugin-mcp",
+  "name": "MCP 服务",
+  "version": "${project.version}",
+  "module": "${project.artifactId}"
+}

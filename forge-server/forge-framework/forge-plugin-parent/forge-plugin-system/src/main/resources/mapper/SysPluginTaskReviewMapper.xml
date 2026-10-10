@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.system.mapper.SysPluginTaskReviewMapper">
+    <sql id="Columns">
+        id, tenant_id, task_id, request_id, command_sha256, expected_revision, package_sha256, result_sha256,
+        decision, previous_status, target_status, executor_stopped, not_deployed, artifacts_reviewed,
+        migrations_reviewed, note, create_by, create_time, create_dept, update_by, update_time, del_flag
+    </sql>
+    <select id="selectRequest" resultType="com.mdframe.forge.plugin.system.entity.SysPluginTaskReview">
+        SELECT <include refid="Columns"/> FROM sys_plugin_task_review
+        WHERE tenant_id = #{tenantId} AND task_id = #{taskId} AND create_by = #{actorId}
+            AND request_id = #{requestId} AND del_flag = 0
+    </select>
+    <select id="selectRecent" resultType="com.mdframe.forge.plugin.system.entity.SysPluginTaskReview">
+        SELECT <include refid="Columns"/> FROM sys_plugin_task_review
+        WHERE tenant_id = #{tenantId} AND task_id = #{taskId} AND del_flag = 0
+        ORDER BY create_time DESC, id DESC LIMIT 20
+    </select>
+    <!-- 只读的时点核验，不查BLOB/租约/说明/人工身份；同一JOIN避免跨查询混合不同修订。 -->
+    <select id="selectApprovalSnapshot"
+            resultType="com.mdframe.forge.plugin.system.service.plugin.PluginReleaseApprovalSnapshot">
+        SELECT t.id AS task_id, t.plugin_id, t.plugin_version, t.operation_type, t.task_status,
+            t.active_plugin_id, t.revision, t.archive_sha256, t.preview_json,
+            b.worker_id, b.source_commit, b.image, b.phase AS build_phase, b.finished_time,
+            b.result_json, b.result_sha256,
+            r.id AS review_id, r.expected_revision, r.package_sha256 AS review_package_sha256,
+            r.result_sha256 AS review_result_sha256, r.decision, r.previous_status, r.target_status,
+            r.executor_stopped, r.not_deployed, r.artifacts_reviewed, r.migrations_reviewed
+        FROM sys_plugin_task t
+        INNER JOIN sys_plugin_build b ON b.id = t.id AND b.tenant_id = t.tenant_id AND b.del_flag = 0
+        INNER JOIN sys_plugin_task_review r ON r.task_id = t.id AND r.tenant_id = t.tenant_id AND r.del_flag = 0
+        WHERE t.tenant_id = #{tenantId} AND t.id = #{taskId} AND t.del_flag = 0 AND r.id = #{reviewId}
+    </select>
+</mapper>

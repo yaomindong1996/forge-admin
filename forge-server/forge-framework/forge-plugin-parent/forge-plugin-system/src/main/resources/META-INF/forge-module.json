@@ -1,0 +1,6 @@
+{
+  "id": "plugin-system",
+  "name": "系统管理",
+  "version": "${project.version}",
+  "module": "${project.artifactId}"
+}

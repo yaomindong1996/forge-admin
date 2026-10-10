@@ -677,21 +677,20 @@ export function applyAiCrudPagePart1(props, emit, deps = {}) {
     const fromOptions = props.options?.treeConfig
     if (fromOptions && typeof fromOptions === 'object' && Object.keys(fromOptions).length)
       return fromOptions
-    if (props.apiConfig?.tree || String(props.apiConfig?.list || '').includes('/tree')) {
-      return {
-        enabled: true,
-        childrenField: 'children',
-        keyField: typeof props.rowKey === 'string' ? props.rowKey : 'id',
-      }
-    }
+    // 仅有 apiConfig.tree 不足以认定嵌入式树表；残留 /tree 不能把平铺列表改成树查询
     return null
+  }
+
+  function isTreeEnabledFlag(value) {
+    return value === true || value === 1 || value === '1' || value === 'true'
   }
 
   const isEmbeddedTreeTable = computed(() => {
     const treeConfig = resolveEmbeddedTreeConfig()
     if (!treeConfig)
       return false
-    if (treeConfig.enabled === false || treeConfig.enabled === 0 || treeConfig.enabled === '0' || treeConfig.enabled === 'false')
+    // 与 runtime-tree-table 一致：必须显式 enabled，避免残留 treeConfig 误打 /tree
+    if (!isTreeEnabledFlag(treeConfig.enabled))
       return false
     const layoutType = String(props.layoutType || props.options?.layoutType || 'simple-crud')
     return layoutType !== 'tree-crud'

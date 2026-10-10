@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.system.mapper.SysPluginDeliveryMapper">
+  <update id="expire">
+    UPDATE sys_plugin_delivery SET status = 'uncertain', failure_code = 'LEASE_EXPIRED'
+    WHERE tenant_id = #{tenant} AND status = 'running' AND del_flag = 0
+    AND (lease_expires_time &lt;= #{now} OR deadline_time &lt;= #{now})
+  </update>
+  <sql id="columns">id, tenant_id, target_id, task_id, release_id, previous_release_id, unverified_release_id, action, status,
+    request_id, command_sha256, worker_id, lease_hash, lease_expires_time, deadline_time,
+    artifact_manifest_sha256, cos_verified, runtime_verified, failure_code, backup_reference,
+    migrations_reviewed, backward_compatible, note, del_flag, create_by, create_time, create_dept,
+    update_by, update_time, reconcile_note, reconciled_by, reconciled_time</sql>
+  <insert id="ensureTarget">
+    INSERT INTO sys_plugin_delivery_target (id, tenant_id, target_id, create_time, update_time, del_flag)
+    VALUES (#{id}, #{tenant}, #{target}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0)
+    ON DUPLICATE KEY UPDATE target_id = VALUES(target_id)
+  </insert>
+  <select id="lockTarget" resultType="com.mdframe.forge.plugin.system.vo.PluginDeliveryTargetVO">
+    SELECT target_id AS id, NULL AS name, NULL AS repository_id, current_release_id,
+      previous_release_id, active_task_id, unverified_release_id
+    FROM sys_plugin_delivery_target WHERE tenant_id = #{tenant} AND target_id = #{target} AND del_flag = 0 FOR UPDATE
+  </select>
+  <select id="targets" resultType="com.mdframe.forge.plugin.system.vo.PluginDeliveryTargetVO">
+    SELECT target_id AS id, NULL AS name, NULL AS repository_id, current_release_id,
+      previous_release_id, active_task_id, unverified_release_id
+    FROM sys_plugin_delivery_target WHERE tenant_id = #{tenant} AND del_flag = 0
+  </select>
+  <select id="recent" resultType="com.mdframe.forge.plugin.system.entity.SysPluginDelivery">
+    SELECT <include refid="columns"/> FROM sys_plugin_delivery
+    WHERE tenant_id = #{tenant} AND del_flag = 0 ORDER BY create_time DESC, id DESC LIMIT 100
+  </select>
+  <select id="lock" resultType="com.mdframe.forge.plugin.system.entity.SysPluginDelivery">
+    SELECT <include refid="columns"/> FROM sys_plugin_delivery
+    WHERE tenant_id = #{tenant} AND id = #{id} AND del_flag = 0 FOR UPDATE
+  </select>
+  <select id="request" resultType="com.mdframe.forge.plugin.system.entity.SysPluginDelivery">
+    SELECT <include refid="columns"/> FROM sys_plugin_delivery
+    WHERE tenant_id = #{tenant} AND create_by = #{actor} AND request_id = #{request} AND del_flag = 0
+    FOR UPDATE
+  </select>
+  <select id="candidate" resultType="com.mdframe.forge.plugin.system.entity.SysPluginArtifactRegistration">
+    SELECT <include refid="com.mdframe.forge.plugin.system.mapper.SysPluginArtifactMapper.Columns"/>
+    FROM sys_plugin_artifact_registration
+    WHERE tenant_id = #{tenant} AND task_id = #{task} AND release_id = #{release} AND del_flag = 0
+  </select>
+  <select id="candidates" resultType="com.mdframe.forge.plugin.system.entity.SysPluginArtifactRegistration">
+    SELECT <include refid="com.mdframe.forge.plugin.system.mapper.SysPluginArtifactMapper.Columns"/>
+    FROM sys_plugin_artifact_registration
+    WHERE task_id IN (SELECT id FROM sys_plugin_task WHERE tenant_id = #{tenant}
+      AND del_flag = 0 AND task_status = 'release_ready')
+    AND tenant_id = #{tenant} AND del_flag = 0 ORDER BY create_time DESC LIMIT 100
+  </select>
+  <select id="published" resultType="int">
+    SELECT COUNT(*) FROM sys_plugin_delivery WHERE tenant_id = #{tenant} AND target_id = #{target}
+    AND release_id = #{release} AND action = 'publish' AND status = 'succeeded' AND cos_verified = TRUE AND del_flag = 0
+  </select>
+  <update id="occupy">
+    UPDATE sys_plugin_delivery_target SET active_task_id = #{id}, update_time = CURRENT_TIMESTAMP
+    WHERE tenant_id = #{tenant} AND target_id = #{target} AND active_task_id IS NULL AND del_flag = 0
+  </update>
+  <update id="complete">
+    UPDATE sys_plugin_delivery_target SET active_task_id = NULL, update_time = CURRENT_TIMESTAMP
+    <if test="row.status == 'succeeded' and row.action != 'publish'">
+      , previous_release_id = current_release_id, current_release_id = #{row.releaseId}, unverified_release_id = NULL
+    </if>
+    <if test="row.status == 'reconciled' and row.action != 'publish' and row.workerId != null">
+      , unverified_release_id = #{row.releaseId}
+    </if>
+    WHERE tenant_id = #{tenant} AND target_id = #{row.targetId} AND active_task_id = #{row.id} AND del_flag = 0
+  </update>
+</mapper>

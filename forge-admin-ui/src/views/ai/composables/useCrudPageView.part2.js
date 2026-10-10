@@ -409,7 +409,14 @@ export function applyCrudPageViewPart2(props, emit, deps = {}) {
   }
 
   function isTreeTableRuntime(cfg = {}, layoutType = '') {
-    return !!cfg.options?.treeConfig && (layoutType || cfg.layoutType || 'simple-crud') !== 'tree-crud'
+    // 与 runtime-tree-table 一致：必须显式 enabled，避免残留 treeConfig 误打 /tree
+    const treeConfig = cfg.options?.treeConfig
+    if (!treeConfig || typeof treeConfig !== 'object')
+      return false
+    const enabled = treeConfig.enabled
+    if (!(enabled === true || enabled === 1 || enabled === '1' || enabled === 'true'))
+      return false
+    return (layoutType || cfg.layoutType || 'simple-crud') !== 'tree-crud'
   }
 
   function resolveTreeLoadMode(treeConfig = {}) {

@@ -91,6 +91,9 @@ const displayText = computed(() => {
     if (text !== undefined && text !== null && text !== '')
       return String(text)
   }
+  const optionLabel = resolveStaticOptionDisplayText(normalizedValue.value)
+  if (optionLabel !== null)
+    return optionLabel
   if (renderConfig.value.format === 'money')
     return formatMoney(normalizedValue.value, renderConfig.value)
   if (renderConfig.value.prefix || renderConfig.value.suffix)
@@ -142,6 +145,24 @@ function resolveTagType(value) {
   if (['error', 'disabled', 'fail', 'failed', '0', 'false'].includes(text))
     return 'error'
   return 'default'
+}
+
+function resolveStaticOptionDisplayText(value) {
+  const options = Array.isArray(renderConfig.value.options)
+    ? renderConfig.value.options
+    : (Array.isArray(props.field?.options) && props.field.options.length
+        ? props.field.options
+        : (Array.isArray(props.field?.props?.options) ? props.field.props.options : null))
+  if (!Array.isArray(options) || !options.length)
+    return null
+  const values = Array.isArray(value) ? value : [value]
+  const labels = values.map((item) => {
+    const matched = options.find(option => String(option?.value ?? option?.key) === String(item))
+    return matched?.label ?? item
+  })
+  if (!labels.length)
+    return null
+  return labels.join(renderConfig.value.separator || '、')
 }
 
 function formatMoney(value, config = {}) {

@@ -1,0 +1,10 @@
+{
+  "id": "hello",
+  "name": "示例插件",
+  "version": "1.0.0",
+  "edition": "community",
+  "requiresCore": ">=1.2.0 <2.0.0",
+  "features": ["community.hello"],
+  "server": { "module": "forge-plugin-hello" },
+  "ui": { "dir": "ui" }
+}

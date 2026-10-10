@@ -1,6 +1,6 @@
 # 踩坑：前端 / 构建 / 路由
 
-> 从 `code-copilot/memory/pitfalls.md` 按主题拆出。新条目追加到本文件。共 51 条。
+> 从 `code-copilot/memory/pitfalls.md` 按主题拆出。新条目追加到本文件。共 52 条。
 
 ## uni-app 微信小程序不能直接复用 H5 Teleport 和动态 component 递归
 
@@ -836,3 +836,23 @@ H5 鉴权头像加载失败后按“当前解析出的 URL”判断是否已经�
 **解决方案**：品牌链接走 `getHomePath()`（`$homePath` / `VITE_HOME_PATH` / `/home`）。
 Tab 守卫排除 `/` 和纯 redirect 记录，并把 `/`、`/home` 视为同一首页 Tab。
 
+## Vue 指令 updated 钩子不能依赖 this 调用 mounted
+
+**发现日期**：2026-10-07
+
+**问题描述**：插件中心模拟页面更新时，现有 `v-hasPermi` 的 `updated` 执行 `this.mounted`，
+Vue 调用指令钩子不绑定该指令对象，导致页面报错。静态源码/构建检查不能发现这个运行问题。
+
+**解决方案**：本轮新页面用 userStore 的响应式权限控制显示，API 仍以权限注解及平台身份双重鉴权。
+未扩大范围改造全局指令；后续修该指令时应把检查提为共享函数，由两钩子直接调用，不能依赖 this。
+回归需触发更新（查询/加载状态/权限变化），不能只验首次 mounted。
+
+## Vitest 2 不能直接使用较新版本的合并 Mock 断言
+
+**发现日期**：2026-10-09
+
+**问题描述**：当前 Vitest 2.1.9 调用 `toHaveBeenCalledExactlyOnceWith` 报 Invalid Chai property，
+即使实际 API 请求正确，也会因不支持的断言方法失败。
+
+**解决方案**：复用现有版本，分别断言 `toHaveBeenCalledTimes(1)` 和 `toHaveBeenCalledWith(...)`。
+两条断言同时保留次数及参数约束；不能为适配测试工具删掉参数校验或跳过用例。

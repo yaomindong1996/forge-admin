@@ -151,7 +151,7 @@ describe('default list columns', () => {
     expect(tree.props.labelField).not.toBe('orderName')
   })
 
-  it('clears stale enableTreeAddChild on AiCrudPage when layout is tree-crud', () => {
+  it('clears stale enableTreeAddChild on AiCrudPage when layout is tree-crud and right table is flat', () => {
     const modelSchema = {
       businessName: '订单',
       objectCode: 'order',
@@ -203,6 +203,65 @@ describe('default list columns', () => {
     )
     const tableZone = zones.find(zone => zone.zoneKey === 'table')
     expect(tableZone.props.enableTreeAddChild).toBe(false)
+  })
+
+  it('keeps enableTreeAddChild when tree-crud also enables embedded right tree', () => {
+    const modelSchema = {
+      businessName: '分类',
+      objectCode: 'category',
+      appType: 'TREE',
+      treeConfig: {
+        enabled: true,
+        parentField: 'parentId',
+        enableTreeAddChild: true,
+      },
+      fields: [
+        { field: 'id', label: '编号', listVisible: true },
+        { field: 'name', label: '名称', listVisible: true },
+        { field: 'parentId', label: '父级', listVisible: false },
+      ],
+    }
+    const layout = syncGridLayoutWithModel({
+      cols: 12,
+      rowHeight: 32,
+      gap: 8,
+      layoutType: 'tree-crud',
+      items: [{
+        id: 'block_tree',
+        blockType: 'tree-panel',
+        gridX: 0,
+        gridY: 0,
+        gridW: 3,
+        gridH: 18,
+        props: {
+          sourceModelCode: 'category',
+          sourceConfigKey: 'category',
+          keyField: 'id',
+          parentField: 'parentId',
+          labelField: 'name',
+        },
+      }, {
+        id: 'block_crud',
+        blockType: 'AiCrudPage',
+        gridX: 3,
+        gridY: 0,
+        gridW: 9,
+        gridH: 10,
+        fieldRefs: ['name'],
+        props: { enableTreeAddChild: false },
+      }],
+    }, modelSchema, { layoutType: 'tree-crud' })
+
+    const crud = layout.items.find(item => item.blockType === 'AiCrudPage')
+    expect(crud.props.enableTreeAddChild).toBe(true)
+
+    const zones = applyGridLayoutToZones(
+      [{ zoneKey: 'table', enabled: true, fieldRefs: ['name'], props: { enableTreeAddChild: false } }],
+      layout,
+      modelSchema,
+    )
+    const tableZone = zones.find(zone => zone.zoneKey === 'table')
+    expect(tableZone.props.enableTreeAddChild).toBe(true)
   })
 })
 

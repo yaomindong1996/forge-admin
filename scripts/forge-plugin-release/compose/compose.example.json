@@ -1,0 +1,12 @@
+{
+  "protocolVersion": 1,
+  "repositoryId": "customer-builds",
+  "vaultRoot": "/srv/forge-operator/vault",
+  "outputRoot": "/srv/forge-operator/compose-packages",
+  "configRoot": "/srv/forge-operator/runtime-config",
+  "projectName": "customer-runtime",
+  "serverImage": "approved-java17-runtime@sha256:REPLACE_WITH_REVIEWED_IMAGE_DIGEST",
+  "uiImage": "approved-rootless-nginx-runtime@sha256:REPLACE_WITH_REVIEWED_IMAGE_DIGEST",
+  "serverPort": 18580,
+  "uiPort": 13000
+}

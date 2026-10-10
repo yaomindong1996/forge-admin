@@ -141,11 +141,14 @@ export function syncGridLayoutWithModel(layout, modelSchema, options = {}) {
           searchFieldSettings: sanitizeFieldSettings({}, new Set(defaultSearchRefs), searchFieldSet),
         }
       }
-      // 左树右表右表不是本表树，区块残留 enableTreeAddChild 会导致「添加下级」误显
+      // 左树右表：右表未开本表嵌入式树时清掉残留「添加下级」；已启用则跟随 model
       if (layoutType === 'tree-crud') {
+        const embeddedOn = modelSchema?.treeConfig?.enabled === true || modelSchema?.appType === 'TREE'
         props = {
           ...props,
-          enableTreeAddChild: false,
+          enableTreeAddChild: embeddedOn
+            ? modelSchema?.treeConfig?.enableTreeAddChild === true
+            : false,
         }
       }
     }
@@ -522,8 +525,10 @@ export function applyGridLayoutToZones(zones, gridLayout, modelSchema) {
           childrenField: treeProps.childrenField || zoneTreeConfig.childrenField || 'children',
           loadMode: treeProps.loadMode || zoneTreeConfig.loadMode || 'full',
         }
-        // 左树右表：右表是筛选列表，不是本表树形；强制关掉「添加下级」
-        nextProps.enableTreeAddChild = false
+        // 左树右表默认关掉「添加下级」；本表嵌入式树已启用时跟随 model
+        nextProps.enableTreeAddChild = modelSchema?.treeConfig?.enabled === true
+          ? modelSchema.treeConfig.enableTreeAddChild === true
+          : false
       }
       else if (modelSchema?.treeConfig?.enabled === true || modelSchema?.appType === 'TREE') {
         // 嵌入式树表：无 tree-panel 时也要把模型树配置落到 table zone，避免被同步清掉

@@ -1,0 +1,7 @@
+{
+  "name": "forge-plugin-release-tools",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20.19.0" },
+  "dependencies": { "cos-nodejs-sdk-v5": "3.0.0" }
+}

@@ -32,11 +32,12 @@ class ClientCredentialSurfaceContractTest {
                 "requestUrl.replaceAll(\";[^/]*\", \"\").replaceAll(\"/+$\", \"\")");
         assertThat(hardExclusion).isGreaterThanOrEqualTo(0).isLessThan(configurableExclusion);
 
-        for (Path initSql : List.of(
-                Path.of("../../../db/全量初始化SQL.sql"),
-                Path.of("../../../forge-admin-server/sql/初始化脚本.sql"))) {
-            assertThat(Files.readString(initSql)).as(initSql.toString()).contains("\"/auth/login\"");
-        }
+        // 旧 admin-server/sql 副本已移除；当前初始化必须读取这份权威 SQL，不能检查废弃路径。
+        Path initSql = Path.of("../../../db/全量初始化SQL.sql");
+        assertThat(Files.readString(initSql)).as(initSql.toString()).contains("\"/auth/login\"");
+        String initScript = Files.readString(Path.of("../../../scripts/db/init-db.sh"));
+        assertThat(initScript).contains("ADMIN_INIT_SQL=\"$FORGE_DIR/db/全量初始化SQL.sql\"",
+                "run_sql_file \"$ADMIN_INIT_SQL\"");
     }
 
     @Test

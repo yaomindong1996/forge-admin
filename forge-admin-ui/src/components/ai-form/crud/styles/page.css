@@ -25,21 +25,26 @@
   margin-right: 4px;
 }
 
-.ai-crud-page.is-form-only,
-.ai-crud-page.is-inline-form-active {
+/* formOnly：文档流高度，外层滚动 */
+.ai-crud-page.is-form-only {
   height: auto !important;
   min-height: 0 !important;
   flex: 0 0 auto !important;
   overflow: visible !important;
-}
-
-.ai-crud-page.is-inline-form-active .ai-crud-main {
-  flex: 0 0 auto;
-}
-
-.ai-crud-page.is-form-only {
   background: transparent;
   padding: 0;
+}
+
+/* 内联编辑/详情：保持视口高度链，由表单 body 内部滚动（勿 height:auto，否则会被父级 overflow:hidden 裁切且无滚动条） */
+.ai-crud-page.is-inline-form-active:not(.is-form-only) {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ai-crud-page.is-inline-form-active:not(.is-form-only) .ai-crud-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .ai-crud-form-only,
@@ -222,6 +227,13 @@
   min-height: clamp(220px, 38vh, 460px);
 }
 
+/* 内联表单全屏时列表已隐藏，勿再占最小高度 */
+.ai-crud-main.is-form-workspace-active:not(.is-tab-workspace) .ai-crud-table {
+  flex: 0 0 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .ai-crud-main.is-tab-workspace .ai-crud-table {
   flex: 1 1 auto;
 }
@@ -394,7 +406,7 @@
   height: auto;
   min-height: 0;
   max-height: none;
-  overflow: visible;
+  overflow: hidden;
   border: 0;
   border-radius: 0;
   box-shadow: none;
@@ -404,6 +416,8 @@
 .ai-crud-main.is-form-workspace-active:not(.is-tab-workspace) .ai-crud-inline-form-panel {
   flex: 1 1 auto;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   background: var(--bg-primary);
@@ -411,6 +425,7 @@
 
 .ai-crud-main.is-form-workspace-active:not(.is-tab-workspace) .inline-form-panel-body {
   flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
   padding: 18px 20px 20px;
 }

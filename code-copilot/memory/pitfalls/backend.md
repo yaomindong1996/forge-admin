@@ -1,6 +1,20 @@
 # 踩坑：后端框架 / Spring / Maven
 
-> 从 `code-copilot/memory/pitfalls.md` 按主题拆出。新条目追加到本文件。共 34 条。
+> 从 `code-copilot/memory/pitfalls.md` 按主题拆出。新条目追加到本文件。共 48 条。
+
+## macOS 封存目录先设只读会导致重命名提交失败
+
+**发现日期**: 2026-10-08
+
+**问题描述**:
+本地制品库先将随机暂存目录设0500，再 rename 到内容寻址目录，macOS 返回EACCES。
+隔离临时目录测试在沙箱内/外都能复现，不是审批限制，不能通过提升权限掩盖。
+
+**解决方案**:
+私有vault与同一独占发布锁内，只在提交rename时将暂存顶层短暂设0700，子目录/文件维持0500/0400。
+rename后finally收敛顶层0500，同步并复验最终目录才报告成功。
+崩溃留下的未收敛目录不能通过verify；损坏快照和失联锁均不自动覆盖/抢占，需人工核查后隔离。
+权限只是单用户工具约定，不是防管理员改写的签名或OS不可变标记。
 
 ## 打印关系外键 businessObject0eq3Id 对不上是设计器列名+model_schema 漏字段
 
@@ -201,6 +215,15 @@ mvn -pl forge-admin-server -am compile -DskipTests
 
 **验证建议**:
 修复 forge-create 裁剪逻辑后，必须重新生成临时 `minimal-admin` 工程，检查生成后的 `admin-server` 存在降级 `AiClientAdapterImpl` 且没有引用 `plugin-ai`，再执行 `mvn -pl <project>-admin-server -am compile -DskipTests` 或 `package -DskipTests`。
+
+**2026-10-07 增量发现及修复（plugin-foundation T5-F1）**:
+`full` 在 `plugin-data`、`minimal-admin` 在 `plugin-generator` 聚合编译时都报 `plugin.print` 类型不存在。
+两个源 POM 已依赖 `forge-plugin-print`，但 module-catalog 未登记该模块；生成目录留有未映射的孤立打印模块，
+却没有 Reactor 登记，引用者的打印依赖被裁掉。生成工程还需补齐 generator 的 data/external 直接依赖。
+冻结 T0 输出也有此问题，不能把输出零差异当成可编译。新增模块时需要同步目录清单和所有直接引用者的闭包，
+再分别执行改名工程 Admin 聚合构建；只跑 System/starter 模块测试无法覆盖此缺失。
+现已补齐目录清单和闭包；最终重新生成 full/minimal-admin，两套离线 Admin package 均通过。
+生成打印目录/坐标、父 POM/BOM 登记和包内 jar 摘要一起验证，T0 原清单保留，修复差异单列审核。
 
 ## 74. Spring Boot 3.5 与 Redisson 3.34.1 会触发登录 Redis 适配死循环
 
@@ -672,3 +695,126 @@ macOS 上使用临时 Microsoft OpenJDK 17 运行 Mockito 5 测试时，内联 M
 
 **解决方案**:
 从当前 Maven 依赖缓存定位匹配版本的 `byte-buddy-agent`，在测试命令的 `JAVA_TOOL_OPTIONS` 中使用 `-javaagent:/绝对路径/byte-buddy-agent-x.y.z.jar`，确保 Maven 和 Surefire fork 都预加载 Instrumentation。必须继续检查实际 `Tests run` 汇总，不能把环境错误当成业务测试失败或跳过测试。
+
+## 同一工作区并发 Maven 构建会干扰运行中的测试
+
+**发现日期**: 2026-10-07
+
+**问题描述**:
+同一 checkout 同时运行模块 `test -am` 和 Admin `package -am` 时，重编译共享模块暂时移除/重写
+`target/classes`，测试报自动配置 class 资源不存在或 `NoClassDefFoundError`。对应源码没有缺失，
+并行 package 完成后在同一代码上串行复跑全部测试通过。
+
+**解决方案**:
+同一输出目录中的 Maven 测试和聚合构建串行执行；只有独立 worktree/生成工程的构建可以并行。
+排查先检查是否有共享 target 的构建正在运行，再完整重跑生命周期与真实测试计数，不删除测试或更改装配规则迁就环境竞争。
+
+## 脚手架品牌前缀替换会抢先改掉 Admin 启动类名
+
+**发现日期**: 2026-10-07
+
+**问题描述**:
+生成 `forge-baseline-full` 工程时，文件为 `ForgeBaselineFullAdminApplication.java`，
+public 类却为 `ForgeBaselineFullApplication`；直接 javac 提示应放入 `ForgeBaselineFullApplication.java`。
+minimal-admin 和冻结 T0 输出也有此问题，不是共享改名抽取引入。
+
+**根因与规避**:
+原替换表先执行 `ForgeAdmin -> javaName` 品牌规则，随后 `ForgeAdminApplication` 启动类规则已无法命中；
+文件改名却独立使用完整启动类映射。应单独修复前缀重叠，验证声明、文件名、main 引用和构建配置一致。
+零差异抽取期间不能静默更改这条行为或重录 T0；修复要单列允许差异，再重新生成并聚合构建。
+
+**2026-10-07 已修复（plugin-foundation T5-F1）**:
+品牌规则使用负向前缀边界避开完整启动类，完整类名仍由原映射改名。普通品牌文本不变，
+覆盖目标前缀含 ForgeAdmin 的场景；两套生成 Admin package 和包内 Start-Class 验证通过。
+
+## 最小生成工程裁模块时必须同时裁剪 Admin 的可选接入层
+
+**发现日期**: 2026-10-07
+
+**问题描述**:
+补齐打印依赖后，minimal-admin 在 ApplicationIntegrationController/Service/Mapper 编译时
+报 capability.controlplane、capability.flowaction 和 capability.secureaction 类型不存在。
+目录预设未选择能力开放模块，却把 Admin 的应用集成组合代码和测试、Mapper XML 全部保留下来。
+
+**解决方案**:
+生成器在改包名之前，检查 generator、capability-platform、capability-actions 是否全部选择；
+缺任一项只裁剪新生成 Admin 工程的 integration 主/测试包和 ApplicationIntegrationMapper.xml。
+不要为编译强行把能力开放套件并入最小预设。测试逐项缺依赖、幂等、其它文件不变及完整预设保留，
+再用新目录重新生成并聚合 package。最终 full 保留 11 文件、minimal-admin 移除 11 文件，两套打包通过；
+模板源码未删，回滚还原生成器后重新生成工程，原冻结清单不重录。
+
+## 插件开发模式不能直接链接整个 Maven 模块目录
+
+**发现日期**: 2026-10-07
+
+**问题描述**:
+将外部插件模块整目录链接到 forge-server/plugins 后，即使源 POM relativePath=../../pom.xml，
+Maven 仍沿真实路径解析父工程，报 Non-resolvable parent POM；仅校验链接存在和 POM 文本不能证明可构建。
+构建还会生成 target 和 .flattened-pom.xml，若当成源码摘要的一部分，卸载/升级会误报本地改动。
+
+**解决方案**:
+宿主保留普通接入 POM（parent 指向 ../../pom.xml），源码/资源以软链接接入；外部插件原文件不修改。
+校验接入 POM 摘要、所有权和每个链接目标，排除已知普通构建输出，再实跑 package 及构建后 remove。
+Node CLI 同样应按 realpath 比较入口路径，避免 macOS /var 与 /private/var 别名导致入口静默不执行。
+捕获失败保留恢复副本；不要在提交后删除备份失败时尝试一个已缺失原件的回滚。
+
+## 插件稳定标识不能被宿主 artifact 改名覆盖
+
+**发现日期**: 2026-10-07
+
+**问题描述**:
+合法插件 ID forge-starter-core 安装到改名宿主后，通用改名将迁移目录改为 core-starter-core，
+运行描述却仍是原 ID，插件 SQL 不进入迁移计划；仅还原 JSON 不足以保护路径和功能编码。
+
+**根因与解决**:
+安装器对非 POM 的完整 ID/features 做保护，Java package/import 与 POM 坐标仍照常改名；
+资源目录与二进制恢复路径共用不改 ID 的目录映射，生成器默认行为不变。
+回归包含 ID 与核心/自身 artifact 同名、目录/ZIP、SQL/UI 路径及独立 Maven/Java 命名空间。
+已安装旧包先核对迁移历史，不能自动改已执行 SQL 或做 Flyway repair。
+
+## 源包配置排除规则不能复用于插件覆盖预检
+
+**发现日期**: 2026-10-07
+
+**问题描述**:
+无 Git/被忽略的插件目录新增 application-dev.yml 后，摘要扫描沿用交付规则跳过配置；
+--force 没有拒绝，当前安装中的配置消失，虽有旧目录恢复备份，重新部署仍失去该配置。
+
+**根因与解决**:
+源包排除配置用于防泄密；已安装扫描则在读取内容前检测并拒绝配置（包含忽略/提交文件与链接）。
+预检和逐写入复检共用该口径，正常构建输出及外部 dev 源码不受影响。
+竞态测试必须在相应组件覆盖前注入配置；放在组件已替换后的 POM 操作不属于此保护窗口。
+
+## MyBatis BLOB 查询不能用 byte[] 作为整个 Mapper 返回类型
+
+**发现日期**: 2026-10-07
+
+**问题描述**:
+`byte[] selectArchive(...)` 配合单列 BLOB resultType=byte[]，MyBatis-Plus 将数组当作多行返回，
+将每行 byte[] 放进 byte[] 时抛 `Array.set argument type mismatch`；纯 Mapper mock 测试发现不了。
+
+**解决方案**:
+用明确实体/VO 包装 BLOB 列，内部读取 `getArchiveData()`；公开响应仍使用不包含包字节的 VO。
+增加执行真实 Mapper XML 和表结构的测试，验证内部包读取、列表不取包、租户边界及并发状态校验。
+
+## 生成工程的插件源包验证坐标不能跟随宿主包名改写
+
+**发现日期**: 2026-10-07
+
+**问题描述**:
+Forge 源包使用原始 groupId，生成工程的全文改名却将 Java 验证器内固定字符串替换成宿主包名。
+如果测试夹具中的相同字符串也被替换，单测能通过，却无法接收真正的标准插件包。
+
+**解决方案**:
+固定交付协议坐标用分段常量保护，Java package/import 仍正常改名；安装器负责后续宿主坐标转换。
+生成 full 工程后，验证器测试仍使用原始 Forge 包坐标，而非由生成器同步改写的“自洽”夹具。
+
+## Admin 插件构建快照不能复制 full 的全部独立前端资产
+
+**发现日期**：2026-10-07
+
+新 full 工程的独立 Report UI 字体资产约509 MiB，完整 Git 快照触发512 MiB总量限制。
+提高限额会放大内存/磁盘风险，且这些资产不参与 Admin 插件构建。
+执行器固定只复制后端根、Admin UI、根包管理配置和原模块 catalog，排除其它独立前端、
+部署/文档及历史 Admin dist.zip；逐文件绑定提交/摘要，结果明确 admin-build 范围及排除数量。
+真实生成工程快照收敛到约59 MiB并通过，未改变限额；范围外的自定义工作区仍不自动支持。

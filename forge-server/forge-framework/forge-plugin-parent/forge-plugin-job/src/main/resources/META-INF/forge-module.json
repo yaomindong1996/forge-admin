@@ -1,0 +1,6 @@
+{
+  "id": "plugin-job",
+  "name": "任务调度",
+  "version": "${project.version}",
+  "module": "${project.artifactId}"
+}

@@ -2,43 +2,121 @@
 
 > 关联 Spec：`spec.md`。按顺序执行，T0 必须在改动 `create-project.mjs` 之前完成。
 
-- [ ] T0 版本号与改名基线：
-  - 先把 `forge-server/pom.xml` 的 `revision` 从 `1.0.0` 升为 `1.1.0`；
+- [x] T0 版本号与改名基线（2026-10-07）：
+  - 用户确认目标版本修正为 `1.2.0`，不复用已有 Gitee 标签；根 POM 和独立 BOM 同步升级；
+  - 框架继承根版本，根 BOM 导入和框架版本属性引用 `${revision}`；
   - 再用固定参数执行 `forge:create`，生成 `full`、`minimal-admin` 两套工程，记录全部文件的相对路径和 SHA-256，基线清单存入本目录 `baseline/`。
-- [ ] T1 新增 `forge-starter-plugin`（F1）：
+  - `full` 8324 个文件、`minimal-admin` 4866 个文件；重复生成差异均为 0。
+  - 冻结源提交、版本补丁、生成器/目录清单摘要及复跑说明一并留存；T0 时 Maven/JDK 缺失，T1 已找到临时工具补验编译。
+- [x] T1 新增 `forge-starter-plugin`（F1，2026-10-07）：
   - `ForgeVersion` 及资源过滤的 `forge-version.properties`；
   - `FeatureGate`、`CommunityFeatureGate`；
   - `@RequiresFeature`、`FeatureGateInterceptor` 及其 `WebMvcConfigurer`；
   - `PluginDescriptor`、`PluginRegistry`；
-  - 在 `forge-starter-parent/pom.xml` 注册模块，`forge-admin-server` 引入依赖；
-  - 单测。
-- [ ] T2 插件迁移执行器（F2）：`PluginFlywayMigrationStrategy`、历史表名推导、`baselineVersion = 0`；单测覆盖主迁移先执行。
-- [ ] T3 功能授权过滤（F3）：
-  - `V1.0.209__add_resource_feature_code.sql`；
-  - `SysResource.featureCode`；
-  - `SysResourceServiceImpl.getUserResources` 过滤；
-  - `UserLoadServiceImpl` 普通用户权限过滤；
-  - `forge-plugin-system` 引入 `forge-starter-plugin`；
-  - 单测。
-- [ ] T4 `clean-db.sh` 保留插件历史表，更新 `clean-db.test.mjs`。
-- [ ] T5 抽出共用改名规则（F4）：
-  - 新增 `scripts/forge-shared/rename.mjs`，`create-project.mjs` 改为引用；
-  - 与 T0 基线逐文件比对，必须完全一致。
-- [ ] T6 脚手架扩展（F4）：
+  - 独立自动配置支持客户 Gate 替换，Registry 在全局懒加载下仍立即校验；
+  - 在 `forge-starter-parent/pom.xml` 注册模块，`forge-admin-server` 引入依赖，同步 BOM 和脚手架模块闭包；
+  - 106 项 Java 单测全部通过，模板、改名 full/minimal-admin 各复跑；Admin 47 个模块聚合编译通过；
+  - 清单工具与模板/生成 full 数据库脚本共 41 项 Node 测试通过，全部数据库调用为桩；T0 基线不变。
+- [x] T2 插件迁移执行器（F2，2026-10-07）：
+  - `PluginFlywayMigrationStrategy`、独立历史表推导、`baselineVersion = 0`、SQL 来源隔离与 Boot 自动配置；
+  - 新增 48 项测试，连同 T1 共 154 项在模板/full/minimal-admin 三套工程中全部通过；
+  - H2 实跑首装/重复启动、相同版本隔离、失败阻断、主 Java 迁移不重跑、JAR/嵌套目录和 checksum 校验；
+  - Admin 47 模块聚合 package 通过，包内 starter 与本轮模块 jar 的 SHA-256 一致；41 项 Node 回归通过；
+  - 未运行真实 MySQL；T3 菜单过滤、T4 历史表清理保护与安装命令仍待后续实现。
+- [x] T3 功能授权过滤（F3，2026-10-07）：
+  - `V1.0.209__add_resource_feature_code.sql` 防重复迁移及 `SysResource.featureCode`；
+  - `getUserResources` 两类用户过滤，普通用户登录按钮/API 权限快照过滤；
+  - System 引入 starter-plugin，同步模块目录闭包，两个入口使用同一个可替换 Gate；
+  - 新增 32 项测试，System 160 项 + starter-plugin 154 项在模板/full/minimal-admin 各通过；
+  - Admin 聚合 package 与 41 项 Node 回归通过；旧安全测试对齐现用初始化路径后完整复跑；
+  - 真实 MySQL DDL/登录端到端未执行；管理员配置树和通配权限保留，企业接口仍必须加 RequiresFeature。
+- [x] T4 清理脚本保护迁移历史（2026-10-07）：
+  - 主库历史与任意工程前缀的插件历史优先保留，不进入 DROP/TRUNCATE/租户或逻辑删除清理；
+  - 显式 --drop-table 删除历史表时，在连接 MySQL 前拒绝；普通历史与备份/临时副本清理不变；
+  - 新增 12 项清理测试，模板 35 项、改名 full 30 项回归均通过；使用系统 bash 3.2 与 MySQL 桩；
+  - 更新帮助和自定义 SQL 审核边界；T0 基线不变，未连接真实库，清理后重启验收仍待 T12。
+- [x] T5 抽出共用改名规则（F4，2026-10-07）：
+  - 新增 `scripts/forge-shared/rename.mjs` 与文件工具，`create-project.mjs` 复用同一份规则；
+  - 抽取前后 10 组映射/有序规则一致，冻结 full 8324/minimal-admin 4866 文件与 T0 的差异均为 0；
+  - 新增 25 项 Node 测试，模板 60/60、当前改名 full DB 桩 30/30 通过；两套 POM/依赖/配置检查通过；
+  - 生成 Admin 聚合编译被原有打印模块依赖遗漏阻断，另有启动类名与文件名冲突；待单独确认修复，
+    未改写 T0 基线，不把兼容抽取通过表述为生成工程全量编译通过。
+- [x] T5-F1 生成工程编译修复（2026-10-07 用户确认继续，先于 T6）：
+  - 裁剪缺少能力开放依赖的生成 Admin 应用集成源码/测试/Mapper，完整预设保持不变。
+  - 保留 T0 原清单，品牌替换不再抢先改掉 Admin 启动类；验证声明、main 引用和文件名一致；
+  - 登记 plugin-print，补齐 generator/data 的真实打印依赖及 generator 的 data/external 编译闭包；
+  - 增量 Node 测试与两套生成工程 Admin 聚合构建，单列输出允许差异，不混入 T6 工具扩展。
+  - 新增 16 项，模板 76/76、生成 full DB 桩 30/30 通过；两套 Admin 聚合 package 通过。
+  - 冻结 full/minimal-admin 的差异逐文件核对，保留原 T0 清单，未连接真实数据库或启动服务。
+- [x] T6 脚手架扩展（F4，2026-10-07）：
   - `forge.config.json` 增加 `forgeVersion`、`plugins`；
   - 生成工程包含根 `package.json`、`scripts/forge-plugin/`、`scripts/forge-shared/`、`module-catalog.json`；
   - 复制 `.gitignore` 时去除“仅模板仓库”区块；
   - 除上述新增项外，其余文件仍与基线一致。
-- [ ] T7 pom 插件标记区块：`forge-server/pom.xml` 的 modules、`forge-admin-server/pom.xml` 的 dependencies 各加一组空标记；确认 `forge:create` 改名后标记保留。
-- [ ] T8 `forge:plugin` 命令（F5）：`add`、`--force`、`--dev`、`list`、`remove`；Node 单测。
-- [ ] T9 示例插件 `plugins-samples/forge-plugin-hello/`（F6）：后端模块、菜单迁移、前端页面、`forge-plugin.json`。
-- [ ] T10 防误提交（F7）：
+  - 版本从根 POM 明文 revision 读取，工具原样复制在业务改名之后；暂只提供帮助，安装命令留给 T8。
+  - 新增 33 项测试，模板 109/109、生成 full DB 桩 30/30 通过；最终两套 Admin 聚合 package 通过。
+  - 相对已审计 T5-F1 两套均只新增 5 文件/改变 1 配置文件，配置仅加两字段；保留原 T0 基线。
+  - 54/37 个 POM XML、工具二次改名、pnpm 帮助入口与精确 .gitignore 剥离通过；无真实库或服务验收。
+- [x] T7 POM 插件标记区块（2026-10-07）：
+  - 根 modules/Admin dependencies 各加一组空标记；模块裁剪保留，非法/非空区块拒绝。
+  - 新增 20 项测试；模板 129/129、生成 full DB 桩 30/30；三套 Admin 聚合编译、两套模型验证通过。
+  - 冻结两套工程相对 T6 仅两个 POM 加标记，删掉精确注释后旧字节一致；T0 原基线不变。
+  - 实时工程 54/37 个 POM XML、直属空标记/模块目录及独立前缀改名验证通过；安装命令仍待 T8。
+- [x] T8 `forge:plugin` 命令（F5，2026-10-07）：
+  - 目录/ZIP、整包升级、清单、可恢复卸载、模板开发接入；共用改名与严格元数据/版本/POM/路径校验。
+  - Git/摘要改动保护、独占锁、隔离 staging、逐写入故障回滚；首装/升级/卸载均保留宿主恢复备份。
+  - 开发模式后端接入 POM + 外部源码链接，UI 目录链接；外部包不复制/改名/修改，卸载不删数据库。
+  - 新增 118 项；模板 247/247、生成 full DB 桩 30/30；工具回归 217/217，均无失败/跳过。
+  - 两套实时工程 Admin package/UI build、插件 JAR 原字节/运行描述/页面装配及开发模式 package/卸载通过。
+  - 冻结两套相对 T7 各 added=14/changed=1/missing=0，全部限定运行工具；T0 基线不变。
+  - 未连接真实库/启动服务；合成夹具不是 T9 示例交付，不把构建验证表述为迁移/权限运行验收。
+- [x] T9 示例插件 `plugins-samples/forge-plugin-hello/`（F6，2026-10-07）：
+  - 完整社区源码包：后端 Controller/VO、Registry 版本信息、RBAC/功能注解、菜单/API 迁移、Naive UI 页面。
+  - 不默认安装，不给现有角色授权；只新增自身资源，重复 SQL/逻辑删除重建/停用资源/客户路径冲突均验证。
+  - 新增 Node 7 项，模板 254/254、生成 full DB 桩 30/30；Java 12 项在三套宿主各通过，UI 8/8。
+  - 三套 Admin package、两套 UI build/动态页面装配与 JAR 原字节验证通过；ESLint/形态/diff 检查通过。
+  - 冻结 full 8343/minimal-admin 5077 文件与 T8 零差异，T0 基线不变；卸载后外部样例不变，备份保留。
+  - 模拟接口亮/暗/320px/刷新/错误重试验证通过；不连接真实库，真实登录及普通用户授权仍待 T12。
+- [x] T10 防误提交（F7，2026-10-07）：
   - `scripts/guards/check-edition.mjs` 和根 `package.json` 的 `check:edition` 脚本；
   - 模板仓库 `.gitignore` 区块；
   - `AGENTS.md` 5.18；
   - Node 单测。
-- [ ] T11 文档：更新 `.agents/skills/forge-project-init/SKILL.md`（插件安装、升级、卸载）；新增插件开发说明，包括企业版接口必须加 `@RequiresFeature`、迁移脚本规则、升级覆盖规则。
-- [ ] T12 人工验收（本机无 Maven/MySQL，由用户执行）：
-  - `mvn -pl forge-admin-server -am package -DskipTests`；
-  - `mvn test -Penable-tests`（相关模块）；
-  - 按 `test-spec.md` 跑示例插件全链路。
+  - 新增 41 项；模板 295/295、生成 full DB 桩 30/30，实际 pnpm check:edition 通过。
+  - 工作区/索引原始内容双检查，无目录豁免；损坏配置、强制暂存安装目录、链接/冲突/超限拒绝。
+  - 冻结两预设与 T9 零差异；实时两预设只增加 AGENTS 的条件化 5.18，不复制 guard/命令/忽略区块。
+  - 安装 hello 后客户插件后端/前端均可暂存；未启动服务、操作真实数据库或新增商业 License。
+- [x] T11 文档（2026-10-07）：
+  - 更新初始化技能，按需读取安装/升级/卸载参考；分开原始插件作者指南与客户工程操作指引。
+  - 说明描述/POM/HTTP 权限与功能授权/迁移/UI/交付边界；企业接口需 RequiresFeature，非 HTTP 显式检查。
+  - 明确 --force 整包覆盖、不绕过未提交改动；卸载保留数据/历史、源码恢复不等于数据库回滚。
+  - 新文档契约 6/6，模板回归 301/301、新 full DB 桩 30/30；模板和两个客户工程技能校验通过。
+  - 两种预设全文件比较仅新增参考/更新技能；实际生成 CLI 和 pnpm 入口验证通过，T0 证据不变。
+  - 没有运行真实库/服务或改变 License/收费方案；真实 MySQL/Redis 与登录授权验收仍归 T12。
+- [x] T12 人工验收（2026-10-07 后端真实环境、浏览器和专用资源收尾全部完成）：
+  - [x] 用户授权的 158 MySQL 8.0.46：独立库/账号，全量 SQL、required seed、209 个主迁移和基础清理。
+  - [x] 新 minimal-admin / com.acme.check：BOM 安装、安装 hello、Admin Reactor package 和真实启动。
+  - [x] 正常 RSA 登录；仅加强 QA 库验证码配置并使用受支持的 local 回显，保留服务端校验。
+  - [x] 管理员可见/可调用、未授权普通用户拒绝、授权后可用；功能过滤菜单/按钮/API 快照，
+    未开通接口对已登录管理员也返回 HTTP 403。7 个阶段共 73 个 HTTP 步骤检查通过。
+  - [x] 插件独立历史 baseline=0 / V1.0.0；重复启动、清理后重启摘要不变，无 SQL 重跑。
+  - [x] 临时 1.0.1 升级包只追加新迁移；CLI 卸载后主/插件历史及资源保留，重装不重跑。
+  - [x] 复用 T9 相关 Java/构建和 T11 Node 回归；本轮没有生产 Java/UI/SQL 改动，文档契约 6/6，
+    开源边界检查通过。没有把包构建或接口成功表述为浏览器页面已经通过。
+  - [x] 浏览器后续已处于正常登录状态；Agent 未操作 CAPTCHA，从真实菜单打开插件页面、刷新均通过。
+    实际显示 hello / 1.0.1 / 1.2.0，截图保存；没有用模拟接口代替此项。
+  - [x] 专用服务/隧道停止，4 个回环端口无监听；测试库先备份再删除，账号/库不存在，
+    临时 Redis/配置按所有者与 ID 精确清理，原 MySQL/Redis 身份保留；日志/截图/备份仅本地留存。
+
+## Review 增量任务（2026-10-07，用户已确认修复）
+
+- [x] R1 保护插件 ID、路由/功能标识及独立 SQL 目录，避免通用 artifact 改名误改；
+  补充合法 ID 与核心 artifact 同名的安装/迁移契约回归，不改已执行 SQL。
+- [x] R2 分离交付源包排除规则与已安装目录改动检查；检测本地配置等新增文件，
+  不让无 Git/忽略目录中的整包升级静默移除配置；保留构建后正常升级/卸载行为。
+- [x] 修复后增量验证并重新执行阶段一 Review，通过后再启动阶段二 Code Quality，暂不归档。
+  - 新增 44 项，工具/生成器/门禁/模板 DB 桩 345/345；独立复现 2/2 通过。
+  - 新生成 full 的 DB 桩 30/30、原字节工具核对/实际 CLI 安装与配置保护/卸载 1/1 通过。
+  - 两阶段增量自审 PASS，保持源码交付/重新构建部署边界；不执行真实数据库/服务、不 push。
+
+独立 Pro 工程与品牌/包名为新需求，另立提案后执行，不混入上述缺陷修复。

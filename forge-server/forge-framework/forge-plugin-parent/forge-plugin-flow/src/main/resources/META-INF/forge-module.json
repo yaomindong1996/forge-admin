@@ -1,0 +1,6 @@
+{
+  "id": "plugin-flow",
+  "name": "流程引擎",
+  "version": "${project.version}",
+  "module": "${project.artifactId}"
+}

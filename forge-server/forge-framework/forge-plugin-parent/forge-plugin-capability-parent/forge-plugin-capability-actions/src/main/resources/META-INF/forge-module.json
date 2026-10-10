@@ -1,0 +1,6 @@
+{
+  "id": "plugin-capability-actions",
+  "name": "业务动作",
+  "version": "${project.version}",
+  "module": "${project.artifactId}"
+}

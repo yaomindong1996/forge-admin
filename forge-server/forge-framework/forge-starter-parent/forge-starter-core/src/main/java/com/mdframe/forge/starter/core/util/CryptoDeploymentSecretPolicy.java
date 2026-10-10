@@ -16,12 +16,16 @@ public final class CryptoDeploymentSecretPolicy {
             "forge.crypto.persistence.activekey",
             "forge.crypto.persistence.legacykey",
             "forge.crypto.persistence.keys",
-            "forge.crypto.persistence.historicalkeys"
+            "forge.crypto.persistence.historicalkeys",
+            "forge.plugindelivery",
+            "forge.pluginruntimeprobe"
     );
 
     private static final Set<String> PROPERTY_KEY_PREFIXES = Set.of(
             "forge.crypto.persistence.keys",
-            "forge.crypto.persistence.historicalkeys"
+            "forge.crypto.persistence.historicalkeys",
+            "forge.plugindelivery",
+            "forge.pluginruntimeprobe"
     );
 
     private static final Set<String> JSON_SECRET_FIELDS = Set.of(

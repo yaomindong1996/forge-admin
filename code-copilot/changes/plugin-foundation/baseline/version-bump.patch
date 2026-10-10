@@ -1,0 +1,32 @@
+diff --git a/forge-server/forge-framework/forge-dependencies/pom.xml b/forge-server/forge-framework/forge-dependencies/pom.xml
+--- a/forge-server/forge-framework/forge-dependencies/pom.xml
++++ b/forge-server/forge-framework/forge-dependencies/pom.xml
+@@ -14,2 +14,2 @@
+-        <revision>1.0.0</revision>
++        <revision>1.2.0</revision>
+         <maven.compiler.source>17</maven.compiler.source>
+diff --git a/forge-server/forge-framework/pom.xml b/forge-server/forge-framework/pom.xml
+index e88adfb1..a3631985 100644
+--- a/forge-server/forge-framework/pom.xml
++++ b/forge-server/forge-framework/pom.xml
+@@ -18,3 +18,2 @@
+         <java.version>17</java.version>
+-        <revision>1.0.0</revision>
+         <flatten-maven-plugin.version>1.3.0</flatten-maven-plugin.version>
+diff --git a/forge-server/pom.xml b/forge-server/pom.xml
+--- a/forge-server/pom.xml
++++ b/forge-server/pom.xml
+@@ -12,4 +12,4 @@
+     <properties>
+-        <revision>1.0.0</revision>
+-        <forge-framework.version>1.0.0</forge-framework.version>
++        <revision>1.2.0</revision>
++        <forge-framework.version>${revision}</forge-framework.version>
+         <spring-boot.version>3.5.13</spring-boot.version>
+@@ -145,5 +145,5 @@
+             <dependency>
+                 <groupId>com.mdframe.forge</groupId>
+                 <artifactId>forge-dependencies</artifactId>
+-                <version>1.0.0</version>
++                <version>${revision}</version>
+                 <type>pom</type>

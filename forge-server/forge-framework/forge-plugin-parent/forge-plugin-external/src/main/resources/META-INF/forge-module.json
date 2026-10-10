@@ -1,0 +1,6 @@
+{
+  "id": "plugin-external",
+  "name": "外部接口",
+  "version": "${project.version}",
+  "module": "${project.artifactId}"
+}

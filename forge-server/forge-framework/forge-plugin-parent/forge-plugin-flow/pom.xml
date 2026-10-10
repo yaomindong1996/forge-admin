@@ -106,12 +106,5 @@
         </dependency>
     </dependencies>
 
-    <build>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>false</filtering>
-            </resource>
-        </resources>
-    </build>
+    <!-- 继承插件父模块：仅过滤内置构建声明，业务资源保持原字节。 -->
 </project>

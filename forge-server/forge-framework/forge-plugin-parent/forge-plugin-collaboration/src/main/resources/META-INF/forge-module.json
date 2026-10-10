@@ -1,0 +1,6 @@
+{
+  "id": "plugin-collaboration",
+  "name": "企业协同",
+  "version": "${project.version}",
+  "module": "${project.artifactId}"
+}

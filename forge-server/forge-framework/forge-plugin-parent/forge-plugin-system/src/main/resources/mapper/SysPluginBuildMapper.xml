@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.system.mapper.SysPluginBuildMapper">
+    <sql id="Summary">
+        id, tenant_id, worker_id, phase, lease_expires_time, deadline_time, started_time, finished_time,
+        source_commit, image, result_json, result_sha256,
+        create_by, create_time, create_dept, update_by, update_time, del_flag
+    </sql>
+    <select id="selectBuild" resultType="com.mdframe.forge.plugin.system.entity.SysPluginBuild">
+        SELECT <include refid="Summary"/>, lease_hash FROM sys_plugin_build
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+    </select>
+    <select id="selectSummary" resultType="com.mdframe.forge.plugin.system.entity.SysPluginBuild">
+        SELECT <include refid="Summary"/> FROM sys_plugin_build
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+    </select>
+    <!-- 按唯一条件锁定，禁止叠加 ORDER BY/LIMIT，兼容租户 SQL 重写。 -->
+    <select id="lockSummary" resultType="com.mdframe.forge.plugin.system.entity.SysPluginBuild">
+        SELECT <include refid="Summary"/> FROM sys_plugin_build
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0 FOR UPDATE
+    </select>
+    <!-- 人工封存不是 worker 回报；保持 result_json/result_sha256 原样，旧续期 CAS 必须失败。 -->
+    <update id="seal">
+        UPDATE sys_plugin_build SET finished_time = #{now}, update_by = #{actorId}, update_time = #{now}
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0 AND finished_time IS NULL
+    </update>
+    <!-- 续期不增加任务 revision；阶段单向推进由服务校验，此处 CAS 阻止旧阶段覆盖。 -->
+    <update id="heartbeat">
+        UPDATE sys_plugin_build SET phase = #{build.phase}, lease_expires_time = #{build.leaseExpiresTime},
+            update_time = #{now}
+        WHERE tenant_id = #{build.tenantId} AND id = #{build.id} AND del_flag = 0
+            AND worker_id = #{build.workerId} AND lease_hash = #{build.leaseHash}
+            AND phase = #{previousPhase} AND finished_time IS NULL
+            AND lease_expires_time > #{now} AND deadline_time > #{now}
+    </update>
+    <update id="finish">
+        UPDATE sys_plugin_build SET phase = #{build.phase}, finished_time = #{now},
+            result_json = #{build.resultJson}, result_sha256 = #{build.resultSha256}, update_time = #{now}
+        WHERE tenant_id = #{build.tenantId} AND id = #{build.id} AND del_flag = 0
+            AND worker_id = #{build.workerId} AND lease_hash = #{build.leaseHash} AND finished_time IS NULL
+            AND phase = #{previousPhase}
+            AND lease_expires_time > #{now} AND deadline_time > #{now}
+    </update>
+</mapper>

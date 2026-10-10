@@ -489,8 +489,12 @@ final class BusinessObjectRelationProjector {
                 basicProps.put(key, designerProps.get(key));
             }
         }
-        if (basicProps.get("optionSource") instanceof Map<?, ?>) {
-            basicProps.remove("options");
+        if (basicProps.get("optionSource") instanceof Map<?, ?> os) {
+            Object rawType = os.get("type");
+            String type = rawType == null ? "" : String.valueOf(rawType).trim();
+            if (!type.isEmpty() && !"STATIC".equalsIgnoreCase(type.replace('-', '_'))) {
+                basicProps.remove("options");
+            }
         }
     }
 

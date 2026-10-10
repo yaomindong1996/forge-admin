@@ -3,7 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "forge:create": "node scripts/forge-create/create-project.mjs"
+    "forge:create": "node scripts/forge-create/create-project.mjs",
+    "forge:plugin": "node scripts/forge-plugin/index.mjs",
+    "forge:plugin-build": "node scripts/forge-plugin-builder/index.mjs",
+    "forge:plugin-release": "node scripts/forge-plugin-release/index.mjs",
+    "check:edition": "node scripts/guards/check-edition.mjs"
   },
   "packageManager": "pnpm@11.7.0+sha512.19cc852c120c7125760f2443ee6be0ca5b40f9f50598de1a09a1f177503e010e57c23c77646e01e761de59bf874fb22a3398c33ab9691fc13eb946b6f0f4d620"
 }

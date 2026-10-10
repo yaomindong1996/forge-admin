@@ -57,6 +57,28 @@ class RuntimeTableColumnCompilerTest {
     }
 
     @Test
+    void staticOptionFieldEmitsStaticOptionsRender() {
+        LowcodeFieldSchema field = field("cooperationStatus", "radioButton");
+        Map<String, Object> column = compiler.buildTableColumn(field, Map.of(
+                "props", Map.of(
+                        "optionSource", Map.of("type", "STATIC"),
+                        "options", List.of(
+                                Map.of("label", "正常", "value", "1"),
+                                Map.of("label", "终止", "value", "2")
+                        )
+                )
+        ), null, null);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> render = (Map<String, Object>) column.get("render");
+        assertEquals("staticOptions", render.get("type"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> options = (List<Map<String, Object>>) render.get("options");
+        assertEquals(2, options.size());
+        assertEquals("正常", options.get(0).get("label"));
+    }
+
+    @Test
     void childColumnTitleDropsDuplicatedModelPrefix() {
         LowcodeFieldSchema field = field("child__qty", "number");
         LowcodePageModelRef child = new LowcodePageModelRef();

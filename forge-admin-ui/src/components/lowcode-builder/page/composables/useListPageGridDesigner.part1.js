@@ -1001,14 +1001,21 @@ function patchEmbeddedTreeConfig(patch = {}) {
 
 function updateTreeAddChildEnabled(enabled) {
   const nextEnabled = enabled === true
-  // 左树右表：右表不是本表树，「添加下级」只改行操作开关，禁止把 model 写成 TREE/parentId
+  // 左树右表：只改「添加下级」，不得关掉本表嵌入式树（已启用）
   if (props.layoutType === 'tree-crud') {
-    const base = disableEmbeddedTreeModel(props.modelSchema)
+    const currentlyEnabled = embeddedTreeEnabled.value
+    const base = currentlyEnabled
+      ? ensureEmbeddedTreeModel(props.modelSchema)
+      : cloneSchema(props.modelSchema || {})
     base.treeConfig = {
+      ...embeddedTreeConfig.value,
       ...(base.treeConfig || {}),
-      enabled: false,
-      enableTreeAddChild: false,
+      // 右表未开嵌入式树时保持 enabled=false，也不要因「添加下级」写成 TREE
+      enabled: currentlyEnabled,
+      enableTreeAddChild: nextEnabled,
     }
+    if (currentlyEnabled)
+      base.appType = 'TREE'
     commitEmbeddedTreeModel(base)
     const block = selectedBlock.value && ['AiCrudPage', 'data-table', 'AiTable'].includes(selectedBlock.value.blockType)
       ? selectedBlock.value

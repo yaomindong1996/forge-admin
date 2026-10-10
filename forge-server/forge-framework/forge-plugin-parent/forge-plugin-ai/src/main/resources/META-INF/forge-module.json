@@ -1,0 +1,6 @@
+{
+  "id": "plugin-ai",
+  "name": "AI 能力",
+  "version": "${project.version}",
+  "module": "${project.artifactId}"
+}

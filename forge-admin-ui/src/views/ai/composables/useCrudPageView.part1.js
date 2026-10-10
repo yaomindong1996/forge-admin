@@ -258,6 +258,11 @@ export function applyCrudPageViewPart1(props, emit) {
         renderConfig.renderType = 'dictTag'
         renderConfig.dictType = col.render.dictType
       }
+      else if (col.render && typeof col.render === 'object' && col.render.type === 'staticOptions') {
+        renderConfig.renderType = 'staticOptions'
+        if (Array.isArray(col.render.options))
+          renderConfig.options = col.render.options
+      }
       else if (canRenderTranslatedText(key) && col.render && typeof col.render === 'object' && col.render.type === 'relationName') {
         renderConfig.textField = col.render.targetField || `${key}Name`
       }
