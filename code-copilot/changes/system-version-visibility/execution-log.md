@@ -116,3 +116,51 @@ NODE_OPTIONS=--max-old-space-size=8192 node node_modules/@dcloudio/vite-plugin-u
 - 只读数据库核对：forge_schema_history 共 217 条成功记录，当前 JAR 校验无差异，pending=0。
 - 版本及 Flyway 配置 Node 契约 11/11、版本 1.2.0 检查、开源边界与 git diff --check 通过。
 - 提交排除用户 `.DS_Store`；Admin / UI 将使用提交后重新构建的产物，不直接发布上轮试构建。
+
+### 2026-10-10 21:17–21:26：构建、备份与生产验收
+
+- 功能提交 `100ce072087468f06e5349e2fdfdd9248748ed63` 已普通快进推送 origin/main，
+  44 个文件；工作区仅剩用户 `.DS_Store`，未清理或提交。构建输入代码均已提交。
+- 从该提交重新构建 Admin：`mvn -o -q -pl forge-admin-server -am clean package -DskipTests
+  -Dforge.build.commit=100ce072087468f06e5349e2fdfdd9248748ed63 -Dstyle.color=never`，成功。
+  使用前述 Java 17 / Maven 3.9.11 工具链，发布构建按规范跳过测试，复用前轮用例证据。
+- PC 使用 Node 20.19.0 执行 Vite production build，显式指定 /forge、/forge-api，成功；
+  制品 version.json 为 1.2.0，commit 与后端 build-info 完全相同。没有发布 H5/App/Flow/Report/Website。
+- JAR SHA-256：`19e2fcba8659cc5d29af63ab6204e4e5345052345845a9525ebea52a24d30913`。
+  UI tar SHA-256：`7718a34405d3d13af6b2a402fcce02ef4c115a21d100f48ffa78057c6899a08d`。
+  上传后再次核对摘要；打包排除 macOS 元数据文件。
+- 当前和新 JAR 的 217 份迁移 SQL 内容逐字节一致。基础配置差异仅为上一轮已合入的
+  Flyway classpath 默认路径及缺目录失败设置；没有数据源、端口或其它业务配置漂移。
+- 旧 JAR 中有 application-dev.yml，新 JAR 不含该本地文件。将原配置原字节保存到
+  `/www/wwwroot/admin-service/config/application-dev.yml`，属主 www、权限 0600；
+  数据库/Redis 参数未改，原 EnvironmentFile 摘要未变，未激活的 application-prod.yml 未动。
+  配置内容与凭据未进入仓库、日志或本地制品。
+- 备份目录：`/www/wwwroot/admin-service/backups/system-version-100ce072`（0700）。
+  保留原 JAR、完整 Admin UI、原 config、EnvironmentFile、systemd unit、部署记录及检查/回滚脚本。
+- 后端仅重启 spring_forge-admin，启动 45.843 秒；PID 2199367，active/running，NRestarts=0。
+  首次检查仍在初始化，HTTP 暂时不可用；待 readiness 为 UP 后才切换 UI，未将中间态算作成功。
+- UI 目录 `/www/wwwroot/html/dist` 已切换，保留上一版哈希资源兼容仍打开的旧页面；
+  原目录另保留在 `/www/wwwroot/admin-service/releases/system-version-100ce072/previous-live-ui`。
+  Nginx 配置检查通过，配置未修改，无需 reload；其它服务未重启。
+- 启动日志：Successfully validated 217 migrations、No migration necessary、Started ForgeAdminApplication；
+  本轮启动未发现 ERROR。未执行 repair/clean 或生产迁移 SQL。
+- 部署前后历史摘要均为 `17ab2d5f4cf9585afca3cf8891eaaf8fccdc04fdc92ea370c797e400fd6dec69`，
+  217 条成功记录，最新 1.0.217，issues/pending 均为空。
+- 服务器健康 /actuator/health/readiness、/actuator/health 均 HTTP 200 / UP；
+  本机与公网 /forge-api/auth/loginConfig 均 code=200。
+- 公网 `http://www.dlforgelab.com:8084/forge/` 的 index.html 与本次产物哈希一致，
+  9 个关键 JS（含 SystemAboutModal）均 HTTP 200 且哈希与构建一致；
+  `/forge/version.json` 返回 1.2.0 / 100ce072087468f06e5349e2fdfdd9248748ed63。
+- 公网与本机匿名 /system/version 返回业务 code=401、未提供登录凭证，没有泄露版本响应。
+  浏览器控制连接两次超时，未使用假令牌或提取用户会话；登录后“关于系统”点击留待用户验收。
+- 本轮没有新增发布标签，也没有声称已发布新的语义版本；仅按授权部署当前 1.2.0 更新。
+  本节后续提交只记录结果，不改变已部署运行代码，部署源码锚点仍为 100ce072。
+- 收尾 fetch 发现远端新增 85005c27，仅修改 README 引用的 images/微信群.png，未改变 Admin / UI 构建输入。
+  本地已快进保留该提交，再提交部署记录；不强推、不覆盖他人更新，也不为文档图片重新部署服务。
+
+### T7 回退说明
+
+本轮无新增数据库迁移，程序回退无需改迁移历史。已保存的备份脚本支持 rollback，但本次没有执行回退。
+需要回退时，经授权停止 Admin，恢复备份 JAR，将本轮新增外置 dev 配置移回受限暂存位置，
+恢复 previous-live-ui，再启动并检查健康；备份、失败产物及配置均保留，不删除业务数据。
+后续已有新部署或配置变更时必须重新核对，不能直接重放本次脚本覆盖新状态。
