@@ -24,27 +24,26 @@ defineProps({
 .ai-cell-group {
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
-  
+  gap: 8px;
+
   &--compact {
-    gap: 10rpx;
+    gap: 6px;
   }
 }
 
 .ai-cell-group__title {
-  margin: 8rpx 0 0 4rpx;
-  color: var(--text-secondary);
-  font-size: 22rpx;
-  font-weight: 500;
-  line-height: 1.2;
+  margin: 4px 0 0 4px;
+  color: var(--forge-text-secondary);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
 }
 
 .ai-cell-group__body {
   position: relative;
   z-index: 1;
   overflow: hidden;
-  border: 1rpx solid var(--border-color);
-  border-radius: var(--radius-card);
-  background: #fff;
+  border-radius: var(--forge-radius-card);
+  background: var(--forge-surface);
 }
 </style>

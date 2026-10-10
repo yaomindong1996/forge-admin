@@ -78,7 +78,7 @@ function drawQr(context) {
   const modules = matrix.length
   const configuredMargin = clamp(props.options.margin, 0, 32, 0)
   const moduleSize = (canvasWidth.value - configuredMargin * 2) / modules
-  context.setFillStyle(props.options.foreground || '#1e293b')
+  context.setFillStyle(props.options.foreground || '#171a1d')
   matrix.forEach((row, y) => row.forEach((dark, x) => {
     if (dark) context.fillRect(configuredMargin + x * moduleSize, configuredMargin + y * moduleSize, Math.ceil(moduleSize), Math.ceil(moduleSize))
   }))
@@ -87,7 +87,7 @@ function drawQr(context) {
 function drawBarcode(context) {
   const { bits, barWidth, margin, height } = barcodeDimensions.value
   if (!bits) throw new Error('invalid barcode')
-  context.setFillStyle(props.options.lineColor || '#1e293b')
+  context.setFillStyle(props.options.lineColor || '#171a1d')
   let start = -1
   for (let index = 0; index <= bits.length; index += 1) {
     if (bits[index] === '1' && start < 0) start = index
@@ -112,9 +112,9 @@ watch(() => [props.kind, props.value, JSON.stringify(props.options)], scheduleRe
 
 <style lang="scss" scoped>
 .machine-code { display: flex; align-items: center; flex-direction: column; gap: 16rpx; padding: 32rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-card); background: #fff; }
-.machine-code__title { align-self: stretch; color: #1e293b; font-size: 24rpx; font-weight: 500; }
+.machine-code__title { align-self: stretch; color: #171a1d; font-size: 24rpx; font-weight: 500; }
 .machine-code__scroll { width: 100%; text-align: center; white-space: nowrap; }
 .machine-code__canvas { display: inline-block; vertical-align: middle; }
-.machine-code__value { max-width: 100%; overflow: hidden; color: #475569; font-size: 21rpx; text-overflow: ellipsis; white-space: nowrap; }
-.machine-code__error { padding: 30rpx 20rpx; color: #ef4444; font-size: 23rpx; }
+.machine-code__value { max-width: 100%; overflow: hidden; color: #747677; font-size: 21rpx; text-overflow: ellipsis; white-space: nowrap; }
+.machine-code__error { padding: 30rpx 20rpx; color: #ff5219; font-size: 23rpx; }
 </style>

@@ -5,7 +5,7 @@
         {{ displayText || effectivePlaceholder }}
       </text>
       <text v-if="displayText && clearable && !effectiveDisabled" class="lowcode-selector__clear" @click.stop="clear">×</text>
-      <wd-icon v-else name="arrow-right" size="16px" color="#94a3b8" />
+      <wd-icon v-else name="arrow-right" size="16px" color="#a2a3a5" />
     </button>
 
     <AiPopupSheet
@@ -299,27 +299,27 @@ function countTreeRows(rows = []) {
 </script>
 
 <style lang="scss" scoped>
-.lowcode-selector__trigger { display: flex; width: 100%; min-height: 88rpx; align-items: center; gap: 12rpx; margin: 0; padding: 14rpx 24rpx; border: 1rpx solid var(--forge-color-border, #cbd5e1); border-radius: var(--radius-control); color: #1e293b; text-align: left; background: #fff; box-sizing: border-box; }
+.lowcode-selector__trigger { display: flex; width: 100%; min-height: 88rpx; align-items: center; gap: 12rpx; margin: 0; padding: 14rpx 24rpx; border: 1rpx solid var(--forge-color-border, #c1c3c6); border-radius: var(--radius-control); color: #171a1d; text-align: left; background: #fff; box-sizing: border-box; }
 .lowcode-selector__trigger::after, .lowcode-selector__option::after, .lowcode-selector__more::after { border: 0; }
-.lowcode-selector__trigger[disabled] { background: #f8fafc; opacity: .72; }
+.lowcode-selector__trigger[disabled] { background: #f7f8fa; opacity: .72; }
 .lowcode-selector__value { min-width: 0; overflow: hidden; flex: 1; font-size: 25rpx; text-overflow: ellipsis; white-space: nowrap; }
-.lowcode-selector__value.is-placeholder { color: #94a3b8; }
-.lowcode-selector__clear { display: flex; width: 42rpx; height: 42rpx; align-items: center; justify-content: center; border-radius: 50%; color: #94a3b8; font-size: 32rpx; background: #f8fafc; }
+.lowcode-selector__value.is-placeholder { color: #a2a3a5; }
+.lowcode-selector__clear { display: flex; width: 42rpx; height: 42rpx; align-items: center; justify-content: center; border-radius: 50%; color: #a2a3a5; font-size: 32rpx; background: #f7f8fa; }
 .lowcode-selector__search { display: flex; align-items: center; gap: 12rpx; margin-bottom: 18rpx; }
 .lowcode-selector__search :deep(.ai-field) { min-width: 0; flex: 1; }
-.lowcode-selector__state { display: flex; min-height: 200rpx; flex-direction: column; align-items: center; justify-content: center; gap: 18rpx; color: #475569; font-size: 24rpx; }
-.lowcode-selector__state.is-error { color: #ef4444; }
+.lowcode-selector__state { display: flex; min-height: 200rpx; flex-direction: column; align-items: center; justify-content: center; gap: 18rpx; color: #747677; font-size: 24rpx; }
+.lowcode-selector__state.is-error { color: #ff5219; }
 .lowcode-selector__options { overflow: hidden; border: 1rpx solid var(--border-color); border-radius: var(--radius-card); background: #fff; }
-.lowcode-selector__option { display: flex; width: 100%; min-height: 88rpx; align-items: center; gap: 16rpx; margin: 0; padding-top: 14rpx; padding-right: 20rpx; padding-bottom: 14rpx; border: 0; border-bottom: 1rpx solid #e2e8f0; border-radius: 0; color: #1e293b; text-align: left; background: #fff; box-sizing: border-box; }
+.lowcode-selector__option { display: flex; width: 100%; min-height: 88rpx; align-items: center; gap: 16rpx; margin: 0; padding-top: 14rpx; padding-right: 20rpx; padding-bottom: 14rpx; border: 0; border-bottom: 1rpx solid #f0f1f2; border-radius: 0; color: #171a1d; text-align: left; background: #fff; box-sizing: border-box; }
 .lowcode-selector__option.is-selected { background: #f5f7ff; }
 .lowcode-selector__option.is-disabled { opacity: .48; }
-.lowcode-selector__indicator { display: flex; width: 34rpx; height: 34rpx; flex: 0 0 auto; align-items: center; justify-content: center; border: 2rpx solid #cbd5e1; border-radius: 50%; color: #fff; font-size: 23rpx; background: #fff; box-sizing: border-box; }
+.lowcode-selector__indicator { display: flex; width: 34rpx; height: 34rpx; flex: 0 0 auto; align-items: center; justify-content: center; border: 2rpx solid #c1c3c6; border-radius: 50%; color: #fff; font-size: 23rpx; background: #fff; box-sizing: border-box; }
 .lowcode-selector__indicator.is-multiple { border-radius: 7rpx; }
-.is-selected .lowcode-selector__indicator { border-color: #3b82f6; background: #3b82f6; }
+.is-selected .lowcode-selector__indicator { border-color: #0066ff; background: #0066ff; }
 .lowcode-selector__copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3rpx; }
 .lowcode-selector__label { overflow: hidden; font-size: 25rpx; text-overflow: ellipsis; white-space: nowrap; }
-.lowcode-selector__meta { overflow: hidden; color: #94a3b8; font-size: 21rpx; text-overflow: ellipsis; white-space: nowrap; }
-.lowcode-selector__more { width: 100%; margin: 0; border: 0; border-radius: 0; color: #3b82f6; font-size: 23rpx; background: #f5f7ff; }
+.lowcode-selector__meta { overflow: hidden; color: #a2a3a5; font-size: 21rpx; text-overflow: ellipsis; white-space: nowrap; }
+.lowcode-selector__more { width: 100%; margin: 0; border: 0; border-radius: 0; color: #0066ff; font-size: 23rpx; background: #f5f7ff; }
 .lowcode-selector__footer { display: flex; flex-direction: column-reverse; gap: 16rpx; }
 
 @media (min-width: 1024px) {

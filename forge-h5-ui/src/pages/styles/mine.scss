@@ -1,30 +1,44 @@
 .mine-page {
   display: flex;
-  height: var(--forge-page-height, 100vh);
+  height: 100vh;
   min-height: 0;
   flex-direction: column;
-  background: var(--page-bg);
+  background: var(--forge-page-bg);
 }
 
-.mine-scroll { height: calc(100% - 64px - env(safe-area-inset-bottom)); min-height: 0; flex: 0 0 auto; overflow-y: auto; }
+.mine-scroll { min-height: 0; flex: 1; overflow-y: auto; }
 .mine-scroll::-webkit-scrollbar,
 .mine-scroll :deep(.uni-scroll-view::-webkit-scrollbar) { width: 6px; }
 .mine-scroll::-webkit-scrollbar-thumb,
-.mine-scroll :deep(.uni-scroll-view::-webkit-scrollbar-thumb) { border-radius: 6px; background: #cbd5e1; }
+.mine-scroll :deep(.uni-scroll-view::-webkit-scrollbar-thumb) { border-radius: 6px; background: var(--forge-arrow); }
 
 .mine-content {
   display: flex;
   width: 100%;
   max-width: var(--forge-page-max-width);
   flex-direction: column;
-  gap: 12px;
+  gap: var(--forge-space-section);
   margin: 0 auto;
-  padding: 14px 16px calc(64px + env(safe-area-inset-bottom));
+  padding: 4px var(--forge-space-page) var(--forge-tabbar-space);
   box-sizing: border-box;
 }
 
-.mine-title,
-.mine-subtitle,
+.header-icon-button {
+  display: flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.header-icon-button::after { display: none; }
+.header-icon-button:active { background: var(--forge-surface-muted); }
+
 .profile-name,
 .menu-label,
 .menu-desc,
@@ -41,33 +55,15 @@
   display: block;
 }
 
-.mine-title {
-  color: var(--text-strong);
-  font-size: 36rpx;
-  font-weight: 500;
-}
-
-.mine-subtitle {
-  margin-top: 4rpx;
-  color: var(--text-muted);
-  font-size: 21rpx;
-}
-
+/* —— 资料卡片 —— */
 .profile-card {
-  position: relative;
-  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 14px;
-  min-height: 100px;
-  padding: 16px;
-  border: 1px solid #dbeafe;
-  border-radius: var(--radius-card);
-  background: linear-gradient(135deg, #eff6ff 0%, #f8fbff 68%, #eef2ff 100%);
-  box-shadow: var(--shadow-soft);
+  padding: 18px 16px;
+  border-radius: var(--forge-radius-card);
+  background: var(--forge-surface);
 }
-
-.profile-card::after { position: absolute; top: -52px; right: -48px; width: 150px; height: 150px; border-radius: 50%; background: rgba(59, 130, 246, .07); content: ''; pointer-events: none; }
 
 .avatar-frame,
 .avatar-inner,
@@ -76,20 +72,17 @@
 }
 
 .avatar-frame {
-  position: relative;
-  z-index: 1;
-  width: 56px;
-  height: 56px;
-  flex: 0 0 56px;
+  width: 60px;
+  height: 60px;
+  flex: 0 0 60px;
 }
 
 .avatar-inner {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  border: 1rpx solid var(--border-color);
-  border-radius: 50%;
-  background: var(--surface-muted);
+  border-radius: 16px;
+  background: var(--forge-surface-muted);
 }
 
 .avatar-image,
@@ -100,16 +93,16 @@
 
 .avatar-edit {
   position: absolute;
-  right: -2rpx;
-  bottom: -2rpx;
+  right: -4px;
+  bottom: -4px;
   display: flex;
-  width: 32rpx;
-  height: 32rpx;
+  width: 20px;
+  height: 20px;
   align-items: center;
   justify-content: center;
-  border: 2rpx solid #fff;
+  border: 2px solid var(--forge-surface);
   border-radius: 50%;
-  background: var(--primary-color);
+  background: var(--forge-color-primary);
 }
 
 .avatar-loading-mask {
@@ -118,16 +111,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  background: rgba(17, 24, 39, 0.48);
+  border-radius: 16px;
+  background: rgba(23, 26, 29, 0.48);
 }
 
 .avatar-loading-spinner,
 .tenant-row-loading {
-  width: 24rpx;
-  height: 24rpx;
-  border: 3rpx solid #cbd5e1;
-  border-right-color: var(--primary-color);
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--forge-arrow);
+  border-right-color: var(--forge-color-primary);
   border-radius: 50%;
   animation: accountSpin 0.8s linear infinite;
 }
@@ -138,69 +131,79 @@
 }
 
 .profile-copy {
-  position: relative;
-  z-index: 1;
   min-width: 0;
   flex: 1;
 }
 
 .profile-name {
   overflow: hidden;
-  color: var(--text-strong);
-  font-size: 17px;
-  font-weight: 700;
+  color: var(--forge-text-primary);
+  font-size: 20px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.profile-account { display: block; margin-top: 4px; color: var(--text-secondary); font-size: 12px; }
+.profile-account {
+  display: block;
+  overflow: hidden;
+  margin-top: 4px;
+  color: var(--forge-text-secondary);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .member-badge {
   display: inline-flex;
+  max-width: 100%;
   align-items: center;
-  gap: 6rpx;
-  margin-top: 6px;
-  padding: 3px 8px;
-  border: 0;
-  border-radius: 999px;
-  color: var(--primary-color);
-  font-size: 19rpx;
-  background: var(--primary-soft);
+  gap: 4px;
+  margin-top: 8px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  color: var(--forge-color-primary);
+  background: var(--forge-color-primary-soft);
+  font-size: 12px;
 }
 
+/* —— 列表分组 —— */
 .menu-groups {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--forge-space-section);
 }
 
-.menu-group { display: flex; flex-direction: column; gap: 8px; }
-.menu-group-title { padding-left: 4px; color: var(--text-muted); font-size: 12px; font-weight: 600; }
 .menu-group-card {
   overflow: hidden;
-  border: 1rpx solid var(--border-light);
-  border-radius: var(--radius-card);
-  background: #fff;
-  box-shadow: var(--shadow-soft);
+  border-radius: var(--forge-radius-card);
+  background: var(--forge-surface);
 }
 
 .menu-row {
+  position: relative;
   display: flex;
-  min-height: 58px;
+  min-height: 56px;
   align-items: center;
-  gap: 11px;
-  padding: 9px 14px;
-  border-bottom: 1rpx solid var(--border-light);
+  gap: 12px;
+  padding: 8px 16px;
 }
 
-.menu-row:last-child {
-  border-bottom: 0;
+/* 分隔线从文字起始处开始 */
+.menu-row + .menu-row::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 52px;
+  height: 1px;
+  background: var(--forge-border);
+  content: '';
 }
 
 .menu-row:active,
 .setting-row-button:active,
 .tenant-row:active {
-  background: var(--surface-muted);
+  background: var(--forge-surface-subtle);
 }
 
 .menu-icon,
@@ -210,23 +213,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 7rpx;
-  background: var(--primary-soft);
+  border-radius: 8px;
+  background: var(--forge-color-primary-soft);
 }
 
 .menu-icon {
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
-  border-radius: 11px;
-  background: var(--primary-soft);
-}
-
-.logout-card { display: flex; min-height: 52px; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--border-light); border-radius: var(--radius-card); color: var(--forge-color-danger); background: #fff; font-size: 14px; font-weight: 600; box-shadow: var(--shadow-soft); }
-.logout-card:active { opacity: .8; }
-
-.menu-icon--danger {
-  background: #fff1f1;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  background: transparent;
 }
 
 .menu-main,
@@ -239,24 +234,33 @@
 }
 
 .menu-label {
-  color: var(--text-strong);
-  font-size: 14px;
-  font-weight: 600;
+  color: var(--forge-text-primary);
+  font-size: 16px;
 }
 
-.menu-desc {
+.menu-extra {
+  max-width: 45%;
   overflow: hidden;
-  margin-top: 3px;
-  color: var(--text-muted);
-  font-size: 11px;
+  color: var(--forge-text-tertiary);
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.menu-row--danger .menu-label {
+.logout-card {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--forge-radius-card);
   color: var(--forge-color-danger);
+  background: var(--forge-surface);
+  font-size: 16px;
 }
 
+.logout-card:active { background: var(--forge-surface-subtle); }
+
+/* —— 弹层内容 —— */
 .sheet-form {
   display: flex;
   flex-direction: column;
@@ -271,9 +275,8 @@
   width: 176rpx;
   height: 176rpx;
   overflow: hidden;
-  border: 1rpx solid var(--border-color);
-  border-radius: 50%;
-  background: var(--surface-muted);
+  border-radius: 24px;
+  background: var(--forge-surface-muted);
 }
 
 .avatar-large-action {
@@ -288,7 +291,7 @@
   gap: 6rpx;
   color: #fff;
   font-size: 18rpx;
-  background: rgba(17, 24, 39, 0.72);
+  background: rgba(23, 26, 29, 0.72);
 }
 
 .info-list,
@@ -296,7 +299,7 @@
 .setting-list {
   display: flex;
   flex-direction: column;
-  gap: 10rpx;
+  gap: 8px;
 }
 
 .info-row,
@@ -305,26 +308,26 @@
 .tenant-current-card {
   display: flex;
   align-items: center;
-  gap: 14rpx;
-  padding: 16rpx;
-  border: 1rpx solid var(--border-color);
-  border-radius: var(--radius-control);
-  background: #fff;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--forge-radius-control);
+  background: var(--forge-surface-subtle);
 }
 
 .info-icon,
 .tenant-row-icon {
-  width: 48rpx;
-  height: 48rpx;
-  flex: 0 0 48rpx;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  background: var(--forge-surface);
 }
 
 .info-label,
 .tenant-current-label,
 .tenant-row-desc,
 .setting-desc {
-  color: var(--text-muted);
-  font-size: 20rpx;
+  color: var(--forge-text-tertiary);
+  font-size: 12px;
 }
 
 .info-value,
@@ -332,10 +335,9 @@
 .tenant-row-name,
 .setting-title {
   overflow: hidden;
-  margin-top: 4rpx;
-  color: var(--text-strong);
-  font-size: 24rpx;
-  font-weight: 500;
+  margin-top: 2px;
+  color: var(--forge-text-primary);
+  font-size: 15px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -343,24 +345,23 @@
 .tenant-panel {
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
+  gap: 12px;
 }
 
 .tenant-current-card {
-  border-color: var(--primary-color);
   color: #fff;
-  background: var(--primary-color);
+  background: var(--forge-color-primary);
 }
 
 .tenant-current-icon {
   display: flex;
-  width: 52rpx;
-  height: 52rpx;
-  flex: 0 0 52rpx;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid rgba(255, 255, 255, 0.36);
-  border-radius: 7rpx;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .tenant-current-label {
@@ -372,12 +373,11 @@
 }
 
 .tenant-row.active {
-  border-color: #3b82f6;
-  background: var(--primary-soft);
+  background: var(--forge-color-primary-soft);
 }
 
 .setting-row {
-  min-height: 88rpx;
+  min-height: 56px;
 }
 
 .setting-row-button {
@@ -388,36 +388,36 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 28rpx 22rpx;
-  border: 1rpx solid var(--border-color);
-  border-radius: var(--radius-card);
+  padding: 20px 16px;
+  border-radius: var(--forge-radius-card);
   text-align: center;
-  background: #fff;
+  background: var(--forge-surface-subtle);
 }
 
 .support-icon {
-  width: 68rpx;
-  height: 68rpx;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--forge-radius-icon);
 }
 
 .support-title {
-  margin-top: 16rpx;
-  color: var(--text-strong);
-  font-size: 27rpx;
-  font-weight: 500;
+  margin-top: 12px;
+  color: var(--forge-text-primary);
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .support-desc {
-  margin-top: 8rpx;
-  color: var(--text-secondary);
-  font-size: 21rpx;
+  margin-top: 6px;
+  color: var(--forge-text-secondary);
+  font-size: 13px;
   line-height: 1.6;
 }
 
 .support-actions {
   display: flex;
-  gap: 12rpx;
-  margin-top: 20rpx;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 @keyframes accountSpin {
@@ -428,7 +428,7 @@
   .menu-row:hover,
   .setting-row-button:hover,
   .tenant-row:hover {
-    background: var(--surface-muted);
+    background: var(--forge-surface-subtle);
   }
 }
 
@@ -439,8 +439,8 @@
       "profile menus";
     grid-template-columns: var(--forge-aside-width) minmax(0, 1fr);
     align-items: start;
-    gap: 24px;
-    padding: 24px 24px 112px;
+    gap: 16px;
+    padding: 8px 24px 112px;
   }
 
   .profile-card { grid-area: profile; flex-direction: column; align-items: flex-start; }

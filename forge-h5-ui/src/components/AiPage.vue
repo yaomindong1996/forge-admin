@@ -51,7 +51,7 @@ const props = defineProps({
   },
   backgroundColor: {
     type: String,
-    default: "var(--page-bg, #f4f5f7)",
+    default: "var(--page-bg, #f2f1f6)",
   },
   isNavBar: {
     type: Boolean,
@@ -150,7 +150,7 @@ defineExpose({
     position: fixed;
     bottom: 0;
     width: 100%;
-    border-top: 1px solid var(--forge-border, #cbd5e1);
+    border-top: 1px solid var(--forge-border, #c1c3c6);
     background: #fff;
     box-sizing: border-box;
     padding: 16px;

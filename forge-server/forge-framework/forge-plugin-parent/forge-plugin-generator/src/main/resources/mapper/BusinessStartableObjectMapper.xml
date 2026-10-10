@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessStartableObjectMapper">
+
+    <!-- 同一对象挂在多个应用下时每个应用各出一条；未挂应用的对象 application 字段为空 -->
+    <select id="selectStartableObjects"
+            resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessStartableObjectVO">
+        SELECT o.object_code AS objectCode,
+               o.object_name AS objectName,
+               o.icon AS objectIcon,
+               o.config_key AS configKey,
+               a.id AS applicationId,
+               a.application_name AS applicationName,
+               a.icon AS applicationIcon,
+               COALESCE(ao.sort_order, o.sort_order) AS sortOrder
+        FROM ai_business_binding b
+        INNER JOIN ai_business_object o
+          ON o.tenant_id = b.tenant_id
+         AND o.object_code = b.target_code
+         AND o.status = 1
+         AND o.del_flag = 0
+        LEFT JOIN ai_business_application_object ao
+          ON ao.tenant_id = o.tenant_id
+         AND ao.object_id = o.id
+         AND ao.del_flag = 0
+        LEFT JOIN ai_business_application a
+          ON a.tenant_id = ao.tenant_id
+         AND a.id = ao.application_id
+         AND a.status = 1
+         AND a.del_flag = 0
+        WHERE b.tenant_id = #{tenantId}
+          AND b.target_type = 'OBJECT'
+          AND b.binding_type = 'FLOW'
+          AND b.status = 1
+          AND o.config_key IS NOT NULL
+          AND o.config_key != ''
+          AND (ao.id IS NULL OR a.id IS NOT NULL)
+        GROUP BY o.id, o.object_code, o.object_name, o.icon, o.config_key, o.sort_order,
+                 a.id, a.application_name, a.icon, ao.sort_order
+        ORDER BY a.id IS NULL, a.id, sortOrder, o.object_name
+    </select>
+</mapper>

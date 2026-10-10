@@ -15,7 +15,7 @@
   align-items: center;
   gap: 20rpx;
   padding: 32rpx;
-  border: 1rpx solid var(--border-color);
+  border: 0;
   border-radius: var(--radius-card);
   background: #ffffff;
 }
@@ -95,7 +95,7 @@
 
 .component-list {
   overflow: hidden;
-  border: 1rpx solid var(--border-color);
+  border: 0;
   border-radius: var(--radius-card);
   background: #ffffff;
 }
@@ -193,7 +193,7 @@
 .skeleton-preview,
 .result-preview {
   overflow: hidden;
-  border: 1rpx solid var(--border-color);
+  border: 0;
   border-radius: var(--radius-card);
   background: #ffffff;
 }
@@ -248,7 +248,7 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   overflow: hidden;
-  border: 1rpx solid var(--border-color);
+  border: 0;
   border-radius: var(--radius-card);
   background: #ffffff;
 }

@@ -49,6 +49,7 @@ final class FlowTaskNodePolicy {
     private static final String ACTION_DELEGATE = "delegate";
     private static final String ACTION_RETURN = "return";
     private static final String ACTION_TERMINATE = "terminate";
+    private static final String ACTION_ADD_SIGN = "addSign";
     private static final String AUTO_APPROVAL_FIRST_ONLY = "firstOnly";
     private static final String AUTO_APPROVAL_CONSECUTIVE = "consecutive";
     private static final String AUTO_APPROVAL_NONE = "none";
@@ -88,6 +89,13 @@ final class FlowTaskNodePolicy {
         validateCommentAndSignature(policy, comment, signature);
     }
 
+    /** 减签不受该策略限制，保证已加入的人员始终可以移除。 */
+    void validateAddSign(Task task) {
+        if (!resolveApprovalPolicy(task, null, null).isAllowed(ACTION_ADD_SIGN)) {
+            throw new RuntimeException("当前节点不允许加签");
+        }
+    }
+
     /**
      * 指定节点驳回走“驳回”语义，不能再要求节点单独开启 allowReturn。
      * 未指定目标时仍按退回上一节点校验 allowReturn。
@@ -112,6 +120,7 @@ final class FlowTaskNodePolicy {
         formInfo.setAllowReturn(policy.allowReturn);
         formInfo.setAllowMultiReturn(policy.allowMultiReturn);
         formInfo.setAllowTerminate(policy.allowTerminate);
+        formInfo.setAllowAddSign(policy.allowAddSign);
         formInfo.setRequireSignature(policy.requireSignature);
         formInfo.setRequireComment(policy.requireComment);
         formInfo.setAllowRejectToStart(policy.allowRejectToStart);
@@ -312,6 +321,8 @@ final class FlowTaskNodePolicy {
         if (allowReturn != null) policy.allowReturn = allowReturn;
         Boolean allowTerminate = readBooleanFlowableAttribute(flowNode, "allowTerminate");
         if (allowTerminate != null) policy.allowTerminate = allowTerminate;
+        Boolean allowAddSign = readBooleanFlowableAttribute(flowNode, "allowAddSign");
+        if (allowAddSign != null) policy.allowAddSign = allowAddSign;
         Boolean requireSignature = readBooleanFlowableAttribute(flowNode, "requireSignature");
         if (requireSignature != null) policy.requireSignature = requireSignature;
         Boolean requireComment = readBooleanFlowableAttribute(flowNode, "requireComment");
@@ -326,6 +337,7 @@ final class FlowTaskNodePolicy {
         }
         if (nodeConfig.getAllowDelegate() != null) policy.allowDelegate = nodeConfig.getAllowDelegate();
         if (nodeConfig.getAllowReturn() != null) policy.allowReturn = nodeConfig.getAllowReturn();
+        // allow_add_sign 列默认 0 且设计器从未写入，无法区分"未配置"和"禁止"，故加签只认 BPMN 属性。
         if (nodeConfig.getAllowTerminate() != null) policy.allowTerminate = nodeConfig.getAllowTerminate();
         if (nodeConfig.getRequireSignature() != null) policy.requireSignature = nodeConfig.getRequireSignature();
         if (nodeConfig.getRequireComment() != null) policy.requireComment = nodeConfig.getRequireComment();
@@ -432,6 +444,7 @@ final class FlowTaskNodePolicy {
         private boolean allowReturn;
         private boolean allowMultiReturn;
         private boolean allowTerminate;
+        private boolean allowAddSign;
         private boolean requireSignature;
         private boolean requireComment;
 
@@ -443,6 +456,7 @@ final class FlowTaskNodePolicy {
             policy.allowDelegate = true;
             policy.allowReturn = false;
             policy.allowTerminate = false;
+            policy.allowAddSign = true;
             policy.requireSignature = false;
             policy.requireComment = true;
             return policy;
@@ -456,6 +470,7 @@ final class FlowTaskNodePolicy {
                 case ACTION_DELEGATE -> allowDelegate;
                 case ACTION_RETURN -> allowReturn || allowMultiReturn;
                 case ACTION_TERMINATE -> allowTerminate;
+                case ACTION_ADD_SIGN -> allowAddSign;
                 default -> false;
             };
         }

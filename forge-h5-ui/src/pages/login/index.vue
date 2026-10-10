@@ -5,7 +5,7 @@
     <view v-if="wecomPending" class="wecom-loading-shell">
       <view class="wecom-loading-content">
         <image class="wecom-loading-logo" :src="brandLogoSrc" mode="aspectFit" @error="brandLogoFailed = true" />
-        <wd-loading type="ring" color="#3b82f6" :size="28" />
+        <wd-loading type="ring" color="#0066ff" :size="28" />
         <text class="wecom-loading-text">正在验证企业身份</text>
       </view>
     </view>
@@ -31,21 +31,21 @@
           <!-- 账号表单 -->
           <view class="form-stack">
             <AiField v-model="form.username" clearable :disabled="loading" placeholder="请输入用户名">
-              <template #leftIcon><AiIcon name="user" color="#94a3b8" size="sm" /></template>
+              <template #leftIcon><AiIcon name="user" color="#a2a3a5" size="sm" /></template>
             </AiField>
 
             <AiField v-model="form.password" type="password" :disabled="loading" placeholder="请输入密码" @confirm="handleLogin">
-              <template #leftIcon><AiIcon name="lock" color="#94a3b8" size="sm" /></template>
+              <template #leftIcon><AiIcon name="lock" color="#a2a3a5" size="sm" /></template>
             </AiField>
 
             <view class="captcha-row">
               <AiField v-model="form.code" class="captcha-field" :disabled="loading" placeholder="请输入验证码" @confirm="handleLogin">
-                <template #leftIcon><AiIcon name="shield" color="#94a3b8" size="sm" /></template>
+                <template #leftIcon><AiIcon name="shield" color="#a2a3a5" size="sm" /></template>
               </AiField>
               <button class="captcha-image" :disabled="captcha.loading || loading" @click="loadCaptcha">
                 <image v-if="captcha.image" class="captcha-img" :src="captcha.image" mode="aspectFit" />
                 <view v-else class="captcha-empty">
-                  <wd-loading v-if="captcha.loading" type="ring" color="#3b82f6" :size="18" />
+                  <wd-loading v-if="captcha.loading" type="ring" color="#0066ff" :size="18" />
                   <text v-else>获取验证码</text>
                 </view>
               </button>
@@ -55,7 +55,7 @@
           <AiButton block size="lg" :loading="loading" :disabled="loading" @click="handleLogin">登录</AiButton>
 
           <view class="login-security" aria-label="安全提示">
-            <AiIcon name="shield" color="#94a3b8" size="xs" />
+            <AiIcon name="shield" color="#a2a3a5" size="xs" />
             <text>账号信息通过安全链路传输</text>
           </view>
         </view>
@@ -84,7 +84,7 @@
         >
           <text class="workspace-option-name">{{ item.tenantName || item.systemName || item.tenantId }}</text>
           <text v-if="String(item.tenantId) === String(lastUsedTenantId)" class="workspace-option-tag">上次使用</text>
-          <AiIcon v-else name="chevron-right" color="#94a3b8" size="sm" />
+          <AiIcon v-else name="chevron-right" color="#a2a3a5" size="sm" />
         </button>
       </view>
     </AiPopupSheet>

@@ -54,7 +54,7 @@ defineProps({
 }
 
 .ai-stats__value {
-  color: #1e293b;
+  color: #171a1d;
   font-size: 36rpx;
   font-weight: 950;
   line-height: 1.15;
@@ -62,7 +62,7 @@ defineProps({
 
 .ai-stats__label {
   margin-top: 8rpx;
-  color: #475569;
+  color: #747677;
   font-size: 22rpx;
   font-weight: 500;
 }

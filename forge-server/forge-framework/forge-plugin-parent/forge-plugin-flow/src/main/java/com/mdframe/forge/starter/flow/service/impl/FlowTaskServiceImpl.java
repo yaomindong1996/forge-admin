@@ -40,12 +40,14 @@ import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.task.api.Task;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 /**
@@ -77,6 +79,9 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
      */
     @Autowired(required = false)
     private MessageService messageService;
+
+    @Autowired(required = false)
+    private StringRedisTemplate stringRedisTemplate;
     
     /**
      * 组织架构集成服务（可选注入）
@@ -391,7 +396,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void addSign(String taskId, String userId, String targetUserId, String reason, String signMode) {
-        dynamicSignCoordinator().mutate(
+        addSignCoordinator().mutate(
                 taskId, userId, targetUserId, reason, signMode,
                 SessionHelper.getTenantId(), null, null, true);
     }
@@ -400,7 +405,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     @Transactional(rollbackFor = Exception.class)
     public void addSign(String taskId, String userId, String targetUserId, String reason, String signMode,
                         Long tenantId, String idempotencyKey, String requestDigest) {
-        dynamicSignCoordinator().mutate(
+        addSignCoordinator().mutate(
                 taskId, userId, targetUserId, reason, signMode,
                 tenantId, idempotencyKey, requestDigest, true);
     }
@@ -545,58 +550,14 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     }
     @Override
     public void remind(String taskId) {
-        flowAccessGuard.requireTaskVisible(taskId);
-        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
-        if (task == null) {
-            log.warn("催办失败：任务不存在，taskId={}", taskId);
-            return;
-        }
-        
-        log.info("催办任务：taskId={}, taskName={}", taskId, task.getName());
-        
-        // 发送催办消息通知
-        if (messageService != null) {
-            try {
-                // 获取任务处理人
-                String assignee = task.getAssignee();
-                if (assignee == null || assignee.isEmpty()) {
-                    // 如果任务未签收，尝试获取候选人
-                    log.info("任务未签收，跳过消息通知：taskId={}", taskId);
-                    return;
-                }
-                
-                // 构建消息
-                com.mdframe.forge.plugin.message.domain.dto.MessageSendRequestDTO request =
-                    new com.mdframe.forge.plugin.message.domain.dto.MessageSendRequestDTO();
-                request.setTitle("流程催办提醒");
-                request.setContent(String.format(
-                    "您有一个待办任务需要处理：%s，请及时处理。",
-                    task.getName()
-                ));
-                request.setType("SYSTEM");
-                request.setChannel("WEB");
-                request.setSendScope("USERS");
-                
-                // 设置接收人
-                Set<Long> userIds = new HashSet<>();
-                try {
-                    userIds.add(Long.parseLong(assignee));
-                } catch (NumberFormatException e) {
-                    log.warn("无法解析处理人ID：{}", assignee);
-                    return;
-                }
-                request.setUserIds(userIds);
-                
-                // 发送消息
-                messageService.send(request);
-                log.info("催办消息发送成功：taskId={}, assignee={}", taskId, assignee);
-                
-            } catch (Exception e) {
-                log.error("发送催办消息失败：taskId={}", taskId, e);
-            }
-        } else {
-            log.warn("消息服务未启用，无法发送催办通知");
-        }
+        new FlowTaskRemindCoordinator(
+                taskService,
+                flowAccessGuard,
+                messageService,
+                stringRedisTemplate,
+                SessionHelper::getTenantId,
+                SessionHelper::getUserId
+        ).remind(taskId);
     }
 
     private FlowTaskNodePolicy taskNodePolicy() {
@@ -641,6 +602,21 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     }
 
     private FlowTaskDynamicSignCoordinator dynamicSignCoordinator() {
+        return dynamicSignCoordinator((taskId, userId) -> assertTaskMutationActor(taskId, userId, false));
+    }
+
+    /** 加签在操作人校验之后再校验节点策略；减签不受节点策略限制。 */
+    private FlowTaskDynamicSignCoordinator addSignCoordinator() {
+        return dynamicSignCoordinator((taskId, userId) -> {
+            assertTaskMutationActor(taskId, userId, false);
+            Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+            if (task != null) {
+                taskNodePolicy().validateAddSign(task);
+            }
+        });
+    }
+
+    private FlowTaskDynamicSignCoordinator dynamicSignCoordinator(BiConsumer<String, String> mutationActorGuard) {
         return new FlowTaskDynamicSignCoordinator(
                 runtimeService,
                 taskService,
@@ -648,7 +624,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
                 getBaseMapper(),
                 flowTaskCandidateMapper,
                 flowAccessGuard,
-                (taskId, userId) -> assertTaskMutationActor(taskId, userId, false),
+                mutationActorGuard,
                 this::validateReassignTarget
         );
     }

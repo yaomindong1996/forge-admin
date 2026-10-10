@@ -8,17 +8,33 @@
 .login-page {
   position: relative;
   overflow: hidden;
-  background: #f4f7fb;
+  background: #fff;
 }
 
+/* 背景图只铺在顶部并渐隐到白底，表单区保持纯白（钉钉登录页风格） */
 .login-background {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  left: 0;
   width: 100%;
-  height: 100%;
+  height: 42vh;
+  opacity: .6;
 }
 
 .login-background { z-index: 0; }
+
+.login-page::after {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 42vh;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 100%);
+  content: '';
+  pointer-events: none;
+}
 
 .page-shell,
 .wecom-loading-shell {
@@ -35,19 +51,19 @@
   flex: 1;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 24px 20px calc(7vh + env(safe-area-inset-bottom));
+  justify-content: flex-start;
+  padding: calc(14vh + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
 .login-panel {
   width: 100%;
-  max-width: 440px;
-  padding: 28px;
-  border: 1px solid rgba(255, 255, 255, .9);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, .78);
-  box-shadow: 0 8px 40px rgba(15, 23, 42, .08);
+  max-width: 400px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   box-sizing: border-box;
 }
 
@@ -61,26 +77,29 @@
 }
 
 .login-brand {
+  flex-direction: column;
   align-items: flex-start;
-  gap: 14px;
-  margin-bottom: 28px;
+  gap: 20px;
+  margin-bottom: 32px;
 }
 
 .brand-mark {
   display: flex;
-  width: 52px;
-  height: 52px;
-  flex: 0 0 52px;
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
   align-items: center;
   justify-content: center;
-  border: 1px solid #dbeafe;
+  overflow: hidden;
+  border: 0;
   border-radius: 16px;
-  background: #eff6ff;
+  background: #fff;
+  box-shadow: var(--forge-shadow-float);
 }
 
-.brand-logo { width: 34px; height: 34px; }
-.login-brand-copy { min-width: 0; flex: 1; }
-.login-product-row { justify-content: space-between; gap: 10px; }
+.brand-logo { width: 40px; height: 40px; }
+.login-brand-copy { width: 100%; min-width: 0; }
+.login-product-row { justify-content: flex-start; gap: 8px; }
 
 .brand-title,
 .panel-title,
@@ -92,7 +111,7 @@
 
 .brand-title {
   overflow: hidden;
-  color: #475569;
+  color: #747677;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.4;
@@ -102,28 +121,27 @@
 
 .client-badge {
   flex: 0 0 auto;
-  padding: 3px 7px;
-  border: 1px solid #dbeafe;
-  border-radius: 6px;
-  color: #2563eb;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 4px;
+  color: var(--forge-color-primary);
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.4;
-  background: #eff6ff;
+  background: var(--forge-color-primary-soft);
 }
 
 .panel-title {
-  margin-top: 7px;
-  color: #0f172a;
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: -.3px;
+  margin-top: 6px;
+  color: var(--forge-text-primary);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.3;
 }
 
 .panel-subtitle {
-  margin-top: 7px;
-  color: #64748b;
+  margin-top: 6px;
+  color: var(--forge-text-secondary);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -131,38 +149,38 @@
 .form-stack {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 24px;
 }
 
 .login-panel :deep(.ai-field__control) {
-  height: 52px;
+  height: 50px;
   padding: 0 14px;
   border-color: transparent;
-  border-radius: 20px;
-  background: #f4f5f7;
+  border-radius: var(--forge-radius-control);
+  background: rgba(23, 26, 29, .05);
 }
 
 .login-panel :deep(.ai-field__control.is-focused) {
-  border-color: #bfdbfe;
+  border-color: var(--forge-color-primary);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, .1);
+  box-shadow: none;
 }
 
 .login-panel :deep(.ai-field__input),
 .login-panel :deep(.wd-input),
 .login-panel :deep(.wd-input__body),
-.login-panel :deep(.wd-input__value) { height: 50px; }
+.login-panel :deep(.wd-input__value) { height: 48px; }
 
 .login-panel :deep(.wd-input__inner),
 .login-panel :deep(.uni-input-wrapper),
 .login-panel :deep(.uni-input-form),
 .login-panel :deep(.uni-input-input),
 .login-panel :deep(.uni-input-placeholder) {
-  height: 50px;
-  min-height: 50px;
-  font-size: 15px;
-  line-height: 50px;
+  height: 48px;
+  min-height: 48px;
+  font-size: 16px;
+  line-height: 48px;
 }
 
 .captcha-row { gap: 12px; }
@@ -171,16 +189,16 @@
 .captcha-image {
   display: flex;
   width: 110px;
-  height: 52px;
+  height: 50px;
   flex: 0 0 110px;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   margin: 0;
   padding: 0;
-  border: 1px solid #dbeafe;
-  border-radius: 20px;
-  background: rgba(239, 246, 255, .84);
+  border: 0;
+  border-radius: var(--forge-radius-control);
+  background: rgba(23, 26, 29, .05);
 }
 
 .captcha-image::after,
@@ -193,31 +211,31 @@
   align-items: center;
   justify-content: center;
   gap: 5px;
-  color: #2563eb;
-  font-size: 12px;
-  font-weight: 600;
+  color: var(--forge-color-primary);
+  font-size: 13px;
+  font-weight: 400;
 }
 
 .login-panel :deep(.ai-button--lg) {
-  min-height: 52px;
-  border-radius: 999px !important;
-  font-size: 16px;
+  min-height: 50px;
+  border-radius: var(--forge-radius-control) !important;
+  font-size: 17px;
 }
 
 .login-security {
   justify-content: center;
   gap: 5px;
   margin-top: 16px;
-  color: #94a3b8;
+  color: #a2a3a5;
   font-size: 11px;
 }
 
 .login-foot {
-  margin-top: 18px;
-  color: #94a3b8;
+  margin-top: auto;
+  padding-top: 32px;
+  color: var(--forge-text-tertiary);
   font-size: 11px;
   text-align: center;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, .85);
 }
 
 .wecom-loading-shell {
@@ -235,23 +253,23 @@
   align-items: center;
   gap: 12px;
   padding: 32px;
-  border: 1px solid rgba(255, 255, 255, .9);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, .96);
-  box-shadow: 0 8px 32px rgba(15, 23, 42, .07);
+  border: 0;
+  border-radius: var(--forge-radius-card);
+  background: #fff;
+  box-shadow: none;
   box-sizing: border-box;
 }
 
 .wecom-loading-logo { width: 52px; height: 52px; }
-.wecom-loading-text { color: #475569; font-size: 13px; }
+.wecom-loading-text { color: #747677; font-size: 13px; }
 
 .workspace-modal-list {
   display: flex;
   max-height: 50vh;
   flex-direction: column;
   overflow: auto;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-card);
+  border-radius: var(--forge-radius-card);
+  background: var(--forge-surface-subtle);
 }
 
 .workspace-option {
@@ -286,16 +304,14 @@
 .workspace-option-tag { color: var(--primary-color); font-size: 12px; }
 
 @media (max-width: 359px) {
-  .login-main { padding-right: 14px; padding-left: 14px; }
-  .login-panel { padding: 22px 18px; border-radius: 20px; }
-  .login-brand { gap: 11px; margin-bottom: 22px; }
-  .brand-mark { width: 46px; height: 46px; flex-basis: 46px; border-radius: 14px; }
-  .brand-logo { width: 30px; height: 30px; }
-  .panel-title { font-size: 21px; }
+  .login-main { padding-right: 16px; padding-left: 16px; }
+  .login-brand { gap: 14px; margin-bottom: 24px; }
+  .brand-mark { width: 48px; height: 48px; flex-basis: 48px; border-radius: 14px; }
+  .brand-logo { width: 34px; height: 34px; }
+  .panel-title { font-size: 22px; }
   .captcha-image { width: 98px; flex-basis: 98px; }
 }
 
 @media (min-width: 1024px) {
-  .login-main { padding: 48px; }
-  .login-panel { padding: 34px; }
+  .login-main { padding: 18vh 48px 48px; }
 }

@@ -18,7 +18,7 @@
       <slot name="trigger">
         <view class="default-trigger">
           <text>{{ selectedLabel || placeholder }}</text>
-          <wd-icon name="arrow-down" size="16px" color="#94a3b8" />
+          <wd-icon name="arrow-down" size="16px" color="#a2a3a5" />
         </view>
       </slot>
     </view>
@@ -66,9 +66,9 @@ function handleConfirm(event) {
   justify-content: space-between;
   gap: 8px;
   padding: 0 12px;
-  border: 1px solid var(--forge-color-border, #e2e8f0);
+  border: 1px solid var(--forge-color-border, #f0f1f2);
   border-radius: var(--forge-radius-control, 12rpx);
-  color: var(--forge-color-text-regular, #475569);
+  color: var(--forge-color-text-regular, #747677);
   background: #fff;
   box-sizing: border-box;
 }

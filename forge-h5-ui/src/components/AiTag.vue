@@ -87,33 +87,35 @@ const customStyle = computed(() => {
   box-sizing: border-box;
   max-width: 100%;
   border: 1px solid transparent;
-  border-radius: 8rpx;
-  font-weight: 500;
+  border-radius: 4px;
+  font-weight: 400;
   letter-spacing: 0;
   line-height: 1;
   transition: opacity 0.2s ease, transform 0.2s ease;
 
   &--round {
-    border-radius: 8rpx;
+    border-radius: 999px;
   }
 
   &--sm {
-    gap: 8rpx;
-    min-height: 36rpx;
-    padding: 4rpx 12rpx;
-    font-size: 22rpx;
+    gap: 4px;
+    min-height: 18px;
+    padding: 2px 6px;
+    font-size: 11px;
   }
 
   &--md {
-    gap: 10rpx;
-    padding: 8rpx 18rpx;
-    font-size: 24rpx;
+    gap: 4px;
+    min-height: 22px;
+    padding: 3px 8px;
+    font-size: 12px;
   }
 
   &--lg {
-    gap: 12rpx;
-    padding: 12rpx 26rpx;
-    font-size: 28rpx;
+    gap: 6px;
+    min-height: 26px;
+    padding: 5px 10px;
+    font-size: 14px;
   }
 
   &--primary {
@@ -136,16 +138,16 @@ const customStyle = computed(() => {
   &--success {
     &.ai-tag--solid {
       color: #fff;
-      background: #10b981;
+      background: #12b76a;
     }
     &.ai-tag--soft {
-      color: #10b981;
+      color: #12b76a;
       border-color: transparent;
-      background: #e8f8ed;
+      background: var(--forge-tone-green-bg);
     }
     &.ai-tag--outline {
-      color: #10b981;
-      border-color: rgba(110, 231, 183, 0.9);
+      color: #12b76a;
+      border-color: rgba(18, 183, 106, 0.4);
       background: transparent;
     }
   }
@@ -153,16 +155,16 @@ const customStyle = computed(() => {
   &--warning {
     &.ai-tag--solid {
       color: #fff;
-      background: #f97316;
+      background: #fd8838;
     }
     &.ai-tag--soft {
-      color: #f97316;
-      border-color: rgba(253, 230, 138, 0.9);
-      background: rgba(254, 243, 199, 0.82);
+      color: #fd8838;
+      border-color: transparent;
+      background: var(--forge-tone-orange-bg);
     }
     &.ai-tag--outline {
-      color: #f97316;
-      border-color: rgba(252, 211, 77, 0.9);
+      color: #fd8838;
+      border-color: rgba(253, 136, 56, 0.4);
       background: transparent;
     }
   }
@@ -170,16 +172,16 @@ const customStyle = computed(() => {
   &--danger {
     &.ai-tag--solid {
       color: #fff;
-      background: #ef4444;
+      background: #ff5219;
     }
     &.ai-tag--soft {
-      color: #ef4444;
-      border-color: rgba(254, 205, 211, 0.9);
-      background: rgba(255, 228, 230, 0.82);
+      color: #ff5219;
+      border-color: transparent;
+      background: var(--forge-tone-red-bg);
     }
     &.ai-tag--outline {
-      color: #ef4444;
-      border-color: rgba(253, 164, 175, 0.9);
+      color: #ff5219;
+      border-color: rgba(255, 82, 25, 0.4);
       background: transparent;
     }
   }
@@ -187,16 +189,16 @@ const customStyle = computed(() => {
   &--default {
     &.ai-tag--solid {
       color: #fff;
-      background: #1e293b;
+      background: #171a1d;
     }
     &.ai-tag--soft {
-      color: #475569;
-      border-color: rgba(226, 232, 240, 0.9);
-      background: rgba(241, 245, 249, 0.82);
+      color: #747677;
+      border-color: transparent;
+      background: var(--forge-surface-subtle);
     }
     &.ai-tag--outline {
-      color: #475569;
-      border-color: rgba(203, 213, 225, 0.9);
+      color: #747677;
+      border-color: var(--forge-border-strong);
       background: transparent;
     }
   }

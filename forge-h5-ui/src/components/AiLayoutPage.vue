@@ -4,7 +4,7 @@
       <view v-if="showNav" class="ai-layout-page__nav" :class="{ 'ai-layout-page__nav--glass': navGlass }">
         <slot name="nav">
           <button v-if="showBack" class="ai-layout-page__back" @click="handleBack">
-            <AiIcon name="chevron-left" color="#475569" size="md" />
+            <AiIcon name="chevron-left" color="#747677" size="md" />
           </button>
           <view class="ai-layout-page__title-block">
             <text v-if="title" class="ai-layout-page__title">{{ title }}</text>

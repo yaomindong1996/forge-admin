@@ -3,14 +3,14 @@ body {
   width: 100%;
   height: 100%;
   overflow-x: hidden;
-  color: var(--text-color, #1e293b);
-  background: var(--page-bg, #f4f5f7);
+  color: var(--text-color, #171a1d);
+  background: var(--page-bg, #f2f1f6);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 page {
-  background-color: var(--page-bg, #f4f5f7);
-  color: var(--text-color, #1e293b);
+  background-color: var(--page-bg, #f2f1f6);
+  color: var(--text-color, #171a1d);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -65,8 +65,8 @@ textarea {
 @media (min-width: 431px) {
   body { scrollbar-gutter: stable; }
   body::-webkit-scrollbar { width: 8px; }
-  body::-webkit-scrollbar-track { background: var(--page-bg, #f4f5f7); }
-  body::-webkit-scrollbar-thumb { border-radius: 8px; background: #cbd5e1; }
+  body::-webkit-scrollbar-track { background: var(--page-bg, #f2f1f6); }
+  body::-webkit-scrollbar-thumb { border-radius: 8px; background: #c1c3c6; }
 }
 
 uni-tabbar,

@@ -61,9 +61,9 @@ function toggle() {
   background: #fff;
 }
 .card-section.is-borderless { border-color: transparent; }
-.card-section.is-embedded { background: var(--forge-color-surface-subtle, #f8fafc); }
+.card-section.is-embedded { background: var(--forge-color-surface-subtle, #f7f8fa); }
 .card-section.is-small { padding: 24rpx; }
-.card-section.is-segmented .card-section__head { border-bottom: 1rpx solid var(--forge-color-border, #e2e8f0); }
+.card-section.is-segmented .card-section__head { border-bottom: 1rpx solid var(--forge-color-border, #f0f1f2); }
 
 .card-section__head {
   display: flex;
@@ -82,7 +82,7 @@ function toggle() {
 .card-section__title {
   min-width: 0;
   overflow: hidden;
-  color: var(--text-strong, #1e293b);
+  color: var(--text-strong, #171a1d);
   font-size: 32rpx;
   font-weight: 500;
   line-height: 1.3;

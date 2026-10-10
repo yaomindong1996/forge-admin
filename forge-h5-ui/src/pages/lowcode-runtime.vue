@@ -10,6 +10,7 @@
     @refresh="refreshListByPull"
   >
     <AiFeedbackHost />
+    <InitiatorSelectSheet />
     <view v-if="loading" class="runtime-state">
       <AiListSkeleton :rows="4" />
     </view>
@@ -31,6 +32,8 @@
 
     <view v-else class="runtime-detail-workspace">
       <view class="runtime-detail-main">
+      <!-- 单据审批状态；页面配置了自定义底部栏时按钮放在状态卡内 -->
+      <LowcodeDocumentFlowStatus :show-actions="!defaultFooterVisible" @action="runDocumentFlowAction" />
       <LowcodeFlowTimeline
         v-if="flowInteraction.timeline.enabled && (flowHistoryLoading || flowHistory.length)"
         :title="flowInteraction.timeline.title" :loading="flowHistoryLoading" :items="flowHistory"
@@ -104,7 +107,10 @@
             @row-action="payload => runAction(payload.action, payload.row, payload.child)"
           />
         </template>
-        <LowcodeRuntimeFooter v-if="!hasComposedBottomBar" :mode="mode" :saving="saving" :can-edit="canEdit" @cancel="goList" @save="save" @edit="openEdit" />
+        <LowcodeRuntimeFooter
+          v-if="!hasComposedBottomBar" :mode="mode" :saving="saving" :can-edit="canEdit"
+          @cancel="goList" @save="save" @edit="openEdit" @flow-action="runDocumentFlowAction"
+        />
       </template>
 
       <template v-else-if="hasPageSections">
@@ -133,7 +139,10 @@
           @child-action="payload => runAction(payload.action, payload.row, payload.child)"
           @child-toolbar-action="payload => handleToolbarAction(payload.action, payload.child)"
         />
-        <LowcodeRuntimeFooter v-if="!hasConfiguredBottomBar" :mode="mode" :saving="saving" :can-edit="canEdit" @cancel="goList" @save="save" @edit="openEdit" />
+        <LowcodeRuntimeFooter
+          v-if="!hasConfiguredBottomBar" :mode="mode" :saving="saving" :can-edit="canEdit"
+          @cancel="goList" @save="save" @edit="openEdit" @flow-action="runDocumentFlowAction"
+        />
       </template>
 
       <template v-else>
@@ -166,7 +175,10 @@
           @row-action="payload => runAction(payload.action, payload.row, payload.child)"
         />
 
-        <LowcodeRuntimeFooter :mode="mode" :saving="saving" :can-edit="canEdit" @cancel="goList" @save="save" @edit="openEdit" />
+        <LowcodeRuntimeFooter
+          :mode="mode" :saving="saving" :can-edit="canEdit"
+          @cancel="goList" @save="save" @edit="openEdit" @flow-action="runDocumentFlowAction"
+        />
       </template>
       </view>
       <AiHelpPanel
@@ -189,18 +201,21 @@ import AiHelpPanel from '@/components/AiHelpPanel.vue'
 import AiLayoutPage from '@/components/AiLayoutPage.vue'
 import AiListSkeleton from '@/components/AiListSkeleton.vue'
 import AiResult from '@/components/AiResult.vue'
+import InitiatorSelectSheet from '@/components/flow/InitiatorSelectSheet.vue'
 import LowcodeChildCards from '@/components/lowcode/LowcodeChildCards.vue'
+import LowcodeDocumentFlowStatus from '@/components/lowcode/LowcodeDocumentFlowStatus.vue'
 import LowcodeFlowTimeline from '@/components/lowcode/LowcodeFlowTimeline.vue'
 import LowcodeForm from '@/components/lowcode/LowcodeForm.vue'
 import LowcodeRuntimeList from '@/components/lowcode/LowcodeRuntimeList.vue'
 import LowcodeRuntimeFooter from '@/components/lowcode/LowcodeRuntimeFooter.vue'
 import PageSectionRenderer from '@/components/lowcode/PageSectionRenderer.vue'
+import { useLowcodeDocumentFlow } from '@/composables/lowcode/useLowcodeDocumentFlow'
 import { useLowcodeFieldEvents } from '@/composables/lowcode/useLowcodeFieldEvents'
 import { useLowcodeFlowRuntime } from '@/composables/lowcode/useLowcodeFlowRuntime'
 import { useLowcodeFormRegistry } from '@/composables/lowcode/useLowcodeFormRegistry'
 import { useLowcodeRuntimeData } from '@/composables/lowcode/useLowcodeRuntimeData'
 import api from '@/api'
-import { useAuthStore, useLowcodeRuntimeStore } from '@/store'
+import { useAuthStore, useInitiatorSelectStore, useLowcodeRuntimeStore } from '@/store'
 import { showActionSheetDialog, showConfirmDialog, showPromptDialog } from '@/utils/dialog'
 import { toast } from '@/utils/notify'
 import {
@@ -236,6 +251,12 @@ const hasComposedBottomBar = computed(() => runtimePageZones.value.some(zone => 
   const hasSave = zone.zoneType === 'actions' && runtimeZoneActions(zone).some(action => String(action.type || '').toLowerCase() === 'save')
   return hasBar || hasSave
 }))
+// 与模板中三处 LowcodeRuntimeFooter 的 v-if 保持一致。
+const defaultFooterVisible = computed(() => {
+  if (hasComposedPageZones.value) return !hasComposedBottomBar.value
+  if (hasPageSections.value) return !hasConfiguredBottomBar.value
+  return true
+})
 const runtimeContext = computed(() => ({
   routeQuery,
   user: authStore.userInfo || {},
@@ -273,14 +294,26 @@ const { flowHistory, flowHistoryLoading, loadFlowHistoryIfNeeded, runFlowAction 
   notify: toast,
   reload: id => runtimeData.loadDetail(id),
 })
+const documentFlow = useLowcodeDocumentFlow({
+  getContext: () => ({
+    objectCode: config.value.objectCode,
+    recordId: mainData.id || mainData[config.value.rowKey || 'id'] || currentId.value,
+    mode: mode.value,
+  }),
+  validate: () => validateForms(),
+  persist: options => persistRecord(options),
+  reloadDetail: id => { runtimeStore.openDetail({ [config.value.rowKey || 'id']: id }); return loadDetail(id) },
+  handleError,
+})
+const initiatorSelectStore = useInitiatorSelectStore()
 const runtimeData = useLowcodeRuntimeData({
   runtimeStore,
   api,
   getMainFields: () => mainFields.value,
   getChildren: () => allChildren.value,
   onFormLoad: dispatchFormLoad,
-  onDetailLoaded: loadFlowHistoryIfNeeded,
-  onFormReset: () => { flowHistory.value = []; clearChildForms() },
+  onDetailLoaded: () => Promise.all([loadFlowHistoryIfNeeded(), documentFlow.load()]),
+  onFormReset: () => { flowHistory.value = []; clearChildForms(); documentFlow.reset() },
   handleError,
 })
 const { loadRuntime, loadList, loadListDebounced, resetSearch, loadDetail, initializeForm, dispose: disposeRuntimeData } = runtimeData
@@ -295,10 +328,13 @@ async function refreshListByPull() {
 
 onLoad(async query => {
   runtimeStore.initializeRoute(query || {})
+  documentFlow.setCreateSubmit(query?.flow === '1')
   await loadRuntime()
 })
 
 onUnload(() => {
+  documentFlow.reset()
+  initiatorSelectStore.cancel()
   disposeRuntimeData()
   cancelFieldEvents()
   disposeFormRegistry()
@@ -374,6 +410,7 @@ function toggleSearch() { runtimeStore.toggleSearch() }
 async function save() {
   await persistRecord()
 }
+function runDocumentFlowAction(button) { return documentFlow.run(button) }
 
 async function persistRecord({ validate = true, navigate = true, notify = true, requireRecordId = false } = {}) {
   if (validate && !validateForms())

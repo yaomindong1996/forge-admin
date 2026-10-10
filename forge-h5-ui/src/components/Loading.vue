@@ -171,7 +171,7 @@ const rootStyle = computed(() => {
   align-items: center;
   justify-content: center;
   gap: 24rpx;
-  color: #3b82f6;
+  color: #0066ff;
 }
 
 .loading-content--light {
@@ -179,7 +179,7 @@ const rootStyle = computed(() => {
 }
 
 .loading-content--dark {
-  color: #1e293b;
+  color: #171a1d;
 }
 
 .loading-spinner,

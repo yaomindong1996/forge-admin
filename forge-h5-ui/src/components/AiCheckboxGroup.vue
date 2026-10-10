@@ -6,7 +6,7 @@
     :max="max"
     :min="min"
     :shape="button ? 'button' : 'square'"
-    checked-color="var(--forge-color-primary, #3b82f6)"
+    checked-color="var(--forge-color-primary, #0066ff)"
     @change="handleChange"
   >
     <wd-checkbox

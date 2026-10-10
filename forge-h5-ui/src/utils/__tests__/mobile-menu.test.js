@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { buildMobileMenuGroups, flattenMobileMenus, resolveMobileMenuIcon, resolveMobileMenuTarget } from '../mobile-menu.js'
+import {
+  MENU_TONES,
+  buildMobileMenuGroups,
+  flattenMobileMenus,
+  resolveMobileMenuIcon,
+  resolveMobileMenuTarget,
+  resolveMobileMenuTone,
+} from '../mobile-menu.js'
 
 test('only authorized visible H5 routes and low-code pages become app entries', () => {
   const menus = [
@@ -44,6 +51,26 @@ test('menu routes preserve configured queries and never use placeholder pages', 
   assert.equal(resolveMobileMenuTarget({ path: '/pages/lowcode-runtime' }), null)
   assert.equal(resolveMobileMenuTarget({ path: '/pages/app-entry' }), null)
   assert.equal(resolveMobileMenuTarget({ path: '/pages/todo?foo=bar' }).tab, true)
-  assert.equal(resolveMobileMenuTarget({ path: '/pages/message/index' }).tab, false)
+  assert.equal(resolveMobileMenuTarget({ path: '/pages/message/index' }).tab, true)
+  assert.equal(resolveMobileMenuTarget({ path: '/pages/contacts/index' }).tab, true)
   assert.equal(resolveMobileMenuTarget({ path: '/ai/crud-page/orders' }).url, '/pages/lowcode-runtime?configKey=orders')
+})
+
+test('app icon tones follow menu semantics and stay stable for the same menu', () => {
+  assert.equal(resolveMobileMenuTone({ id: 1, resourceName: '费用报销' }).key, 'orange')
+  assert.equal(resolveMobileMenuTone({ id: 2, resourceName: '采购审批流程' }).key, 'orange')
+  assert.equal(resolveMobileMenuTone({ id: 3, resourceName: '销售报表' }).key, 'purple')
+  assert.deepEqual(resolveMobileMenuTone({ id: 3, resourceName: '销售报表' }), { key: 'purple', ...MENU_TONES.purple })
+
+  const unknown = { id: 99, resourceName: '未知应用', path: '/pages/lowcode-runtime?configKey=x' }
+  const first = resolveMobileMenuTone(unknown)
+  assert.ok(Object.keys(MENU_TONES).includes(first.key))
+  assert.deepEqual(resolveMobileMenuTone({ ...unknown }), first)
+
+  const menus = [{ id: 7, resourceType: 2, resourceName: '印章申请', path: '/pages/lowcode-runtime?configKey=seal' }]
+  const [entry] = flattenMobileMenus(menus)
+  assert.equal(entry.tone, 'red')
+  assert.equal(entry.color, MENU_TONES.red.color)
+  assert.equal(entry.toneBg, MENU_TONES.red.bg)
+  assert.deepEqual(flattenMobileMenus(menus)[0], entry)
 })

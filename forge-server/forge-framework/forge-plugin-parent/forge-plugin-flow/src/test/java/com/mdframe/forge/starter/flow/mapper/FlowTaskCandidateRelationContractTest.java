@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FlowTaskCandidateRelationContractTest {
@@ -33,6 +34,21 @@ class FlowTaskCandidateRelationContractTest {
         assertTrue(xml.contains("<update id=\"activate\""));
         assertTrue(xml.contains("<update id=\"deactivate\""));
         assertTrue(xml.contains("tenant_id = #{tenantId}"));
+    }
+
+    @Test
+    void dynamicSignRelationsMustResolveTenantMemberNames() throws IOException {
+        String xml = Files.readString(CANDIDATE_MAPPER);
+        int start = xml.indexOf("<select id=\"selectDynamicSignRelations\"");
+        String select = xml.substring(start, xml.indexOf("</select>", start));
+        assertTrue(select.contains("AS targetUserName"));
+        assertTrue(select.contains("LEFT JOIN sys_user target_user"));
+        assertTrue(select.contains("tc.candidate_value REGEXP '^[0-9]+$'"));
+        assertTrue(select.contains("target_user.del_flag = 0"));
+        assertTrue(select.contains("target_membership.tenant_id = tc.tenant_id"));
+        assertTrue(select.contains("tc.tenant_id = #{tenantId}"));
+        assertTrue(select.contains("LIMIT 50"));
+        assertFalse(select.contains("${"));
     }
 
     @Test

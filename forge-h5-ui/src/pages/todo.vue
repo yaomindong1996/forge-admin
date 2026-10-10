@@ -1,13 +1,21 @@
 <template>
   <view class="todo-page">
     <AiFeedbackHost />
+    <AiTabHeader title="待办" :searchable="false">
+      <template #actions>
+        <button class="todo-start-button" aria-label="发起审批" @click="openApprovalStart">
+          <AiIcon icon="/static/icons/ai-icon/plus.svg" color="#171a1d" size="md" />
+        </button>
+      </template>
+    </AiTabHeader>
     <view class="todo-content">
-      <!-- 范围切换与查询：原生导航已经显示“待办”，不重复占用首屏标题位。 -->
+      <!-- 查询与范围切换 -->
       <view class="todo-tools">
         <view class="todo-query-row">
-          <AiSearchBar v-model="keyword" placeholder="搜索标题或申请人" @search="handleSearch" @clear="clearSearch" />
-          <button class="todo-filter-trigger" :class="{ 'is-active': activeFilterCount }" @click="openFilters">
-            <AiIcon icon="/static/icons/ai-icon/filter.svg" :color="activeFilterCount ? '#3b82f6' : '#475569'" size="sm" />
+          <AiSearchBar v-model="keyword" :placeholder="isCcScope ? '搜索抄送标题' : '搜索标题或申请人'" @search="handleSearch" @clear="clearSearch" />
+          <!-- 抄送接口只支持标题与已读筛选，已读筛选放在抄送面板内 -->
+          <button v-if="!isCcScope" class="todo-filter-trigger" :class="{ 'is-active': activeFilterCount }" @click="openFilters">
+            <AiIcon icon="/static/icons/ai-icon/filter.svg" :color="activeFilterCount ? '#0066ff' : '#747677'" size="sm" />
             <text>筛选{{ activeFilterCount ? ` ${activeFilterCount}` : '' }}</text>
           </button>
         </view>
@@ -16,12 +24,16 @@
           <button v-for="scope in workScopes" :key="scope.value" class="work-scope-tab" :class="{ active: activeScope === scope.value }" @click="setScope(scope.value)">
             {{ scope.label }}
             <text v-if="scope.value === 'todo' && activeScope === 'todo' && total" class="scope-count">{{ total > 99 ? '99+' : total }}</text>
+            <!-- 抄送未读数只显示在本页签，不计入底栏"待办"角标 -->
+            <text v-if="scope.value === 'cc' && ccStore.unreadText" class="scope-count">{{ ccStore.unreadText }}</text>
           </button>
         </view>
       </view>
 
-      <!-- 任务卡整卡直达审批；仅撤回是独立操作。 -->
-      <scroll-view class="todo-list" scroll-y :show-scrollbar="false" refresher-enabled :refresher-triggered="pullRefreshing" @refresherrefresh="refreshByPull" @scrolltolower="loadMore">
+      <CcListPanel v-if="isCcScope" ref="ccPanelRef" :keyword="keyword" />
+
+      <!-- 任务卡整卡直达审批；撤回、催办是独立操作。 -->
+      <scroll-view v-else class="todo-list" scroll-y :show-scrollbar="false" refresher-enabled :refresher-triggered="pullRefreshing" @refresherrefresh="refreshByPull" @scrolltolower="loadMore">
         <AiListSkeleton v-if="loading && !tasks.length" :rows="6" />
         <template v-else-if="tasks.length">
           <view
@@ -31,25 +43,44 @@
             :class="{ 'is-opening': openingTaskId === String(task.taskId || task.id || '') }"
             @click="openTask(task)"
           >
+            <!-- 卡片头：申请人头像 + 标题 + 状态 -->
             <view class="task-card__head">
-              <view class="task-card__identity">
-                <text class="task-type-tag" :class="taskTypeTone(task)">{{ taskTypeText(task) }}</text>
-                <text class="task-time">{{ formatFlowDateTime(task.createTime || task.startTime) }}</text>
-                <text v-if="isUrgentTask(task)" class="priority-tag">紧急</text>
+              <view class="task-applicant__avatar">{{ applicantInitial(task) }}</view>
+              <view class="task-card__heading">
+                <text class="task-card__title">{{ taskTitle(task) }}</text>
+                <text class="task-time">{{ applicantName(task) }} · {{ formatFlowDateTime(task.createTime || task.startTime) }}</text>
               </view>
               <text class="status-tag" :class="statusToneClass(task)">{{ statusText(task) }}</text>
             </view>
-            <text class="task-card__title">{{ taskTitle(task) }}</text>
-            <text class="task-card__node">{{ task.taskName || task.name || '审批节点' }}</text>
-            <view class="task-card__footer">
-              <view class="task-applicant">
-                <view class="task-applicant__avatar">{{ applicantInitial(task) }}</view>
-                <text>{{ applicantName(task) }}</text>
+            <view class="task-card__body">
+              <view class="task-card__line">
+                <text class="task-card__label">当前节点</text>
+                <text class="task-card__node">{{ task.taskName || task.name || '审批节点' }}</text>
               </view>
-              <button v-if="activeScope === 'started' && canWithdraw(task)" class="claim-button" @click.stop="withdrawTask(task)">撤回</button>
+              <view class="task-card__line">
+                <text class="task-card__label">流程类型</text>
+                <view class="task-card__identity">
+                  <text class="task-type-tag" :class="taskTypeTone(task)">{{ taskTypeText(task) }}</text>
+                  <text v-if="isUrgentTask(task)" class="priority-tag">紧急</text>
+                </view>
+              </view>
+            </view>
+            <view class="task-card__footer">
+              <text class="task-card__hint">{{ activeScope === 'todo' ? '需要你审批' : scopeLabel }}</text>
+              <view v-if="activeScope === 'started' && (canWithdraw(task) || showRemind(task))" class="task-card__actions">
+                <button
+                  v-if="showRemind(task)"
+                  class="remind-button"
+                  :disabled="isRemindCoolingDown(task) || isReminding(task)"
+                  @click.stop="remind(task)"
+                >
+                  {{ isRemindCoolingDown(task) ? '已催办' : '催办' }}
+                </button>
+                <button v-if="canWithdraw(task)" class="claim-button" @click.stop="withdrawTask(task)">撤回</button>
+              </view>
               <view v-else class="task-primary-action">
                 <text>{{ openingTaskId === String(task.taskId || task.id || '') ? '正在进入' : taskActionText(task) }}</text>
-                <AiIcon icon="/static/icons/ai-icon/arrow-right.svg" color="#3b82f6" size="sm" />
+                <AiIcon icon="/static/icons/ai-icon/chevron-right.svg" color="#0066ff" size="sm" />
               </view>
             </view>
           </view>
@@ -57,7 +88,7 @@
           <view v-else class="list-foot">{{ hasMore ? '上拉加载更多' : `没有更多${scopeLabel}` }}</view>
         </template>
         <view v-else class="state-box">
-          <AiIcon icon="/static/icons/ai-icon/check-circle.svg" color="#3b82f6" size="lg" />
+          <AiIcon icon="/static/icons/ai-icon/check-circle.svg" color="#0066ff" size="lg" />
           <text class="state-title">{{ flowServiceUnavailable ? '流程服务不可用' : `暂无${scopeLabel}` }}</text>
           <text class="state-copy">{{ emptyDescription }}</text>
         </view>
@@ -101,14 +132,22 @@ import AiListSkeleton from '@/components/AiListSkeleton.vue'
 import AiSearchBar from '@/components/AiSearchBar.vue'
 import AiSelect from '@/components/AiSelect.vue'
 import AiTabBar from '@/components/AiTabBar.vue'
+import AiTabHeader from '@/components/AiTabHeader.vue'
+import CcListPanel from '@/components/flow/CcListPanel.vue'
 import api from '@/api'
-import { useAuthStore } from '@/store'
+import { useFlowRemind } from '@/composables/flow/useFlowRemind'
+import { useAuthStore, useBadgeStore, useCcStore } from '@/store'
 import { showConfirmDialog } from '@/utils/dialog'
+import { takeTabHandoff } from '@/utils/tab-handoff'
 import { resolveApiErrorMessage } from '@/utils/flow-page'
 import { toast } from '@/utils/notify'
 import { formatFlowDateTime } from '@/utils/flow-display'
 
 const authStore = useAuthStore()
+const badgeStore = useBadgeStore()
+const ccStore = useCcStore()
+const { showRemind, isRemindCoolingDown, isReminding, remind } = useFlowRemind()
+const ccPanelRef = ref(null)
 const tasks = ref([])
 const pageNum = ref(1)
 const pageSize = ref(15)
@@ -135,7 +174,9 @@ const workScopes = [
   { label: '待处理', value: 'todo' },
   { label: '已处理', value: 'done' },
   { label: '我发起的', value: 'started' },
+  { label: '抄送我的', value: 'cc' },
 ]
+const isCcScope = computed(() => activeScope.value === 'cc')
 const userId = computed(() => authStore.userInfo?.id || authStore.userInfo?.userId || authStore.userInfo?.user_id || '')
 const hasMore = computed(() => tasks.value.length < total.value)
 const scopeLabel = computed(() => workScopes.find(item => item.value === activeScope.value)?.label || '待办')
@@ -144,8 +185,19 @@ const emptyDescription = computed(() => flowServiceUnavailable.value
   ? '请确认流程服务可用后重试'
   : keyword.value ? `没有符合当前条件的${scopeLabel.value}` : `当前没有${scopeLabel.value}`)
 
+// 必须先于加载列表的 onShow 注册：同页多个 onShow 按注册顺序执行，范围要在请求前确定
+onShow(() => {
+  const handoff = takeTabHandoff('todo')
+  if (workScopes.some(scope => scope.value === handoff?.scope)) {
+    activeScope.value = handoff.scope
+    statusFilter.value = ''
+  }
+})
+
 onShow(async () => {
   await loadTasks({ reset: true })
+  // 抄送页签下由面板 reload 一并刷新未读数
+  if (!isCcScope.value) ccStore.loadUnreadCount(api.getCcUnreadCount)
   if (categoryOptions.value.length === 1) {
     loadCategories()
   }
@@ -165,6 +217,11 @@ async function refreshByPull() {
 onReachBottom(loadMore)
 
 async function loadTasks({ reset = false } = {}) {
+  // 抄送面板自行分页；首次切换时面板挂载后自动加载，此时 ref 尚未就绪。
+  if (isCcScope.value) {
+    if (reset) await ccPanelRef.value?.reload()
+    return
+  }
   if (loading.value || (!reset && !hasMore.value)) return
   if (reset) {
     pageNum.value = 1
@@ -187,6 +244,10 @@ async function loadTasks({ reset = false } = {}) {
     tasks.value = reset ? page.records : tasks.value.concat(page.records)
     total.value = page.total
     pageNum.value += 1
+    // 无筛选的待处理总数就是底栏角标，顺手同步，审批返回后角标立即更新。
+    if (activeScope.value === 'todo' && !params.title && params.status === undefined && !params.category) {
+      badgeStore.setTodoCount(page.total)
+    }
   }
   catch (error) {
     flowServiceUnavailable.value = isFlowServiceUnavailableError(error)
@@ -195,6 +256,7 @@ async function loadTasks({ reset = false } = {}) {
   finally { loading.value = false }
 }
 
+function openApprovalStart() { uni.navigateTo({ url: '/pages/approval/start' }) }
 function loadMore() { loadTasks() }
 function handleSearch() { loadTasks({ reset: true }) }
 function clearSearch() { keyword.value = ''; handleSearch() }

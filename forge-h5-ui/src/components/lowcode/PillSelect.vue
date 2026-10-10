@@ -88,7 +88,7 @@ function isEmpty(value) {
   padding: 24rpx 32rpx;
   border: 1rpx solid var(--border-color);
   border-radius: var(--radius-control);
-  color: #475569;
+  color: #747677;
   font-size: 28rpx;
   font-weight: 400;
   line-height: 1.2;

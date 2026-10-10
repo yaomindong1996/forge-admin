@@ -52,7 +52,7 @@ provide('activeIndex', activeIndex)
     padding: 0 2px;
     display: flex;
     overflow-x: auto;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--forge-border);
     background: transparent;
     white-space: nowrap;
   }
@@ -74,33 +74,35 @@ provide('activeIndex', activeIndex)
     line-height: 1.4;
     
     &--active {
-      color: var(--primary-color);
+      color: var(--forge-text-primary);
       background: transparent;
       box-shadow: none;
     }
 
+    /* 钉钉式选中态：文字加粗 + 下方 3px 深色短横线 */
     &--active::before {
       position: absolute;
-      right: 0;
-      bottom: 0;
-      left: 0;
-      height: 2px;
-      border-radius: 2px 2px 0 0;
-      background: var(--primary-color);
+      bottom: 2px;
+      left: 50%;
+      width: 20px;
+      height: 3px;
+      border-radius: 2px;
+      background: var(--forge-text-primary);
       content: '';
+      transform: translateX(-50%);
     }
   }
   &-tab::after { border: 0; }
   &-tab:active { opacity: .8; }
   &-tab.is-disabled { opacity: .45; }
-  
+
   &-tab-text {
-    color: var(--text-secondary);
-    font-size: 14px;
-    
+    color: var(--forge-text-secondary);
+    font-size: 15px;
+
     .ai-tabs-tab--active & {
-      color: var(--primary-color);
-      font-weight: 700;
+      color: var(--forge-text-primary);
+      font-weight: 600;
     }
   }
 }

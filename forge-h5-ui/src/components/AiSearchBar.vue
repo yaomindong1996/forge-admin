@@ -110,18 +110,17 @@ function handleBlur(event) {
   height: 44px;
   min-width: 0;
   align-items: center;
-  padding: 0 12px;
-  border: 1px solid var(--border-light, #e2e8f0);
+  padding: 0 14px;
+  border: 1px solid transparent;
   border-radius: 999px;
-  background: #fff;
+  background: rgba(23, 26, 29, .05);
   box-sizing: border-box;
-  transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+  transition: border-color .16s ease, background-color .16s ease;
 }
 
 .ai-search-bar--focused :deep(.wd-search__block) {
-  border-color: var(--primary-color, #3b82f6);
+  border-color: var(--primary-color, #0066ff);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, .1);
 }
 
 :deep(.wd-search__field) {
@@ -142,7 +141,7 @@ function handleBlur(event) {
   align-items: center;
   justify-content: center;
   margin-right: 8px;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted, #a2a3a5);
   font-size: 16px;
   transform: none;
 }
@@ -152,8 +151,8 @@ function handleBlur(event) {
   min-width: 0;
   flex: 1;
   padding: 0;
-  color: #1e293b;
-  font-size: 14px;
+  color: #171a1d;
+  font-size: 15px;
   font-weight: 400;
   line-height: normal;
   box-sizing: border-box;
@@ -174,7 +173,7 @@ function handleBlur(event) {
 }
 
 :deep(.wd-search__placeholder-txt) {
-  color: #94a3b8;
+  color: #a2a3a5;
   font-size: 14px;
   font-weight: 400;
   line-height: normal;
@@ -184,7 +183,7 @@ function handleBlur(event) {
 :deep(.wd-search__clear) { display: flex; align-items: center; justify-content: center; }
 
 :deep(.wd-search__cancel) {
-  color: var(--primary-color, #3b82f6);
+  color: var(--primary-color, #0066ff);
   font-size: 13px;
   font-weight: 500;
 }

@@ -21,7 +21,7 @@
     >
       <template #default="{ uploading }">
         <view class="lowcode-image-upload__add">
-          <wd-icon name="add" size="24px" color="var(--forge-color-primary, #3b82f6)" />
+          <wd-icon name="add" size="24px" color="var(--forge-color-primary, #0066ff)" />
           <text>{{ uploading ? '上传中' : '添加图片' }}</text>
         </view>
       </template>
@@ -75,7 +75,7 @@ function emitValue(items) {
 <style lang="scss" scoped>
 .lowcode-image-upload { display: flex; flex-wrap: wrap; gap: 16rpx; }
 .lowcode-image-upload__item { position: relative; }
-.lowcode-image-upload__remove { width: 100%; min-height: 52rpx; margin: 6rpx 0 0; padding: 0; border: 0; color: var(--forge-color-danger, #ef4444); font-size: 22rpx; line-height: 52rpx; background: transparent; }
+.lowcode-image-upload__remove { width: 100%; min-height: 52rpx; margin: 6rpx 0 0; padding: 0; border: 0; color: var(--forge-color-danger, #ff5219); font-size: 22rpx; line-height: 52rpx; background: transparent; }
 .lowcode-image-upload__remove::after { border: 0; }
-.lowcode-image-upload__add { display: flex; width: 156rpx; height: 156rpx; flex-direction: column; align-items: center; justify-content: center; gap: 8rpx; border: 1rpx dashed var(--forge-color-primary, #3b82f6); border-radius: var(--radius-card); color: var(--forge-color-primary, #3b82f6); font-size: 22rpx; background: var(--forge-color-primary-soft, #eff6ff); box-sizing: border-box; }
+.lowcode-image-upload__add { display: flex; width: 156rpx; height: 156rpx; flex-direction: column; align-items: center; justify-content: center; gap: 8rpx; border: 1rpx dashed var(--forge-color-primary, #0066ff); border-radius: var(--radius-card); color: var(--forge-color-primary, #0066ff); font-size: 22rpx; background: var(--forge-color-primary-soft, #e8f1ff); box-sizing: border-box; }
 </style>

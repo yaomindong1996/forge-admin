@@ -55,7 +55,7 @@ const props = defineProps({
   },
   iconBg: {
     type: String,
-    default: 'rgba(241, 245, 249, 0.86)'
+    default: 'var(--forge-tone-blue-bg)'
   },
   isLink: {
     type: Boolean,
@@ -87,18 +87,25 @@ const handleClick = (event) => {
   position: relative;
   display: flex;
   align-items: center;
-  min-height: 96rpx;
-  padding: 18rpx 20rpx;
+  min-height: 52px;
+  padding: 10px 16px;
+  box-sizing: border-box;
   transition: background 0.15s ease;
 
+  /* 分隔线从文字起始处开始；有图标时让出图标宽度 */
   &--border::after {
     position: absolute;
-    right: 20rpx;
+    right: 0;
     bottom: 0;
-    left: 94rpx;
+    left: 16px;
     height: 1px;
-    background: var(--border-light);
+    background: var(--forge-border);
     content: '';
+    transform: scaleY(0.5);
+  }
+
+  &--border:has(.ai-cell__icon)::after {
+    left: 60px;
   }
 
   &:last-child::after {
@@ -119,15 +126,15 @@ const handleClick = (event) => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 60rpx;
-  height: 60rpx;
-  margin-right: 16rpx;
-  border-radius: var(--radius-control);
+  width: 32px;
+  height: 32px;
+  margin-right: 12px;
+  border-radius: 10px;
 }
 
 .ai-cell__icon-image {
-  width: 32rpx;
-  height: 32rpx;
+  width: 20px;
+  height: 20px;
 }
 
 .ai-cell__main {
@@ -136,25 +143,25 @@ const handleClick = (event) => {
   min-width: 0;
   flex-direction: column;
   justify-content: center;
-  gap: 6rpx;
+  gap: 2px;
 }
 
 .ai-cell__title {
   overflow: hidden;
-  color: var(--text-strong);
-  font-size: 27rpx;
-  font-weight: 500;
-  line-height: 1.25;
+  color: var(--forge-text-primary);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .ai-cell__label {
   overflow: hidden;
-  color: var(--text-muted);
-  font-size: 21rpx;
+  color: var(--forge-text-secondary);
+  font-size: 13px;
   font-weight: 400;
-  line-height: 1.2;
+  line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -163,23 +170,23 @@ const handleClick = (event) => {
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  gap: 12rpx;
+  gap: 4px;
   max-width: 45%;
-  margin-left: 16rpx;
+  margin-left: 12px;
 }
 
 .ai-cell__value {
   overflow: hidden;
-  color: var(--text-secondary);
-  font-size: 24rpx;
-  font-weight: 500;
+  color: var(--forge-text-tertiary);
+  font-size: 14px;
+  font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .ai-cell__arrow {
-  color: var(--text-muted);
-  font-size: 38rpx;
+  color: var(--forge-arrow);
+  font-size: 22px;
   font-weight: 300;
   line-height: 1;
 }

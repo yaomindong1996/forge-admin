@@ -62,14 +62,14 @@ watch(() => props.value, (value) => {
 
 <style lang="scss" scoped>
 .mobile-calendar { padding: 32rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-card); background: #fff; }
-.mobile-calendar__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16rpx; color: #1e293b; font-size: 27rpx; font-weight: 500; }
-.mobile-calendar__nav { width: 88rpx; height: 88rpx; margin: 0; padding: 0; border: 0; border-radius: var(--radius-sm); color: #475569; font-size: 36rpx; line-height: 88rpx; background: #f8fafc; }
+.mobile-calendar__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16rpx; color: #171a1d; font-size: 27rpx; font-weight: 500; }
+.mobile-calendar__nav { width: 88rpx; height: 88rpx; margin: 0; padding: 0; border: 0; border-radius: var(--radius-sm); color: #747677; font-size: 36rpx; line-height: 88rpx; background: #f7f8fa; }
 .mobile-calendar__nav::after, .mobile-calendar__day::after { border: 0; }
 .mobile-calendar__week, .mobile-calendar__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
-.mobile-calendar__week text { padding: 8rpx 0 12rpx; color: #94a3b8; font-size: 21rpx; text-align: center; }
-.mobile-calendar__day { position: relative; width: 100%; min-height: 88rpx; margin: 0; padding: 0; border: 0; border-radius: var(--radius-sm); color: #1e293b; font-size: 23rpx; line-height: 88rpx; background: transparent; }
-.mobile-calendar__day.is-outside { color: #cbd5e1; }
-.mobile-calendar__day.is-today { color: #3b82f6; font-weight: 500; }
-.mobile-calendar__day.is-selected { color: #fff; background: #3b82f6; }
-.mobile-calendar__day.has-event::before { position: absolute; bottom: 5rpx; left: 50%; width: 6rpx; height: 6rpx; border-radius: 50%; background: #f97316; content: ''; transform: translateX(-50%); }
+.mobile-calendar__week text { padding: 8rpx 0 12rpx; color: #a2a3a5; font-size: 21rpx; text-align: center; }
+.mobile-calendar__day { position: relative; width: 100%; min-height: 88rpx; margin: 0; padding: 0; border: 0; border-radius: var(--radius-sm); color: #171a1d; font-size: 23rpx; line-height: 88rpx; background: transparent; }
+.mobile-calendar__day.is-outside { color: #c1c3c6; }
+.mobile-calendar__day.is-today { color: #0066ff; font-weight: 500; }
+.mobile-calendar__day.is-selected { color: #fff; background: #0066ff; }
+.mobile-calendar__day.has-event::before { position: absolute; bottom: 5rpx; left: 50%; width: 6rpx; height: 6rpx; border-radius: 50%; background: #fd8838; content: ''; transform: translateX(-50%); }
 </style>

@@ -58,25 +58,28 @@ function handleClick(event) {
 .ai-button {
   min-width: 0;
   margin: 0;
-  border-radius: var(--forge-radius-control, 12rpx) !important;
-  font-weight: 700;
+  border-radius: var(--forge-radius-control, 10px) !important;
+  font-size: 16px;
+  font-weight: 500;
   box-shadow: none !important;
 }
 
-.ai-button--sm { min-height: 44px; }
+.ai-button--sm { min-height: 44px; font-size: 14px; }
 .ai-button--md { min-height: 44px; }
-.ai-button--lg { min-height: 48px; border-radius: 999px !important; }
-.ai-button--secondary { color: var(--forge-color-text-secondary, #475569) !important; border-color: transparent !important; background: #f1f5f9 !important; }
-.ai-button--outline { color: var(--forge-color-primary, #3b82f6) !important; border-color: var(--forge-color-primary, #3b82f6) !important; background: #fff !important; }
-.ai-button--ghost { color: var(--forge-color-primary, #3b82f6) !important; background: transparent !important; }
-.ai-button--danger { color: var(--forge-color-danger, #ef4444) !important; border-color: rgba(239, 68, 68, .28) !important; background: #fff !important; }
+.ai-button--lg { min-height: 48px; }
+/* 次按钮：浅灰底 + 主色文字（钉钉“管理”按钮样式） */
+.ai-button--secondary { color: var(--forge-color-primary, #0066ff) !important; border-color: transparent !important; background: var(--forge-surface-muted, #ebecf0) !important; }
+.ai-button--outline { color: var(--forge-color-primary, #0066ff) !important; border-color: var(--forge-color-primary-border, #b3d1ff) !important; background: #fff !important; }
+.ai-button--ghost { color: var(--forge-color-primary, #0066ff) !important; background: transparent !important; }
+.ai-button--danger { color: var(--forge-color-danger, #ff5219) !important; border-color: transparent !important; background: var(--forge-surface-muted, #ebecf0) !important; }
 .ai-button__content { display: flex; min-width: 0; min-height: inherit; align-items: center; justify-content: center; gap: 6px; }
 .ai-button__text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ai-button__icon { display: flex; flex: 0 0 auto; align-items: center; justify-content: center; }
 
 @media (hover: hover) {
   .ai-button--secondary:hover,
-  .ai-button--outline:hover { background: var(--forge-surface-muted, #f8fafc) !important; }
+  .ai-button--danger:hover { background: #e3e4e6 !important; }
+  .ai-button--outline:hover { background: var(--forge-color-primary-soft, #e8f1ff) !important; }
   .ai-button--ghost:hover { opacity: .82; }
 }
 </style>

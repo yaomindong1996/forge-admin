@@ -193,7 +193,7 @@
         <wd-switch
           :model-value="switchValue"
           :disabled="effectiveDisabled || fieldProps.loading === true"
-          active-color="var(--forge-color-primary, #3b82f6)"
+          active-color="var(--forge-color-primary, #0066ff)"
           @update:model-value="updateSwitchValue"
           @change="handleSwitchChange"
         />
@@ -222,7 +222,7 @@
         :readonly="readonly"
         :allow-half="fieldProps.allowHalf === true"
         :clearable="fieldProps.clearable === true"
-        :active-color="fieldProps.color || 'var(--forge-color-primary, #3b82f6)'"
+        :active-color="fieldProps.color || 'var(--forge-color-primary, #0066ff)'"
         @update:model-value="updateValue"
         @change="emit('change', $event?.value ?? $event)"
       />
@@ -249,7 +249,7 @@
         <view v-if="fieldProps.showPreview !== false" class="lowcode-field__color-preview" :style="{ backgroundColor: validColorValue }" />
         <AiField
           :model-value="modelValue"
-          :placeholder="fieldProps.showAlpha ? '#3b82f6FF / rgba(...)' : '#3b82f6'"
+          :placeholder="fieldProps.showAlpha ? '#3b82f6FF / rgba(...)' : '#0066ff'"
           :maxlength="32"
           :disabled="effectiveDisabled"
           :readonly="readonly"
@@ -398,7 +398,7 @@ const numericValue = computed(() => {
   return Number.isFinite(number) ? number : 0
 })
 const switchValue = computed(() => mobileFieldValueEquals(props.modelValue, fieldProps.value.checkedValue))
-const validColorValue = computed(() => isSafeColor(props.modelValue) ? String(props.modelValue) : '#cbd5e1')
+const validColorValue = computed(() => isSafeColor(props.modelValue) ? String(props.modelValue) : '#c1c3c6')
 const colorSwatches = computed(() => (Array.isArray(fieldProps.value.swatches) ? fieldProps.value.swatches : []).filter(isSafeColor))
 const fieldHint = computed(() => {
   if (props.hint) return props.hint
@@ -609,10 +609,10 @@ defineExpose({ validate })
 
 <style lang="scss" scoped>
 .lowcode-field { margin-bottom: 32rpx; }
-.lowcode-field__label { display: flex; margin-bottom: 12rpx; color: #475569; font-size: 28rpx; font-weight: 400; line-height: 1.5; }
-.lowcode-field__required { margin-left: 6rpx; color: #ef4444; }
+.lowcode-field__label { display: flex; margin-bottom: 12rpx; color: #747677; font-size: 28rpx; font-weight: 400; line-height: 1.5; }
+.lowcode-field__required { margin-left: 6rpx; color: #ff5219; }
 .lowcode-field__control { min-height: 88rpx; }
-.lowcode-field__readonly { min-height: 88rpx; padding: 20rpx 24rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-control); color: #475569; background: #f8fafc; box-sizing: border-box; line-height: 1.5; word-break: break-all; }
+.lowcode-field__readonly { min-height: 88rpx; padding: 20rpx 24rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-control); color: #747677; background: #f7f8fa; box-sizing: border-box; line-height: 1.5; word-break: break-all; }
 .lowcode-field__readonly { display: flex; align-items: center; gap: 12rpx; }
 .lowcode-field__readonly-value { min-width: 0; flex: 1; }
 .lowcode-field__readonly.is-ellipsis .lowcode-field__readonly-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -621,30 +621,30 @@ defineExpose({ validate })
 .lowcode-field__readonly.is-underline { text-decoration: underline; }
 .lowcode-field__readonly.is-delete { text-decoration: line-through; }
 .lowcode-field__readonly.is-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.lowcode-field__readonly.is-text-primary { color: var(--forge-color-primary, #3b82f6); }
+.lowcode-field__readonly.is-text-primary { color: var(--forge-color-primary, #0066ff); }
 .lowcode-field__readonly.is-text-success { color: var(--forge-color-success, #16a34a); }
 .lowcode-field__readonly.is-text-warning { color: var(--forge-color-warning, #f59e0b); }
-.lowcode-field__readonly.is-text-error { color: var(--forge-color-danger, #ef4444); }
-.lowcode-field__copy { min-height: 52rpx; margin: 0; padding: 0 12rpx; border: 0; color: var(--forge-color-primary, #3b82f6); font-size: 22rpx; line-height: 52rpx; background: transparent; }
+.lowcode-field__readonly.is-text-error { color: var(--forge-color-danger, #ff5219); }
+.lowcode-field__copy { min-height: 52rpx; margin: 0; padding: 0 12rpx; border: 0; color: var(--forge-color-primary, #0066ff); font-size: 22rpx; line-height: 52rpx; background: transparent; }
 .lowcode-field__copy::after { border: 0; }
 .lowcode-field__barcode { display: flex; align-items: center; gap: 12rpx; }
 .lowcode-field__barcode :deep(.ai-field) { flex: 1; min-width: 0; }
 .lowcode-field__scan { flex: 0 0 auto; }
 .lowcode-field__range { display: flex; align-items: center; gap: 10rpx; }
 .lowcode-field__range-input { min-width: 0; flex: 1; }
-.lowcode-field__range-separator { flex: 0 0 auto; color: #94a3b8; font-size: 24rpx; }
+.lowcode-field__range-separator { flex: 0 0 auto; color: #a2a3a5; font-size: 24rpx; }
 .lowcode-field__color { display: flex; flex-wrap: wrap; align-items: center; gap: 12rpx; }
-.lowcode-field__color-preview { width: 88rpx; height: 88rpx; flex: 0 0 auto; border: 1rpx solid var(--forge-color-border, #cbd5e1); border-radius: var(--radius-control); }
+.lowcode-field__color-preview { width: 88rpx; height: 88rpx; flex: 0 0 auto; border: 1rpx solid var(--forge-color-border, #c1c3c6); border-radius: var(--radius-control); }
 .lowcode-field__color :deep(.ai-field) { min-width: 0; flex: 1; }
 .lowcode-field__swatches { display: flex; flex: 0 0 100%; flex-wrap: wrap; gap: 10rpx; }
-.lowcode-field__swatch { width: 44rpx; height: 44rpx; min-height: 44rpx; margin: 0; padding: 0; border: 2rpx solid #fff; border-radius: 8rpx; box-shadow: 0 0 0 1rpx var(--forge-color-border, #cbd5e1); }
+.lowcode-field__swatch { width: 44rpx; height: 44rpx; min-height: 44rpx; margin: 0; padding: 0; border: 2rpx solid #fff; border-radius: 8rpx; box-shadow: 0 0 0 1rpx var(--forge-color-border, #c1c3c6); }
 .lowcode-field__swatch::after { border: 0; }
-.lowcode-field__error { display: block; margin-top: 8rpx; color: #ef4444; font-size: 24rpx; }
-.lowcode-field__hint { display: block; margin-top: 8rpx; color: #94a3b8; font-size: 22rpx; }
-.lowcode-field__hint.is-error { color: #ef4444; }
+.lowcode-field__error { display: block; margin-top: 8rpx; color: #ff5219; font-size: 24rpx; }
+.lowcode-field__hint { display: block; margin-top: 8rpx; color: #a2a3a5; font-size: 22rpx; }
+.lowcode-field__hint.is-error { color: #ff5219; }
 .lowcode-field__switch { display: flex; min-height: 88rpx; align-items: center; gap: 12rpx; }
-.lowcode-field__switch-text { color: #64748b; font-size: 22rpx; }
-.lowcode-field.is-status-error :deep(.ai-field__control), .lowcode-field.is-status-error :deep(.ai-textarea) { border-color: var(--forge-color-danger, #ef4444); }
+.lowcode-field__switch-text { color: #747677; font-size: 22rpx; }
+.lowcode-field.is-status-error :deep(.ai-field__control), .lowcode-field.is-status-error :deep(.ai-textarea) { border-color: var(--forge-color-danger, #ff5219); }
 .lowcode-field.is-status-warning :deep(.ai-field__control), .lowcode-field.is-status-warning :deep(.ai-textarea) { border-color: var(--forge-color-warning, #f59e0b); }
 .lowcode-field.is-round :deep(.ai-field__control), .lowcode-field.is-round :deep(.ai-textarea) { border-radius: 999rpx; }
 .lowcode-field.is-loading { opacity: .72; }

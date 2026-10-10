@@ -20,8 +20,8 @@ defineProps({
 </script>
 
 <style lang="scss" scoped>
-.ai-empty { display: flex; min-height: 420rpx; align-items: center; justify-content: center; padding: 36rpx 32rpx; box-sizing: border-box; text-align: center; }
-.ai-empty__desc { display: block; max-width: 520rpx; margin-top: 8rpx; color: var(--forge-color-text-muted, #94a3b8); font-size: 23rpx; line-height: 1.45; }
-.ai-empty__action { margin-top: 18rpx; }
-:deep(.wd-status-tip__text) { color: var(--forge-color-text-strong, #1e293b); font-size: 28rpx; font-weight: 500; }
+.ai-empty { display: flex; min-height: 240px; align-items: center; justify-content: center; padding: 24px 16px; box-sizing: border-box; text-align: center; }
+.ai-empty__desc { display: block; max-width: 280px; margin-top: 4px; color: var(--forge-text-tertiary, #a2a3a5); font-size: 13px; line-height: 1.5; }
+.ai-empty__action { margin-top: 16px; }
+:deep(.wd-status-tip__text) { color: var(--forge-text-secondary, #747677); font-size: 15px; font-weight: 400; }
 </style>

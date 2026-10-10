@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
+import { readTodoDetailSource } from './todo-detail-source.js'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const srcDir = path.resolve(testDir, '../..')
@@ -21,6 +22,10 @@ const pageFiles = [
   'pages/demo/loading/index.vue',
   'pages/app-entry.vue',
   'pages/lowcode-runtime.vue',
+  'pages/approval/start.vue',
+  'pages/notice/index.vue',
+  'pages/notice/detail.vue',
+  'pages/flow/cc-detail.vue',
 ]
 
 test('every registered page mounts the shared Wot feedback host', () => {
@@ -68,7 +73,7 @@ test('shared search and textarea fields are backed by Wot components', () => {
   const searchSource = readSource('components/AiSearchBar.vue')
   const textareaSource = readSource('components/AiTextarea.vue')
   const lowcodeFieldSource = readSource('components/lowcode/LowcodeField.vue')
-  const todoDetailSource = readSource('pages/todo-detail.vue')
+  const todoDetailSource = readTodoDetailSource()
   const homeSource = readSource('pages/index/index.vue')
 
   assert.match(searchSource, /<wd-search\b/)

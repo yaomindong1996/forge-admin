@@ -1,8 +1,16 @@
 <template>
   <view class="mine-page">
     <AiFeedbackHost />
+    <AiTabHeader title="我的" :searchable="false">
+      <template #actions>
+        <button class="header-icon-button" aria-label="通用设置" @click="settingsSheetVisible = true">
+          <AiIcon icon="/static/icons/ai-icon/settings.svg" color="#171a1d" size="md" />
+        </button>
+      </template>
+    </AiTabHeader>
     <scroll-view class="mine-scroll" scroll-y :show-scrollbar="true">
       <view class="mine-content">
+      <!-- 资料卡片：头像可直接更换 -->
       <view class="profile-card">
 
         <AiImageUpload
@@ -29,49 +37,38 @@
 
         <view class="profile-copy">
           <text class="profile-name">{{ authStore.displayName }}</text>
-          <text class="profile-account">{{ userInfo.username || userInfo.userName || '当前账号' }}</text>
+          <text class="profile-account">{{ userInfo.username || userInfo.userName || '当前账号' }} · {{ currentTenantName }}</text>
           <view class="member-badge">
-            <AiIcon icon="/static/icons/ai-icon/shield.svg" color="#3b82f6" size="sm" />
+            <AiIcon icon="/static/icons/ai-icon/shield.svg" color="#0066ff" size="xs" />
             <text>{{ authStore.roleText }}</text>
           </view>
         </view>
-
+        <AiIcon icon="/static/icons/ai-icon/chevron-right.svg" color="#c1c3c6" size="sm" @click="openProfileSheet" />
       </view>
 
+      <!-- 功能列表：钉钉式列表行，图标语义色 + 右侧附加信息 -->
       <view class="menu-groups">
         <view
           v-for="(group, groupIndex) in menuGroups"
           :key="groupIndex"
-          class="menu-group"
+          class="menu-group-card"
         >
-          <text class="menu-group-title">{{ group.label }}</text>
-          <view class="menu-group-card">
           <view
             v-for="item in group.items"
             :key="item.key"
             class="menu-row"
-            :class="{ 'menu-row--danger': item.danger }"
             @click="handleMenu(item)"
           >
-            <view class="menu-icon" :class="{ 'menu-icon--danger': item.danger }">
+            <view class="menu-icon">
               <AiIcon :icon="item.icon" :color="item.color" size="md" />
             </view>
-            <view class="menu-main">
-              <text class="menu-label">{{ item.label }}</text>
-              <text class="menu-desc">{{ item.desc }}</text>
-            </view>
-            <AiIcon
-              v-if="!item.danger"
-              icon="/static/icons/ai-icon/chevron-right.svg"
-              color="#94a3b8"
-              size="sm"
-            />
-          </view>
+            <text class="menu-main menu-label">{{ item.label }}</text>
+            <text v-if="item.extra" class="menu-extra">{{ item.extra }}</text>
+            <AiIcon icon="/static/icons/ai-icon/chevron-right.svg" color="#c1c3c6" size="sm" />
           </view>
         </view>
       </view>
       <view class="logout-card" @click="handleLogout">
-        <AiIcon icon="/static/icons/ai-icon/log-out.svg" color="#ef4444" size="md" />
         <text>退出登录</text>
       </view>
       </view>
@@ -194,7 +191,7 @@
             @click="handleTenantSwitch(tenant)"
           >
             <view class="tenant-row-icon">
-              <AiIcon icon="/static/icons/ai-icon/layers.svg" :color="isCurrentTenant(tenant) ? '#3b82f6' : '#475569'" size="sm" />
+              <AiIcon icon="/static/icons/ai-icon/layers.svg" :color="isCurrentTenant(tenant) ? '#0066ff' : '#747677'" size="sm" />
             </view>
             <view class="tenant-row-main">
               <text class="tenant-row-name">{{ tenant.tenantName }}</text>
@@ -204,7 +201,7 @@
             <AiIcon
               v-else-if="isCurrentTenant(tenant)"
               icon="/static/icons/ai-icon/check-circle.svg"
-              color="#3b82f6"
+              color="#0066ff"
               size="sm"
             />
           </view>
@@ -230,14 +227,14 @@
             <text class="setting-title">消息免打扰</text>
             <text class="setting-desc">开启后保留消息红点，不做本机提醒</text>
           </view>
-          <wd-switch v-model="messageQuietMode" active-color="#3b82f6" @change="toggleQuietMode" />
+          <wd-switch v-model="messageQuietMode" active-color="#0066ff" @change="toggleQuietMode" />
         </view>
         <view class="setting-row setting-row-button" @click="clearLocalCache">
           <view class="setting-copy">
             <text class="setting-title">清理安全会话缓存</text>
             <text class="setting-desc">清理接口加密会话，不退出登录</text>
           </view>
-          <AiIcon icon="/static/icons/ai-icon/trash.svg" color="#ef4444" size="sm" />
+          <AiIcon icon="/static/icons/ai-icon/trash.svg" color="#ff5219" size="sm" />
         </view>
       </view>
     </AiPopupSheet>
@@ -251,7 +248,7 @@
     >
       <view class="support-card">
         <view class="support-icon">
-          <AiIcon icon="/static/icons/ai-icon/info.svg" color="#3b82f6" size="lg" />
+          <AiIcon icon="/static/icons/ai-icon/info.svg" color="#0066ff" size="lg" />
         </view>
         <text class="support-title">Forge 移动端</text>
         <text class="support-desc">支持移动端菜单、消息中心、流程待办和账号自助维护。遇到权限或页面打不开时，请先在首页刷新信息。</text>
@@ -282,8 +279,10 @@ import AiListSkeleton from '@/components/AiListSkeleton.vue'
 import AiImageUpload from '@/components/AiImageUpload.vue'
 import AiPopupSheet from '@/components/AiPopupSheet.vue'
 import AiTabBar from '@/components/AiTabBar.vue'
+import AiTabHeader from '@/components/AiTabHeader.vue'
 import api from '@/api'
 import { useAppStore, useAuthStore } from '@/store'
+import { MENU_TONES } from '@/utils/mobile-menu'
 import { resetKeyExchange } from '@/utils/crypto/key-exchange'
 import { showConfirmDialog } from '@/utils/dialog'
 import { DEFAULT_AVATAR_URL } from '@/utils/file'
@@ -356,7 +355,7 @@ const securityItems = computed(() => {
       label: '登录账号',
       value: userInfo.value.username,
       icon: '/static/icons/ai-icon/user.svg',
-      color: '#3b82f6',
+      color: '#0066ff',
     })
   }
   if (maskedPhone.value) {
@@ -364,7 +363,7 @@ const securityItems = computed(() => {
       label: '绑定手机',
       value: maskedPhone.value,
       icon: '/static/icons/ai-icon/phone.svg',
-      color: '#3b82f6',
+      color: '#0066ff',
     })
   }
   if (maskedEmail.value) {
@@ -372,7 +371,7 @@ const securityItems = computed(() => {
       label: '绑定邮箱',
       value: maskedEmail.value,
       icon: '/static/icons/ai-icon/mail.svg',
-      color: '#3b82f6',
+      color: '#0066ff',
     })
   }
   if (authStore.roleText) {
@@ -380,79 +379,32 @@ const securityItems = computed(() => {
       label: '角色',
       value: authStore.roleText,
       icon: '/static/icons/ai-icon/shield.svg',
-      color: '#3b82f6',
+      color: '#0066ff',
     })
   }
   return items
 })
 
+// 列表图标颜色沿用应用图标色板（mobile-menu.js MENU_TONES）
 const menuGroups = computed(() => [
   {
-    label: '账户与安全',
     items: [
-      {
-        key: 'profile',
-        icon: '/static/icons/ai-icon/user.svg',
-        label: '个人信息',
-        desc: '姓名、手机、邮箱和头像',
-        color: '#3b82f6',
-        bgClass: 'bg-blue',
-      },
-      {
-        key: 'password',
-        icon: '/static/icons/ai-icon/key.svg',
-        label: '修改密码',
-        desc: '更新当前登录密码',
-        color: '#3b82f6',
-        bgClass: 'bg-purple',
-      },
-      {
-        key: 'security',
-        icon: '/static/icons/ai-icon/shield.svg',
-        label: '安全中心',
-        desc: '账号绑定和角色信息',
-        color: '#3b82f6',
-        bgClass: 'bg-indigo',
-      },
+      { key: 'profile', icon: '/static/icons/ai-icon/user.svg', label: '个人信息', color: MENU_TONES.blue.color },
       ...(showTenantSwitch.value
-        ? [{
-            key: 'tenant',
-            icon: '/static/icons/ai-icon/briefcase.svg',
-            label: '切换租户',
-            desc: currentTenantName.value,
-            color: '#3b82f6',
-            bgClass: 'bg-blue',
-          }]
+        ? [{ key: 'tenant', icon: '/static/icons/ai-icon/briefcase.svg', label: '切换组织', extra: currentTenantName.value, color: MENU_TONES.purple.color }]
         : []),
-      {
-        key: 'messages',
-        icon: '/static/icons/ai-icon/bell.svg',
-        label: '消息中心',
-        desc: '站内消息和流程提醒',
-        color: '#3b82f6',
-        bgClass: 'bg-cyan',
-      },
     ],
   },
   {
-    label: '设置与帮助',
     items: [
-      {
-        key: 'help',
-        icon: '/static/icons/ai-icon/help-circle.svg',
-        label: '帮助与支持',
-        desc: '移动端能力说明',
-        color: '#3b82f6',
-        bgClass: 'bg-emerald',
-      },
-      {
-        key: 'settings',
-        icon: '/static/icons/ai-icon/settings.svg',
-        label: '通用设置',
-        desc: '消息提醒和本机缓存',
-        color: '#475569',
-        bgClass: 'bg-slate',
-      },
+      { key: 'password', icon: '/static/icons/ai-icon/key.svg', label: '修改密码', color: MENU_TONES.orange.color },
+      { key: 'security', icon: '/static/icons/ai-icon/shield.svg', label: '安全中心', extra: maskedPhone.value, color: MENU_TONES.green.color },
+    ],
+  },
+  {
+    items: [
+      { key: 'settings', icon: '/static/icons/ai-icon/settings.svg', label: '通用设置', color: '#747677' },
+      { key: 'help', icon: '/static/icons/ai-icon/help-circle.svg', label: '帮助与支持', color: MENU_TONES.cyan.color },
     ],
   },
 ])
@@ -492,7 +444,8 @@ function handleMenu(item) {
 }
 
 function goMessages() {
-  uni.navigateTo({ url: '/pages/message/index' })
+  aboutSheetVisible.value = false
+  uni.switchTab({ url: '/pages/message/index' })
 }
 
 function openProfileSheet() {

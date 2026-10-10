@@ -376,7 +376,7 @@ defineExpose({ validate })
 .lowcode-layout-container { min-width: 0; }
 .lowcode-layout-container.is-grid, .lowcode-layout-container.is-table, .lowcode-layout-container.is-box { margin-bottom: 18rpx; }
 .lowcode-layout-container.is-grid > :deep(.lowcode-layout) { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--lowcode-grid-gap, 16rpx); }
-.lowcode-layout-container.is-table { padding: 14rpx; border: 1rpx solid var(--forge-color-border, #cbd5e1); border-radius: 12rpx; }
+.lowcode-layout-container.is-table { padding: 14rpx; border: 1rpx solid var(--forge-color-border, #c1c3c6); border-radius: 12rpx; }
 .lowcode-layout-container.is-space > :deep(.lowcode-layout) { gap: 16rpx; }
 .lowcode-layout-tabs { margin-bottom: 24rpx; }
 .lowcode-layout-collapse { margin-bottom: 24rpx; }

@@ -2,13 +2,13 @@
   <view class="ai-file-upload">
     <view v-if="fileItems.length" class="ai-file-upload__list">
       <view v-for="item in fileItems" :key="item.id" class="ai-file-upload__item">
-        <AiIcon icon="/static/icons/ai-icon/file-text.svg" color="#3b82f6" size="sm" />
+        <AiIcon icon="/static/icons/ai-icon/file-text.svg" color="#0066ff" size="sm" />
         <text class="ai-file-upload__name">{{ item.name }}</text>
         <button v-if="!readonly && showRemoveButton" class="ai-file-upload__remove" @click="removeFile(item.id)">移除</button>
       </view>
     </view>
     <button v-if="!readonly" class="ai-file-upload__trigger" :disabled="uploading" @click="chooseFile">
-      <AiIcon icon="/static/icons/ai-icon/upload.svg" color="#3b82f6" size="sm" />
+      <AiIcon icon="/static/icons/ai-icon/upload.svg" color="#0066ff" size="sm" />
       <text>{{ uploading ? '上传中…' : (multiple ? '上传附件' : '选择文件') }}</text>
     </button>
   </view>
@@ -132,10 +132,10 @@ function normalizeFiles(value) {
 <style lang="scss" scoped>
 .ai-file-upload { display: flex; flex-direction: column; gap: 12rpx; }
 .ai-file-upload__list { display: flex; flex-direction: column; gap: 10rpx; }
-.ai-file-upload__item { display: flex; min-width: 0; min-height: 88rpx; align-items: center; gap: 12rpx; padding: 0 16rpx; border: 1rpx solid #e2e8f0; border-radius: var(--radius-sm); background: #f5f7ff; }
-.ai-file-upload__name { overflow: hidden; flex: 1; color: #475569; font-size: 23rpx; text-overflow: ellipsis; white-space: nowrap; }
-.ai-file-upload__remove { min-height: 88rpx; margin: 0; padding: 0 16rpx; border: 0; color: #475569; font-size: 22rpx; line-height: 88rpx; background: transparent; }
+.ai-file-upload__item { display: flex; min-width: 0; min-height: 88rpx; align-items: center; gap: 12rpx; padding: 0 16rpx; border: 1rpx solid #f0f1f2; border-radius: var(--radius-sm); background: #f5f7ff; }
+.ai-file-upload__name { overflow: hidden; flex: 1; color: #747677; font-size: 23rpx; text-overflow: ellipsis; white-space: nowrap; }
+.ai-file-upload__remove { min-height: 88rpx; margin: 0; padding: 0 16rpx; border: 0; color: #747677; font-size: 22rpx; line-height: 88rpx; background: transparent; }
 .ai-file-upload__remove::after, .ai-file-upload__trigger::after { border: 0; }
-.ai-file-upload__trigger { display: inline-flex; width: fit-content; min-height: 88rpx; align-items: center; gap: 10rpx; margin: 0; padding: 0 24rpx; border: 1rpx dashed #3b82f6; border-radius: var(--radius-sm); color: #3b82f6; font-size: 24rpx; background: #f5f7ff; }
+.ai-file-upload__trigger { display: inline-flex; width: fit-content; min-height: 88rpx; align-items: center; gap: 10rpx; margin: 0; padding: 0 24rpx; border: 1rpx dashed #0066ff; border-radius: var(--radius-sm); color: #0066ff; font-size: 24rpx; background: #f5f7ff; }
 .ai-file-upload__trigger[disabled] { opacity: .6; }
 </style>

@@ -224,6 +224,9 @@ public class TaskFormInfo {
      */
     private Boolean allowTerminate;
 
+    /** 是否允许当前办理人动态加签（并行）。 */
+    private Boolean allowAddSign;
+
     /**
      * 是否需要签名
      */

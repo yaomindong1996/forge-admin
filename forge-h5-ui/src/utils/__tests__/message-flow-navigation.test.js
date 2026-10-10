@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
+import { readTodoDetailSource } from './todo-detail-source.js'
 import {
   buildFlowTaskDetailUrl,
   extractFlowTaskId,
@@ -56,7 +57,7 @@ test('opening an active approval message does not mark it read before workflow c
 test('message and todo pages keep the handling round trip continuous', () => {
   const messageSource = readSource('pages/message/index.vue')
   const todoSource = readSource('pages/todo.vue')
-  const detailSource = readSource('pages/todo-detail.vue')
+  const detailSource = readTodoDetailSource()
   const apiSource = readSource('api/index.js')
 
   assert.match(messageSource, /target \|\| \{ id: pendingOpenId\.value \}/)

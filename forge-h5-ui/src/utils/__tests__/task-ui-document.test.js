@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { buildBusinessTaskFormData } from '../business-task-form-adapter.js'
 import { resolveTaskUiDocument } from '../task-ui-document.js'
+import { readTodoDetailSource } from './todo-detail-source.js'
 
 test('uiDocument component tree is the rendered and submitted main form', () => {
   const resolved = resolveTaskUiDocument({
@@ -199,7 +200,7 @@ test('legacy forms keep the original fields and form-create fallback', () => {
 })
 
 test('approval page sends the JSON tree through the shared layout renderer', () => {
-  const page = readFileSync(new URL('../../pages/todo-detail.vue', import.meta.url), 'utf8')
+  const page = readTodoDetailSource()
   const sections = readFileSync(new URL('../../components/lowcode/PageSectionRenderer.vue', import.meta.url), 'utf8')
   const layout = readFileSync(new URL('../../components/lowcode/LowcodeLayoutNodes.vue', import.meta.url), 'utf8')
   assert.match(page, /:main-nodes="mainNodes"/)

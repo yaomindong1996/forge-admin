@@ -110,26 +110,42 @@
         </foreach>
     </select>
 
+    <!-- 加签人姓名在 SQL 中一次关联；只认本租户有效成员，查不到时 targetUserName 为空，由前端回退显示 ID。 -->
     <select id="selectDynamicSignRelations" resultType="com.mdframe.forge.starter.flow.vo.FlowTaskSignRelationVO">
-        SELECT id,
-               task_id AS taskId,
-               parent_task_id AS parentTaskId,
-               child_task_id AS childTaskId,
-               process_instance_id AS processInstanceId,
-               candidate_value AS targetUserId,
-               sign_mode AS signMode,
-               source,
-               status,
-               operator_id AS operatorId,
-               reason,
-               create_time AS createTime,
-               update_time AS updateTime
-        FROM sys_flow_task_candidate
-        WHERE tenant_id = #{tenantId}
-          AND parent_task_id = #{parentTaskId}
-          AND candidate_type = 'USER'
-          AND source = 'DYNAMIC_SIGN'
-        ORDER BY create_time ASC, id ASC
+        SELECT tc.id,
+               tc.task_id AS taskId,
+               tc.parent_task_id AS parentTaskId,
+               tc.child_task_id AS childTaskId,
+               tc.process_instance_id AS processInstanceId,
+               tc.candidate_value AS targetUserId,
+               COALESCE(
+                   NULLIF(target_user.real_name, ''),
+                   NULLIF(target_user.username, '')
+               ) AS targetUserName,
+               tc.sign_mode AS signMode,
+               tc.source,
+               tc.status,
+               tc.operator_id AS operatorId,
+               tc.reason,
+               tc.create_time AS createTime,
+               tc.update_time AS updateTime
+        FROM sys_flow_task_candidate tc
+        LEFT JOIN sys_user target_user
+               ON target_user.id = CAST(NULLIF(tc.candidate_value, '') AS UNSIGNED)
+              AND tc.candidate_value REGEXP '^[0-9]+$'
+              AND target_user.del_flag = 0
+              AND EXISTS (
+                  SELECT 1
+                  FROM sys_user_tenant target_membership
+                  WHERE target_membership.tenant_id = tc.tenant_id
+                    AND target_membership.user_id = target_user.id
+                    AND target_membership.status = 1
+              )
+        WHERE tc.tenant_id = #{tenantId}
+          AND tc.parent_task_id = #{parentTaskId}
+          AND tc.candidate_type = 'USER'
+          AND tc.source = 'DYNAMIC_SIGN'
+        ORDER BY tc.create_time ASC, tc.id ASC
         LIMIT 50
     </select>
 

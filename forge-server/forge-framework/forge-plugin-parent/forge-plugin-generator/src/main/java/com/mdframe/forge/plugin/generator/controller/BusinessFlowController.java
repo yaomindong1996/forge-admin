@@ -11,11 +11,14 @@ import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessTaskFormContex
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessTaskFormSaveDTO;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessFlowService;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessFlowStatusFieldService;
+import com.mdframe.forge.plugin.generator.service.businessapp.BusinessStartableObjectService;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessFieldVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessBindingSummaryVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessFlowBindingVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessFlowRuntimeVO;
+import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessStartableObjectVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessTaskFormContextVO;
+import com.mdframe.forge.starter.core.annotation.api.ApiPermissionIgnore;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.annotation.log.OperationLog;
@@ -48,6 +51,7 @@ public class BusinessFlowController {
 
     private final BusinessFlowService flowService;
     private final BusinessFlowStatusFieldService flowStatusFieldService;
+    private final BusinessStartableObjectService startableObjectService;
 
     @GetMapping("/binding/{objectCode}")
     @SaCheckPermission("ai:businessFlow:config")
@@ -61,6 +65,13 @@ public class BusinessFlowController {
     @OperationLog(module = "业务流程", type = OperationType.QUERY, desc = "查询业务流程发起配置")
     public RespInfo<Map<String, Object>> getStartConfig(@PathVariable String objectCode) {
         return RespInfo.success(flowService.getBusinessStartConfig(objectCode));
+    }
+
+    /** 移动端发起审批目录，普通员工只需登录；前端再与菜单取交集。 */
+    @GetMapping("/startable-objects")
+    @ApiPermissionIgnore
+    public RespInfo<List<BusinessStartableObjectVO>> startableObjects() {
+        return RespInfo.success(startableObjectService.listStartableObjects());
     }
 
     @GetMapping("/model/{modelKey}/variables")

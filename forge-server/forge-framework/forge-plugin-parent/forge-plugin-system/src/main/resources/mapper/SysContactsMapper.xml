@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.system.mapper.SysContactsMapper">
+
+    <!-- 有效成员：未删除、状态正常，且在当前租户内的成员关系为正常 -->
+    <sql id="activeMember">
+        u.del_flag = 0
+        AND u.user_status = 1
+        AND EXISTS (
+            SELECT 1
+            FROM sys_user_tenant sut
+            WHERE sut.user_id = u.id
+              AND sut.tenant_id = #{tenantId}
+              AND sut.status = 1
+        )
+    </sql>
+
+    <sql id="memberColumns">
+        u.id AS userId,
+        u.real_name AS realName,
+        u.avatar,
+        u.phone,
+        u.email
+    </sql>
+
+    <select id="selectTenantName" resultType="java.lang.String">
+        SELECT t.tenant_name
+        FROM sys_tenant t
+        WHERE t.id = #{tenantId}
+          AND t.del_flag = 0
+    </select>
+
+    <select id="countMembers" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM sys_user u
+        WHERE <include refid="activeMember" />
+    </select>
+
+    <select id="selectMainOrg" resultType="com.mdframe.forge.plugin.system.vo.ContactOrgVO">
+        SELECT o.id, o.org_name AS orgName
+        FROM sys_user_org uo
+        INNER JOIN sys_org o ON o.id = uo.org_id
+        WHERE uo.user_id = #{userId}
+          AND uo.tenant_id = #{tenantId}
+          AND o.tenant_id = #{tenantId}
+          AND o.del_flag = 0
+          AND o.org_status = 1
+        ORDER BY uo.is_main DESC, o.sort ASC, o.id ASC
+        LIMIT 1
+    </select>
+
+    <!-- memberCount 统计本部门及全部下级部门的去重成员 -->
+    <select id="selectChildOrgs" resultType="com.mdframe.forge.plugin.system.vo.ContactOrgVO">
+        SELECT
+            o.id,
+            o.org_name AS orgName,
+            (
+                SELECT COUNT(DISTINCT uo.user_id)
+                FROM sys_user_org uo
+                INNER JOIN sys_org c ON c.id = uo.org_id
+                INNER JOIN sys_user u ON u.id = uo.user_id
+                WHERE uo.tenant_id = #{tenantId}
+                  AND c.del_flag = 0
+                  AND (c.id = o.id OR FIND_IN_SET(o.id, c.ancestors) > 0)
+                  AND <include refid="activeMember" />
+            ) AS memberCount
+        FROM sys_org o
+        WHERE o.tenant_id = #{tenantId}
+          AND o.del_flag = 0
+          AND o.org_status = 1
+        <choose>
+            <when test="parentId == null or parentId == 0">
+                AND (o.parent_id = 0 OR o.parent_id IS NULL)
+            </when>
+            <otherwise>
+                AND o.parent_id = #{parentId}
+            </otherwise>
+        </choose>
+        ORDER BY o.sort ASC, o.id ASC
+    </select>
+
+    <select id="selectMemberPage" resultType="com.mdframe.forge.plugin.system.vo.ContactMemberVO">
+        SELECT <include refid="memberColumns" />
+        FROM sys_user u
+        WHERE <include refid="activeMember" />
+        <if test="query.orgId != null">
+            AND EXISTS (
+                SELECT 1
+                FROM sys_user_org uo
+                WHERE uo.user_id = u.id
+                  AND uo.org_id = #{query.orgId}
+                  AND uo.tenant_id = #{tenantId}
+            )
+        </if>
+        <if test="query.keyword != null and query.keyword != ''">
+            AND (
+                u.real_name LIKE CONCAT('%', #{query.keyword}, '%')
+                OR u.username LIKE CONCAT('%', #{query.keyword}, '%')
+            )
+        </if>
+        <!-- 转 GBK 排序可让中文姓名近似按拼音排列 -->
+        ORDER BY u.real_name IS NULL, CONVERT(u.real_name USING gbk) ASC, u.id ASC
+    </select>
+
+    <select id="selectMember" resultType="com.mdframe.forge.plugin.system.vo.ContactMemberVO">
+        SELECT <include refid="memberColumns" />
+        FROM sys_user u
+        WHERE u.id = #{userId}
+          AND <include refid="activeMember" />
+    </select>
+
+    <select id="selectOrgNames" resultType="com.mdframe.forge.plugin.system.vo.ContactMemberLabelVO">
+        SELECT uo.user_id AS userId, o.org_name AS label
+        FROM sys_user_org uo
+        INNER JOIN sys_org o ON o.id = uo.org_id
+        WHERE uo.tenant_id = #{tenantId}
+          AND o.tenant_id = #{tenantId}
+          AND o.del_flag = 0
+          AND o.org_status = 1
+          AND uo.user_id IN
+          <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+              #{userId}
+          </foreach>
+        ORDER BY uo.is_main DESC, o.sort ASC, o.id ASC
+    </select>
+
+    <select id="selectPostNames" resultType="com.mdframe.forge.plugin.system.vo.ContactMemberLabelVO">
+        SELECT up.user_id AS userId, p.post_name AS label
+        FROM sys_user_post up
+        INNER JOIN sys_post p ON p.id = up.post_id
+        WHERE up.tenant_id = #{tenantId}
+          AND p.tenant_id = #{tenantId}
+          AND p.del_flag = 0
+          AND p.post_status = 1
+          AND up.user_id IN
+          <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+              #{userId}
+          </foreach>
+        ORDER BY up.is_main DESC, p.sort ASC, p.id ASC
+    </select>
+
+</mapper>

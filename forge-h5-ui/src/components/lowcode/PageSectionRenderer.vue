@@ -202,7 +202,7 @@
             <text class="section-sheet-trigger__label">查看{{ section.title || '明细' }}</text>
             <text class="section-sheet-trigger__count">{{ visibleChildRows(section).length }} 条记录</text>
           </view>
-          <AiIcon name="chevron-right" color="#3b82f6" size="sm" />
+          <AiIcon name="chevron-right" color="#0066ff" size="sm" />
         </button>
       </CardSection>
     </template>
@@ -502,7 +502,7 @@ function isDeletedRow(row = {}) {
 }
 
 .section-child-count {
-  color: #475569;
+  color: #747677;
   font-size: 23rpx;
   font-weight: 500;
 }
@@ -519,7 +519,7 @@ function isDeletedRow(row = {}) {
 .section-sheet-row {
   min-width: 0;
   padding: 22rpx 0;
-  border-top: 1rpx solid #e2e8f0;
+  border-top: 1rpx solid #f0f1f2;
 }
 
 .section-child-row:first-child,
@@ -542,7 +542,7 @@ function isDeletedRow(row = {}) {
 .section-child-row__title,
 .section-sheet-row__title {
   display: block;
-  color: #1e293b;
+  color: #171a1d;
   font-size: 24rpx;
   font-weight: 500;
 }
@@ -556,7 +556,7 @@ function isDeletedRow(row = {}) {
 
 .section-empty {
   padding: 30rpx 0 12rpx;
-  color: #94a3b8;
+  color: #a2a3a5;
   font-size: 24rpx;
   text-align: center;
 }
@@ -598,13 +598,13 @@ function isDeletedRow(row = {}) {
 }
 
 .section-sheet-trigger__label {
-  color: #1e293b;
+  color: #171a1d;
   font-size: 26rpx;
   font-weight: 500;
 }
 
 .section-sheet-trigger__count {
-  color: #94a3b8;
+  color: #a2a3a5;
   font-size: 22rpx;
 }
 
@@ -616,13 +616,13 @@ function isDeletedRow(row = {}) {
 }
 
 .section-readonly-field__label {
-  color: #94a3b8;
+  color: #a2a3a5;
   font-size: 22rpx;
 }
 
 .section-readonly-field__value {
   min-width: 0;
-  color: #1e293b;
+  color: #171a1d;
   font-size: 24rpx;
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -639,7 +639,7 @@ function isDeletedRow(row = {}) {
   flex-wrap: wrap;
   gap: 16rpx;
   padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom));
-  border-top: 1rpx solid #e2e8f0;
+  border-top: 1rpx solid #f0f1f2;
   background: #fff;
 }
 

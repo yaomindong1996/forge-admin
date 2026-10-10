@@ -3,11 +3,13 @@
     <AiFeedbackHost />
     <view v-if="loading" class="message-detail-card"><AiListSkeleton :rows="3" /></view>
     <view v-else-if="message" class="message-detail-card">
+      <!-- 标题区：标题 + 分类 · 时间 -->
+      <text class="message-detail-title">{{ message.title || '消息通知' }}</text>
       <view class="message-detail-head">
         <text class="message-detail-type">{{ category }}</text>
         <text class="message-detail-time">{{ formatFlowDateTime(message.createTime || message.receiveTime) }}</text>
       </view>
-      <text class="message-detail-title">{{ message.title || '消息通知' }}</text>
+      <!-- 正文 -->
       <rich-text v-if="message.content" class="message-detail-body" :nodes="safeContent" />
       <text v-else class="message-detail-body">{{ message.description || '暂无正文内容' }}</text>
     </view>
@@ -50,11 +52,10 @@ onLoad(async ({ id } = {}) => {
 </script>
 
 <style lang="scss" scoped>
-.message-detail-page { min-height: 100%; padding: 16px; background: var(--page-bg); box-sizing: border-box; }
-.message-detail-card { width: 100%; max-width: 960px; margin: 0 auto; padding: 20px; border: 1px solid var(--border-light); border-radius: var(--radius-card); background: #fff; box-shadow: var(--shadow-soft); box-sizing: border-box; }
-.message-detail-head { display: flex; justify-content: space-between; gap: 8px; color: var(--text-muted); font-size: 12px; }
-.message-detail-type { padding: 3px 8px; border-radius: 999px; color: var(--primary-color); font-weight: 600; background: var(--primary-soft); }
-.message-detail-time { text-align: right; }
-.message-detail-title { display: block; margin-top: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border-light); color: var(--text-strong); font-size: 18px; font-weight: 700; line-height: 1.4; }
-.message-detail-body { display: block; margin-top: 12px; color: var(--text-secondary); font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+.message-detail-page { min-height: 100%; padding: 12px; background: var(--forge-page-bg); box-sizing: border-box; }
+.message-detail-card { width: 100%; max-width: 960px; margin: 0 auto; padding: 20px 16px; border-radius: var(--forge-radius-card); background: var(--forge-surface); box-sizing: border-box; }
+.message-detail-title { display: block; color: var(--forge-text-primary); font-size: 20px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.message-detail-head { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-bottom: 16px; border-bottom: 1px solid var(--forge-border); color: var(--forge-text-tertiary); font-size: 13px; }
+.message-detail-type { padding: 2px 6px; border-radius: 4px; color: var(--forge-color-primary); font-size: 12px; background: var(--forge-color-primary-soft); }
+.message-detail-body { display: block; margin-top: 16px; color: var(--forge-text-primary); font-size: 16px; line-height: 1.75; overflow-wrap: anywhere; }
 </style>

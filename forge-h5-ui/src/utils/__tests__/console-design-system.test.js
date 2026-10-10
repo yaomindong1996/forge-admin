@@ -3,12 +3,22 @@ import fs from 'node:fs'
 import path from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
+import { readTodoDetailSource, readTodoDetailStyles } from './todo-detail-source.js'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const srcDir = path.resolve(testDir, '../..')
 
 function readSource(relativePath) {
   return fs.readFileSync(path.join(srcDir, relativePath), 'utf8')
+}
+
+// pages.json 允许 // 注释；只剥离不在字符串里的行尾注释（URL 中的 // 前面是引号内文本）
+function readPagesJson() {
+  const source = readSource('pages.json')
+    .split('\n')
+    .map(line => line.replace(/^(\s*(?:"(?:[^"\\]|\\.)*"|[^"/])*?)\s*\/\/.*$/, '$1'))
+    .join('\n')
+  return JSON.parse(source)
 }
 
 function readProductionStyles() {
@@ -25,22 +35,31 @@ function readProductionStyles() {
   return files.map(file => fs.readFileSync(file, 'utf8')).join('\n')
 }
 
-test('H5 theme exposes the 2025 light-business palette and sizing tokens', () => {
+test('H5 theme exposes the DingTalk palette and sizing tokens', () => {
   const source = readSource('styles/theme.css').toLowerCase()
-  assert.match(source, /--forge-color-primary:\s*#3b82f6/)
-  assert.match(source, /--forge-color-primary-soft:\s*#eff6ff/)
-  assert.match(source, /--forge-color-success:\s*#10b981/)
-  assert.match(source, /--forge-text-primary:\s*#1e293b/)
-  assert.match(source, /--forge-text-secondary:\s*#475569/)
-  assert.match(source, /--forge-text-tertiary:\s*#94a3b8/)
-  assert.match(source, /--forge-border:\s*#e2e8f0/)
-  assert.match(source, /--forge-page-bg:\s*#f4f5f7/)
-  assert.match(source, /--forge-surface-muted:\s*#f8fafc/)
-  assert.match(source, /--forge-radius-control:\s*12px/)
-  assert.match(source, /--forge-radius-card:\s*20px/)
-  assert.match(source, /--forge-space-page:\s*16px/)
+  assert.match(source, /--forge-color-primary:\s*#0066ff/)
+  assert.match(source, /--forge-color-primary-soft:\s*#e8f1ff/)
+  assert.match(source, /--forge-color-danger:\s*#ff5219/)
+  assert.match(source, /--forge-text-primary:\s*#171a1d/)
+  assert.match(source, /--forge-text-secondary:\s*#747677/)
+  assert.match(source, /--forge-text-tertiary:\s*#a2a3a5/)
+  assert.match(source, /--forge-border:\s*#f0f1f2/)
+  assert.match(source, /--forge-page-bg:\s*#f2f1f6/)
+  assert.match(source, /--forge-surface:\s*#ffffff/)
+  assert.match(source, /--forge-surface-muted:\s*#ebecf0/)
+  assert.match(source, /--forge-radius-control:\s*10px/)
+  assert.match(source, /--forge-radius-card:\s*16px/)
+  assert.match(source, /--forge-radius-popup:\s*16px/)
+  assert.match(source, /--forge-radius-icon:\s*14px/)
+  assert.match(source, /--forge-space-page:\s*12px/)
   assert.match(source, /--forge-control-height:\s*44px/)
-  assert.match(source, /--forge-shadow-soft:\s*0 2px 12px rgba\(15, 23, 42, 0\.06\)/)
+  assert.match(source, /--forge-shadow-float:\s*0 4px 16px rgba\(23, 26, 29, 0\.08\)/)
+  // 卡片不再使用阴影，只有悬浮底栏和弹层使用 shadow-float
+  assert.match(source, /--forge-shadow-soft:\s*none/)
+  for (const tone of ['blue', 'orange', 'green', 'purple', 'cyan', 'red']) {
+    assert.match(source, new RegExp(`--forge-tone-${tone}-bg:\\s*#[0-9a-f]{6}`))
+    assert.match(source, new RegExp(`--forge-tone-${tone}:\\s*#[0-9a-f]{6}`))
+  }
 })
 
 test('global typography uses the cross-platform system font stack', () => {
@@ -76,16 +95,27 @@ test('single-line controls vertically center values, placeholders and icons', ()
   assert.match(select, /wd-select-picker__cell[\s\S]*min-height:\s*44px/)
 })
 
-test('native navigation and backend brand resources are used across H5 pages', () => {
-  const pages = readSource('pages.json')
+test('only login and tab pages draw their own header; brand resources come from the backend', () => {
+  const pages = readPagesJson()
   const brand = readSource('utils/tenant-brand.js')
   const login = readSource('pages/login/index.vue')
   const home = readSource('pages/index/index.vue')
   const mine = readSource('pages/mine/index.vue')
   const auth = readSource('store/modules/auth.js')
 
-  assert.doesNotMatch(pages, /"navigationStyle"\s*:\s*"custom"/)
-  assert.match(pages, /"path":\s*"pages\/message\/detail"/)
+  const customNavPages = pages.pages
+    .filter(page => page.style?.navigationStyle === 'custom')
+    .map(page => page.path)
+    .sort()
+  assert.deepEqual(customNavPages, [
+    'pages/contacts/index',
+    'pages/index/index',
+    'pages/login/index',
+    'pages/message/index',
+    'pages/mine/index',
+    'pages/todo',
+  ])
+  assert.ok(pages.pages.some(page => page.path === 'pages/message/detail'))
   assert.match(brand, /\/auth\/tenant\/assets\/\$\{encodeURIComponent\(String\(tenantId\)\)\}\/logo/)
   assert.match(auth, /api\.getLoginConfig/)
   assert.match(auth, /state\.userInfo\?\.avatar/)
@@ -114,7 +144,7 @@ test('authenticated images retry once per file id and deduplicate access-url req
   assert.match(file, /fileAccessUrlPending\.delete\(rawValue\)/)
 })
 
-test('home uses real metrics, four-column shortcuts and notifications', () => {
+test('home uses real metrics, frequent apps and grouped app tabs', () => {
   const source = readSource('pages/index/index.vue')
   const skeleton = readSource('components/home/HomeWorkspaceSkeleton.vue')
   const styles = readSource('pages/styles/home.scss')
@@ -126,16 +156,19 @@ test('home uses real metrics, four-column shortcuts and notifications', () => {
   assert.match(source, /class="overview-list"/)
   assert.match(source, /class="shortcut-section"/)
   assert.match(source, /class="shortcut-item shortcut-more" @click="openMenuSheet"/)
-  assert.match(source, /allMenuItems\.value\.slice\(0, 3\)/)
+  assert.match(source, /allMenuItems\.value\.slice\(0, 7\)/)
   assert.match(source, /<AiPopupSheet[\s\S]*title="全部应用"/)
-  assert.match(source, /class="feed-section"/)
+  assert.match(source, /class="group-section"/)
+  // 最新提醒已由消息页签承担，工作台不再重复展示
+  assert.doesNotMatch(source, /class="feed-section"/)
   assert.doesNotMatch(source, /class="attention-grid"/)
-  assert.match(styles, /grid-template-areas:\s*\n\s*"overview apps"\s*\n\s*"feed apps"/)
-  assert.match(styles, /@media \(max-width: 1023px\)[\s\S]*\.shortcut-grid\s*\{\s*grid-template-columns:\s*repeat\(4,/)
+  assert.match(styles, /grid-template-areas:\s*\n\s*"overview groups"\s*\n\s*"apps groups"/)
+  assert.match(styles, /\.shortcut-grid,[\s\S]*?\{[^}]*grid-template-columns:\s*repeat\(4,/)
+  assert.match(styles, /\n\.group-grid\s*\{[^}]*grid-template-columns:\s*repeat\(5,/)
 })
 
 test('approval validation scrolls to comments and login is single-flight', () => {
-  const detail = readSource('pages/todo-detail.vue')
+  const detail = readTodoDetailSource()
   const actionLoading = readSource('components/AiLoadingOverlay.vue')
   const login = readSource('pages/login/index.vue')
   const auth = readSource('store/modules/auth.js')
@@ -210,17 +243,23 @@ test('production page styles use only the reference palette for decorative gradi
   assert.match(source, /linear-gradient\s*\(/)
 })
 
-test('three-tab navigation and multi-condition filters follow the mobile contract', () => {
-  const pages = readSource('pages.json')
+test('five-tab navigation with badges and multi-condition filters follow the mobile contract', () => {
+  const pages = readPagesJson()
   const tabbar = readSource('components/AiTabBar.vue')
   const todo = readSource('pages/todo.vue')
   const message = readSource('pages/message/index.vue')
   const runtime = readSource('components/lowcode/LowcodeRuntimeList.vue')
 
-  assert.doesNotMatch(pages, /"pagePath":\s*"pages\/message\/index"/)
-  for (const key of ['home', 'todo', 'mine']) assert.match(tabbar, new RegExp(`key: '${key}'`))
-  assert.doesNotMatch(tabbar, /key: 'message'/)
-  assert.doesNotMatch(tabbar, /ai-tabbar__badge/)
+  assert.deepEqual(pages.tabBar.list.map(item => item.pagePath), [
+    'pages/message/index',
+    'pages/todo',
+    'pages/index/index',
+    'pages/contacts/index',
+    'pages/mine/index',
+  ])
+  for (const key of ['message', 'todo', 'home', 'contacts', 'mine']) assert.match(tabbar, new RegExp(`key: '${key}'`))
+  assert.match(tabbar, /ai-tabbar__badge/)
+  assert.match(tabbar, /useBadgeStore\(\)/)
   assert.match(todo, /<AiFilterSheet[\s\S]*draftCategoryFilter[\s\S]*draftStatusFilter/)
   for (const tone of ['blue', 'orange', 'emerald', 'purple', 'cyan', 'rose']) {
     assert.match(todo, new RegExp(`tone-${tone}`))
@@ -234,9 +273,9 @@ test('three-tab navigation and multi-condition filters follow the mobile contrac
 test('authenticated workspaces keep controls compact and avoid clipped nested sheets', () => {
   const todo = readSource('pages/todo.vue')
   const todoStyle = readSource('pages/styles/todo.scss')
-  const detail = readSource('pages/todo-detail.vue')
+  const detail = readTodoDetailSource()
   const summary = readSource('components/flow/TodoTaskSummary.vue')
-  const detailStyle = readSource('pages/styles/todo-detail.scss')
+  const detailStyle = readTodoDetailStyles()
   const select = readSource('components/AiSelect.vue')
   const datetime = readSource('components/AiDateTimePicker.vue')
   const homeStyle = readSource('pages/styles/home.scss')
@@ -268,7 +307,7 @@ test('query pages refresh their actual scroll surface and approval loads managed
   const message = readSource('pages/message/index.vue')
   const runtime = readSource('pages/lowcode-runtime.vue')
   const layout = readSource('components/AiLayoutPage.vue')
-  const detail = readSource('pages/todo-detail.vue')
+  const detail = readTodoDetailSource()
   const phraseInput = readSource('components/flow/FlowCommentPhraseInput.vue')
   assert.match(pages, /"path": "pages\/index\/index"[\s\S]*?"enablePullDownRefresh": true/)
   assert.match(home, /onPullDownRefresh[\s\S]*refreshWorkspace/)
@@ -286,7 +325,7 @@ test('query pages refresh their actual scroll surface and approval loads managed
 })
 
 test('approval detail combines progress and history with localized display helpers', () => {
-  const detail = readSource('pages/todo-detail.vue')
+  const detail = readTodoDetailSource()
   const trace = readSource('components/flow/TodoFlowTrace.vue')
   const summary = readSource('components/flow/TodoTaskSummary.vue')
   const todo = readSource('pages/todo.vue')
@@ -303,7 +342,7 @@ test('approval detail combines progress and history with localized display helpe
 
 test('approval detail only renders business fields returned by task form context', () => {
   const api = readSource('api/index.js')
-  const detail = readSource('pages/todo-detail.vue')
+  const detail = readTodoDetailSource()
 
   assert.match(detail, /context\?\.taskFormInfo[\s\S]*formInfo\.value = context\.taskFormInfo/)
   assert.match(detail, /businessContextError\.value = resolveErrorMessage/)
@@ -319,8 +358,8 @@ test('approval detail only renders business fields returned by task form context
 
 test('approval actions, message cards and mine scrolling follow the reference mobile layout', () => {
   const api = readSource('api/index.js')
-  const detail = readSource('pages/todo-detail.vue')
-  const detailStyle = readSource('pages/styles/todo-detail.scss')
+  const detail = readTodoDetailSource()
+  const detailStyle = readTodoDetailStyles()
   const detailSkeleton = readSource('components/flow/TodoDetailSkeleton.vue')
   const taskSummary = readSource('components/flow/TodoTaskSummary.vue')
   const textarea = readSource('components/AiTextarea.vue')
@@ -348,8 +387,178 @@ test('approval actions, message cards and mine scrolling follow the reference mo
   assert.match(messageStyle, /\.message-scope-tab\.active/)
   assert.match(messageStyle, /\.message-query-row[\s\S]*align-items:\s*center/)
   assert.match(messageStyle, /\.message-query-row :deep\(\.ai-search-bar\)[^}]*flex:\s*1/)
-  assert.match(messageStyle, /\.message-card[\s\S]*margin-bottom:\s*8px/)
-  assert.match(messageStyle, /\.message-card[\s\S]*border-radius:\s*var\(--radius-card\)/)
+  // 消息改为钉钉会话行：分类图标 + 未读红点，分隔线从文字起始处开始
+  assert.match(message, /class="message-row"[\s\S]*class="message-icon"[\s\S]*class="message-dot"/)
+  assert.match(messageStyle, /\.message-row\s*\{[^}]*min-height:\s*72px/)
+  assert.match(messageStyle, /\.message-row \+ \.message-row::before\s*\{[^}]*left:\s*72px/)
   assert.match(mine, /class="mine-scroll" scroll-y :show-scrollbar="true"/)
   assert.match(mineStyle, /\.mine-scroll[^}]*overflow-y:\s*auto/)
+})
+
+test('message list is a tab page and is never pushed onto the page stack', () => {
+  const offenders = []
+  const visit = (directory) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const entryPath = path.join(directory, entry.name)
+      if (entry.isDirectory()) {
+        if (entry.name !== '__tests__') visit(entryPath)
+      }
+      else if (/\.(?:vue|js)$/.test(entry.name)) {
+        const source = fs.readFileSync(entryPath, 'utf8')
+        if (/navigateTo\(\{\s*url:\s*['"`]\/pages\/message\/index/.test(source)) offenders.push(entryPath)
+      }
+    }
+  }
+  ;['components', 'pages', 'utils', 'store'].forEach(root => visit(path.join(srcDir, root)))
+  assert.deepEqual(offenders, [])
+})
+
+test('contacts pages call the login-only contacts API and dial only full numbers', () => {
+  const api = readSource('api/index.js')
+  const index = readSource('pages/contacts/index.vue')
+  const org = readSource('pages/contacts/org.vue')
+  const member = readSource('pages/contacts/member.vue')
+
+  for (const url of ['summary', 'orgs', 'members']) {
+    assert.match(api, new RegExp(`url: '/system/contacts/${url}'`))
+  }
+  assert.match(api, /url: `\/system\/contacts\/members\/\$\{/)
+  assert.match(index, /<AiTabBar active="contacts"/)
+  assert.match(index, /api\.getContactsSummary\(\)/)
+  assert.match(org, /api\.getContactOrgs\(current\.value\.id\)/)
+  assert.match(member, /api\.getContactMember\(userId\)/)
+  assert.match(member, /if \(!dialable\.value\)[\s\S]*uni\.makePhoneCall/)
+  assert.match(member, /const dialable = computed\(\(\) => canDial\(member\.value\?\.phone\)\)/)
+})
+
+test('approval start and notice pages are native secondary pages', () => {
+  const pages = readPagesJson()
+  for (const path of ['pages/approval/start', 'pages/notice/index', 'pages/notice/detail']) {
+    const page = pages.pages.find(item => item.path === path)
+    assert.ok(page, `${path} should be registered`)
+    assert.notEqual(page.style?.navigationStyle, 'custom', `${path} should keep the native navigation bar`)
+  }
+})
+
+test('notice and document-flow APIs keep their paths and encrypt write calls', () => {
+  const api = readSource('api/index.js')
+  const apiBlock = name => api.match(new RegExp(`${name}: [^\\n]*request\\(\\{[\\s\\S]*?\\}\\),`))?.[0] || ''
+  for (const url of ['/system/notice/user/page', '/system/notice/user/unread-count', '/system/notice/markAsRead']) {
+    assert.match(api, new RegExp(`url: '${url}'`))
+  }
+  assert.match(api, /url: `\/system\/notice\/user\/\$\{/)
+  assert.match(api, /url: '\/ai\/business\/flow\/startable-objects'/)
+  assert.match(api, /url: `\/ai\/business\/document\/\$\{[\s\S]*?\}\/runtime`/)
+  assert.match(api, /url: `\/ai\/business\/flow\/start-config\/\$\{/)
+  const writes = {
+    markNoticeRead: '/system/notice/markAsRead',
+    startBusinessDocumentFlow: '/ai/business/flow/start',
+    resubmitBusinessDocumentFlow: '/ai/business/flow/resubmit',
+    withdrawBusinessDocumentFlow: '/ai/business/flow/withdraw',
+  }
+  for (const [name, url] of Object.entries(writes)) {
+    const block = apiBlock(name)
+    assert.ok(block.includes(`url: '${url}'`), `${name} should call ${url}`)
+    assert.match(block, /method: 'post'/, `${name} should be a POST`)
+    assert.match(block, /encrypt: true/, `${name} should be encrypted`)
+  }
+})
+
+test('workbench and todo both open the approval start page', () => {
+  const home = readSource('pages/index/index.vue')
+  const todo = readSource('pages/todo.vue')
+  const start = readSource('pages/approval/start.vue')
+  assert.match(home, /url: '\/pages\/approval\/start'/)
+  assert.match(todo, /url: '\/pages\/approval\/start'/)
+  assert.match(start, /authStore\.hasPermission\(FLOW_PERMISSIONS\.start\)/)
+  assert.match(start, /api\.getStartableObjects\(\)/)
+})
+
+test('notice content is sanitized and notice unread counts toward the message tab', () => {
+  const detail = readSource('pages/notice/detail.vue')
+  const message = readSource('pages/message/index.vue')
+  const tabBar = readSource('components/AiTabBar.vue')
+  const badge = readSource('store/modules/badge.js')
+  assert.match(detail, /sanitizeMessageHtml\(/)
+  assert.doesNotMatch(detail, /v-html/)
+  assert.match(detail, /noticeStore\.markRead\(/)
+  assert.match(message, /<NoticeEntryRow \/>/)
+  assert.match(tabBar, /key: 'message'[^\n]*badge: 'messageTabText'/)
+  assert.match(badge, /messageTabText: state => formatBadgeCount\(state\.unreadCount \+ state\.noticeUnreadCount\)/)
+})
+
+test('lowcode runtime delegates document approval to a dedicated composable', () => {
+  const runtime = readSource('pages/lowcode-runtime.vue')
+  const flow = readSource('composables/lowcode/useLowcodeDocumentFlow.js')
+  const footer = readSource('components/lowcode/LowcodeRuntimeFooter.vue')
+  assert.ok(runtime.split('\n').length <= 640, 'lowcode-runtime.vue should stay within 640 lines')
+  assert.match(runtime, /useLowcodeDocumentFlow\(/)
+  assert.match(runtime, /<InitiatorSelectSheet \/>/)
+  assert.equal((runtime.match(/@flow-action="runDocumentFlowAction"/g) || []).length, 3)
+  for (const action of ['START', 'RESUBMIT', 'WITHDRAW', 'HANDLE']) {
+    assert.match(flow, new RegExp(`DOCUMENT_FLOW_ACTION\\.${action}\\b`))
+  }
+  assert.match(flow, /api\.getBusinessFlowStartConfig\(/)
+  assert.match(flow, /initiatorStore\.open\(nodes\)/)
+  assert.match(flow, /comment: '申请人撤回'/)
+  assert.match(footer, /documentFlowStore\.footerButtons\(props\.mode\)/)
+})
+
+test('flow collaboration registers cc detail with native navigation', () => {
+  const page = readPagesJson().pages.find(item => item.path === 'pages/flow/cc-detail')
+  assert.ok(page, 'pages/flow/cc-detail should be registered')
+  assert.notEqual(page.style?.navigationStyle, 'custom')
+})
+
+test('flow collaboration APIs use flow service paths and encrypted writes', () => {
+  const api = readSource('api/index.js')
+  const expectations = [
+    ['getMyCcPage', '/api/flow/cc/my', 'get'],
+    ['getCcUnreadCount', '/api/flow/cc/unread/count', 'get'],
+    ['getCcFormInfo', '/api/flow/cc/form/', 'get'],
+    ['markCcRead', '/api/flow/cc/read/', 'post'],
+    ['markAllCcRead', '/api/flow/cc/read/all', 'post'],
+    ['remindFlowTask', '/api/flow/task/remind', 'post'],
+    ['addFlowTaskSign', '/api/flow/task/add-sign', 'post'],
+    ['reduceFlowTaskSign', '/api/flow/task/reduce-sign', 'post'],
+    ['getFlowTaskSignRelations', '/sign-relations', 'get'],
+  ]
+  for (const [name, url, method] of expectations) {
+    const start = api.indexOf(`${name}:`)
+    assert.ok(start >= 0, `${name} should be defined`)
+    const block = api.slice(start, api.indexOf('}),', start))
+    assert.ok(block.includes(url), `${name} should call ${url}`)
+    assert.match(block, new RegExp(`method: '${method}'`))
+    assert.match(block, /encrypt: true/)
+    assert.match(block, /needTip: false/)
+  }
+})
+
+test('todo detail stays split after adding sign and remind actions', () => {
+  const page = readSource('pages/todo-detail.vue')
+  assert.ok(page.split('\n').length <= 600, 'todo-detail.vue should stay within 600 lines')
+  for (const component of ['TodoSignSheet', 'TodoSignRelations', 'TodoRemindBar']) {
+    assert.match(page, new RegExp(`<${component}\\b`))
+    assert.ok(fs.existsSync(path.join(srcDir, `components/flow/${component}.vue`)))
+  }
+})
+
+test('cc unread count stays on the todo page tab only', () => {
+  const todo = readSource('pages/todo.vue')
+  const tabBar = readSource('components/AiTabBar.vue')
+  const badge = readSource('store/modules/badge.js')
+  assert.match(todo, /\{ label: '抄送我的', value: 'cc' \}/)
+  assert.match(todo, /scope\.value === 'cc' && ccStore\.unreadText/)
+  assert.match(todo, /<CcListPanel v-if="isCcScope"/)
+  assert.doesNotMatch(`${tabBar}\n${badge}`, /getCcUnreadCount|useCcStore|ccStore/)
+})
+
+test('add sign is parallel and idempotent', () => {
+  const actions = readSource('composables/flow/useTodoSignActions.js')
+  const sign = readSource('utils/flow-sign.js')
+  assert.match(sign, /SIGN_MODE_PARALLEL = 'PARALLEL'/)
+  assert.match(actions, /signMode: SIGN_MODE_PARALLEL/)
+  assert.match(actions, /createFlowActionCredentials\(action, payload\.taskId/)
+  assert.match(actions, /api\.addFlowTaskSign\(payload\)/)
+  assert.match(actions, /api\.reduceFlowTaskSign\(payload\)/)
 })

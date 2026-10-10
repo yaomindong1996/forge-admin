@@ -15,26 +15,26 @@
 /* 颜色变量 */
 
 /* 行为相关颜色 */
-$uni-color-primary: #3b82f6;
-$uni-color-success: #10b981;
-$uni-color-warning: #f97316;
-$uni-color-error: #ef4444;
+$uni-color-primary: #0066ff;
+$uni-color-success: #12b76a;
+$uni-color-warning: #fd8838;
+$uni-color-error: #ff5219;
 
 /* 文字基本颜色 */
-$uni-text-color: #1e293b; // 基本色
+$uni-text-color: #171a1d; // 基本色
 $uni-text-color-inverse: #fff; // 反色
-$uni-text-color-grey: #94a3b8; // 辅助灰色，如加载更多的提示信息
-$uni-text-color-placeholder: #94a3b8;
-$uni-text-color-disable: #cbd5e1;
+$uni-text-color-grey: #a2a3a5; // 辅助灰色，如加载更多的提示信息
+$uni-text-color-placeholder: #a2a3a5;
+$uni-text-color-disable: #c1c3c6;
 
 /* 背景颜色 */
 $uni-bg-color: #fff;
-$uni-bg-color-grey: #f4f5f7;
-$uni-bg-color-hover: #f8fafc; // 点击状态颜色
+$uni-bg-color-grey: #f2f1f6;
+$uni-bg-color-hover: #ebecf0; // 点击状态颜色
 $uni-bg-color-mask: rgba(0, 0, 0, 0.4); // 遮罩颜色
 
 /* 边框颜色 */
-$uni-border-color: #e2e8f0;
+$uni-border-color: #f0f1f2;
 
 /* 尺寸变量 */
 
@@ -68,9 +68,9 @@ $uni-spacing-col-lg: 12px;
 $uni-opacity-disabled: 0.3; // 组件禁用态的透明度
 
 /* 文章场景相关 */
-$uni-color-title: #475569; // 文章标题颜色
+$uni-color-title: #171a1d; // 文章标题颜色
 $uni-font-size-title: 20px;
-$uni-color-subtitle: #475569; // 二级标题颜色
+$uni-color-subtitle: #747677; // 二级标题颜色
 $uni-font-size-subtitle: 18px;
-$uni-color-paragraph: #475569; // 文章段落颜色
+$uni-color-paragraph: #171a1d; // 文章段落颜色
 $uni-font-size-paragraph: 15px;

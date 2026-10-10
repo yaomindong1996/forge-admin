@@ -1,5 +1,6 @@
 <template>
   <view class="ai-tabbar-host">
+    <!-- 悬浮胶囊底栏：选中项为灰色底块 + 深色图标，参照钉钉移动端 -->
     <view class="ai-tabbar">
       <button
         v-for="tab in tabs"
@@ -9,7 +10,8 @@
         @click="handleTabClick(tab)"
       >
         <view class="ai-tabbar__icon-wrap">
-          <view class="ai-tabbar__icon" :style="iconMask(tab.icon, currentKey === tab.key ? '#3b82f6' : '#94a3b8')" />
+          <view class="ai-tabbar__icon" :style="iconMask(tab.icon, currentKey === tab.key ? ACTIVE_COLOR : IDLE_COLOR)" />
+          <text v-if="badgeText(tab)" class="ai-tabbar__badge">{{ badgeText(tab) }}</text>
         </view>
         <text class="ai-tabbar__label">{{ tab.label }}</text>
       </button>
@@ -20,6 +22,7 @@
 <script setup>
 import { computed, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
+import { useBadgeStore } from '@/store'
 import { resolveStaticUrl } from '@/utils/assets'
 
 const props = defineProps({
@@ -29,26 +32,18 @@ const props = defineProps({
   },
 })
 
+const ACTIVE_COLOR = '#171a1d'
+const IDLE_COLOR = '#747677'
+
 const tabs = [
-  {
-    key: 'home',
-    label: '首页',
-    path: '/pages/index/index',
-    icon: '/static/icons/ai-icon/home.svg',
-  },
-  {
-    key: 'todo',
-    label: '待办',
-    path: '/pages/todo',
-    icon: '/static/icons/ai-icon/check-square.svg',
-  },
-  {
-    key: 'mine',
-    label: '我的',
-    path: '/pages/mine/index',
-    icon: '/static/icons/ai-icon/user.svg',
-  },
+  { key: 'message', label: '消息', path: '/pages/message/index', icon: '/static/icons/ai-icon/message-circle.svg', badge: 'messageTabText' },
+  { key: 'todo', label: '待办', path: '/pages/todo', icon: '/static/icons/ai-icon/check-square.svg', badge: 'todoText' },
+  { key: 'home', label: '工作台', path: '/pages/index/index', icon: '/static/icons/ai-icon/grid.svg' },
+  { key: 'contacts', label: '通讯录', path: '/pages/contacts/index', icon: '/static/icons/ai-icon/users.svg' },
+  { key: 'mine', label: '我的', path: '/pages/mine/index', icon: '/static/icons/ai-icon/user.svg' },
 ]
+
+const badgeStore = useBadgeStore()
 
 const currentKey = computed(() => {
   if (props.active) {
@@ -66,7 +61,12 @@ onMounted(() => {
 
 onShow(() => {
   hideNativeTabBar()
+  badgeStore.refresh()
 })
+
+function badgeText(tab) {
+  return tab.badge ? badgeStore[tab.badge] : ''
+}
 
 function hideNativeTabBar() {
   if (typeof uni === 'undefined' || typeof uni.hideTabBar !== 'function') {
@@ -103,19 +103,21 @@ function handleTabClick(tab) {
   left: 0;
   z-index: 80;
   display: flex;
-  justify-content: stretch;
-  padding: 0;
+  justify-content: center;
+  padding: 0 12px calc(8px + env(safe-area-inset-bottom));
   pointer-events: none;
 }
 
 .ai-tabbar {
   display: flex;
+  align-items: center;
   width: 100%;
-  min-height: calc(64px + env(safe-area-inset-bottom));
-  padding: 6px 24px env(safe-area-inset-bottom);
-  border-top: 1px solid var(--border-light);
-  background: #fff;
-  box-shadow: 0 -8px 24px -18px rgba(15, 23, 42, .18);
+  max-width: 520px;
+  height: 58px;
+  padding: 0 4px;
+  border-radius: 29px;
+  background: var(--forge-surface);
+  box-shadow: var(--forge-shadow-float);
   pointer-events: auto;
 }
 
@@ -126,44 +128,62 @@ function handleTabClick(tab) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
+  height: 50px;
   margin: 0;
   padding: 0;
   border: 0;
+  border-radius: 25px;
   background: transparent;
   line-height: 1;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition: background 0.15s ease;
 }
 
 .ai-tabbar__item::after {
   display: none;
 }
 
-.ai-tabbar__item:active {
-  background: var(--surface-muted);
+.ai-tabbar__item.is-active {
+  background: var(--forge-surface-muted);
 }
 
-.ai-tabbar__icon-wrap { position: relative; width: 22px; height: 22px; }
+.ai-tabbar__icon-wrap {
+  position: relative;
+  width: 22px;
+  height: 22px;
+}
 
 .ai-tabbar__icon {
-  position: relative;
-  z-index: 1;
   width: 22px;
   height: 22px;
   transition: background-color 0.15s ease;
 }
 
-.ai-tabbar__label {
-  position: relative;
-  z-index: 1;
-  margin-top: 4px;
-  color: var(--text-muted);
+.ai-tabbar__badge {
+  position: absolute;
+  top: -6px;
+  left: 14px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border: 1.5px solid var(--forge-surface);
+  border-radius: 9px;
+  background: var(--forge-color-danger);
+  color: #fff;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  box-sizing: content-box;
+}
+
+.ai-tabbar__label {
+  margin-top: 4px;
+  color: var(--forge-text-secondary);
+  font-size: 10px;
 }
 
 .ai-tabbar__item.is-active .ai-tabbar__label {
-  color: var(--primary-color);
-  font-weight: 500;
+  color: var(--forge-text-primary);
+  font-weight: 600;
 }
 </style>

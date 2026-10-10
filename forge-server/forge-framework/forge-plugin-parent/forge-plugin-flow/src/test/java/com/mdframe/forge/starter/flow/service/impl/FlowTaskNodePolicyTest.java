@@ -6,7 +6,9 @@ import com.mdframe.forge.starter.flow.entity.FlowNodeConfig;
 import com.mdframe.forge.starter.flow.helper.FlowNodePolicyParser;
 import com.mdframe.forge.starter.flow.service.FlowModelService;
 import com.mdframe.forge.starter.flow.service.FlowNodeConfigService;
+import org.flowable.bpmn.model.BpmnModel;
 import org.flowable.bpmn.model.ExtensionAttribute;
+import org.flowable.bpmn.model.Process;
 import org.flowable.bpmn.model.UserTask;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.RepositoryService;
@@ -15,9 +17,12 @@ import org.flowable.task.api.Task;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -30,12 +35,15 @@ class FlowTaskNodePolicyTest {
     private FlowNodeConfigService flowNodeConfigService;
     private FlowTaskNodePolicy policy;
 
+    private RepositoryService repositoryService;
+
     @BeforeEach
     void setUp() {
         flowModelService = mock(FlowModelService.class);
         flowNodeConfigService = mock(FlowNodeConfigService.class);
+        repositoryService = mock(RepositoryService.class);
         policy = new FlowTaskNodePolicy(
-                mock(RepositoryService.class),
+                repositoryService,
                 mock(HistoryService.class),
                 mock(TaskService.class),
                 flowModelService,
@@ -90,6 +98,77 @@ class FlowTaskNodePolicyTest {
                 () -> policy.validateTaskAction(task(), "approve", "", null, new UserTask()));
 
         assertTrue(exception.getMessage().contains("审批意见"));
+    }
+
+    @Test
+    void unconfiguredNodeMustAllowAddSign() {
+        Task task = task();
+        TaskFormInfo formInfo = new TaskFormInfo();
+
+        policy.applyApprovalPolicy(formInfo, task, null, new UserTask());
+
+        assertTrue(formInfo.getAllowAddSign());
+        assertDoesNotThrow(() -> policy.validateAddSign(task));
+    }
+
+    @Test
+    void nodeConfigColumnDefaultMustNotDisableAddSign() {
+        Task task = task();
+        FlowModel model = new FlowModel();
+        model.setId("model-1");
+        FlowNodeConfig nodeConfig = new FlowNodeConfig();
+        nodeConfig.setAllowAddSign(false);
+        when(flowModelService.getModelByKey("purchase-order")).thenReturn(model);
+        when(flowNodeConfigService.getByModelAndNode("model-1", "review")).thenReturn(nodeConfig);
+
+        TaskFormInfo formInfo = new TaskFormInfo();
+        policy.applyApprovalPolicy(formInfo, task, null, new UserTask());
+
+        assertTrue(formInfo.getAllowAddSign());
+        assertDoesNotThrow(() -> policy.validateAddSign(task));
+    }
+
+    @Test
+    void explicitBpmnFalseMustHideAndRejectAddSign() {
+        Task task = task();
+        UserTask flowNode = new UserTask();
+        flowNode.setId("review");
+        addFlowableAttribute(flowNode, "allowAddSign", "false");
+        Process process = new Process();
+        process.addFlowElement(flowNode);
+        BpmnModel bpmnModel = new BpmnModel();
+        bpmnModel.addProcess(process);
+        when(repositoryService.getBpmnModel("purchase-order:1:definition")).thenReturn(bpmnModel);
+
+        TaskFormInfo formInfo = new TaskFormInfo();
+        policy.applyApprovalPolicy(formInfo, task, null, flowNode);
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> policy.validateAddSign(task));
+
+        assertFalse(formInfo.getAllowAddSign());
+        assertEquals("当前节点不允许加签", exception.getMessage());
+    }
+
+    @Test
+    void addSignPolicyMustOnlyGuardAddSignPath() throws Exception {
+        String service = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/starter/flow/service/impl/FlowTaskServiceImpl.java"));
+        int addStart = service.indexOf("private FlowTaskDynamicSignCoordinator addSignCoordinator()");
+        int addEnd = service.indexOf("private FlowTaskDynamicSignCoordinator dynamicSignCoordinator(BiConsumer");
+        int reduceStart = service.indexOf("public void reduceSign(String taskId, String userId, String targetUserId,"
+                + " String reason, String signMode,");
+
+        assertTrue(addStart > 0 && addEnd > addStart);
+        assertTrue(service.substring(addStart, addEnd).contains("taskNodePolicy().validateAddSign(task)"));
+        assertTrue(service.substring(reduceStart, reduceStart + 400).contains("dynamicSignCoordinator().mutate("));
+        assertEquals(2, countOccurrences(service, "addSignCoordinator().mutate("));
+    }
+
+    private int countOccurrences(String source, String token) {
+        int count = 0;
+        for (int index = source.indexOf(token); index >= 0; index = source.indexOf(token, index + token.length())) {
+            count++;
+        }
+        return count;
     }
 
     private Task task() {

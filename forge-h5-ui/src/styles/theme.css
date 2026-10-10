@@ -1,37 +1,55 @@
 /**
- * 主题样式变量
+ * 主题样式变量（钉钉移动端风格）
  */
 :root,
 page {
-  --forge-color-primary: #3b82f6;
-  --forge-color-primary-strong: #2563eb;
-  --forge-color-primary-hover: #2563eb;
-  --forge-color-primary-soft: #eff6ff;
-  --forge-color-primary-border: #bfdbfe;
-  --forge-color-success: #10b981;
-  --forge-color-warning: #f97316;
-  --forge-color-danger: #ef4444;
-  --forge-color-info: #475569;
-  --forge-page-bg: #f4f5f7;
+  --forge-color-primary: #0066ff;
+  --forge-color-primary-strong: #0052cc;
+  --forge-color-primary-hover: #0052cc;
+  --forge-color-primary-soft: #e8f1ff;
+  --forge-color-primary-border: #b3d1ff;
+  --forge-color-success: #12b76a;
+  --forge-color-warning: #fd8838;
+  --forge-color-danger: #ff5219;
+  --forge-color-info: #747677;
+  --forge-page-bg: #f2f1f6;
   --forge-surface: #ffffff;
-  --forge-surface-muted: #f8fafc;
-  --forge-surface-subtle: #f8fafc;
-  --forge-text-primary: #1e293b;
-  --forge-text-secondary: #475569;
-  --forge-text-tertiary: #94a3b8;
-  --forge-border: #e2e8f0;
-  --forge-border-light: #f1f5f9;
-  --forge-border-strong: #cbd5e1;
-  --forge-radius-control: 12px;
-  --forge-radius-card: 20px;
-  --forge-radius-popup: 24px;
-  --forge-space-page: 16px;
-  --forge-space-section: 16px;
+  --forge-surface-muted: #ebecf0;
+  --forge-surface-subtle: #f7f8fa;
+  --forge-text-primary: #171a1d;
+  --forge-text-secondary: #747677;
+  --forge-text-tertiary: #a2a3a5;
+  --forge-border: #f0f1f2;
+  --forge-border-light: #f5f6f7;
+  --forge-border-strong: #e3e4e6;
+  --forge-arrow: #c1c3c6;
+  --forge-radius-control: 10px;
+  --forge-radius-card: 16px;
+  --forge-radius-popup: 16px;
+  --forge-radius-icon: 14px;
+  --forge-space-page: 12px;
+  --forge-space-section: 12px;
   --forge-control-height: 44px;
   --forge-page-max-width: 1280px;
   --forge-aside-width: 320px;
-  --forge-shadow-soft: 0 2px 12px rgba(15, 23, 42, 0.06);
-  --forge-shadow-float: 0 16px 40px rgba(15, 23, 42, 0.16);
+  --forge-shadow-soft: none;
+  --forge-shadow-float: 0 4px 16px rgba(23, 26, 29, 0.08);
+  /* 悬浮底栏 58px + 底部 8px + 上方留白 16px */
+  --forge-tabbar-space: calc(82px + env(safe-area-inset-bottom));
+
+  /* 应用图标色板：浅底 / 图标色 */
+  --forge-tone-blue-bg: #ddf0ff;
+  --forge-tone-blue: #0066ff;
+  --forge-tone-orange-bg: #fff0d6;
+  --forge-tone-orange: #fd8838;
+  --forge-tone-green-bg: #ddf6e8;
+  --forge-tone-green: #12b76a;
+  --forge-tone-purple-bg: #eee8ff;
+  --forge-tone-purple: #7a5af8;
+  --forge-tone-cyan-bg: #d9f5f7;
+  --forge-tone-cyan: #0ba5b5;
+  --forge-tone-red-bg: #ffe4e0;
+  --forge-tone-red: #f04438;
 
   --forge-color-surface: var(--forge-surface);
   --forge-color-surface-muted: var(--forge-surface-muted);
@@ -75,8 +93,8 @@ page {
   --wot-color-border: var(--forge-border);
   --wot-color-border-light: var(--forge-border-light);
   --wot-color-bg: var(--forge-page-bg);
-  --wot-button-small-radius: 12px;
-  --wot-button-medium-radius: 12px;
-  --wot-button-large-radius: 999px;
-  --wot-cell-group-insert-radius: 20px;
+  --wot-button-small-radius: 10px;
+  --wot-button-medium-radius: 10px;
+  --wot-button-large-radius: 10px;
+  --wot-cell-group-insert-radius: 16px;
 }

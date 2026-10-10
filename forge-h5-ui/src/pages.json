@@ -17,13 +17,15 @@
 			"path": "pages/index/index",
 			"style": {
 				"navigationBarTitleText": "工作台",
+				"navigationStyle": "custom",
 				"enablePullDownRefresh": true
 			}
 		},
 		{
 			"path": "pages/message/index",
 			"style": {
-				"navigationBarTitleText": "消息中心",
+				"navigationBarTitleText": "消息",
+				"navigationStyle": "custom",
 				"enablePullDownRefresh": true
 			}
 		},
@@ -37,6 +39,7 @@
 			"path": "pages/todo",
 			"style": {
 				"navigationBarTitleText": "待办",
+				"navigationStyle": "custom",
 				"enablePullDownRefresh": true
 			}
 		},
@@ -47,9 +50,54 @@
 			}
 		},
 		{
+			"path": "pages/flow/cc-detail",
+			"style": {
+				"navigationBarTitleText": "抄送详情"
+			}
+		},
+		{
+			"path": "pages/contacts/index",
+			"style": {
+				"navigationBarTitleText": "通讯录",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/contacts/org",
+			"style": {
+				"navigationBarTitleText": "组织架构"
+			}
+		},
+		{
+			"path": "pages/contacts/member",
+			"style": {
+				"navigationBarTitleText": "成员信息"
+			}
+		},
+		{
+			"path": "pages/approval/start",
+			"style": {
+				"navigationBarTitleText": "发起审批"
+			}
+		},
+		{
+			"path": "pages/notice/index",
+			"style": {
+				"navigationBarTitleText": "公告",
+				"enablePullDownRefresh": true
+			}
+		},
+		{
+			"path": "pages/notice/detail",
+			"style": {
+				"navigationBarTitleText": "公告详情"
+			}
+		},
+		{
 			"path": "pages/mine/index",
 			"style": {
-				"navigationBarTitleText": "我的"
+				"navigationBarTitleText": "我的",
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -72,22 +120,34 @@
 		}
 	],
 	"tabBar": {
-		"color": "#94A3B8",
-		"selectedColor": "#3B82F6",
+		"color": "#747677",
+		"selectedColor": "#171A1D",
 		"backgroundColor": "#FFFFFF",
 		"borderStyle": "white",
 		"list": [
 			{
-				"pagePath": "pages/index/index",
-				"text": "首页",
-				"iconPath": "static/tabbar/home.png",
-				"selectedIconPath": "static/tabbar/home-active.png"
+				"pagePath": "pages/message/index",
+				"text": "消息",
+				"iconPath": "static/tabbar/message.png",
+				"selectedIconPath": "static/tabbar/message-active.png"
 			},
 			{
 				"pagePath": "pages/todo",
 				"text": "待办",
 				"iconPath": "static/tabbar/todo.png",
 				"selectedIconPath": "static/tabbar/todo-active.png"
+			},
+			{
+				"pagePath": "pages/index/index",
+				"text": "工作台",
+				"iconPath": "static/tabbar/workbench.png",
+				"selectedIconPath": "static/tabbar/workbench-active.png"
+			},
+			{
+				"pagePath": "pages/contacts/index",
+				"text": "通讯录",
+				"iconPath": "static/tabbar/contacts.png",
+				"selectedIconPath": "static/tabbar/contacts-active.png"
 			},
 			{
 				"pagePath": "pages/mine/index",
@@ -101,6 +161,6 @@
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "Forge H5",
 		"navigationBarBackgroundColor": "#FFFFFF",
-		"backgroundColor": "#F4F5F7"
+		"backgroundColor": "#F2F1F6"
 	}
 }

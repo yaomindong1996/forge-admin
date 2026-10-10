@@ -1,11 +1,21 @@
 const TAB_ROUTES = new Set([
-  '/pages/index/index',
+  '/pages/message/index',
   '/pages/todo',
+  '/pages/index/index',
+  '/pages/contacts/index',
   '/pages/mine/index',
 ])
-const STACK_ROUTES = new Set(['/pages/message/index'])
 
-const MENU_ACCENTS = ['#f43f5e', '#10b981', '#6366f1', '#3b82f6']
+// 与 styles/theme.css 的 --forge-tone-* 保持一致；AiIcon 着色需要真实色值。
+export const MENU_TONES = {
+  blue: { bg: '#ddf0ff', color: '#0066ff' },
+  orange: { bg: '#fff0d6', color: '#fd8838' },
+  green: { bg: '#ddf6e8', color: '#12b76a' },
+  purple: { bg: '#eee8ff', color: '#7a5af8' },
+  cyan: { bg: '#d9f5f7', color: '#0ba5b5' },
+  red: { bg: '#ffe4e0', color: '#f04438' },
+}
+const TONE_KEYS = Object.keys(MENU_TONES)
 const GENERIC_MENU_ICONS = new Set([
   '', '-1', 'apps', 'apps-outline', 'appsoutline', 'appstore', 'appstore-outline',
   'grid', 'grid-outline', 'menu', 'menu-outline', 'application', 'applications',
@@ -14,19 +24,19 @@ const FALLBACK_MENU_ICONS = [
   'layout', 'box', 'briefcase', 'file-text', 'database', 'layers', 'package', 'tool',
 ]
 const MENU_ICON_RULES = [
-  [/(印章|用印|签章|合同)/, 'edit-3'],
-  [/(店铺|门店|商城|商店)/, 'shopping-bag'],
-  [/(资产|物料|库存|领用|产品)/, 'package'],
-  [/(采购|购物|订单)/, 'shopping-cart'],
-  [/(报销|费用|财务|付款|收款)/, 'credit-card'],
-  [/(请假|日程|排班|考勤)/, 'calendar'],
-  [/(用户|人员|员工|客户|成员)/, 'users'],
-  [/(供应商|物流|运输)/, 'truck'],
-  [/(审批|流程|工单|任务)/, 'check-square'],
-  [/(消息|通知|公告)/, 'message-square'],
-  [/(报表|统计|分析|看板)/, 'bar-chart-2'],
-  [/(文件|文档|资料|档案)/, 'file-text'],
-  [/(测试|调试|工具)/, 'tool'],
+  [/(印章|用印|签章|合同)/, 'edit-3', 'red'],
+  [/(店铺|门店|商城|商店)/, 'shopping-bag', 'orange'],
+  [/(资产|物料|库存|领用|产品)/, 'package', 'cyan'],
+  [/(采购|购物|订单)/, 'shopping-cart', 'orange'],
+  [/(报销|费用|财务|付款|收款)/, 'credit-card', 'orange'],
+  [/(请假|日程|排班|考勤)/, 'calendar', 'blue'],
+  [/(用户|人员|员工|客户|成员)/, 'users', 'green'],
+  [/(供应商|物流|运输)/, 'truck', 'cyan'],
+  [/(审批|流程|工单|任务)/, 'check-square', 'blue'],
+  [/(消息|通知|公告)/, 'message-square', 'blue'],
+  [/(报表|统计|分析|看板)/, 'bar-chart-2', 'purple'],
+  [/(文件|文档|资料|档案)/, 'file-text', 'cyan'],
+  [/(测试|调试|工具)/, 'tool', 'purple'],
 ]
 
 function visible(menu) {
@@ -46,7 +56,6 @@ export function resolveMobileMenuTarget(menu = {}) {
     const path = raw.startsWith('/') ? raw : `/${raw}`
     const pathname = path.split('?')[0]
     if (TAB_ROUTES.has(pathname)) return { url: path, tab: true }
-    if (STACK_ROUTES.has(pathname)) return { url: path, tab: false }
     if (pathname === '/pages/lowcode-runtime') {
       const query = path.split('?')[1] || ''
       if (/(?:^|&)configKey=[^&]+/.test(query)) return { url: path, tab: false }
@@ -80,14 +89,32 @@ export function resolveMobileMenuIcon(menu = {}) {
   // 无法区分功能，按真实菜单语义生成稳定的移动端图标。
   if (icon && !GENERIC_MENU_ICONS.has(normalized)) return icon
 
-  const identity = [menu.resourceName, menu.title, menu.name, menu.path, menu.component]
+  const identity = menuIdentity(menu)
+  const semanticIcon = matchIconRule(identity)?.[1]
+  if (semanticIcon) return `/static/icons/ai-icon/${semanticIcon}.svg`
+  return `/static/icons/ai-icon/${FALLBACK_MENU_ICONS[stableHash(menu, identity) % FALLBACK_MENU_ICONS.length]}.svg`
+}
+
+// 同一个应用在常用应用、分组页签、全部应用弹层中必须同色，所以色调只由菜单本身决定。
+export function resolveMobileMenuTone(menu = {}) {
+  const identity = menuIdentity(menu)
+  const tone = matchIconRule(identity)?.[2] || TONE_KEYS[stableHash(menu, identity) % TONE_KEYS.length]
+  return { key: tone, ...MENU_TONES[tone] }
+}
+
+function menuIdentity(menu) {
+  return [menu.resourceName, menu.title, menu.name, menu.path, menu.component]
     .filter(Boolean)
     .join(' ')
-  const semanticIcon = MENU_ICON_RULES.find(([pattern]) => pattern.test(identity))?.[1]
-  if (semanticIcon) return `/static/icons/ai-icon/${semanticIcon}.svg`
+}
+
+function matchIconRule(identity) {
+  return MENU_ICON_RULES.find(([pattern]) => pattern.test(identity))
+}
+
+function stableHash(menu, identity) {
   const stableKey = String(menu.id || identity || 'menu')
-  const hash = [...stableKey].reduce((total, char) => ((total * 31) + char.charCodeAt(0)) >>> 0, 0)
-  return `/static/icons/ai-icon/${FALLBACK_MENU_ICONS[hash % FALLBACK_MENU_ICONS.length]}.svg`
+  return [...stableKey].reduce((total, char) => ((total * 31) + char.charCodeAt(0)) >>> 0, 0)
 }
 
 function collectEntries(menus, offset = 0) {
@@ -97,14 +124,17 @@ function collectEntries(menus, offset = 0) {
       const children = Array.isArray(menu.children) ? menu.children : []
       if (isMobileMenu(menu)) {
         const target = resolveMobileMenuTarget(menu)
-        // 三个主导航已有固定 Tab，不在“常用应用”里重复占位。
+        // 底部五个主导航已有固定 Tab，不在“常用应用”里重复占位。
         if (target && !target.tab) {
+          const tone = resolveMobileMenuTone(menu)
           entries.push({
             key: String(menu.id || target.url),
             label: menu.resourceName || menu.title || menu.name || '未命名应用',
             // 明确业务图标原样保留；通用占位图标按真实菜单语义稳定映射。
             icon: resolveMobileMenuIcon(menu),
-            color: MENU_ACCENTS[(offset + entries.length) % MENU_ACCENTS.length],
+            color: tone.color,
+            toneBg: tone.bg,
+            tone: tone.key,
             path: menu.path || '',
             component: menu.component || '',
             target,

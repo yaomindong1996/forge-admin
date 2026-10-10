@@ -6,22 +6,29 @@
       <text v-if="!loading && items.length" class="trace-heading__count">{{ items.length }} 项</text>
     </view>
     <AiListSkeleton v-if="loading" :rows="4" compact />
+    <!-- 钉钉式时间线：办理人头像 + 状态角标，竖线串联节点 -->
     <view v-else-if="items.length" class="trace-list">
       <view
         v-for="(item, index) in items"
         :key="itemKey(item, index)"
         class="trace-item"
-        :class="`is-${mode === 'process' ? flowStatusTone(item.status) : actionTone(item.action || item.status)}`"
+        :class="`is-${itemTone(item)}`"
       >
-        <view class="trace-dot" />
+        <view class="trace-avatar">
+          <text>{{ avatarText(item) }}</text>
+          <view class="trace-avatar__badge" />
+        </view>
         <view class="trace-copy">
           <view class="trace-title-row">
             <text class="trace-title">{{ itemTitle(item) }}</text>
-            <text class="trace-state" :class="mode === 'history' ? actionTone(item.action) : flowStatusTone(item.status)">
+            <text v-if="itemTime(item)" class="trace-time">{{ itemTime(item) }}</text>
+          </view>
+          <view class="trace-sub-row">
+            <text v-if="itemActor(item)" class="trace-actor">{{ itemActor(item) }}</text>
+            <text class="trace-state" :class="itemTone(item)">
               {{ mode === 'history' ? formatFlowAction(item.action || item.status) : formatFlowStatus(item.status || item.statusText) }}
             </text>
           </view>
-          <text v-if="itemMeta(item)" class="trace-meta">{{ itemMeta(item) }}</text>
           <text v-if="mode === 'history' && item.comment" class="trace-comment">{{ item.comment }}</text>
         </view>
       </view>
@@ -32,9 +39,10 @@
 
 <script setup>
 import AiListSkeleton from '@/components/AiListSkeleton.vue'
+import { contactInitials } from '@/utils/contacts'
 import { flowStatusTone, formatFlowAction, formatFlowDateTime, formatFlowStatus } from '@/utils/flow-display'
 
-defineProps({
+const props = defineProps({
   mode: { type: String, default: 'history' },
   loading: { type: Boolean, default: false },
   items: { type: Array, default: () => [] },
@@ -48,36 +56,52 @@ function actionTone(action) {
   if (['reject', 'rejected', 'terminate', 'terminated'].includes(value)) return 'exception'
   return 'pending'
 }
-function itemMeta(item) {
-  const actor = Array.isArray(item.assigneeNames) && item.assigneeNames.length
+function itemTone(item) {
+  return props.mode === 'process' ? flowStatusTone(item.status) : actionTone(item.action || item.status)
+}
+function itemActor(item) {
+  return Array.isArray(item.assigneeNames) && item.assigneeNames.length
     ? item.assigneeNames.join('、')
-    : item.assigneeName || item.userName || item.operatorName
+    : item.assigneeName || item.userName || item.operatorName || ''
+}
+function itemTime(item) {
   const time = item.completeTime || item.endTime || item.createTime || item.startTime
-  return [actor, time ? formatFlowDateTime(time) : ''].filter(Boolean).join(' · ')
+  return time ? formatFlowDateTime(time) : ''
+}
+// 有办理人显示姓名缩写；未分配的节点用节点名首字
+function avatarText(item) {
+  const actor = Array.isArray(item.assigneeNames) && item.assigneeNames.length > 1 ? '' : itemActor(item)
+  return actor ? contactInitials(actor) : itemTitle(item).slice(0, 1)
 }
 </script>
 
 <style lang="scss" scoped>
-.trace-panel { margin-top: 14rpx; padding: 18px; border: 1px solid var(--border-light); border-radius: var(--radius-card); background: #fff}
-.trace-heading, .trace-title-row { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12rpx; }
-.trace-heading { margin-bottom: 10px; padding-bottom: 12px; border-bottom: 1rpx solid var(--border-light); }
-.trace-heading__title { color: var(--text-strong); font-size: 14px; font-weight: 700; }
-.trace-heading__count { color: var(--text-muted); font-size: 21rpx; }
-.trace-list { padding: 4rpx 0; }
-.trace-item { position: relative; display: flex; gap: 12px; padding-bottom: 18px; }
-.trace-item:not(:last-child)::before { position: absolute; top: 12px; bottom: 0; left: 5px; width: 2px; background: #e2e8f0; content: ''; }
-.trace-dot { position: relative; z-index: 1; width: 12px; height: 12px; flex: 0 0 12px; margin-top: 4px; border: 3px solid #cbd5e1; border-radius: 50%; background: #fff; box-sizing: border-box; }
-.trace-item.is-running .trace-dot { border-color: var(--primary-color); background: var(--primary-color); }
-.trace-item.is-completed .trace-dot { border-color: var(--forge-color-success); background: var(--forge-color-success); }
-.trace-item.is-exception .trace-dot { border-color: var(--forge-color-danger); background: var(--forge-color-danger); }
-.trace-copy { min-width: 0; flex: 1; }
-.trace-title-row { align-items: flex-start; }
-.trace-title { min-width: 0; flex: 1; color: var(--text-strong); font-size: 13px; font-weight: 600; }
-.trace-state { flex: 0 0 auto; padding: 3px 8px; border-radius: 999px; color: var(--text-secondary); font-size: 10px; font-weight: 600; background: var(--surface-muted); }
-.trace-state.running { color: var(--primary-color); background: var(--primary-soft); }
-.trace-state.completed { color: var(--forge-color-success); background: #e8f7eb; }
-.trace-state.exception { color: var(--forge-color-danger); background: #fff1f0; }
-.trace-meta, .trace-comment { display: block; overflow-wrap: anywhere; margin-top: 5px; color: var(--text-muted); font-size: 11px; line-height: 1.5; }
-.trace-comment { margin-top: 7px; padding: 8px 10px; border-radius: 10px; color: var(--text-secondary); font-size: 12px; background: #f8fafc; }
-.trace-empty { padding: 52rpx 20rpx; color: var(--text-muted); font-size: 23rpx; text-align: center; }
+.trace-panel { margin-top: 12px; padding: 16px; border-radius: var(--forge-radius-card); background: var(--forge-surface); }
+.trace-heading, .trace-title-row, .trace-sub-row { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 8px; }
+.trace-heading { margin-bottom: 14px; }
+.trace-heading__title { color: var(--forge-text-primary); font-size: 15px; font-weight: 600; }
+.trace-heading__count { color: var(--forge-text-tertiary); font-size: 12px; }
+.trace-list { padding: 0; }
+.trace-item { position: relative; display: flex; gap: 12px; padding-bottom: 20px; }
+.trace-item:last-child { padding-bottom: 0; }
+.trace-item:not(:last-child)::before { position: absolute; top: 40px; bottom: 4px; left: 17px; width: 2px; border-radius: 1px; background: var(--forge-border); content: ''; }
+.trace-avatar { position: relative; display: flex; width: 36px; height: 36px; flex: 0 0 36px; align-items: center; justify-content: center; border-radius: 50%; color: #fff; font-size: 13px; font-weight: 500; background: var(--forge-arrow); }
+.trace-avatar__badge { position: absolute; right: -2px; bottom: -2px; width: 12px; height: 12px; border: 2px solid var(--forge-surface); border-radius: 50%; background: var(--forge-arrow); box-sizing: border-box; }
+.trace-item.is-running .trace-avatar { background: var(--forge-color-primary); }
+.trace-item.is-running .trace-avatar__badge { background: var(--forge-color-warning); }
+.trace-item.is-completed .trace-avatar { background: var(--forge-color-primary); }
+.trace-item.is-completed .trace-avatar__badge { background: var(--forge-color-success); }
+.trace-item.is-exception .trace-avatar { background: var(--forge-color-primary); }
+.trace-item.is-exception .trace-avatar__badge { background: var(--forge-color-danger); }
+.trace-copy { min-width: 0; flex: 1; padding-top: 1px; }
+.trace-title { min-width: 0; flex: 1; overflow: hidden; color: var(--forge-text-primary); font-size: 15px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.trace-time { flex: 0 0 auto; color: var(--forge-text-tertiary); font-size: 12px; }
+.trace-sub-row { justify-content: flex-start; margin-top: 2px; }
+.trace-actor { min-width: 0; overflow: hidden; color: var(--forge-text-secondary); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.trace-state { flex: 0 0 auto; color: var(--forge-text-secondary); font-size: 13px; }
+.trace-state.running { color: var(--forge-color-warning); }
+.trace-state.completed { color: var(--forge-color-success); }
+.trace-state.exception { color: var(--forge-color-danger); }
+.trace-comment { display: block; margin-top: 8px; padding: 8px 12px; border-radius: 10px; color: var(--forge-text-primary); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; background: var(--forge-page-bg); }
+.trace-empty { padding: 24px 12px; color: var(--forge-text-tertiary); font-size: 13px; text-align: center; }
 </style>

@@ -1,0 +1,362 @@
+.contacts-page {
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+  background: var(--forge-page-bg);
+}
+
+/* 子页面带原生导航栏，H5 需扣掉 --window-top，否则底部内容被裁掉 */
+.contacts-page--stack {
+  height: calc(100vh - var(--window-top, 0px));
+}
+
+button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  line-height: 1.4;
+  box-sizing: border-box;
+}
+
+button::after {
+  display: none;
+}
+
+.contacts-search {
+  width: 100%;
+  max-width: var(--forge-page-max-width);
+  margin: 0 auto;
+  padding: 0 var(--forge-space-page) 8px;
+  box-sizing: border-box;
+}
+
+.contacts-scroll {
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+}
+
+.contacts-section,
+.contacts-org-card {
+  width: 100%;
+  max-width: var(--forge-page-max-width);
+  margin: 0 auto 12px;
+  padding: 0 var(--forge-space-page);
+  box-sizing: border-box;
+}
+
+.contacts-section:last-child {
+  padding-bottom: var(--forge-tabbar-space);
+}
+
+.contacts-scroll--stack .contacts-section:last-child {
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+.contacts-section__title {
+  display: block;
+  padding: 4px 4px 8px;
+  color: var(--forge-text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.contacts-section__hint {
+  display: block;
+  padding: 8px 4px;
+  color: var(--forge-text-tertiary);
+  font-size: 13px;
+}
+
+/* —— 组织卡片 —— */
+.contacts-org-card {
+  padding: 0;
+}
+
+.contacts-org-card > view {
+  background: var(--forge-surface);
+}
+
+.contacts-org-card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 var(--forge-space-page);
+  padding: 16px;
+  border-radius: var(--forge-radius-card) var(--forge-radius-card) 0 0;
+}
+
+.contacts-org-card__logo {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.contacts-org-card__logo--text {
+  background: var(--forge-color-primary-soft);
+  color: var(--forge-color-primary);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 44px;
+  text-align: center;
+}
+
+.contacts-org-card__copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.contacts-org-card__name {
+  overflow: hidden;
+  color: var(--forge-text-primary);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contacts-org-card__meta {
+  color: var(--forge-text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.contacts-entry {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  margin: 0 var(--forge-space-page);
+  padding: 0 16px;
+}
+
+.contacts-entry:last-child {
+  border-radius: 0 0 var(--forge-radius-card) var(--forge-radius-card);
+}
+
+.contacts-entry::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 64px;
+  height: 1px;
+  background: var(--forge-border);
+  content: '';
+  transform: scaleY(0.5);
+}
+
+.contacts-entry:active {
+  background: var(--forge-surface-muted);
+}
+
+.contacts-entry__label {
+  flex: 1;
+  color: var(--forge-text-primary);
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.contacts-entry__extra {
+  overflow: hidden;
+  max-width: 45%;
+  color: var(--forge-text-tertiary);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* —— 组织架构 —— */
+.contacts-trail {
+  width: 100%;
+  background: var(--forge-surface);
+  white-space: nowrap;
+}
+
+.contacts-trail__inner {
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 var(--forge-space-page) 0 16px;
+}
+
+.contacts-trail__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 4px;
+}
+
+.contacts-trail__text {
+  color: var(--forge-color-primary);
+  font-size: 14px;
+}
+
+.contacts-trail__text.is-current {
+  color: var(--forge-text-primary);
+}
+
+.contacts-scroll--stack {
+  padding-top: 12px;
+}
+
+.contacts-org-list {
+  overflow: hidden;
+  border-radius: var(--forge-radius-card);
+  background: var(--forge-surface);
+}
+
+.contacts-org-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 16px;
+}
+
+.contacts-org-row + .contacts-org-row::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 64px;
+  height: 1px;
+  background: var(--forge-border);
+  content: '';
+  transform: scaleY(0.5);
+}
+
+.contacts-org-row:active {
+  background: var(--forge-surface-muted);
+}
+
+.contacts-org-row__name {
+  overflow: hidden;
+  flex: 1;
+  color: var(--forge-text-primary);
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contacts-org-row__count {
+  color: var(--forge-text-tertiary);
+  font-size: 14px;
+}
+
+/* —— 成员详情 —— */
+.member-card,
+.member-actions,
+.member-info {
+  max-width: var(--forge-page-max-width);
+  margin: 0 var(--forge-space-page) 12px;
+  border-radius: var(--forge-radius-card);
+  background: var(--forge-surface);
+}
+
+.member-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 16px;
+}
+
+.member-card__copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.member-card__name {
+  color: var(--forge-text-primary);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.member-card__desc {
+  color: var(--forge-text-secondary);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.member-actions {
+  display: flex;
+  padding: 12px 0;
+}
+
+.member-action {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--forge-text-primary);
+  font-size: 13px;
+}
+
+.member-action.is-disabled {
+  color: var(--forge-text-tertiary);
+}
+
+.member-info {
+  overflow: hidden;
+}
+
+.member-info__row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 16px;
+}
+
+.member-info__row + .member-info__row::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 16px;
+  height: 1px;
+  background: var(--forge-border);
+  content: '';
+  transform: scaleY(0.5);
+}
+
+.member-info__label {
+  flex: 0 0 56px;
+  color: var(--forge-text-secondary);
+  font-size: 15px;
+}
+
+.member-info__value {
+  flex: 1;
+  min-width: 0;
+  color: var(--forge-text-primary);
+  font-size: 15px;
+  word-break: break-all;
+}
+
+@media (min-width: 640px) {
+  .member-card,
+  .member-actions,
+  .member-info {
+    margin-right: auto;
+    margin-left: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .contacts-search,
+  .contacts-section {
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+}

@@ -186,13 +186,13 @@ function handleClear() {
 
 <style lang="scss" scoped>
 .ai-datetime-range { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8rpx; }
-.ai-datetime-range__separator { color: var(--forge-color-text-muted, #94a3b8); font-size: 24rpx; }
+.ai-datetime-range__separator { color: var(--forge-color-text-muted, #a2a3a5); font-size: 24rpx; }
 :deep(.wd-datetime-picker__cell) {
   display: flex;
   min-height: 44px;
   align-items: center;
   padding: 0 10px;
-  border: 1px solid var(--forge-color-border, #e2e8f0);
+  border: 1px solid var(--forge-color-border, #f0f1f2);
   border-radius: var(--forge-radius-control);
   background: var(--forge-color-surface, #fff);
   box-sizing: border-box;

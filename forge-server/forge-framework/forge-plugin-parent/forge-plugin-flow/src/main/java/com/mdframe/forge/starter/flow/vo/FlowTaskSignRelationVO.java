@@ -14,6 +14,7 @@ public class FlowTaskSignRelationVO {
     private String childTaskId;
     private String processInstanceId;
     private String targetUserId;
+    private String targetUserName;
     private String signMode;
     private String source;
     private Integer status;

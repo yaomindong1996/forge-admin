@@ -136,34 +136,34 @@ function formatValue(value, column = {}) {
 
 <style lang="scss" scoped>
 .runtime-list-workspace { min-width: 0; }
-.runtime-list-head { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; margin-bottom: 14rpx; padding: 18rpx 20rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-card); background: #fff; }
+.runtime-list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; padding: 14px 16px; border: 0; border-radius: var(--forge-radius-card); background: var(--forge-surface); }
 .runtime-list-head__actions, .runtime-search-actions, .runtime-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12rpx; }
 .runtime-list-head__actions { flex: 0 0 auto; gap: 10rpx; }
 .runtime-toolbar__copy { display: flex; flex-direction: column; gap: 4rpx; }
-.runtime-toolbar__title { color: var(--text-strong); font-size: 32rpx; font-weight: 500; }
-.runtime-toolbar__desc { color: var(--text-muted); font-size: 20rpx; }
-.runtime-filter-shell { margin-bottom: 14rpx; }
-.runtime-filter-summary { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; padding: 16rpx 18rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-card); color: var(--text-secondary); background: #fff; }
-.runtime-filter-summary view { display: flex; min-width: 0; flex-direction: column; gap: 5rpx; }
-.runtime-filter-summary__title { color: var(--text-secondary); font-size: 26rpx; font-weight: 500; }
-.runtime-filter-summary__desc { overflow: hidden; color: var(--text-muted); font-size: 20rpx; text-overflow: ellipsis; white-space: nowrap; }
-.runtime-filter-summary__arrow { flex: 0 0 auto; color: var(--primary-color); font-size: 24rpx; font-weight: 500; }
-.runtime-search-card { margin-bottom: 16rpx; padding: 22rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-card); background: #fff; }
-.runtime-search-actions { padding-top: 6rpx; }
-.runtime-record-list { display: flex; flex-direction: column; gap: 10rpx; }
-.runtime-record-card { padding: 18rpx 20rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-card); background: #fff; }
-.runtime-record-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18rpx; margin-bottom: 18rpx; }
-.runtime-record-card__status { padding: 4rpx 8rpx; border: 1rpx solid #3b82f6; border-radius: 4rpx; color: var(--primary-color); font-size: 19rpx; background: var(--primary-soft); }
-.runtime-record-card__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16rpx 20rpx; }
-.runtime-record-card__item { min-width: 0; display: flex; flex-direction: column; gap: 5rpx; }
-.runtime-record-card__label { color: var(--text-muted); font-size: 19rpx; }
-.runtime-record-card__value { overflow: hidden; color: var(--text-secondary); font-size: 22rpx; text-overflow: ellipsis; white-space: nowrap; }
-.runtime-actions { margin-top: 20rpx; }
-.runtime-pagination { display: flex; align-items: center; justify-content: center; gap: 16rpx; padding: 24rpx 0; color: var(--text-secondary); font-size: 21rpx; }
+.runtime-toolbar__title { color: var(--forge-text-primary); font-size: 17px; font-weight: 600; }
+.runtime-toolbar__desc { color: var(--forge-text-tertiary); font-size: 12px; }
+.runtime-filter-shell { margin-bottom: 12px; }
+.runtime-filter-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border: 0; border-radius: var(--forge-radius-card); color: var(--forge-text-secondary); background: var(--forge-surface); }
+.runtime-filter-summary view { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.runtime-filter-summary__title { color: var(--forge-text-primary); font-size: 15px; font-weight: 400; }
+.runtime-filter-summary__desc { overflow: hidden; color: var(--forge-text-tertiary); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.runtime-filter-summary__arrow { flex: 0 0 auto; color: var(--forge-color-primary); font-size: 14px; font-weight: 400; }
+.runtime-search-card { margin-bottom: 12px; padding: 16px; border: 0; border-radius: var(--forge-radius-card); background: var(--forge-surface); }
+.runtime-search-actions { padding-top: 4px; }
+.runtime-record-list { display: flex; flex-direction: column; gap: 8px; }
+.runtime-record-card { padding: 14px 16px; border: 0; border-radius: var(--forge-radius-card); background: var(--forge-surface); }
+.runtime-record-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.runtime-record-card__status { padding: 2px 6px; border: 0; border-radius: 4px; color: var(--forge-color-primary); font-size: 12px; background: var(--forge-color-primary-soft); }
+.runtime-record-card__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+.runtime-record-card__item { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.runtime-record-card__label { color: var(--forge-text-tertiary); font-size: 12px; }
+.runtime-record-card__value { overflow: hidden; color: var(--forge-text-primary); font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.runtime-actions { margin-top: 12px; }
+.runtime-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px 0; color: var(--forge-text-secondary); font-size: 13px; }
 
 @media (hover: hover) {
   .runtime-record-card:hover,
-  .runtime-filter-summary:hover { background: var(--surface-muted); }
+  .runtime-filter-summary:hover { background: var(--forge-surface-subtle); }
 }
 
 @media (min-width: 1024px) {

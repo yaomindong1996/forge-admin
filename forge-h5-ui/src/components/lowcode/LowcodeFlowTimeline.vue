@@ -27,11 +27,11 @@ function itemKey(item, index) { return item.id || item.taskId || `${item.activit
 
 <style lang="scss" scoped>
 .runtime-flow-timeline { margin-bottom: 32rpx; padding: 32rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-card); background: #fff; }
-.runtime-flow-timeline__title { display: block; margin-bottom: 20rpx; color: #1e293b; font-size: 28rpx; font-weight: 500; }
-.runtime-flow-timeline__empty { color: #94a3b8; font-size: 23rpx; }
+.runtime-flow-timeline__title { display: block; margin-bottom: 20rpx; color: #171a1d; font-size: 28rpx; font-weight: 500; }
+.runtime-flow-timeline__empty { color: #a2a3a5; font-size: 23rpx; }
 .runtime-flow-timeline__item { position: relative; display: flex; gap: 18rpx; padding-bottom: 22rpx; }
-.runtime-flow-timeline__item:not(:last-child)::before { position: absolute; top: 16rpx; bottom: 0; left: 7rpx; width: 2rpx; background: #e2e8f0; content: ''; }
-.runtime-flow-timeline__dot { position: relative; z-index: 1; width: 16rpx; height: 16rpx; margin-top: 7rpx; border-radius: 50%; background: #3b82f6; }
-.runtime-flow-timeline__copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 6rpx; color: #475569; font-size: 22rpx; line-height: 1.5; }
-.runtime-flow-timeline__copy text:first-child { color: #1e293b; font-size: 25rpx; font-weight: 500; }
+.runtime-flow-timeline__item:not(:last-child)::before { position: absolute; top: 16rpx; bottom: 0; left: 7rpx; width: 2rpx; background: #f0f1f2; content: ''; }
+.runtime-flow-timeline__dot { position: relative; z-index: 1; width: 16rpx; height: 16rpx; margin-top: 7rpx; border-radius: 50%; background: #0066ff; }
+.runtime-flow-timeline__copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 6rpx; color: #747677; font-size: 22rpx; line-height: 1.5; }
+.runtime-flow-timeline__copy text:first-child { color: #171a1d; font-size: 25rpx; font-weight: 500; }
 </style>

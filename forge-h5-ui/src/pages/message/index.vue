@@ -1,38 +1,44 @@
 <template>
   <view class="message-page">
     <AiFeedbackHost />
+    <AiTabHeader title="消息" :searchable="false" />
     <view class="message-content">
-      <!-- 查询与类型切换：对齐待办页工具区，避免首屏标题重复占位。 -->
+      <!-- 查询与类型切换 -->
       <view class="message-tools">
         <view class="message-query-row">
           <AiSearchBar v-model="keyword" placeholder="搜索消息" @search="refresh" @clear="refresh" />
           <button class="message-filter-trigger" :class="{ 'is-active': readFilter !== 'all' }" aria-label="筛选消息" @click="openFilters">
-            <AiIcon name="filter" :color="readFilter !== 'all' ? '#3b82f6' : '#475569'" size="sm" />
+            <AiIcon name="filter" :color="readFilter !== 'all' ? '#0066ff' : '#747677'" size="sm" />
             <text class="message-filter-text">筛选</text>
           </button>
         </view>
-        <view class="message-scope-tabs">
-          <button
-            v-for="tab in tabs"
-            :key="tab.key"
-            class="message-scope-tab"
-            :class="{ active: activeTab === tab.key }"
-            @click="switchTab(tab.key)"
-          >
-            {{ tab.label }}
-            <text
-              v-if="tabBadgeVisible[tab.key]"
-              class="scope-count"
-            >{{ tabBadgeText[tab.key] }}</text>
+        <view class="message-scope-row">
+          <view class="message-scope-tabs">
+            <button
+              v-for="tab in tabs"
+              :key="tab.key"
+              class="message-scope-tab"
+              :class="{ active: activeTab === tab.key }"
+              @click="switchTab(tab.key)"
+            >
+              {{ tab.label }}
+              <text
+                v-if="tabBadgeVisible[tab.key]"
+                class="scope-count"
+              >{{ tabBadgeText[tab.key] }}</text>
+            </button>
+          </view>
+          <!-- 审批类消息由流程办理后自动已读，这里只批量处理普通消息 -->
+          <button v-if="markableUnreadMessages.length" class="mark-read-button" :aria-label="markAllReadLabel" @click="markAllRead">
+            <AiIcon name="check-circle" color="#747677" size="sm" />
+            <text>全部已读</text>
           </button>
         </view>
-        <button v-if="markableUnreadMessages.length" class="mark-read-button" @click="markAllRead">
-          <AiIcon name="check" color="#3b82f6" size="sm" />
-          <text>{{ markAllReadLabel }}</text>
-        </button>
       </view>
 
+      <!-- 消息列表：钉钉式会话行，左侧分类图标 + 未读红点 -->
       <scroll-view class="message-list" scroll-y :show-scrollbar="false">
+        <NoticeEntryRow />
         <AiListSkeleton v-if="loading" :rows="6" />
 
         <AiEmpty
@@ -42,32 +48,30 @@
           icon="inbox"
         />
 
-        <template v-else>
+        <view v-else class="message-group">
           <view
             v-for="item in filteredMessages"
             :key="item.id"
-            class="message-card"
+            class="message-row"
             :class="{ unread: isUnreadMessage(item) }"
             @click="openMessage(item)"
           >
-            <view class="message-card__head">
-              <view class="message-card__identity">
-                <text class="message-category" :class="messageCategoryTone(item)">{{ getMessageCategory(item) }}</text>
-                <text v-if="isUnreadMessage(item)" class="message-unread">未读</text>
+            <view class="message-icon" :class="messageCategoryTone(item)">
+              <AiIcon :name="messageCategoryIcon(item)" color="currentColor" size="md" class="message-icon__glyph" />
+              <view v-if="isUnreadMessage(item)" class="message-dot" />
+            </view>
+            <view class="message-main">
+              <view class="message-title-row">
+                <text class="message-title">{{ item.title || '消息通知' }}</text>
                 <text class="message-time">{{ formatMessageTime(item.createTime || item.receiveTime) }}</text>
               </view>
-            </view>
-            <text class="message-title">{{ item.title || '消息通知' }}</text>
-            <text class="message-desc">{{ stripHtml(item.content || item.description || '-') }}</text>
-            <view class="message-card__footer">
-              <text class="message-card__hint">{{ isApprovalMessage(item) ? '流程待办' : '站内消息' }}</text>
-              <view class="message-primary-action">
-                <text>查看</text>
-                <AiIcon name="chevron-right" color="#3b82f6" size="sm" />
+              <view class="message-desc-row">
+                <text class="message-category">[{{ getMessageCategory(item) }}]</text>
+                <text class="message-desc">{{ stripHtml(item.content || item.description || '-') }}</text>
               </view>
             </view>
           </view>
-        </template>
+        </view>
       </scroll-view>
     </view>
     <AiFilterSheet v-model="filterVisible" title="筛选消息" @reset="resetFilters" @apply="applyFilters">
@@ -91,8 +95,12 @@ import AiListSkeleton from '@/components/AiListSkeleton.vue'
 import AiSearchBar from '@/components/AiSearchBar.vue'
 import AiSelect from '@/components/AiSelect.vue'
 import AiTabBar from '@/components/AiTabBar.vue'
+import AiTabHeader from '@/components/AiTabHeader.vue'
+import NoticeEntryRow from '@/components/notice/NoticeEntryRow.vue'
 import api from '@/api'
+import { useBadgeStore, useNoticeStore } from '@/store'
 import { showConfirmDialog } from '@/utils/dialog'
+import { takeTabHandoff } from '@/utils/tab-handoff'
 import {
   buildFlowTaskDetailUrl,
   isFlowTaskRoute,
@@ -102,6 +110,8 @@ import {
 } from '@/utils/message-flow-navigation'
 import { toast } from '@/utils/notify'
 
+const badgeStore = useBadgeStore()
+const noticeStore = useNoticeStore()
 const loading = ref(false)
 const messages = ref([])
 const bizTypes = ref([])
@@ -195,6 +205,12 @@ onLoad((query = {}) => {
 })
 
 onShow(async () => {
+  const handoff = takeTabHandoff('message')
+  if (['all', 'unread', 'system', 'business'].includes(handoff?.tab)) {
+    activeTab.value = handoff.tab
+    readFilter.value = 'all'
+    draftReadFilter.value = 'all'
+  }
   await refresh()
   // tabBar 页面无法携带查询参数，首页通知使用一次性存储交接待打开的消息。
   const fromHome = uni.getStorageSync('forge_h5_pending_message_id')
@@ -221,6 +237,7 @@ async function refresh() {
       fetchUnreadCount(),
       fetchMessages(),
       fetchBizTypes(),
+      noticeStore.loadLatest(),
     ])
   }
   catch (error) {
@@ -248,6 +265,7 @@ async function fetchMessages() {
 async function fetchUnreadCount() {
   const res = await api.getUnreadMessageCount()
   unreadCount.value = normalizeUnreadCount(res?.data)
+  badgeStore.setUnreadCount(unreadCount.value)
 }
 
 async function fetchBizTypes() {
@@ -337,6 +355,7 @@ async function markRead(item, options = {}) {
       listItem.readFlag = 1
     }
     unreadCount.value = Math.max(0, unreadCount.value - 1)
+    badgeStore.setUnreadCount(unreadCount.value)
     if (!options.silent) {
       toast('已标记为已读', { type: 'success' })
     }
@@ -366,6 +385,7 @@ async function markAllRead() {
     const idSet = new Set(messageIds.map(String))
     messages.value = messages.value.map(item => idSet.has(String(item.id)) ? { ...item, readFlag: 1 } : item)
     unreadCount.value = Math.max(0, unreadCount.value - messageIds.length)
+    badgeStore.setUnreadCount(unreadCount.value)
     toast('普通消息已标记为已读', { type: 'success' })
   }
   catch (error) {
@@ -406,6 +426,12 @@ function getMessageCategory(item) {
     CUSTOM: '通知',
   }
   return map[item?.type] || '通知'
+}
+
+function messageCategoryIcon(item = {}) {
+  if (isApprovalMessage(item)) return 'check-square'
+  const icons = { SYSTEM: 'settings', SMS: 'smartphone', EMAIL: 'mail' }
+  return icons[String(item.type || '').toUpperCase()] || 'bell'
 }
 
 function messageCategoryTone(item = {}) {

@@ -3,6 +3,7 @@ import api from '@/api'
 import { useAppStore } from './app'
 import { loadRuntimeCryptoConfig } from '@/utils/crypto/crypto-config'
 import { rsaEncrypt } from '@/utils/crypto/rsa'
+import { hasPermission } from '@/utils/permission'
 
 function getToken(data = {}) {
   return data.accessToken || data.token
@@ -63,6 +64,7 @@ export const useAuthStore = defineStore('auth', {
       return Array.isArray(roles) && roles.length ? roles.join(' / ') : '移动端用户'
     },
     avatar: state => state.userInfo?.avatar || state.userInfo?.userInfo?.avatar || state.userInfo?.staffInfo?.avatar || '',
+    hasPermission: state => code => hasPermission(state.permissions, code),
   },
   actions: {
     setToken(data = {}) {

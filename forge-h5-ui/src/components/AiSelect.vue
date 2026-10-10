@@ -101,7 +101,7 @@ function handleClear() {
   min-height: 44px;
   align-items: center;
   padding: 0 12px;
-  border: 1px solid var(--forge-color-border, #e2e8f0);
+  border: 1px solid var(--forge-color-border, #f0f1f2);
   border-radius: var(--forge-radius-control);
   background: var(--forge-color-surface, #fff);
   box-sizing: border-box;
@@ -129,16 +129,16 @@ function handleClear() {
 .ai-select-description {
   display: block;
   margin-top: 4px;
-  color: var(--forge-color-text-muted, #94a3b8);
+  color: var(--forge-color-text-muted, #a2a3a5);
   font-size: 13px;
 }
 
 .ai-select :deep(.wd-cell__value) {
-  color: var(--forge-color-text, #1e293b);
+  color: var(--forge-color-text, #171a1d);
   font-size: 14px;
 }
 
 .ai-select :deep(.wd-select-picker__cell--placeholder .wd-cell__value) {
-  color: var(--forge-color-text-muted, #94a3b8);
+  color: var(--forge-color-text-muted, #a2a3a5);
 }
 </style>
