@@ -16,7 +16,7 @@
     <template v-else-if="store.detail">
       <!-- 当前插件与统一操作 -->
       <header class="plugin-detail__header">
-        <PluginIllustration :plugin="store.detail" :size="80" />
+        <PluginIllustration :plugin="store.detail" :size="48" />
         <div class="plugin-detail__identity">
           <div class="plugin-detail__title">
             <h2>{{ store.detail.name || store.detail.id }}</h2>

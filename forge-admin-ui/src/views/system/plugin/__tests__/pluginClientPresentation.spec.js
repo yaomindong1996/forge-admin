@@ -1,20 +1,22 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { forgeSymbols } from '@/components/common/forgeSymbols'
 import { pluginLicenseView } from '../pluginLicenseView'
 import { resolvePluginMarketUrl, safePluginLink } from '../pluginLinks'
 import { builtinPresentations, pluginPresentation } from '../pluginPresentation'
 
 describe('客户端插件展示边界', () => {
-  it('内置插件有独立插画和说明，外部同名不冒用，未知记录不伪造内容', () => {
+  it('内置插件有独立符号和说明，外部同名不冒用，未知记录不伪造内容', () => {
     const entries = Object.entries(builtinPresentations)
     expect(entries.length).toBe(15)
-    expect(new Set(entries.map(([, item]) => item.artwork)).size).toBe(entries.length)
+    expect(new Set(entries.map(([, item]) => item.symbol)).size).toBe(entries.length)
     for (const [id, item] of entries) {
       expect(pluginPresentation({ id, origin: 'builtin' })).toBe(item)
       expect(item.summary.length).toBeGreaterThan(5)
       expect(item.highlights).toHaveLength(3)
+      expect(forgeSymbols[item.symbol]?.length).toBeGreaterThan(0)
     }
-    expect(pluginPresentation({ id: 'plugin-system', origin: 'external' }).artwork).toBe(15)
+    expect(pluginPresentation({ id: 'plugin-system', origin: 'external' }).symbol).toBe('plugins')
     expect(pluginPresentation({ id: '__proto__', origin: 'builtin' }).highlights).toEqual([])
     expect(pluginPresentation(null).introduction).toContain('尚未提供')
   })

@@ -43,7 +43,7 @@ function setup() {
 }
 
 describe('a 首页与 B 详情真实组件', () => {
-  it('初次加载使用横向骨架，返回后图文与操作保持同一分区', async () => {
+  it('初次加载使用模块卡骨架，返回后身份、简介与操作保持独立分区', async () => {
     let resolve
     api.listRuntimePlugins.mockReturnValueOnce(new Promise(done => resolve = done))
     setup()
@@ -58,11 +58,31 @@ describe('a 首页与 B 详情真实组件', () => {
     await flushPromises()
     expect(wrapper.find('.plugin-card--skeleton').exists()).toBe(false)
     const card = wrapper.find('article.plugin-card')
-    expect(card.find('.plugin-card__body .plugin-illustration').attributes('style')).toContain('width: 64px')
-    expect(card.find('.plugin-card__content h3').attributes('title')).toBe('系统管理')
-    expect(card.find('.plugin-card__content p').attributes('title')).toBe('用户、角色与权限，统一管理')
+    expect(card.find('.plugin-card__body .plugin-illustration').attributes('style')).toContain('width: 36px')
+    expect(card.find('.plugin-card__identity h3').attributes('title')).toBe('系统管理')
+    expect(card.find('.plugin-card__identity code').text()).toBe('plugin-system')
+    expect(card.find('.plugin-card__summary').attributes('title')).toBe('用户、角色与权限，统一管理')
+    expect(card.find('.forge-symbol').attributes('data-symbol')).toBe('shield')
+    expect(card.findAll('.plugin-card__capabilities span')).toHaveLength(2)
+    expect(wrapper.find('.plugin-center__artwork').attributes('alt')).toBe('')
     expect(card.find('.plugin-card__footer').text()).toContain('v1.2.0')
     expect(card.findAll('.plugin-card__footer button')).toHaveLength(2)
+  })
+
+  it('未知插件不显示内置能力，未授权详情操作禁用', async () => {
+    api.listRuntimePlugins.mockResolvedValueOnce({ code: 200, data: {
+      records: [{ id: 'plugin-system', name: '外部插件', origin: 'external' }],
+      total: 1,
+    } })
+    user.permissions = ['system:plugin:list']
+    setup()
+    await flushPromises()
+    const card = wrapper.find('article.plugin-card')
+    expect(card.text()).toContain('版本未提供')
+    expect(card.text()).toContain('功能介绍以发布方说明为准')
+    expect(card.text()).not.toContain('用户与组织')
+    expect(card.find('.forge-symbol').attributes('data-symbol')).toBe('plugins')
+    expect(card.findAll('button').every(button => button.attributes('disabled') !== undefined)).toBe(true)
   })
 
   it('卡片进入同页详情，左侧切换，返回保持来源、关键词和页码', async () => {

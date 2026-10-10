@@ -1,6 +1,6 @@
 <template>
   <section class="plugin-discovery">
-    <PluginIllustration :size="96" />
+    <img :src="pluginModules" width="180" height="120" alt="" aria-hidden="true">
     <h2>发现适合业务的插件</h2>
     <p>在插件市场查看功能介绍、版本和交付说明，获取源码后在开发工程中完成集成。</p>
     <NButton
@@ -23,8 +23,8 @@
 
 <script setup>
 import { NAlert, NButton } from 'naive-ui'
+import pluginModules from '@/assets/illustrations/plugins/plugin-modules.png'
 import { pluginMarketUrl } from '../pluginLinks'
-import PluginIllustration from './PluginIllustration.vue'
 </script>
 
 <style scoped>

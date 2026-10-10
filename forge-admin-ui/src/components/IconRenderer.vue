@@ -1,6 +1,10 @@
 <template>
   <span class="icon-renderer" v-bind="attrs">
-    <Icon v-if="iconComponent" :size="effectiveSize" :color="color">
+    <ForgeSymbol
+      v-if="iconType === 'forge'" :name="iconName" :size="effectiveSize"
+      :class="customClass" :style="[customStyle, color ? { color } : {}]"
+    />
+    <Icon v-else-if="iconComponent" :size="effectiveSize" :color="color">
       <component
         :is="iconComponent"
         :class="customClass"
@@ -36,6 +40,7 @@ import * as ionicons from '@vicons/ionicons5'
 import { Icon } from '@vicons/utils'
 import { computed, useAttrs } from 'vue'
 import AuthImage from '@/components/common/AuthImage.vue'
+import ForgeSymbol from '@/components/common/ForgeSymbol.vue'
 import { isLocalImageIcon, resolveLocalImageIconUrl } from '@/utils/local-image-icons'
 
 defineOptions({
@@ -45,6 +50,7 @@ defineOptions({
 const props = defineProps({
   // 图标名称,支持前缀格式:
   // - ionicons5:IconName 表示 ionicons5 图标
+  // - forge:name 表示统一线性导航符号
   // - local:iconName / i-xxx / 其它图标类名 表示本地图标
   // - local-image:file.png 表示 src/assets/icons/image-icons 下的本地图片图标
   // - fileId / URL 表示上传图片图标
@@ -143,6 +149,9 @@ const iconType = computed(() => {
   if (!iconValue)
     return null
 
+  if (iconValue.startsWith('forge:'))
+    return 'forge'
+
   if (isLocalImageIcon(iconValue))
     return 'localImage'
 
@@ -170,6 +179,9 @@ const iconName = computed(() => {
   if (!props.icon)
     return ''
   const iconValue = props.icon.trim()
+
+  if (iconValue.startsWith('forge:'))
+    return iconValue.slice(6)
 
   if (isLocalImageIcon(iconValue))
     return resolveLocalImageIconUrl(iconValue)

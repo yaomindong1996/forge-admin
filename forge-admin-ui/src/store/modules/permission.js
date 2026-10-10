@@ -1,6 +1,7 @@
 import { hyphenate } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import { isExternal } from '@/utils'
+import { withUnifiedNavigationIcons } from '@/utils/navigation-icons'
 
 function stripRouteQuery(path) {
   const value = String(path || '').trim()
@@ -29,11 +30,12 @@ export const usePermissionStore = defineStore('permission', {
         .map(item => this.getMenuItem(item))
         .filter(item => !!item)
         .sort((a, b) => (a.order || 0) - (b.order || 0))
+      this.menus = withUnifiedNavigationIcons(this.menus)
     },
 
     // 设置新的菜单数据（从新接口获取）
     setMenuData(menuData) {
-      this.menus = this.processMenuData(menuData)
+      this.menus = withUnifiedNavigationIcons(this.processMenuData(menuData))
       // 从菜单数据中提取路由并生成 accessRoutes（可见菜单）
       this.generateAccessRoutesFromMenus(this.menus)
       // 从原始数据中提取隐藏菜单的路由，确保隐藏页面也有 meta.title

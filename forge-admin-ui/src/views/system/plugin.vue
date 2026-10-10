@@ -3,6 +3,10 @@
     <!-- 页面操作只面向当前客户，平台管理工作台不进入客户端依赖树 -->
     <header class="plugin-center__header">
       <div class="plugin-center__heading">
+        <img
+          v-if="!store.detailVisible" :src="pluginModules" class="plugin-center__artwork"
+          width="120" height="80" alt="" aria-hidden="true"
+        >
         <NButton v-if="store.detailVisible" quaternary aria-label="返回插件列表" @click="store.back">
           <template #icon>
             <i class="i-lucide:arrow-left" />
@@ -12,7 +16,10 @@
         <div>
           <h1>插件中心</h1>
           <p v-if="!store.detailVisible">
-            发现能力，管理你的插件
+            查看插件能力，了解安装与授权
+          </p>
+          <p v-if="!store.detailVisible" class="plugin-center__caption">
+            当前服务实际加载的模块
           </p>
         </div>
       </div>
@@ -94,6 +101,7 @@
 <script setup>
 import { NAlert, NButton, NPagination, NTab, NTabs } from 'naive-ui'
 import { onActivated, onBeforeUnmount, onDeactivated, onMounted } from 'vue'
+import pluginModules from '@/assets/illustrations/plugins/plugin-modules.png'
 import MasterDetailWorkspace from '@/components/common/MasterDetailWorkspace.vue'
 import { usePluginCenterStore } from '@/stores/plugin/centerStore'
 import PluginCenterToolbar from './plugin/components/PluginCenterToolbar.vue'
@@ -157,6 +165,14 @@ onBeforeUnmount(store.deactivate)
   flex: 1;
   min-height: 0;
 }
+.plugin-center__artwork {
+  flex: none;
+  object-fit: contain;
+}
+.plugin-center__header .plugin-center__caption {
+  margin-top: 5px;
+  font-size: 11px;
+}
 .plugin-center__tabs {
   padding: 0 16px;
   background: var(--bg-primary);
@@ -198,6 +214,13 @@ onBeforeUnmount(store.deactivate)
   }
 }
 @media (max-width: 540px) {
+  .plugin-center__artwork {
+    width: 72px;
+    height: 56px;
+  }
+  .plugin-center__caption {
+    display: none;
+  }
   .plugin-center__header {
     padding: 12px;
   }
