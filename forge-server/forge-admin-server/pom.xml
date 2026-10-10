@@ -181,7 +181,7 @@
                 </includes>
                 <filtering>true</filtering>
             </resource>
-            <!-- 独立JAR部署不能依赖宿主源码目录；由外部配置明确选择classpath迁移。 -->
+            <!-- IDE/Maven/JAR 默认共用 classpath 迁移，SQL 原样复制，禁止资源占位符过滤。 -->
             <resource>
                 <directory>${project.basedir}/../db/migration</directory>
                 <targetPath>db/migration</targetPath>
