@@ -183,3 +183,22 @@
 - 普通 UA：无标记，原生导航栏（返回 + 标题）正常显示，页面 top 44。
 - 后端未启动，列表显示加载失败，不影响布局判断。
 - 预览结束后已停止开发服务器，3009 端口已释放。
+
+## 修复：测试环境轮播图 404
+
+### 原因
+
+- 测试环境以子路径 `/forge-h5/` 部署。`HomeBanner` 直接用 import 得到的 `/forge-h5/assets/approval-xxx.jpg`，uni `<image>` 会再拼一次 base，实际请求 `/forge-h5/forge-h5/assets/...` 返回 404。
+- 本地开发 base 为 `/`，不会重复拼接，所以开发时没发现。
+
+### 改动
+
+- `HomeBanner` 新增 `bannerSrc()`：H5 经 `resolveStaticUrl` 转为 `./assets/...`；小程序继续用 import 得到的 `/static/banners/...`。
+- `assets-static-url.test.js` 补充打包资源路径用例；`console-design-system.test.js` 轮播契约补充 `bannerSrc` 断言。
+
+### 验证
+
+- `node --test`：183 通过，0 失败。
+- `build:h5 --mode test` 后把产物放到本地 `/forge-h5/` 子路径下访问：两张图请求 `/forge-h5/assets/*.jpg` 均为 200，首页轮播正常显示。
+- `build:mp-weixin` 通过，轮播仍为 `/static/banners/*.jpg`。
+- 控制台另有 `/api/file/url/{fileId}` 500，是后端按文件 ID 取地址失败（头像 / logo 类文件），与轮播无关。

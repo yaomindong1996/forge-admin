@@ -44,6 +44,7 @@ test('resolveStaticUrl uses relative path under subpath deploy', () => {
   assert.equal(resolveStaticUrl('/static/logo.png'), './static/logo.png')
   assert.equal(resolveStaticUrl('static/images/login-bg.png'), './static/images/login-bg.png')
   assert.equal(resolveStaticUrl('/forge-h5/static/logo.png'), './static/logo.png')
+  assert.equal(resolveStaticUrl('/forge-h5/assets/approval-H07ztBwC.jpg'), './assets/approval-H07ztBwC.jpg')
 })
 
 test('resolveStaticUrl keeps root-absolute path on root deploy', () => {

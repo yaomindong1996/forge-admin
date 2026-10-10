@@ -39,11 +39,12 @@ import { ref } from 'vue'
 import AiIcon from '@/components/AiIcon.vue'
 import approvalBanner from '@/static/banners/approval.jpg'
 import teamBanner from '@/static/banners/team.jpg'
+import { resolveStaticUrl } from '@/utils/assets'
 
 const banners = [
   {
     key: 'approval',
-    image: approvalBanner,
+    image: bannerSrc(approvalBanner),
     title: '移动审批，随时处理',
     desc: '待办、发起、催办一站完成',
     action: '发起审批',
@@ -52,7 +53,7 @@ const banners = [
   },
   {
     key: 'team',
-    image: teamBanner,
+    image: bannerSrc(teamBanner),
     title: '找同事、看通知',
     desc: '通讯录与公告随手可查',
     action: '查看通讯录',
@@ -61,6 +62,19 @@ const banners = [
   },
 ]
 const current = ref(0)
+
+/**
+ * H5 子路径部署时 import 得到的地址已带 base（/forge-h5/assets/...），<image> 还会再拼一次 base 导致 404，
+ * 需转成相对路径；小程序 import 得到的 /static/... 可直接使用。
+ */
+function bannerSrc(url) {
+  // #ifdef H5
+  return resolveStaticUrl(url)
+  // #endif
+  // #ifndef H5
+  return url
+  // #endif
+}
 </script>
 
 <style lang="scss" scoped>

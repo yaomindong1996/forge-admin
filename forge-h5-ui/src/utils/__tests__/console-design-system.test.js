@@ -632,6 +632,8 @@ test('workbench shows a two-slide banner above the overview card', () => {
   assert.match(banner, /<swiper[\s\S]*:autoplay="banners\.length > 1"[\s\S]*circular/)
   assert.match(banner, /import approvalBanner from '@\/static\/banners\/approval\.jpg'/)
   assert.match(banner, /import teamBanner from '@\/static\/banners\/team\.jpg'/)
+  assert.match(banner, /image: bannerSrc\(approvalBanner\)[\s\S]*image: bannerSrc\(teamBanner\)/)
+  assert.match(banner, /\/\/ #ifdef H5\s+return resolveStaticUrl\(url\)\s+\/\/ #endif/)
   assert.match(banner, /url: '\/pages\/approval\/start'/)
   assert.match(banner, /uni\.switchTab\(\{ url: '\/pages\/contacts\/index' \}\)/)
   assert.match(banner, /padding-top: 45\.45%/)
