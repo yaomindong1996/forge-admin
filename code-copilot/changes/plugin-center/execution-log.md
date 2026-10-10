@@ -767,3 +767,84 @@ node --test <生成工程>/center-host-server/scripts/db/init-db.test.mjs \
 - 当前契约、测试与部署说明见 `../plugin-delivery-closure/`，以上历史阶段的“尚未开发”保留为时点记录。
 - 原候选登记与本轮交付统一增量验证：Java72、Vue51、Node550用例通过，Admin/UI生产构建成功。
 - 真实环境验收仍保留，不上传对象或迁移共享数据库；独立Pro工程及热安装未纳入本轮范围。
+
+## 2026-10-10：客户端 A 首页＋B 详情重构
+
+### 本轮交付边界
+
+- 用户已确认卡片首页与列表＋详情组合。复用 Naive UI、系统主题变量、字典与
+  MasterDetailWorkspace；用 Pinia 共享查询、选中插件、详情标签和身份切换清理状态。
+- 15 类内置模块使用独立语义插画、经核对的能力介绍。新生成的透明 4×4 插画图集保存于
+  `forge-admin-ui/src/assets/illustrations/plugins/plugin-atlas.png`，CSS 按格展示，未改变原始图片。
+  图集为蓝白低饱和 2.5D 系统／代码／流程／消息等插件小插画，最后一格为未知插件兜底。
+- 清单、版本和授权结果继续来自现有 API，展示资料不伪造已安装记录；未知插件明确缺少介绍。
+- 详情只提供功能介绍、源码安装说明和当前插件只读授权；精确过滤插件范围，使用字典与格式化时间，
+  不以社区模式或加载状态推断商业授权。未扩大平台管理员及现有 RBAC 边界。
+- 构建对比、安装工作台、原始许可证诊断与运维交付不再挂载到客户端入口。
+  既有后端 API、审计记录、CLI 和历史组件保留；本轮没有迁移或修改 website 的管理代码。
+- 市场与文档链接采用受限 HTTP(S) 配置，不传 Token；生产市场地址缺省显示配置提示。
+  `.env.example` 和用户指南同步说明 `VITE_PLUGIN_MARKET_URL` / `VITE_PLUGIN_GUIDE_URL`。
+
+### 验证与修正
+
+使用 Node 20.19.0 和现有 node_modules，无重新安装依赖：
+
+```sh
+node node_modules/eslint/bin/eslint.js <本轮修改及新增的 Vue/JS 文件>
+node node_modules/vitest/vitest.mjs run src/views/system/plugin/__tests__
+node --max-old-space-size=8192 node_modules/vite/bin/vite.js build
+node scripts/guards/check-edition.mjs
+node --test code-copilot/changes/plugin-center/contracts.test.mjs
+git diff --check
+```
+
+- Vitest 最终 65/65、15 文件通过，3.84 秒。新增 14 项覆盖独立插画、未知来源、URL 安全、
+  精确授权范围、社区／自定义／过期／失败／无权限、真实组件切换、返回保留筛选及竞态隔离。
+- 范围 ESLint 与最终生产构建退出 0。构建保留已有 PLUGIN_TIMINGS/UnoCSS 耗时提示，无构建错误。
+- Node 契约 3/3、edition 门禁、diff-check 通过；新增及修改 SFC 均远低于 1000 行限制。
+- 临时 QA 使用真实页面组件、Naive UI 与字典夹具，所有页面标注“模拟 API · 非真实业务数据”。
+  浏览器完成查询／重置／失败重试／卡片进入详情／左侧切换／返回／发现插件引导及明暗主题检查。
+- 发现 320px 上下布局中详情区域高度不足，改由公共工作台外层滚动并保留详情最小高度，
+  内层正文可聚焦滚动。修正后页面 clientWidth/scrollWidth 均为 320；浅色安装文档链接
+  滚动后位于视口 y=681–715（视口高 740），不再裁掉底部内容。深色窄屏布局亦无横向溢出。
+- 最后检查浏览器 error/warn 日志为空。一次截图等待误写“功能介绍”标题选择器，
+  按实际 DOM 的“功能概览”结构重新取证；不属于页面异常。
+- QA 证据目录：`/private/tmp/forge-plugin-client-ui.KKINz5`；最终构建日志 `final-build.log`，
+  截图 `home-light.jpg`、`detail-light.jpg`、`home-dark.jpg`、`license-dark.jpg`、`detail-narrow-dark.jpg`。
+
+### 环境与待验收
+
+- 3001 前端以本次进程级 polling 参数启动，绕开本机 EMFILE 文件监听限制，未修改全局或本地环境配置。
+  本机 8580 后端未运行；真实认证、接口、租户与许可证结果仍须正常服务联调，不以 UI 夹具代替。
+- 未启动后端、执行 Flyway、读写共享数据库、发布制品或部署服务器；无 backend/website 代码变更。
+- 浏览器尺寸恢复，临时 QA 标签关闭；只停止本轮 43150 隔离预览，保留 3001 前端给用户测试。
+- 当前分支 `codex/plugin-foundation`，本轮未提交、未推送；用户已有 `.DS_Store` 改动保持不动。
+
+## 2026-10-10：卡片右侧留白修正
+
+- 原卡片插画单独占一行，标题和描述排在下方；调整为 64px 插画＋可收缩文字列，
+  保留主题字典、长文本 title、版本和两个文字操作；初次加载骨架同步横向结构。
+  仅改 `PluginRuntimeGallery.vue` 及增量测试，不改变数据、接口、权限、详情或分页行为。
+- 使用仓库 frontend-design 的空间比例检查，具体组件／颜色／密度以系统 DESIGN 为准，
+  未新增字体、装饰和依赖。
+- Node 20.19.0 执行范围 ESLint：该组件及 `pluginClientCenter.spec.js`，退出 0。
+  Vitest 执行 `pluginClientCenter.spec.js` 与 `pluginClientPresentation.spec.js`：9/9 通过；
+  新增一项验证初次骨架→真实清单、横向内容区、title 和两个操作按钮。
+- `node --max-old-space-size=8192 node_modules/vite/bin/vite.js build` 退出 0，
+  日志 `/private/tmp/forge-plugin-client-ui.KKINz5/compact-card-build.log`；现有插件耗时提示不阻断。
+- 浏览器复用实际组件／明确标注模拟 API 的隔离夹具，1280px 下卡片 307×136.59px，
+  图文列宽 64px＋197px；进入详情和返回正常。320px 下卡片宽 304px，操作右边界 295px，
+  页面 scrollWidth/clientWidth 均为 320，深色窄屏可读且未溢出；控制台 error/warn 为空。
+- 截图保存同一 QA 目录：`compact-home-light.jpg`、`compact-home-dark.jpg`、
+  `compact-home-narrow-dark.jpg`。首次尺寸切换截图为过渡帧，重新捕获后人工复核。
+- 临时服务 43150（PID 53055）已停止，浏览器尺寸恢复且临时标签关闭；未停止已有 3001 服务。
+  本轮仍不启动后端、操作数据库、提交或推送。真实 API 验收沿用 C5 待办。
+
+## 2026-10-10：用户要求提交代码
+
+- 用户授权提交本轮插件中心改造，沿当前 `codex/plugin-foundation` 分支提交并推送至其 origin 上游，
+  不切分支、不合并 main、不包含用户已有 `.DS_Store` 改动。
+- 复用上述生产构建和浏览器验证，提交前再执行插件相关测试、edition 门禁和暂存差异检查。
+  真实后端验收仍保留 C5，不在本轮提交操作中启动服务或执行迁移。
+- 最终相关 Vitest 66/66、15 文件通过（4.13 秒）；索引／工作区 edition 门禁和暂存 diff-check 通过。
+  推送前 fetch 核对当前分支与上游无分叉，仅包含本轮 26 个相关文件。

@@ -34,6 +34,7 @@ export function useLatestPluginRequest(loader, clearOnLoad = false) {
     ++sequence
     data.value = null
     loading.value = false
+    error.value = ''
   }
 
   onScopeDispose(cancel)

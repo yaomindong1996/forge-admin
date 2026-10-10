@@ -45,5 +45,18 @@ export function usePluginList() {
   }
 
   const { loading, error } = request
-  return { query, records, total, metadata, loading, error, load, search, reset, changePage, changeSize }
+  return {
+    query,
+    records,
+    total,
+    metadata,
+    loading,
+    error,
+    load,
+    search,
+    reset,
+    changePage,
+    changeSize,
+    clearList: request.cancel,
+  }
 }
