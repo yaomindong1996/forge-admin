@@ -1,5 +1,7 @@
 # Admin 独立 JAR 部署与 Flyway 迁移来源
 
+当前生产环境、部署基线及回退入口见 [生产部署手册](./production-runbook.md)。
+
 `forge-admin-server.jar` 已通过 Admin POM 打包 `db/migration/*.sql`。
 新版默认读取 `classpath:db/migration`，本地、独立 JAR 和 Docker 无需额外复制或挂载 SQL 目录。
 目录缺失时启动失败，不自动回退到服务器旧文件。旧版本兼容或需要显式固定来源时可以设置：

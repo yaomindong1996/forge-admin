@@ -164,3 +164,12 @@ NODE_OPTIONS=--max-old-space-size=8192 node node_modules/@dcloudio/vite-plugin-u
 需要回退时，经授权停止 Admin，恢复备份 JAR，将本轮新增外置 dev 配置移回受限暂存位置，
 恢复 previous-live-ui，再启动并检查健康；备份、失败产物及配置均保留，不删除业务数据。
 后续已有新部署或配置变更时必须重新核对，不能直接重放本次脚本覆盖新状态。
+
+## 2026-10-10 T8：部署专用会话整理
+
+- 当前会话已重命名为「Forge 服务部署与发布」。
+- 新增 `forge-server/scripts/deployment/production-runbook.md`，汇总 T7 最后验收基线、
+  生产目录、配置来源、目标模块和回退点；偏好与 Flyway 说明增加入口。
+- `git diff --check` 通过；Node 检查手册 4 个相对文档链接，全部存在。
+- 仅文档变更，复用 T7 部署事实；未进行新的生产验证、构建、服务启停、提交或推送。
+- 保留 `.DS_Store` 及并发出现的插件视觉优化代码与文件，未改动或暂存这些内容。

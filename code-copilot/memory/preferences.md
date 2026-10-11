@@ -210,3 +210,11 @@ Forge AI 中枢的真实 Flyway、Admin/Flow 服务启动、MCP Streamable HTTP 
 权威规则在根 `AGENTS.md` §5.19，操作与验收清单在 `forge-docs/guide/release-version.md`；
 此处只记录偏好与入口，不复制规则。
 
+## 29. 本会话专用于服务部署
+
+**记录日期**：2026-10-10
+
+用户将「Forge 服务部署与发布」会话作为部署服务的专用入口，用于发布、回退及部署故障排查。
+环境基线和操作入口见 `forge-server/scripts/deployment/production-runbook.md`；
+发版仍遵循第 28 项所指权威规范，具体目标模块以当次请求为准。
+

@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "forge:create": "node scripts/forge-create/create-project.mjs",
+    "forge:upstream": "node scripts/forge-upstream/index.mjs",
     "forge:plugin": "node scripts/forge-plugin/index.mjs",
     "forge:plugin-build": "node scripts/forge-plugin-builder/index.mjs",
     "forge:plugin-release": "node scripts/forge-plugin-release/index.mjs",

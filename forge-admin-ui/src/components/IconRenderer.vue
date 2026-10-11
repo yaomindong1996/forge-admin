@@ -1,7 +1,7 @@
 <template>
   <span class="icon-renderer" v-bind="attrs">
     <ForgeSymbol
-      v-if="iconType === 'forge'" :name="iconName" :size="effectiveSize"
+      v-if="iconType === 'forge'" :name="iconName" :size="effectiveSize" :multicolor="isMulticolor"
       :class="customClass" :style="[customStyle, color ? { color } : {}]"
     />
     <Icon v-else-if="iconComponent" :size="effectiveSize" :color="color">
@@ -50,7 +50,7 @@ defineOptions({
 const props = defineProps({
   // 图标名称,支持前缀格式:
   // - ionicons5:IconName 表示 ionicons5 图标
-  // - forge:name 表示统一线性导航符号
+  // - forge:name 表示主题色线性符号；forge-color:name 仅用于多色一级导航
   // - local:iconName / i-xxx / 其它图标类名 表示本地图标
   // - local-image:file.png 表示 src/assets/icons/image-icons 下的本地图片图标
   // - fileId / URL 表示上传图片图标
@@ -91,6 +91,7 @@ const props = defineProps({
 const attrs = useAttrs()
 
 const effectiveSize = computed(() => props.size || props.fontSize)
+const isMulticolor = computed(() => props.icon.trim().startsWith('forge-color:'))
 
 function isDirectImageValue(value) {
   return value.startsWith('http://')
@@ -149,7 +150,7 @@ const iconType = computed(() => {
   if (!iconValue)
     return null
 
-  if (iconValue.startsWith('forge:'))
+  if (iconValue.startsWith('forge:') || iconValue.startsWith('forge-color:'))
     return 'forge'
 
   if (isLocalImageIcon(iconValue))
@@ -179,6 +180,9 @@ const iconName = computed(() => {
   if (!props.icon)
     return ''
   const iconValue = props.icon.trim()
+
+  if (iconValue.startsWith('forge-color:'))
+    return iconValue.slice(12)
 
   if (iconValue.startsWith('forge:'))
     return iconValue.slice(6)

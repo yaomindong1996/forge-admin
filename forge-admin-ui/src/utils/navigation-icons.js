@@ -19,16 +19,19 @@ const navigationSymbols = [
 ]
 
 export function resolveNavigationIcon(menu) {
-  const configured = String(menu?.icon || '')
+  const configured = String(menu?.icon || '').trim()
+  // 兼容旧单色配置且重复适配结果稳定；仅显示层启用多色，不回写菜单接口。
+  if (configured.startsWith('forge-color:'))
+    return `forge-color:${resolveForgeSymbol(configured.slice(12))}`
   if (configured.startsWith('forge:'))
-    return `forge:${resolveForgeSymbol(configured.slice(6))}`
+    return `forge-color:${resolveForgeSymbol(configured.slice(6))}`
   const label = String(menu?.label || menu?.name || menu?.resourceName || '').replace(/\s/g, '')
   const path = `/${String(menu?.path || '').replace(/^\/+/, '').split(/[?#]/)[0]}`
   const match = navigationSymbols.find(item => item.labels.includes(label))
     || navigationSymbols.find(item => item.paths.some(base => (
       path === base || path.startsWith(`${base}/`)
     )))
-  return `forge:${match?.name || 'module'}`
+  return `forge-color:${match?.name || 'module'}`
 }
 
 /** 只适配显示层的一级菜单；保留原 API 图标与所有子级，避免改动菜单编辑/权限/导航含义。 */

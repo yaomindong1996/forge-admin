@@ -152,6 +152,22 @@ test('POM groupId 独立替换，普通源码不会提前被 Maven 坐标改名'
   assert.equal(await read(directory, 'source.java'), 'package com.mdframe.forge;')
 })
 
+test('目标包含 forge 前缀时包名只替换一次，Maven 坐标与 mainClass 各自正确', async (t) => {
+  for (const basePackage of ['com.forgelab.foundation', 'com.forge.runtime']) {
+    const directory = await fixture(t, {
+      'pom.xml': '<groupId>com.mdframe.forge</groupId>'
+        + '<mainClass>com.mdframe.forge.admin.ForgeAdminApplication</mainClass>',
+      'src/main/java/com/mdframe/forge/Test.java': 'package com.mdframe.forge; import com.forge.Legacy;',
+    })
+    const groupId = 'com.forge.maven'
+    await renameSourceTree(directory, { options: { ...options, basePackage, groupId }, catalog, selection })
+    assert.equal(await read(directory, `src/main/java/${basePackage.replaceAll('.', '/')}/Test.java`),
+      `package ${basePackage}; import ${basePackage}.Legacy;`)
+    assert.equal(await read(directory, 'pom.xml'), `<groupId>${groupId}</groupId>`
+      + `<mainClass>${basePackage}.admin.AcmeAdminApplication</mainClass>`)
+  }
+})
+
 test('主工程及旧别名的 POM artifact/name/description 一起改名', async (t) => {
   const directory = await fixture(t, {
     'pom.xml': '<artifactId>forge-server</artifactId><name>forge</name><description>forge</description>',

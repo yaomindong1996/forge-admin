@@ -36,8 +36,9 @@
 
 ## 分类目录
 
-### [前端 / 构建 / 路由](pitfalls/frontend.md)（53）
+### [前端 / 构建 / 路由](pitfalls/frontend.md)（54）
 
+- Vue scoped 的 global 片段可能丢失后续选择器
 - Vitest 2 不能直接使用较新版本的合并 Mock 断言
 - Vue 指令 updated 钩子不能依赖 this 调用 mounted
 - 品牌 Logo/系统名不能链到 `/`，否则 Tab 会重复出现首页
@@ -261,7 +262,10 @@
 - 167. DAG 分支路由必须同时处理跨层穿卡和三种顺序一致性
 - 183. 捕获参与当前事务的下游异常不能清除 rollback-only
 
-### [后端框架 / Spring / Maven](pitfalls/backend.md)（48）
+### [后端框架 / Spring / Maven](pitfalls/backend.md)（50）
+
+- 脚手架包名替换不能再次命中新包名前缀
+- Redis 逻辑库不能隔离流程 Pub/Sub 频道
 
 - macOS 封存目录先设只读会导致重命名提交失败
 

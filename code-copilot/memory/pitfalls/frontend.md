@@ -856,3 +856,13 @@ Vue 调用指令钩子不绑定该指令对象，导致页面报错。静态源�
 
 **解决方案**：复用现有版本，分别断言 `toHaveBeenCalledTimes(1)` 和 `toHaveBeenCalledWith(...)`。
 两条断言同时保留次数及参数约束；不能为适配测试工具删掉参数校验或跳过用例。
+
+## Vue scoped 的 global 片段可能丢失后续选择器
+
+**发现日期**：2026-10-11
+
+**问题描述**：多色 SVG 的 `:global(.dark) .forge-symbol--multicolor` 被 Vue scoped 编译成仅 `.dark`，
+调色板写到了根节点，图标自身仍使用浅色变量，深色主题下偏暗。只检查根节点已切到 dark 无法发现。
+
+**解决方案**：使用 `.dark .forge-symbol--multicolor`，编译为带组件作用域的完整后代选择器。
+新增 compileStyle 断言，并在浏览器读取 SVG path 的实际 computed stroke，确认使用深色调色板。

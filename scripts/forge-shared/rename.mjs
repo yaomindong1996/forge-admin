@@ -95,7 +95,8 @@ function projectTextReplacements(artifactMap, options) {
   const serverDirName = `${options.artifactPrefix}-server`
   const adminServerArtifactId = artifactMap['forge-admin-server']
   return [
-    ['com.mdframe.forge', options.basePackage],
+    // 两个历史包名前缀只匹配完整段、一次替换，避免再次命中新包名（例如 com.forgelab）。
+    [/\bcom\.(?:mdframe\.forge|forge)(?![\w$])/, options.basePackage],
     ['com/mdframe/forge', options.basePackage.replaceAll('.', '/')],
     ['Forge AI', options.javaName],
     // 完整启动类留给后面的类映射；品牌前缀不能抢先把它改成 <prefix>Application。
@@ -133,7 +134,6 @@ function projectTextReplacements(artifactMap, options) {
     ['forge_admin', options.databaseName],
     ['forge_schema_history', `${snakeName}_schema_history`],
     ['vue-naive-admin', `${options.projectName}-admin-ui`],
-    ['com.forge', options.basePackage],
   ]
 }
 
@@ -219,7 +219,9 @@ export async function rewritePomGroupIds(serverRoot, groupId) {
   const pomFiles = await collectFiles(serverRoot, filePath => path.basename(filePath) === 'pom.xml')
   for (const pomFile of pomFiles) {
     const content = await fs.readFile(pomFile, 'utf8')
-    const nextContent = content.split('com.mdframe.forge').join(groupId)
+    // 只改 Maven 坐标；mainClass / 扫描包等 POM 内容仍使用 Java basePackage。
+    const nextContent = content.replace(/<groupId>\s*com\.mdframe\.forge\s*<\/groupId>/g,
+      () => `<groupId>${groupId}</groupId>`)
     if (nextContent !== content) {
       await fs.writeFile(pomFile, nextContent)
     }
@@ -263,6 +265,12 @@ export async function rewriteTextFiles(rootDir, replacements, hasReportUi, trans
     }
     let nextContent = transformText ? transformText(file, content, replacements)
       : applyTextReplacements(content, replacements)
+    // 坐标已由独立步骤设置，不能再被 Java 包名规则改写。
+    if (path.basename(file) === 'pom.xml') {
+      const groups = content.match(/<groupId>[^<]*<\/groupId>/g) || []
+      let index = 0
+      nextContent = nextContent.replace(/<groupId>[^<]*<\/groupId>/g, () => groups[index++])
+    }
 
     // 如果没有报表模块，删除 SSO 相关的配置行
     if (!hasReportUi) {

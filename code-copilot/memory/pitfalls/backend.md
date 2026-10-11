@@ -818,3 +818,19 @@ Forge 源包使用原始 groupId，生成工程的全文改名却将 Java 验证
 执行器固定只复制后端根、Admin UI、根包管理配置和原模块 catalog，排除其它独立前端、
 部署/文档及历史 Admin dist.zip；逐文件绑定提交/摘要，结果明确 admin-build 范围及排除数量。
 真实生成工程快照收敛到约59 MiB并通过，未改变限额；范围外的自定义工作区仍不自动支持。
+
+## 脚手架包名替换不能再次命中新包名前缀
+
+**发现日期**：2026-10-11
+
+旧规则先替换 `com.mdframe.forge`、后替换 `com.forge`，新包以 `com.forgelab` 开头时发生二次替换。
+改为完整包段的单次匹配；POM groupId 只改坐标标签，后续 Java 包名转换保护坐标不再改写。
+mainClass 仍按 basePackage 转换；用包含原品牌前缀且 groupId 与 basePackage 不同的真实生成样例回归。
+
+## Redis 逻辑库不能隔离流程 Pub/Sub 频道
+
+**发现日期**：2026-10-11
+
+独立产品即使用不同 Redis database，默认 `flow:event:all` 仍会互相收到事件。
+缓存和登录态需要独立逻辑库/实例，事件发布与订阅还必须一致使用产品级频道前缀。
+同时检查浏览器登录、协商密钥缓存与内部 Flow 客户端 URL，不能只改 MySQL 库名和 Java 包名。
