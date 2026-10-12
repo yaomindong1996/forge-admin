@@ -813,15 +813,37 @@ public class SystemAuthServiceImpl implements IAuthService {
                 .toList();
     }
 
+    /**
+     * 解析登录页品牌/主题租户：
+     * 1) 显式 tenantId → 启用中的该租户；
+     * 2) 未传时优先 id=1（若仍存在且启用）；
+     * 3) 否则取当前启用中 id 最小的租户；
+     * 4) 都没有则返回 null，前端继续用内置默认主色。
+     */
     private SysTenant selectLoginTenantConfig(Long tenantId) {
+        return TenantContextHolder.executeIgnore(() -> {
+            if (tenantId != null) {
+                return selectEnabledTenantById(tenantId);
+            }
+            SysTenant preferred = selectEnabledTenantById(1L);
+            if (preferred != null) {
+                return preferred;
+            }
+            return tenantMapper.selectOne(new LambdaQueryWrapper<SysTenant>()
+                    .eq(SysTenant::getTenantStatus, EnableStatus.ENABLED.getCode())
+                    .orderByAsc(SysTenant::getId)
+                    .last("LIMIT 1"));
+        });
+    }
+
+    private SysTenant selectEnabledTenantById(Long tenantId) {
         if (tenantId == null) {
             return null;
         }
-        return TenantContextHolder.executeIgnore(() ->
-                tenantMapper.selectOne(new LambdaQueryWrapper<SysTenant>()
-                        .eq(SysTenant::getId, tenantId)
-                        .eq(SysTenant::getTenantStatus, 1)
-                        .last("LIMIT 1")));
+        return tenantMapper.selectOne(new LambdaQueryWrapper<SysTenant>()
+                .eq(SysTenant::getId, tenantId)
+                .eq(SysTenant::getTenantStatus, EnableStatus.ENABLED.getCode())
+                .last("LIMIT 1"));
     }
 
     private boolean isTokenBelongsToClient(String token, String userClient) {

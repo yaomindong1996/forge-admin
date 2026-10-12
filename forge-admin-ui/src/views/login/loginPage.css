@@ -50,7 +50,7 @@
 }
 
 .login-support-link:hover span {
-  color: #2563eb;
+  color: var(--primary-color);
 }
 
 .mobile-brand {
@@ -165,8 +165,8 @@
 }
 
 .captcha-tab-btn.active {
-  border-color: #2563eb;
-  color: #2563eb;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 .slider-verify-trigger {
@@ -221,7 +221,7 @@
   padding: 0;
   border: 0;
   background: none;
-  color: #2563eb;
+  color: var(--primary-color);
   font-size: 12px;
   cursor: pointer;
 }
@@ -370,7 +370,7 @@
 
 button:focus-visible,
 [role='button']:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--primary-color);
   outline-offset: 3px;
 }
 
@@ -510,14 +510,14 @@ button:focus-visible,
 .qrcode-trigger-btn:hover {
   border-color: #3b82f6;
   background: #eff6ff;
-  color: #2563eb;
+  color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .qrcode-trigger-btn.active {
   border-color: #3b82f6;
   background: #eff6ff;
-  color: #2563eb;
+  color: var(--primary-color);
 }
 
 /* 浮动二维码卡片：点“获取验证码”后在输入框下方浮出 */

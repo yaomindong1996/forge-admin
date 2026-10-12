@@ -100,7 +100,12 @@ function changeSlide(step) {
   box-sizing: border-box;
   padding: 40px 48px;
   color: #fff;
-  background: linear-gradient(145deg, #1d4ed8 0%, #2563eb 52%, #1e40af 100%);
+  background: linear-gradient(
+    145deg,
+    var(--button-primary-bg-active, var(--primary-color)) 0%,
+    var(--primary-color) 52%,
+    var(--button-primary-bg-hover, var(--primary-color)) 100%
+  );
 }
 .brand-lockup {
   display: flex;
