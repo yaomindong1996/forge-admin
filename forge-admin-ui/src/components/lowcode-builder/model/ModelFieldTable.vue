@@ -201,7 +201,7 @@ function relationText(field) {
   border: 1px solid #d8dee8;
   border-radius: 8px;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .table-head,
@@ -227,8 +227,8 @@ function relationText(field) {
   min-height: 38px;
   padding: 0 12px;
   border-bottom: 1px solid #d8dee8;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
 }
@@ -262,7 +262,7 @@ function relationText(field) {
 }
 
 .field-row.system {
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .field-row.system:hover,
@@ -278,7 +278,7 @@ function relationText(field) {
 
 .muted {
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;

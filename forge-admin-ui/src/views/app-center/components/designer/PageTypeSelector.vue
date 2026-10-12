@@ -434,12 +434,12 @@ async function confirmSelection() {
 }
 
 .page-type-selector-intro strong {
-  color: var(--n-text-color, #1f2329);
+  color: var(--text-primary);
   font-size: 16px;
 }
 
 .page-type-selector-intro span {
-  color: var(--n-text-color-2, #646a73);
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -456,9 +456,9 @@ async function confirmSelection() {
   flex-direction: column;
   gap: 12px;
   padding: 18px;
-  border: 1px solid var(--n-border-color, #dee0e3);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
   text-align: left;
   transition:
     border-color 0.2s,
@@ -511,12 +511,12 @@ async function confirmSelection() {
 }
 
 .page-type-copy strong {
-  color: var(--n-text-color, #1f2329);
+  color: var(--text-primary);
   font-size: 15px;
 }
 
 .page-type-copy small {
-  color: var(--n-text-color-3, #8f959e);
+  color: var(--text-tertiary);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -542,9 +542,9 @@ async function confirmSelection() {
   gap: 12px;
   margin: 4px 0 8px;
   padding: 14px;
-  border: 1px solid var(--n-border-color, #dee0e3);
+  border: 1px solid var(--border-light);
   border-radius: 10px;
-  background: var(--n-color-embedded, #f7f8fa);
+  background: var(--bg-secondary);
 }
 
 .page-data-source-head {
@@ -554,12 +554,12 @@ async function confirmSelection() {
 }
 
 .page-data-source-head strong {
-  color: var(--n-text-color, #1f2329);
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .page-data-source-head span {
-  color: var(--n-text-color-3, #8f959e);
+  color: var(--text-tertiary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -573,14 +573,14 @@ async function confirmSelection() {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  color: var(--n-text-color-2, #646a73);
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .page-table-summary code {
   padding: 2px 6px;
   border-radius: 4px;
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
   font-size: 12px;
 }
 

@@ -406,7 +406,7 @@ const aggregateRelationOptions = computed(() => {
   margin-top: 0;
   border: 0;
   border-radius: 0;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 0;
 }
 
@@ -417,11 +417,11 @@ const aggregateRelationOptions = computed(() => {
   gap: 12px;
   min-height: 34px;
   border-bottom: 1px solid #eef2f7;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .formula-setting-head strong {
-  color: #1f2937;
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0;
@@ -434,7 +434,7 @@ const aggregateRelationOptions = computed(() => {
   gap: 8px;
   border: 1px solid #dce4ef;
   border-radius: 6px;
-  background: #fbfcfe;
+  background: var(--bg-secondary);
   padding: 10px;
 }
 
@@ -463,7 +463,7 @@ const aggregateRelationOptions = computed(() => {
 .formula-form-item :deep(.n-base-selection) {
   --n-border-radius: 6px;
   --n-height: 32px;
-  background: #f7f8fa;
+  background: var(--bg-secondary);
 }
 
 .formula-editor-block {
@@ -492,16 +492,16 @@ const aggregateRelationOptions = computed(() => {
 .formula-editor-block :deep(.expression-workbench) {
   height: 100%;
   min-height: 0;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .formula-extra-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 10px;
 }
 
@@ -539,7 +539,7 @@ const aggregateRelationOptions = computed(() => {
 }
 
 .formula-trigger-row > span {
-  color: #1f2937;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 600;
 }

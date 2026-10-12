@@ -107,8 +107,8 @@ function handleAction(key) {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
   box-shadow: 0 2px 12px rgba(15, 23, 42, 0.1);
   display: flex;
   align-items: center;
@@ -146,6 +146,6 @@ function handleAction(key) {
 .btn-inner.color-slate:hover {
   background: #475569;
   color: #fff;
-  border-color: #475569;
+  border-color: var(--border-light);
 }
 </style>

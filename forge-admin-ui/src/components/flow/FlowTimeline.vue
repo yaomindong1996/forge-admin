@@ -125,7 +125,7 @@ function formatTime(time) {
   top: 36px;
   width: 2px;
   height: calc(100% - 36px);
-  background: #e2e8f0;
+  background: var(--bg-tertiary);
 }
 
 .timeline-node {
@@ -167,9 +167,9 @@ function formatTime(time) {
 
 .timeline-content {
   flex: 1;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   padding: 12px 16px;
   margin-bottom: 12px;
   transition: all 0.2s ease;
@@ -201,12 +201,12 @@ function formatTime(time) {
 .user-name {
   font-size: 14px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .task-name {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .timeline-meta {
@@ -244,7 +244,7 @@ function formatTime(time) {
 
 .time-text {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .timeline-comment {
@@ -253,15 +253,15 @@ function formatTime(time) {
   gap: 6px;
   margin-top: 10px;
   padding: 10px 12px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border-radius: 8px;
   font-size: 13px;
-  color: #475569;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
 .timeline-comment i {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 16px;
 }
 </style>

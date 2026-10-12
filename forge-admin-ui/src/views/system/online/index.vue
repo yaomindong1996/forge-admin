@@ -333,7 +333,7 @@ function handleUnban(row) {
     .section-title {
       font-size: 14px;
       font-weight: 600;
-      color: #333;
+      color: var(--text-primary);
       margin-bottom: 12px;
       padding-bottom: 8px;
       border-bottom: 1px solid #f0f0f0;
@@ -347,19 +347,19 @@ function handleUnban(row) {
 
       .label {
         width: 120px;
-        color: #666;
+        color: var(--text-secondary);
         flex-shrink: 0;
       }
 
       .value {
         flex: 1;
-        color: #333;
+        color: var(--text-primary);
         word-break: break-all;
 
         &.code {
           font-family: 'Courier New', monospace;
           font-size: 12px;
-          background: #f5f5f5;
+          background: var(--bg-secondary);
           padding: 4px 8px;
           border-radius: 4px;
         }

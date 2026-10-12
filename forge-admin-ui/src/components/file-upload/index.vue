@@ -784,11 +784,11 @@ onMounted(() => {
   padding: 8px 12px;
   border-radius: 8px;
   border: 1px solid #e9ecef;
-  background: #fff;
+  background: var(--bg-primary);
   transition: all 0.15s ease;
 }
 .file-card:hover {
-  border-color: #dee2e6;
+  border-color: var(--border-light);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 .file-card.is-error {
@@ -825,7 +825,7 @@ onMounted(() => {
 .file-name {
   font-size: 13px;
   font-weight: 500;
-  color: #212529;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -889,7 +889,7 @@ onMounted(() => {
   border-radius: 4px;
 }
 .file-actions .n-icon:hover {
-  color: #212529;
+  color: var(--text-primary);
   background: #f1f3f5;
 }
 .file-action-danger:hover {

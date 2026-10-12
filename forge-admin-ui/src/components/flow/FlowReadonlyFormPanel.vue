@@ -426,7 +426,7 @@ watch(
   justify-content: center;
   gap: 8px;
   min-height: 88px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .dynamic-form-section,
@@ -435,12 +435,12 @@ watch(
   padding: 14px;
   border: 1px solid #d7dde7;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .dynamic-form-section.readonly,
 .business-task-form-section.readonly {
-  background: #fbfcfe;
+  background: var(--bg-secondary);
 }
 
 .approval-form-title {
@@ -450,7 +450,7 @@ watch(
   margin-bottom: 12px;
   font-size: 14px;
   font-weight: 700;
-  color: #172033;
+  color: var(--text-primary);
 }
 
 .business-form-warnings {

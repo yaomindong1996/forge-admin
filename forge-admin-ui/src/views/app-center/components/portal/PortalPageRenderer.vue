@@ -824,9 +824,9 @@ function readLength(value) {
 .portal-content-skeleton--block {
   min-height: 160px;
   padding: 12px;
-  border: 1px dashed #e5e7eb;
+  border: 1px dashed var(--border-light);
   border-radius: 6px;
-  background: #fafafa;
+  background: var(--bg-secondary);
 }
 
 .portal-page-flow {
@@ -966,7 +966,7 @@ function readLength(value) {
   width: 100%;
   min-height: calc(100vh - 96px);
   border: 0;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 @media (max-width: 768px) {

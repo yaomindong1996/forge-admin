@@ -248,7 +248,7 @@ onMounted(load)
   padding: 14px;
   border: 1px solid var(--border-light, #e5e7eb);
   border-radius: 6px;
-  background: var(--gray-100, #f6f8fb);
+  background: var(--bg-primary);
 }
 
 .status-mark {

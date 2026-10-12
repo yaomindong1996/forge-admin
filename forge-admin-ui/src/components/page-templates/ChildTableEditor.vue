@@ -1333,7 +1333,7 @@ defineExpose({
 <style scoped>
 .child-table-editor {
   margin-top: 18px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border-light);
   padding-top: 14px;
 }
 
@@ -1359,7 +1359,7 @@ defineExpose({
 }
 
 .child-table-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
 }
@@ -1388,7 +1388,7 @@ defineExpose({
 
 .child-table-scroll {
   overflow-x: auto;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
 }
 
@@ -1415,11 +1415,11 @@ defineExpose({
 }
 
 .child-edit-table.card-mode tr {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 10px;
   margin-bottom: 10px;
   padding: 4px 14px 12px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .child-edit-table.card-mode td {
@@ -1431,7 +1431,7 @@ defineExpose({
   content: attr(data-label);
   display: block;
   margin-bottom: 2px;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 11px;
   line-height: 1.4;
 }
@@ -1448,14 +1448,14 @@ defineExpose({
   width: 100%;
   min-width: 720px;
   border-collapse: collapse;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .child-edit-table th {
   height: 38px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
-  color: #475569;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
   padding: 0 10px;

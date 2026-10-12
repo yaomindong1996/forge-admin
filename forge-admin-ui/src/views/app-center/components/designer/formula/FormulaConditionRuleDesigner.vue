@@ -272,7 +272,7 @@ function literal(value) {
   gap: 10px;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 10px 12px;
 }
 
@@ -289,13 +289,13 @@ function literal(value) {
 }
 
 .rule-toolbar strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .rule-toolbar span {
   margin-top: 2px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -305,15 +305,15 @@ function literal(value) {
 }
 
 .rule-expression span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .rule-expression code {
   overflow: auto;
   border-radius: 6px;
-  background: #f6f8fb;
-  color: #1f2937;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   line-height: 1.6;

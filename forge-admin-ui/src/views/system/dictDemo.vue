@@ -237,7 +237,7 @@ const tableColumns = [
 }
 
 pre {
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   padding: 12px;
   border-radius: 4px;
   font-size: 12px;

@@ -117,7 +117,7 @@ function formatInlineValue(value) {
   gap: 10px;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 12px;
 }
 
@@ -140,13 +140,13 @@ function formatInlineValue(value) {
 }
 
 .trace-step-head strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .trace-step-head em,
 .step-status span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-style: normal;
 }
@@ -159,7 +159,7 @@ function formatInlineValue(value) {
   height: 22px;
   border-radius: 6px;
   background: #e8eef7;
-  color: #334155;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 700;
 }
@@ -169,8 +169,8 @@ function formatInlineValue(value) {
   overflow: auto;
   margin: 0;
   border-radius: 6px;
-  background: #f6f8fb;
-  color: #1f2937;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   line-height: 1.6;
@@ -190,7 +190,7 @@ function formatInlineValue(value) {
 .step-io span {
   display: block;
   margin-bottom: 5px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 

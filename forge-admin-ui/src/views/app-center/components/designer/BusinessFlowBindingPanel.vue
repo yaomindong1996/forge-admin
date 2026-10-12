@@ -1117,7 +1117,7 @@ defineExpose({
 
 .business-flow-binding-panel.compact {
   border: 0;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .business-flow-binding-panel.compact .flow-head {
@@ -1127,7 +1127,7 @@ defineExpose({
 
 .business-flow-binding-panel.compact .flow-main {
   padding: 0;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .business-flow-binding-panel.compact:not(.compact-expanded) .flow-main > :deep(.n-spin-container) {
@@ -1140,7 +1140,7 @@ defineExpose({
   align-items: center;
   gap: 20px;
   border: 0;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border-light);
   border-radius: 0;
   padding: 10px 16px 6px;
 }
@@ -1174,21 +1174,21 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
   padding: 14px 16px;
 }
 
 .flow-head h3,
 .flow-card h4 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 15px;
 }
 
 .flow-head p,
 .flow-card p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -1208,15 +1208,15 @@ defineExpose({
 .flow-main {
   min-width: 0;
   overflow: visible;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 14px;
 }
 
 .flow-card,
 .advanced-flow-collapse {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
@@ -1257,7 +1257,7 @@ defineExpose({
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 10px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 18px;
 }
@@ -1282,7 +1282,7 @@ defineExpose({
 }
 
 .variable-mapping-row > span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   text-align: center;
   white-space: nowrap;
@@ -1298,13 +1298,13 @@ defineExpose({
   min-width: 0;
   border: 1px solid #dbeafe;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 10px;
 }
 
 .adapter-facts span {
   display: block;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 16px;
 }
@@ -1313,7 +1313,7 @@ defineExpose({
   display: block;
   overflow: hidden;
   margin-top: 4px;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 18px;
   text-overflow: ellipsis;
@@ -1334,9 +1334,9 @@ defineExpose({
   grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto;
   gap: 12px;
   align-items: center;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 7px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 9px 10px;
   text-align: left;
   transition:
@@ -1369,14 +1369,14 @@ defineExpose({
 }
 
 .flow-node-row strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 18px;
 }
 
 .flow-node-row small,
 .flow-node-row > span:nth-child(2) {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 18px;
 }
@@ -1387,7 +1387,7 @@ defineExpose({
   gap: 12px;
   align-items: center;
   margin-top: 10px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -1413,7 +1413,7 @@ defineExpose({
   align-items: center;
   flex-wrap: wrap;
   min-height: 28px;
-  color: #111827;
+  color: var(--text-primary);
   font-weight: 700;
   line-height: 22px;
 }
@@ -1427,7 +1427,7 @@ defineExpose({
   overflow: hidden;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   box-shadow: 0 24px 72px rgba(15, 23, 42, 0.28);
 }
 

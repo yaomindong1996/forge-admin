@@ -67,22 +67,22 @@ function formatTime(value) {
 
 <style scoped>
 .version-timeline {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
 .panel-title {
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 
 .version-more {
   margin-top: 8px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   text-align: center;
 }

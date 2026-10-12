@@ -98,7 +98,7 @@ const editorTheme = EditorView.theme({
   },
   '.cm-gutters': {
     backgroundColor: '#f8fafc',
-    color: '#94a3b8',
+    color: 'var(--text-tertiary)',
     borderRight: '1px solid #e2e8f0',
   },
   '.cm-activeLine': {
@@ -363,7 +363,7 @@ function createPlaceholder(fragments, fragment) {
   overflow: hidden;
   border: 1px solid #dbe3ef;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .sql-editor--fullscreen {
@@ -383,8 +383,8 @@ function createPlaceholder(fragments, fragment) {
   gap: 12px;
   min-height: 44px;
   padding: 8px 10px 8px 14px;
-  border-bottom: 1px solid #e2e8f0;
-  background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+  border-bottom: 1px solid var(--border-light);
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
 }
 
 .sql-editor__title {
@@ -392,7 +392,7 @@ function createPlaceholder(fragments, fragment) {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  color: #334155;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
 }
@@ -405,7 +405,7 @@ function createPlaceholder(fragments, fragment) {
 .sql-editor__body {
   position: relative;
   min-height: 248px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .sql-editor--fullscreen .sql-editor__body {
@@ -423,7 +423,7 @@ function createPlaceholder(fragments, fragment) {
   left: 54px;
   z-index: 1;
   max-width: calc(100% - 72px);
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-family:
     JetBrains Mono,
     SFMono-Regular,
@@ -482,7 +482,7 @@ function createPlaceholder(fragments, fragment) {
 }
 
 .sql-editor--dark :deep(.cm-gutters) {
-  color: #86909c !important;
+  color: var(--text-tertiary) !important;
   background: #1e1e1e !important;
   border-right-color: #2f3338 !important;
 }
@@ -493,6 +493,6 @@ function createPlaceholder(fragments, fragment) {
 }
 
 .sql-editor--dark .sql-editor__placeholder {
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 </style>

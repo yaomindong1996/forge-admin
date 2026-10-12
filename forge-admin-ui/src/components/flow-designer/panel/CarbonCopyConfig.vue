@@ -412,7 +412,7 @@ function isFilledValue(value) {
   border: 1px solid #d8dee8;
   border-radius: 6px;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .carbon-copy-source-button {
@@ -454,7 +454,7 @@ function isFilledValue(value) {
 
 .carbon-copy-advanced-collapse :deep(.n-collapse-item__header) {
   font-size: 13px;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .carbon-copy-advanced-row {

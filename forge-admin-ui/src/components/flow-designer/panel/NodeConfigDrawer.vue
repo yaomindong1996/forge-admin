@@ -226,11 +226,11 @@ defineExpose({
 
 .node-config-empty {
   margin: 18px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 4px;
   padding: 16px;
-  background: #f8fafc;
-  color: #94a3b8;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
   font-size: 13px;
 }
 </style>

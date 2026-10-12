@@ -519,7 +519,7 @@ defineExpose({
 .asset-panel-head h4,
 .asset-card-head strong {
   margin: 0;
-  color: #172033;
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: 700;
   line-height: 22px;
@@ -529,7 +529,7 @@ defineExpose({
 .asset-card-head span,
 .asset-field-preview {
   margin: 3px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 18px;
 }
@@ -544,9 +544,9 @@ defineExpose({
 }
 
 .asset-card {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
@@ -563,8 +563,8 @@ defineExpose({
 
 .asset-context-row span {
   border-radius: 999px;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 18px;
   padding: 3px 9px;
@@ -583,8 +583,8 @@ defineExpose({
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   cursor: help;
   font-size: 11px;
   font-weight: 700;
@@ -593,6 +593,6 @@ defineExpose({
 .asset-field-preview {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px dashed #e2e8f0;
+  border-top: 1px dashed var(--border-light);
 }
 </style>

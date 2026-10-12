@@ -353,7 +353,7 @@ onMounted(() => {
 }
 
 .callback-card {
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--bg-primary);
   backdrop-filter: blur(20px);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -367,7 +367,7 @@ onMounted(() => {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -378,13 +378,13 @@ onMounted(() => {
 .callback-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
 }
 
 .callback-desc {
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .animate-spin {

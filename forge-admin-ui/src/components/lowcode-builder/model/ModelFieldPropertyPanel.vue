@@ -187,7 +187,7 @@ function findRecommendation(items) {
   height: 100%;
   border: 1px solid #d8dee8;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   overflow: hidden;
 }
 
@@ -198,18 +198,18 @@ function findRecommendation(items) {
   justify-content: space-between;
   padding: 0 14px;
   border-bottom: 1px solid #d8dee8;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .panel-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
 }
 
 .panel-subtitle {
   margin-top: 2px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
 }
@@ -239,7 +239,7 @@ function findRecommendation(items) {
 }
 
 .section-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
 }
@@ -256,9 +256,9 @@ function findRecommendation(items) {
   justify-content: space-between;
   min-height: 34px;
   padding: 0 10px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 

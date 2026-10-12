@@ -467,7 +467,7 @@ defineExpose({
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: calc(100vh - 106px);
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .publish-check-head {
@@ -475,7 +475,7 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
   padding: 14px 16px;
 }
 
@@ -483,7 +483,7 @@ defineExpose({
 .check-workspace h4,
 .version-panel h4 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 15px;
 }
 
@@ -491,7 +491,7 @@ defineExpose({
 .publish-status-panel p,
 .check-toolbar p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -516,7 +516,7 @@ defineExpose({
 .loading-dot {
   width: 24px;
   height: 24px;
-  border: 2px solid #cbd5e1;
+  border: 2px solid var(--border-light);
   border-top-color: #2563eb;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -544,9 +544,9 @@ defineExpose({
 .summary-metric,
 .check-workspace,
 .version-panel {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .publish-status-panel {
@@ -571,7 +571,7 @@ defineExpose({
 .datasource-panel > span,
 .summary-metric span,
 .version-item span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -580,7 +580,7 @@ defineExpose({
   display: block;
   overflow: hidden;
   max-width: 100%;
-  color: #111827;
+  color: var(--text-primary);
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -616,7 +616,7 @@ defineExpose({
   display: -webkit-box;
   overflow: hidden;
   margin: 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
   -webkit-box-orient: vertical;
@@ -650,7 +650,7 @@ defineExpose({
   display: block;
   overflow: hidden;
   max-width: 100%;
-  color: #111827;
+  color: var(--text-primary);
   font-size: clamp(20px, 3.2vw, 30px);
   line-height: 1;
   text-overflow: ellipsis;
@@ -659,7 +659,7 @@ defineExpose({
 
 .summary-metric em {
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-style: normal;
   text-overflow: ellipsis;
@@ -731,13 +731,13 @@ defineExpose({
 
 .check-item-main strong {
   display: block;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .check-item-main p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -766,7 +766,7 @@ defineExpose({
 
 .version-item strong {
   display: block;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
@@ -777,7 +777,7 @@ defineExpose({
 
 .version-item p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 

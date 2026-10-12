@@ -14,7 +14,7 @@ defineOptions({ name: 'SystemPageLayout' })
   height: 100%;
   min-height: 0;
   padding: 0;
-  background: var(--gray-100, #f6f8fb);
+  background: var(--bg-primary);
 }
 
 .system-page-layout :slotted(*) {

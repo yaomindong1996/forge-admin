@@ -1036,9 +1036,9 @@ function defaultForm() {
 
 .runtime-target-panel {
   margin: -2px 0 14px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fafafa;
+  background: var(--bg-secondary);
   padding: 12px;
 }
 
@@ -1048,7 +1048,7 @@ function defaultForm() {
 
 .runtime-target-help {
   margin-top: 2px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -1059,9 +1059,9 @@ function defaultForm() {
   gap: 8px;
   min-height: 86px;
   cursor: pointer;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 12px;
   transition:
     border-color 160ms ease,
@@ -1080,9 +1080,9 @@ function defaultForm() {
   gap: 8px;
   min-height: 74px;
   cursor: pointer;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 10px 12px;
   transition:
     border-color 160ms ease,
@@ -1107,7 +1107,7 @@ function defaultForm() {
 .mount-card strong,
 .runtime-mode-card strong,
 .app-mode-card strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 14px;
   line-height: 1.4;
 }
@@ -1116,7 +1116,7 @@ function defaultForm() {
 .runtime-mode-card small,
 .app-mode-card small {
   margin-top: 4px;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -1142,7 +1142,7 @@ function defaultForm() {
 
 .mode-explain p {
   margin: 4px 0 0;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.55;
 }

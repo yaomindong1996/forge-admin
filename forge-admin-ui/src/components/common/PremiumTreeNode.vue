@@ -531,19 +531,19 @@ function resolveActionDisabled(action) {
 }
 
 .premium-tree-row.tone-folder .premium-tree-icon {
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .premium-tree-row.tone-menu .premium-tree-icon {
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .premium-tree-row.tone-action .premium-tree-icon {
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .premium-tree-row.tone-api .premium-tree-icon {
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .premium-tree-row.is-selected .premium-tree-icon {
@@ -614,7 +614,7 @@ function resolveActionDisabled(action) {
 }
 
 :global(.dark) .premium-tree-subtitle {
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 :global(.dark) .premium-tree-row.is-selected .premium-tree-subtitle {

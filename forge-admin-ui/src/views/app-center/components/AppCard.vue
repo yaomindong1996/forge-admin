@@ -195,7 +195,7 @@ function handleMoreSelect(key, app) {
   display: -webkit-box;
   margin: 6px 0 0;
   overflow: hidden;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.5;
   -webkit-box-orient: vertical;
@@ -216,7 +216,7 @@ function handleMoreSelect(key, app) {
   align-items: center;
   overflow: hidden;
   border-radius: 4px;
-  background: #f3f4f6;
+  background: var(--bg-tertiary);
   color: #374151;
   font-size: 12px;
   line-height: 22px;

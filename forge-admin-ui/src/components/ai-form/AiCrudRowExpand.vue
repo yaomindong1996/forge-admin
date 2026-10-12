@@ -236,7 +236,7 @@ async function loadPanel(panel, force = false) {
   align-items: center;
   min-height: 28px;
   margin-bottom: 8px;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .expand-panel-head strong {

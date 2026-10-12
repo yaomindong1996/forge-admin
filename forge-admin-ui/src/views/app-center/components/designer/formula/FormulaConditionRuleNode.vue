@@ -292,14 +292,14 @@ function resolveInputType(field) {
 .rule-node.group {
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 10px;
 }
 
 .rule-node.condition {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 7px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 8px;
 }
 
@@ -350,9 +350,9 @@ function resolveInputType(field) {
   min-height: 28px;
   display: flex;
   align-items: center;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--border-light);
   border-radius: 6px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   padding: 0 10px;
 }

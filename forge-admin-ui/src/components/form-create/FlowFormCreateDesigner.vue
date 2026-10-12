@@ -354,7 +354,7 @@ function parseFormItemGapValue(value) {
   flex-direction: column;
   border: 1px solid #d7dde7;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   overflow: hidden;
 }
 
@@ -365,14 +365,14 @@ function parseFormItemGapValue(value) {
   justify-content: space-between;
   gap: 16px;
   padding: 0 16px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #f8fafc;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-secondary);
 }
 
 .designer-title {
   font-size: 14px;
   font-weight: 700;
-  color: #172033;
+  color: var(--text-primary);
 }
 
 .designer-subtitle {
@@ -385,7 +385,7 @@ function parseFormItemGapValue(value) {
   flex: 1;
   min-width: 0;
   min-height: 0;
-  background: #f6f8fb;
+  background: var(--bg-secondary);
   overflow: auto;
 }
 
@@ -401,7 +401,7 @@ function parseFormItemGapValue(value) {
 :deep(.fc-designer ._fc-r),
 :deep(._fc-designer ._fc-l),
 :deep(._fc-designer ._fc-r) {
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 @media (max-width: 900px) {

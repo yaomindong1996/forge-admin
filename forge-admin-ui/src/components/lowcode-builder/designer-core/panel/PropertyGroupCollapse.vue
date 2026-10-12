@@ -51,9 +51,9 @@ function toggle() {
   width: 100%;
   padding: 4px 0;
   border: none;
-  border-bottom: 1px dashed var(--n-border-color, #e5e7eb);
+  border-bottom: 1px dashed var(--border-light);
   background: transparent;
-  color: var(--n-text-color, #64748b);
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 600;
   line-height: 18px;
@@ -62,7 +62,7 @@ function toggle() {
 }
 
 .property-group-collapse-header:hover {
-  color: var(--n-text-color, #334155);
+  color: var(--text-primary);
 }
 
 .property-group-collapse-arrow {
@@ -86,8 +86,8 @@ function toggle() {
   height: 16px;
   padding: 0 4px;
   border-radius: 8px;
-  background: var(--n-border-color, #e5e7eb);
-  color: var(--n-text-color, #64748b);
+  background: var(--border-light);
+  color: var(--text-primary);
   font-size: 10px;
   font-weight: 500;
   line-height: 1;

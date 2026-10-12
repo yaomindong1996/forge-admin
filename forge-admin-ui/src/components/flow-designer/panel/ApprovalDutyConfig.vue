@@ -195,7 +195,7 @@ function createPointId() {
 }
 
 .approval-point-order {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
   text-align: center;

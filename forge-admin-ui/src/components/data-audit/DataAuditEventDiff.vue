@@ -132,7 +132,7 @@ function resolveValue(view) {
   padding: 8px 12px;
   border: 1px dashed var(--border-light, #e5e7eb);
   border-radius: 6px;
-  background: var(--gray-50, #f8fafc);
+  background: var(--bg-primary);
   color: var(--primary-color, #165dff);
   font-size: 12px;
   cursor: pointer;
@@ -140,7 +140,7 @@ function resolveValue(view) {
 
 .diff-collapsed-btn:hover {
   border-color: color-mix(in srgb, var(--primary-color, #165dff) 35%, var(--border-light, #e5e7eb));
-  background: color-mix(in srgb, var(--primary-color, #165dff) 5%, #fff);
+  background: color-mix(in srgb, var(--primary-color, #165dff) 5%, var(--bg-primary));
 }
 
 .diff-collapsed-count {
@@ -196,7 +196,7 @@ function resolveValue(view) {
 }
 
 .diff-list-head {
-  background: var(--gray-100, #f6f8fb);
+  background: var(--bg-primary);
   color: var(--text-tertiary, #64748b);
   font-size: 12px;
   font-weight: 600;
@@ -207,7 +207,7 @@ function resolveValue(view) {
 }
 
 .diff-row:hover {
-  background: color-mix(in srgb, var(--gray-100, #f6f8fb) 55%, transparent);
+  background: color-mix(in srgb, var(--bg-secondary) 55%, transparent);
 }
 
 .diff-field {
@@ -248,13 +248,13 @@ function resolveValue(view) {
 }
 
 .diff-value.is-before {
-  background: var(--gray-50, #f8fafc);
+  background: var(--bg-primary);
   border-color: var(--border-light, #e5e7eb);
   color: var(--text-secondary, #475569);
 }
 
 .diff-value.is-after {
-  background: color-mix(in srgb, var(--primary-color, #165dff) 6%, #fff);
+  background: color-mix(in srgb, var(--primary-color, #165dff) 6%, var(--bg-primary));
   border-color: color-mix(in srgb, var(--primary-color, #165dff) 18%, var(--border-light, #e5e7eb));
   color: var(--text-primary, #111827);
 }

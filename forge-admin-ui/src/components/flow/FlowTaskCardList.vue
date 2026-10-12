@@ -506,9 +506,9 @@ function clearSelection() {
 }
 
 :global(.task-status-pill.default) {
-  background: #f1f5f9;
-  color: #64748b;
-  border-color: #e2e8f0;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-color: var(--border-light);
 }
 
 :global(.task-row-link-action) {
@@ -530,7 +530,7 @@ function clearSelection() {
 }
 
 :global(.task-row-link-action:hover) {
-  color: color-mix(in srgb, var(--primary-color, #2563eb) 82%, #0f172a);
+  color: color-mix(in srgb, var(--primary-color, #2563eb) 82%, var(--text-primary));
 }
 
 :global(.task-row-link-action.info) {

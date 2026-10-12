@@ -385,7 +385,7 @@ async function handleViewDetail(row) {
   justify-content: space-between;
   gap: 16px;
   padding-bottom: 14px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .audit-detail__identity {
@@ -396,7 +396,7 @@ async function handleViewDetail(row) {
 }
 
 .audit-detail__page {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 16px;
   font-weight: 650;
   line-height: 1.35;
@@ -425,21 +425,21 @@ async function handleViewDetail(row) {
 .audit-summary__item {
   min-width: 0;
   padding: 10px 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .audit-summary__label {
   display: block;
   margin-bottom: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .audit-summary__item strong {
   display: block;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
   overflow: hidden;
@@ -456,9 +456,9 @@ async function handleViewDetail(row) {
 .audit-section {
   min-width: 0;
   padding: 14px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #ffffff;
+  background: var(--bg-primary);
 }
 
 .audit-section--wide {
@@ -472,7 +472,7 @@ async function handleViewDetail(row) {
 
 .audit-section h4 {
   margin: 0 0 12px;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 650;
 }
@@ -506,20 +506,20 @@ async function handleViewDetail(row) {
 
 .audit-section dt {
   margin-bottom: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .audit-section dd {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 1.5;
   word-break: break-all;
 }
 
 .audit-section__muted {
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .snapshot-grid {
@@ -543,7 +543,7 @@ async function handleViewDetail(row) {
 .snapshot-block span {
   display: block;
   margin-bottom: 6px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -556,8 +556,8 @@ async function handleViewDetail(row) {
   overflow: auto;
   border: 1px solid #dbe3ef;
   border-radius: 6px;
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   font-size: 12px;
   line-height: 1.55;

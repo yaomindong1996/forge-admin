@@ -243,9 +243,9 @@ function normalizeFieldCode(value) {
   overflow: hidden;
   gap: 10px;
   padding: 12px;
-  border: 1px solid var(--n-border-color, #e5e7eb);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
 }
 
 .source-picker-heading {
@@ -272,9 +272,9 @@ function normalizeFieldCode(value) {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 3px;
   padding: 3px;
-  border: 1px solid var(--n-border-color, #e5e7eb);
+  border: 1px solid var(--border-light);
   border-radius: 7px;
-  background: var(--n-color-embedded, #f7f8fa);
+  background: var(--bg-secondary);
 }
 
 .source-type-switch button {
@@ -298,13 +298,13 @@ function normalizeFieldCode(value) {
 
 .source-type-switch button:hover {
   color: var(--n-text-color);
-  background: color-mix(in srgb, var(--n-color, #fff) 72%, transparent);
+  background: color-mix(in srgb, var(--bg-primary) 72%, transparent);
 }
 
 .source-type-switch button.active {
   color: var(--n-primary-color);
-  background: var(--n-color, #fff);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--n-primary-color) 42%, var(--n-border-color, #e5e7eb));
+  background: var(--bg-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--n-primary-color) 42%, var(--border-light));
   font-weight: 600;
 }
 

@@ -31,7 +31,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
   padding: 14px 16px;
 }
 
@@ -39,7 +39,7 @@
   min-height: 40px;
   gap: 10px;
   padding: 7px 12px;
-  background: rgba(255, 255, 255, 0.92);
+  background: color-mix(in srgb, var(--bg-primary) 92%, transparent);
   backdrop-filter: blur(10px);
 }
 
@@ -54,7 +54,7 @@
 .designer-section-head h3,
 .shelf-head h3 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 15px;
   letter-spacing: 0;
 }
@@ -62,7 +62,7 @@
 .designer-section-head p,
 .shelf-head p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -96,7 +96,7 @@
 .object-switch-control span,
 .modal-type-control span,
 .layout-columns-control span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -107,7 +107,7 @@
 
 .designer-head-compact-button {
   flex: 0 0 auto;
-  --n-color: #f8fafc !important;
+  --n-color: var(--bg-secondary) !important;
   --n-color-hover: #eff6ff !important;
   --n-color-pressed: #dbeafe !important;
   --n-color-focus: #f8fafc !important;
@@ -115,7 +115,7 @@
   --n-border-hover: 1px solid #93c5fd !important;
   --n-border-pressed: 1px solid #60a5fa !important;
   --n-border-focus: 1px solid #93c5fd !important;
-  --n-text-color: #475569 !important;
+  --n-text-color: var(--text-secondary) !important;
   --n-text-color-hover: #2563eb !important;
   --n-text-color-pressed: #1d4ed8 !important;
   --n-text-color-focus: #2563eb !important;
@@ -160,13 +160,13 @@
 }
 
 .relation-overview-main strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .relation-overview-main span {
   margin-top: 2px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -204,22 +204,22 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
 .relation-object-head h4 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 15px;
   letter-spacing: 0;
 }
 
 .relation-object-head p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -227,7 +227,7 @@
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   min-width: 0;
-  background: #fbfcfe;
+  background: var(--bg-secondary);
 }
 
 .relation-object-layout {
@@ -240,9 +240,9 @@
 .relation-object-canvas-shell,
 .relation-field-shelf {
   min-width: 0;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .relation-object-canvas-shell {
@@ -256,27 +256,27 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
   min-height: 44px;
   padding: 10px 12px;
 }
 
 .relation-canvas-toolbar span,
 .relation-shelf-head span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .relation-shelf-head strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .relation-form-canvas {
   min-height: 460px;
   overflow: auto;
-  background: linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px);
-  background-color: #f8fafc;
+  background: linear-gradient(var(--bg-tertiary) 1px, transparent 1px), linear-gradient(90deg, var(--bg-secondary) 1px, transparent 1px);
+  background-color: var(--bg-secondary);
   background-size: 24px 24px;
   padding: 18px;
 }
@@ -293,9 +293,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   min-height: 64px;
   padding: 10px 12px;
 }
@@ -304,7 +304,7 @@
 .relation-shelf-field strong {
   display: block;
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -315,7 +315,7 @@
   display: block;
   overflow: hidden;
   margin-top: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -336,9 +336,9 @@
 }
 
 .relation-shelf-field {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   cursor: pointer;
   padding: 10px;
   text-align: left;
@@ -352,7 +352,7 @@
 .relation-form-panel {
   display: grid;
   gap: 8px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
   padding: 10px;
 }
 
@@ -373,7 +373,7 @@
 .relation-form-panel strong,
 .relation-form-card strong {
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -382,7 +382,7 @@
 .relation-form-panel span,
 .relation-form-card span {
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -427,16 +427,16 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
   padding: 10px;
 }
 
 .field-state-tabs button {
   min-height: 30px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #fff;
-  color: #475569;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 12px;
 }
@@ -464,9 +464,9 @@
 
 .shelf-field {
   position: relative;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   cursor: grab;
   text-align: left;
   padding: 10px;
@@ -480,7 +480,7 @@
 .shelf-field strong {
   display: block;
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -490,7 +490,7 @@
   display: block;
   overflow: hidden;
   margin-top: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -500,8 +500,8 @@
   display: inline-flex;
   margin-top: 8px;
   border-radius: 4px;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   font-size: 11px;
   font-style: normal;
   line-height: 20px;
@@ -515,7 +515,7 @@
 
   .form-canvas-region {
     border-right: 0;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border-light);
   }
 
   .field-shelf {

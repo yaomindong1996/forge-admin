@@ -1239,7 +1239,7 @@ onMounted(async () => {
 }
 
 .page-header {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 16px 20px;
   display: flex;
@@ -1276,13 +1276,13 @@ onMounted(async () => {
 .page-title {
   font-size: 18px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .header-desc {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .header-right {
@@ -1292,7 +1292,7 @@ onMounted(async () => {
 }
 
 .config-panel {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 16px 20px;
   flex: 1;
@@ -1308,7 +1308,7 @@ onMounted(async () => {
 
 .tab-icon {
   font-size: 16px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .tab-status {
@@ -1342,7 +1342,7 @@ onMounted(async () => {
   gap: 8px;
   font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .section-icon {
@@ -1352,16 +1352,16 @@ onMounted(async () => {
 
 .section-desc {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
   margin-top: 4px;
 }
 
 .config-group {
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border-radius: 10px;
   padding: 16px;
   margin-bottom: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
 }
 
 .group-title {
@@ -1370,7 +1370,7 @@ onMounted(async () => {
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-secondary);
   margin-bottom: 12px;
 }
 
@@ -1391,14 +1391,14 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   transition: all 0.2s ease;
 }
 
 .config-item:hover {
-  border-color: #cbd5e1;
+  border-color: var(--border-light);
 }
 
 .config-item.full-width {
@@ -1414,7 +1414,7 @@ onMounted(async () => {
   gap: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: #334155;
+  color: var(--text-primary);
 }
 
 .password-encryption-item {
@@ -1428,7 +1428,7 @@ onMounted(async () => {
 
 .config-help {
   margin-top: 5px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -1469,7 +1469,7 @@ onMounted(async () => {
 .slider-value {
   font-size: 14px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-primary);
   min-width: 40px;
 }
 
@@ -1504,9 +1504,9 @@ onMounted(async () => {
   width: 140px;
   height: 140px;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .qrcode-preview :deep(img) {

@@ -209,9 +209,9 @@ async function copyLink(url, label) {
 
 .page-design-publish-card {
   padding: 24px;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 1px 3px rgb(31 35 41 / 6%);
 }
 
@@ -225,14 +225,14 @@ async function copyLink(url, label) {
 
 .page-design-publish-card h2 {
   margin: 0;
-  color: #1d2129;
+  color: var(--text-primary);
   font-size: 16px;
   font-weight: 650;
 }
 
 .page-design-publish-card p {
   margin: 6px 0 0;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
   line-height: 18px;
 }
@@ -250,13 +250,13 @@ async function copyLink(url, label) {
 }
 
 .page-design-publish-meta dt {
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
 .page-design-publish-meta dd {
   margin: 0;
-  color: #1d2129;
+  color: var(--text-primary);
   font-size: 14px;
   word-break: break-all;
 }
@@ -272,7 +272,7 @@ async function copyLink(url, label) {
 
 .mount-off-hint {
   margin: 0;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -290,7 +290,7 @@ async function copyLink(url, label) {
 }
 
 .link-label {
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 13px;
   white-space: nowrap;
 }

@@ -214,7 +214,7 @@ const editorTheme = EditorView.theme({
   '&': {
     height: '100%',
     color: '#e5e7eb',
-    backgroundColor: '#1f2329',
+    backgroundColor: 'var(--text-primary)',
     fontSize: '13px',
   },
   '.cm-scroller': {

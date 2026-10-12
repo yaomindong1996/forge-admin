@@ -65,9 +65,9 @@ const groups = computed(() => buildPortalShellLayoutGroups())
 
 .layout-group {
   padding: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 10px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .layout-group-header {
@@ -79,14 +79,14 @@ const groups = computed(() => buildPortalShellLayoutGroups())
 }
 
 .layout-group-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
 }
 
 .layout-group-desc {
   min-width: 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   text-align: right;
 }
@@ -105,10 +105,10 @@ const groups = computed(() => buildPortalShellLayoutGroups())
   align-items: center;
   gap: 10px;
   padding: 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  color: #334155;
-  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  color: var(--text-primary);
+  background: linear-gradient(180deg, var(--bg-primary), var(--bg-secondary));
   cursor: pointer;
   text-align: left;
   transition:
@@ -120,14 +120,14 @@ const groups = computed(() => buildPortalShellLayoutGroups())
 
 .layout-option:hover {
   border-color: #93c5fd;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 8px 18px rgb(37 99 235 / 8%);
   transform: translateY(-1px);
 }
 
 .layout-option.active {
   border-color: #2563eb;
-  background: linear-gradient(180deg, #eff6ff, #ffffff);
+  background: linear-gradient(180deg, #eff6ff, var(--bg-primary));
   box-shadow: inset 0 0 0 1px rgb(37 99 235 / 12%);
 }
 
@@ -137,8 +137,8 @@ const groups = computed(() => buildPortalShellLayoutGroups())
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
 }
 
 .layout-img {
@@ -157,7 +157,7 @@ const groups = computed(() => buildPortalShellLayoutGroups())
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 650;
 }
@@ -172,7 +172,7 @@ const groups = computed(() => buildPortalShellLayoutGroups())
 }
 
 .layout-option-desc {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.4;
 }

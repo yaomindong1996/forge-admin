@@ -62,7 +62,7 @@ const activeTab = ref('sms')
 
 /* 页面头部 */
 .page-header {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 16px 20px;
   display: flex;
@@ -101,20 +101,20 @@ const activeTab = ref('sms')
 .page-title {
   font-size: 18px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .header-desc {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 /* 配置面板 */
 .config-panel {
   flex: 1;
   min-height: 0;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 16px 20px;
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
@@ -168,7 +168,7 @@ const activeTab = ref('sms')
 }
 
 .dark .header-desc {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark .config-panel {

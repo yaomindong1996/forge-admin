@@ -970,21 +970,21 @@ function normalizeNumberOption(value, fallback) {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .preview-title {
   font-size: 15px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .preview-desc {
   margin-top: 2px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .preview-alert {
@@ -1002,7 +1002,7 @@ function normalizeNumberOption(value, fallback) {
   min-height: 620px;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
@@ -1017,15 +1017,15 @@ function normalizeNumberOption(value, fallback) {
 
 .runtime-preview-head p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .preview-band {
   padding: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .runtime-surface {
@@ -1051,14 +1051,14 @@ function normalizeNumberOption(value, fallback) {
 .tree-preview {
   padding: 14px;
   border-right: 1px solid #eef2f7;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .tree-title {
   margin-bottom: 10px;
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .tree-node {
@@ -1067,7 +1067,7 @@ function normalizeNumberOption(value, fallback) {
   align-items: center;
   padding: 0 10px;
   border-radius: 6px;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -1084,9 +1084,9 @@ function normalizeNumberOption(value, fallback) {
 .query-set-preview {
   margin-bottom: 12px;
   padding: 14px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .query-actions {
@@ -1103,14 +1103,14 @@ function normalizeNumberOption(value, fallback) {
 }
 
 .preview-time-range span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .band-title {
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 
@@ -1146,7 +1146,7 @@ function normalizeNumberOption(value, fallback) {
 }
 
 .draft-action-link.type-info {
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .draft-action-link.type-success {
@@ -1178,7 +1178,7 @@ function normalizeNumberOption(value, fallback) {
 }
 
 .child-preview-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
 }
@@ -1187,17 +1187,17 @@ function normalizeNumberOption(value, fallback) {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 10px;
 }
 
 .child-preview-table span {
   border: 1px solid #dbe3ee;
   border-radius: 6px;
-  background: #fff;
-  color: #475569;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   font-size: 12px;
   padding: 5px 8px;
 }

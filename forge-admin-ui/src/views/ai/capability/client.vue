@@ -544,7 +544,7 @@ const {
 .issued-label {
   font-size: 13px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 6px;
 }
 
@@ -552,7 +552,7 @@ const {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border-radius: 4px;
   padding: 8px 12px;
 }
@@ -573,7 +573,7 @@ const {
 }
 
 .issued-meta span {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .issued-meta strong {

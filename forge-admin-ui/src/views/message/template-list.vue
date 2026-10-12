@@ -690,7 +690,7 @@ onMounted(async () => {
 
 .tpl-item.active {
   border-color: var(--border-light, #e2e8f0);
-  background: color-mix(in srgb, var(--primary-color, #2080f0) 8%, white);
+  background: color-mix(in srgb, var(--primary-color, #2080f0) 8%, var(--bg-primary));
 }
 
 .tpl-item-name {
@@ -816,7 +816,7 @@ onMounted(async () => {
 }
 
 .template-target-switch button.active {
-  background: #fff;
+  background: var(--bg-primary);
   color: var(--primary-color, #2080f0);
 }
 
@@ -835,7 +835,7 @@ onMounted(async () => {
   padding: 6px 8px;
   border: 1px solid transparent;
   border-radius: 4px;
-  background: #fff;
+  background: var(--bg-primary);
   cursor: pointer;
   text-align: left;
 }
@@ -903,7 +903,7 @@ onMounted(async () => {
   padding: 0 8px;
   border: 1px solid var(--border-light, #e2e8f0);
   border-radius: 4px;
-  background: #fff;
+  background: var(--bg-primary);
   color: var(--text-secondary, #475569);
   cursor: pointer;
   font-size: 12px;
@@ -918,7 +918,7 @@ onMounted(async () => {
   padding: 12px;
   border: 1px solid var(--border-light, #e2e8f0);
   border-radius: 4px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .template-preview[data-mode='card'] {
@@ -952,7 +952,7 @@ onMounted(async () => {
 }
 
 .template-preview-content :deep(.gray) {
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 .template-preview-content :deep(.normal) {
@@ -1018,12 +1018,12 @@ onMounted(async () => {
 }
 
 .legend.gray {
-  background: #f3f4f6;
-  color: #9ca3af;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
 }
 
 .legend.normal {
-  background: #f8fafc;
+  background: var(--bg-secondary);
   color: #4b5563;
 }
 

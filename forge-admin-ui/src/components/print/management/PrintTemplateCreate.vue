@@ -94,7 +94,7 @@ async function create() {
 <style scoped>
 .create-hint {
   margin: 0 0 12px;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
   line-height: 18px;
 }
@@ -106,7 +106,7 @@ async function create() {
 .create-hint code {
   padding: 0 4px;
   border-radius: 3px;
-  background: var(--gray-100, #f2f3f5);
+  background: var(--bg-primary);
   font-size: 12px;
 }
 </style>

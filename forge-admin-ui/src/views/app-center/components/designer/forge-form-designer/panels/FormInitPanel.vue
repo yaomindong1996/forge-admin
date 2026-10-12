@@ -252,7 +252,7 @@ function handleRecordLoadToggle(enabled) {
 
 .form-init-desc {
   margin: 0;
-  color: var(--n-text-color-3, #7f8b96);
+  color: var(--text-tertiary);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -262,7 +262,7 @@ function handleRecordLoadToggle(enabled) {
   flex-direction: column;
   gap: 10px;
   padding: 12px;
-  border: 1px solid var(--n-border-color, #e5e8ec);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
 }
 
@@ -280,7 +280,7 @@ function handleRecordLoadToggle(enabled) {
 
 .form-init-block__head p {
   margin: 2px 0 0;
-  color: var(--n-text-color-3, #7f8b96);
+  color: var(--text-tertiary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -295,9 +295,9 @@ function handleRecordLoadToggle(enabled) {
   display: flex;
   gap: 8px;
   padding: 10px;
-  border: 1px solid var(--n-border-color, #e5e8ec);
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: var(--n-color-embedded, #fafbfc);
+  background: var(--bg-secondary);
 }
 
 .form-init-card__main {
@@ -316,7 +316,7 @@ function handleRecordLoadToggle(enabled) {
 
 .form-init-card__row label {
   font-size: 12px;
-  color: var(--n-text-color-2, #4b5563);
+  color: var(--text-secondary);
 }
 
 .form-init-card__actions {
@@ -328,7 +328,7 @@ function handleRecordLoadToggle(enabled) {
 .form-init-delete {
   border: none;
   background: transparent;
-  color: var(--n-text-color-3, #7f8b96);
+  color: var(--text-tertiary);
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
@@ -352,12 +352,12 @@ function handleRecordLoadToggle(enabled) {
 
 .form-init-record-keys label {
   font-size: 12px;
-  color: var(--n-text-color-2, #4b5563);
+  color: var(--text-secondary);
 }
 
 .form-init-help {
   margin: 0;
-  color: var(--n-text-color-3, #7f8b96);
+  color: var(--text-tertiary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -366,8 +366,8 @@ function handleRecordLoadToggle(enabled) {
   margin: 0;
   padding: 8px 10px;
   border-radius: 6px;
-  background: var(--n-color-embedded, #f4f6f8);
-  color: var(--n-text-color-2, #4b5563);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.6;
 }

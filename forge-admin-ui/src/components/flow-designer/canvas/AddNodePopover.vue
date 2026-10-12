@@ -70,7 +70,7 @@ function handleClick(type) {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .add-node-group {
@@ -83,7 +83,7 @@ function handleClick(type) {
 
 .add-node-group-title {
   padding: 0 4px 8px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
   line-height: 1;
@@ -111,8 +111,8 @@ function handleClick(type) {
   border: 1px solid transparent;
   border-radius: 4px;
   appearance: none;
-  background: #fff;
-  color: #1f2937;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   cursor: pointer;
   text-align: left;
   transition:
@@ -131,8 +131,8 @@ function handleClick(type) {
 }
 
 .add-node-menu-item:hover {
-  border-color: #e2e8f0;
-  background: #f8fafc;
+  border-color: var(--border-light);
+  background: var(--bg-secondary);
 }
 
 .add-node-menu-item:focus-visible {
@@ -147,7 +147,7 @@ function handleClick(type) {
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .add-node-menu-icon[data-tone='blue'] {
@@ -203,7 +203,7 @@ function handleClick(type) {
   min-width: 0;
   flex: 1;
   overflow: hidden;
-  color: #1f2937;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 500;
   line-height: 1.2;

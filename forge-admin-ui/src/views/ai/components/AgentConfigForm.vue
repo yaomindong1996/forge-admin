@@ -399,7 +399,7 @@ defineExpose({
   padding: 8px 10px;
   align-items: center;
   gap: 8px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   text-align: left;
   cursor: pointer;
@@ -432,7 +432,7 @@ defineExpose({
 .config-section {
   margin-bottom: 18px;
   padding: 16px;
-  background: #fff;
+  background: var(--bg-primary);
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 10px;
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
@@ -452,20 +452,20 @@ defineExpose({
 }
 
 .section-heading span {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
 }
 
 .section-heading small {
   margin-left: auto;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
 .param-panel-title {
   margin-bottom: 10px;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
 }
@@ -494,7 +494,7 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -504,10 +504,10 @@ defineExpose({
   height: 14px;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 10px;
   cursor: help;
-  background: #f1f5f9;
+  background: var(--bg-tertiary);
   border-radius: 50%;
 }
 
@@ -535,7 +535,7 @@ defineExpose({
   text-align: left;
   color: inherit;
   cursor: pointer;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 8px;
   transition:
@@ -571,14 +571,14 @@ defineExpose({
 }
 
 .config-entry-title {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
 }
 
 .config-entry-desc {
   margin-top: 3px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
@@ -590,14 +590,14 @@ defineExpose({
 }
 
 .config-entry-empty {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 
 .config-entry-preview {
   overflow: hidden;
   margin-top: 6px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -605,7 +605,7 @@ defineExpose({
 
 .config-entry-arrow {
   flex: 0 0 auto;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 @media (max-width: 1024px) {

@@ -736,7 +736,7 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
   padding: 14px 16px;
 }
 
@@ -744,7 +744,7 @@ defineExpose({
 .detail-section h4,
 .detail-summary-pane h4 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 15px;
   letter-spacing: 0;
 }
@@ -752,7 +752,7 @@ defineExpose({
 .detail-designer-head p,
 .detail-section p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -769,15 +769,15 @@ defineExpose({
   gap: 12px;
   min-width: 0;
   overflow: auto;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 14px;
 }
 
 .detail-section,
 .detail-summary-pane section {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
@@ -818,7 +818,7 @@ defineExpose({
 .relation-preview-main strong,
 .source-row strong {
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -829,7 +829,7 @@ defineExpose({
 .relation-preview-main span,
 .source-row span {
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-style: normal;
   text-overflow: ellipsis;
@@ -874,14 +874,14 @@ defineExpose({
 }
 
 .quantity-panel-head strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .detail-summary-pane {
   align-content: start;
-  border-left: 1px solid #e5e7eb;
-  background: #fbfcfe;
+  border-left: 1px solid var(--border-light);
+  background: var(--bg-secondary);
   padding: 12px;
 }
 
@@ -896,7 +896,7 @@ defineExpose({
 
   .detail-summary-pane {
     border-left: 0;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--border-light);
   }
 }
 </style>

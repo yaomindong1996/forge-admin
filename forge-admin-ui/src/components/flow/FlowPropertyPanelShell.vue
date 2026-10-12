@@ -49,8 +49,8 @@ defineEmits(['close'])
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: #fff;
-  color: #1e293b;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .flow-property-panel-shell__header {
@@ -61,8 +61,8 @@ defineEmits(['close'])
   justify-content: space-between;
   gap: 12px;
   padding: 9px 14px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-secondary);
 }
 
 .flow-property-panel-shell__heading {
@@ -80,8 +80,8 @@ defineEmits(['close'])
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   font-size: 16px;
 }
 
@@ -97,7 +97,7 @@ defineEmits(['close'])
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
 }
@@ -107,7 +107,7 @@ defineEmits(['close'])
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.25;
 }
@@ -122,7 +122,7 @@ defineEmits(['close'])
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   cursor: pointer;
   transition:
     background 150ms ease,
@@ -130,14 +130,14 @@ defineEmits(['close'])
 }
 
 .flow-property-panel-shell__close:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .flow-property-panel-shell__body {
   flex: 1;
   min-height: 0;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .flow-property-panel-shell__body.is-scrollable {
@@ -151,24 +151,24 @@ defineEmits(['close'])
 .flow-property-panel-shell__footer {
   flex-shrink: 0;
   padding: 12px 14px;
-  border-top: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border-top: 1px solid var(--border-light);
+  background: var(--bg-secondary);
 }
 
 .flow-property-panel-shell__empty {
   margin: 18px;
   border-radius: 4px;
   padding: 16px;
-  background: #f8fafc;
-  color: #94a3b8;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
   font-size: 13px;
 }
 
 .flow-property-panel-shell__content :deep(.n-tabs .n-tabs-nav) {
   min-height: 42px;
   padding: 0;
-  border-bottom: 1px solid #e2e8f0;
-  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
 }
 
 .flow-property-panel-shell__content :deep(.n-tabs .n-tabs-nav-scroll-wrapper),
@@ -185,7 +185,7 @@ defineEmits(['close'])
 .flow-property-panel-shell__content :deep(.n-tabs .n-tabs-tab) {
   min-height: 42px;
   padding: 0 10px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
@@ -214,7 +214,7 @@ defineEmits(['close'])
 .flow-property-panel-shell__content :deep(.n-form-item .n-form-item-label) {
   min-height: 22px;
   padding: 0 0 6px;
-  color: #334155;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 600;
 }
@@ -258,17 +258,17 @@ defineEmits(['close'])
 
 .flow-property-panel-shell__content :deep(.config-section-title) {
   margin-bottom: 10px;
-  color: #334155;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 600;
 }
 
 .flow-property-panel-shell__content :deep(.config-hint) {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 4px;
   padding: 10px 12px;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.7;
 }

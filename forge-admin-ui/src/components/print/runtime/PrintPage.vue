@@ -43,7 +43,7 @@ const watermarkTiles = computed(() => {
 <template>
   <article
     :data-print-page="nested ? undefined : page.number"
-    :style="{ position: 'relative', flex: 'none', width: `${geometry.widthMm}mm`, height: `${geometry.heightMm}mm`, boxSizing: 'border-box', background: '#ffffff', color: '#000000', margin: 0, padding: 0, overflow: 'hidden', printColorAdjust: 'exact', webkitPrintColorAdjust: 'exact' }"
+    :style="{ position: 'relative', flex: 'none', width: `${geometry.widthMm}mm`, height: `${geometry.heightMm}mm`, boxSizing: 'border-box', background: 'var(--bg-primary)', color: '#000000', margin: 0, padding: 0, overflow: 'hidden', printColorAdjust: 'exact', webkitPrintColorAdjust: 'exact' }"
   >
     <img
       v-if="overlay?.src"
@@ -72,7 +72,7 @@ const watermarkTiles = computed(() => {
           position: 'absolute',
           left: `${tile.x}mm`,
           top: `${tile.y}mm`,
-          color: watermark.color || '#94a3b8',
+          color: watermark.color || 'var(--text-tertiary)',
           opacity: watermark.opacity ?? 0.08,
           fontSize: `${watermark.fontSizePt || 14}pt`,
           fontWeight: 700,

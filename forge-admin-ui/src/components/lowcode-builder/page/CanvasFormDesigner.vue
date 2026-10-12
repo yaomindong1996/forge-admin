@@ -322,7 +322,7 @@ function drawButtonPreview(api, group, item, width, height) {
     x: 10,
     y: Math.max(8, (height - buttonHeight) / 2) + 8,
     width: buttonWidth,
-    fill: isPrimary ? '#ffffff' : '#334155',
+    fill: isPrimary ? '#ffffff' : 'var(--text-primary)',
     textAlign: 'center',
     fontWeight: '600',
   })
@@ -335,7 +335,7 @@ function drawQuerySetPreview(api, group, item, width) {
     x: width - 116,
     y: 14,
     width: 96,
-    fill: '#64748b',
+    fill: 'var(--text-secondary)',
     textAlign: 'right',
   })
   const chipWidth = Math.max(80, Math.floor((width - 52) / 4))
@@ -359,7 +359,7 @@ function drawQuerySetPreview(api, group, item, width) {
       x: x + 8,
       y: y + 5,
       width: chipWidth - 16,
-      fill: '#475569',
+      fill: 'var(--text-secondary)',
     })
   })
   if (fields.length > 8) {
@@ -367,7 +367,7 @@ function drawQuerySetPreview(api, group, item, width) {
       x: width - 50,
       y: 78,
       width: 32,
-      fill: '#64748b',
+      fill: 'var(--text-secondary)',
       textAlign: 'right',
     })
   }
@@ -407,21 +407,21 @@ function drawTablePreview(api, group, item, width, height) {
       x: x + 8,
       y: tableY + 9,
       width: colWidth - 16,
-      fill: '#334155',
+      fill: 'var(--text-primary)',
       fontWeight: '600',
     })
     addText(api, group, resolveSampleValue(field), {
       x: x + 8,
       y: tableY + rowHeight + 9,
       width: colWidth - 16,
-      fill: '#64748b',
+      fill: 'var(--text-secondary)',
     })
   })
   addText(api, group, `共 ${resolveItemFields(item).length} 列`, {
     x: 16,
     y: Math.min(height - 28, tableY + rowHeight * 2 + 16),
     width: width - 32,
-    fill: '#64748b',
+    fill: 'var(--text-secondary)',
   })
 }
 
@@ -456,13 +456,13 @@ function drawDetailPreview(api, group, item, width, height) {
     x: 20,
     y: 10 + contentHeight / 2 - 6,
     width: labelWidth - 20,
-    fill: '#64748b',
+    fill: 'var(--text-secondary)',
   })
   addText(api, group, resolveSampleValue(resolveItemField(item)), {
     x: 22 + labelWidth,
     y: 10 + contentHeight / 2 - 6,
     width: Math.max(24, width - labelWidth - 42),
-    fill: '#0f172a',
+    fill: 'var(--text-primary)',
     textAlign: item.style?.textAlign || 'left',
   })
 }
@@ -474,7 +474,7 @@ function drawFormFieldPreview(api, group, item, width, height) {
     x: 14,
     y: Math.max(40, height / 2 + 4),
     width: labelWidth,
-    fill: '#475569',
+    fill: 'var(--text-secondary)',
     textAlign: item.style?.textAlign === 'right' ? 'right' : 'left',
   })
   drawControlSketch(api, group, item, 22 + labelWidth, 40, Math.max(72, width - labelWidth - 36), Math.max(28, height - 52))
@@ -527,7 +527,7 @@ function drawControlSketch(api, group, item, x, y, width, height) {
     x: x + 10,
     y: y + 9,
     width: width - 20,
-    fill: isUpload ? '#1d4ed8' : '#94a3b8',
+    fill: isUpload ? '#1d4ed8' : 'var(--text-tertiary)',
     textAlign: item.style?.textAlign || 'left',
   })
   if (['field-select', 'field-dict-select', 'field-tree-select', 'field-org-tree-select', 'field-user-select', 'field-region-tree-select', 'field-cascader'].includes(componentKey)
@@ -536,7 +536,7 @@ function drawControlSketch(api, group, item, x, y, width, height) {
       x: x + width - 24,
       y: y + 8,
       width: 14,
-      fill: '#94a3b8',
+      fill: 'var(--text-tertiary)',
       textAlign: 'center',
       fontWeight: '600',
     })
@@ -550,14 +550,14 @@ function addItemHeader(api, group, item, width) {
     x: 14,
     y: 13,
     width: Math.max(40, width - 110 - badgeWidth),
-    fill: '#0f172a',
+    fill: 'var(--text-primary)',
     fontWeight: '700',
   })
   addText(api, group, resolveComponentTitle(item.componentKey), {
     x: Math.max(14, width - 98),
     y: 14,
     width: 84,
-    fill: '#94a3b8',
+    fill: 'var(--text-tertiary)',
     textAlign: 'right',
     fontSize: 10,
   })
@@ -627,7 +627,7 @@ function addText(api, group, text, attrs = {}) {
     y: attrs.y || 0,
     width: attrs.width || 120,
     height: attrs.height || 16,
-    fill: attrs.fill || '#334155',
+    fill: attrs.fill || 'var(--text-primary)',
     fontSize: attrs.fontSize || 12,
     fontWeight: attrs.fontWeight || '400',
     textAlign: attrs.textAlign || 'left',
@@ -973,7 +973,7 @@ function truncateText(value, maxChars = 24) {
   grid-template-rows: 92px minmax(0, 1fr);
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   overflow: hidden;
 }
 
@@ -982,7 +982,7 @@ function truncateText(value, maxChars = 24) {
   grid-template-rows: 40px 42px;
   gap: 4px;
   padding: 6px 14px 8px;
-  background: #ffffff;
+  background: var(--bg-primary);
   border-bottom: 1px solid #dbe3ee;
 }
 
@@ -1020,7 +1020,7 @@ function truncateText(value, maxChars = 24) {
 .enable-switch span {
   flex: 0 0 auto;
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .enable-switch {
@@ -1030,13 +1030,13 @@ function truncateText(value, maxChars = 24) {
 .canvas-title {
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .canvas-subtitle {
   margin-top: 2px;
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .size-input {
@@ -1049,7 +1049,7 @@ function truncateText(value, maxChars = 24) {
 }
 
 .size-divider {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .layout-mode-group {
@@ -1059,20 +1059,20 @@ function truncateText(value, maxChars = 24) {
   padding: 2px;
   border: 1px solid #dbe3ee;
   border-radius: 6px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .canvas-scroll {
   min-height: 0;
   overflow: auto;
   padding: 18px;
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.8), rgba(241, 245, 249, 0.95)), #f1f5f9;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.8), rgba(241, 245, 249, 0.95)), var(--bg-tertiary);
 }
 
 .canvas-board {
   position: relative;
   margin: 0 auto;
-  background: #ffffff;
+  background: var(--bg-primary);
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
   overflow: hidden;
 }

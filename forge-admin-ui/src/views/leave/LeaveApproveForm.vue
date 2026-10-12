@@ -436,7 +436,7 @@ onMounted(() => loadDetail())
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 .text-primary {
   color: #2080f0;

@@ -5,7 +5,7 @@
       <NAvatar
         round
         :size="60"
-        :style="{ background: colorFor(currentAgent?.agentCode), color: '#fff' }"
+        :style="{ background: colorFor(currentAgent?.agentCode), color: 'var(--bg-primary)' }"
       >
         <NIcon size="32"><SparklesOutline /></NIcon>
       </NAvatar>
@@ -410,6 +410,6 @@ defineExpose({ scrollToBottom, beforePrepend, afterPrepend })
 }
 
 :global(.dark) .tool-code {
-  background: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--bg-primary) 5%, transparent);
 }
 </style>

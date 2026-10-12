@@ -215,22 +215,22 @@ function handleAction(relation) {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 12px 14px;
 }
 
 .panel-intro h3 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 15px;
   line-height: 1.4;
 }
 
 .panel-intro p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -245,9 +245,9 @@ function handleAction(relation) {
   grid-template-columns: 40px minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
   transition:
     border-color 0.2s,
@@ -300,7 +300,7 @@ function handleAction(relation) {
 .runtime-name {
   display: block;
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
   line-height: 1.4;
@@ -310,7 +310,7 @@ function handleAction(relation) {
 
 .runtime-header p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -320,7 +320,7 @@ function handleAction(relation) {
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 8px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -334,9 +334,9 @@ function handleAction(relation) {
 }
 
 .relation-row {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
@@ -348,18 +348,18 @@ function handleAction(relation) {
 }
 
 .relation-main strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .relation-main span {
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
 .relation-row p {
   margin: 8px 0 0;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.5;
 }

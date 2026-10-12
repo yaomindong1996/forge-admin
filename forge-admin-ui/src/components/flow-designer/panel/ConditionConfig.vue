@@ -614,14 +614,14 @@ function parseConditionExpression(condition) {
 }
 
 .condition-summary-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
 }
 
 .condition-summary-desc {
   margin-top: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -629,8 +629,8 @@ function parseConditionExpression(condition) {
 .condition-empty {
   border: 1px dashed #dbe4ef;
   border-radius: 8px;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.6;
   padding: 10px 12px;
@@ -641,7 +641,7 @@ function parseConditionExpression(condition) {
   margin-top: 12px;
   border: 1px solid #e5eaf3;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
@@ -653,7 +653,7 @@ function parseConditionExpression(condition) {
 }
 
 .condition-branch-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
 }
@@ -661,7 +661,7 @@ function parseConditionExpression(condition) {
 .condition-branch-target {
   margin-top: 4px;
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -670,8 +670,8 @@ function parseConditionExpression(condition) {
 .condition-default-tip {
   margin-top: 12px;
   border-radius: 7px;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.6;
   padding: 9px 10px;
@@ -684,7 +684,7 @@ function parseConditionExpression(condition) {
   margin-top: 14px;
   border: 1px solid #dbe4ef;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 3px;
 }
 
@@ -693,7 +693,7 @@ function parseConditionExpression(condition) {
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: #64748b;
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
@@ -704,7 +704,7 @@ function parseConditionExpression(condition) {
 }
 
 .condition-mode-button.active {
-  background: #fff;
+  background: var(--bg-primary);
   color: #2563eb;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
 }
@@ -727,7 +727,7 @@ function parseConditionExpression(condition) {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  background: #fff;
+  background: var(--bg-primary);
   color: inherit;
   cursor: pointer;
   padding: 10px;
@@ -767,7 +767,7 @@ function parseConditionExpression(condition) {
 }
 
 .approval-result-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
   line-height: 1.3;
@@ -775,14 +775,14 @@ function parseConditionExpression(condition) {
 
 .approval-result-desc,
 .approval-result-tip {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
 
 .approval-result-tip {
   border-radius: 7px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 8px 10px;
 }
 
@@ -801,7 +801,7 @@ function parseConditionExpression(condition) {
 .condition-rule-header {
   margin-bottom: 6px;
   padding: 0 8px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
 }
@@ -824,7 +824,7 @@ function parseConditionExpression(condition) {
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   cursor: pointer;
   font-size: 18px;
   justify-self: end;
@@ -834,7 +834,7 @@ function parseConditionExpression(condition) {
 }
 
 .condition-rule-remove:hover:not(:disabled) {
-  background: #f1f5f9;
+  background: var(--bg-tertiary);
   color: #ef4444;
 }
 
@@ -848,7 +848,7 @@ function parseConditionExpression(condition) {
   height: 24px;
   border-radius: 999px;
   background: #eef4ff;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 24px;
   text-align: center;
@@ -877,8 +877,8 @@ function parseConditionExpression(condition) {
   display: flex;
   align-items: center;
   border-radius: 6px;
-  background: #f8fafc;
-  color: #94a3b8;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
   font-size: 12px;
   padding: 0 8px;
 }
@@ -887,8 +887,8 @@ function parseConditionExpression(condition) {
   margin-top: 10px;
   border: 1px dashed #dbe4ef;
   border-radius: 8px;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.6;
   padding: 9px 10px;
@@ -929,8 +929,8 @@ function parseConditionExpression(condition) {
   max-height: 72px;
   overflow: auto;
   border-radius: 6px;
-  background: #f8fafc;
-  color: #94a3b8;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   font-size: 11px;
   line-height: 1.5;

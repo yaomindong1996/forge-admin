@@ -120,7 +120,7 @@ body .n-popover:has(.forge-side-menu-flyout) {
 
 /* 玻璃态效果 */
 .glass {
-  background: rgba(255, 255, 255, 0.9);
+  background: color-mix(in srgb, var(--bg-primary) 90%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -210,7 +210,7 @@ body .n-popover:has(.forge-side-menu-flyout) {
 .loading-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.8);
+  background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -362,7 +362,7 @@ body .n-popover:has(.forge-side-menu-flyout) {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--bg-page, var(--gray-100));
+  background: var(--bg-primary));
   overflow: hidden;
 }
 
@@ -474,7 +474,7 @@ body .n-popover:has(.forge-side-menu-flyout) {
 }
 
 .status-tag.default {
-  background: var(--gray-100);
+  background: var(--bg-primary);
   color: var(--text-secondary);
   border: 1px solid var(--border-default);
 }
@@ -505,7 +505,7 @@ body .n-popover:has(.forge-side-menu-flyout) {
 }
 
 .dark .status-tag.default {
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--bg-primary) 6%, transparent);
   color: var(--text-secondary);
   border-color: var(--border-default);
 }
@@ -750,7 +750,7 @@ body .n-popover:has(.forge-side-menu-flyout) {
 
 .n-tree-node--selected > .n-tree-node-content {
   background: color-mix(in srgb, var(--primary-color, #165dff) 8%, transparent);
-  color: #0f172a;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -758,7 +758,7 @@ body .n-popover:has(.forge-side-menu-flyout) {
 .n-tree-node-switcher {
   width: 20px;
   height: 20px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   transition:
     transform 0.2s ease,
     color 0.2s ease;
@@ -793,7 +793,7 @@ body .n-popover:has(.forge-side-menu-flyout) {
 }
 
 .dark .n-tree-node-switcher {
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .dark .n-tree-node-switcher:hover {

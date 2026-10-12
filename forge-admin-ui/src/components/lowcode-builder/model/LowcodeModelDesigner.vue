@@ -816,7 +816,7 @@ async function validateModel() {
 .designer-section {
   border: 1px solid #d8dee8;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .model-summary {
@@ -837,13 +837,13 @@ async function validateModel() {
 
 .model-summary h2 {
   margin: 4px 0 0;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 18px;
 }
 
 .model-summary p {
   margin: 6px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -856,9 +856,9 @@ async function validateModel() {
 .summary-metrics div {
   display: grid;
   gap: 2px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 8px;
   text-align: center;
 }
@@ -870,14 +870,14 @@ async function validateModel() {
 }
 
 .summary-metrics span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
 .model-tabs {
   border: 1px solid #d8dee8;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 0 12px 12px;
 }
 
@@ -902,19 +902,19 @@ async function validateModel() {
 .section-title,
 .rule-card-title,
 .placeholder-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
 }
 
 .section-head span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .section-desc {
   margin: 3px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -982,14 +982,14 @@ async function validateModel() {
 }
 
 .relation-field > span {
-  color: #334155;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 600;
 }
 
 .relation-field > small {
   min-height: 34px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   line-height: 1.45;
 }
@@ -1010,10 +1010,10 @@ async function validateModel() {
   gap: 14px;
   min-height: 420px;
   overflow: auto;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: linear-gradient(#f8fafc 31px, transparent 32px), linear-gradient(90deg, #f8fafc 31px, transparent 32px);
-  background-color: #ffffff;
+  background: linear-gradient(var(--bg-secondary) 31px, transparent 32px), linear-gradient(90deg, var(--bg-secondary) 31px, transparent 32px);
+  background-color: var(--bg-primary);
   background-size: 32px 32px;
   padding: 18px;
 }
@@ -1032,9 +1032,9 @@ async function validateModel() {
 
 .er-table-card {
   overflow: hidden;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
 }
 
@@ -1047,8 +1047,8 @@ async function validateModel() {
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-secondary);
   padding: 10px 12px;
 }
 
@@ -1066,12 +1066,12 @@ async function validateModel() {
 }
 
 .er-card-head strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .er-card-head span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
 }
@@ -1096,7 +1096,7 @@ async function validateModel() {
 
 .er-field-row.muted {
   background: #fbfdff;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .er-badge {
@@ -1105,8 +1105,8 @@ async function validateModel() {
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   font-size: 10px;
   font-weight: 800;
 }
@@ -1123,8 +1123,8 @@ async function validateModel() {
 }
 
 .er-badge.sys {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 
 .er-field-name,
@@ -1135,14 +1135,14 @@ async function validateModel() {
 }
 
 .er-field-name {
-  color: #0f172a;
+  color: var(--text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
 }
 
 .er-field-type {
   justify-self: end;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
@@ -1181,10 +1181,10 @@ async function validateModel() {
 }
 
 .er-no-link {
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--border-light);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.76);
-  color: #64748b;
+  background: color-mix(in srgb, var(--bg-primary) 76%, transparent);
+  color: var(--text-secondary);
   font-size: 12px;
   padding: 14px;
   text-align: center;

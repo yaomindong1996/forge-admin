@@ -198,7 +198,7 @@ defineExpose({
 <style scoped>
 .flow-canvas {
   outline: none;
-  background-color: #f3f4f6;
+  background-color: var(--bg-tertiary);
   background-image:
     radial-gradient(circle, rgba(203, 213, 225, 0.62) 1px, transparent 1.1px),
     linear-gradient(180deg, rgba(243, 244, 246, 0.96), rgba(243, 244, 246, 0.96));
@@ -212,7 +212,7 @@ defineExpose({
 
 .canvas-toolbar {
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
@@ -223,16 +223,16 @@ defineExpose({
   height: 32px;
   align-items: center;
   justify-content: center;
-  border-right: 1px solid #e2e8f0;
-  color: #64748b;
+  border-right: 1px solid var(--border-light);
+  color: var(--text-secondary);
   transition:
     color 160ms ease,
     background-color 160ms ease;
 }
 
 .canvas-tool-btn:hover:not(:disabled) {
-  background: #f8fafc;
-  color: #1e293b;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .canvas-tool-btn:disabled {
@@ -243,8 +243,8 @@ defineExpose({
 .canvas-zoom-text {
   height: 32px;
   padding: 0 12px;
-  border-right: 1px solid #e2e8f0;
-  color: #475569;
+  border-right: 1px solid var(--border-light);
+  color: var(--text-secondary);
   font-weight: 500;
   line-height: 32px;
 }

@@ -911,8 +911,8 @@ defineExpose({
   --primary-hover: #1d4ed8;
   --secondary: #475467;
   --success: #18a058;
-  --background: #f8fafc;
-  --surface: #ffffff;
+  --background: var(--bg-secondary);
+  --surface: var(--bg-primary);
   --text-primary: #172033;
   --border: #d7dde7;
   --transition: 160ms ease;
@@ -931,13 +931,13 @@ defineExpose({
 
 .flow-modeler-container.dark {
   background: #1e293b;
-  border-color: #334155;
+  border-color: var(--border-light);
 }
 
 .toolbar {
   padding: 10px 14px;
   border-bottom: 1px solid var(--border);
-  background: #f8fafc;
+  background: var(--bg-secondary);
   transition:
     background var(--transition),
     border-color var(--transition);
@@ -945,7 +945,7 @@ defineExpose({
 
 .dark .toolbar {
   background: #0f172a;
-  border-color: #334155;
+  border-color: var(--border-light);
 }
 
 .canvas-wrapper {
@@ -953,7 +953,7 @@ defineExpose({
   position: relative;
   overflow: hidden;
   background-color: var(--background);
-  background-image: linear-gradient(#e5e7eb 1px, transparent 1px), linear-gradient(90deg, #e5e7eb 1px, transparent 1px);
+  background-image: linear-gradient(var(--bg-tertiary) 1px, transparent 1px), linear-gradient(90deg, var(--bg-tertiary) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
@@ -979,7 +979,7 @@ defineExpose({
   overflow-y: auto;
   overflow-x: auto;
   background: #f8f9fa;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   padding: 16px;
 }
@@ -1002,7 +1002,7 @@ defineExpose({
 /* ========== bpmn-js 工具面板 —— 横向顶部 + 企业后台主题 ========== */
 
 :deep(.djs-palette) {
-  --palette-entry-color: #64748b;
+  --palette-entry-color: var(--text-secondary);
   --palette-entry-hover-color: var(--primary);
   --palette-separator-color: var(--border);
   --palette-entry-selected-color: var(--primary);
@@ -1099,7 +1099,7 @@ defineExpose({
 :deep(.djs-palette .entry.bpmn-icon-text-annotation:hover),
 :deep(.djs-palette .entry.bpmn-icon-group:hover) {
   background: rgba(100, 116, 139, 0.1);
-  color: #475569 !important;
+  color: var(--text-secondary) !important;
 }
 
 :deep(.djs-palette .entry.selected),
@@ -1125,7 +1125,7 @@ defineExpose({
   padding: 0 4px !important;
   font-size: 10px !important;
   font-weight: 600 !important;
-  color: #94a3b8 !important;
+  color: var(--text-tertiary) !important;
   letter-spacing: 0.5px !important;
   text-align: center !important;
   clear: none !important;
@@ -1162,7 +1162,7 @@ defineExpose({
 
 :deep(.djs-context-pad .entry::before) {
   font-size: 18px;
-  color: #475569;
+  color: var(--text-secondary);
   transition: color var(--transition);
 }
 
@@ -1223,12 +1223,12 @@ defineExpose({
 
 /* ========== 暗色模式 ========== */
 .dark :deep(.djs-palette) {
-  --palette-entry-color: #94a3b8;
+  --palette-entry-color: var(--text-tertiary);
   --palette-entry-hover-color: var(--secondary);
-  --palette-separator-color: #334155;
+  --palette-separator-color: var(--border-light);
 
   background: #1e293b;
-  border-color: #334155;
+  border-color: var(--border-light);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
@@ -1274,16 +1274,16 @@ defineExpose({
 }
 
 .dark :deep(.djs-palette .separator) {
-  border-color: #334155 !important;
+  border-color: var(--border-light) !important;
 }
 
 .dark :deep(.djs-palette .group) {
-  color: #64748b !important;
+  color: var(--text-secondary) !important;
 }
 
 .dark :deep(.djs-context-pad) {
   background: #1e293b;
-  border-color: #475569;
+  border-color: var(--border-light);
 }
 
 .dark :deep(.djs-context-pad .entry:hover) {
@@ -1296,7 +1296,7 @@ defineExpose({
 
 .dark :deep(.djs-popup) {
   background: #1e293b;
-  border-color: #475569;
+  border-color: var(--border-light);
 }
 
 .dark :deep(.djs-popup .entry:hover) {
@@ -1314,7 +1314,7 @@ defineExpose({
 
 .dark :deep(.djs-minimap) {
   background: #1e293b;
-  border-color: #475569;
+  border-color: var(--border-light);
 }
 
 /* ========== 无障碍优化 ========== */

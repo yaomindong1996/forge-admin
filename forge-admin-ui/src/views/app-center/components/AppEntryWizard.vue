@@ -1140,9 +1140,9 @@ function defaultForm() {
   align-items: flex-start;
   min-height: 104px;
   cursor: pointer;
-  border: 1px solid var(--n-border-color, #e5e7eb);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
   padding: 14px;
   text-align: left;
   transition:
@@ -1202,8 +1202,8 @@ function defaultForm() {
 }
 
 .scene-icon.slate {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 
 .scene-copy {
@@ -1213,13 +1213,13 @@ function defaultForm() {
 }
 
 .scene-copy strong {
-  color: var(--n-text-color, #111827);
+  color: var(--text-primary);
   font-size: 15px;
   line-height: 20px;
 }
 
 .scene-copy small {
-  color: var(--n-text-color-2, #64748b);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 18px;
 }
@@ -1230,18 +1230,18 @@ function defaultForm() {
   gap: 12px;
   align-items: center;
   margin: 4px 0 0;
-  border-bottom: 1px solid var(--n-border-color, #eef2f7);
+  border-bottom: 1px solid var(--border-light);
   padding-bottom: 7px;
 }
 
 .section-title span {
-  color: var(--n-text-color, #111827);
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
 }
 
 .section-title small {
-  color: var(--n-text-color-3, #94a3b8);
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -1252,10 +1252,10 @@ function defaultForm() {
   gap: 10px;
   min-height: 44px;
   padding: 10px 12px;
-  border: 1px solid var(--n-border-color, #e5e7eb);
+  border: 1px solid var(--border-light);
   border-radius: 7px;
-  background: var(--n-color-embedded, #f7f8fa);
-  color: var(--n-text-color-2, #4e5969);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -1300,7 +1300,7 @@ function defaultForm() {
 }
 
 .optional-settings {
-  border-top: 1px solid var(--n-border-color, #e5e7eb);
+  border-top: 1px solid var(--border-light);
 }
 
 @media (max-width: 720px) {

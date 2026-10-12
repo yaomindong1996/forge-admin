@@ -232,7 +232,7 @@ defineExpose({ loadSummary, summary })
   padding: 16px;
   border: 1px solid #e5eaf3;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   color: #344256;
   text-align: left;
   cursor: pointer;
@@ -269,7 +269,7 @@ defineExpose({ loadSummary, summary })
 
 .metric-icon.blue {
   background: #f0f2f5;
-  color: #4e5969;
+  color: var(--text-secondary);
 }
 
 .metric-icon.green {
@@ -293,7 +293,7 @@ defineExpose({ loadSummary, summary })
 
 .metric-copy strong {
   display: block;
-  color: #172033;
+  color: var(--text-primary);
   font-size: 30px;
   font-weight: 750;
   line-height: 36px;

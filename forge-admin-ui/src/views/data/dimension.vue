@@ -885,7 +885,7 @@ function handleDeleteDimension(row) {
   height: 100%;
   min-height: 0;
   padding: 10px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -898,7 +898,7 @@ function handleDeleteDimension(row) {
   overflow: hidden;
   border: 1px solid rgba(15, 23, 42, 0.06);
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 10px;
 }
 
@@ -918,7 +918,7 @@ function handleDeleteDimension(row) {
 
 .panel-toolbar h3 {
   margin: 0;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: 600;
 }
@@ -932,7 +932,7 @@ function handleDeleteDimension(row) {
 
 .dimension-crud {
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 :deep(.dimension-crud .ai-crud-main) {
@@ -943,18 +943,18 @@ function handleDeleteDimension(row) {
   overflow: hidden;
   border: 1px solid #e8ecf1;
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 4px 16px rgb(15 23 42 / 3%);
 }
 
 :deep(.dimension-crud .n-data-table-th) {
   padding: 9px 12px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border-bottom: 1px solid #e8ecf1;
 }
 
@@ -1000,7 +1000,7 @@ function handleDeleteDimension(row) {
 
 .dimension-name {
   overflow: hidden;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -1012,7 +1012,7 @@ function handleDeleteDimension(row) {
 .source-cell__desc,
 .source-type-cell span {
   margin-top: 3px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 
@@ -1030,7 +1030,7 @@ function handleDeleteDimension(row) {
 
 .source-type-cell strong,
 .source-cell__name {
-  color: #0f172a;
+  color: var(--text-primary);
   font-weight: 600;
   font-size: 13px;
 }
@@ -1056,7 +1056,7 @@ function handleDeleteDimension(row) {
   padding: 12px 14px;
   border: 1px solid rgb(100 116 139 / 16%);
   border-radius: 14px;
-  background: linear-gradient(135deg, rgb(15 23 42 / 3%), transparent), #f8fafc;
+  background: linear-gradient(135deg, rgb(15 23 42 / 3%), transparent), var(--bg-secondary);
 }
 
 .dimension-guide__eyebrow {
@@ -1069,14 +1069,14 @@ function handleDeleteDimension(row) {
 
 .dimension-guide__title {
   margin-top: 4px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 16px;
   font-weight: 800;
 }
 
 .dimension-guide__desc {
   margin-top: 6px;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -1091,13 +1091,13 @@ function handleDeleteDimension(row) {
   min-width: 0;
   padding: 10px;
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: inset 0 0 0 1px rgb(148 163 184 / 16%);
 }
 
 .guide-fact span {
   display: block;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
@@ -1105,7 +1105,7 @@ function handleDeleteDimension(row) {
   display: block;
   overflow: hidden;
   margin-top: 4px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1120,18 +1120,18 @@ function handleDeleteDimension(row) {
   padding: 12px 14px;
   border: 1px solid #dbe3ef;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgb(15 23 42 / 4%), transparent), #f8fafc;
+  background: linear-gradient(135deg, rgb(15 23 42 / 4%), transparent), var(--bg-secondary);
 }
 
 .dimension-sql-preview-bar__title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 800;
 }
 
 .dimension-sql-preview-bar__desc {
   margin-top: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   line-height: 1.5;
 }
@@ -1147,12 +1147,12 @@ function handleDeleteDimension(row) {
   padding: 10px 12px;
   border: 1px solid rgb(148 163 184 / 18%);
   border-radius: 10px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .dimension-preview-summary span {
   display: block;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
@@ -1160,7 +1160,7 @@ function handleDeleteDimension(row) {
   display: block;
   overflow: hidden;
   margin-top: 4px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1175,14 +1175,14 @@ function handleDeleteDimension(row) {
 }
 
 .item-modal__title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 16px;
   font-weight: 800;
 }
 
 .item-modal__desc {
   margin-top: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 

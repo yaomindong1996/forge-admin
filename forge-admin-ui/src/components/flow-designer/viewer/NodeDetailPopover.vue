@@ -162,7 +162,7 @@ onUnmounted(() => {
 
 <style scoped>
 .node-detail-popover {
-  color: #0f172a;
+  color: var(--text-primary);
   border-radius: 8px;
 }
 
@@ -177,7 +177,7 @@ onUnmounted(() => {
 
 .detail-title {
   min-width: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
   line-height: 1.35;
@@ -193,15 +193,15 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   transition:
     background-color 160ms ease,
     color 160ms ease;
 }
 
 .detail-close:hover {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 
 .detail-body {
@@ -228,7 +228,7 @@ onUnmounted(() => {
 .detail-row span,
 .detail-comment-label {
   display: block;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -236,7 +236,7 @@ onUnmounted(() => {
 .detail-row strong {
   display: block;
   min-width: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
   line-height: 1.45;
@@ -248,7 +248,7 @@ onUnmounted(() => {
   padding: 10px 11px;
   border-left: 3px solid #d8e1ec;
   border-radius: 6px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .detail-comment-label {
@@ -256,7 +256,7 @@ onUnmounted(() => {
 }
 
 .detail-comment-content {
-  color: #334155;
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 1.55;
   white-space: pre-wrap;
@@ -265,7 +265,7 @@ onUnmounted(() => {
 
 .detail-empty {
   padding: 22px 14px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 13px;
   text-align: center;
 }

@@ -396,10 +396,10 @@ defineExpose({
   position: relative;
   width: 240px;
   flex-shrink: 0;
-  border-right: 1px solid #e5e7eb;
+  border-right: 1px solid var(--border-light);
   padding: 12px 8px;
   overflow: hidden;
-  background: #fafafa;
+  background: var(--bg-secondary);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -421,10 +421,10 @@ defineExpose({
   place-items: center;
   width: 22px;
   height: 22px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #fff;
-  color: #64748b;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   cursor: pointer;
   line-height: 1;
   padding: 0;
@@ -453,14 +453,14 @@ defineExpose({
   flex: 1;
   width: 100%;
   padding-top: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .tree-panel-rail__label {
   writing-mode: vertical-rl;
   letter-spacing: 0.18em;
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .tree-header {
@@ -490,7 +490,7 @@ defineExpose({
   justify-content: space-between;
   gap: 8px;
   padding: 0 6px 8px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   flex-shrink: 0;
 }
@@ -501,10 +501,10 @@ defineExpose({
 }
 
 .tree-expand-actions button {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 4px;
-  background: #fff;
-  color: #475569;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1;
   padding: 4px 8px;

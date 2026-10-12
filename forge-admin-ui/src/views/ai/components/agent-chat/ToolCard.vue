@@ -89,6 +89,6 @@ defineProps({
 }
 
 :global(.dark) .tool-code {
-  background: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--bg-primary) 5%, transparent);
 }
 </style>

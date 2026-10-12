@@ -198,7 +198,7 @@ function statusLabel(status) {
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92)), #0f172a;
   color: #f8fafc;
@@ -247,23 +247,23 @@ p {
   gap: 3px;
   border: 1px solid #d8dee8;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
 .metric-tile span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .metric-tile strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 24px;
   line-height: 1.1;
 }
 
 .metric-tile em {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 11px;
   font-style: normal;
 }
@@ -278,7 +278,7 @@ p {
 .object-board {
   border: 1px solid #d8dee8;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
@@ -287,13 +287,13 @@ p {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
 }
 
 .board-head small {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 400;
 }
@@ -313,13 +313,13 @@ p {
 }
 
 .rule-line span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 code {
   overflow: hidden;
-  color: #0f172a;
+  color: var(--text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   text-overflow: ellipsis;
@@ -340,15 +340,15 @@ code {
 
 .constraint-item {
   border-left: 3px solid #22c55e;
-  background: #f8fafc;
-  color: #334155;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   font-size: 12px;
   line-height: 1.5;
   padding: 7px 9px;
 }
 
 .empty-line {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -375,7 +375,7 @@ code {
 
 .object-row strong {
   overflow: hidden;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -383,7 +383,7 @@ code {
 
 .object-row span {
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   text-overflow: ellipsis;

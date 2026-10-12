@@ -317,7 +317,7 @@ function normalizeParamConfig(source = {}) {
 .default-param-head strong,
 .default-param-section-head strong {
   display: block;
-  color: #27272a;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 650;
   line-height: 18px;
@@ -326,7 +326,7 @@ function normalizeParamConfig(source = {}) {
 .default-param-head span,
 .default-param-section-head span,
 .default-param-empty {
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 11px;
   line-height: 16px;
 }
@@ -338,7 +338,7 @@ function normalizeParamConfig(source = {}) {
   padding: 10px;
   border: 1px solid rgba(228, 228, 231, 0.72);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
@@ -362,7 +362,7 @@ function normalizeParamConfig(source = {}) {
   padding: 8px;
   border: 1px solid #e4e4e7;
   border-radius: 6px;
-  background: #fafafa;
+  background: var(--bg-secondary);
 }
 
 .default-param-row :deep(.n-select),
@@ -382,7 +382,7 @@ function normalizeParamConfig(source = {}) {
   padding: 12px 9px;
   border: 1px dashed #d4d4d8;
   border-radius: 7px;
-  background: #fafafa;
+  background: var(--bg-secondary);
   text-align: center;
 }
 
@@ -393,7 +393,7 @@ function normalizeParamConfig(source = {}) {
 
 .crud-default-params-editor :deep(.n-input),
 .crud-default-params-editor :deep(.n-base-selection) {
-  --n-color: #fff !important;
+  --n-color: var(--bg-primary) !important;
   --n-color-hover: #fff !important;
   --n-color-focus: #fff !important;
   --n-border: 1px solid #e4e4e7 !important;

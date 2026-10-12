@@ -155,9 +155,9 @@ onMounted(() => {
   flex: 1;
   align-items: center;
   justify-content: center;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .frame-shell {
@@ -165,10 +165,10 @@ onMounted(() => {
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .frame-toolbar {
@@ -177,19 +177,19 @@ onMounted(() => {
   justify-content: space-between;
   padding: 12px 16px;
   border-bottom: 1px solid #eef2f7;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .frame-title {
   font-size: 15px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .report-frame {
   flex: 1;
   width: 100%;
   min-height: 0;
-  background: #fff;
+  background: var(--bg-primary);
 }
 </style>

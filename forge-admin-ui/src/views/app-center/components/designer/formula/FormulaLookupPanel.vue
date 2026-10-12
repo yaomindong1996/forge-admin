@@ -186,7 +186,7 @@ function append(target, value) {
   gap: 2px;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 10px 12px;
 }
 </style>

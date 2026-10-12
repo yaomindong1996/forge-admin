@@ -182,7 +182,7 @@ function handleNavigate(section) {
 .application-publish-page {
   height: 100vh;
   overflow-y: auto;
-  background: #f5f7fa;
+  background: var(--bg-secondary);
   /* 覆盖全局 body overflow:hidden */
   position: fixed;
   inset: 0;
@@ -196,8 +196,8 @@ function handleNavigate(section) {
   align-items: center;
   gap: 16px;
   padding: 0 14px;
-  border-bottom: 1px solid #e5e6eb;
-  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
 }
 
 .publish-header-left {
@@ -213,19 +213,19 @@ function handleNavigate(section) {
   background: transparent;
   padding: 4px 6px;
   border-radius: 4px;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 13px;
   line-height: 20px;
   white-space: nowrap;
 }
 
 .publish-breadcrumb:hover {
-  background: #f2f3f5;
-  color: #1f2329;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .publish-breadcrumb span:first-child {
-  color: #86909c;
+  color: var(--text-tertiary);
 }
 
 .publish-header-title {
@@ -236,7 +236,7 @@ function handleNavigate(section) {
 }
 
 .publish-header-title span {
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 13px;
 }
 
@@ -261,19 +261,19 @@ function handleNavigate(section) {
   border-radius: 6px;
   background: transparent;
   padding: 5px 14px;
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 20px;
   white-space: nowrap;
 }
 
 .publish-header-tab:hover {
-  color: #1f2329;
+  color: var(--text-primary);
 }
 
 .publish-header-tab.active {
-  background: #f2f3f5;
-  color: #1f2329;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -304,9 +304,9 @@ function handleNavigate(section) {
   flex-direction: column;
   gap: 4px;
   padding: 8px;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-primary);
   position: sticky;
   top: 72px;
 }
@@ -319,7 +319,7 @@ function handleNavigate(section) {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 13px;
   cursor: pointer;
   text-align: left;
@@ -329,8 +329,8 @@ function handleNavigate(section) {
 }
 
 .publish-section-nav button:hover {
-  background: #f2f3f5;
-  color: #1f2329;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .publish-section-nav button.active {
@@ -345,9 +345,9 @@ function handleNavigate(section) {
 
 .publish-section-content :deep(.publish-section-card) {
   min-width: 0;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 24px;
   box-shadow: 0 1px 3px rgb(31 35 41 / 4%);
 }
@@ -368,7 +368,7 @@ function handleNavigate(section) {
 
 .publish-section-content :deep(.publish-section-card > header p) {
   margin: 5px 0 0;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 

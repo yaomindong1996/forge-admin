@@ -401,7 +401,7 @@ function handleChannelClick(channel) {
 .hero-kicker {
   display: block;
   margin-bottom: 6px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -414,14 +414,14 @@ function handleChannelClick(channel) {
 
 .hero-title-row h3 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 18px;
   line-height: 1.35;
 }
 
 .hero-copy p {
   margin: 8px 0 0;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -432,7 +432,7 @@ function handleChannelClick(channel) {
 }
 
 .hero-meter span {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 28px;
   font-weight: 700;
   line-height: 1;
@@ -440,7 +440,7 @@ function handleChannelClick(channel) {
 
 .hero-meter small {
   margin-left: 2px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 500;
 }
@@ -460,9 +460,9 @@ function handleChannelClick(channel) {
   grid-template-columns: 24px minmax(0, 1fr);
   gap: 8px;
   align-items: start;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 12px;
   cursor: pointer;
   transition:
@@ -492,7 +492,7 @@ function handleChannelClick(channel) {
 
 .acceptance-step strong {
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -500,14 +500,14 @@ function handleChannelClick(channel) {
 
 .acceptance-step span {
   margin-top: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .acceptance-block {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
@@ -524,13 +524,13 @@ function handleChannelClick(channel) {
 
 .block-head h4 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 15px;
 }
 
 .block-head p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -546,9 +546,9 @@ function handleChannelClick(channel) {
   grid-template-columns: 36px minmax(0, 1fr);
   gap: 10px;
   min-width: 0;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 12px;
   cursor: pointer;
   transition:
@@ -595,7 +595,7 @@ function handleChannelClick(channel) {
 
 .object-title span {
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -604,7 +604,7 @@ function handleChannelClick(channel) {
 
 .object-info p {
   margin: 6px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -626,9 +626,9 @@ function handleChannelClick(channel) {
   gap: 8px;
   align-items: center;
   width: 100%;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 10px 12px;
   cursor: pointer;
   text-align: left;
@@ -644,7 +644,7 @@ function handleChannelClick(channel) {
 
 .compact-row span {
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 500;
   text-overflow: ellipsis;
@@ -652,7 +652,7 @@ function handleChannelClick(channel) {
 }
 
 .compact-row small {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   white-space: nowrap;
 }

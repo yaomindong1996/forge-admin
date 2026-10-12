@@ -721,7 +721,7 @@
                     :value="schema.layout?.formStyleText || stringifyStyle(formStyle)"
                     type="textarea"
                     :autosize="{ minRows: 3, maxRows: 6 }"
-                    placeholder="例如 padding:12px; background:#fff;"
+                    placeholder="例如 padding:12px; background:var(--bg-primary);"
                     @update:value="updateFormStyleText"
                   />
                 </n-form-item>

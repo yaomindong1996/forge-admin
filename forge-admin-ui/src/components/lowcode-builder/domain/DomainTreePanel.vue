@@ -235,7 +235,7 @@ function handleDomainAction(key, item) {
   padding: 14px;
   border: 1px solid #d8dee8;
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--bg-primary);
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
 }
 
@@ -249,13 +249,13 @@ function handleDomainAction(key, item) {
 .panel-title {
   font-size: 15px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .panel-subtitle {
   margin-top: 2px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .domain-search {
@@ -318,7 +318,7 @@ function handleDomainAction(key, item) {
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  color: #64748b;
+  color: var(--text-secondary);
   opacity: 0;
   transition: opacity 160ms ease;
 }
@@ -329,8 +329,8 @@ function handleDomainAction(key, item) {
 }
 
 .node-action:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .node-indent {
@@ -344,7 +344,7 @@ function handleDomainAction(key, item) {
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .node-toggle:not(.empty):hover {
@@ -380,7 +380,7 @@ function handleDomainAction(key, item) {
 
 .node-title {
   overflow: hidden;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
   text-overflow: ellipsis;
@@ -389,7 +389,7 @@ function handleDomainAction(key, item) {
 
 .node-meta {
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   text-overflow: ellipsis;

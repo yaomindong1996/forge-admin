@@ -370,7 +370,7 @@ function toFormulaFieldConfig(field = {}) {
   gap: 10px;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 10px 12px;
 }
 
@@ -382,14 +382,14 @@ function toFormulaFieldConfig(field = {}) {
 .svg-node span,
 .svg-node em {
   display: block;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-style: normal;
 }
 
 .graph-toolbar strong {
   display: block;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 18px;
   line-height: 1.3;
 }
@@ -410,7 +410,7 @@ function toFormulaFieldConfig(field = {}) {
   align-content: start;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 12px;
 }
 
@@ -418,7 +418,7 @@ function toFormulaFieldConfig(field = {}) {
   overflow: auto;
   min-height: 480px;
   background:
-    linear-gradient(#f8fafc 19px, transparent 20px), linear-gradient(90deg, #f8fafc 19px, transparent 20px), #fff;
+    linear-gradient(var(--bg-secondary) 19px, transparent 20px), linear-gradient(90deg, var(--bg-secondary) 19px, transparent 20px), var(--bg-primary);
   background-size: 20px 20px;
 }
 
@@ -459,7 +459,7 @@ function toFormulaFieldConfig(field = {}) {
 }
 
 .svg-edge-label text {
-  fill: #334155;
+  fill: var(--text-primary);
   font-size: 11px;
   font-weight: 700;
 }
@@ -472,14 +472,14 @@ function toFormulaFieldConfig(field = {}) {
   height: 78px;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   box-shadow: 0 10px 20px rgba(15, 23, 42, 0.06);
   padding: 9px 10px;
 }
 
 .svg-node strong {
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 14px;
   line-height: 1.35;
   text-overflow: ellipsis;
@@ -527,7 +527,7 @@ function toFormulaFieldConfig(field = {}) {
 }
 
 .edge-list > strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
@@ -536,15 +536,15 @@ function toFormulaFieldConfig(field = {}) {
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 8px;
 }
 
 .graph-edge code {
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   text-overflow: ellipsis;
@@ -553,7 +553,7 @@ function toFormulaFieldConfig(field = {}) {
 .graph-edge span {
   border-radius: 999px;
   background: #e8eef7;
-  color: #334155;
+  color: var(--text-primary);
   font-size: 11px;
   font-weight: 700;
   padding: 3px 7px;

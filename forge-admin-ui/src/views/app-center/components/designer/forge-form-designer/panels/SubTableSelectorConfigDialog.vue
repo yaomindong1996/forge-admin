@@ -335,7 +335,7 @@ function moveFilter(index, offset) {
   padding: 6px 8px;
   border: 1px solid #ececf0;
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .order-section {
@@ -374,21 +374,21 @@ function moveFilter(index, offset) {
   gap: 8px;
   min-height: 28px;
   padding: 4px 6px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 5px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .drag-handle,
 .filter-drag-handle {
   cursor: grab;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   letter-spacing: -2px;
 }
 
 .order-index {
   width: 18px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 11px;
   text-align: center;
 }
@@ -405,7 +405,7 @@ function moveFilter(index, offset) {
 
 .filter-order-index {
   width: 18px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 11px;
   text-align: center;
 }
@@ -447,7 +447,7 @@ function moveFilter(index, offset) {
   padding: 8px;
   border: 1px solid #ececf0;
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .filter-card-head {

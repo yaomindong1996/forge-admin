@@ -79,16 +79,16 @@ const statusCount = computed(() => (props.form.statusMappingRows || []).filter(r
 }
 
 .document-config-summary section {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
 .document-config-summary h4,
 .flow-summary-head h4 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 15px;
 }
 
@@ -104,14 +104,14 @@ const statusCount = computed(() => (props.form.statusMappingRows || []).filter(r
 }
 
 .summary-facts span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .summary-facts strong,
 .flow-summary strong {
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -148,7 +148,7 @@ const statusCount = computed(() => (props.form.statusMappingRows || []).filter(r
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
   list-style: none;
 }

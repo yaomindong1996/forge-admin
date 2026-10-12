@@ -411,9 +411,9 @@ function showPreviewMessage(action) {
 
 <style scoped>
 .builder-zone {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
   cursor: pointer;
   min-width: 0;
@@ -440,13 +440,13 @@ function showPreviewMessage(action) {
 .zone-title {
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .zone-meta {
   margin-top: 2px;
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
@@ -458,7 +458,7 @@ function showPreviewMessage(action) {
   gap: 6px;
   padding-top: 12px;
   margin-top: 12px;
-  border-top: 1px dashed #e5e7eb;
+  border-top: 1px dashed var(--border-light);
 }
 
 .empty-state {
@@ -466,10 +466,10 @@ function showPreviewMessage(action) {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
-  color: #94a3b8;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -497,7 +497,7 @@ function showPreviewMessage(action) {
 
 .field-count,
 .more-text {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 

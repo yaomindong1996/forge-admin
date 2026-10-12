@@ -115,7 +115,7 @@ function handleUnmount() {
 
 .page-system-menu-mount-dialog__desc {
   margin: 0;
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -127,17 +127,17 @@ function handleUnmount() {
   margin: 0;
   padding: 12px 14px;
   border-radius: 8px;
-  background: #f7f8fa;
+  background: var(--bg-secondary);
 }
 
 .page-system-menu-mount-dialog__meta dt {
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
 .page-system-menu-mount-dialog__meta dd {
   margin: 4px 0 0;
-  color: #1d2129;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
 }

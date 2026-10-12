@@ -183,7 +183,7 @@ function defaultBusinessApiBase() {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
   padding: 14px 16px;
 }
 
@@ -191,14 +191,14 @@ function defaultBusinessApiBase() {
 .advanced-safe-card h4,
 .schema-grid h4 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 15px;
 }
 
 .advanced-head p,
 .advanced-safe-card p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -206,16 +206,16 @@ function defaultBusinessApiBase() {
 .advanced-body {
   min-width: 0;
   overflow: auto;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 14px;
 }
 
 .advanced-safe-card,
 .advanced-grid div,
 .schema-grid section {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
@@ -229,7 +229,7 @@ function defaultBusinessApiBase() {
 
 .safe-summary div {
   border-radius: 6px;
-  background: #f1f5f9;
+  background: var(--bg-tertiary);
   padding: 12px;
 }
 
@@ -237,14 +237,14 @@ function defaultBusinessApiBase() {
 .advanced-grid span,
 .api-list span {
   display: block;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .safe-summary strong {
   display: block;
   margin-top: 6px;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 16px;
 }
 
@@ -253,7 +253,7 @@ function defaultBusinessApiBase() {
   display: block;
   overflow: hidden;
   margin-top: 6px;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -269,7 +269,7 @@ function defaultBusinessApiBase() {
 .developer-actions button {
   border: 1px solid #dbeafe;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   color: #1d4ed8;
   cursor: pointer;
   padding: 14px;
@@ -283,22 +283,22 @@ function defaultBusinessApiBase() {
 
 .developer-actions strong {
   display: block;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .developer-actions span {
   display: block;
   margin-top: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .advanced-table-wrap {
   overflow: auto;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .advanced-table {
@@ -310,15 +310,15 @@ function defaultBusinessApiBase() {
 .advanced-table th,
 .advanced-table td {
   border-bottom: 1px solid #eef2f7;
-  color: #334155;
+  color: var(--text-primary);
   padding: 10px 12px;
   text-align: left;
   white-space: nowrap;
 }
 
 .advanced-table th {
-  background: #f8fafc;
-  color: #475569;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-weight: 700;
 }
 
@@ -346,9 +346,9 @@ function defaultBusinessApiBase() {
 }
 
 .api-list div {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 12px;
 }
 </style>

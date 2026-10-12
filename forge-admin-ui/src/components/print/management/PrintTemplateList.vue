@@ -458,8 +458,8 @@ async function refresh() {
   flex-direction: column;
   min-width: 0;
   overflow: hidden;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
   border-radius: 2px;
   transition:
     box-shadow 160ms ease,
@@ -467,7 +467,7 @@ async function refresh() {
     opacity 160ms ease;
 }
 .print-card:hover {
-  border-color: #cbd5e1;
+  border-color: var(--border-light);
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
 .print-card.disabled {
@@ -485,7 +485,7 @@ async function refresh() {
   padding: 0;
   border: 0;
   border-bottom: 1px solid #eef2f7;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   cursor: pointer;
 }
 .print-card__paper {
@@ -496,8 +496,8 @@ async function refresh() {
   width: 78px;
   height: 104px;
   padding: 12px 10px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
   border-radius: 2px;
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
 }
@@ -506,7 +506,7 @@ async function refresh() {
   display: block;
   height: 4px;
   border-radius: 1px;
-  background: #e2e8f0;
+  background: var(--bg-tertiary);
 }
 .print-card__paper-line.short {
   width: 42%;
@@ -525,7 +525,7 @@ async function refresh() {
   right: 12px;
   bottom: 10px;
   font-size: 14px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 .print-card__header {
   display: flex;
@@ -591,7 +591,7 @@ async function refresh() {
   display: grid;
   gap: 6px;
   padding: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border: 1px solid #eef2f7;
   border-radius: 2px;
 }
@@ -599,7 +599,7 @@ async function refresh() {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 .print-card__scene-tags {
@@ -608,7 +608,7 @@ async function refresh() {
   gap: 6px;
 }
 .print-card__scene-empty {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 .print-scene-select {
@@ -621,13 +621,13 @@ async function refresh() {
   gap: 8px;
   min-width: 0;
   padding: 8px 12px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border-top: 1px solid #eef2f7;
 }
 .print-card__meta {
   min-width: 0;
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -669,7 +669,7 @@ async function refresh() {
   place-items: center;
   width: 22px;
   height: 22px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 .print-card__more:disabled,
@@ -681,6 +681,6 @@ async function refresh() {
   width: 1px;
   height: 12px;
   margin: 0 2px;
-  background: #e2e8f0;
+  background: var(--bg-tertiary);
 }
 </style>

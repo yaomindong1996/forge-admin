@@ -482,10 +482,10 @@ onMounted(() => {
 
 /* 配置分组卡片 */
 .config-section {
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border-radius: 10px;
   padding: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
 }
 
 .section-header {
@@ -498,7 +498,7 @@ onMounted(() => {
   gap: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .section-icon {
@@ -508,7 +508,7 @@ onMounted(() => {
 
 .section-desc {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
   margin-top: 4px;
 }
 
@@ -532,13 +532,13 @@ onMounted(() => {
   justify-content: end;
   gap: 12px;
   padding-top: 16px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border-light);
 }
 
 /* 深色模式 */
 .dark .config-section {
   background: #1e293b;
-  border-color: #334155;
+  border-color: var(--border-light);
 }
 
 .dark .section-title {
@@ -550,10 +550,10 @@ onMounted(() => {
 }
 
 .dark .section-desc {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark .form-footer {
-  border-top-color: #334155;
+  border-top-color: var(--border-light);
 }
 </style>

@@ -60,14 +60,14 @@
 }
 
 .role-selector-copy strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 650;
   line-height: 1.2;
 }
 
 .role-selector-copy small {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   line-height: 1.2;
 }
@@ -80,7 +80,7 @@
   gap: 8px;
   padding: 0 12px 8px;
   border-bottom: 1px solid #f1f5f9;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .role-tabs {
@@ -93,7 +93,7 @@
   padding: 2px;
   border: 0;
   border-radius: 6px;
-  background: #f1f5f9;
+  background: var(--bg-tertiary);
 }
 
 .role-tabs button {
@@ -104,7 +104,7 @@
   border: 0;
   border-radius: 5px;
   background: transparent;
-  color: #64748b;
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
@@ -123,7 +123,7 @@
 }
 
 .role-tabs button.is-active {
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
 }
 
@@ -169,7 +169,7 @@
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
-  color: #0f172a;
+  color: var(--text-primary);
   cursor: pointer;
   text-align: left;
   transition:
@@ -179,8 +179,8 @@
 }
 
 .role-list-item:hover {
-  border-color: #e2e8f0;
-  background: #fff;
+  border-color: var(--border-light);
+  background: var(--bg-primary);
 }
 
 .role-list-item.is-selected {
@@ -247,7 +247,7 @@
   align-items: center;
   gap: 6px;
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
@@ -281,7 +281,7 @@
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #64748b;
+  color: var(--text-secondary);
   cursor: pointer;
   opacity: 0;
   transition:
@@ -296,8 +296,8 @@
 }
 
 .role-card-menu:hover {
-  background: #e2e8f0;
-  color: #334155;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .role-card-menu i {
@@ -307,7 +307,7 @@
 :global(.role-action-dropdown-menu) {
   min-width: 136px;
   padding: 6px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   box-shadow: 0 16px 34px rgba(15, 23, 42, 0.14);
 }
@@ -338,13 +338,13 @@
   min-height: 54px;
   padding: 11px 16px;
   border-bottom: 1px solid #e6ebf2;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .role-user-header h2 {
   overflow: hidden;
   margin: 0;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: 650;
   line-height: 1.25;
@@ -369,7 +369,7 @@
 
 .role-user-heading small {
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
@@ -392,7 +392,7 @@
   gap: 8px;
   padding: 9px 16px;
   border-bottom: 1px solid #edf1f7;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .role-user-search-actions {
@@ -413,7 +413,7 @@
   flex-direction: column;
   overflow: hidden;
   padding: 8px 10px 10px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .member-body :deep(.ai-crud-page) {
@@ -449,7 +449,7 @@
 
 :global(.role-member-plain) {
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -471,7 +471,7 @@
 }
 
 :global(.role-member-status.is-disabled) {
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 :global(.role-member-status-dot) {
@@ -509,8 +509,8 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  color: #0f172a;
-  background: #f8fafc;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
 }
 
 .auth-workspace-header {
@@ -522,8 +522,8 @@
   gap: 16px;
   min-height: 56px;
   padding: 10px 16px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
 }
 
 .auth-header-main {
@@ -538,7 +538,7 @@
   align-items: center;
   min-width: 0;
   gap: 10px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
 }
@@ -574,7 +574,7 @@
 .auth-role-key {
   max-width: 260px;
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -591,8 +591,8 @@
 .auth-client-tabs {
   flex: 0 0 auto;
   padding: 8px 16px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
 }
 
 .auth-client-tabs :deep(.n-tabs-nav) {
@@ -615,7 +615,7 @@
   padding: 10px;
   border: 1px solid rgba(226, 232, 240, 0.92);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.94);
+  background: color-mix(in srgb, var(--bg-primary) 94%, transparent);
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.16);
   backdrop-filter: blur(10px);
 }
@@ -655,9 +655,9 @@
   gap: 12px;
   padding: 8px 10px;
   margin-bottom: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .role-scope-mode {
@@ -670,8 +670,8 @@
 /* 弹窗底部按钮样式 */
 :deep(.n-card__footer) {
   padding: 14px 24px;
-  border-top: 1px solid #e5e7eb;
-  background-color: #f8fafc;
+  border-top: 1px solid var(--border-light);
+  background-color: var(--bg-secondary);
 }
 
 /* 深色模式 */
@@ -692,7 +692,7 @@
 .dark .role-selector-tools,
 .dark .role-user-header,
 .dark .role-user-search {
-  border-color: #334155;
+  border-color: var(--border-light);
   background: #0f172a;
 }
 
@@ -718,7 +718,7 @@
 .dark .role-card-meta,
 .dark .role-member-main small,
 .dark .role-member-plain {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark .role-tabs button {
@@ -737,7 +737,7 @@
 }
 
 .dark .role-list-item:hover {
-  border-color: #334155;
+  border-color: var(--border-light);
   background: #162033;
 }
 
@@ -765,7 +765,7 @@
 }
 
 .dark .role-card-menu {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark .role-card-menu:hover {
@@ -774,12 +774,12 @@
 }
 
 :global(.dark .role-action-dropdown-menu) {
-  border-color: #334155;
+  border-color: var(--border-light);
   box-shadow: 0 16px 34px rgba(0, 0, 0, 0.34);
 }
 
 .dark :global(.role-member-plain) {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark :global(.role-member-status) {
@@ -787,7 +787,7 @@
 }
 
 .dark :global(.role-member-status.is-disabled) {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark :global(.role-member-status-dot) {
@@ -806,7 +806,7 @@
 .dark .auth-workspace-header,
 .dark .auth-client-tabs {
   background: #111827;
-  border-color: #334155;
+  border-color: var(--border-light);
 }
 
 .dark .auth-breadcrumb {
@@ -822,7 +822,7 @@
 
 .dark .auth-role-key,
 .dark .auth-breadcrumb-divider {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark .auth-floating-actions {
@@ -833,7 +833,7 @@
 
 .dark .role-org-toolbar {
   background: #111827;
-  border-color: #334155;
+  border-color: var(--border-light);
 }
 
 @media (max-width: 760px) {

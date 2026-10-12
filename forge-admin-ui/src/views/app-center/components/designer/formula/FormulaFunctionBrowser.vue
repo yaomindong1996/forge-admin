@@ -252,7 +252,7 @@ defineExpose({
   gap: 10px;
   width: 100%;
   border-top: 1px solid #d2d8e2;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 10px;
 }
 
@@ -275,8 +275,8 @@ defineExpose({
   height: 26px;
   border: 1px solid #d6dde8;
   border-radius: 6px;
-  background: #fff;
-  color: #475569;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 12px;
   padding: 0 9px;
@@ -329,7 +329,7 @@ defineExpose({
   min-width: 0;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 10px;
 }
 
@@ -345,8 +345,8 @@ defineExpose({
   min-height: 64px;
   border: 1px solid #d6dde8;
   border-radius: 7px;
-  background: #fff;
-  color: #111827;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   cursor: pointer;
   text-align: left;
   padding: 9px 10px;
@@ -370,7 +370,7 @@ defineExpose({
 
 .function-code {
   overflow: hidden;
-  color: #1f2937;
+  color: var(--text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 13px;
   font-weight: 800;
@@ -394,7 +394,7 @@ defineExpose({
 .function-meta i {
   display: -webkit-box;
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-style: normal;
   line-height: 1.4;
@@ -413,7 +413,7 @@ defineExpose({
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-light);
   padding-bottom: 12px;
 }
 
@@ -425,12 +425,12 @@ defineExpose({
 
 .function-detail-head span,
 .function-detail-section span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .function-detail-head strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 16px;
   line-height: 1.35;
 }
@@ -439,8 +439,8 @@ defineExpose({
 .function-detail-section code {
   overflow-x: auto;
   border-radius: 7px;
-  background: #f8fafc;
-  color: #1f2937;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   padding: 7px 8px;
@@ -453,7 +453,7 @@ defineExpose({
 
 .function-detail-section p {
   margin: 0;
-  color: #334155;
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -470,13 +470,13 @@ defineExpose({
   gap: 8px;
   border: 1px solid #edf1f6;
   border-radius: 7px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 8px 9px;
 }
 
 .argument-item strong {
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;

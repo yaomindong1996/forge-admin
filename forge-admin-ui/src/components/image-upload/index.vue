@@ -699,7 +699,7 @@ onMounted(() => {
 .image-name {
   padding: 2px 4px;
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -736,7 +736,7 @@ onMounted(() => {
   top: 4px;
   right: 4px;
   font-size: 16px;
-  color: #999;
+  color: var(--text-tertiary);
   cursor: pointer;
 }
 
@@ -747,7 +747,7 @@ onMounted(() => {
 .upload-trigger {
   width: 96px;
   height: 96px;
-  border: 1px dashed #d9d9d9;
+  border: 1px dashed var(--border-light);
   border-radius: 4px;
   display: flex;
   align-items: center;

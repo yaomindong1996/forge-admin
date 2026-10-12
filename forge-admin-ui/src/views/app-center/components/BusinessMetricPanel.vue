@@ -114,21 +114,21 @@ function barWidth(value, items = []) {
 
 .metric-card,
 .metric-section {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
 .metric-card span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .metric-card strong {
   display: block;
   margin-top: 6px;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 24px;
   font-weight: 700;
 }
@@ -143,14 +143,14 @@ function barWidth(value, items = []) {
 
 .metric-section-head h3 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 15px;
 }
 
 .metric-section-head span {
   border-radius: 4px;
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   font-size: 12px;
   padding: 2px 8px;
 }
@@ -169,7 +169,7 @@ function barWidth(value, items = []) {
 
 .trend-row span,
 .trend-row strong {
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -185,7 +185,7 @@ function barWidth(value, items = []) {
   height: 18px;
   overflow: hidden;
   border-radius: 4px;
-  background: #e2e8f0;
+  background: var(--bg-tertiary);
 }
 
 .trend-track i {

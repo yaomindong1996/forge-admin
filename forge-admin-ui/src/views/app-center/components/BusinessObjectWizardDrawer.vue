@@ -775,9 +775,9 @@ function defaultForm(defaultCreateMode = 'BLANK') {
   gap: 10px;
   min-height: 104px;
   cursor: pointer;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
   transition:
     border-color 160ms ease,
@@ -798,7 +798,7 @@ function defaultForm(defaultCreateMode = 'BLANK') {
 
 .runtime-datasource-panel {
   margin-top: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   background: #fbfdff;
   padding: 14px;
@@ -810,12 +810,12 @@ function defaultForm(defaultCreateMode = 'BLANK') {
   gap: 10px;
   min-height: 36px;
   border-top: 1px solid #eef2f7;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .table-summary__name {
-  color: #111827;
+  color: var(--text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-weight: 600;
 }
@@ -827,28 +827,28 @@ function defaultForm(defaultCreateMode = 'BLANK') {
 }
 
 .method-card strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 14px;
   line-height: 1.45;
 }
 
 .method-card small {
   margin-top: 6px;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
 
 .wizard-hint {
   max-width: 280px;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
 
 .existing-tip {
   margin: 0 0 8px;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -856,7 +856,7 @@ function defaultForm(defaultCreateMode = 'BLANK') {
 .existing-tip code {
   padding: 1px 5px;
   border-radius: 4px;
-  background: #f1f5f9;
+  background: var(--bg-tertiary);
   color: #2f6feb;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
@@ -864,7 +864,7 @@ function defaultForm(defaultCreateMode = 'BLANK') {
 
 .existing-sub {
   margin: 0 0 18px;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.6;
 }

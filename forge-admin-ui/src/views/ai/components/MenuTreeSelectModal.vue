@@ -7,7 +7,7 @@
     :mask-closable="false"
   >
     <div style="margin-bottom: 12px;">
-      <div style="font-size:13px;color:#666;margin-bottom:6px;">
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;">
         菜单名称（新菜单的名字，不是父级菜单）
       </div>
       <n-input
@@ -15,7 +15,7 @@
         placeholder="必填：新菜单名称，如『员工管理』"
       />
     </div>
-    <div style="font-size:13px;color:#666;margin-bottom:6px;">
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;">
       选择放置位置（父级目录）
     </div>
     <div class="menu-tree-select-modal">

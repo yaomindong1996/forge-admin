@@ -25,7 +25,7 @@ const rootStyle = computed(() => ({
   width: '100%',
   height: '100%',
   overflow: 'hidden',
-  color: '#111827',
+  color: 'var(--text-primary)',
   fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif',
   fontSize: `${fontSizePt.value}pt`,
 }))
@@ -33,7 +33,7 @@ const titleStyle = computed(() => ({
   marginBottom: '1.5mm',
   lineHeight: 1.3,
   textAlign: ['left', 'center', 'right'].includes(block.value.titleAlign) ? block.value.titleAlign : 'left',
-  color: block.value.titleColor || '#111827',
+  color: block.value.titleColor || 'var(--text-primary)',
   fontSize: `${Number(block.value.titleFontSizePt) || 12}pt`,
   fontWeight: block.value.titleBold === false ? 400 : 700,
 }))
@@ -61,7 +61,7 @@ const contentStyle = computed(() => ({
   minWidth: 0,
   overflowWrap: 'anywhere',
   ...(bordered.value
-    ? { padding: '1.6mm 2mm', background: '#fff' }
+    ? { padding: '1.6mm 2mm', background: 'var(--bg-primary)' }
     : null),
 }))
 
@@ -77,7 +77,7 @@ function cellStyle(item) {
       ? {
           border: '0.25mm solid #c5d0de',
           margin: '0 -0.25mm -0.25mm 0',
-          background: '#fff',
+          background: 'var(--bg-primary)',
         }
       : null),
   }

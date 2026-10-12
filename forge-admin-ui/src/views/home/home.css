@@ -1,10 +1,10 @@
 .home-page {
-  --home-bg: #f6f8fb;
+  --home-bg: var(--bg-secondary);
   --home-panel: #ffffff;
   --home-soft: #f8fafc;
-  --home-border: #e5e7eb;
+  --home-border: var(--border-light);
   --home-border-strong: #d1d5db;
-  --home-text: #1f2329;
+  --home-text: var(--text-primary);
   --home-text-secondary: #4e5969;
   --home-muted: #86909c;
   --home-brand: var(--primary-color, #0e42d2);
@@ -63,7 +63,7 @@
   min-width: 0;
   border: 1px solid var(--home-border);
   border-radius: var(--home-radius-sm);
-  background: #fff;
+  background: var(--bg-primary);
   color: inherit;
   cursor: pointer;
   text-align: left;
@@ -206,7 +206,7 @@
   overflow: hidden;
   border: 1px solid var(--home-border);
   border-radius: var(--home-radius-sm);
-  background: #fff;
+  background: var(--bg-primary);
   cursor: zoom-in;
 }
 
@@ -368,7 +368,7 @@ html.dark .home-page,
   --home-bg: #0f172a;
   --home-panel: #111827;
   --home-soft: #162033;
-  --home-border: #334155;
+  --home-border: var(--border-light);
   --home-border-strong: #475569;
   --home-text: #f1f5f9;
   --home-text-secondary: #cbd5e1;
@@ -389,7 +389,7 @@ html.dark .support-qr,
 
 html.dark .support-qr,
 .dark .support-qr {
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 @media (max-width: 1100px) {

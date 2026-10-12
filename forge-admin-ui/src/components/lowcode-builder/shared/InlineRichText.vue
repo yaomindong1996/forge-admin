@@ -246,7 +246,7 @@ function updateToolbarPosition() {
 .inline-rich-text-editor :deep(.w-e-text) {
   min-height: 100%;
   padding: 8px 20px 14px;
-  color: #1f2329;
+  color: var(--text-primary);
   cursor: text;
 }
 
@@ -271,7 +271,7 @@ function updateToolbarPosition() {
 
 .inline-rich-text-editor :deep(h1) {
   margin: 0;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 28px;
   font-weight: 800;
   line-height: 1.3;
@@ -296,13 +296,13 @@ function updateToolbarPosition() {
   max-width: calc(100vw - 16px);
   overflow: visible;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 8px 24px rgba(31, 35, 41, 0.18);
 }
 
 :global(.inline-rich-text-floating-toolbar .w-e-toolbar) {
   border: 0 !important;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 </style>

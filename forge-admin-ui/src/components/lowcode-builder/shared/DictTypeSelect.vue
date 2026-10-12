@@ -302,12 +302,12 @@ async function saveDict() {
 
 .dict-select-control :deep(.n-base-selection) {
   min-height: 32px;
-  border-color: #cbd5e1;
-  background: #fff;
+  border-color: var(--border-light);
+  background: var(--bg-primary);
 }
 
 .dict-select-control :deep(.n-base-selection-label) {
-  color: #111827;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
@@ -335,7 +335,7 @@ async function saveDict() {
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--bg-primary);
   color: #2563eb;
   font-size: 12px;
   font-weight: 800;

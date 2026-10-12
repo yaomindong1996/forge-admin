@@ -262,7 +262,7 @@ function finishDragging() {
   height: 100%;
   min-height: 0;
   padding: 12px;
-  background: #fcfcfc;
+  background: var(--bg-secondary);
 }
 
 .shelf-head {
@@ -272,7 +272,7 @@ function finishDragging() {
   gap: 10px;
   padding: 0;
   border-bottom: 0;
-  background: #fcfcfc;
+  background: var(--bg-secondary);
 }
 
 .shelf-head-main {
@@ -293,7 +293,7 @@ function finishDragging() {
 
 .shelf-head p {
   margin-top: 2px;
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 11px;
   line-height: 16px;
 }
@@ -343,7 +343,7 @@ function finishDragging() {
   border: 0;
   border-radius: 7px;
   background: transparent;
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 12px;
   font-weight: 600;
   transition:
@@ -355,12 +355,12 @@ function finishDragging() {
 
 .shelf-mode-tabs button:hover {
   background: rgba(228, 228, 231, 0.72);
-  color: #27272a;
+  color: var(--text-primary);
 }
 
 .shelf-mode-tabs button.active {
-  background: #fff;
-  color: #27272a;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
@@ -369,13 +369,13 @@ function finishDragging() {
   display: flex;
   flex-direction: column;
   padding: 2px 0 0;
-  background: #fcfcfc;
+  background: var(--bg-secondary);
 }
 
 .field-item {
   cursor: grab;
   border: 1px solid #e4e4e7;
-  background: #fff;
+  background: var(--bg-primary);
   transition:
     border-color 180ms ease,
     background 180ms ease,
@@ -424,7 +424,7 @@ function finishDragging() {
   border: 0;
   border-radius: 7px;
   background: transparent;
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 12px;
   font-weight: 600;
   line-height: 28px;
@@ -432,12 +432,12 @@ function finishDragging() {
 
 .field-tabs button:hover {
   background: rgba(228, 228, 231, 0.72);
-  color: #27272a;
+  color: var(--text-primary);
 }
 
 .field-tabs button.active {
-  background: #fff;
-  color: #27272a;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
@@ -465,14 +465,14 @@ function finishDragging() {
 
 .field-item:disabled {
   cursor: not-allowed;
-  background: #f8fafc;
-  color: #94a3b8;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
 }
 
 .drag-handle {
   display: grid;
   place-items: center;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .field-item:hover:not(:disabled) .drag-handle {
@@ -492,20 +492,20 @@ function finishDragging() {
 }
 
 .field-main strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 12px;
 }
 
 .field-main small {
   margin-top: 2px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
 .field-item em {
   border-radius: 999px;
-  background: #e2e8f0;
-  color: #64748b;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   font-size: 11px;
   font-style: normal;
   line-height: 20px;

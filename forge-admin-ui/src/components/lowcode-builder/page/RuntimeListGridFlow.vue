@@ -170,8 +170,8 @@ const nestedRuntimeCrudPropsResolver = computed(() => {
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  border-right: 1px solid #e5e7eb;
-  background: #fafafa;
+  border-right: 1px solid var(--border-light);
+  background: var(--bg-secondary);
   box-sizing: border-box;
   transition: width 0.18s ease, flex-basis 0.18s ease, min-width 0.18s ease, max-width 0.18s ease;
 }
@@ -285,7 +285,7 @@ const nestedRuntimeCrudPropsResolver = computed(() => {
     height: auto;
     max-height: 280px;
     border-right: 0;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border-light);
   }
 
   .runtime-list-grid-flow__tree.is-collapsed {

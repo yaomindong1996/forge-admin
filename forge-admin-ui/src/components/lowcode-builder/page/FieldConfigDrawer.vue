@@ -745,14 +745,14 @@ function renderTargetFieldOptions(field = {}) {
   display: grid;
   gap: 8px;
   padding: 10px 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .child-list-display .field-help {
   margin: 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -769,7 +769,7 @@ function renderTargetFieldOptions(field = {}) {
   justify-content: space-between;
   font-size: 12px;
   font-weight: 700;
-  color: #334155;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
@@ -792,8 +792,8 @@ function renderTargetFieldOptions(field = {}) {
   padding: 5px 5px 5px 8px;
   border: 1px solid #e4e4e7;
   border-radius: 6px;
-  background: #fff;
-  color: #3f3f46;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   font-size: 11px;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
@@ -826,7 +826,7 @@ function renderTargetFieldOptions(field = {}) {
   min-width: 0;
   margin-left: 26px;
   padding-top: 8px;
-  border-top: 1px dashed #e2e8f0;
+  border-top: 1px dashed var(--border-light);
 }
 
 .search-setting-row {
@@ -841,7 +841,7 @@ function renderTargetFieldOptions(field = {}) {
   padding: 0 8px;
   border-radius: 4px;
   background: #f4f4f5;
-  color: #52525b;
+  color: var(--text-secondary);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -908,7 +908,7 @@ function renderTargetFieldOptions(field = {}) {
 .field-detail-title span {
   min-width: 0;
   overflow: hidden;
-  color: #a1a1aa;
+  color: var(--text-tertiary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   text-overflow: ellipsis;
@@ -927,7 +927,7 @@ function renderTargetFieldOptions(field = {}) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #52525b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
@@ -946,7 +946,7 @@ function renderTargetFieldOptions(field = {}) {
 }
 
 .field-detail-control > span {
-  color: #52525b;
+  color: var(--text-secondary);
   font-size: 10px;
   font-weight: 600;
 }
@@ -977,8 +977,8 @@ function renderTargetFieldOptions(field = {}) {
   padding: 7px 9px;
   border: 1px dashed #d4d4d8;
   border-radius: 6px;
-  background: #fff;
-  color: #71717a;
+  background: var(--bg-primary);
+  color: var(--text-tertiary);
   font-size: 11px;
   line-height: 1.55;
 }
@@ -990,7 +990,7 @@ function renderTargetFieldOptions(field = {}) {
 }
 
 .field-setting-control > span {
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 700;
   line-height: 16px;
@@ -1030,7 +1030,7 @@ function renderTargetFieldOptions(field = {}) {
 
 .f-name small {
   margin-left: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 10px;
   font-weight: 500;
 }
@@ -1047,7 +1047,7 @@ function renderTargetFieldOptions(field = {}) {
 
 .field-group-title {
   flex: 1 0 100%;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 700;
   line-height: 18px;
@@ -1077,7 +1077,7 @@ function renderTargetFieldOptions(field = {}) {
 }
 
 .available-item small {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 400;
 }
@@ -1129,9 +1129,9 @@ function renderTargetFieldOptions(field = {}) {
   gap: 6px;
   width: fit-content;
   padding: 4px 10px;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--border-light);
   border-radius: 6px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   color: #2563eb;
   font-size: 12px;
   cursor: pointer;
@@ -1144,6 +1144,6 @@ function renderTargetFieldOptions(field = {}) {
 
 .empty {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 </style>

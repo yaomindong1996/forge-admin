@@ -131,19 +131,19 @@ function flattenDomains(nodes, level = 0) {
 .app-summary {
   display: grid;
   gap: 4px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 12px;
 }
 
 .app-summary strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .app-summary span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
 }

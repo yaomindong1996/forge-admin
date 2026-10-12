@@ -141,9 +141,9 @@ function hasCodeAppFlag(value) {
   align-items: start;
   min-height: 156px;
   cursor: pointer;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 12px;
   transition:
     border-color 180ms ease,
@@ -183,7 +183,7 @@ function hasCodeAppFlag(value) {
   min-width: 0;
   margin: 0;
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 16px;
   font-weight: 650;
   line-height: 1.35;
@@ -195,7 +195,7 @@ function hasCodeAppFlag(value) {
   display: -webkit-box;
   margin: 6px 0 0;
   overflow: hidden;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.5;
   -webkit-box-orient: vertical;
@@ -208,7 +208,7 @@ function hasCodeAppFlag(value) {
   gap: 8px;
   align-items: center;
   margin-top: 10px;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -216,7 +216,7 @@ function hasCodeAppFlag(value) {
   display: inline-flex;
   align-items: center;
   border-radius: 4px;
-  background: #f3f4f6;
+  background: var(--bg-tertiary);
   line-height: 22px;
   padding: 0 8px;
 }

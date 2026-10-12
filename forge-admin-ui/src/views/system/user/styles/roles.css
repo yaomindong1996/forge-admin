@@ -25,8 +25,8 @@
   justify-content: space-between;
   gap: 10px;
   padding: 8px 10px;
-  background-color: #f8fafc;
-  border: 1px solid #e5e7eb;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   margin-bottom: 8px;
   flex-shrink: 0;
@@ -47,7 +47,7 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   padding: 0;
   min-height: 240px;
@@ -140,12 +140,12 @@
 .dark
   :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal)
   .auth-tree-container {
-  border-color: #334155;
+  border-color: var(--border-light);
 }
 
 .dark :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal) .auth-toolbar {
   background-color: #1e293b;
-  border-color: #334155;
+  border-color: var(--border-light);
 }
 
 .dark

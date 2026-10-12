@@ -46,8 +46,8 @@ const visible = computed(() => Boolean(headline.value || fields.value.length))
   max-width: 180px;
   padding: 0 8px;
   border-radius: 999px;
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
   font-size: 11px;
   line-height: 20px;
   overflow: hidden;
@@ -56,7 +56,7 @@ const visible = computed(() => Boolean(headline.value || fields.value.length))
 }
 
 .task-business-chip em {
-  color: #64748b;
+  color: var(--text-secondary);
   font-style: normal;
 }
 

@@ -487,7 +487,7 @@ defineExpose({
   padding: 5px 7px;
   border: 1px solid rgba(228, 228, 231, 0.9);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.94);
+  background: color-mix(in srgb, var(--bg-primary) 94%, transparent);
   box-shadow:
     0 4px 12px rgba(15, 23, 42, 0.06),
     0 1px 3px rgba(15, 23, 42, 0.06);
@@ -521,7 +521,7 @@ defineExpose({
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: #a1a1aa;
+  color: var(--text-tertiary);
   font-size: 16px;
   padding: 0;
   transition:
@@ -532,7 +532,7 @@ defineExpose({
 .viewport-device-button:hover,
 .viewport-device-button.active {
   background: #f4f4f5;
-  color: #3f3f46;
+  color: var(--text-secondary);
 }
 
 .canvas-viewport-popover {
@@ -543,7 +543,7 @@ defineExpose({
 .canvas-viewport-field {
   display: grid;
   gap: 5px;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
 }
@@ -554,13 +554,13 @@ defineExpose({
 }
 
 .viewport-popover-head strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 18px;
 }
 
 .viewport-popover-head span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 16px;
   white-space: nowrap;
@@ -585,7 +585,7 @@ defineExpose({
 }
 
 .viewport-icon-button {
-  --n-color: #fff !important;
+  --n-color: var(--bg-primary) !important;
   --n-color-hover: #f4f6ff !important;
   --n-color-pressed: #e8edff !important;
   --n-color-focus: #fff !important;
@@ -593,7 +593,7 @@ defineExpose({
   --n-border-hover: 1px solid #c7d2fe !important;
   --n-border-pressed: 1px solid #a5b4fc !important;
   --n-border-focus: 1px solid #c7d2fe !important;
-  --n-text-color: #52525b !important;
+  --n-text-color: var(--text-secondary) !important;
   --n-text-color-hover: #3153d8 !important;
   --n-text-color-pressed: #253fb2 !important;
   --n-text-color-focus: #3153d8 !important;
@@ -604,7 +604,7 @@ defineExpose({
 }
 
 .viewport-zoom-button {
-  --n-color: #fff !important;
+  --n-color: var(--bg-primary) !important;
   --n-color-hover: #f4f6ff !important;
   --n-color-pressed: #e8edff !important;
   --n-color-focus: #fff !important;
@@ -612,7 +612,7 @@ defineExpose({
   --n-border-hover: 1px solid #c7d2fe !important;
   --n-border-pressed: 1px solid #a5b4fc !important;
   --n-border-focus: 1px solid #c7d2fe !important;
-  --n-text-color: #52525b !important;
+  --n-text-color: var(--text-secondary) !important;
   --n-text-color-hover: #3153d8 !important;
   --n-text-color-pressed: #253fb2 !important;
   --n-text-color-focus: #3153d8 !important;
@@ -638,7 +638,7 @@ defineExpose({
   margin: 0 auto;
   border: 1px solid #e4e4e7;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
   box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
   transition:
@@ -673,7 +673,7 @@ defineExpose({
 .canvas-empty.active,
 .canvas-empty:hover {
   border-color: #9ca3af;
-  background: #f3f4f6;
+  background: var(--bg-tertiary);
   box-shadow: 8px 8px 0 rgba(148, 163, 184, 0.36);
 }
 
@@ -682,7 +682,7 @@ defineExpose({
 }
 
 .canvas-empty span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -703,7 +703,7 @@ defineExpose({
   margin: 4px 0;
   margin-bottom: 4px;
   border: 1px dashed #9ca3af;
-  background: #f3f4f6;
+  background: var(--bg-tertiary);
   box-shadow: none;
 }
 
@@ -716,7 +716,7 @@ defineExpose({
 }
 
 .preview-mode {
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .preview-mode .canvas-stage-shell {

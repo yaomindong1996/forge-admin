@@ -8,14 +8,14 @@
   gap: 6px;
   width: 100%;
   padding: 10px 12px;
-  border: 1px dashed var(--n-border-color, #d9dfe8);
+  border: 1px dashed var(--border-light);
   border-radius: 6px;
   background: rgba(32, 128, 240, 0.03);
 }
 
 .subtable-preview.unconfigured {
   border-style: dashed;
-  border-color: #e5e7eb;
+  border-color: var(--border-light);
   background: #fafbfc;
 }
 
@@ -31,7 +31,7 @@
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #1f2329;
+  color: var(--text-primary);
 }
 
 .subtable-preview-title svg {
@@ -65,7 +65,7 @@
 
 .subtable-preview-meta {
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-secondary);
   padding: 0 2px;
 }
 
@@ -80,7 +80,7 @@
   display: inline-block;
   padding: 2px 8px;
   font-size: 11px;
-  color: #334155;
+  color: var(--text-primary);
   background: rgba(32, 128, 240, 0.06);
   border: 1px solid rgba(32, 128, 240, 0.12);
   border-radius: 3px;
@@ -123,7 +123,7 @@
   height: var(--forge-designer-drag-height, var(--drop-placeholder-height, 72px));
   margin: 4px 0;
   border: 1px dashed #9ca3af;
-  background: #f3f4f6;
+  background: var(--bg-tertiary);
   border-radius: 6px;
   box-shadow: none;
 }
@@ -182,7 +182,7 @@
   pointer-events: none;
   border: 1px solid #2563eb;
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
   opacity: 0.96;
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
   transform-origin: 0 0;
@@ -244,8 +244,8 @@
 
 .canvas-node.node-crudBlock,
 .canvas-node.node-AiCrudPage {
-  border-color: #cbd5e1;
-  background: #fff;
+  border-color: var(--border-light);
+  background: var(--bg-primary);
 }
 
 .canvas-node.structural-slot:hover,
@@ -267,7 +267,7 @@
   min-height: var(--forge-slot-min-height, 96px);
   align-content: start;
   border-color: transparent;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   box-shadow: none;
 }
 
@@ -439,7 +439,7 @@
   overflow: hidden;
   border: 1px solid #dbe3ee;
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 8px;
   pointer-events: none;
 }
@@ -559,7 +559,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   padding: 6px;
-  background: #f1f5f9;
+  background: var(--bg-tertiary);
 }
 
 .table-layout-children > :deep(.node-wrap) {
@@ -572,7 +572,7 @@
   min-height: 64px;
   border: 0;
   border-radius: 7px;
-  background: #fff;
+  background: var(--bg-primary);
   color: #2563eb;
   font-size: 12px;
   pointer-events: none;

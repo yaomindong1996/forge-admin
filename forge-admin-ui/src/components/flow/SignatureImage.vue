@@ -30,9 +30,9 @@ const imageStyle = computed(() => ({
   height: props.compact ? '36px' : '72px',
   display: 'block',
   objectFit: 'contain',
-  border: '1px solid #e2e8f0',
+  border: '1px solid var(--border-light)',
   borderRadius: '6px',
-  background: '#fff',
+  background: 'var(--bg-primary)',
 }))
 
 watch(() => props.value, () => {
@@ -55,11 +55,11 @@ function isSignatureImageValue(value) {
 
 <style scoped>
 .signature-empty {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .signature-text {
-  color: #475569;
+  color: var(--text-secondary);
   word-break: break-all;
 }
 </style>

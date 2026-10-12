@@ -559,9 +559,9 @@ function hasCodeAppFlag(value) {
 .object-group {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .group-header {
@@ -594,7 +594,7 @@ function hasCodeAppFlag(value) {
 .group-toggle {
   width: 24px;
   height: 24px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .group-icon {
@@ -629,7 +629,7 @@ function hasCodeAppFlag(value) {
 }
 
 .group-title-line strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 650;
   line-height: 1.3;
@@ -638,7 +638,7 @@ function hasCodeAppFlag(value) {
 .group-copy small {
   display: block;
   margin-top: 1px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
@@ -647,13 +647,13 @@ function hasCodeAppFlag(value) {
   flex-wrap: wrap;
   gap: 6px;
   justify-content: flex-end;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .group-stats span {
   border-radius: 4px;
-  background: #fff;
+  background: var(--bg-primary);
   line-height: 22px;
   padding: 0 7px;
 }
@@ -675,8 +675,8 @@ function hasCodeAppFlag(value) {
   min-height: 34px;
   border-top: 1px solid #eef2f7;
   border-bottom: 1px solid #eef2f7;
-  background: #fbfcfe;
-  color: #64748b;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
 }
@@ -694,17 +694,17 @@ function hasCodeAppFlag(value) {
   z-index: 2;
   min-height: inherit;
   border-left: 1px solid #eef2f7;
-  background: #fbfcfe;
+  background: var(--bg-secondary);
   box-shadow: -8px 0 12px -12px rgb(15 23 42 / 40%);
 }
 
 .object-table-row .action-cell {
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .object-table-row:hover .action-cell,
 .object-table-row.entry-open .action-cell {
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .object-table-row.child-row .action-cell {
@@ -777,8 +777,8 @@ function hasCodeAppFlag(value) {
 
 .type-chip.reference,
 .type-chip.lookup {
-  background: #f8fafc;
-  color: #475569;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 
 .type-chip.entry {
@@ -808,7 +808,7 @@ function hasCodeAppFlag(value) {
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  background: #f1f5f9;
+  background: var(--bg-tertiary);
   color: #2563eb;
 }
 
@@ -824,19 +824,19 @@ function hasCodeAppFlag(value) {
 }
 
 .object-name-button strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 650;
 }
 
 .object-name-button small {
   margin-top: 1px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
 .description-cell {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -856,7 +856,7 @@ function hasCodeAppFlag(value) {
 }
 
 .empty-value {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -868,7 +868,7 @@ function hasCodeAppFlag(value) {
 .entry-expand-row {
   min-width: 960px;
   border-bottom: 1px solid #eef2f7;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 8px 12px 8px 126px;
 }
 
@@ -893,16 +893,16 @@ function hasCodeAppFlag(value) {
   min-width: 0;
   min-height: 36px;
   cursor: pointer;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 4px 7px;
   text-align: left;
 }
 
 .entry-main:hover {
-  border-color: #cbd5e1;
-  background: #fbfcfe;
+  border-color: var(--border-light);
+  background: var(--bg-secondary);
 }
 
 .entry-main:disabled {
@@ -923,12 +923,12 @@ function hasCodeAppFlag(value) {
 }
 
 .entry-copy strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 12px;
 }
 
 .entry-copy small {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 

@@ -645,31 +645,31 @@ onUnmounted(() => {
 /* 暗色模式适配 */
 :deep(.dark) {
   .search-trigger {
-    background: rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, var(--bg-primary) 8%, transparent);
     color: rgba(255, 255, 255, 0.6);
   }
 
   .search-trigger:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: color-mix(in srgb, var(--bg-primary) 12%, transparent);
     color: rgba(255, 255, 255, 0.9);
   }
 
   .search-shortcut {
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--bg-primary) 10%, transparent);
     color: rgba(255, 255, 255, 0.5);
   }
 
   .item-icon {
-    background: rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, var(--bg-primary) 8%, transparent);
   }
 
   .recent-item {
-    background: rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, var(--bg-primary) 8%, transparent);
   }
 
   .esc-hint,
   .key {
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--bg-primary) 10%, transparent);
   }
 }
 </style>

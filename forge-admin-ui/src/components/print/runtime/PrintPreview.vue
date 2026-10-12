@@ -367,7 +367,7 @@ onBeforeUnmount(() => {
   background: var(--bg-primary, #fff);
 }
 .print-preview.fullscreen {
-  background: var(--gray-100, #f1f5f9);
+  background: var(--bg-primary);
 }
 .print-toolbar {
   position: relative;
@@ -490,16 +490,16 @@ onBeforeUnmount(() => {
 }
 .thumb-item:hover {
   border-color: color-mix(in srgb, var(--primary-color, #356cde) 30%, transparent);
-  background: #fff;
+  background: var(--bg-primary);
 }
 .thumb-item.active {
   border-color: var(--primary-color, #356cde);
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary-color, #356cde) 35%, transparent);
 }
 .thumb-paper {
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-primary);
   outline: 1px solid rgb(15 23 42 / 12%);
   box-shadow: 0 1px 4px rgb(15 23 42 / 8%);
   pointer-events: none;
@@ -535,7 +535,7 @@ onBeforeUnmount(() => {
 }
 .page-caption {
   margin-top: 6px;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 11px;
   text-align: center;
 }
@@ -543,7 +543,7 @@ onBeforeUnmount(() => {
   flex: none;
   overflow: hidden;
   outline: 1px solid rgb(15 23 42 / 10%);
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 2px 10px rgb(15 23 42 / 10%);
 }
 @media (max-width: 760px) {

@@ -843,8 +843,8 @@ function updateModuleScope(moduleCode, value) {
   flex: 1 1 auto;
   height: auto;
   min-height: 0;
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .permission-main {
@@ -865,8 +865,8 @@ function updateModuleScope(moduleCode, value) {
   gap: 16px;
   min-height: 58px;
   padding: 10px 18px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-secondary);
 }
 
 .toolbar-title {
@@ -878,7 +878,7 @@ function updateModuleScope(moduleCode, value) {
 
 .toolbar-title strong {
   overflow: hidden;
-  color: #1e293b;
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: 700;
   line-height: 1.35;
@@ -887,7 +887,7 @@ function updateModuleScope(moduleCode, value) {
 }
 
 .toolbar-title span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
@@ -921,9 +921,9 @@ function updateModuleScope(moduleCode, value) {
 }
 
 .cascade-switch.is-independent {
-  border-color: #e2e8f0;
-  background: #f8fafc;
-  color: #475569;
+  border-color: var(--border-light);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   cursor: default;
 }
 
@@ -944,9 +944,9 @@ function updateModuleScope(moduleCode, value) {
   gap: 0;
   height: 28px;
   padding: 2px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 999px;
-  background: #f1f5f9;
+  background: var(--bg-tertiary);
 }
 
 .collapse-pill-control button,
@@ -961,7 +961,7 @@ function updateModuleScope(moduleCode, value) {
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: #475569;
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;
@@ -974,7 +974,7 @@ function updateModuleScope(moduleCode, value) {
 
 .collapse-pill-control button:hover:not(:disabled),
 .batch-pill-control button:hover:not(:disabled) {
-  background: #fff;
+  background: var(--bg-primary);
   color: #3730a3;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
@@ -998,10 +998,10 @@ function updateModuleScope(moduleCode, value) {
   height: 28px;
   gap: 8px;
   padding: 0 8px 0 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 999px;
-  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
-  color: #334155;
+  background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  color: var(--text-primary);
   cursor: pointer;
   transition:
     border-color 0.18s ease,
@@ -1031,7 +1031,7 @@ function updateModuleScope(moduleCode, value) {
 
 .default-scope-lock {
   flex: 0 0 auto;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 14px;
 }
 
@@ -1045,7 +1045,7 @@ function updateModuleScope(moduleCode, value) {
 
 .default-scope-eyebrow {
   flex: 0 0 auto;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
   line-height: 1;
@@ -1071,7 +1071,7 @@ function updateModuleScope(moduleCode, value) {
 
 .default-scope-chevron {
   flex: 0 0 auto;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 16px;
 }
 
@@ -1110,9 +1110,9 @@ function updateModuleScope(moduleCode, value) {
 
 .permission-page-card {
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   transition:
     border-color 0.18s ease,
@@ -1129,7 +1129,7 @@ function updateModuleScope(moduleCode, value) {
 }
 
 .skeleton-page-card:hover {
-  border-color: #e2e8f0;
+  border-color: var(--border-light);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
@@ -1140,7 +1140,7 @@ function updateModuleScope(moduleCode, value) {
   gap: 16px;
   min-height: 52px;
   padding: 10px 14px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-light);
   background: rgba(248, 250, 252, 0.86);
 }
 
@@ -1168,7 +1168,7 @@ function updateModuleScope(moduleCode, value) {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #64748b;
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 19px;
   transition:
@@ -1177,12 +1177,12 @@ function updateModuleScope(moduleCode, value) {
 }
 
 .collapse-button:hover {
-  background: #e2e8f0;
-  color: #334155;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .page-name {
-  color: #1e293b;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
 }
@@ -1193,10 +1193,10 @@ function updateModuleScope(moduleCode, value) {
   flex: 0 0 auto;
   gap: 4px;
   padding: 2px 7px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 5px;
-  background: #fff;
-  color: #64748b;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 600;
 }
@@ -1239,8 +1239,8 @@ function updateModuleScope(moduleCode, value) {
   padding: 2px 8px;
   border: 1px solid #f1f5f9;
   border-radius: 5px;
-  background: #fff;
-  color: #64748b;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
@@ -1288,7 +1288,7 @@ function updateModuleScope(moduleCode, value) {
   flex-wrap: wrap;
   gap: 7px;
   margin-bottom: 14px;
-  color: #1e293b;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
 }
@@ -1303,7 +1303,7 @@ function updateModuleScope(moduleCode, value) {
 }
 
 .section-heading small {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 400;
 }
@@ -1325,10 +1325,10 @@ function updateModuleScope(moduleCode, value) {
   min-height: 40px;
   gap: 8px;
   padding: 8px 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #fff;
-  color: #475569;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 13px;
   line-height: 1.35;
@@ -1342,7 +1342,7 @@ function updateModuleScope(moduleCode, value) {
 
 .scope-option:hover {
   border-color: #93c5fd;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .scope-option.is-selected {
@@ -1360,9 +1360,9 @@ function updateModuleScope(moduleCode, value) {
   flex: 0 0 auto;
   width: 14px;
   height: 14px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-light);
   border-radius: 999px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .scope-option.is-selected .scope-radio {
@@ -1375,7 +1375,7 @@ function updateModuleScope(moduleCode, value) {
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .scope-option.is-selected .scope-radio span {
@@ -1384,7 +1384,7 @@ function updateModuleScope(moduleCode, value) {
 
 .scope-option > i {
   flex: 0 0 auto;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 15px;
 }
 
@@ -1402,10 +1402,10 @@ function updateModuleScope(moduleCode, value) {
   align-items: center;
   justify-content: center;
   min-height: 92px;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--border-light);
   border-radius: 7px;
-  background: #f8fafc;
-  color: #94a3b8;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
   font-size: 13px;
 }
 
@@ -1432,7 +1432,7 @@ function updateModuleScope(moduleCode, value) {
 
 .function-section + .function-section {
   padding-top: 14px;
-  border-top: 1px dashed #e2e8f0;
+  border-top: 1px dashed var(--border-light);
 }
 
 .function-section-heading {
@@ -1440,7 +1440,7 @@ function updateModuleScope(moduleCode, value) {
   align-items: center;
   gap: 7px;
   margin-bottom: 10px;
-  color: #334155;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 700;
 }
@@ -1458,7 +1458,7 @@ function updateModuleScope(moduleCode, value) {
 }
 
 .function-section-heading small {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 11px;
   font-weight: 500;
 }
@@ -1475,7 +1475,7 @@ function updateModuleScope(moduleCode, value) {
 
 .function-grid :deep(.n-checkbox__label) {
   min-width: 0;
-  color: #334155;
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -1550,14 +1550,14 @@ function updateModuleScope(moduleCode, value) {
 :global(.dark) .page-action-count,
 :global(.dark) .scope-option {
   background: #111827;
-  border-color: #334155;
+  border-color: var(--border-light);
 }
 
 :global(.dark) .permission-sidebar,
 :global(.dark) .permission-main-toolbar,
 :global(.dark) .page-card-header,
 :global(.dark) .data-scope-panel {
-  border-color: #334155;
+  border-color: var(--border-light);
 }
 
 :global(.dark) .function-source-tag {
@@ -1582,17 +1582,17 @@ function updateModuleScope(moduleCode, value) {
 
 :global(.dark) .collapse-pill-control,
 :global(.dark) .batch-pill-control {
-  border-color: #334155;
+  border-color: var(--border-light);
 }
 
 :global(.dark) .default-scope-button {
-  border-color: #334155;
+  border-color: var(--border-light);
   background: linear-gradient(180deg, #1e293b 0%, #172033 100%);
   color: #cbd5e1;
 }
 
 :global(.dark) .default-scope-button:hover:not(:disabled) {
-  border-color: #475569;
+  border-color: var(--border-light);
   background: #1e293b;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
 }
@@ -1628,7 +1628,7 @@ function updateModuleScope(moduleCode, value) {
 :global(.dark) .page-entry-tag,
 :global(.dark) .page-action-count,
 :global(.dark) .section-heading small {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 :global(.dark) .cascade-switch {
@@ -1681,7 +1681,7 @@ function updateModuleScope(moduleCode, value) {
   .permission-sidebar {
     max-height: 210px;
     border-right: 0;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border-light);
   }
 
   .page-card-body {

@@ -120,7 +120,7 @@ function updateMousePosition(e) {
 
 /* 玻璃态效果 */
 .card-glass {
-  background: rgba(255, 255, 255, 0.85);
+  background: color-mix(in srgb, var(--bg-primary) 85%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-color: rgba(255, 255, 255, 0.3);

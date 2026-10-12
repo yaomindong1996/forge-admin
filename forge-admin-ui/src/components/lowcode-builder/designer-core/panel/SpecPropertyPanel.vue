@@ -636,8 +636,8 @@ function removeOptionItem(property, index) {
   gap: 6px;
   margin-top: 2px;
   padding-bottom: 2px;
-  border-bottom: 1px solid var(--n-border-color, #ececf1);
-  color: var(--n-text-color, #333);
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-primary);
   font-size: 11px;
   font-weight: 500;
   line-height: 16px;
@@ -701,9 +701,9 @@ function removeOptionItem(property, index) {
   display: flex;
   align-items: center;
   gap: 4px;
-  border: 1px solid var(--n-border-color, #ececf1);
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
   padding: 4px;
   transition: border-color 160ms ease;
 }
@@ -715,7 +715,7 @@ function removeOptionItem(property, index) {
 .spec-option-row-index {
   flex: 0 0 auto;
   min-width: 14px;
-  color: #a1a1aa;
+  color: var(--text-tertiary);
   font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -747,7 +747,7 @@ function removeOptionItem(property, index) {
   border: 0;
   border-radius: 5px;
   background: transparent;
-  color: #a1a1aa;
+  color: var(--text-tertiary);
   cursor: pointer;
   transition:
     background-color 140ms ease,

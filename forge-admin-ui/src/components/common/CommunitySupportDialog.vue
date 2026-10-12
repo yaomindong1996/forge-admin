@@ -85,7 +85,7 @@ const entries = computed(() => [
 }
 .support-image {
   width: 100%;
-  background: #fff;
+  background: var(--bg-primary);
   border: 1px solid var(--border-light, #e5e7eb);
   border-radius: 6px;
 }

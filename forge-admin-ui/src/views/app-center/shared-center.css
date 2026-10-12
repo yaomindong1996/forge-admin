@@ -1,27 +1,27 @@
 .center-shell {
   min-height: 100%;
-  background: #f6f8fb;
+  background: var(--bg-secondary);
   padding: 20px;
 }
 
 .center-shell header {
   margin-bottom: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 16px;
 }
 
 .center-shell h1 {
   margin: 12px 0 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 24px;
   letter-spacing: 0;
 }
 
 .center-shell p {
   margin: 6px 0 0;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.55;
 }
@@ -34,9 +34,9 @@
 
 .capability-card {
   min-height: 152px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 16px;
 }
 
@@ -54,7 +54,7 @@
 .capability-card strong {
   display: block;
   margin-top: 14px;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 15px;
 }
 

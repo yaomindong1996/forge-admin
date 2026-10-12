@@ -318,7 +318,7 @@ const tableColumns = [
     key: 'updateTime',
     width: 110,
     render(row) {
-      return h('span', { style: 'color:#94a3b8;font-size:13px' }, formatRelativeTime(row.updateTime || row.createTime))
+      return h('span', { style: 'color:var(--text-tertiary);font-size:13px' }, formatRelativeTime(row.updateTime || row.createTime))
     },
   },
   {
@@ -569,7 +569,7 @@ onBeforeUnmount(() => {
 }
 
 .stat-card {
-  background: rgba(255, 255, 255, 0.95);
+  background: color-mix(in srgb, var(--bg-primary) 95%, transparent);
   backdrop-filter: blur(10px);
   border-radius: 20px;
   padding: 24px;
@@ -624,18 +624,18 @@ onBeforeUnmount(() => {
 .stat-value {
   font-size: 32px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
   line-height: 1.2;
 }
 
 .stat-title {
   font-size: 14px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .trend-card {
-  background: rgba(255, 255, 255, 0.95);
+  background: color-mix(in srgb, var(--bg-primary) 95%, transparent);
   backdrop-filter: blur(10px);
   border-radius: 20px;
   border: 1px solid rgba(226, 232, 240, 0.6);
@@ -649,7 +649,7 @@ onBeforeUnmount(() => {
 }
 
 .session-table-card {
-  background: rgba(255, 255, 255, 0.95);
+  background: color-mix(in srgb, var(--bg-primary) 95%, transparent);
   backdrop-filter: blur(10px);
   border-radius: 20px;
   border: 1px solid rgba(226, 232, 240, 0.6);
@@ -673,7 +673,7 @@ onBeforeUnmount(() => {
   gap: 10px;
   font-size: 15px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .card-title i {
@@ -699,7 +699,7 @@ onBeforeUnmount(() => {
 .exp-subtitle {
   font-size: 12px;
   font-weight: 400;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   margin-left: 8px;
 }
 
@@ -729,7 +729,7 @@ onBeforeUnmount(() => {
 
 .exp-metric-label {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -744,7 +744,7 @@ onBeforeUnmount(() => {
 }
 
 .dark .exp-metric-label {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .session-table {
@@ -829,12 +829,12 @@ onBeforeUnmount(() => {
 .msg-role-name {
   font-size: 12px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .msg-time {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .bubble {
@@ -853,8 +853,8 @@ onBeforeUnmount(() => {
 }
 
 .bubble-assistant {
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
   border-bottom-left-radius: 4px;
 }
 
@@ -912,13 +912,13 @@ onBeforeUnmount(() => {
 
 .bubble-content :deep(th),
 .bubble-content :deep(td) {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   padding: 8px 12px;
   text-align: left;
 }
 
 .bubble-content :deep(th) {
-  background: #f8fafc;
+  background: var(--bg-secondary);
   font-weight: 600;
 }
 
@@ -930,7 +930,7 @@ onBeforeUnmount(() => {
 
 .detail-meta {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark .stat-card,
@@ -950,7 +950,7 @@ onBeforeUnmount(() => {
 }
 
 .dark .stat-title {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark .card-header {
@@ -973,7 +973,7 @@ onBeforeUnmount(() => {
 .dark .detail-meta,
 .dark .msg-role-name,
 .dark .msg-time {
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .dark .bubble-assistant {
@@ -982,7 +982,7 @@ onBeforeUnmount(() => {
 }
 
 .dark .bubble-content :deep(code) {
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--bg-primary) 10%, transparent);
 }
 
 .dark .bubble-content :deep(blockquote) {
@@ -995,7 +995,7 @@ onBeforeUnmount(() => {
 
 .dark .bubble-content :deep(th),
 .dark .bubble-content :deep(td) {
-  border-color: #475569;
+  border-color: var(--border-light);
 }
 
 @media (max-width: 1200px) {

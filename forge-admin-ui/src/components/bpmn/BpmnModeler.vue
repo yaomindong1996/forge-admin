@@ -550,14 +550,14 @@ watch(() => props.xml, (newXml) => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 8px;
   overflow: hidden;
 }
 
 .toolbar {
   padding: 12px 16px;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border-bottom: 1px solid #e0e0e0;
 }
 
@@ -574,7 +574,7 @@ watch(() => props.xml, (newXml) => {
 
 /* bpmn-js 内置工具面板样式覆盖 */
 .canvas-container :deep(.djs-palette) {
-  background: #fff;
+  background: var(--bg-primary);
   border: 1px solid #e0e0e0;
   border-radius: 4px;
 }
@@ -595,7 +595,7 @@ watch(() => props.xml, (newXml) => {
 
 .properties-panel {
   width: 280px;
-  background: #fafafa;
+  background: var(--bg-secondary);
   border-left: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;

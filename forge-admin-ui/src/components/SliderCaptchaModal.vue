@@ -180,7 +180,7 @@ defineExpose({
 .header-icon {
   width: 32px;
   height: 32px;
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--bg-primary) 20%, transparent);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -200,7 +200,7 @@ defineExpose({
   width: 28px;
   height: 28px;
   border: none;
-  background: rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--bg-primary) 15%, transparent);
   border-radius: 6px;
   cursor: pointer;
   display: flex;
@@ -212,14 +212,14 @@ defineExpose({
 }
 
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: color-mix(in srgb, var(--bg-primary) 25%, transparent);
   color: #fff;
 }
 
 .captcha-body {
   position: relative;
   padding: 20px;
-  background: #fff;
+  background: var(--bg-primary);
   min-height: 260px;
 }
 
@@ -298,7 +298,7 @@ defineExpose({
   margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid #f0f0f0;
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -312,7 +312,7 @@ defineExpose({
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--border-light);
 }
 
 :deep(.slide-verify-slider) {
@@ -341,7 +341,7 @@ defineExpose({
 }
 
 :deep(.slide-verify-slider-text) {
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 13px;
 }
 
@@ -378,12 +378,12 @@ html.dark .status-overlay.fail {
 }
 
 html.dark .captcha-footer {
-  border-top-color: #333;
-  color: #666;
+  border-top-color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 html.dark :deep(.slide-verify) {
-  border-color: #333;
+  border-color: var(--text-primary);
 }
 
 html.dark :deep(.slide-verify-slider) {
@@ -391,6 +391,6 @@ html.dark :deep(.slide-verify-slider) {
 }
 
 html.dark :deep(.slide-verify-slider-text) {
-  color: #666;
+  color: var(--text-secondary);
 }
 </style>

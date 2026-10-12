@@ -483,20 +483,20 @@ async function saveAllDicts() {
   height: 100%;
   overflow-y: auto;
   padding: 12px;
-  background: #fafafa;
+  background: var(--bg-secondary);
 }
 
 .empty-tip {
   text-align: center;
   padding: 40px 20px;
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 14px;
 }
 
 .empty-sub {
   margin-top: 8px;
   font-size: 12px;
-  color: #aaa;
+  color: var(--text-tertiary);
 }
 
 .empty-sub code {
@@ -522,7 +522,7 @@ async function saveAllDicts() {
 }
 
 .dict-item {
-  background: #fff;
+  background: var(--bg-primary);
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   padding: 12px;
@@ -544,7 +544,7 @@ async function saveAllDicts() {
 
 .dict-type-label {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -553,7 +553,7 @@ async function saveAllDicts() {
   align-items: center;
   justify-content: space-between;
   padding-top: 6px;
-  border-top: 1px dashed #eee;
+  border-top: 1px dashed var(--border-light);
 }
 
 .dict-options {
@@ -570,7 +570,7 @@ async function saveAllDicts() {
 
 .no-options-tip {
   font-size: 12px;
-  color: #aaa;
+  color: var(--text-tertiary);
   padding: 4px 0;
 }
 

@@ -489,8 +489,8 @@ async function handleSetDefault(row) {
   gap: 12px;
   padding: 12px;
   margin-bottom: 16px;
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
 }
 
@@ -512,7 +512,7 @@ async function handleSetDefault(row) {
 
 .model-provider-name {
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 650;
   text-overflow: ellipsis;
@@ -521,13 +521,13 @@ async function handleSetDefault(row) {
 
 .model-provider-meta {
   margin-top: 2px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .model-form :deep(.n-form-item-label) {
   font-size: 13px;
   font-weight: 600;
-  color: #334155;
+  color: var(--text-primary);
 }
 </style>

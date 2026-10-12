@@ -194,11 +194,11 @@ function changeSlide(step) {
   height: 6px;
   margin: auto;
   border-radius: 3px;
-  background: rgb(255 255 255 / 65%);
+  background: color-mix(in srgb, var(--bg-primary) 65%, transparent);
 }
 .brand-dots button.active::after {
   width: 28px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 .carousel-arrow {
   width: 40px;
@@ -212,7 +212,7 @@ function changeSlide(step) {
   cursor: pointer;
 }
 .carousel-arrow:hover {
-  background: rgb(255 255 255 / 12%);
+  background: color-mix(in srgb, var(--bg-primary) 12%, transparent);
 }
 .brand-footer {
   display: flex;

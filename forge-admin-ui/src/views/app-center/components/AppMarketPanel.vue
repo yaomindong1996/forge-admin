@@ -125,14 +125,14 @@ function templateAccent(template) {
 
 <style scoped>
 .app-market-panel {
-  --market-border: var(--n-border-color, #dde1e7);
+  --market-border: var(--border-light);
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
   padding: 22px clamp(18px, 3vw, 42px) 48px;
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--n-color-embedded, #f5f6f8) 54%, transparent) 1px, transparent 1px),
-    var(--n-color, #fff);
+    linear-gradient(90deg, color-mix(in srgb, var(--bg-secondary) 54%, transparent) 1px, transparent 1px),
+    var(--bg-primary);
   background-size: 32px 32px;
 }
 
@@ -175,7 +175,7 @@ function templateAccent(template) {
   overflow: hidden;
   border: 1px solid var(--market-border);
   border-radius: 9px;
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
   box-shadow: 0 5px 18px rgb(15 23 42 / 5%);
   animation: market-card-enter 0.34s both;
   animation-delay: calc(var(--market-card-order) * 45ms);
@@ -226,7 +226,7 @@ function templateAccent(template) {
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--market-ink) 20%, transparent);
   border-radius: 50%;
-  background: rgb(255 255 255 / 64%);
+  background: color-mix(in srgb, var(--bg-primary) 64%, transparent);
 }
 
 .market-card__layout {
@@ -265,19 +265,19 @@ function templateAccent(template) {
 }
 
 .market-card__body strong {
-  color: var(--n-text-color, #111827);
+  color: var(--text-primary);
   font-size: 15px;
 }
 
 .market-card__body header span,
 .market-card__meta {
-  color: var(--n-text-color-3, #6b7280);
+  color: var(--text-tertiary);
   font-size: 10px;
 }
 
 .market-card__body p {
   margin: 0;
-  color: var(--n-text-color-2, #4b5563);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.65;
 }
@@ -305,11 +305,11 @@ function templateAccent(template) {
   margin: 0 auto;
   border: 1px dashed var(--market-border);
   border-radius: 9px;
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
 }
 
 .market-empty__hint {
-  color: var(--n-text-color-3, #6b7280);
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 

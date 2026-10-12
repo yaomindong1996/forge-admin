@@ -133,8 +133,8 @@ function nodeIcon(kind) {
   width: 232px;
   min-height: 0;
   grid-template-rows: 54px minmax(0, 1fr);
-  border-right: 1px solid #e5e6eb;
-  background: #fff;
+  border-right: 1px solid var(--border-light);
+  background: var(--bg-primary);
 }
 
 .resource-tree-heading {
@@ -161,7 +161,7 @@ function nodeIcon(kind) {
 }
 
 .resource-tree-heading strong {
-  color: #1f2329;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
@@ -206,8 +206,8 @@ function nodeIcon(kind) {
 }
 
 .resource-group-create:hover {
-  background: #f2f3f5;
-  color: #1f2329;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .resource-node-list {
@@ -226,7 +226,7 @@ function nodeIcon(kind) {
 }
 
 .resource-node-row:hover {
-  background: #f5f7fa;
+  background: var(--bg-secondary);
 }
 
 .resource-node-row.active {
@@ -245,12 +245,12 @@ function nodeIcon(kind) {
   border: 0;
   background: transparent;
   padding: 5px 4px 5px 11px;
-  color: #4e5969;
+  color: var(--text-secondary);
   text-align: left;
 }
 
 .resource-node-row:hover .resource-node {
-  color: #1f2329;
+  color: var(--text-primary);
 }
 
 .resource-node-row.active .resource-node {
@@ -304,7 +304,7 @@ function nodeIcon(kind) {
 
 .resource-node-more:hover {
   background: #e9ebef;
-  color: #1f2329;
+  color: var(--text-primary);
 }
 
 .resource-group-empty {

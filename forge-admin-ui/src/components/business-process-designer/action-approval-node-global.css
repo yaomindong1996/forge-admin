@@ -7,7 +7,7 @@
 .flow-model-option-key {
   padding-left: 12px;
   padding-bottom: 3px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 11px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   line-height: 1.4;

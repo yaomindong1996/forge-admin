@@ -1,7 +1,7 @@
 
 .panel-card {
   margin-bottom: 12px;
-  background: #fff;
+  background: var(--bg-primary);
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 14px;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.035);
@@ -13,7 +13,7 @@
 
 .prompt-card {
   background:
-    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
     linear-gradient(135deg, rgba(68, 76, 231, 0.25), rgba(14, 165, 233, 0.08)) border-box;
   border-color: transparent;
 }
@@ -33,7 +33,7 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
-  background: #fff;
+  background: var(--bg-primary);
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 14px;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.035);
@@ -76,7 +76,7 @@
 }
 
 .config-entry-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
   line-height: 1.35;
@@ -131,7 +131,7 @@
   margin: 4px 0 12px;
   font-size: 12px;
   line-height: 1.6;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .context-modal-toolbar {
@@ -174,7 +174,7 @@
 
 .section-title {
   margin-bottom: 14px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: 700;
 }
@@ -226,8 +226,8 @@
 .context-collapse :deep(.n-collapse-item) {
   overflow: hidden;
   margin-bottom: 10px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
 }
 
@@ -257,7 +257,7 @@
 
 .context-collapse-title strong {
   overflow: hidden;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 650;
   text-overflow: ellipsis;
@@ -267,7 +267,7 @@
 .context-collapse-title small {
   display: -webkit-box;
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.45;
   -webkit-box-orient: vertical;
@@ -283,7 +283,7 @@
 
 .context-form {
   padding: 12px;
-  background: #fff;
+  background: var(--bg-primary);
   border: 1px solid #eef2f7;
   border-radius: 8px;
 }
@@ -301,7 +301,7 @@
 
 .context-field-label {
   margin-bottom: 6px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -324,10 +324,10 @@
   justify-content: center;
   margin: 12px;
   padding: 24px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   text-align: center;
-  background: #f8fafc;
-  border: 1px dashed #cbd5e1;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border-light);
   border-radius: 8px;
 }
 
@@ -337,7 +337,7 @@
   min-width: 0;
   flex-direction: column;
   overflow: hidden;
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-left: 1px solid rgba(226, 232, 240, 0.92);
 }
 
@@ -348,12 +348,12 @@
   justify-content: space-between;
   min-height: 58px;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.94);
+  background: color-mix(in srgb, var(--bg-primary) 94%, transparent);
   border-bottom: 1px solid rgba(226, 232, 240, 0.82);
 }
 
 .chat-title {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 18px;
   font-weight: 700;
   line-height: 1.25;
@@ -366,7 +366,7 @@
   overflow-y: auto;
   background:
     radial-gradient(circle at 20% 0%, rgba(219, 234, 254, 0.55), transparent 34%),
-    linear-gradient(180deg, #f9fafb 0%, #fff 100%);
+    linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
 }
 
 .chat-message-list {
@@ -417,7 +417,7 @@
   display: flex;
   gap: 8px;
   margin-bottom: 6px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -428,9 +428,9 @@
 .reasoning-section {
   overflow: hidden;
   margin-bottom: 8px;
-  color: #475569;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
 }
 
@@ -439,7 +439,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 10px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .reasoning-header-left {
@@ -452,12 +452,12 @@
 }
 
 .reasoning-header-left i {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 15px;
 }
 
 .reasoning-header-left small {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-weight: 400;
 }
 
@@ -473,14 +473,14 @@
 .message-bubble {
   min-height: 24px;
   padding: 12px 14px;
-  color: #1e293b;
+  color: var(--text-primary);
   font-size: 14px;
   line-height: 1.7;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-word;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
 }
@@ -508,7 +508,7 @@
   flex-wrap: wrap;
   gap: 8px;
   padding: 10px 16px 0;
-  background: linear-gradient(180deg, rgba(249, 250, 251, 0), #f9fafb 44%);
+  background: linear-gradient(180deg, rgba(249, 250, 251, 0), var(--bg-secondary) 44%);
 }
 
 .suggestion-chip {
@@ -536,12 +536,12 @@
 .chat-composer {
   flex: 0 0 auto;
   padding: 14px 16px 16px;
-  background: linear-gradient(180deg, rgba(249, 250, 251, 0.2) 0%, #f9fafb 34%, #f9fafb 100%);
+  background: linear-gradient(180deg, rgba(249, 250, 251, 0.2) 0%, var(--bg-secondary) 34%, var(--bg-secondary) 100%);
   border-top: 1px solid rgba(226, 232, 240, 0.72);
 }
 
 .chat-composer :deep(.n-input) {
-  background: rgba(255, 255, 255, 0.96);
+  background: color-mix(in srgb, var(--bg-primary) 96%, transparent);
   border-radius: 14px;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
 }
@@ -559,7 +559,7 @@
 }
 
 .composer-status {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -612,7 +612,7 @@
 .dark .composer-status,
 .dark .message-meta,
 .dark .muted-chip {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark .agent-meta-item,
@@ -674,7 +674,7 @@
 .dark .param-panel-subtitle,
 .dark .model-selector-label,
 .dark .publish-eyebrow {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark .model-selector-divider {

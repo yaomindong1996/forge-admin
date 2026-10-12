@@ -299,8 +299,8 @@ function removeNodePermission(row) {
 
 .node-table-head {
   padding: 6px 12px;
-  color: #86909c;
-  background: #f7f8fa;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
   font-size: 12px;
   font-weight: 600;
   border-radius: 6px 6px 0 0;
@@ -331,7 +331,7 @@ function removeNodePermission(row) {
 
 .node-name strong {
   overflow: hidden;
-  color: #1d2129;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -348,14 +348,14 @@ function removeNodePermission(row) {
 
 .node-assignee {
   overflow: hidden;
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .node-table-row > span:not(.node-name):not(.node-assignee):not(.node-toggle-col) {
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -365,7 +365,7 @@ function removeNodePermission(row) {
 }
 
 .node-toggle-icon {
-  color: #86909c;
+  color: var(--text-tertiary);
   transition: transform 0.18s ease;
 }
 

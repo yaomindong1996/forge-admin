@@ -239,8 +239,8 @@ function normalizeText(value) {
   padding: 12px;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #fff;
-  color: #0f172a;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   text-align: left;
   cursor: pointer;
   transition:
@@ -302,19 +302,19 @@ function normalizeText(value) {
 }
 
 .asset-card__source.external {
-  color: #475569;
-  background: #e2e8f0;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
 }
 
 .asset-card__meta {
   margin-top: 7px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .asset-card__preview {
   margin-top: 4px;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 

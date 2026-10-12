@@ -623,7 +623,7 @@ function getDefaultValuePlaceholder(dataType) {
 .dataset-param-editor {
   width: 100%;
   padding: 0;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .editor-toolbar {
@@ -632,7 +632,7 @@ function getDefaultValuePlaceholder(dataType) {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 14px;
 }
 
@@ -644,7 +644,7 @@ function getDefaultValuePlaceholder(dataType) {
   display: flex;
   flex-direction: column;
   overflow-x: auto;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 4px;
 }
 
@@ -653,23 +653,23 @@ function getDefaultValuePlaceholder(dataType) {
   gap: 8px;
   min-width: 760px;
   padding: 10px 12px;
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
-  background: #f7f8fa;
-  border-bottom: 1px solid #e5e6eb;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .editor-row-card {
   min-width: 760px;
   padding: 10px 12px;
-  border-bottom: 1px solid #e5e6eb;
-  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
   transition: background 0.18s ease;
 }
 
 .editor-row-card:hover {
-  background: #f2f3f5;
+  background: var(--bg-tertiary);
 }
 
 .editor-row-card:last-child {
@@ -689,7 +689,7 @@ function getDefaultValuePlaceholder(dataType) {
 .editor-cell__label {
   display: none;
   margin-bottom: 6px;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
   line-height: 1.4;
 }
@@ -711,7 +711,7 @@ function getDefaultValuePlaceholder(dataType) {
   padding: 24px 0;
   border: 1px dashed #dcdfe6;
   border-radius: 4px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .editor-action-bar {
@@ -722,7 +722,7 @@ function getDefaultValuePlaceholder(dataType) {
 
 .editor-footer {
   margin-top: 12px;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -750,7 +750,7 @@ function getDefaultValuePlaceholder(dataType) {
 
   .editor-row-card {
     min-width: 0;
-    border: 1px solid #e5e6eb;
+    border: 1px solid var(--border-light);
     border-radius: 4px;
   }
 

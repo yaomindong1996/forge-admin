@@ -369,7 +369,7 @@ function normalizeNavigationNode(node) {
   max-width: 300px;
   margin: 0;
   padding: 6px;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   background: var(--portal-surface, #fff);
   box-shadow: 0 10px 28px rgb(31 35 41 / 14%);

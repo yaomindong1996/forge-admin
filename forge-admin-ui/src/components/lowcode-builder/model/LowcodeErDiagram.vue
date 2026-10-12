@@ -831,7 +831,7 @@ function truncate(value, maxLength) {
   min-width: 0;
   border: 1px solid #d8dee8;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
@@ -843,14 +843,14 @@ function truncate(value, maxLength) {
 }
 
 .section-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: 700;
 }
 
 .er-diagram-head p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -877,7 +877,7 @@ function truncate(value, maxLength) {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -913,9 +913,9 @@ function truncate(value, maxLength) {
 
 .er-canvas-wrap {
   overflow: auto;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .er-svg {

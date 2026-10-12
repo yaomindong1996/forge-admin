@@ -129,7 +129,7 @@ const { showSidebar } = useSidebarVisibility()
 }
 
 .content-full::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--bg-tertiary);
 }
 
 .content-full::-webkit-scrollbar-thumb {

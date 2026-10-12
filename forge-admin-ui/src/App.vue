@@ -225,7 +225,7 @@ watchEffect(() => {
       color-mix(in srgb, var(--primary-color, #165dff) 8%, transparent),
       transparent 34%
     ),
-    color-mix(in srgb, var(--bg-primary, #fff) 84%, transparent);
+    color-mix(in srgb, var(--bg-primary) 84%, transparent);
   backdrop-filter: blur(2px);
   z-index: 99;
 }

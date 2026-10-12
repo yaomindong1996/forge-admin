@@ -165,7 +165,7 @@ function iconOf(type) {
 }
 
 .source-list__item:hover {
-  background: var(--gray-100, #f6f8fb);
+  background: var(--bg-primary);
 }
 
 .source-list__item.active {

@@ -71,8 +71,8 @@ const statusDescription = computed(() => {
   height: 52px;
   place-items: center;
   border-radius: 12px;
-  background: #f2f3f5;
-  color: #86909c;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
   font-size: 26px;
 }
 

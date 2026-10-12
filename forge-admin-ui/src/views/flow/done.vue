@@ -334,7 +334,7 @@ onMounted(() => {
   background: var(--bg-secondary);
 }
 .page-header {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 16px 20px;
   display: flex;
@@ -369,7 +369,7 @@ onMounted(() => {
 .page-title {
   font-size: 18px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
   margin: 0;
 }
 .header-right {
@@ -385,7 +385,7 @@ onMounted(() => {
 }
 
 .table-container {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 16px 20px;
   flex: 1;
@@ -406,7 +406,7 @@ onMounted(() => {
 }
 :deep(.user-name-text) {
   font-weight: 500;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 :deep(.status-tag-mini) {
   padding: 2px 8px;
@@ -431,8 +431,8 @@ onMounted(() => {
   color: #1e40af;
 }
 :deep(.status-tag-mini.default) {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 .drawer-header {
   display: flex;
@@ -468,7 +468,7 @@ onMounted(() => {
 .drawer-title {
   font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 .status-tag {
   padding: 4px 12px;
@@ -493,8 +493,8 @@ onMounted(() => {
   color: #1e40af;
 }
 .status-tag.default {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 .drawer-body {
   display: flex;
@@ -511,10 +511,10 @@ onMounted(() => {
   gap: 12px;
 }
 .info-card {
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border-radius: 10px;
   padding: 12px 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
 }
 .info-header {
   display: flex;
@@ -522,7 +522,7 @@ onMounted(() => {
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-secondary);
   margin-bottom: 10px;
 }
 .info-items {
@@ -537,11 +537,11 @@ onMounted(() => {
 }
 .info-label {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 .info-value {
   font-size: 13px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-weight: 500;
 }
 .info-value.highlight {
@@ -562,9 +562,9 @@ onMounted(() => {
   gap: 8px;
 }
 .section {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   padding: 16px;
 }
 .section-header {
@@ -573,7 +573,7 @@ onMounted(() => {
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 

@@ -581,10 +581,10 @@ function preferredField(options, ...matchers) {
   overflow: hidden;
   padding: 0;
   cursor: pointer;
-  border: 1px solid var(--n-border-color, #e5e7eb);
+  border: 1px solid var(--border-light);
   border-radius: 9px;
   color: var(--n-text-color);
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
   text-align: left;
   transition:
     border-color 0.16s ease,
@@ -611,7 +611,7 @@ function preferredField(options, ...matchers) {
   height: 100%;
   overflow: hidden;
   padding: 19px 9px 8px;
-  background: var(--n-color-embedded, #f7f8fa);
+  background: var(--bg-secondary);
 }
 
 .template-preview.tree {
@@ -637,9 +637,9 @@ function preferredField(options, ...matchers) {
   display: flex;
   min-width: 0;
   min-height: 0;
-  border: 1px solid var(--n-border-color, #dfe3e8);
+  border: 1px solid var(--border-light);
   border-radius: 4px;
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
 }
 
 .preview-tree {
@@ -721,7 +721,7 @@ function preferredField(options, ...matchers) {
   grid-template-rows: auto minmax(34px, 1fr) auto;
   gap: 4px;
   padding: 10px 11px;
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
 }
 
 .template-title {
@@ -758,17 +758,17 @@ function preferredField(options, ...matchers) {
 .object-selector,
 .database-selector {
   padding: 15px;
-  border: 1px solid var(--n-border-color, #e5e7eb);
+  border: 1px solid var(--border-light);
   border-radius: 9px;
-  background: var(--n-color-embedded, #f7f8fa);
+  background: var(--bg-secondary);
 }
 
 .conditional-panel {
   margin-top: 6px;
   padding: 13px;
-  border: 1px solid var(--n-border-color, #e5e7eb);
+  border: 1px solid var(--border-light);
   border-radius: 7px;
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
 }
 
 .conditional-title {
@@ -804,9 +804,9 @@ function preferredField(options, ...matchers) {
   display: grid;
   gap: 10px;
   padding: 11px;
-  border: 1px solid var(--n-border-color, #e5e7eb);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: var(--n-color-embedded, #f7f8fa);
+  background: var(--bg-secondary);
 }
 
 .detail-card-heading {
@@ -833,7 +833,7 @@ function preferredField(options, ...matchers) {
 
 .other-starts {
   padding-top: 4px;
-  border-top: 1px solid var(--n-border-color, #e5e7eb);
+  border-top: 1px solid var(--border-light);
 }
 
 .other-grid {
@@ -847,16 +847,16 @@ function preferredField(options, ...matchers) {
   gap: 9px;
   padding: 9px 11px;
   cursor: pointer;
-  border: 1px solid var(--n-border-color, #e5e7eb);
+  border: 1px solid var(--border-light);
   border-radius: 7px;
   color: var(--n-text-color);
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
   text-align: left;
 }
 
 .other-option.active {
   border-color: var(--n-primary-color);
-  background: color-mix(in srgb, var(--n-primary-color) 6%, var(--n-color, #fff));
+  background: color-mix(in srgb, var(--n-primary-color) 6%, var(--bg-primary));
 }
 
 .other-option > .n-icon:first-child {

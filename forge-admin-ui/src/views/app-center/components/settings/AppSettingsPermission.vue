@@ -159,7 +159,7 @@ function normalizeOrgTree(nodes) {
 .settings-page-permission {
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid var(--n-border-color, #e5e6eb);
+  border-top: 1px solid var(--border-light);
 }
 
 .settings-page-permission h3 {

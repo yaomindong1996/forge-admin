@@ -224,9 +224,9 @@ function applyGridLayoutChange(layout) {
   align-items: center;
   justify-content: space-between;
   padding: 0 14px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .builder-tabs {

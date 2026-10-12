@@ -712,8 +712,8 @@ function isLegacyGroupTitleNode(node = {}) {
   justify-content: center;
   min-height: 32px;
   font-size: 12px;
-  color: #94a3b8;
-  border: 1px dashed #cbd5e1;
+  color: var(--text-tertiary);
+  border: 1px dashed var(--border-light);
   border-radius: 3px;
 }
 
@@ -733,11 +733,11 @@ function isLegacyGroupTitleNode(node = {}) {
   justify-content: center;
   min-height: 48px;
   padding: 12px;
-  color: #a1a1aa;
+  color: var(--text-tertiary);
   font-size: 12px;
   border: 1px dashed #d4d4d8;
   border-radius: 4px;
-  background: #fafafa;
+  background: var(--bg-secondary);
 }
 
 .af-layout-button {
@@ -760,7 +760,7 @@ function isLegacyGroupTitleNode(node = {}) {
 .af-layout-table {
   width: 100%;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
 }
 
@@ -781,8 +781,8 @@ function isLegacyGroupTitleNode(node = {}) {
 .af-layout-table-cell {
   min-height: 56px;
   padding: 12px;
-  border-right: 1px solid #e2e8f0;
-  /* border-bottom: 1px solid #e2e8f0; */
+  border-right: 1px solid var(--border-light);
+  /* border-bottom: 1px solid var(--border-light); */
 }
 
 .af-layout-table-cell.is-borderless {

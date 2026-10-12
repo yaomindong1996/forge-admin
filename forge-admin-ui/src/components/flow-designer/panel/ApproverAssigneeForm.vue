@@ -517,10 +517,10 @@ function isFilledValue(value) {
   align-items: center;
   gap: 7px;
   padding: 7px 9px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 4px;
-  background: #fff;
-  color: #64748b;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
@@ -531,9 +531,9 @@ function isFilledValue(value) {
 }
 
 .option-card:hover:not(:disabled) {
-  border-color: #cbd5e1;
-  background: #f8fafc;
-  color: #1e293b;
+  border-color: var(--border-light);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .option-card.active {

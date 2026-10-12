@@ -306,7 +306,7 @@ function initVisitChart() {
       backgroundColor: '#ffffff',
       borderColor: '#e5e7eb',
       borderWidth: 1,
-      textStyle: { color: '#0f172a' },
+      textStyle: { color: 'var(--text-primary)' },
     },
     grid: { left: 32, right: 12, top: 18, bottom: 28 },
     xAxis: {
@@ -314,12 +314,12 @@ function initVisitChart() {
       data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
       axisTick: { show: false },
       axisLine: { lineStyle: { color: '#e5e7eb' } },
-      axisLabel: { color: '#64748b', fontSize: 11 },
+      axisLabel: { color: 'var(--text-secondary)', fontSize: 11 },
     },
     yAxis: {
       type: 'value',
       splitLine: { lineStyle: { color: '#f1f5f9' } },
-      axisLabel: { color: '#64748b', fontSize: 11 },
+      axisLabel: { color: 'var(--text-secondary)', fontSize: 11 },
     },
     series: [
       {
@@ -348,7 +348,7 @@ function initUserChart() {
       backgroundColor: '#ffffff',
       borderColor: '#e5e7eb',
       borderWidth: 1,
-      textStyle: { color: '#0f172a' },
+      textStyle: { color: 'var(--text-primary)' },
     },
     grid: { left: 8, right: 8, top: 16, bottom: 8 },
     xAxis: {

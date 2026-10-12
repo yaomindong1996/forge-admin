@@ -408,9 +408,9 @@ function formatDateTime(value) {
 
 .debug-header,
 .debug-panel {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .debug-header {
@@ -425,7 +425,7 @@ function formatDateTime(value) {
 .debug-header h2,
 .panel-title-row h3 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-weight: 650;
   letter-spacing: 0;
 }
@@ -441,7 +441,7 @@ function formatDateTime(value) {
 .debug-kicker,
 .panel-kicker {
   margin: 0 0 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0;
@@ -479,9 +479,9 @@ function formatDateTime(value) {
   gap: 10px;
   margin-top: 16px;
   padding: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .config-row {
@@ -489,13 +489,13 @@ function formatDateTime(value) {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
 .config-row strong {
   min-width: 0;
-  color: #1f2937;
+  color: var(--text-primary);
   font-weight: 600;
   text-align: right;
   word-break: break-all;
@@ -515,14 +515,14 @@ function formatDateTime(value) {
 .metric-card {
   min-width: 0;
   padding: 14px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .metric-card span {
   display: block;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -530,7 +530,7 @@ function formatDateTime(value) {
   display: block;
   margin-top: 8px;
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 0;

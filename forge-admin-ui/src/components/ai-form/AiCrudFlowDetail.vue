@@ -160,9 +160,9 @@ async function loadHistory(value) {
   display: grid;
   grid-template-columns: minmax(0, 120px) minmax(0, 140px) minmax(0, 1fr);
   gap: 10px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 10px 12px;
 }
 
@@ -177,13 +177,13 @@ async function loadHistory(value) {
 }
 
 .flow-summary span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .flow-summary strong {
   min-width: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
   overflow: hidden;
@@ -200,8 +200,8 @@ async function loadHistory(value) {
 .flow-round-chip {
   border: 1px solid #dbe3f0;
   border-radius: 999px;
-  background: #fff;
-  color: #475569;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1;
   padding: 6px 10px;
@@ -210,7 +210,7 @@ async function loadHistory(value) {
 
 .flow-round-chip.active {
   border-color: var(--primary-color, #165dff);
-  background: color-mix(in srgb, var(--primary-color, #165dff) 10%, white);
+  background: color-mix(in srgb, var(--primary-color, #165dff) 10%, var(--bg-primary));
   color: var(--primary-color, #165dff);
 }
 
@@ -221,7 +221,7 @@ async function loadHistory(value) {
 
 .flow-section h4 {
   margin: 0;
-  color: #334155;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
 }

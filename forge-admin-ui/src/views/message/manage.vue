@@ -478,7 +478,7 @@ loadConnections()
 
 .message-content {
   line-height: 1.8;
-  color: #333;
+  color: var(--text-primary);
   padding: 16px;
 }
 </style>

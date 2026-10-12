@@ -53,9 +53,9 @@ defineProps({
   left: 0;
   right: 0;
   height: 32px;
-  background: rgba(255, 255, 255, 0.85);
+  background: color-mix(in srgb, var(--bg-primary) 85%, transparent);
   backdrop-filter: blur(4px);
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -73,17 +73,17 @@ defineProps({
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .shortcut-item kbd {
   padding: 1px 5px;
   font-size: 10px;
   font-family: 'Fira Code', 'Consolas', monospace;
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
   border-radius: 3px;
-  color: #334155;
+  color: var(--text-primary);
   min-width: 20px;
   text-align: center;
 }

@@ -16,10 +16,8 @@
     <NButton attr-type="submit" :loading="store.loading">
       查询
     </NButton>
-    <NButton quaternary aria-label="重置插件筛选" title="重置筛选" @click="store.reset">
-      <template #icon>
-        <i class="i-lucide:rotate-ccw" />
-      </template>
+    <NButton quaternary aria-label="重置插件筛选" @click="store.reset">
+      重置
     </NButton>
   </form>
 </template>

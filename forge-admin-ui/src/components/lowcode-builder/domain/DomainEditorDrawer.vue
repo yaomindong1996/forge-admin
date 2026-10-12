@@ -300,7 +300,7 @@ function flattenDomains(nodes, level = 0) {
 
 .section-title {
   margin-bottom: 12px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
 }

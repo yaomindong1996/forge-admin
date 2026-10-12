@@ -187,15 +187,15 @@ onMounted(loadAuthorizationRequest)
   display: grid;
   place-items: center;
   padding: 24px;
-  background: #f3f4f6;
+  background: var(--bg-tertiary);
 }
 
 .authorize-panel {
   width: min(100%, 560px);
   padding: 28px;
-  border: 1px solid var(--n-border-color, #e5e7eb);
+  border: 1px solid var(--border-light);
   border-radius: 10px;
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
   box-shadow: 0 8px 24px rgb(15 23 42 / 6%);
 }
 
@@ -204,7 +204,7 @@ onMounted(loadAuthorizationRequest)
   align-items: flex-start;
   gap: 14px;
   padding-bottom: 22px;
-  border-bottom: 1px solid var(--n-border-color, #e5e7eb);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .security-mark {
@@ -220,7 +220,7 @@ onMounted(loadAuthorizationRequest)
 
 h1 {
   margin: 0;
-  color: var(--n-text-color, #111827);
+  color: var(--text-primary);
   font-size: 20px;
   font-weight: 600;
   line-height: 1.4;
@@ -228,7 +228,7 @@ h1 {
 
 .panel-heading p {
   margin: 4px 0 0;
-  color: var(--n-text-color-3, #6b7280);
+  color: var(--text-tertiary);
   font-size: 14px;
 }
 
@@ -249,25 +249,25 @@ h1 {
 
 .section-label,
 .detail-row > span {
-  color: var(--n-text-color-3, #6b7280);
+  color: var(--text-tertiary);
   font-size: 13px;
 }
 
 .client-section strong {
   margin-top: 2px;
-  color: var(--n-text-color, #111827);
+  color: var(--text-primary);
   font-size: 17px;
 }
 
 .client-id {
-  color: var(--n-text-color-3, #6b7280);
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
 .detail-section {
   padding: 4px 0;
-  border-top: 1px solid var(--n-border-color, #e5e7eb);
-  border-bottom: 1px solid var(--n-border-color, #e5e7eb);
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .detail-row {
@@ -279,7 +279,7 @@ h1 {
 }
 
 .detail-row strong {
-  color: var(--n-text-color, #111827);
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 500;
   text-align: right;
@@ -297,7 +297,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--n-text-color-2, #374151);
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
@@ -309,8 +309,8 @@ h1 {
   margin: 0;
   padding: 12px 14px;
   border-radius: 6px;
-  color: var(--n-text-color-3, #6b7280);
-  background: var(--n-color-embedded, #f9fafb);
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
   font-size: 12px;
   line-height: 1.6;
 }

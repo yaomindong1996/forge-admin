@@ -203,11 +203,11 @@ function formatDate(value) {
   min-width: 0;
   min-height: 132px;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 4px;
   outline: none;
-  color: var(--n-text-color, var(--text-primary, #1d2129));
-  background: #fff;
+  color: var(--text-primary);
+  background: var(--bg-primary);
   cursor: pointer;
   transition:
     border-color 0.16s ease,
@@ -289,14 +289,14 @@ function formatDate(value) {
 }
 
 .application-copy strong {
-  color: var(--n-text-color, var(--text-primary, #1d2129));
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
   line-height: 16px;
 }
 
 .application-copy code {
-  color: var(--n-text-color-3, var(--text-tertiary, #86909c));
+  color: var(--text-tertiary);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
   line-height: 14px;
@@ -330,8 +330,8 @@ function formatDate(value) {
   min-width: 0;
   overflow: hidden;
   border-radius: 4px;
-  background: var(--n-color-embedded, var(--bg-secondary, #f2f3f5));
-  color: var(--n-text-color-2, var(--text-secondary, #4e5969));
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 11px;
   line-height: 20px;
   padding: 0 6px;
@@ -344,7 +344,7 @@ function formatDate(value) {
   align-items: center;
   gap: 4px;
   min-width: 0;
-  color: var(--n-text-color-3, var(--text-tertiary, #6b7280));
+  color: var(--text-tertiary);
   font-size: 11px;
   margin-left: auto;
 }
@@ -352,7 +352,7 @@ function formatDate(value) {
 .application-version i {
   flex: 0 0 auto;
   font-size: 12px;
-  color: var(--n-text-color-3, var(--text-tertiary, #9ca3af));
+  color: var(--text-tertiary);
 }
 
 .application-version span {
@@ -362,7 +362,7 @@ function formatDate(value) {
 }
 
 .application-version.empty {
-  color: var(--n-text-color-3, var(--text-tertiary, #9ca3af));
+  color: var(--text-tertiary);
 }
 
 .application-version.warning {
@@ -377,7 +377,7 @@ function formatDate(value) {
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  color: var(--n-text-color-3, var(--text-tertiary, #6b7280));
+  color: var(--text-tertiary);
   font-size: 12px;
   line-height: 18px;
 }
@@ -387,7 +387,7 @@ function formatDate(value) {
   align-items: center;
   gap: 4px;
   min-width: 0;
-  color: var(--n-text-color-3, var(--text-tertiary, #86909c));
+  color: var(--text-tertiary);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
@@ -395,7 +395,7 @@ function formatDate(value) {
 
 .application-date i {
   flex: 0 0 auto;
-  color: var(--n-text-color-3, var(--text-tertiary, #9ca3af));
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 

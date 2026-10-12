@@ -67,7 +67,7 @@
 .summary-item.is-action.is-active {
   color: var(--primary-color, #165dff);
   border-color: color-mix(in srgb, var(--primary-color, #165dff) 35%, var(--border-light, #e5e7eb));
-  background: color-mix(in srgb, var(--primary-color, #165dff) 6%, #fff);
+  background: color-mix(in srgb, var(--primary-color, #165dff) 6%, var(--bg-primary));
 }
 
 .panel-toolbar {

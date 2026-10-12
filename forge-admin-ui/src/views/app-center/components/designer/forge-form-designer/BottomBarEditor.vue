@@ -314,10 +314,10 @@ function isOnlyVisibleMode(item = {}, mode = '') {
 
 <style scoped>
 .bottom-bar-editor {
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .workbench-heading {
@@ -339,12 +339,12 @@ function isOnlyVisibleMode(item = {}, mode = '') {
 }
 
 .workbench-heading span {
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
 .bottom-heading {
-  background: #f7f8fa;
+  background: var(--bg-secondary);
 }
 
 .bottom-action-row {
@@ -353,7 +353,7 @@ function isOnlyVisibleMode(item = {}, mode = '') {
   grid-template-columns: 24px minmax(0, 1fr) 36px;
   gap: 10px;
   padding: 12px 10px;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 5px;
 }
 
@@ -373,7 +373,7 @@ function isOnlyVisibleMode(item = {}, mode = '') {
   display: flex;
   min-height: 34px;
   align-items: center;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -386,7 +386,7 @@ function isOnlyVisibleMode(item = {}, mode = '') {
 }
 
 .inline-field-label {
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -403,7 +403,7 @@ function isOnlyVisibleMode(item = {}, mode = '') {
 
 .action-drag-handle {
   display: inline-grid;
-  color: #86909c;
+  color: var(--text-tertiary);
   cursor: grab;
   place-items: center;
   align-self: start;

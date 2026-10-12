@@ -259,27 +259,27 @@ async function copyCode() {
   min-height: 560px;
   grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
 }
 
 .file-list {
   min-width: 0;
   overflow: auto;
-  border-right: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border-right: 1px solid var(--border-light);
+  background: var(--bg-secondary);
   padding: 10px;
 }
 
 .file-count {
   margin-bottom: 8px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .file-tree {
   min-width: 0;
-  color: #334155;
+  color: var(--text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
 }
@@ -306,7 +306,7 @@ async function copyCode() {
 }
 
 .file-node-icon {
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .code-panel {
@@ -321,7 +321,7 @@ async function copyCode() {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-light);
   padding: 10px 12px;
 }
 
@@ -351,7 +351,7 @@ async function copyCode() {
   .file-list {
     max-height: 220px;
     border-right: 0;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border-light);
   }
 }
 </style>

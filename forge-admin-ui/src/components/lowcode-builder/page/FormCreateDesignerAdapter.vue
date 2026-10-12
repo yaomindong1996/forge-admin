@@ -484,7 +484,7 @@ function installDesignerPlugins() {
   grid-template-rows: auto auto minmax(0, 1fr);
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   overflow: hidden;
 }
 
@@ -495,40 +495,40 @@ function installDesignerPlugins() {
   justify-content: space-between;
   gap: 16px;
   padding: 0 16px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #ffffff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
 }
 
 .designer-title {
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .designer-meta {
   margin-top: 2px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .master-detail-panel {
   display: grid;
   gap: 10px;
   padding: 12px 16px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #f8fafc;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-secondary);
 }
 
 .master-detail-summary {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .master-detail-summary strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
@@ -542,9 +542,9 @@ function installDesignerPlugins() {
 .child-detail-group {
   display: grid;
   gap: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 10px;
 }
 
@@ -553,13 +553,13 @@ function installDesignerPlugins() {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .child-detail-head strong {
   overflow: hidden;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -588,7 +588,7 @@ function installDesignerPlugins() {
 .designer-body {
   min-width: 0;
   min-height: 0;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 :deep(.fc-designer) {
@@ -598,6 +598,6 @@ function installDesignerPlugins() {
 
 :deep(.fc-designer ._fc-l),
 :deep(.fc-designer ._fc-r) {
-  background: #fff;
+  background: var(--bg-primary);
 }
 </style>

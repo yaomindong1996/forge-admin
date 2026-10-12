@@ -99,7 +99,7 @@ function patch(partial = {}) {
 <style scoped>
 .page-system-menu-mount-form__hint {
   margin: 8px 0 0;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
   line-height: 1.5;
 }

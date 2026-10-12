@@ -717,8 +717,8 @@ function clone(value) {
 }
 
 .field-event-modal {
-  --n-color: #fff;
-  --n-color-modal: #fff;
+  --n-color: var(--bg-primary);
+  --n-color-modal: var(--bg-primary);
 }
 
 .field-event-editor__head,
@@ -805,7 +805,7 @@ function clone(value) {
   padding: 14px;
   border: 1px solid var(--n-border-color);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .field-event-form h4 {
@@ -900,7 +900,7 @@ function clone(value) {
   padding: 10px 12px;
   border: 1px solid var(--n-border-color);
   border-radius: 8px;
-  background: var(--n-color-embedded, #fafbfc);
+  background: var(--bg-secondary);
 }
 
 .param-mapping-card__head {
@@ -968,7 +968,7 @@ function clone(value) {
   padding: 10px 12px;
   border: 1px solid var(--n-border-color);
   border-radius: 8px;
-  background: var(--n-color-embedded, #fafbfc);
+  background: var(--bg-secondary);
 }
 
 .result-mapping-card__cell {

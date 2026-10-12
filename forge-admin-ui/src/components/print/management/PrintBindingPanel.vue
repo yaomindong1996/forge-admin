@@ -299,7 +299,7 @@ watch(() => store.row?.id, () => run(() => store.loadBindings()), { immediate: t
   padding: 10px 12px;
   border: 1px solid var(--border-light, #e5e7eb);
   border-radius: 6px;
-  background: var(--gray-100, #f6f8fb);
+  background: var(--bg-primary);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -355,7 +355,7 @@ watch(() => store.row?.id, () => run(() => store.loadBindings()), { immediate: t
 }
 
 .binding-list__group.is-active {
-  background: color-mix(in srgb, var(--primary-color, #2080f0) 6%, #fff);
+  background: color-mix(in srgb, var(--primary-color, #2080f0) 6%, var(--bg-primary));
 }
 
 .binding-list__scene {

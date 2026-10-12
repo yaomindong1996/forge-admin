@@ -297,9 +297,9 @@ defineExpose({ validate, getValue })
 }
 
 .ai-form-array__row {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 12px;
 }
 
@@ -309,14 +309,14 @@ defineExpose({ validate, getValue })
 
 .ai-form-array.is-table .ai-form-array__rows {
   gap: 0;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
   overflow: hidden;
 }
 
 .ai-form-array.is-table .ai-form-array__row {
   border: 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
   border-radius: 0;
 }
 
@@ -329,13 +329,13 @@ defineExpose({ validate, getValue })
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
-  color: #334155;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
 }
 
 .ai-form-array__empty {
-  border: 1px dashed #d1d5db;
+  border: 1px dashed var(--border-light);
   border-radius: 8px;
   padding: 16px 0;
 }
@@ -348,7 +348,7 @@ defineExpose({ validate, getValue })
 }
 
 .ai-form-array__limit {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 </style>

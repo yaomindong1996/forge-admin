@@ -651,7 +651,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
   padding-bottom: 10px;
 }
 
@@ -660,14 +660,14 @@ onUnmounted(() => {
   min-width: 0;
   align-items: center;
   gap: 8px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
 .settings-collapse {
-  border: 1px solid var(--n-border-color, var(--border-light, #e5e7eb));
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: var(--n-color, var(--bg-primary, #fff));
+  background: var(--bg-primary);
   padding: 0 12px;
 }
 
@@ -678,14 +678,14 @@ onUnmounted(() => {
 
 .settings-section-title {
   margin: 2px 0 8px;
-  color: var(--n-text-color-2, var(--text-secondary, #4e5969));
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
 }
 
 .settings-section-title:not(:first-child) {
   margin-top: 8px;
-  border-top: 1px solid var(--n-border-color, var(--border-light, #e5e7eb));
+  border-top: 1px solid var(--border-light);
   padding-top: 10px;
 }
 
@@ -700,9 +700,9 @@ onUnmounted(() => {
 .object-selector {
   width: 100%;
   overflow: hidden;
-  border: 1px solid var(--n-border-color, var(--border-light, #e5e7eb));
+  border: 1px solid var(--border-light);
   border-radius: 7px;
-  background: var(--n-color, var(--bg-primary, #fff));
+  background: var(--bg-primary);
 }
 
 .object-selector-head {
@@ -712,9 +712,9 @@ onUnmounted(() => {
   gap: 12px;
   min-height: 36px;
   padding: 5px 10px;
-  border-bottom: 1px solid var(--n-border-color, var(--border-light, #e5e7eb));
-  color: var(--n-text-color-3, var(--text-tertiary, #86909c));
-  background: var(--n-color-embedded, var(--bg-secondary, #f7f8fa));
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
   font-size: 11px;
 }
 
@@ -725,7 +725,7 @@ onUnmounted(() => {
   max-height: 110px;
   overflow-y: auto;
   padding: 7px;
-  background: var(--n-border-color, var(--border-light, #e5e7eb));
+  background: var(--border-light);
 }
 
 .object-checkbox-item {
@@ -735,7 +735,7 @@ onUnmounted(() => {
   min-width: 0;
   min-height: 42px;
   padding: 5px 8px;
-  background: var(--n-color, var(--bg-primary, #fff));
+  background: var(--bg-primary);
   cursor: pointer;
 }
 
@@ -756,13 +756,13 @@ onUnmounted(() => {
 }
 
 .object-checkbox-copy strong {
-  color: var(--n-text-color, var(--text-primary, #1d2129));
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 600;
 }
 
 .object-checkbox-copy small {
-  color: var(--n-text-color-3, var(--text-tertiary, #86909c));
+  color: var(--text-tertiary);
   font-size: 10px;
 }
 
@@ -778,7 +778,7 @@ onUnmounted(() => {
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
 }
 
@@ -787,8 +787,8 @@ onUnmounted(() => {
   min-height: 0;
   height: 100%;
   overflow: auto;
-  border-right: 1px solid #e5e7eb;
-  background: #fafafa;
+  border-right: 1px solid var(--border-light);
+  background: var(--bg-secondary);
 }
 
 .file-list-header {
@@ -798,9 +798,9 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e5e7eb;
-  background: #fff;
-  color: #475569;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 600;
   padding: 10px 12px;
@@ -819,7 +819,7 @@ onUnmounted(() => {
 
 .file-list :deep(.tree-node-label i) {
   flex: 0 0 auto;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 16px;
 }
 
@@ -895,7 +895,7 @@ onUnmounted(() => {
   .file-list {
     max-height: 220px;
     border-right: 0;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border-light);
   }
 
   .object-checkbox-grid {

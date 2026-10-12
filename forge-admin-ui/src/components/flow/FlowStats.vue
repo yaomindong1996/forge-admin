@@ -67,7 +67,7 @@ defineEmits(['switch'])
 .flow-stats {
   margin-bottom: 18px;
   border-bottom: 1px solid #dce8e8;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .stats-row {
@@ -94,7 +94,7 @@ defineEmits(['switch'])
 
 .stat-card:hover {
   color: #0f766e;
-  background: #f6fbfb;
+  background: var(--bg-secondary);
 }
 
 .stat-card.active {
@@ -137,7 +137,7 @@ defineEmits(['switch'])
 }
 
 .stat-value {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: 700;
 }

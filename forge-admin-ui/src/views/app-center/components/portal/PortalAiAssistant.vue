@@ -162,7 +162,7 @@ async function scrollToBottom() {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   height: calc(100vh - 55px);
-  background: #f6f8fb;
+  background: var(--bg-secondary);
 }
 
 .assistant-scope {
@@ -174,7 +174,7 @@ async function scrollToBottom() {
   padding: 12px;
   border: 1px solid #dce3ec;
   border-radius: 9px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .assistant-scope__icon,
@@ -199,7 +199,7 @@ async function scrollToBottom() {
 
 .assistant-scope strong {
   overflow: hidden;
-  color: #1f2329;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -233,7 +233,7 @@ async function scrollToBottom() {
   border: 1px solid #dce3ec;
   border-radius: 4px 12px 12px;
   color: #313844;
-  background: #fff;
+  background: var(--bg-primary);
   font-size: 12px;
   line-height: 1.7;
   white-space: pre-wrap;
@@ -285,7 +285,7 @@ async function scrollToBottom() {
   gap: 9px;
   padding: 12px 14px 14px;
   border-top: 1px solid #dce3ec;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 -10px 30px rgb(15 23 42 / 5%);
 }
 

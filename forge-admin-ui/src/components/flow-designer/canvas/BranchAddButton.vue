@@ -46,9 +46,9 @@ function handleClick() {
 .branch-add-btn {
   width: 20px;
   height: 20px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-light);
   border-radius: 4px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
 }

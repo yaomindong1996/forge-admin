@@ -222,7 +222,7 @@ const jsonValue = computed(() => {
   height: 100%;
   overflow-y: auto;
   padding: 12px;
-  background: #fafafa;
+  background: var(--bg-secondary);
 }
 
 .panel-header {
@@ -237,7 +237,7 @@ const jsonValue = computed(() => {
 .empty-tip {
   text-align: center;
   padding: 40px 20px;
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 13px;
 }
 
@@ -252,7 +252,7 @@ const jsonValue = computed(() => {
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 4px;
 }
 
@@ -281,7 +281,7 @@ const jsonValue = computed(() => {
 .col-preview {
   flex: 1;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   font-family: monospace;
 }
 
@@ -299,7 +299,7 @@ const jsonValue = computed(() => {
 
 .json-code {
   font-size: 11px;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   padding: 8px;
   border-radius: 4px;
   overflow-x: auto;

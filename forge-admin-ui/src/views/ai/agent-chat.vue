@@ -33,7 +33,7 @@
             v-if="currentAgent"
             round
             :size="30"
-            :style="{ background: colorFor(currentAgent.agentCode), color: '#fff' }"
+            :style="{ background: colorFor(currentAgent.agentCode), color: 'var(--bg-primary)' }"
           >
             <NIcon><SparklesOutline /></NIcon>
           </NAvatar>
@@ -1084,7 +1084,7 @@ function flushRender(msg) {
   --text-body: #334155;
   --text-muted: #6b7280;
   --bg-soft: #f8fafc;
-  --surface: #ffffff;
+  --surface: var(--bg-primary);
   --chat-col: 760px;
   display: flex;
   height: calc(100vh - 120px);

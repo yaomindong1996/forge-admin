@@ -202,7 +202,7 @@
                           <div style="font-weight: 500">
                             {{ option.label }}
                           </div>
-                          <div v-if="option.description" style="font-size: 12px; color: #999; margin-top: 4px">
+                          <div v-if="option.description" style="font-size: 12px; color: var(--text-tertiary); margin-top: 4px">
                             {{ option.description }}
                           </div>
                         </div>

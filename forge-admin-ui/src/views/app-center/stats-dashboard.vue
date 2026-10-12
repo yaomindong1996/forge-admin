@@ -200,9 +200,9 @@ function normalize(value) {
 
 .stats-toolbar {
   margin-bottom: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 12px;
 }
 </style>

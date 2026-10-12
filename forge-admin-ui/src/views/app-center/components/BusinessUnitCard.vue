@@ -325,9 +325,9 @@ function handleAppSelect(key, app) {
   display: grid;
   gap: 12px;
   min-width: 0;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
   transition:
     border-color 180ms ease,
@@ -393,7 +393,7 @@ function handleAppSelect(key, app) {
 .unit-title-line strong,
 .entry-copy strong {
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -408,7 +408,7 @@ function handleAppSelect(key, app) {
   display: block;
   margin-top: 3px;
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -419,7 +419,7 @@ function handleAppSelect(key, app) {
   min-height: 39px;
   margin: 0;
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.5;
   -webkit-box-orient: vertical;
@@ -437,8 +437,8 @@ function handleAppSelect(key, app) {
   display: inline-flex;
   align-items: center;
   border-radius: 4px;
-  background: #f3f4f6;
-  color: #475569;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 22px;
   padding: 0 8px;
@@ -449,7 +449,7 @@ function handleAppSelect(key, app) {
   gap: 10px;
   border: 1px solid #eef2f7;
   border-radius: 8px;
-  background: #fbfcfe;
+  background: var(--bg-secondary);
   padding: 10px;
 }
 
@@ -461,12 +461,12 @@ function handleAppSelect(key, app) {
 }
 
 .entry-panel-head strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .entry-panel-head span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -490,9 +490,9 @@ function handleAppSelect(key, app) {
   min-width: 0;
   min-height: 44px;
   cursor: pointer;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 6px 8px;
   text-align: left;
   transition:
@@ -501,8 +501,8 @@ function handleAppSelect(key, app) {
 }
 
 .entry-main:hover {
-  border-color: #cbd5e1;
-  background: #f8fafc;
+  border-color: var(--border-light);
+  background: var(--bg-secondary);
 }
 
 .entry-main:disabled {
@@ -536,7 +536,7 @@ function handleAppSelect(key, app) {
 .entry-copy small {
   margin-top: 2px;
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -544,8 +544,8 @@ function handleAppSelect(key, app) {
 
 .entry-more {
   border-radius: 6px;
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 28px;
   padding: 0 10px;

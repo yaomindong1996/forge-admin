@@ -99,7 +99,7 @@ function normalizeConditionExpression(value) {
   overflow: hidden;
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.95);
+  background: color-mix(in srgb, var(--bg-primary) 95%, transparent);
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -131,7 +131,7 @@ function normalizeConditionExpression(value) {
 
 .branch-header.is-empty {
   border-style: dashed;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 @media (prefers-reduced-motion: reduce) {

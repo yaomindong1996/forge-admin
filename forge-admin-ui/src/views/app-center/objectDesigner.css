@@ -33,14 +33,14 @@
 
 .panel-head h2 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 18px;
   letter-spacing: 0;
 }
 
 .panel-head p {
   margin: 6px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -60,15 +60,15 @@
 }
 
 .advanced-grid div {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 12px;
 }
 
 .advanced-grid span {
   display: block;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -76,7 +76,7 @@
   display: block;
   overflow: hidden;
   margin-top: 6px;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -256,10 +256,10 @@ onUnmounted(() => {
 <style scoped>
 .minimap-wrapper {
   --primary: #2563eb;
-  --surface: #ffffff;
+  --surface: var(--bg-primary);
   --border: #d7dde7;
   --text-secondary: #667085;
-  --background: #f8fafc;
+  --background: var(--bg-secondary);
 
   position: absolute;
   bottom: 20px;
@@ -291,7 +291,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
 }
 

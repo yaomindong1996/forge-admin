@@ -132,6 +132,7 @@ onBeforeUnmount(store.deactivate)
   min-height: 0;
   min-width: 0;
   overflow: hidden;
+  background: var(--bg-primary);
   color: var(--text-primary);
 }
 .plugin-center__header {
@@ -187,7 +188,8 @@ onBeforeUnmount(store.deactivate)
   min-height: 0;
   overflow: auto;
   scrollbar-gutter: stable;
-  padding: 12px 0;
+  padding: 12px 16px;
+  background: var(--bg-primary);
 }
 .plugin-center__footer {
   display: flex;
@@ -195,7 +197,7 @@ onBeforeUnmount(store.deactivate)
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 10px 16px;
   border-top: 1px solid var(--border-light);
   background: var(--bg-primary);
 }
@@ -224,11 +226,20 @@ onBeforeUnmount(store.deactivate)
   .plugin-center__header {
     padding: 12px;
   }
+  .plugin-center__tabs,
+  .plugin-center__toolbar,
+  .plugin-center__scroll,
+  .plugin-center__footer {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
   .plugin-center__toolbar {
-    padding: 12px 0;
+    padding-top: 12px;
+    padding-bottom: 12px;
   }
   .plugin-center__footer {
-    padding: 8px 0;
+    padding-top: 8px;
+    padding-bottom: 8px;
   }
   .plugin-center__footer :deep(.n-pagination) {
     flex-wrap: wrap;

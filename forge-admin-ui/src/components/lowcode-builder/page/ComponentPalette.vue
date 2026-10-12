@@ -189,9 +189,9 @@ function resolveModelTag(field = {}) {
   height: 100%;
   display: grid;
   grid-template-rows: 42px auto minmax(0, 1fr);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   overflow: hidden;
 }
 
@@ -200,10 +200,10 @@ function resolveModelTag(field = {}) {
   display: flex;
   align-items: center;
   padding: 0 14px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .zone-tabs {
@@ -218,8 +218,8 @@ function resolveModelTag(field = {}) {
   min-height: 30px;
   border: 1px solid #dbe3ee;
   border-radius: 6px;
-  background: #f8fafc;
-  color: #475569;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
   cursor: pointer;
 }
@@ -244,7 +244,7 @@ function resolveModelTag(field = {}) {
   margin-bottom: 8px;
   font-size: 12px;
   font-weight: 700;
-  color: #334155;
+  color: var(--text-primary);
 }
 
 .field-section-title {
@@ -254,7 +254,7 @@ function resolveModelTag(field = {}) {
 }
 
 .field-section-title span:last-child {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-weight: 500;
 }
 
@@ -275,9 +275,9 @@ function resolveModelTag(field = {}) {
   gap: 4px;
   text-align: left;
   padding: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   cursor: pointer;
 }
 
@@ -301,10 +301,10 @@ function resolveModelTag(field = {}) {
 .compact-item {
   min-height: 34px;
   padding: 0 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #ffffff;
-  color: #475569;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   font-size: 12px;
   cursor: grab;
 }
@@ -324,9 +324,9 @@ function resolveModelTag(field = {}) {
   gap: 3px;
   min-height: 46px;
   padding: 7px 9px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
   text-align: left;
   cursor: grab;
 }
@@ -337,7 +337,7 @@ function resolveModelTag(field = {}) {
 }
 
 .field-name {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 700;
   overflow: hidden;
@@ -362,7 +362,7 @@ function resolveModelTag(field = {}) {
 }
 
 .field-meta {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 11px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   overflow: hidden;
@@ -373,17 +373,17 @@ function resolveModelTag(field = {}) {
 .palette-name {
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .palette-desc {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .palette-tip {
   margin-top: 2px;
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 </style>

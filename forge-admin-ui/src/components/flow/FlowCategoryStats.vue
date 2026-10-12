@@ -67,7 +67,7 @@ defineEmits(['filter'])
   padding: 10px 12px;
   border: 1px solid var(--border-light, #e2e8f0);
   border-radius: 4px;
-  background: #fff;
+  background: var(--bg-primary);
   cursor: pointer;
   text-align: left;
   transition: all 0.2s ease;
@@ -75,7 +75,7 @@ defineEmits(['filter'])
 
 .stat-card:hover {
   border-color: color-mix(in srgb, var(--primary-color, #2563eb) 30%, var(--border-light, #e2e8f0));
-  background: color-mix(in srgb, var(--primary-color, #2563eb) 3%, #fff);
+  background: color-mix(in srgb, var(--primary-color, #2563eb) 3%, var(--bg-primary));
 }
 
 .stat-icon {

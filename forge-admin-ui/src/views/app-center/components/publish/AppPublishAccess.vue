@@ -89,9 +89,9 @@ function openLink(value) {
 .publish-section-card {
   min-width: 0;
   padding: 20px 24px;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 1px 3px rgb(31 35 41 / 6%);
 }
 
@@ -111,7 +111,7 @@ function openLink(value) {
 
 .publish-section-card header p {
   margin: 5px 0 0;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -126,9 +126,9 @@ function openLink(value) {
   align-items: center;
   gap: 18px;
   padding: 14px;
-  border: 1px solid var(--n-border-color, #e5e7eb);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: var(--n-color-embedded, #f7f8fa);
+  background: var(--bg-secondary);
 }
 
 .publish-access-body.is-h5 {

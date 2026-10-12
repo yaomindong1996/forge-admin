@@ -111,10 +111,10 @@
 }
 
 .title-preset {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 4px;
-  background: #f8fafc;
-  color: #334155;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 12px;
   line-height: 1.4;
@@ -302,7 +302,7 @@
 .approval-preview-canvas {
   min-height: 240px;
   overflow: auto;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 6px;
 }
 
@@ -329,7 +329,7 @@
 
 .action-edit-hint .hint-text {
   font-size: 12px;
-  color: #86909c;
+  color: var(--text-tertiary);
 }
 
 .flow-model-empty-guide {

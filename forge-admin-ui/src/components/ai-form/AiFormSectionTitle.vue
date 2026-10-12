@@ -112,7 +112,7 @@ defineProps({
 
 :global(.dark) .ai-form-section-title__badge {
   background: #162033;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 @media (max-width: 640px) {

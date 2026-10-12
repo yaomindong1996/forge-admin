@@ -250,9 +250,9 @@ function parseOptions(value) {
 
 .summary-card,
 .entry-panel {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .summary-card {
@@ -278,13 +278,13 @@ function parseOptions(value) {
 }
 
 .summary-card strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 22px;
   line-height: 1;
 }
 
 .summary-card span {
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -297,7 +297,7 @@ function parseOptions(value) {
 }
 
 .panel-head strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 15px;
 }
 

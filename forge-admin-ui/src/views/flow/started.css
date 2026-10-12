@@ -16,7 +16,7 @@
   background: var(--bg-secondary);
 }
 .page-header {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 16px 20px;
   display: flex;
@@ -51,7 +51,7 @@
 .page-title {
   font-size: 18px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
   margin: 0;
 }
 .quick-stats {
@@ -83,7 +83,7 @@
   width: 132px;
 }
 .table-container {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 16px 20px;
   flex: 1;
@@ -104,7 +104,7 @@
 }
 :deep(.user-name-text) {
   font-weight: 500;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 :deep(.status-tag-mini) {
   padding: 2px 8px;
@@ -129,8 +129,8 @@
   color: #b91c1c;
 }
 :deep(.status-tag-mini.default) {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 .drawer-header {
   display: flex;
@@ -166,7 +166,7 @@
 .drawer-title {
   font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 .status-tag {
   padding: 4px 12px;
@@ -191,8 +191,8 @@
   color: #b91c1c;
 }
 .status-tag.default {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 .drawer-body {
   display: flex;
@@ -209,10 +209,10 @@
   gap: 12px;
 }
 .info-card {
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border-radius: 10px;
   padding: 12px 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
 }
 .info-header {
   display: flex;
@@ -220,7 +220,7 @@
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-secondary);
   margin-bottom: 10px;
 }
 .info-items {
@@ -235,11 +235,11 @@
 }
 .info-label {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 .info-value {
   font-size: 13px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-weight: 500;
 }
 .info-value.highlight {
@@ -255,9 +255,9 @@
   gap: 8px;
 }
 .section {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   padding: 16px;
 }
 .section-header {
@@ -266,7 +266,7 @@
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 .withdraw-section {

@@ -622,15 +622,15 @@ function handleAcceptanceAction(action, data) {
 <style scoped>
 .suite-detail-page {
   min-height: 100%;
-  background: #f6f8fb;
+  background: var(--bg-secondary);
   padding: 20px;
 }
 
 .suite-head,
 .suite-section {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 16px;
 }
 
@@ -666,14 +666,14 @@ function handleAcceptanceAction(action, data) {
 }
 
 .suite-title > span.has-icon {
-  background: #f8fafc;
+  background: var(--bg-secondary);
   color: #2563eb;
 }
 
 .suite-title h1,
 .section-head h2 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   letter-spacing: 0;
 }
 
@@ -695,7 +695,7 @@ function handleAcceptanceAction(action, data) {
 .suite-title p,
 .section-head p {
   margin: 6px 0 0;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -708,7 +708,7 @@ function handleAcceptanceAction(action, data) {
 
 .suite-stats div {
   border-left: 3px solid #dbeafe;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 10px 12px;
 }
 
@@ -718,12 +718,12 @@ function handleAcceptanceAction(action, data) {
 }
 
 .suite-stats strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 20px;
 }
 
 .suite-stats span {
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 

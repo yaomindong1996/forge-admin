@@ -245,7 +245,7 @@ function updateFormModalWidth(value) {
 
 .compact-config-row > label,
 .form-columns-head > label {
-  color: #52525b;
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 600;
   line-height: 16px;
@@ -298,7 +298,7 @@ function updateFormModalWidth(value) {
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  color: #a1a1aa;
+  color: var(--text-tertiary);
   font-size: 10px;
   font-style: normal;
   pointer-events: none;
@@ -325,19 +325,19 @@ function updateFormModalWidth(value) {
   border: 1px solid transparent;
   border-radius: 4px;
   background: transparent;
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 11px;
   font-weight: 600;
 }
 
 .segmented-mini button:hover {
-  color: #3f3f46;
+  color: var(--text-secondary);
   background: rgba(228, 228, 231, 0.5);
 }
 
 .segmented-mini button.active {
   border-color: rgba(212, 212, 216, 0.72);
-  background: #fff;
+  background: var(--bg-primary);
   color: #4f46e5;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }

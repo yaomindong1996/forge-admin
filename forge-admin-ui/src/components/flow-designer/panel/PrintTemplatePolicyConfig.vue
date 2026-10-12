@@ -146,7 +146,7 @@ function updateIds(value) {
 
 .print-policy-hint {
   margin: 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 18px;
 }

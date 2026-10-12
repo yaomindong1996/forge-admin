@@ -386,7 +386,7 @@ function moveVisibleField(index, offset) {
 
 .wizard-intro span,
 .field-selector-head span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -399,7 +399,7 @@ function moveVisibleField(index, offset) {
 .field-selector {
   overflow: hidden;
   min-height: 190px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 10px;
 }
 
@@ -407,8 +407,8 @@ function moveVisibleField(index, offset) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-secondary);
   padding: 10px 12px;
 }
 
@@ -435,12 +435,12 @@ function moveVisibleField(index, offset) {
   align-items: baseline;
   gap: 8px;
   margin-bottom: 6px;
-  color: #334155;
+  color: var(--text-primary);
   font-size: 12px;
 }
 
 .field-order-head span {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 
@@ -451,9 +451,9 @@ function moveVisibleField(index, offset) {
   max-height: 220px;
   overflow-y: auto;
   padding: 6px 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .field-order-row {
@@ -462,20 +462,20 @@ function moveVisibleField(index, offset) {
   gap: 8px;
   min-height: 30px;
   padding: 4px 6px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 5px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .field-drag-handle {
   cursor: grab;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   letter-spacing: -2px;
 }
 
 .field-order-index {
   width: 18px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 11px;
   text-align: center;
 }
@@ -484,7 +484,7 @@ function moveVisibleField(index, offset) {
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  color: #334155;
+  color: var(--text-primary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -497,13 +497,13 @@ function moveVisibleField(index, offset) {
 }
 
 .field-checkbox-copy strong {
-  color: #334155;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 500;
 }
 
 .field-checkbox-copy small {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 

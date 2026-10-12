@@ -843,7 +843,7 @@ defineExpose({
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   min-height: calc(100vh - 106px);
-  background: #f7f8fa;
+  background: var(--bg-secondary);
 }
 
 .field-asset-head {
@@ -852,13 +852,13 @@ defineExpose({
   justify-content: space-between;
   gap: 16px;
   border-bottom: 1px solid var(--border-default, #e5e6eb);
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px 18px;
 }
 
 .field-asset-head h2 {
   margin: 0;
-  color: var(--n-text-color, var(--text-primary, #1d2129));
+  color: var(--text-primary);
   font-size: 16px;
   letter-spacing: 0;
 }
@@ -879,7 +879,7 @@ defineExpose({
 .field-summary span {
   border: 1px solid var(--border-default, #e5e6eb);
   border-radius: 5px;
-  background: #f7f8fa;
+  background: var(--bg-secondary);
   color: var(--n-text-color-3, var(--text-secondary, #86909c));
   font-size: 12px;
   line-height: 24px;
@@ -889,7 +889,7 @@ defineExpose({
 
 .field-summary strong {
   margin-left: 3px;
-  color: var(--n-text-color, var(--text-primary, #1d2129));
+  color: var(--text-primary);
   font-size: 12px;
 }
 
@@ -898,7 +898,7 @@ defineExpose({
   align-items: center;
   gap: 10px;
   border-bottom: 1px solid var(--border-default, #e5e6eb);
-  background: #fff;
+  background: var(--bg-primary);
   padding: 10px 18px;
 }
 
@@ -919,7 +919,7 @@ defineExpose({
   border: 1px solid var(--border-default, #e5e6eb);
   border-radius: 6px;
   color: var(--n-text-color-2, var(--text-regular, #4e5969));
-  background: #f7f8fa;
+  background: var(--bg-secondary);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -940,14 +940,14 @@ defineExpose({
   min-width: 0;
   min-height: 0;
   border-right: 1px solid var(--border-default, #e5e6eb);
-  background: #f7f8fa;
+  background: var(--bg-secondary);
 }
 
 .field-property-pane {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .field-property-drawer-panel {
@@ -961,7 +961,7 @@ defineExpose({
   margin-bottom: 14px;
   border: 1px solid var(--border-default, #e5e6eb);
   border-radius: 6px;
-  background: #f7f8fa;
+  background: var(--bg-secondary);
   color: var(--n-text-color-3, var(--text-secondary, #86909c));
   font-size: 12px;
   line-height: 1.6;

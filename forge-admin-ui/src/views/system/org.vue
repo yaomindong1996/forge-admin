@@ -1376,8 +1376,8 @@ function splitTableCellValues(value) {
   flex-shrink: 0;
   min-height: 42px;
   padding: 7px 8px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
 }
 
 .org-tree-panel.is-collapsed .org-tree-header {
@@ -1408,14 +1408,14 @@ function splitTableCellValues(value) {
 }
 
 .header-copy span {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 650;
   line-height: 1.2;
 }
 
 .header-copy small {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
@@ -1424,7 +1424,7 @@ function splitTableCellValues(value) {
   flex-direction: column;
   gap: 6px;
   padding: 6px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .org-tree-content {
@@ -1453,14 +1453,14 @@ function splitTableCellValues(value) {
 }
 
 .org-tree-content :deep(.premium-tree-row:hover) {
-  background: #f8fafc;
-  border-color: #e5e7eb;
+  background: var(--bg-secondary);
+  border-color: var(--border-light);
 }
 
 .org-tree-content :deep(.premium-tree-row.is-selected) {
   background: #f3f7ff;
-  border-color: color-mix(in srgb, #2563eb 26%, #e5e7eb);
-  color: #0f172a;
+  border-color: color-mix(in srgb, #2563eb 26%, var(--border-light));
+  color: var(--text-primary);
   box-shadow: none;
 }
 
@@ -1468,7 +1468,7 @@ function splitTableCellValues(value) {
   width: 16px;
   height: 16px;
   margin-right: 5px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .org-tree-content :deep(.premium-tree-icon i) {
@@ -1480,7 +1480,7 @@ function splitTableCellValues(value) {
 }
 
 .org-tree-content :deep(.premium-tree-row.is-selected .premium-tree-title) {
-  color: #0f172a;
+  color: var(--text-primary);
   font-weight: 650;
 }
 
@@ -1492,7 +1492,7 @@ function splitTableCellValues(value) {
   justify-content: center;
   gap: 12px;
   padding: 14px 6px;
-  color: #64748b;
+  color: var(--text-secondary);
   cursor: pointer;
   transition:
     background-color 0.2s ease,
@@ -1533,7 +1533,7 @@ function splitTableCellValues(value) {
   flex-shrink: 0;
   min-height: 40px;
   padding: 0 10px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .org-workspace-tabs :deep(.n-tabs-tab) {
@@ -1562,19 +1562,19 @@ function splitTableCellValues(value) {
   align-items: flex-start;
   gap: 10px;
   padding: 7px 10px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .panel-eyebrow {
   margin: 0 0 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
 }
 
 .panel-header h2 {
   margin: 0;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 650;
   line-height: 1.3;
@@ -1586,7 +1586,7 @@ function splitTableCellValues(value) {
   gap: 6px;
   flex-shrink: 0;
   padding: 6px 8px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .post-spin {
@@ -1615,8 +1615,8 @@ function splitTableCellValues(value) {
   margin-bottom: 2px;
   border: 1px solid transparent;
   border-radius: 6px;
-  background: #fff;
-  color: #0f172a;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   text-align: left;
   cursor: pointer;
   transition:
@@ -1626,8 +1626,8 @@ function splitTableCellValues(value) {
 }
 
 .post-item:hover {
-  border-color: #e2e8f0;
-  background: #f8fafc;
+  border-color: var(--border-light);
+  background: var(--bg-secondary);
 }
 
 .post-item.is-selected {
@@ -1655,7 +1655,7 @@ function splitTableCellValues(value) {
 
 .post-main small {
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1697,7 +1697,7 @@ function splitTableCellValues(value) {
   border: 0;
   border-radius: 5px;
   background: transparent;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   cursor: pointer;
   transition:
     background-color 0.16s ease,
@@ -1769,7 +1769,7 @@ function splitTableCellValues(value) {
 
 .member-user-inline strong {
   overflow: hidden;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -1783,7 +1783,7 @@ function splitTableCellValues(value) {
 
 .member-user-inline span {
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   text-overflow: ellipsis;
 }
@@ -1804,7 +1804,7 @@ function splitTableCellValues(value) {
 }
 
 .dark .org-tree-header {
-  border-bottom-color: #334155;
+  border-bottom-color: var(--border-light);
   background: #0f172a;
 }
 
@@ -1819,20 +1819,20 @@ function splitTableCellValues(value) {
 .dark .panel-eyebrow,
 .dark .post-main small,
 .dark .member-user-inline span {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark .org-tree-tools,
 .dark .panel-header,
 .dark .post-search,
 .dark .org-workspace-tabs :deep(.n-tabs-nav) {
-  border-color: #334155;
+  border-color: var(--border-light);
   background: #0f172a;
 }
 
 .dark .org-tree-content :deep(.premium-tree-row:hover) {
   background: #162033;
-  border-color: #334155;
+  border-color: var(--border-light);
 }
 
 .dark .org-tree-content :deep(.premium-tree-row.is-selected) {
@@ -1852,7 +1852,7 @@ function splitTableCellValues(value) {
 }
 
 .dark .post-item:hover {
-  border-color: #334155;
+  border-color: var(--border-light);
   background: #162033;
 }
 

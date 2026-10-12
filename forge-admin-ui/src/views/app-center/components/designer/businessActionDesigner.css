@@ -4,7 +4,7 @@
   gap: 12px;
   min-height: 100%;
   padding: 14px;
-  background: #f7f8fa;
+  background: var(--bg-secondary);
 }
 
 .designer-head,
@@ -14,7 +14,7 @@
 .advanced-json {
   border: 1px solid #e4e4e7;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .designer-head {
@@ -35,7 +35,7 @@
 
 .designer-head p {
   margin: 3px 0 0;
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -51,7 +51,7 @@
   flex-direction: column;
   gap: 3px;
   padding: 10px 12px;
-  background: #fafafa;
+  background: var(--bg-secondary);
 }
 
 .boundary-item.active {
@@ -59,7 +59,7 @@
 }
 
 .boundary-item strong {
-  color: #27272a;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
@@ -69,7 +69,7 @@
 .flow-card-head em,
 .quantity-card-head span,
 .unsupported-step span {
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -118,7 +118,7 @@
 
 .pane-title {
   padding: 4px 4px 8px;
-  color: #52525b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -164,7 +164,7 @@
 .automation-list-item strong,
 .quantity-card-head strong,
 .unsupported-step strong {
-  color: #27272a;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
@@ -195,7 +195,7 @@
 .section-hint,
 .subsection-head span {
   margin: 0;
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -294,7 +294,7 @@
   padding: 12px;
   border: 1px solid #e4e4e7;
   border-radius: 8px;
-  background: #fafafa;
+  background: var(--bg-secondary);
 }
 
 .call-api-step-card {
@@ -342,7 +342,7 @@
 }
 
 .quantity-card {
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .quantity-card-head {

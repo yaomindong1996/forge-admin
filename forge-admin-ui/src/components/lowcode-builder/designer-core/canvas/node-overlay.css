@@ -34,7 +34,7 @@
   border: 1px solid transparent;
   border-radius: 5px;
   background: transparent;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 14px;
   transition:
     background 120ms ease,
@@ -49,9 +49,9 @@
 }
 
 .overlay-icon-action:hover {
-  border-color: #e2e8f0;
-  background: #f1f5f9;
-  color: #334155;
+  border-color: var(--border-light);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .overlay-icon-action.danger:hover {
@@ -91,9 +91,9 @@
 }
 
 .overlay-menu-trigger:hover {
-  border-color: #e2e8f0;
-  background: #f1f5f9;
-  color: #334155;
+  border-color: var(--border-light);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 /* ─── 拖拽把手（居中顶部）───────────────────────────────── */
@@ -108,9 +108,9 @@
 }
 
 .overlay-drag-handle:hover {
-  border-color: #e2e8f0;
-  background: #f1f5f9;
-  color: #334155;
+  border-color: var(--border-light);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .overlay-drag-handle:active {
@@ -133,7 +133,7 @@
   border: 1px solid transparent;
   border-radius: 5px;
   background: transparent;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   cursor: pointer;
   line-height: 22px;
@@ -144,8 +144,8 @@
 }
 
 .overlay-required-switch:hover {
-  border-color: #e2e8f0;
-  background: #f1f5f9;
+  border-color: var(--border-light);
+  background: var(--bg-tertiary);
 }
 
 .overlay-required-switch.active {
@@ -175,7 +175,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
   transition: transform 160ms ease;
 }

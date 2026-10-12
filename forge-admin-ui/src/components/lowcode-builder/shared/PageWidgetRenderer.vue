@@ -562,18 +562,18 @@ const qrcodeQrOptions = computed(() => ({
 }))
 const qrcodeDotsOptions = computed(() => ({
   type: props.propsData.dotsType || 'square',
-  color: props.propsData.foreground || '#0f172a',
+  color: props.propsData.foreground || 'var(--text-primary)',
 }))
 const qrcodeBackgroundOptions = computed(() => ({
   color: props.propsData.background || 'transparent',
 }))
 const qrcodeCornersSquareOptions = computed(() => ({
   type: props.propsData.cornersSquareType || 'square',
-  color: props.propsData.cornerColor || props.propsData.foreground || '#0f172a',
+  color: props.propsData.cornerColor || props.propsData.foreground || 'var(--text-primary)',
 }))
 const qrcodeCornersDotOptions = computed(() => ({
   type: props.propsData.cornersDotType || 'square',
-  color: props.propsData.cornerColor || props.propsData.foreground || '#0f172a',
+  color: props.propsData.cornerColor || props.propsData.foreground || 'var(--text-primary)',
 }))
 const vueProps = computed(() => safeJsonParseObject(props.propsData.propsJson, {}))
 const compactPropsJson = computed(() => JSON.stringify(vueProps.value))
@@ -1121,7 +1121,7 @@ function sanitizeCss(value = '') {
 .vue-widget-toolbar strong,
 .widget-title-row strong,
 .widget-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 800;
 }
@@ -1129,7 +1129,7 @@ function sanitizeCss(value = '') {
 .rich-editor-head span,
 .vue-widget-toolbar em,
 .widget-title-row span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   font-style: normal;
 }
@@ -1145,7 +1145,7 @@ function sanitizeCss(value = '') {
 }
 
 .wang-toolbar {
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .wang-editor {
@@ -1263,7 +1263,7 @@ function sanitizeCss(value = '') {
 .qrcode-widget small {
   max-width: 100%;
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1299,13 +1299,13 @@ function sanitizeCss(value = '') {
 
 .countdown-widget span,
 .number-animation-widget span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .countdown-widget :deep(.n-countdown),
 .number-animation-widget strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 28px;
   font-weight: 800;
   line-height: 1.1;
@@ -1341,14 +1341,14 @@ function sanitizeCss(value = '') {
 }
 
 .split-pane strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 800;
 }
 
 .split-pane p {
   margin: 0;
-  color: #64748b;
+  color: var(--text-secondary);
   line-height: 1.7;
 }
 
@@ -1379,10 +1379,10 @@ function sanitizeCss(value = '') {
   margin: 0;
   overflow: auto;
   padding: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 10px;
-  background: #f8fafc;
-  color: #334155;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   font-size: 12px;
   line-height: 1.7;
 }
@@ -1394,13 +1394,13 @@ function sanitizeCss(value = '') {
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: #334155;
+  color: var(--text-primary);
   line-height: 1.7;
 }
 
 .html-meta {
   margin-top: 6px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
@@ -1453,7 +1453,7 @@ function sanitizeCss(value = '') {
   gap: 8px;
   align-items: center;
   min-width: 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
@@ -1467,8 +1467,8 @@ function sanitizeCss(value = '') {
 .widget-placeholder {
   padding: 12px 16px;
   border-radius: 6px;
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   font-size: 12px;
   text-align: center;
 }

@@ -585,7 +585,7 @@ defineExpose({
 
 .flow-config-topbar {
   border-bottom: 1px solid #e4e4e7;
-  background: rgba(255, 255, 255, 0.96);
+  background: color-mix(in srgb, var(--bg-primary) 96%, transparent);
   padding: 16px 28px;
 }
 
@@ -619,7 +619,7 @@ defineExpose({
   gap: 32px;
   height: 56px;
   border-bottom: 1px solid #e8edf5;
-  background: rgba(255, 255, 255, 0.94);
+  background: color-mix(in srgb, var(--bg-primary) 94%, transparent);
   padding: 0 28px;
 }
 
@@ -646,7 +646,7 @@ defineExpose({
   flex: 0 0 auto;
   border: 0;
   background: transparent;
-  color: #334155;
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 14px;
   font-weight: 700;
@@ -709,7 +709,7 @@ defineExpose({
   min-height: 70px;
   border: 1px solid #e3e8f2;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.96);
+  background: color-mix(in srgb, var(--bg-primary) 96%, transparent);
   box-shadow: 0 6px 18px rgba(30, 41, 59, 0.06);
   color: #25324d;
   cursor: pointer;
@@ -749,7 +749,7 @@ defineExpose({
   height: 38px;
   border: 1px solid #c8d1e1;
   border-radius: 50%;
-  background: #fff;
+  background: var(--bg-primary);
   color: #7b879b;
   font-size: 16px;
   font-weight: 700;
@@ -806,7 +806,7 @@ defineExpose({
 }
 
 .code-app-banner span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 16px;
 }
@@ -814,7 +814,7 @@ defineExpose({
 .code-app-banner strong {
   display: block;
   margin-top: 2px;
-  color: #1e293b;
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 20px;
 }
@@ -829,7 +829,7 @@ defineExpose({
 .code-app-facts span {
   border: 1px solid #bfdbfe;
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
   color: #3153d8;
   padding: 4px 8px;
 }
@@ -847,7 +847,7 @@ defineExpose({
   margin-bottom: 14px;
   border: 1px solid #e3e8f2;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 0 22px;
   box-shadow: 0 6px 18px rgba(30, 41, 59, 0.04);
 }
@@ -985,7 +985,7 @@ defineExpose({
 .flow-config-panel :deep(.section-head p),
 .flow-config-panel :deep(.flow-card-head p) {
   max-width: 680px;
-  color: #6b7280;
+  color: var(--text-secondary);
   line-height: 18px;
 }
 

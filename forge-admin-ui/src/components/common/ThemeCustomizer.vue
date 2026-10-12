@@ -238,7 +238,7 @@ const colorPresets = ref([
   { name: '绿色', color: '#10b981', value: '#10b981' },
   { name: '橙色', color: '#f59e0b', value: '#f59e0b' },
   { name: '红色', color: '#ef4444', value: '#ef4444' },
-  { name: '深灰', color: '#6b7280', value: '#6b7280' },
+  { name: '深灰', color: 'var(--text-secondary)', value: 'var(--text-secondary)' },
 ])
 
 // 圆角标记

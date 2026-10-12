@@ -338,7 +338,7 @@ watch(
   padding: 10px 12px;
   border: 1px solid var(--border-light, #e5e7eb);
   border-radius: 6px;
-  background: var(--gray-50, #f8fafc);
+  background: var(--bg-primary);
 }
 
 .toolbar-filters {
@@ -383,7 +383,7 @@ watch(
 
 .audit-event.is-expanded {
   border-color: color-mix(in srgb, var(--primary-color, #165dff) 28%, var(--border-light, #e5e7eb));
-  background: color-mix(in srgb, var(--primary-color, #165dff) 3%, #fff);
+  background: color-mix(in srgb, var(--primary-color, #165dff) 3%, var(--bg-primary));
 }
 
 .event-time-col {
@@ -434,7 +434,7 @@ watch(
   width: 28px;
   height: 28px;
   border-radius: 4px;
-  background: var(--gray-100, #f1f5f9);
+  background: var(--bg-primary);
   color: var(--text-secondary, #475569);
   font-size: 12px;
   font-weight: 650;
@@ -477,7 +477,7 @@ watch(
   margin: 0;
   padding: 8px 10px;
   border-radius: 4px;
-  background: var(--gray-50, #f8fafc);
+  background: var(--bg-primary);
   border: 1px solid var(--border-light, #e5e7eb);
   color: var(--text-secondary, #475569);
   font-size: 12px;

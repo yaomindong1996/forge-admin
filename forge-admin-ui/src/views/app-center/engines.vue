@@ -101,7 +101,7 @@ function openEngine(item) {
 
 .engine-meta span {
   border-radius: 4px;
-  background: #f3f4f6;
+  background: var(--bg-tertiary);
   color: #374151;
   font-size: 12px;
   line-height: 22px;

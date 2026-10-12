@@ -481,7 +481,7 @@ const statusTagType = computed(() => {
   align-items: center;
   justify-content: space-between;
   padding: 7px 14px;
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--bg-primary) 6%, transparent);
   color: #abb2bf;
   font-size: 11px;
 }
@@ -490,14 +490,14 @@ const statusTagType = computed(() => {
   padding: 2px 10px;
   border: none;
   border-radius: 5px;
-  background: rgba(255, 255, 255, 0.12);
+  background: color-mix(in srgb, var(--bg-primary) 12%, transparent);
   color: #dfe4ee;
   font-size: 11px;
   cursor: pointer;
 }
 
 .markdown-body :deep(.code-copy-btn:hover) {
-  background: rgba(255, 255, 255, 0.22);
+  background: color-mix(in srgb, var(--bg-primary) 22%, transparent);
 }
 
 .markdown-body :deep(.code-block pre) {

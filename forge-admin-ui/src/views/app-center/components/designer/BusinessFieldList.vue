@@ -204,20 +204,20 @@ function syncStatusTone(status) {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
   padding: 12px 14px;
 }
 
 .field-list-head h3 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 15px;
   letter-spacing: 0;
 }
 
 .field-list-head p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -236,9 +236,9 @@ function syncStatusTone(status) {
   align-items: center;
   gap: 8px;
   width: 100%;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 7px;
-  background: #fff;
+  background: var(--bg-primary);
   cursor: pointer;
   text-align: left;
   padding: 8px 10px;
@@ -269,7 +269,7 @@ function syncStatusTone(status) {
   display: block;
   overflow: hidden;
   min-width: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -279,7 +279,7 @@ function syncStatusTone(status) {
   display: block;
   overflow: hidden;
   margin-top: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -287,7 +287,7 @@ function syncStatusTone(status) {
 
 .field-main em {
   margin-left: 8px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-style: normal;
 }
 
@@ -300,8 +300,8 @@ function syncStatusTone(status) {
 
 .field-flags small {
   border-radius: 4px;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   font-size: 11px;
   line-height: 20px;
   padding: 0 6px;

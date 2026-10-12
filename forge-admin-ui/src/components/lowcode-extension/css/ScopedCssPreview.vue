@@ -54,8 +54,8 @@ const previewDocument = computed(() => {
   const css = String(props.css || '').replace(/<\/style/gi, '<\\/style')
   return `<!doctype html>
     <html><head><meta charset="utf-8"><style>
-      body { margin: 0; padding: 16px; color: #303133; font: 13px/1.5 sans-serif; background: #f7f8fa; }
-      .preview-card { padding: 14px; border: 1px solid #dfe3e8; border-radius: 6px; background: #fff; }
+      body { margin: 0; padding: 16px; color: #303133; font: 13px/1.5 sans-serif; background: var(--bg-secondary); }
+      .preview-card { padding: 14px; border: 1px solid #dfe3e8; border-radius: 6px; background: var(--bg-primary); }
       .preview-card strong { display: block; margin-bottom: 6px; }
       ${css}
     </style></head><body>
@@ -78,7 +78,7 @@ function escapeAttribute(value) {
 <style scoped>
 .scoped-css-preview {
   overflow: hidden;
-  border: 1px solid var(--n-border-color, #dfe3e8);
+  border: 1px solid var(--border-light);
   border-radius: 6px;
 }
 
@@ -89,8 +89,8 @@ function escapeAttribute(value) {
   gap: 12px;
   min-height: 36px;
   padding: 0 10px;
-  border-bottom: 1px solid var(--n-border-color, #e5e7eb);
-  color: var(--n-text-color-2, #4b5563);
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-secondary);
   background: var(--n-action-color, #f6f8fa);
   font-size: 12px;
 }
@@ -108,6 +108,6 @@ function escapeAttribute(value) {
   width: 100%;
   height: 180px;
   border: 0;
-  background: #fff;
+  background: var(--bg-primary);
 }
 </style>

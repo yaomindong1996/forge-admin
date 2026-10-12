@@ -638,7 +638,7 @@ const tableColumns = computed(() => {
         return wrapTableCellContent(h('div', {
           class: 'table-slot-wrapper',
           style: {
-            color: '#999',
+            color: 'var(--text-tertiary)',
             fontSize: '12px',
           },
         }, `[插槽: ${slotName}]`), columnAlign)

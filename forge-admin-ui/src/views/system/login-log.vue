@@ -348,7 +348,7 @@ async function handleViewDetail(row) {
 
 .detail-row .label {
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   min-width: 100px;
   flex-shrink: 0;
 }
@@ -361,7 +361,7 @@ async function handleViewDetail(row) {
 .user-agent {
   font-family: 'Courier New', 'Consolas', monospace;
   font-size: 12px;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   padding: 12px;
   border-radius: 4px;
   margin: 8px 0 0 0;

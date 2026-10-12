@@ -35,7 +35,7 @@ defineProps({
   align-items: center;
   min-height: 32px;
   padding: 0 0 0 10px;
-  color: #1f2937;
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: 600;
   line-height: 1.4;

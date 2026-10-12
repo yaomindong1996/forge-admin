@@ -75,8 +75,8 @@ function isActive(status) {
 
 <style scoped>
 .flow-management-stats {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   padding: 10px 12px;
   flex-shrink: 0;
@@ -94,35 +94,35 @@ function isActive(status) {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border-radius: 7px;
   padding: 10px 12px;
   cursor: pointer;
   transition:
     background 160ms ease,
     border-color 160ms ease;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   flex: 1;
   min-width: 140px;
 }
 
 .stat-card:hover {
-  background: #fff;
-  border-color: #cbd5e1;
+  background: var(--bg-primary);
+  border-color: var(--border-light);
 }
 
 .stat-card.active {
-  background: #fff;
+  background: var(--bg-primary);
   border-color: #2563eb;
   box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.12);
 }
 
 .stat-card.active .stat-label {
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .stat-card.active .stat-value {
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .stat-icon {
@@ -138,9 +138,9 @@ function isActive(status) {
 }
 
 .stat-icon.total {
-  color: #475569;
-  background: #f1f5f9;
-  border-color: #e2e8f0;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-color: var(--border-light);
 }
 
 .stat-icon.designing {
@@ -156,9 +156,9 @@ function isActive(status) {
 }
 
 .stat-icon.suspended {
-  color: #475569;
-  background: #f8fafc;
-  border-color: #e2e8f0;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border-color: var(--border-light);
 }
 
 .stat-icon.disabled {
@@ -178,7 +178,7 @@ function isActive(status) {
 
 .stat-label {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -188,7 +188,7 @@ function isActive(status) {
 .stat-value {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
   line-height: 1;
 }
 

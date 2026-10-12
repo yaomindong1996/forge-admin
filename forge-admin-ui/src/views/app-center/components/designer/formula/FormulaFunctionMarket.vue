@@ -527,9 +527,9 @@ function createDefaultRegisterForm() {
 .market-list-panel,
 .market-detail-panel {
   min-width: 0;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 12px;
 }
 
@@ -555,7 +555,7 @@ function createDefaultRegisterForm() {
   min-height: 68px;
   border: 1px solid #dbe3ef;
   border-radius: 7px;
-  background: #fff;
+  background: var(--bg-primary);
   cursor: pointer;
   padding: 10px;
   text-align: left;
@@ -575,7 +575,7 @@ function createDefaultRegisterForm() {
 
 .row-main strong {
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 13px;
   text-overflow: ellipsis;
@@ -584,7 +584,7 @@ function createDefaultRegisterForm() {
 
 .row-main em {
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-style: normal;
   text-overflow: ellipsis;
@@ -608,7 +608,7 @@ function createDefaultRegisterForm() {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-light);
   padding-bottom: 12px;
 }
 
@@ -620,12 +620,12 @@ function createDefaultRegisterForm() {
 
 .detail-head span,
 .detail-section span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .detail-head strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 18px;
   line-height: 1.35;
 }
@@ -640,19 +640,19 @@ function createDefaultRegisterForm() {
 .detail-grid div {
   min-width: 0;
   border-radius: 7px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 9px 10px;
 }
 
 .detail-grid dt {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .detail-grid dd {
   overflow: hidden;
   margin: 4px 0 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -667,8 +667,8 @@ function createDefaultRegisterForm() {
 .detail-section code {
   margin: 0;
   border-radius: 7px;
-  background: #fff;
-  color: #334155;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 1.6;
   padding: 10px;

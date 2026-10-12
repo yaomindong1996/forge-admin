@@ -708,7 +708,7 @@
                       <n-input-number :value="selectedBlock.props?.level || 2" :min="1" :max="6" :show-button="false" @update:value="patchBlockProps(selectedBlock.id, { level: $event || 2 })" />
                       <n-input-number :value="selectedBlock.props?.weight || 800" :min="300" :max="900" :step="100" :show-button="false" @update:value="patchBlockProps(selectedBlock.id, { weight: $event || 800 })" />
                       <n-select :value="selectedBlock.props?.align || 'left'" :options="alignOptions" @update:value="patchBlockProps(selectedBlock.id, { align: $event || 'left' })" />
-                      <n-color-picker :value="selectedBlock.props?.color || '#0f172a'" :show-alpha="true" @update:value="patchBlockProps(selectedBlock.id, { color: $event || '#0f172a' })" />
+                      <n-color-picker :value="selectedBlock.props?.color || '#0f172a'" :show-alpha="true" @update:value="patchBlockProps(selectedBlock.id, { color: $event || 'var(--text-primary)' })" />
                     </div>
                   </n-form-item>
                 </template>

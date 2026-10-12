@@ -385,8 +385,8 @@ function applyRoleDataScopeSettings(settings = {}) {
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  color: #0f172a;
-  background: #f8fafc;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
 }
 
 .auth-workspace-header {
@@ -398,8 +398,8 @@ function applyRoleDataScopeSettings(settings = {}) {
   gap: 16px;
   min-height: 56px;
   padding: 10px 16px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
 }
 
 .auth-header-main {
@@ -414,7 +414,7 @@ function applyRoleDataScopeSettings(settings = {}) {
   align-items: center;
   min-width: 0;
   gap: 10px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
 }
@@ -450,7 +450,7 @@ function applyRoleDataScopeSettings(settings = {}) {
 .auth-role-key {
   max-width: 260px;
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -467,8 +467,8 @@ function applyRoleDataScopeSettings(settings = {}) {
 .auth-client-tabs {
   flex: 0 0 auto;
   padding: 8px 16px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
 }
 
 .auth-client-tabs :deep(.n-tabs-nav) {
@@ -491,7 +491,7 @@ function applyRoleDataScopeSettings(settings = {}) {
   padding: 10px;
   border: 1px solid rgba(226, 232, 240, 0.92);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.94);
+  background: color-mix(in srgb, var(--bg-primary) 94%, transparent);
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.16);
   backdrop-filter: blur(10px);
 }
@@ -532,7 +532,7 @@ function applyRoleDataScopeSettings(settings = {}) {
 .dark .auth-workspace-header,
 .dark .auth-client-tabs {
   background: #111827;
-  border-color: #334155;
+  border-color: var(--border-light);
 }
 
 .dark .auth-breadcrumb {
@@ -548,7 +548,7 @@ function applyRoleDataScopeSettings(settings = {}) {
 
 .dark .auth-role-key,
 .dark .auth-breadcrumb-divider {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark .auth-floating-actions {

@@ -568,7 +568,7 @@ function resolveDownloadFileName(response, fallbackName) {
 <style scoped>
 .object-detail-page {
   min-height: 100%;
-  background: #f6f8fb;
+  background: var(--bg-secondary);
   padding: 20px;
 }
 
@@ -577,9 +577,9 @@ function resolveDownloadFileName(response, fallbackName) {
 .operation-guide,
 .readiness-section,
 .object-tabs {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .object-head {
@@ -610,14 +610,14 @@ function resolveDownloadFileName(response, fallbackName) {
 
 .guide-head h2 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 16px;
   letter-spacing: 0;
 }
 
 .guide-head p {
   margin: 5px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -634,9 +634,9 @@ function resolveDownloadFileName(response, fallbackName) {
   gap: 10px;
   align-items: start;
   min-width: 0;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 12px;
   cursor: pointer;
   text-align: left;
@@ -671,8 +671,8 @@ function resolveDownloadFileName(response, fallbackName) {
 }
 
 .guide-step.step-locked > span {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 
 .guide-step strong,
@@ -683,7 +683,7 @@ function resolveDownloadFileName(response, fallbackName) {
 
 .guide-step strong {
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -691,7 +691,7 @@ function resolveDownloadFileName(response, fallbackName) {
 
 .guide-step small {
   margin-top: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.4;
 }
@@ -710,7 +710,7 @@ function resolveDownloadFileName(response, fallbackName) {
 }
 
 .guide-step.step-locked em {
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .runtime-alert {
@@ -726,13 +726,13 @@ function resolveDownloadFileName(response, fallbackName) {
 }
 
 .runtime-alert strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .runtime-alert p {
   margin: 6px 0 0;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -762,14 +762,14 @@ function resolveDownloadFileName(response, fallbackName) {
 
 .object-title h1 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 24px;
   letter-spacing: 0;
 }
 
 .object-title p {
   margin: 6px 0 0;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -791,20 +791,20 @@ function resolveDownloadFileName(response, fallbackName) {
 
 .placeholder-item,
 .developer-info > div {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
 .placeholder-item strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .placeholder-item p {
   margin: 8px 0 0;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -822,13 +822,13 @@ function resolveDownloadFileName(response, fallbackName) {
 }
 
 .developer-info span {
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
 .developer-info code {
   overflow-wrap: anywhere;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
 }
 

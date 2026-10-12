@@ -71,7 +71,7 @@
   padding: 12px;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .crud-preview-section {
@@ -94,7 +94,7 @@
   border: 1px solid #dbe3ee;
   border-left: 3px solid #2563eb;
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
   overflow: hidden;
 }
 
@@ -105,7 +105,7 @@
   gap: 10px;
   padding: 12px;
   border-bottom: 1px solid #eef2f7;
-  background: linear-gradient(180deg, #f8fbff 0%, #fff 100%);
+  background: linear-gradient(180deg, #f8fbff 0%, var(--bg-primary) 100%);
 }
 
 .config-panel-search,
@@ -115,19 +115,19 @@
   z-index: 3;
   padding: 10px 12px;
   border-bottom: 1px solid #eef2f7;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 1px 0 rgba(226, 232, 240, 0.75);
 }
 
 .config-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
 }
 
 .config-desc {
   margin-top: 2px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 18px;
 }
@@ -148,10 +148,10 @@
 .config-step {
   min-width: 0;
   padding: 6px 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 11px;
   line-height: 16px;
   text-align: center;
@@ -171,7 +171,7 @@
   padding: 10px;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+  background: linear-gradient(180deg, var(--bg-primary) 0%, #f8fbff 100%);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
@@ -179,7 +179,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 800;
 }
@@ -197,7 +197,7 @@
   border: 1px dashed #bfdbfe;
   border-radius: 7px;
   background: #eff6ff;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 11px;
   line-height: 17px;
 }
@@ -223,7 +223,7 @@
 }
 
 .config-control > span {
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 700;
   line-height: 15px;
@@ -252,10 +252,10 @@
   gap: 6px;
   min-height: 30px;
   padding: 0 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #fff;
-  color: #475569;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -268,9 +268,9 @@
   display: grid;
   gap: 8px;
   padding: 9px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .event-row-head {
@@ -282,7 +282,7 @@
 
 .event-row-head span {
   min-width: 0;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 700;
 }
@@ -324,7 +324,7 @@
 }
 
 .custom-action-head strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 12px;
 }
 
@@ -339,9 +339,9 @@
   gap: 6px;
   align-items: center;
   padding: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .custom-action-row :deep(.n-select),
@@ -352,10 +352,10 @@
 
 .config-empty-text {
   padding: 8px 10px;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -370,7 +370,7 @@
   border: 1px dashed #bfdbfe;
   border-radius: 8px;
   background: #eff6ff;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -390,13 +390,13 @@
 .section-title {
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .section-desc {
   margin-top: 2px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .table-toolbar {
@@ -411,9 +411,9 @@
   margin-bottom: 12px;
   overflow: auto;
   padding: 10px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .crud-component-preview-frame.tree-crud-preview {
@@ -460,10 +460,10 @@
   align-items: center;
   min-height: 24px;
   padding: 0 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 999px;
-  background: #fff;
-  color: #475569;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
 }
@@ -472,10 +472,10 @@
 .field-help-text {
   margin-top: 10px;
   padding: 8px 10px;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -493,9 +493,9 @@
   gap: 14px;
   margin-top: 14px;
   padding: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .field-config-summary.active {
@@ -517,13 +517,13 @@
 }
 
 .summary-title strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .summary-title span,
 .summary-empty {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -540,8 +540,8 @@
   overflow: hidden;
   border: 1px solid #dbe3ee;
   border-radius: 6px;
-  background: #f8fafc;
-  color: #334155;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   font-size: 12px;
   line-height: 22px;
   padding: 0 8px;
@@ -550,14 +550,14 @@
 }
 
 .summary-chip.muted {
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 :deep(.field-editor-title) {
   margin-bottom: 8px;
   font-size: 12px;
   font-weight: 700;
-  color: #334155;
+  color: var(--text-primary);
 }
 
 :deep(.selected-field-list),
@@ -574,9 +574,9 @@
   gap: 8px;
   min-height: 32px;
   padding: 0 8px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
   font-size: 12px;
 }
 
@@ -606,31 +606,31 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 :deep(.field-handle) {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   cursor: grab;
 }
 
 :deep(.field-name) {
   display: grid;
   gap: 2px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
 :deep(.field-name small),
 :deep(.available-field-list small) {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 400;
 }
 
 :deep(.field-code) {
   grid-column: 2 / -1;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
@@ -649,14 +649,14 @@
 }
 
 :deep(.field-setting-label) {
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 700;
   line-height: 16px;
 }
 
 :deep(.field-setting-control small) {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 11px;
   line-height: 15px;
 }
@@ -671,7 +671,7 @@
 }
 
 :deep(.field-empty) {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -684,9 +684,9 @@
   gap: 2px;
   min-height: 30px;
   padding: 0 10px;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--border-light);
   border-radius: 6px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .structured-config-panel :deep(.field-editor) {
@@ -739,7 +739,7 @@
   grid-column: 1 / -1;
   margin-left: 0;
   padding-top: 8px;
-  border-top: 1px dashed #e2e8f0;
+  border-top: 1px dashed var(--border-light);
 }
 
 .structured-config-panel :deep(.search-setting-row) {
@@ -753,9 +753,9 @@
 .structured-config-panel :deep(.field-inline-switch) {
   min-height: 28px;
   padding: 0 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 @container (max-width: 980px) {

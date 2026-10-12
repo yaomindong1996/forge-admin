@@ -1261,7 +1261,7 @@ function downloadJson(payload, filename) {
 .empty-panel {
   border: 1px solid #d8dee8;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .nav-block {
@@ -1283,12 +1283,12 @@ function downloadJson(payload, filename) {
 
 .nav-head h2 {
   margin: 0;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 15px;
 }
 
 .nav-head span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -1359,7 +1359,7 @@ function downloadJson(payload, filename) {
 
 .model-list .tree-model {
   grid-template-columns: 22px minmax(0, 1fr) auto;
-  border-color: #e5e7eb;
+  border-color: var(--border-light);
   background: #fbfdff;
 }
 
@@ -1397,7 +1397,7 @@ function downloadJson(payload, filename) {
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .node-toggle:not(.empty):hover {
@@ -1411,7 +1411,7 @@ function downloadJson(payload, filename) {
 
 .model-indent {
   width: 26px;
-  border-left: 1px solid #cbd5e1;
+  border-left: 1px solid var(--border-light);
   justify-self: center;
   min-height: 24px;
 }
@@ -1462,12 +1462,12 @@ function downloadJson(payload, filename) {
 }
 
 .node-main strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .node-main code {
-  color: #64748b;
+  color: var(--text-secondary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
 }
@@ -1477,13 +1477,13 @@ function downloadJson(payload, filename) {
   min-height: 30px;
   grid-template-columns: calc(var(--indent, 0) * 14px) minmax(0, 1fr);
   align-items: center;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   padding: 4px 8px;
 }
 
 .tree-state.muted {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .model-main {
@@ -1536,13 +1536,13 @@ function downloadJson(payload, filename) {
 
 .page-header h1 {
   margin: 4px 0 0;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 22px;
 }
 
 .page-header p {
   margin: 5px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -1556,7 +1556,7 @@ function downloadJson(payload, filename) {
 
 .section-title {
   margin-bottom: 12px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
 }
@@ -1586,10 +1586,10 @@ function downloadJson(payload, filename) {
 .source-table-summary {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 30px;
   padding: 0 9px;
@@ -1609,7 +1609,7 @@ function downloadJson(payload, filename) {
 .ai-result-panel {
   border: 1px solid #d8dee8;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 12px;
 }
 
@@ -1634,19 +1634,19 @@ function downloadJson(payload, filename) {
 }
 
 .preview-head strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .preview-head span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
 }
 
 .note-list {
   margin: 10px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.7;
   padding-left: 18px;
@@ -1696,14 +1696,14 @@ function downloadJson(payload, filename) {
 
 .empty-panel h2 {
   margin: 0;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 20px;
 }
 
 .empty-panel p {
   max-width: 560px;
   margin: 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.7;
 }
@@ -1778,7 +1778,7 @@ function downloadJson(payload, filename) {
   padding: 10px 18px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--bg-primary) 6%, transparent);
   text-align: center;
 }
 
@@ -1796,7 +1796,7 @@ function downloadJson(payload, filename) {
 .domain-model-list {
   border: 1px solid #d8dee8;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
@@ -1814,7 +1814,7 @@ function downloadJson(payload, filename) {
 
 .model-list-head p {
   margin: 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -1828,9 +1828,9 @@ function downloadJson(payload, filename) {
   display: grid;
   gap: 8px;
   min-height: 78px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   color: inherit;
   cursor: pointer;
   padding: 12px;
@@ -1856,7 +1856,7 @@ function downloadJson(payload, filename) {
 
 .model-card-head strong {
   overflow: hidden;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1867,19 +1867,19 @@ function downloadJson(payload, filename) {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
 }
 
 .model-card-body code {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 11px;
 }
 
 .model-card-desc {
   overflow: hidden;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 11px;
   line-height: 1.5;
   text-overflow: ellipsis;

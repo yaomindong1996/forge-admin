@@ -491,7 +491,7 @@ function firstText(...values) {
 }
 
 .record-selector-count {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 </style>

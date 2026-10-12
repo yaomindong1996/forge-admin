@@ -1363,7 +1363,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   border-radius: 999px;
   color: #fff;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--bg-primary) 10%, transparent);
 }
 
 .cropper-icon-button i {
@@ -1406,7 +1406,7 @@ onBeforeUnmount(() => {
 }
 
 .cropper-reset-button:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--bg-primary) 8%, transparent);
 }
 
 .avatar-cropper-stage {
@@ -1500,7 +1500,7 @@ onBeforeUnmount(() => {
   color: #e2e8f0;
   font-size: 13px;
   font-weight: 800;
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--bg-primary) 8%, transparent);
 }
 
 .cropper-shape-tab i {
@@ -1519,7 +1519,7 @@ onBeforeUnmount(() => {
   gap: 14px;
   max-width: 520px;
   margin: 14px auto 0;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .cropper-zoom-control i {
@@ -1527,12 +1527,12 @@ onBeforeUnmount(() => {
 }
 
 .cropper-zoom-control :deep(.n-slider-rail__fill) {
-  background: #fff !important;
+  background: var(--bg-primary) !important;
 }
 
 .cropper-zoom-control :deep(.n-slider-handle) {
   border-color: #fff !important;
-  background: #fff !important;
+  background: var(--bg-primary) !important;
 }
 
 .cropper-actions {
@@ -1553,12 +1553,12 @@ onBeforeUnmount(() => {
 .cropper-action--ghost {
   color: #e2e8f0;
   border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--bg-primary) 8%, transparent);
 }
 
 .cropper-action--primary {
-  color: #0f172a;
-  background: #fff;
+  color: var(--text-primary);
+  background: var(--bg-primary);
 }
 
 @media (max-width: 640px) {

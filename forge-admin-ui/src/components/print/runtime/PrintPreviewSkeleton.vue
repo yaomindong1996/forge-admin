@@ -30,7 +30,7 @@ import { NSkeleton } from 'naive-ui'
   padding: 28px 32px 36px;
   border: 1px solid var(--border-light, #e5e7eb);
   border-radius: 2px;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 1px 4px rgb(15 23 42 / 8%);
 }
 .skeleton-table {

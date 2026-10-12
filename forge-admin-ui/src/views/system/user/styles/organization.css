@@ -230,7 +230,7 @@
   width: 16px;
   height: 16px;
   margin-right: 5px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal)
@@ -289,7 +289,7 @@
   :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal)
   .org-tree-header {
   background: #0f172a;
-  border-bottom-color: #334155;
+  border-bottom-color: var(--border-light);
 }
 
 .dark
@@ -305,7 +305,7 @@
   .org-tree-header
   .header-copy
   small {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal) .header-icon {
@@ -322,7 +322,7 @@
 .dark
   :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal)
   .org-tree-collapsed-hint {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark
@@ -345,7 +345,7 @@
   :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal)
   .org-tree-all-node:hover {
   background-color: #162033;
-  border-color: #334155;
+  border-color: var(--border-light);
 }
 
 .dark
@@ -362,7 +362,7 @@
   .org-tree-content
   .premium-tree-row:hover {
   background: #162033;
-  border-color: #334155;
+  border-color: var(--border-light);
 }
 
 .dark

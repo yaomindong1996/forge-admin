@@ -117,7 +117,7 @@ onBeforeUnmount(() => window.removeEventListener('mousedown', handleClickOutside
   border: 1px solid rgba(100, 116, 139, 0.32);
   border-radius: 999px;
   background: var(--card-color, #fff);
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 19px;
   line-height: 1;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);

@@ -361,7 +361,7 @@ function getProgressStatus(percent) {
 <style scoped>
 .monitor-page {
   padding: 20px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   min-height: 100%;
 }
 
@@ -376,7 +376,7 @@ function getProgressStatus(percent) {
 .page-title {
   font-size: 20px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
   margin: 0;
   display: flex;
   align-items: center;
@@ -397,11 +397,11 @@ function getProgressStatus(percent) {
 }
 
 .metric-card {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
 }
 
 .metric-header {
@@ -446,7 +446,7 @@ function getProgressStatus(percent) {
 .metric-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .metric-body {
@@ -463,13 +463,13 @@ function getProgressStatus(percent) {
 
 .metric-label {
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .metric-value {
   font-size: 13px;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .metric-value.success {
@@ -492,17 +492,17 @@ function getProgressStatus(percent) {
 
 .progress-label {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
 /* 磁盘区域 */
 .disk-section {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   margin-bottom: 20px;
 }
 
@@ -513,7 +513,7 @@ function getProgressStatus(percent) {
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
   margin: 0;
   display: flex;
   align-items: center;
@@ -532,10 +532,10 @@ function getProgressStatus(percent) {
 }
 
 .disk-card {
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border-radius: 8px;
   padding: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
 }
 
 .disk-header {
@@ -553,7 +553,7 @@ function getProgressStatus(percent) {
 .disk-path {
   font-size: 14px;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-primary);
   word-break: break-all;
 }
 
@@ -562,7 +562,7 @@ function getProgressStatus(percent) {
   justify-content: space-between;
   margin-bottom: 12px;
   padding: 12px;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 6px;
 }
 
@@ -573,7 +573,7 @@ function getProgressStatus(percent) {
 .usage-label {
   display: block;
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
@@ -581,7 +581,7 @@ function getProgressStatus(percent) {
   display: block;
   font-size: 13px;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .disk-progress {
@@ -597,18 +597,18 @@ function getProgressStatus(percent) {
 .disk-percent {
   font-size: 13px;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-primary);
   min-width: 45px;
   text-align: right;
 }
 
 /* 内存池区域 */
 .memory-pools-section {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   margin-bottom: 20px;
 }
 
@@ -618,11 +618,11 @@ function getProgressStatus(percent) {
 
 /* GC区域 */
 .gc-section {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
 }
 
 .gc-grid {
@@ -632,19 +632,19 @@ function getProgressStatus(percent) {
 }
 
 .gc-card {
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border-radius: 8px;
   padding: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
 }
 
 .gc-name {
   font-size: 14px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .gc-stats {
@@ -661,13 +661,13 @@ function getProgressStatus(percent) {
 
 .gc-stat-label {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .gc-stat-value {
   font-size: 13px;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 /* 响应式 */

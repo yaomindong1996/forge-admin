@@ -916,7 +916,7 @@
 
     <!-- 条形码 -->
     <template v-else-if="block.blockType === 'barcode'">
-      <div class="barcode-preview" :style="{ background: block.props?.background || '#fff' }">
+      <div class="barcode-preview" :style="{ background: block.props?.background || 'var(--bg-primary)' }">
         <svg ref="barcodeSvgRef" class="barcode-svg" />
         <span v-if="!barcodeValid" class="code-invalid">条形码内容无效</span>
       </div>

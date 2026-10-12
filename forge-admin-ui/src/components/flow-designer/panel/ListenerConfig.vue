@@ -257,7 +257,7 @@ function getValuePlaceholder(type) {
 }
 
 .listener-section-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
 }
@@ -266,8 +266,8 @@ function getValuePlaceholder(type) {
   border: 1px dashed #dbe3ef;
   border-radius: 8px;
   padding: 14px;
-  background: #f8fafc;
-  color: #94a3b8;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
   font-size: 12px;
   text-align: center;
 }
@@ -282,7 +282,7 @@ function getValuePlaceholder(type) {
   border: 1px solid #e5eaf3;
   border-radius: 8px;
   padding: 12px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .listener-card-header {
@@ -293,7 +293,7 @@ function getValuePlaceholder(type) {
 }
 
 .listener-index {
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
 }

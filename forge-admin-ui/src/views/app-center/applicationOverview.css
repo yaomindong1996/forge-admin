@@ -6,8 +6,8 @@
   min-height: 0;
   overflow: hidden;
   padding: 0;
-  background: var(--n-color, #fff);
-  color: var(--n-text-color, #111827);
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .app-center-view-head {
@@ -18,8 +18,8 @@
   gap: 24px;
   min-height: 62px;
   padding: 9px 18px 0;
-  border-bottom: 1px solid var(--n-border-color, #e5e7eb);
-  background: var(--n-color, #fff);
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
 }
 
 .app-center-view-brand,
@@ -53,7 +53,7 @@
 }
 
 .app-center-view-brand small {
-  color: var(--n-text-color-3, #6b7280);
+  color: var(--text-tertiary);
   font-size: 10px;
 }
 
@@ -69,7 +69,7 @@
   overflow: hidden;
   border: 0;
   border-radius: 0;
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
 }
 
 .app-center-layout.is-suite-nav-collapsed {
@@ -77,9 +77,9 @@
 }
 
 .suite-nav {
-  --suite-panel-bg: var(--n-color, var(--bg-primary, #fff));
-  --suite-panel-head: var(--n-color-embedded, var(--bg-secondary, #f7f8fa));
-  --suite-panel-border: var(--n-border-color, var(--border-light, #e5e6eb));
+  --suite-panel-bg: var(--bg-primary);
+  --suite-panel-head: var(--bg-secondary);
+  --suite-panel-border: var(--border-light);
   --suite-item-hover: color-mix(in srgb, var(--suite-accent) 4%, var(--suite-panel-bg));
   --suite-item-active: color-mix(
     in srgb,
@@ -88,7 +88,7 @@
   );
   --suite-accent: var(--n-primary-color, var(--primary-color, #165dff));
   --suite-accent-strong: var(--n-primary-color-hover, var(--primary-color-hover, #0e42d2));
-  --suite-muted: var(--n-text-color-3, var(--text-tertiary, #86909c));
+  --suite-muted: var(--text-tertiary);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
@@ -113,7 +113,7 @@
 }
 
 .suite-nav-head strong {
-  color: var(--n-text-color, var(--text-primary, #1d2129));
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 650;
   white-space: nowrap;
@@ -191,12 +191,12 @@
 }
 
 .suite-item:hover {
-  background: #f2f3f5;
+  background: var(--bg-tertiary);
 }
 
 .suite-item.active {
   color: var(--suite-accent-strong);
-  background: #edf2ff;
+  background: color-mix(in srgb, var(--primary-color, #165dff) 12%, var(--bg-primary));
   font-weight: 500;
 }
 
@@ -279,7 +279,7 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
 }
 
 .application-panel {
@@ -290,7 +290,7 @@
   overflow: hidden;
   border: 0;
   border-radius: 0;
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
 }
 
 .panel-toolbar,
@@ -304,8 +304,8 @@
 
 .panel-toolbar {
   flex-wrap: wrap;
-  border-bottom: 1px solid var(--n-border-color, #e5e7eb);
-  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
 }
 
 .toolbar-left {
@@ -347,7 +347,7 @@
 
 .result-summary {
   flex: 0 0 auto;
-  color: var(--n-text-color-3, #6b7280);
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 
@@ -371,7 +371,7 @@
   overflow-y: auto;
   scrollbar-gutter: stable;
   /* scrollbar-color: color-mix(in srgb, var(--n-primary-color, var(--primary-color, #165dff)) 45%, transparent)
-     var(--n-color-embedded, #f2f3f5); */
+     var(--bg-secondary); */
   scrollbar-width: thin;
   overscroll-behavior: contain;
 }
@@ -381,11 +381,11 @@
 }
 
 .table-scroll::-webkit-scrollbar-track {
-  background: var(--n-color-embedded, #f2f3f5);
+  background: var(--bg-secondary);
 }
 
 .table-scroll::-webkit-scrollbar-thumb {
-  border: 2px solid var(--n-color-embedded, #f2f3f5);
+  border: 2px solid var(--bg-secondary);
   border-radius: 999px;
   background: color-mix(in srgb, var(--n-primary-color, var(--primary-color, #165dff)) 45%, transparent);
 }
@@ -402,7 +402,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  background: rgb(255 255 255 / 66%);
+  background: color-mix(in srgb, var(--bg-primary) 66%, transparent);
   backdrop-filter: blur(1px);
 }
 
@@ -415,7 +415,7 @@
   padding: 12px 16px 8px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--n-text-color, #1d2129);
+  color: var(--text-primary);
   letter-spacing: 0;
 }
 
@@ -472,8 +472,8 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   min-height: 56px;
-  border-top: 1px solid var(--n-border-color, #e5e7eb);
-  background: #fff;
+  border-top: 1px solid var(--border-light);
+  background: var(--bg-primary);
 }
 
 .pagination-controls {

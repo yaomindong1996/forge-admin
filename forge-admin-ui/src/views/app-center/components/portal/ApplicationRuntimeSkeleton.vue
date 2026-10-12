@@ -30,7 +30,7 @@
   flex-direction: column;
   min-height: 100vh;
   padding: 16px 20px 24px;
-  background: #f5f7fa;
+  background: var(--bg-secondary);
   animation: runtime-skeleton-fade 0.3s ease;
 }
 
@@ -62,7 +62,7 @@
   width: 220px;
   padding: 12px;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .runtime-skeleton__content {
@@ -70,7 +70,7 @@
   min-width: 0;
   padding: 16px;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 @keyframes runtime-skeleton-fade {

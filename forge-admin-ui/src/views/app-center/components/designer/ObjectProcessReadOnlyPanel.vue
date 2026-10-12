@@ -115,7 +115,7 @@ function openWorkspace() {
   margin-top: 18px;
   border: 1px solid #dfe5ef;
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 16px;
 }
 
@@ -144,13 +144,13 @@ function openWorkspace() {
 }
 
 .process-summary-title h3 {
-  color: #1f2329;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .process-summary-title p {
   margin-top: 3px;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -179,7 +179,7 @@ function openWorkspace() {
 }
 
 .process-name strong {
-  color: #1f2329;
+  color: var(--text-primary);
   font-size: 13px;
 }
 

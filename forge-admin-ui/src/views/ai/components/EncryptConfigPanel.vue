@@ -103,13 +103,13 @@ const jsonValue = computed(() => {
   height: 100%;
   overflow-y: auto;
   padding: 12px;
-  background: #fafafa;
+  background: var(--bg-secondary);
 }
 
 .panel-title {
   font-size: 13px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 16px;
 }
 
@@ -124,19 +124,19 @@ const jsonValue = computed(() => {
   flex-direction: column;
   gap: 8px;
   padding: 12px;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 6px;
 }
 
 .form-label {
   font-size: 13px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
 .form-hint {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .json-view {
@@ -147,7 +147,7 @@ const jsonValue = computed(() => {
 
 .json-code {
   font-size: 11px;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   padding: 8px;
   border-radius: 4px;
   overflow-x: auto;

@@ -358,7 +358,7 @@ watch(() => invocationQuery.providerId, () => {
 .routing-page {
   padding: 16px;
   min-height: 100%;
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
 }
 .toolbar {
   display: flex;

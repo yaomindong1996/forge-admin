@@ -98,9 +98,9 @@
 }
 
 .status-tag.suspended {
-  background: #f8fafc;
-  color: #475569;
-  border-color: #e2e8f0;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-color: var(--border-light);
 }
 
 .status-tag.disabled {
@@ -138,7 +138,7 @@
 .card-key {
   margin-top: 4px;
   font-size: 11px;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
@@ -161,13 +161,13 @@
   align-items: center;
   height: 20px;
   padding: 0 6px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 2px;
   font-size: 11px;
   font-weight: 500;
   line-height: 1;
-  color: #475569;
-  background: #fff;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
 }
 
 .designer-type-badge.approval {
@@ -188,10 +188,10 @@
   height: 20px;
   align-items: center;
   padding: 0 6px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 2px;
-  background: #fff;
-  color: #475569;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 500;
   line-height: 1;
@@ -207,7 +207,7 @@
   min-width: 0;
   max-width: 100%;
   width: fit-content;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 18px;
   padding: 6px 10px;
@@ -217,7 +217,7 @@
 }
 
 .card-binding.empty {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .card-binding span {
@@ -229,7 +229,7 @@
 
 .card-desc {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-secondary);
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 1;
@@ -253,7 +253,7 @@
   justify-content: space-between;
   padding: 8px 16px;
   border-top: 1px solid #f1f5f9;
-  background: #f9fafb;
+  background: var(--bg-secondary);
   min-height: 0;
   min-width: 0;
   gap: 12px;
@@ -264,7 +264,7 @@
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-secondary);
   white-space: nowrap;
   min-width: 0;
   overflow: hidden;
@@ -316,7 +316,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 .card-more-action i {

@@ -665,7 +665,7 @@ function handleCreateBucket(row) {
 /* 页面头部 */
 .page-header {
   flex-shrink: 0;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 12px 16px;
   display: flex;
@@ -704,13 +704,13 @@ function handleCreateBucket(row) {
 .page-title {
   font-size: 17px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .header-desc {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 /* 存储配置内容 */
@@ -718,7 +718,7 @@ function handleCreateBucket(row) {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 12px 14px;
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
@@ -767,7 +767,7 @@ function handleCreateBucket(row) {
 }
 
 .dark .header-desc {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark .storage-content {

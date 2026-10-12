@@ -207,7 +207,7 @@ function fallbackTokens() {
 
 .token-groups strong,
 .preview-strip span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 28px;
 }
@@ -222,8 +222,8 @@ function fallbackTokens() {
   height: 28px;
   border: 1px solid #d6dde8;
   border-radius: 6px;
-  background: #fff;
-  color: #1f2937;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 12px;
   padding: 0 8px;
@@ -252,7 +252,7 @@ function fallbackTokens() {
 
 .preview-strip strong {
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 13px;
   text-overflow: ellipsis;

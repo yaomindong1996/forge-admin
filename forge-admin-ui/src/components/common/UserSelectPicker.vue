@@ -291,7 +291,7 @@ function isFilledValue(value) {
 
 .user-select-picker__clear,
 .user-select-picker__pick {
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .user-select-picker__svg {

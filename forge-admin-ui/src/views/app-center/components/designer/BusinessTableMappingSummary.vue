@@ -529,7 +529,7 @@ defineExpose({ refresh: loadMapping })
   gap: 12px;
   margin-bottom: 16px;
   padding: 14px;
-  border: 1px solid var(--n-border-color, #dfe3e8);
+  border: 1px solid var(--border-light);
   border-radius: 7px;
   background: var(--bg-primary, #fff);
   color: var(--text-primary, #1f2328);
@@ -566,7 +566,7 @@ defineExpose({ refresh: loadMapping })
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--n-border-color, #dfe3e8);
+  border: 1px solid var(--border-light);
   border-radius: 5px;
   color: var(--n-primary-color);
 }
@@ -582,7 +582,7 @@ defineExpose({ refresh: loadMapping })
 .mapping-anchor strong,
 .mapping-toolbar strong {
   overflow: hidden;
-  color: var(--n-text-color, #1f2328);
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -593,19 +593,19 @@ defineExpose({ refresh: loadMapping })
   flex-wrap: wrap;
   gap: 8px;
   margin: 0;
-  color: var(--n-text-color-3, #6e7781);
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 
 .mapping-anchor code {
-  color: var(--n-text-color-3, #6e7781);
+  color: var(--text-tertiary);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .mapping-status {
   flex: 0 0 auto;
   gap: 12px;
-  color: var(--n-text-color-3, #6e7781);
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 
@@ -613,7 +613,7 @@ defineExpose({ refresh: loadMapping })
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: var(--n-text-color-2, #4b5563);
+  color: var(--text-secondary);
 }
 
 .sync-state i {
@@ -633,11 +633,11 @@ defineExpose({ refresh: loadMapping })
 
 .mapping-toolbar {
   padding-top: 10px;
-  border-top: 1px solid var(--n-border-color, #eaeef2);
+  border-top: 1px solid var(--border-light);
 }
 
 .mapping-toolbar span {
-  color: var(--n-text-color-3, #6e7781);
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 
@@ -646,7 +646,7 @@ defineExpose({ refresh: loadMapping })
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 12px;
-  color: var(--n-text-color-3, #6e7781);
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -670,7 +670,7 @@ defineExpose({ refresh: loadMapping })
   overflow: auto;
   margin: 0;
   padding: 10px 12px;
-  border: 1px solid var(--n-border-color, #dfe3e8);
+  border: 1px solid var(--border-light);
   border-radius: 5px;
   background: var(--n-code-color, #f6f8fa);
   font-size: 11px;

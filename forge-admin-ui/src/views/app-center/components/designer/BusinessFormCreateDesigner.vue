@@ -280,7 +280,7 @@ defineExpose({
   grid-template-rows: auto minmax(0, 1fr);
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   overflow: hidden;
 }
 
@@ -292,8 +292,8 @@ defineExpose({
   justify-content: space-between;
   gap: 16px;
   padding: 12px 16px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
 }
 
 .form-create-toolbar h3,
@@ -304,19 +304,19 @@ defineExpose({
 .form-create-toolbar h3 {
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .form-create-toolbar p {
   margin-top: 3px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .form-create-canvas {
   min-width: 0;
   min-height: 0;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   overflow: auto;
 }
 
@@ -331,7 +331,7 @@ defineExpose({
 :deep(.fc-designer ._fc-r),
 :deep(._fc-designer ._fc-l),
 :deep(._fc-designer ._fc-r) {
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 @media (max-width: 900px) {

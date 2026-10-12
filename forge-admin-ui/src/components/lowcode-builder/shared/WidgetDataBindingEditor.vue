@@ -667,15 +667,15 @@ function suggestArrayDataPath() {
   width: 100%;
 }
 .field-help {
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
   line-height: 1.5;
 }
 .field-help code {
   padding: 0 4px;
   border-radius: 4px;
-  background: #f2f3f5;
-  color: #4e5969;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 .data-source-row {
   display: grid;
@@ -684,7 +684,7 @@ function suggestArrayDataPath() {
   align-items: center;
 }
 .data-source-row > span {
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.3;
 }
@@ -692,7 +692,7 @@ function suggestArrayDataPath() {
   display: grid;
   gap: 8px;
   padding: 10px;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   background: #fafbfc;
 }
@@ -701,12 +701,12 @@ function suggestArrayDataPath() {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  color: #1d2129;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
 }
 .slot-panel-hint {
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
   font-weight: 400;
 }
@@ -719,7 +719,7 @@ function suggestArrayDataPath() {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 .slot-visible {
@@ -730,7 +730,7 @@ function suggestArrayDataPath() {
 }
 .slot-visible em {
   font-style: normal;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 .slot-hidden-tip {
@@ -759,7 +759,7 @@ function suggestArrayDataPath() {
   display: grid;
   gap: 8px;
   padding: 10px;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   background: #fafbfc;
 }
@@ -776,7 +776,7 @@ function suggestArrayDataPath() {
   align-items: center;
   padding: 6px 8px;
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
   border: 1px solid #eef0f3;
   cursor: pointer;
 }
@@ -785,11 +785,11 @@ function suggestArrayDataPath() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #1d2129;
+  color: var(--text-primary);
   font-size: 13px;
 }
 .compose-field-item code {
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 .compose-field-actions {
@@ -797,12 +797,12 @@ function suggestArrayDataPath() {
   gap: 2px;
 }
 .compose-preview {
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
 .compose-preview.muted {
-  color: #86909c;
+  color: var(--text-tertiary);
 }
 .field-empty-alert {
   margin-top: 2px;
@@ -817,7 +817,7 @@ function suggestArrayDataPath() {
   display: grid;
   gap: 6px;
   padding: 8px;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   background: #0f172a;
 }

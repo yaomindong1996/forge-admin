@@ -1168,7 +1168,7 @@ function compactCodegenOptions(options = {}) {
   gap: 16px;
   padding: 12px 18px;
   border-bottom: 1px solid #d8dee8;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .header-left {
@@ -1186,7 +1186,7 @@ function compactCodegenOptions(options = {}) {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -1199,7 +1199,7 @@ function compactCodegenOptions(options = {}) {
 .title-block h1 {
   overflow: hidden;
   margin: 3px 0 0;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 20px;
   line-height: 1.25;
   text-overflow: ellipsis;
@@ -1208,7 +1208,7 @@ function compactCodegenOptions(options = {}) {
 
 .title-block p {
   margin: 3px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
 }
@@ -1234,7 +1234,7 @@ function compactCodegenOptions(options = {}) {
 .empty-canvas {
   border: 1px solid #d8dee8;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .source-head,
@@ -1248,7 +1248,7 @@ function compactCodegenOptions(options = {}) {
 .source-head p,
 .field-pool-head p {
   margin: 2px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -1282,14 +1282,14 @@ function compactCodegenOptions(options = {}) {
 
 .empty-canvas h2 {
   margin: 0;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 22px;
 }
 
 .empty-canvas p {
   max-width: 560px;
   margin: 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.7;
 }
@@ -1314,13 +1314,13 @@ function compactCodegenOptions(options = {}) {
 
 .context-main h2 {
   margin: 4px 0 0;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 20px;
 }
 
 .context-main p {
   margin: 6px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -1336,20 +1336,20 @@ function compactCodegenOptions(options = {}) {
   align-content: center;
   gap: 4px;
   min-width: 0;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 10px;
 }
 
 .metric-strip span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
 .metric-strip strong {
   overflow: hidden;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1375,7 +1375,7 @@ function compactCodegenOptions(options = {}) {
   min-height: 58px;
   border: 1px solid #d8dee8;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   color: inherit;
   cursor: pointer;
   padding: 9px 10px;
@@ -1388,13 +1388,13 @@ function compactCodegenOptions(options = {}) {
 }
 
 .step-node strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .step-node span {
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1411,7 +1411,7 @@ function compactCodegenOptions(options = {}) {
 }
 
 .section-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
 }
@@ -1432,7 +1432,7 @@ function compactCodegenOptions(options = {}) {
   min-height: 86px;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   color: inherit;
   cursor: pointer;
   padding: 12px;
@@ -1460,13 +1460,13 @@ function compactCodegenOptions(options = {}) {
 }
 
 .model-card-head strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .model-card-head code,
 .model-card-meta {
-  color: #64748b;
+  color: var(--text-secondary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
 }
@@ -1489,9 +1489,9 @@ function compactCodegenOptions(options = {}) {
 .field-pool-card {
   display: grid;
   gap: 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 12px;
 }
 
@@ -1503,12 +1503,12 @@ function compactCodegenOptions(options = {}) {
 }
 
 .pool-title strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .pool-title code {
-  color: #64748b;
+  color: var(--text-secondary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
 }
@@ -1525,8 +1525,8 @@ function compactCodegenOptions(options = {}) {
   overflow: hidden;
   border: 1px solid #dbe3ee;
   border-radius: 6px;
-  background: #fff;
-  color: #334155;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-size: 12px;
   line-height: 24px;
   padding: 0 8px;
@@ -1535,7 +1535,7 @@ function compactCodegenOptions(options = {}) {
 }
 
 .field-chip.muted {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .code-output-stage {
@@ -1552,7 +1552,7 @@ function compactCodegenOptions(options = {}) {
 
 .code-output-head p {
   margin: 2px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 

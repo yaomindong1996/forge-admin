@@ -254,7 +254,7 @@ function normalizeTagType(value) {
 
 .status-source span {
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -267,7 +267,7 @@ function normalizeTagType(value) {
 .status-table {
   display: grid;
   min-width: 820px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -282,8 +282,8 @@ function normalizeTagType(value) {
 }
 
 .status-header {
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -292,7 +292,7 @@ function normalizeTagType(value) {
 }
 
 .status-row strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
 }
@@ -300,10 +300,10 @@ function normalizeTagType(value) {
 .display-name {
   overflow: hidden;
   min-height: 28px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #f8fafc;
-  color: #334155;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   font-size: 12px;
   line-height: 26px;
   padding: 0 8px;

@@ -622,12 +622,12 @@ function handleDelete(row) {
 
 .org-tree-header {
   padding: 8px 10px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .header-title {
@@ -648,7 +648,7 @@ function handleDelete(row) {
   flex-shrink: 0;
   border-radius: 5px;
   background: transparent;
-  color: #64748b;
+  color: var(--text-secondary);
   box-shadow: none;
 }
 
@@ -664,14 +664,14 @@ function handleDelete(row) {
 }
 
 .header-copy span {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
   line-height: 1.2;
 }
 
 .header-copy small {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   line-height: 1.2;
 }
@@ -683,7 +683,7 @@ function handleDelete(row) {
 }
 
 .org-tree-header :deep(.n-button) {
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .org-tree-header :deep(.n-button:hover) {
@@ -714,7 +714,7 @@ function handleDelete(row) {
   margin-bottom: 4px;
   border: 1px solid transparent;
   border-radius: 4px;
-  color: #334155;
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
@@ -722,12 +722,12 @@ function handleDelete(row) {
 }
 
 .org-tree-all-node:hover {
-  border-color: #e5e7eb;
-  background-color: #f8fafc;
+  border-color: var(--border-light);
+  background-color: var(--bg-secondary);
 }
 
 .org-tree-all-node.is-selected {
-  border-color: color-mix(in srgb, #2563eb 26%, #e5e7eb);
+  border-color: color-mix(in srgb, #2563eb 26%, var(--border-light));
   background: #f3f7ff !important;
   box-shadow: none;
   color: #2563eb;
@@ -748,14 +748,14 @@ function handleDelete(row) {
 }
 
 .org-tree-content :deep(.premium-tree-row:hover) {
-  background: #f8fafc;
-  border-color: #e5e7eb;
+  background: var(--bg-secondary);
+  border-color: var(--border-light);
 }
 
 .org-tree-content :deep(.premium-tree-row.is-selected) {
   background: #f3f7ff;
-  border-color: color-mix(in srgb, #2563eb 26%, #e5e7eb);
-  color: #0f172a;
+  border-color: color-mix(in srgb, #2563eb 26%, var(--border-light));
+  color: var(--text-primary);
   box-shadow: none;
 }
 
@@ -763,7 +763,7 @@ function handleDelete(row) {
   width: 16px;
   height: 16px;
   margin-right: 5px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .org-tree-content :deep(.premium-tree-icon i) {
@@ -775,7 +775,7 @@ function handleDelete(row) {
 }
 
 .org-tree-content :deep(.premium-tree-row.is-selected .premium-tree-title) {
-  color: #0f172a;
+  color: var(--text-primary);
   font-weight: 650;
 }
 
@@ -805,7 +805,7 @@ function handleDelete(row) {
   justify-content: center;
   gap: 12px;
   padding: 14px 6px;
-  color: #64748b;
+  color: var(--text-secondary);
   cursor: pointer;
   transition:
     background-color 0.2s ease,
@@ -852,7 +852,7 @@ function handleDelete(row) {
 }
 
 .dark .org-tree-header {
-  border-bottom-color: #334155;
+  border-bottom-color: var(--border-light);
   background: #0f172a;
 }
 
@@ -861,12 +861,12 @@ function handleDelete(row) {
 }
 
 .dark .org-tree-header .header-copy small {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark .header-icon {
   background: transparent;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark .org-tree-content {
@@ -878,7 +878,7 @@ function handleDelete(row) {
 }
 
 .dark .org-tree-all-node:hover {
-  border-color: #334155;
+  border-color: var(--border-light);
   background-color: #162033;
 }
 
@@ -891,7 +891,7 @@ function handleDelete(row) {
 
 .dark .org-tree-content :deep(.premium-tree-row:hover) {
   background: #162033;
-  border-color: #334155;
+  border-color: var(--border-light);
 }
 
 .dark .org-tree-content :deep(.premium-tree-row.is-selected) {
@@ -905,7 +905,7 @@ function handleDelete(row) {
 }
 
 .dark .org-tree-collapsed-hint {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark .org-tree-collapsed-hint:hover,
@@ -936,7 +936,7 @@ function handleDelete(row) {
 }
 
 .dark .org-filter-tip :deep(.n-tag) {
-  border-color: #334155;
+  border-color: var(--border-light);
   background: #1e293b;
 }
 

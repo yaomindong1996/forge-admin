@@ -25,7 +25,7 @@
   max-height: calc(100vh - 32px);
   min-height: 0;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal) .relation-sidebar {
@@ -33,8 +33,8 @@
   flex: 0 0 212px;
   flex-direction: column;
   min-width: 0;
-  border-right: 1px solid #e5e7eb;
-  background: #f8fafc;
+  border-right: 1px solid var(--border-light);
+  background: var(--bg-secondary);
 }
 
 :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal)
@@ -55,8 +55,8 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 700;
 }
@@ -73,7 +73,7 @@
   .relation-sidebar-copy
   span {
   overflow: hidden;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
   line-height: 1.25;
@@ -85,7 +85,7 @@
   .relation-sidebar-copy
   small {
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   line-height: 1.25;
   text-overflow: ellipsis;
@@ -111,7 +111,7 @@
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: #64748b;
+  color: var(--text-secondary);
   cursor: pointer;
   text-align: left;
   transition:
@@ -123,13 +123,13 @@
 :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal)
   .relation-nav-item:hover {
   background: rgba(226, 232, 240, 0.72);
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal)
   .relation-nav-item.is-active {
-  background: #fff;
-  color: #0f172a;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   box-shadow:
     0 1px 2px rgba(15, 23, 42, 0.06),
     0 0 0 1px rgba(226, 232, 240, 0.9);
@@ -139,7 +139,7 @@
   .relation-nav-item
   > i {
   flex: 0 0 auto;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 18px;
 }
 
@@ -169,7 +169,7 @@
   .relation-nav-copy
   small {
   overflow: hidden;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 11px;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -180,7 +180,7 @@
   .relation-nav-item.is-active
   .relation-nav-copy
   small {
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal) .relation-content {
@@ -190,7 +190,7 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal)
@@ -207,7 +207,7 @@
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   cursor: pointer;
   transition:
     background-color 0.18s ease,
@@ -216,8 +216,8 @@
 
 :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal)
   .relation-close-button:hover {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 
 :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal)
@@ -249,7 +249,7 @@
 :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal)
   .relation-content-title
   strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 16px;
   font-weight: 700;
   line-height: 1.25;
@@ -258,7 +258,7 @@
 :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal)
   .relation-content-title
   span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.3;
 }
@@ -298,7 +298,7 @@
   gap: 10px;
   padding: 9px 14px;
   border-top: 1px solid #f1f5f9;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .dark
@@ -316,7 +316,7 @@
 .dark
   :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal)
   .relation-sidebar {
-  border-right-color: #334155;
+  border-right-color: var(--border-light);
   background: #111827;
 }
 
@@ -329,7 +329,7 @@
 .dark
   :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal)
   .relation-footer {
-  border-color: #334155;
+  border-color: var(--border-light);
 }
 
 .dark
@@ -361,7 +361,7 @@
   :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal)
   .relation-content-title
   span {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark
@@ -387,7 +387,7 @@
 .dark
   :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal)
   .relation-close-button {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .dark
@@ -409,7 +409,7 @@
   :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal) .relation-sidebar {
     flex: 0 0 auto;
     border-right: 0;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border-light);
   }
 }
 

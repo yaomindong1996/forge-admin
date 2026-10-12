@@ -24,8 +24,8 @@
   flex-direction: column;
   height: 100vh;
   min-height: 100vh;
-  background: #f5f7fa;
-  color: #1f2329;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .portal-skeleton-header {
@@ -34,8 +34,8 @@
   align-items: center;
   justify-content: space-between;
   height: 56px;
-  border-bottom: 1px solid #e5e6eb;
-  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
   padding: 0 18px;
 }
 
@@ -48,8 +48,8 @@
 .portal-skeleton-side {
   flex: none;
   width: 220px;
-  border-right: 1px solid #e5e6eb;
-  background: #fff;
+  border-right: 1px solid var(--border-light);
+  background: var(--bg-primary);
   padding: 18px 16px;
 }
 

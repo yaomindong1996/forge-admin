@@ -714,22 +714,22 @@ defineExpose({ getValue })
   min-height: 0;
   flex-direction: column;
   gap: 18px;
-  color: #1f2329;
+  color: var(--text-primary);
 }
 
 .section-workbench {
   display: grid;
   min-height: 420px;
   grid-template-columns: minmax(250px, 300px) minmax(0, 1fr);
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
   overflow: hidden;
 }
 
 .section-catalog {
   min-width: 0;
-  border-right: 1px solid #e5e6eb;
-  background: #f7f8fa;
+  border-right: 1px solid var(--border-light);
+  background: var(--bg-secondary);
 }
 
 .workbench-heading,
@@ -744,8 +744,8 @@ defineExpose({ getValue })
 .workbench-heading {
   min-height: 48px;
   padding: 0 14px;
-  border-bottom: 1px solid #e5e6eb;
-  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
 }
 
 .workbench-heading > div,
@@ -764,7 +764,7 @@ defineExpose({ getValue })
 
 .workbench-heading span,
 .block-heading span {
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -792,7 +792,7 @@ defineExpose({ getValue })
 }
 
 .section-list-item:hover {
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .section-list-item.active {
@@ -803,7 +803,7 @@ defineExpose({ getValue })
 .section-drag-handle,
 .field-drag-handle {
   display: inline-grid;
-  color: #86909c;
+  color: var(--text-tertiary);
   cursor: grab;
   place-items: center;
 }
@@ -814,7 +814,7 @@ defineExpose({ getValue })
   height: 20px;
   border-radius: 4px;
   background: #e5e6eb;
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 11px;
   place-items: center;
 }
@@ -848,7 +848,7 @@ defineExpose({ getValue })
 .section-list-copy small,
 .field-copy small {
   margin-top: 2px;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 
@@ -860,15 +860,15 @@ defineExpose({ getValue })
   min-width: 0;
   padding: 0 20px 18px;
   overflow: auto;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .settings-heading {
   min-height: 48px;
   margin: 0 -20px;
   padding: 0 20px;
-  border-bottom: 1px solid #e5e6eb;
-  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
 }
 
 .section-settings > .n-empty {
@@ -915,9 +915,9 @@ defineExpose({ getValue })
   align-items: center;
   gap: 10px;
   padding: 7px 10px;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 5px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .selected-field-row.invalid {
@@ -929,7 +929,7 @@ defineExpose({ getValue })
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -946,7 +946,7 @@ defineExpose({ getValue })
   justify-content: space-between;
   gap: 16px;
   padding: 10px 12px;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 5px;
 }
 
@@ -961,7 +961,7 @@ defineExpose({ getValue })
 
 .toggle-row span {
   margin-top: 2px;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 
@@ -1003,7 +1003,7 @@ defineExpose({ getValue })
 
 .selector-heading span {
   margin-top: 3px;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 
@@ -1032,7 +1032,7 @@ defineExpose({ getValue })
 }
 
 .mapping-arrow {
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 11px;
   text-align: center;
 }

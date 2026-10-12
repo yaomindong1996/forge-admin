@@ -13,7 +13,7 @@
 /* ============ 左侧历史导航 ============ */
 .generator-sidebar {
   width: 260px;
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--bg-primary) 70%, transparent);
   backdrop-filter: blur(20px);
   border-right: 1px solid #e2edf7;
   display: flex;
@@ -53,7 +53,7 @@
 .sidebar-section-title {
   padding: 10px 16px;
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-weight: 600;
   letter-spacing: 0.7px;
   text-transform: uppercase;
@@ -110,7 +110,7 @@
 
 .session-title {
   font-size: 13px;
-  color: #334155;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -119,7 +119,7 @@
 
 .session-item.active .session-title {
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .session-config-key {
@@ -147,7 +147,7 @@
 
 .session-time {
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .delete-btn {
@@ -171,7 +171,7 @@
 .empty-tip {
   padding: 48px 24px;
   text-align: center;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 13px;
 }
 
@@ -182,7 +182,7 @@
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
-  background: rgba(255, 255, 255, 0.25);
+  background: color-mix(in srgb, var(--bg-primary) 25%, transparent);
 }
 
 .chat-area {
@@ -302,8 +302,8 @@
 }
 
 .message.assistant .message-bubble {
-  background: #ffffff;
-  color: #0f172a;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   border: 1px solid #e2edf7;
   border-radius: 6px 14px 14px 14px;
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
@@ -347,7 +347,7 @@
   align-items: center;
   justify-content: center;
   gap: 16px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   padding: 24px;
 }
 
@@ -376,14 +376,14 @@
 .empty-chat-title {
   font-size: 22px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
   letter-spacing: -0.3px;
 }
 
 .empty-chat-tip {
   font-size: 16px;
   font-weight: 500;
-  color: #334155;
+  color: var(--text-primary);
   max-width: 520px;
   line-height: 1.6;
   text-align: center;
@@ -401,7 +401,7 @@
 
 .example-title {
   font-size: 13px;
-  color: #475569;
+  color: var(--text-secondary);
   margin-bottom: 14px;
   font-weight: 500;
   position: relative;
@@ -431,7 +431,7 @@
   align-items: center;
   gap: 12px;
   padding: 13px 18px;
-  background: rgba(255, 255, 255, 0.8);
+  background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
   border: 1px solid #e2edf7;
   border-radius: 10px;
   cursor: pointer;
@@ -442,7 +442,7 @@
 
 .example-item:hover {
   border-color: #93ccf7;
-  background: rgba(255, 255, 255, 0.95);
+  background: color-mix(in srgb, var(--bg-primary) 95%, transparent);
   transform: translateY(-1px);
   box-shadow: 0 8px 24px rgba(59, 130, 246, 0.1);
 }
@@ -470,14 +470,14 @@
 .example-label {
   font-size: 13px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-primary);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .example-desc {
   font-size: 12px;
-  color: #475569;
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -487,14 +487,14 @@
 .example-text .example-desc {
   white-space: normal;
   line-height: 1.4;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 /* ============ 输入区 ============ */
 .input-section {
   padding: 16px 24px 22px;
   border-top: 1px solid #e2edf7;
-  background: rgba(255, 255, 255, 0.8);
+  background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
   backdrop-filter: blur(16px);
   display: flex;
   flex-direction: column;
@@ -528,7 +528,7 @@
 
 .config-bar:focus-within {
   border-color: #93ccf7;
-  background: #ffffff;
+  background: var(--bg-primary);
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.06);
 }
 
@@ -554,7 +554,7 @@
 .field-tag {
   font-size: 11px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-secondary);
   white-space: nowrap;
   flex-shrink: 0;
   letter-spacing: 0.3px;
@@ -653,12 +653,12 @@
   gap: 6px;
   height: 34px;
   padding: 0 14px;
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--bg-primary) 70%, transparent);
   border: 1px solid #cde2f4;
   border-radius: 18px;
   cursor: pointer;
   font-size: 12px;
-  color: #334155;
+  color: var(--text-primary);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
   max-width: 380px;
@@ -667,8 +667,8 @@
 
 .model-trigger:hover {
   border-color: #93ccf7;
-  background: rgba(255, 255, 255, 0.95);
-  color: #0f172a;
+  background: color-mix(in srgb, var(--bg-primary) 95%, transparent);
+  color: var(--text-primary);
   box-shadow: 0 1px 4px rgba(59, 130, 246, 0.08);
 }
 
@@ -680,7 +680,7 @@
 }
 
 .model-trigger.empty {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   border-style: dashed;
 }
 
@@ -717,13 +717,13 @@
 }
 
 .model-trigger.empty .model-trigger-model {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-family: inherit;
   font-weight: 500;
 }
 
 .model-trigger-chevron {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   flex-shrink: 0;
   margin-left: 2px;
   transition: transform 0.2s ease;
@@ -736,7 +736,7 @@
 
 /* 模型选择面板 */
 .model-panel {
-  background: #ffffff;
+  background: var(--bg-primary);
   border: 1px solid #e2edf7;
   border-radius: 14px;
   box-shadow:
@@ -761,7 +761,7 @@
   align-items: center;
   font-size: 11px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-secondary);
   margin-bottom: 10px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -771,7 +771,7 @@
 .model-panel-count {
   font-size: 11px;
   font-weight: 500;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   text-transform: none;
   letter-spacing: 0;
 }
@@ -815,7 +815,7 @@
 .model-list-item-name {
   font-size: 13px;
   font-weight: 500;
-  color: #0f172a;
+  color: var(--text-primary);
   font-family: 'Fira Code', 'JetBrains Mono', 'Monaco', monospace;
 }
 
@@ -835,7 +835,7 @@
 .model-list-item-desc {
   margin-top: 3px;
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -844,7 +844,7 @@
 /* ============ 右侧配置面板 ============ */
 .generator-preview {
   width: 600px;
-  background: rgba(255, 255, 255, 0.88);
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
   backdrop-filter: blur(24px);
   border-left: 1px solid #e2edf7;
   display: flex;
@@ -868,7 +868,7 @@
   justify-content: center;
   gap: 10px;
   cursor: pointer;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   transition: all 0.2s ease;
   padding: 16px 0;
 }
@@ -907,7 +907,7 @@
 .preview-title {
   font-size: 14px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .preview-actions {
@@ -937,19 +937,19 @@
   border-radius: 7px;
   font-size: 12px;
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
 }
 
 .group-tab:hover {
-  color: #334155;
-  background: rgba(255, 255, 255, 0.6);
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-primary) 60%, transparent);
 }
 
 .group-tab.active {
-  background: #ffffff;
+  background: var(--bg-primary);
   color: #3b82f6;
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
   font-weight: 600;
@@ -1003,7 +1003,7 @@
   font-size: 13px;
   line-height: 1.7;
   background: rgba(240, 247, 254, 0.5);
-  color: #334155;
+  color: var(--text-primary);
   padding: 14px;
   box-sizing: border-box;
   border-radius: 10px;
@@ -1012,7 +1012,7 @@
 
 .json-editor:focus {
   outline: none;
-  background: #ffffff;
+  background: var(--bg-primary);
   border-color: #93ccf7;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.05);
 }
@@ -1069,7 +1069,7 @@
   justify-content: center;
   gap: 0;
   padding: 14px 24px;
-  background: rgba(255, 255, 255, 0.55);
+  background: color-mix(in srgb, var(--bg-primary) 55%, transparent);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid #e2edf7;
   flex-wrap: wrap;
@@ -1218,7 +1218,7 @@
 
 .reasoning-duration {
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-secondary);
   padding: 2px 8px;
   background: rgba(224, 239, 250, 0.6);
   border-radius: 5px;
@@ -1232,7 +1232,7 @@
 }
 
 .reasoning-toggle {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   transition: transform 0.2s ease;
 }
 
@@ -1240,23 +1240,23 @@
   padding: 14px;
   font-size: 13px;
   line-height: 1.65;
-  color: #475569;
+  color: var(--text-secondary);
   white-space: pre-wrap;
   word-break: break-word;
   border-top: 1px solid #cde2f4;
-  background: #ffffff;
+  background: var(--bg-primary);
 }
 
 .message.assistant .message-bubble {
-  background: #ffffff;
-  color: #0f172a;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   border: 1px solid #e2edf7;
   border-radius: 6px 14px 14px 14px;
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
 }
 
 .message.assistant .reasoning-section + .message-bubble {
-  background: #ffffff;
+  background: var(--bg-primary);
 }
 
 @keyframes pulse {

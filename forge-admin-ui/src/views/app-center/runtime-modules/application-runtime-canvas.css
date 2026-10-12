@@ -2,8 +2,8 @@
 .page-data-source-selector {
   display: grid;
   gap: 8px;
-  border-top: 1px solid #e5e6eb;
-  border-bottom: 1px solid #e5e6eb;
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
   padding: 10px 0;
 }
 .page-data-source-selector-head {
@@ -11,12 +11,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
 }
 .page-data-source-selector-head small {
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 10px;
   font-weight: 400;
 }
@@ -106,7 +106,7 @@
 .page-form-draft-card {
   display: grid;
   gap: 8px;
-  border-top: 1px solid #e5e6eb;
+  border-top: 1px solid var(--border-light);
   padding-top: 11px;
 }
 .page-form-draft-head {
@@ -114,12 +114,12 @@
   gap: 2px;
 }
 .page-form-draft-head span {
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
 }
 .page-form-draft-head small {
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 11px;
   line-height: 1.5;
 }
@@ -157,8 +157,8 @@
   padding: 0 9px;
   border: 1px solid #dcdfe4;
   border-radius: 6px;
-  background: #fff;
-  color: #1f2329;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   cursor: pointer;
   text-align: left;
 }
@@ -181,7 +181,7 @@
 .form-asset-selector-open,
 .form-asset-selector-arrow {
   flex: 0 0 auto;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 14px;
 }
 .form-asset-selector-open:hover {
@@ -201,13 +201,13 @@
   border: 0;
   border-radius: 5px;
   background: transparent;
-  color: #1f2329;
+  color: var(--text-primary);
   cursor: pointer;
   text-align: left;
 }
 .form-asset-selector-option:hover,
 .form-asset-selector-option.selected {
-  background: #f2f3f5;
+  background: var(--bg-tertiary);
 }
 .form-asset-selector-option.selected {
   color: #1456f0;
@@ -234,7 +234,7 @@
   justify-content: space-between;
   min-height: 32px;
   margin-bottom: 10px;
-  color: #1f2329;
+  color: var(--text-primary);
   font-size: 14px;
 }
 .inspector-head button {
@@ -243,13 +243,13 @@
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 20px;
   cursor: pointer;
 }
 .inspector-head button:hover {
-  background: #f2f3f5;
-  color: #1f2329;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 .page-surface {
   position: relative;
@@ -259,9 +259,9 @@
   flex: 1;
   flex-direction: column;
   overflow: auto;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 .page-layout-pollution-alert {
   margin: 12px 16px 0;
@@ -280,7 +280,7 @@
 }
 .object-page-card p {
   margin: 0;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 13px;
 }
 .object-page-card {
@@ -288,7 +288,7 @@
   gap: 9px;
   margin: 10px 16px 0;
   padding: 12px;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 7px;
   background: #fbfcfd;
 }
@@ -301,9 +301,9 @@
   box-sizing: border-box;
   min-height: min(70vh, 640px);
   padding: 28px 32px;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 .application-page-flow {
   position: relative;
@@ -330,7 +330,7 @@
 .application-page-flow.is-editing {
   /* 编辑态最低高度交给 JS pageFlowHeight，这里只保底 */
   min-height: 320px;
-  background-color: #fff;
+  background-color: var(--bg-primary);
 }
 .page-canvas-padding-panel {
   display: grid;
@@ -343,7 +343,7 @@
   gap: 2px;
 }
 .page-canvas-padding-head strong {
-  color: #172033;
+  color: var(--text-primary);
   font-size: 13px;
 }
 .page-canvas-padding-head span {
@@ -360,7 +360,7 @@
   grid-template-columns: 18px minmax(0, 1fr);
   gap: 6px;
   align-items: center;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 .page-block-drag-ghost {
@@ -574,7 +574,7 @@ body.is-catalog-pointer-dragging .n-popover {
   z-index: 8;
   overflow: hidden;
   border-color: #2563eb;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow:
     0 0 0 1px rgba(37, 99, 235, 0.28),
     0 14px 32px rgba(31, 35, 41, 0.18);
@@ -644,8 +644,8 @@ body.is-catalog-pointer-dragging .n-popover {
   top: 0;
   right: 0;
   padding: 0;
-  background: #f2f3f5;
-  color: #4e5969;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 .page-block-drag-handle:active {
@@ -657,7 +657,7 @@ body.is-catalog-pointer-dragging .n-popover {
 }
 .page-block-menu-trigger:hover {
   background: #e5e6eb;
-  color: #1f2329;
+  color: var(--text-primary);
 }
 .page-block-color-picker {
   display: grid;
@@ -670,16 +670,16 @@ body.is-catalog-pointer-dragging .n-popover {
   z-index: 20;
   top: 30px;
   right: 0;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 10px 28px rgba(31, 35, 41, 0.16);
 }
 .page-block-color-picker-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #1f2329;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
 }
@@ -689,8 +689,8 @@ body.is-catalog-pointer-dragging .n-popover {
   padding: 0 8px;
   border: 1px solid #dcdfe4 !important;
   border-radius: 5px !important;
-  background: #fff !important;
-  color: #4e5969 !important;
+  background: var(--bg-primary) !important;
+  color: var(--text-secondary) !important;
   font-size: 11px !important;
   line-height: 22px !important;
 }
@@ -707,7 +707,7 @@ body.is-catalog-pointer-dragging .n-popover {
   border-radius: 4px;
 }
 .page-block-color-presets button.transparent {
-  background: linear-gradient(135deg, transparent 46%, #f53f3f 47%, #f53f3f 53%, transparent 54%), #fff;
+  background: linear-gradient(135deg, transparent 46%, #f53f3f 47%, #f53f3f 53%, transparent 54%), var(--bg-primary);
 }
 .page-block-color-picker-head button {
   width: 20px;
@@ -721,15 +721,15 @@ body.is-catalog-pointer-dragging .n-popover {
   line-height: 18px;
 }
 .page-block-color-picker-head button:hover {
-  background: #f2f3f5;
-  color: #1f2329;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 .page-block-color-picker-transparent {
   height: 28px;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #fff;
-  color: #4e5969;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 12px;
 }
@@ -764,7 +764,7 @@ body.is-catalog-pointer-dragging .n-popover {
 .page-block-drag-shadow {
   border: 2px solid #2563eb !important;
   border-radius: 10px !important;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.85),
     0 12px 24px rgba(37, 99, 235, 0.16);
@@ -880,7 +880,7 @@ body.is-catalog-pointer-dragging .n-popover {
   border: 1px solid #e4edff;
   border-radius: 14px;
   padding: clamp(28px, 4vw, 52px);
-  background: linear-gradient(118deg, #fff 0%, #fff 54%, #f6faff 100%);
+  background: linear-gradient(118deg, var(--bg-primary) 0%, var(--bg-primary) 54%, #f6faff 100%);
 }
 .grid-empty-guide::before {
   position: absolute;
@@ -911,7 +911,7 @@ body.is-catalog-pointer-dragging .n-popover {
 }
 .grid-empty-guide h2 {
   margin: 11px 0 8px;
-  color: #1f2329;
+  color: var(--text-primary);
   font-size: clamp(22px, 2vw, 30px);
   font-weight: 650;
   letter-spacing: -0.02em;
@@ -941,8 +941,8 @@ body.is-catalog-pointer-dragging .n-popover {
   border: 1px solid #e1e8f5;
   border-radius: 8px;
   padding: 9px 8px 8px;
-  background: rgb(255 255 255 / 76%);
-  color: #4e5969;
+  background: color-mix(in srgb, var(--bg-primary) 76%, transparent);
+  color: var(--text-secondary);
   font-size: 12px;
   text-align: center;
   cursor: pointer;
@@ -954,7 +954,7 @@ body.is-catalog-pointer-dragging .n-popover {
 }
 .page-recommendations button:hover {
   border-color: #8bb4ff;
-  background: #fff;
+  background: var(--bg-primary);
   color: #165dff;
   transform: translateY(-2px);
 }
@@ -999,7 +999,7 @@ body.is-catalog-pointer-dragging .n-popover {
   border: 1px solid #dce9ff;
   border-radius: 9px;
   padding: 16px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 .empty-guide-page-sheet::before,
 .empty-guide-page-sheet::after {
@@ -1070,7 +1070,7 @@ body.is-catalog-pointer-dragging .n-popover {
   height: 45px;
   border: 1px solid #e9f1ff;
   border-radius: 6px;
-  background: linear-gradient(145deg, #f4f8ff, #fff);
+  background: linear-gradient(145deg, #f4f8ff, var(--bg-primary));
 }
 .empty-guide-sheet-content {
   gap: 10px;
@@ -1132,7 +1132,7 @@ body.is-catalog-pointer-dragging .n-popover {
   place-items: center;
   border: 1px solid #dfeaff;
   border-radius: 9px;
-  background: #fff;
+  background: var(--bg-primary);
   color: #5083fb;
   font-size: 19px;
 }
@@ -1192,7 +1192,7 @@ body.is-catalog-pointer-dragging .n-popover {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: #f7f8fa;
+  background: var(--bg-secondary);
 }
 /* 表单设计器极简顶栏 */
 .form-designer-topbar {
@@ -1201,9 +1201,9 @@ body.is-catalog-pointer-dragging .n-popover {
   justify-content: space-between;
   gap: 12px;
   min-height: 36px;
-  border-bottom: 1px solid #e5e6eb;
+  border-bottom: 1px solid var(--border-light);
   padding: 2px 12px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 .form-designer-topbar-left {
   display: flex;
@@ -1212,7 +1212,7 @@ body.is-catalog-pointer-dragging .n-popover {
   min-width: 0;
 }
 .form-designer-topbar-label {
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -1221,7 +1221,7 @@ body.is-catalog-pointer-dragging .n-popover {
   flex: 0 0 160px;
 }
 .form-designer-topbar-title {
-  color: #1f2329;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
@@ -1253,7 +1253,7 @@ body.is-catalog-pointer-dragging .n-popover {
   align-items: center;
   justify-content: space-between;
   padding: 4px 2px 8px;
-  color: #1f2329;
+  color: var(--text-primary);
   font-size: 13px;
 }
 .application-form-assets-popover-head > div {
@@ -1286,7 +1286,7 @@ body.is-catalog-pointer-dragging .n-popover {
 }
 .application-form-asset-row strong {
   overflow: hidden;
-  color: #1f2329;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1295,7 +1295,7 @@ body.is-catalog-pointer-dragging .n-popover {
   color: #8f959e;
 }
 .application-form-asset-row:hover {
-  background: #f2f3f5;
+  background: var(--bg-tertiary);
 }
 .form-asset-actions {
   display: flex;
@@ -1304,7 +1304,7 @@ body.is-catalog-pointer-dragging .n-popover {
 }
 .form-asset-default-hint {
   margin: -2px 0 0;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
   line-height: 18px;
 }

@@ -25,7 +25,7 @@ function update(patch) {
 
 <style scoped>
 p {
-  color: var(--n-text-color-3, #86909c);
+  color: var(--text-tertiary);
   font-size: 12px;
   line-height: 1.65;
 }

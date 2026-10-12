@@ -17,7 +17,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgb(255 255 255 / 64%);
+  background: color-mix(in srgb, var(--bg-primary) 64%, transparent);
   backdrop-filter: blur(1px);
 }
 
@@ -51,9 +51,9 @@
 .ai-crud-form-only-result {
   width: min(960px, 100%);
   margin: 0 auto;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .ai-crud-form-only-result {
@@ -63,13 +63,13 @@
 }
 
 .form-only-head {
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
   padding: 16px 18px;
 }
 
 .form-only-head h2 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 0;
@@ -83,8 +83,8 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  border-top: 1px solid #e5e7eb;
-  background: #f8fafc;
+  border-top: 1px solid var(--border-light);
+  background: var(--bg-secondary);
   padding: 12px 18px;
 }
 
@@ -457,7 +457,7 @@
   overflow-y: hidden;
   padding: 7px 10px 0;
   border-bottom: 1px solid var(--border-light);
-  background: #f8fafc;
+  background: var(--bg-secondary);
   scrollbar-width: thin;
 }
 
@@ -569,7 +569,7 @@
 .inline-form-panel-head.is-flat-head {
   min-height: 52px;
   padding: 10px 16px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .inline-form-panel-head-main {
@@ -645,7 +645,7 @@
   gap: 10px;
   padding: 10px 14px;
   border-top: 1px solid var(--border-light);
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .ai-crud-inline-form-panel.is-flat-form .inline-form-panel-footer {

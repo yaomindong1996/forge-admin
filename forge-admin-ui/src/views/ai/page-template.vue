@@ -517,7 +517,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 16px 20px;
   border-radius: 12px;
 }
@@ -531,12 +531,12 @@ onMounted(() => {
 .header-title {
   font-size: 18px;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .header-desc {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 .loading-area {
@@ -556,8 +556,8 @@ onMounted(() => {
 }
 
 .template-card {
-  background: #fff;
-  border: 1.5px solid #e5e7eb;
+  background: var(--bg-primary);
+  border: 1.5px solid var(--border-light);
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -602,7 +602,7 @@ onMounted(() => {
 .card-name {
   font-size: 15px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -610,7 +610,7 @@ onMounted(() => {
 
 .card-key {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   font-family: monospace;
   margin-top: 1px;
 }
@@ -624,7 +624,7 @@ onMounted(() => {
 /* 描述 */
 .card-desc {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-secondary);
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -634,14 +634,14 @@ onMounted(() => {
 
 /* 默认配置 */
 .card-config {
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-radius: 6px;
   padding: 8px 10px;
 }
 
 .config-label {
   font-size: 10px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -655,7 +655,7 @@ onMounted(() => {
 }
 
 .config-chip {
-  background: #e5e7eb;
+  background: var(--bg-tertiary);
   border-radius: 4px;
   padding: 2px 6px;
   font-size: 11px;
@@ -705,8 +705,8 @@ onMounted(() => {
   gap: 8px;
   cursor: pointer;
   border-style: dashed;
-  border-color: #d1d5db;
-  background: #fafafa;
+  border-color: var(--border-light);
+  background: var(--bg-secondary);
   min-height: 160px;
   transition: all 0.15s;
 }
@@ -718,7 +718,7 @@ onMounted(() => {
 
 .add-card-text {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 /* 弹窗内部样式 */
@@ -736,7 +736,7 @@ onMounted(() => {
 
 .json-hint {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 .prompt-editor-wrap {
@@ -775,7 +775,7 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   padding: 12px 24px 16px;
-  background: #ffffff;
+  background: var(--bg-primary);
   border-top: 1px solid #f1f5f9;
 }
 </style>

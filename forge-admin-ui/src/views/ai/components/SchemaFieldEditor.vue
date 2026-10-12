@@ -505,12 +505,12 @@ function clearAll() {
 .schema-field-editor {
   border: 1px solid #e0e0e0;
   border-radius: 4px;
-  background: #fff;
+  background: var(--bg-primary);
   font-size: 13px;
 }
 
 .editor-header {
-  background: #fafafa;
+  background: var(--bg-secondary);
   border-bottom: 1px solid #e0e0e0;
   padding: 0 8px;
 }
@@ -520,7 +520,7 @@ function clearAll() {
   gap: 6px;
   padding: 6px 0;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -543,12 +543,12 @@ function clearAll() {
 .empty-tip {
   padding: 16px;
   text-align: center;
-  color: #aaa;
+  color: var(--text-tertiary);
 }
 
 .editor-footer {
   padding: 6px 8px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -556,13 +556,13 @@ function clearAll() {
 
 .field-count {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
   margin-left: 4px;
 }
 
 .raw-json-area {
   padding: 8px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-light);
   background: #f9f9f9;
 }
 
@@ -574,7 +574,7 @@ function clearAll() {
   border: 1px solid #ddd;
   padding: 6px;
   border-radius: 3px;
-  background: #fff;
+  background: var(--bg-primary);
   box-sizing: border-box;
 }
 </style>

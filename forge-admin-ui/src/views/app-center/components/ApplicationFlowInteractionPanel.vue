@@ -342,9 +342,9 @@ function patchCallbacks(patch) {
   display: grid;
   min-width: 0;
   gap: 0;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .panel-heading {
@@ -354,7 +354,7 @@ function patchCallbacks(patch) {
   justify-content: space-between;
   gap: 16px;
   padding: 12px 18px;
-  border-bottom: 1px solid #e5e6eb;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .panel-heading h2,
@@ -369,17 +369,17 @@ function patchCallbacks(patch) {
 .panel-heading p,
 .advanced-section p {
   margin-top: 4px;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
 .node-config-section {
   padding: 14px 18px 18px;
-  border-bottom: 1px solid #e5e6eb;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .node-table {
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -395,13 +395,13 @@ function patchCallbacks(patch) {
 .node-table-header {
   min-height: 38px;
   padding: 0 14px;
-  background: #f7f8fa;
+  background: var(--bg-secondary);
   color: #646a73;
   font-size: 12px;
 }
 
 .node-table-row + .node-table-row {
-  border-top: 1px solid #e5e6eb;
+  border-top: 1px solid var(--border-light);
 }
 
 .node-row-summary {
@@ -409,9 +409,9 @@ function patchCallbacks(patch) {
   min-height: 52px;
   cursor: pointer;
   border: 0;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 0 14px;
-  color: #1f2329;
+  color: var(--text-primary);
   text-align: left;
 }
 
@@ -438,12 +438,12 @@ function patchCallbacks(patch) {
 
 .node-expand-icon {
   justify-self: end;
-  color: #86909c;
+  color: var(--text-tertiary);
 }
 
 .node-row-editor {
   padding: 14px;
-  border-top: 1px solid #e5e6eb;
+  border-top: 1px solid var(--border-light);
   background: #fafbfc;
 }
 
@@ -461,7 +461,7 @@ function patchCallbacks(patch) {
 .field-hint {
   display: block;
   margin-top: 5px;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 
@@ -480,7 +480,7 @@ function patchCallbacks(patch) {
 
 .manual-node-footer {
   margin-top: 12px;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -490,7 +490,7 @@ function patchCallbacks(patch) {
 }
 
 .advanced-config-collapse :deep(.n-collapse-item + .n-collapse-item) {
-  border-top: 1px solid #e5e6eb;
+  border-top: 1px solid var(--border-light);
 }
 
 .advanced-config-collapse :deep(.n-collapse-item__header-main) {

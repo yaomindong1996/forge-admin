@@ -242,7 +242,7 @@ function formatTime(value) {
   min-width: 0;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 10px;
 }
 
@@ -258,12 +258,12 @@ function formatTime(value) {
   justify-content: space-between;
   gap: 10px;
   margin-top: 4px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border-light);
   padding-top: 10px;
 }
 
 .log-pagination > span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -272,9 +272,9 @@ function formatTime(value) {
   display: grid;
   gap: 8px;
   width: 100%;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   cursor: pointer;
   text-align: left;
   padding: 10px;
@@ -299,7 +299,7 @@ function formatTime(value) {
 
 .log-row strong,
 .log-detail strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
@@ -308,7 +308,7 @@ function formatTime(value) {
 .log-detail span,
 .log-detail dt,
 .log-detail dd {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-style: normal;
 }
@@ -336,13 +336,13 @@ function formatTime(value) {
 .log-detail dl > div {
   min-width: 0;
   border-radius: 6px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 8px;
 }
 
 .log-detail dd {
   margin: 3px 0 0;
-  color: #111827;
+  color: var(--text-primary);
   word-break: break-all;
 }
 
@@ -356,8 +356,8 @@ function formatTime(value) {
   max-height: 150px;
   margin: 0;
   border-radius: 6px;
-  background: #f6f8fb;
-  color: #1f2937;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   line-height: 1.6;

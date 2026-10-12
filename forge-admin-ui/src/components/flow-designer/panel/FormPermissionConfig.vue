@@ -612,14 +612,14 @@ function emitPermissions(fields, children, arrays) {
 }
 
 .form-permission-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
 }
 
 .form-permission-desc {
   margin-top: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -628,11 +628,11 @@ function emitPermissions(fields, children, arrays) {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 14px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .form-permission-empty i {
@@ -642,7 +642,7 @@ function emitPermissions(fields, children, arrays) {
 }
 
 .form-permission-empty-title {
-  color: #334155;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
 }
@@ -660,13 +660,13 @@ function emitPermissions(fields, children, arrays) {
 }
 
 .permission-section-title {
-  color: #334155;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 700;
 }
 
 .form-permission-table {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -678,21 +678,21 @@ function emitPermissions(fields, children, arrays) {
   gap: 8px;
   min-height: 54px;
   padding: 8px 12px;
-  background: #fff;
+  background: var(--bg-primary);
   border-top: 1px solid #eef2f7;
 }
 
 .row-permission-title {
   margin-bottom: 6px;
-  color: #334155;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 700;
 }
 
 .row-permission-card {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 4px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 8px 10px;
 }
 
@@ -711,7 +711,7 @@ function emitPermissions(fields, children, arrays) {
 .row-permission-name {
   min-width: 0;
   overflow: hidden;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -720,7 +720,7 @@ function emitPermissions(fields, children, arrays) {
 
 .row-permission-count {
   flex: none;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 
@@ -735,7 +735,7 @@ function emitPermissions(fields, children, arrays) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -745,14 +745,14 @@ function emitPermissions(fields, children, arrays) {
 
 .form-permission-row.is-head {
   min-height: 36px;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 700;
 }
 
 .form-permission-row:not(.is-head):hover {
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .form-permission-row.stale {
@@ -769,14 +769,14 @@ function emitPermissions(fields, children, arrays) {
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
 }
 
 .form-field-code {
   margin-top: 3px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   word-break: break-all;

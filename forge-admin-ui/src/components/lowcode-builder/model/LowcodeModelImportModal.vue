@@ -309,7 +309,7 @@ function buildRequest() {
   min-width: 0;
   border: 1px solid #d8dee8;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 12px;
 }
 
@@ -352,12 +352,12 @@ function buildRequest() {
 }
 
 .preview-head strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .preview-head span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
 }

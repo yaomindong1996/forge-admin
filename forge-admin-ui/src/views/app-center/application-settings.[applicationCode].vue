@@ -255,7 +255,7 @@ function stripApplicationFields(model) {
 .application-settings-page {
   height: 100vh;
   overflow-y: auto;
-  background: #f5f7fa;
+  background: var(--bg-secondary);
   /* 覆盖全局 body overflow:hidden */
   position: fixed;
   inset: 0;
@@ -270,8 +270,8 @@ function stripApplicationFields(model) {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  border-bottom: 1px solid #e5e6eb;
-  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
   padding: 0 20px;
 }
 .settings-app-tabs {
@@ -282,8 +282,8 @@ function stripApplicationFields(model) {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  border-bottom: 1px solid #e5e6eb;
-  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
   padding: 6px 20px;
 }
 .settings-app-tab {
@@ -292,17 +292,17 @@ function stripApplicationFields(model) {
   border-radius: 6px;
   background: transparent;
   padding: 5px 14px;
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 20px;
   white-space: nowrap;
 }
 .settings-app-tab:hover {
-  color: #1f2329;
+  color: var(--text-primary);
 }
 .settings-app-tab.active {
-  background: #f2f3f5;
-  color: #1f2329;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -318,7 +318,7 @@ function stripApplicationFields(model) {
 }
 
 .settings-page-title span {
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -338,9 +338,9 @@ function stripApplicationFields(model) {
 
 .settings-nav,
 .settings-content :deep(.settings-section-card) {
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .settings-nav {
@@ -364,8 +364,8 @@ function stripApplicationFields(model) {
 
 .settings-nav button:hover,
 .settings-nav button.active {
-  background: #f2f3f5;
-  color: #1f2329;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .settings-content :deep(.settings-section-card) {
@@ -384,7 +384,7 @@ function stripApplicationFields(model) {
 
 .settings-content :deep(.settings-section-card > header p) {
   margin: 6px 0 0;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 13px;
 }
 

@@ -27,7 +27,7 @@ const router = useRouter()
   display: grid;
   min-height: 100%;
   place-items: center;
-  background: #f6f8fb;
+  background: var(--bg-secondary);
   padding: 24px;
 }
 </style>

@@ -34,11 +34,11 @@ const emit = defineEmits(['click', 'delete', 'contextMenu'])
 
 const COLOR_META = {
   primary: { color: '#2563eb', soft: '#dbeafe', content: '#2563eb' },
-  success: { color: '#64748b', soft: '#e2e8f0', content: '#475569' },
+  success: { color: 'var(--text-secondary)', soft: '#e2e8f0', content: 'var(--text-secondary)' },
   warning: { color: '#f59e0b', soft: '#fef3c7', content: '#d97706' },
   info: { color: '#4f46e5', soft: '#e0e7ff', content: '#4f46e5' },
   error: { color: '#dc2626', soft: '#fee2e2', content: '#dc2626' },
-  gray: { color: '#64748b', soft: '#e2e8f0', content: '#475569' },
+  gray: { color: 'var(--text-secondary)', soft: '#e2e8f0', content: 'var(--text-secondary)' },
   teal: { color: '#0d9488', soft: '#ccfbf1', content: '#0f766e' },
 }
 
@@ -136,14 +136,14 @@ function handleContextMenu(e) {
 <style scoped>
 .flow-node-card {
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-left: 3px solid var(--flow-node-color);
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
 .flow-node-card:not(.is-readonly):hover {
-  border-color: #cbd5e1;
+  border-color: var(--border-light);
   border-left-color: var(--flow-node-color);
   box-shadow: 0 3px 8px rgba(15, 23, 42, 0.1);
 }
@@ -197,7 +197,7 @@ function handleContextMenu(e) {
   justify-content: space-between;
   gap: 8px;
   padding: 10px 12px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .flow-node-summary {
@@ -214,7 +214,7 @@ function handleContextMenu(e) {
 
 .flow-node-extra {
   min-width: 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.35;
 }
@@ -251,7 +251,7 @@ function handleContextMenu(e) {
 }
 
 .flow-node-card.is-readonly .flow-node-summary {
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 @media (prefers-reduced-motion: reduce) {

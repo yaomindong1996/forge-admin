@@ -412,7 +412,7 @@ function buildFormRefFromAsset(asset, formMode) {
 
 .node-form-asset-hint {
   margin-top: 8px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 18px;
 }

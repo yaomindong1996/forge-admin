@@ -283,8 +283,8 @@ const assistantAvailable = computed(() => assistantConfig.value.enabled === true
   && (assistantConfig.value.capabilities || []).length > 0)
 const portalStyle = computed(() => ({
   '--portal-primary': normalizeThemeColor(portalConfig.value.themeColor),
-  '--portal-surface': '#ffffff',
-  '--portal-surface-muted': '#f5f7fa',
+  '--portal-surface': 'var(--bg-primary)',
+  '--portal-surface-muted': 'var(--bg-secondary)',
   '--portal-text': '#1f2329',
   '--portal-text-muted': '#646a73',
 }))
@@ -408,7 +408,7 @@ function resolveErrorMessage(error) {
   grid-template-columns: minmax(180px, auto) minmax(0, 1fr) auto;
   align-items: center;
   gap: 18px;
-  border-bottom: 1px solid #e5e6eb;
+  border-bottom: 1px solid var(--border-light);
   background: color-mix(in srgb, var(--portal-surface) 96%, transparent);
   padding: 0 18px;
   backdrop-filter: blur(12px);
@@ -506,7 +506,7 @@ function resolveErrorMessage(error) {
   height: calc(100vh - 56px);
   flex: 0 0 auto;
   overflow-y: auto;
-  border-right: 1px solid #e5e6eb;
+  border-right: 1px solid var(--border-light);
   background: var(--portal-surface);
 }
 
@@ -558,13 +558,13 @@ function resolveErrorMessage(error) {
 
 .application-portal.shell-workbench .portal-logo,
 .application-portal.shell-top-side .portal-logo {
-  background: rgb(255 255 255 / 18%);
+  background: color-mix(in srgb, var(--bg-primary) 18%, transparent);
   color: #fff;
 }
 
 .application-portal.shell-workbench .portal-sidebar {
   width: 232px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .application-portal.shell-simple .portal-header {
@@ -608,16 +608,16 @@ function resolveErrorMessage(error) {
 
 .application-portal.shell-nexus .portal-sidebar {
   width: 220px;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 8px 24px rgb(15 23 42 / 6%);
 }
 
 .application-portal.shell-nexus .portal-main {
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 8px 24px rgb(15 23 42 / 6%);
   overflow: hidden;
 }
@@ -650,7 +650,7 @@ function resolveErrorMessage(error) {
   top: 56px;
   display: block;
   overflow: hidden;
-  border-bottom: 1px solid #e5e6eb;
+  border-bottom: 1px solid var(--border-light);
   background: var(--portal-surface);
 }
 
@@ -679,7 +679,7 @@ function resolveErrorMessage(error) {
     top: 56px;
     display: block;
     overflow: hidden;
-    border-bottom: 1px solid #e5e6eb;
+    border-bottom: 1px solid var(--border-light);
     background: var(--portal-surface);
   }
 

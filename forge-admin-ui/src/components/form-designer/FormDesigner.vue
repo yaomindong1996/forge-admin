@@ -606,7 +606,7 @@ defineExpose({
 .form-designer-container {
   height: 100%;
   display: flex;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -614,7 +614,7 @@ defineExpose({
 .components-panel,
 .properties-panel {
   width: 280px;
-  background: #fff;
+  background: var(--bg-primary);
   display: flex;
   flex-direction: column;
   border-right: 1px solid #e0e0e0;
@@ -629,7 +629,7 @@ defineExpose({
   padding: 12px 16px;
   font-weight: 600;
   border-bottom: 1px solid #e0e0e0;
-  background: #fafafa;
+  background: var(--bg-secondary);
 }
 
 .panel-content {
@@ -644,7 +644,7 @@ defineExpose({
 
 .group-title {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 8px;
   padding-left: 4px;
 }
@@ -661,7 +661,7 @@ defineExpose({
   align-items: center;
   gap: 4px;
   padding: 12px 8px;
-  background: #fafafa;
+  background: var(--bg-secondary);
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   cursor: grab;
@@ -684,7 +684,7 @@ defineExpose({
 
 .component-item span {
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .design-area {
@@ -700,8 +700,8 @@ defineExpose({
 
 .form-canvas {
   flex: 1;
-  background: #fff;
-  border: 2px dashed #d9d9d9;
+  background: var(--bg-primary);
+  border: 2px dashed var(--border-light);
   border-radius: 4px;
   overflow-y: auto;
   padding: 16px;
@@ -715,7 +715,7 @@ defineExpose({
 
 .empty-placeholder {
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .empty-placeholder i {
@@ -738,7 +738,7 @@ defineExpose({
 }
 
 .form-item-wrapper:hover {
-  background: #f5f5f5;
+  background: var(--bg-secondary);
 }
 
 .form-item-wrapper.is-selected {

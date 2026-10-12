@@ -362,8 +362,8 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid #e5e7eb;
-  background: linear-gradient(180deg, #f8fbff 0%, #fff 100%);
+  border-bottom: 1px solid var(--border-light);
+  background: linear-gradient(180deg, #f8fbff 0%, var(--bg-primary) 100%);
   padding: 16px 18px;
 }
 
@@ -391,7 +391,7 @@ defineExpose({
 .summary-card h4,
 .permission-flow-tips h4 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 16px;
   font-weight: 600;
 }
@@ -400,7 +400,7 @@ defineExpose({
 .summary-card p,
 .permission-flow-tips p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -417,15 +417,15 @@ defineExpose({
   gap: 12px;
   min-width: 0;
   overflow: visible;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 14px;
 }
 
 .summary-card,
 .permission-flow-tips section {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
@@ -441,8 +441,8 @@ defineExpose({
   display: grid;
   align-content: start;
   gap: 12px;
-  border-left: 1px solid #e5e7eb;
-  background: #fbfcfe;
+  border-left: 1px solid var(--border-light);
+  background: var(--bg-secondary);
   padding: 12px;
 }
 
@@ -456,13 +456,13 @@ defineExpose({
 .permission-facts div {
   min-width: 0;
   border-radius: 6px;
-  background: #f1f5f9;
+  background: var(--bg-tertiary);
   padding: 10px;
 }
 
 .permission-facts span {
   display: block;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -470,7 +470,7 @@ defineExpose({
   display: block;
   overflow: hidden;
   margin-top: 4px;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -483,7 +483,7 @@ defineExpose({
 
   .permission-flow-tips {
     border-left: 0;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--border-light);
   }
 }
 </style>

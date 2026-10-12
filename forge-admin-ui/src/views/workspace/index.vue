@@ -121,7 +121,7 @@ function openNav(item) {
 
 .workspace-shell-head h1 {
   margin: 0;
-  color: #172033;
+  color: var(--text-primary);
   font-size: 22px;
   font-weight: 700;
   line-height: 30px;
@@ -166,13 +166,13 @@ function openNav(item) {
 }
 
 .workspace-side-item:hover {
-  background: #f2f3f5;
+  background: var(--bg-tertiary);
 }
 
 .workspace-side-item.active {
   border-color: #c9cdd4;
-  background: #f2f3f5;
-  color: #1f2329;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .workspace-side-item.disabled {
@@ -187,14 +187,14 @@ function openNav(item) {
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  background: #f2f3f5;
-  color: #4e5969;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   font-size: 18px;
 }
 
 .workspace-side-item.active .workspace-side-icon {
   background: #e5e6eb;
-  color: #1f2329;
+  color: var(--text-primary);
 }
 
 .workspace-side-item strong,

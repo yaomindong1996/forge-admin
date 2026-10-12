@@ -113,7 +113,7 @@ function normalizeSize(value) {
 }
 
 :global(.dark) .master-detail-workspace {
-  border-color: #334155;
+  border-color: var(--border-light);
   background: #0f172a;
 }
 
@@ -145,7 +145,7 @@ function normalizeSize(value) {
   }
 
   :global(.dark) .master-detail-workspace__aside {
-    border-bottom-color: #334155;
+    border-bottom-color: var(--border-light);
   }
 }
 </style>

@@ -94,7 +94,7 @@ const tableColumns = computed(() => [
     prop: 'categoryCode',
     label: '分类编码',
     width: 200,
-    render: row => h('span', { style: 'font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #64748b;' }, row.categoryCode),
+    render: row => h('span', { style: 'font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text-secondary);' }, row.categoryCode),
   },
   {
     prop: 'sortOrder',

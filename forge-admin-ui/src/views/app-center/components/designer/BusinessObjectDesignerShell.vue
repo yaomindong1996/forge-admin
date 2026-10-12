@@ -448,8 +448,8 @@ function handleTopbarActionsClick(event) {
   align-items: center;
   gap: 8px;
   padding: 4px 12px;
-  border-bottom: 1px solid #e5e6eb;
-  background: #f7f8fa;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-secondary);
 }
 
 .embedded-back-button {
@@ -460,8 +460,8 @@ function handleTopbarActionsClick(event) {
   cursor: pointer;
   border: 1px solid #d9dce1;
   border-radius: 6px;
-  background: #fff;
-  color: #1d2129;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 20px;
   transition: border-color 0.15s, color 0.15s;
@@ -496,7 +496,7 @@ function handleTopbarActionsClick(event) {
   gap: 12px;
   min-height: 48px;
   border-bottom: 1px solid #e4e4e7;
-  background: rgba(255, 255, 255, 0.94);
+  background: color-mix(in srgb, var(--bg-primary) 94%, transparent);
   padding: 6px 12px;
   backdrop-filter: blur(12px);
 }
@@ -511,7 +511,7 @@ function handleTopbarActionsClick(event) {
 .object-workbench-kind {
   display: block;
   margin-bottom: 1px;
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 11px;
   font-weight: 650;
   letter-spacing: 0.04em;
@@ -519,7 +519,7 @@ function handleTopbarActionsClick(event) {
 }
 .object-workbench-description {
   margin-right: 9px;
-  color: #52525b;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
@@ -532,7 +532,7 @@ function handleTopbarActionsClick(event) {
   align-items: center;
   gap: 4px;
   margin-right: 2px;
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
@@ -552,30 +552,30 @@ function handleTopbarActionsClick(event) {
   height: 30px;
   --n-color-hover: #f4f4f5 !important;
   --n-color-pressed: #e4e4e7 !important;
-  --n-text-color: #71717a !important;
+  --n-text-color: var(--text-tertiary) !important;
   --n-text-color-hover: #18181b !important;
 }
 
 .topbar-save-button {
   height: 30px;
   padding: 0 10px;
-  background: #fff !important;
-  color: #27272a !important;
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
   border-color: #e4e4e7 !important;
   --n-border-radius: 6px !important;
-  --n-color: #fff !important;
+  --n-color: var(--bg-primary) !important;
   --n-color-hover: #f8fafc !important;
   --n-color-pressed: #f4f4f5 !important;
   --n-border: 1px solid #e4e4e7 !important;
   --n-border-hover: 1px solid #d4d4d8 !important;
   --n-border-pressed: 1px solid #d4d4d8 !important;
-  --n-text-color: #27272a !important;
+  --n-text-color: var(--text-primary) !important;
   --n-text-color-hover: #18181b !important;
 }
 
 .topbar-save-button :deep(.n-button__content),
 .topbar-save-button :deep(.n-button__icon) {
-  color: #27272a !important;
+  color: var(--text-primary) !important;
 }
 
 .topbar-publish-button {
@@ -617,7 +617,7 @@ function handleTopbarActionsClick(event) {
   border: 1px solid #e4e4e7;
   border-radius: 7px;
   background: #f4f4f5;
-  color: #52525b;
+  color: var(--text-secondary);
   font-size: 16px;
 }
 
@@ -635,7 +635,7 @@ function handleTopbarActionsClick(event) {
   flex-wrap: wrap;
   gap: 8px;
   margin: 1px 0 0;
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 11px;
   line-height: 14px;
 }
@@ -655,7 +655,7 @@ function handleTopbarActionsClick(event) {
   min-height: 0;
   overflow-y: auto;
   border-right: 1px solid #e4e4e7;
-  background: #fcfcfc;
+  background: var(--bg-secondary);
   padding: 10px 8px;
 }
 
@@ -674,8 +674,8 @@ function handleTopbarActionsClick(event) {
   cursor: pointer;
   border: 1px solid #e4e4e7;
   border-radius: 8px;
-  background: #fff;
-  color: #52525b;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 650;
   text-align: left;
@@ -706,7 +706,7 @@ function handleTopbarActionsClick(event) {
   border: 0;
   border-radius: 7px;
   background: transparent;
-  color: #52525b;
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 12px;
   text-align: left;
@@ -742,7 +742,7 @@ function handleTopbarActionsClick(event) {
 .nav-item.disabled:hover,
 .nav-item:disabled:hover {
   background: transparent;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .nav-item.active {
@@ -818,7 +818,7 @@ function handleTopbarActionsClick(event) {
     overflow-x: auto;
     overflow-y: hidden;
     border-right: 0;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border-light);
   }
 
   .designer-nav.collapsed {

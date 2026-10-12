@@ -49,7 +49,7 @@
 /* ============ 左侧历史导航 ============ */
 .generator-sidebar {
   width: 260px;
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--bg-primary) 70%, transparent);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-right: 1px solid var(--border-pale);
@@ -219,7 +219,7 @@
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--bg-primary) 30%, transparent);
 }
 
 .chat-area {
@@ -339,7 +339,7 @@
 }
 
 .message.assistant .message-bubble {
-  background: #ffffff;
+  background: var(--bg-primary);
   color: var(--text-main);
   border: 1px solid var(--border-pale);
   border-radius: 6px 14px 14px 14px;
@@ -414,7 +414,7 @@
   align-items: center;
   gap: 12px;
   padding: 13px 18px;
-  background: rgba(255, 255, 255, 0.8);
+  background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
   border: 1px solid var(--border-pale);
   border-radius: 10px;
   cursor: pointer;
@@ -425,7 +425,7 @@
 
 .example-item:hover {
   border-color: var(--b-azure);
-  background: rgba(255, 255, 255, 0.95);
+  background: color-mix(in srgb, var(--bg-primary) 95%, transparent);
   transform: translateY(-1px);
   box-shadow: var(--shadow-lg);
 }
@@ -451,7 +451,7 @@
 .input-section {
   padding: 16px 24px 20px;
   border-top: 1px solid var(--border-pale);
-  background: rgba(255, 255, 255, 0.8);
+  background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   display: flex;
@@ -497,7 +497,7 @@
 /* ============ 右侧配置面板 ============ */
 .generator-preview {
   width: 600px;
-  background: rgba(255, 255, 255, 0.88);
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-left: 1px solid var(--border-pale);
@@ -578,7 +578,7 @@
 
 .json-editor:focus {
   outline: none;
-  background: #ffffff;
+  background: var(--bg-primary);
   border-color: var(--b-azure);
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.06);
 }
@@ -653,7 +653,7 @@
   border: 1.5px solid var(--border-pale);
   border-radius: 10px;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--bg-primary) 70%, transparent);
   transition: all 0.2s ease;
   position: relative;
   min-width: 180px;
@@ -662,7 +662,7 @@
 
 .template-card:hover {
   border-color: var(--b-azure);
-  background: rgba(255, 255, 255, 0.95);
+  background: color-mix(in srgb, var(--bg-primary) 95%, transparent);
   transform: translateY(-1px);
   box-shadow: var(--shadow-blue);
 }

@@ -219,7 +219,7 @@ function moveDraft(index, offset) {
   padding: 6px 8px;
   border: 1px solid #ececf0;
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .field-order-section {
@@ -258,20 +258,20 @@ function moveDraft(index, offset) {
   gap: 8px;
   min-height: 30px;
   padding: 4px 6px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 5px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .field-drag-handle {
   cursor: grab;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   letter-spacing: -2px;
 }
 
 .field-order-index {
   width: 18px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 11px;
   text-align: center;
 }

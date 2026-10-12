@@ -285,7 +285,7 @@ function handleItemAction(item) {
 .status-kicker {
   display: block;
   margin-bottom: 6px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -298,14 +298,14 @@ function handleItemAction(item) {
 
 .status-title-row h3 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 18px;
   line-height: 1.35;
 }
 
 .status-copy p {
   margin: 8px 0 0;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -317,7 +317,7 @@ function handleItemAction(item) {
 }
 
 .meter-number {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 28px;
   font-weight: 700;
   line-height: 1;
@@ -325,7 +325,7 @@ function handleItemAction(item) {
 
 .meter-number small {
   margin-left: 2px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 500;
 }
@@ -342,9 +342,9 @@ function handleItemAction(item) {
 }
 
 .readiness-metrics div {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 10px 12px;
 }
 
@@ -354,14 +354,14 @@ function handleItemAction(item) {
 }
 
 .readiness-metrics strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 20px;
   line-height: 1.2;
 }
 
 .readiness-metrics span {
   margin-top: 3px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -376,9 +376,9 @@ function handleItemAction(item) {
   grid-template-columns: 32px minmax(0, 1fr);
   gap: 10px;
   min-width: 0;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 12px;
   transition:
     border-color 0.2s,
@@ -430,7 +430,7 @@ function handleItemAction(item) {
 
 .item-title span {
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -439,7 +439,7 @@ function handleItemAction(item) {
 
 .item-info p {
   margin: 6px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }

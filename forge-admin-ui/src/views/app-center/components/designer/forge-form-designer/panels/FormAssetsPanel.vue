@@ -356,7 +356,7 @@ function removeFormAsset(formKey = '') {
 }
 
 .form-asset-panel {
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .form-asset-list {
@@ -365,7 +365,7 @@ function removeFormAsset(formKey = '') {
 }
 
 .form-asset-list-title {
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 11px;
   font-weight: 600;
   line-height: 16px;
@@ -402,7 +402,7 @@ function removeFormAsset(formKey = '') {
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #a1a1aa;
+  color: var(--text-tertiary);
   font-size: 13px;
   font-weight: 600;
   padding: 0;
@@ -432,16 +432,16 @@ function removeFormAsset(formKey = '') {
   flex: 0 0 auto;
   height: 32px;
   cursor: pointer;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 7px;
-  background: #fff;
-  color: #475569;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   padding: 0 9px;
 }
 
 .form-asset-tab:hover {
   border-color: #bfdbfe;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .form-asset-tab.active {
@@ -498,10 +498,10 @@ function removeFormAsset(formKey = '') {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 7px;
-  background: #fff;
-  color: #1f2329;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   padding: 9px 10px;
   text-align: left;
 }

@@ -316,7 +316,7 @@ loadBizTypes()
 
 .biz-info {
   padding: 16px;
-  background: #f5f7fa;
+  background: var(--bg-secondary);
   border-radius: 4px;
 }
 
@@ -326,7 +326,7 @@ loadBizTypes()
 
 .message-content {
   line-height: 1.8;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .message-content :deep(p) {

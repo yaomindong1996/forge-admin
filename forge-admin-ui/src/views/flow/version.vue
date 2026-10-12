@@ -688,9 +688,9 @@ onUnmounted(() => {
 .version-diagram {
   height: 460px;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .version-diagram-canvas {
@@ -707,7 +707,7 @@ onUnmounted(() => {
 .version-code {
   max-height: 420px;
   overflow: auto;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
 }
 </style>

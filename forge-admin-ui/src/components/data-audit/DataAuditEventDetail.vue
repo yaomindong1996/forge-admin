@@ -158,7 +158,7 @@ const hasContextMeta = computed(() => Boolean(
 .detail-meta code {
   padding: 0 4px;
   border-radius: 3px;
-  background: var(--gray-100, #f1f5f9);
+  background: var(--bg-primary);
   color: var(--text-secondary, #475569);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
@@ -184,7 +184,7 @@ const hasContextMeta = computed(() => Boolean(
   padding: 10px 12px;
   border: 1px solid var(--border-light, #e5e7eb);
   border-radius: 6px;
-  background: var(--gray-50, #f8fafc);
+  background: var(--bg-primary);
 }
 
 .summary-label {

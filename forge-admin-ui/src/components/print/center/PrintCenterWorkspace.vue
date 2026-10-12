@@ -284,7 +284,7 @@ async function toggleSource() {
   border: 1px solid var(--border-light, #e5e7eb);
   border-radius: 3px;
   color: var(--primary-color, #1677ff);
-  background: var(--gray-100, #f6f8fb);
+  background: var(--bg-primary);
   font-size: 16px;
 }
 
@@ -392,7 +392,7 @@ async function toggleSource() {
 .print-center-usage__head code {
   padding: 0 3px;
   border-radius: 3px;
-  background: var(--gray-100, #f2f3f5);
+  background: var(--bg-primary);
 }
 
 .print-center-usage__code {
@@ -400,7 +400,7 @@ async function toggleSource() {
   padding: 10px 12px;
   overflow: auto;
   border-radius: 4px;
-  background: var(--gray-100, #f6f8fb);
+  background: var(--bg-primary);
   color: var(--text-primary, #1d2129);
   font-size: 12px;
   line-height: 18px;

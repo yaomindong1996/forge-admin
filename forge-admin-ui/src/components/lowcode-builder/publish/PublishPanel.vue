@@ -247,16 +247,16 @@ async function rollback(versionId) {
 
 .publish-card,
 .publish-links-card {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
 .card-title {
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 
@@ -276,7 +276,7 @@ async function rollback(versionId) {
   flex-shrink: 0;
   min-width: 110px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 

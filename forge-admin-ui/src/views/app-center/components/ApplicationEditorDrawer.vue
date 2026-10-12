@@ -749,9 +749,9 @@ function defaultTemplateSource() {
 .application-steps {
   margin-bottom: 24px;
   padding: 14px 18px;
-  border: 1px solid var(--n-border-color, #e5e7eb);
+  border: 1px solid var(--border-light);
   border-radius: 10px;
-  background: var(--n-color-embedded, #f7f8fa);
+  background: var(--bg-secondary);
 }
 
 .initialize-panel {
@@ -761,11 +761,11 @@ function defaultTemplateSource() {
 
 .advanced-settings {
   margin-top: 8px;
-  border-top: 1px solid var(--n-border-color, #e5e7eb);
+  border-top: 1px solid var(--border-light);
 }
 
 .advanced-settings__summary {
-  color: var(--n-text-color-3, #8a9099);
+  color: var(--text-tertiary);
   font-size: 12px;
   font-weight: 400;
 }

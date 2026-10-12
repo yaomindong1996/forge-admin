@@ -27,20 +27,29 @@
         <span>{{ plugin.version ? `v${plugin.version}` : '版本未提供' }}</span>
       </span>
       <div class="plugin-card__actions">
-        <NButton text type="primary" :disabled="!canDetail" @click="emit('open', plugin.id)">
-          查看详情
-        </NButton>
+        <button
+          type="button"
+          class="plugin-card__link plugin-card__link--primary"
+          :disabled="!canDetail"
+          @click="emit('open', plugin.id)"
+        >
+          详情
+        </button>
         <span class="plugin-card__separator" aria-hidden="true" />
-        <NButton text :disabled="!canDetail" @click="emit('open', plugin.id, 'installation')">
+        <button
+          type="button"
+          class="plugin-card__link"
+          :disabled="!canDetail"
+          @click="emit('open', plugin.id, 'installation')"
+        >
           安装说明
-        </NButton>
+        </button>
       </div>
     </footer>
   </article>
 </template>
 
 <script setup>
-import { NButton } from 'naive-ui'
 import { computed } from 'vue'
 import DictTag from '@/components/DictTag.vue'
 import { pluginPresentation } from '../pluginPresentation'
@@ -157,10 +166,30 @@ const presentation = computed(() => pluginPresentation(props.plugin))
   display: flex;
   flex: none;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
-.plugin-card__actions :deep(.n-button) {
+.plugin-card__link {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
   font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.plugin-card__link:hover:not(:disabled) {
+  color: var(--primary-color);
+}
+.plugin-card__link--primary {
+  color: var(--primary-color);
+}
+.plugin-card__link--primary:hover:not(:disabled) {
+  color: var(--primary-color-hover, var(--primary-color));
+}
+.plugin-card__link:disabled {
+  color: var(--text-disabled, var(--text-tertiary));
+  cursor: not-allowed;
 }
 .plugin-card__separator {
   height: 12px;

@@ -693,7 +693,7 @@ function includesAny(value, keywords = []) {
   min-height: 560px;
   border: 0;
   border-radius: 0;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 0;
 }
 
@@ -728,13 +728,13 @@ function includesAny(value, keywords = []) {
 }
 
 .expression-workbench-head strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 16px;
   font-weight: 800;
 }
 
 .expression-workbench-head span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -773,7 +773,7 @@ function includesAny(value, keywords = []) {
   height: 100%;
   border: 1px solid #dce4ef;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   overflow: hidden;
 }
 
@@ -816,7 +816,7 @@ function includesAny(value, keywords = []) {
 .panel-title strong,
 .expression-panel-head > span,
 .dependency-head span {
-  color: #1f2937;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 800;
 }
@@ -849,7 +849,7 @@ function includesAny(value, keywords = []) {
   border: 0;
   border-radius: 6px;
   background: #f3f6fa;
-  color: #334155;
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 12px;
   font-weight: 800;
@@ -873,7 +873,7 @@ function includesAny(value, keywords = []) {
 .field-group-head em,
 .function-group-head em,
 .dependency-head em {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-style: normal;
   font-weight: 600;
@@ -894,8 +894,8 @@ function includesAny(value, keywords = []) {
   min-height: 38px;
   border: 1px solid transparent;
   border-radius: 6px;
-  background: #fff;
-  color: #1f2937;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   cursor: pointer;
   padding: 6px 7px;
   text-align: left;
@@ -954,8 +954,8 @@ function includesAny(value, keywords = []) {
 }
 
 .field-type-mark.text {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 
 .field-main {
@@ -975,7 +975,7 @@ function includesAny(value, keywords = []) {
 
 .field-main em {
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   font-style: normal;
@@ -985,7 +985,7 @@ function includesAny(value, keywords = []) {
 
 .field-type-label {
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   font-style: normal;
   text-overflow: ellipsis;
@@ -994,7 +994,7 @@ function includesAny(value, keywords = []) {
 
 .expression-panel-head {
   min-height: 44px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-light);
   padding: 8px 10px;
 }
 
@@ -1015,7 +1015,7 @@ function includesAny(value, keywords = []) {
   height: 26px;
   border: 1px solid #d7dfeb;
   border-radius: 5px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   color: #253247;
   cursor: pointer;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -1049,9 +1049,9 @@ function includesAny(value, keywords = []) {
 }
 
 .line-gutter {
-  border-right: 1px solid #e2e8f0;
+  border-right: 1px solid var(--border-light);
   background: #f4f7fb;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 13px;
   line-height: 32px;
@@ -1089,7 +1089,7 @@ function includesAny(value, keywords = []) {
 .expression-input :deep(.n-input__textarea-el) {
   min-height: 380px;
   padding: 16px 18px;
-  color: #172033;
+  color: var(--text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 14px;
   line-height: 1.75;
@@ -1105,8 +1105,8 @@ function includesAny(value, keywords = []) {
 .dependency-strip {
   display: grid;
   gap: 8px;
-  border-top: 1px solid #e2e8f0;
-  background: #fff;
+  border-top: 1px solid var(--border-light);
+  background: var(--bg-primary);
   padding: 10px;
 }
 
@@ -1156,7 +1156,7 @@ function includesAny(value, keywords = []) {
 }
 
 .dependency-chip i {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
@@ -1181,8 +1181,8 @@ function includesAny(value, keywords = []) {
   width: 100%;
   border: 1px solid #e1e7f0;
   border-radius: 6px;
-  background: #fff;
-  color: #111827;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   cursor: pointer;
   padding: 8px;
   text-align: left;
@@ -1217,7 +1217,7 @@ function includesAny(value, keywords = []) {
 .function-description {
   display: -webkit-box;
   overflow: hidden;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.45;
   -webkit-box-orient: vertical;
@@ -1244,7 +1244,7 @@ function includesAny(value, keywords = []) {
 .function-inspector {
   display: grid;
   gap: 7px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border-light);
   padding-top: 10px;
 }
 
@@ -1266,20 +1266,20 @@ function includesAny(value, keywords = []) {
 }
 
 .function-inspector > span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 700;
 }
 
 .function-inspector strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .function-inspector code {
   overflow-x: auto;
   border-radius: 6px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   color: #1d3557;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
@@ -1288,7 +1288,7 @@ function includesAny(value, keywords = []) {
 
 .function-inspector p {
   margin: 0;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -1303,18 +1303,18 @@ function includesAny(value, keywords = []) {
   display: grid;
   gap: 2px;
   border-radius: 6px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 7px;
 }
 
 .function-meta-grid em {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   font-style: normal;
 }
 
 .function-meta-grid b {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 12px;
 }
 

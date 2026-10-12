@@ -478,7 +478,7 @@ onUnmounted(() => {
 .process-diagram-viewer {
   width: 100%;
   min-height: 400px;
-  color: #172033;
+  color: var(--text-primary);
 }
 
 .process-diagram-viewer.compact {
@@ -497,9 +497,9 @@ onUnmounted(() => {
   gap: 16px;
   flex-wrap: wrap;
   padding: 12px 16px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border-radius: 6px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
 }
 
 .status-info {
@@ -520,12 +520,12 @@ onUnmounted(() => {
 }
 
 .meta-value {
-  color: #172033;
+  color: var(--text-primary);
 }
 
 .diagram-container {
   position: relative;
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border: 1px solid #d7dde7;
   border-radius: 6px;
   overflow: hidden;
@@ -550,7 +550,7 @@ onUnmounted(() => {
   width: 100%;
   max-height: 500px;
   object-fit: contain;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .diagram-empty {
@@ -612,7 +612,7 @@ onUnmounted(() => {
 
 /* 处理人标记样式 */
 :deep(.assignee-overlay) {
-  background: #fff;
+  background: var(--bg-primary);
   color: #344054;
   padding: 4px 8px;
   border: 1px solid #d7dde7;
@@ -627,8 +627,8 @@ onUnmounted(() => {
   justify-content: center;
   gap: 18px;
   padding: 9px 14px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
   border-radius: 6px;
 }
 
@@ -659,7 +659,7 @@ onUnmounted(() => {
 
 .legend-dot.pending {
   color: #98a2b3;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 /* 悬浮提示样式 */
@@ -669,7 +669,7 @@ onUnmounted(() => {
   min-width: 220px;
   max-width: 340px;
   padding: 0;
-  background: #fff;
+  background: var(--bg-primary);
   border: 1px solid #d7dde7;
   border-radius: 8px;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
@@ -682,14 +682,14 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 8px;
   padding: 12px 14px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .node-name {
   font-weight: 600;
   font-size: 14px;
-  color: #172033;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -752,7 +752,7 @@ onUnmounted(() => {
 }
 
 .assignee-item .name {
-  color: #172033;
+  color: var(--text-primary);
   font-weight: 500;
   font-size: 12px;
 }
@@ -761,7 +761,7 @@ onUnmounted(() => {
   color: #667085;
   font-size: 11px;
   padding: 2px 6px;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 4px;
   margin-left: auto;
 }
@@ -787,7 +787,7 @@ onUnmounted(() => {
 }
 
 .comment-text {
-  color: #172033;
+  color: var(--text-primary);
   line-height: 1.6;
 }
 </style>

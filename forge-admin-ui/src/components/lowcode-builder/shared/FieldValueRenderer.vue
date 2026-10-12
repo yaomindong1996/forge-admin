@@ -203,7 +203,7 @@ function handleClick(event) {
 }
 
 .field-value-renderer.is-empty {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .field-value-renderer.is-link {

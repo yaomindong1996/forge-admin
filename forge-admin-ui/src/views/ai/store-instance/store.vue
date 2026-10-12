@@ -452,7 +452,7 @@ onMounted(() => {
 <style scoped>
 .ai-store-page {
   --page-bg: #f3f6fa;
-  --panel-bg: #ffffff;
+  --panel-bg: var(--bg-primary);
   --panel-subtle: #f8fafc;
   --panel-border: #dfe6ee;
   --text-strong: #111827;

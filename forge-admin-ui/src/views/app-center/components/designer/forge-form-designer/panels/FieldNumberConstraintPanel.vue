@@ -86,7 +86,7 @@ function emitProps(patch) {
   gap: 5px;
   border: 1px solid #eff0f1;
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 5px;
 }
 
@@ -94,8 +94,8 @@ function emitProps(patch) {
 .constraint-help {
   border: 1px dashed #d4d4d8;
   border-radius: 6px;
-  background: #fff;
-  color: #71717a;
+  background: var(--bg-primary);
+  color: var(--text-tertiary);
   font-size: 11px;
   line-height: 1.55;
 }

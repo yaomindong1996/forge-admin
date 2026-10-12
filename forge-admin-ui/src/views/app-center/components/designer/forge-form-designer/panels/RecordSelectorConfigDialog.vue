@@ -422,7 +422,7 @@ function confirm() {
   padding: 6px 8px;
   border: 1px solid #ececf0;
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .filter-list {
@@ -438,7 +438,7 @@ function confirm() {
   padding: 8px;
   border: 1px solid #ececf0;
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .filter-card-head {
@@ -453,7 +453,7 @@ function confirm() {
 }
 
 .mapping-arrow {
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 16px;
   flex-shrink: 0;
 }

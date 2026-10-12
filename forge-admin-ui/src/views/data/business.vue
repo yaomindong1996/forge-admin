@@ -706,7 +706,7 @@ function handleDeleteBusiness(row) {
   height: 100%;
   min-height: 0;
   padding: 10px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -719,7 +719,7 @@ function handleDeleteBusiness(row) {
   overflow: hidden;
   border: 1px solid rgba(15, 23, 42, 0.06);
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 10px;
 }
 
@@ -739,7 +739,7 @@ function handleDeleteBusiness(row) {
 
 .panel-toolbar h3 {
   margin: 0;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: 600;
 }
@@ -764,7 +764,7 @@ function handleDeleteBusiness(row) {
 }
 
 .business-name {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
 }
@@ -777,7 +777,7 @@ function handleDeleteBusiness(row) {
 }
 
 .business-desc {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   line-height: 1.4;
 }
@@ -817,7 +817,7 @@ function handleDeleteBusiness(row) {
 }
 
 .readiness-cell-head span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
@@ -868,7 +868,7 @@ function handleDeleteBusiness(row) {
 
 .business-section-title {
   margin-bottom: 10px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
 }
@@ -897,7 +897,7 @@ function handleDeleteBusiness(row) {
 }
 
 .business-field > span {
-  color: #334155;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 600;
 }
@@ -915,7 +915,7 @@ function handleDeleteBusiness(row) {
 }
 
 .status-switch-row small {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -952,18 +952,18 @@ function handleDeleteBusiness(row) {
   overflow: hidden;
   border: 1px solid #e8ecf1;
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 4px 16px rgb(15 23 42 / 3%);
 }
 
 :deep(.business-crud .n-data-table-th) {
   padding: 9px 12px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border-bottom: 1px solid #e8ecf1;
 }
 

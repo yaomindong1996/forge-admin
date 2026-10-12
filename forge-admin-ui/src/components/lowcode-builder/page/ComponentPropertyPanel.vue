@@ -498,9 +498,9 @@ function patchZone(patch) {
 <style scoped>
 .property-panel {
   height: 100%;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   overflow: hidden;
 }
 
@@ -509,10 +509,10 @@ function patchZone(patch) {
   display: flex;
   align-items: center;
   padding: 0 14px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .zone-form {
@@ -542,8 +542,8 @@ function patchZone(patch) {
   padding: 4px 8px;
   border: 1px solid #dbe3ee;
   border-radius: 999px;
-  background: #fff;
-  color: #475569;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   font-size: 12px;
   cursor: pointer;
 }
@@ -567,10 +567,10 @@ function patchZone(patch) {
   gap: 8px;
   min-height: 34px;
   padding: 0 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
   font-size: 12px;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .order-row span:nth-child(2) {
@@ -588,7 +588,7 @@ function patchZone(patch) {
 }
 
 .order-handle {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   cursor: grab;
 }
 
@@ -598,9 +598,9 @@ function patchZone(patch) {
   justify-content: space-between;
   min-height: 34px;
   padding: 0 10px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
   font-size: 12px;
-  color: #475569;
+  color: var(--text-secondary);
 }
 </style>

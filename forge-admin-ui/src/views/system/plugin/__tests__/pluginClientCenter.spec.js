@@ -92,7 +92,7 @@ describe('a 首页与 B 详情真实组件', () => {
     store.query.keyword = 'plugin'
     store.query.origin = 'builtin'
     await store.changePage(2)
-    const detail = wrapper.findAll('button').find(button => button.text() === '查看详情')
+    const detail = wrapper.findAll('button').find(button => button.text() === '详情')
     await detail.trigger('click')
     await flushPromises()
     expect(wrapper.find('.master-detail-workspace').exists()).toBe(true)

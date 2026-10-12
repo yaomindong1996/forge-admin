@@ -366,14 +366,14 @@ function clone(value) {
 }
 
 .field-linkage-editor__head strong {
-  color: var(--n-text-color, #3f3f46);
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
 }
 
 .field-linkage-editor__head p {
   margin: 3px 0 0;
-  color: var(--n-text-color-3, #71717a);
+  color: var(--text-tertiary);
   font-size: 11px;
   line-height: 16px;
 }
@@ -385,9 +385,9 @@ function clone(value) {
 
 .field-linkage-card {
   padding: 10px;
-  border: 1px solid var(--n-border-color, #e5e6eb);
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: var(--n-color, #fff);
+  background: var(--bg-primary);
 }
 
 .field-linkage-card--disabled {
@@ -406,7 +406,7 @@ function clone(value) {
 .field-linkage-card__field {
   overflow: hidden;
   max-width: 150px;
-  color: #3f3f46;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -418,19 +418,19 @@ function clone(value) {
   padding: 1px 6px;
   border-radius: 3px;
   background: #f4f4f5;
-  color: #52525b;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
 .field-linkage-card__arrow {
-  color: #a1a1aa;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
 .field-linkage-card__main > p {
   margin: 4px 0 0;
   overflow: hidden;
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -443,7 +443,7 @@ function clone(value) {
 
 .field-linkage-tip {
   margin: 0;
-  color: #a1a1aa;
+  color: var(--text-tertiary);
   font-size: 11px;
   line-height: 16px;
 }
@@ -458,14 +458,14 @@ function clone(value) {
 
 .field-linkage-form__section {
   padding: 14px;
-  border: 1px solid var(--n-border-color, #e5e6eb);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .field-linkage-form h4 {
   margin: 0 0 12px;
-  color: var(--n-text-color, #3f3f46);
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
 }
@@ -490,7 +490,7 @@ function clone(value) {
   justify-content: space-between;
   gap: 12px;
   padding-bottom: 7px;
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 12px;
   white-space: nowrap;
 }

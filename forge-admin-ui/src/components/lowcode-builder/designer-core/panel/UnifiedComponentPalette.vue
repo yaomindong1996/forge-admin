@@ -303,7 +303,7 @@ defineExpose({ total })
   padding: 2px 2px 4px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--n-text-color, #333);
+  color: var(--text-primary);
 }
 
 .unified-palette-group-title em {
@@ -323,7 +323,7 @@ defineExpose({ total })
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  border: 1px solid var(--n-border-color, #e5e7eb);
+  border: 1px solid var(--border-light);
   border-radius: 6px;
   background: transparent;
   cursor: grab;
@@ -373,7 +373,7 @@ defineExpose({ total })
 .unified-palette-item-title {
   font-size: 12px;
   line-height: 1.4;
-  color: var(--n-text-color, #333);
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

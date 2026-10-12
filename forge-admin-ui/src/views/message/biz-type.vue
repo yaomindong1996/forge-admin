@@ -528,7 +528,7 @@ onMounted(async () => {
 
 .biz-item.active {
   border-color: var(--border-light, #e2e8f0);
-  background: color-mix(in srgb, var(--primary-color, #2080f0) 8%, white);
+  background: color-mix(in srgb, var(--primary-color, #2080f0) 8%, var(--bg-primary));
 }
 
 .biz-item-name {

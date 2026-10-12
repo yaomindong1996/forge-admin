@@ -353,7 +353,7 @@ function handleClose() {
 
 .search-bar {
   padding: 12px;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border-radius: 4px;
 }
 

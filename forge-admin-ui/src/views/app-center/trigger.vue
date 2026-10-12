@@ -1085,7 +1085,7 @@ function normalizeQueryValue(value) {
 
 .trigger-embedded .trigger-page-header {
   border-bottom: 1px solid #e5e9f2;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 10px 16px;
 }
 
@@ -1112,10 +1112,10 @@ function normalizeQueryValue(value) {
 
 .trigger-range {
   min-width: 118px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #f8fafc;
-  color: #475569;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 30px;
   text-align: center;
@@ -1130,15 +1130,15 @@ function normalizeQueryValue(value) {
 
 .trigger-stat {
   min-width: 0;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 12px 14px;
 }
 
 .trigger-stat span {
   display: block;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -1146,7 +1146,7 @@ function normalizeQueryValue(value) {
   display: block;
   margin-top: 6px;
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 20px;
   font-weight: 650;
   letter-spacing: 0;
@@ -1155,9 +1155,9 @@ function normalizeQueryValue(value) {
 }
 
 .trigger-panel {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .trigger-toolbar {
@@ -1171,14 +1171,14 @@ function normalizeQueryValue(value) {
 
 .trigger-toolbar h2 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: 650;
 }
 
 .trigger-toolbar p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -1195,7 +1195,7 @@ function normalizeQueryValue(value) {
 
 .trigger-name-cell strong {
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 650;
   text-overflow: ellipsis;
@@ -1205,7 +1205,7 @@ function normalizeQueryValue(value) {
 .trigger-name-cell span {
   display: -webkit-box;
   overflow: hidden;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.45;
   -webkit-box-orient: vertical;
@@ -1213,7 +1213,7 @@ function normalizeQueryValue(value) {
 }
 
 :deep(.trigger-row-disabled td) {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 :deep(.n-data-table .n-data-table-th) {
@@ -1227,7 +1227,7 @@ function normalizeQueryValue(value) {
   gap: 12px;
   padding: 12px 16px;
   border-top: 1px solid #edf0f5;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 

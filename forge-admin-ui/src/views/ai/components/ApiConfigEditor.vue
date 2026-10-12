@@ -138,7 +138,7 @@ function handleRawChange(e) {
 .api-config-editor {
   border: 1px solid #e0e0e0;
   border-radius: 4px;
-  background: #fff;
+  background: var(--bg-primary);
   font-size: 13px;
 }
 
@@ -170,7 +170,7 @@ function handleRawChange(e) {
 
 .raw-json-area {
   padding: 8px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-light);
   background: #f9f9f9;
 }
 
@@ -182,7 +182,7 @@ function handleRawChange(e) {
   border: 1px solid #ddd;
   padding: 6px;
   border-radius: 3px;
-  background: #fff;
+  background: var(--bg-primary);
   box-sizing: border-box;
 }
 </style>

@@ -193,7 +193,7 @@ function fieldLabel(code) {
 
 .mapping-guide strong {
   display: block;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 18px;
 }
@@ -201,7 +201,7 @@ function fieldLabel(code) {
 .mapping-guide span {
   display: block;
   margin-top: 2px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 18px;
 }
@@ -224,7 +224,7 @@ function fieldLabel(code) {
 }
 
 .mapping-row span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   text-align: center;
 }

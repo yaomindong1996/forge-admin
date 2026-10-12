@@ -704,7 +704,7 @@ async function save() {
   padding: 0;
   border: 1px solid var(--border-light, #e5e6eb);
   border-radius: 6px;
-  background: var(--gray-100, #f6f8fb);
+  background: var(--bg-primary);
   overflow: hidden;
 }
 
@@ -790,7 +790,7 @@ async function save() {
 .source-form__hint code {
   padding: 0 4px;
   border-radius: 3px;
-  background: var(--gray-100, #f2f3f5);
+  background: var(--bg-primary);
   font-size: 12px;
 }
 

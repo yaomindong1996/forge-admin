@@ -275,7 +275,7 @@ function safeParse(value) {
 }
 
 .mapping-row span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   text-align: center;
 }

@@ -162,7 +162,7 @@ function removeRule(idx) {
 
 .hook-rule-head strong {
   display: block;
-  color: #27272a;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 650;
   line-height: 18px;
@@ -172,7 +172,7 @@ function removeRule(idx) {
 .hook-rule-desc,
 .hook-rule-empty,
 .hook-rule-note {
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 11px;
   line-height: 16px;
 }
@@ -186,7 +186,7 @@ function removeRule(idx) {
   padding: 10px 9px;
   border: 1px dashed #d4d4d8;
   border-radius: 7px;
-  background: #fafafa;
+  background: var(--bg-secondary);
 }
 
 .hook-rule-list {
@@ -203,7 +203,7 @@ function removeRule(idx) {
   padding: 8px;
   border: 1px solid #e4e4e7;
   border-radius: 6px;
-  background: #fafafa;
+  background: var(--bg-secondary);
 }
 
 .hook-rule-row :deep(.n-select),
@@ -219,7 +219,7 @@ function removeRule(idx) {
 
 .crud-hook-rules-editor :deep(.n-input),
 .crud-hook-rules-editor :deep(.n-base-selection) {
-  --n-color: #fff !important;
+  --n-color: var(--bg-primary) !important;
   --n-color-hover: #fff !important;
   --n-color-focus: #fff !important;
   --n-border: 1px solid #e4e4e7 !important;

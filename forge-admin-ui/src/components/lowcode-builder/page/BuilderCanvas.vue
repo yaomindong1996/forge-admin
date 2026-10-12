@@ -111,9 +111,9 @@ function normalizeZones(zones) {
 
 <style scoped>
 .builder-canvas {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   min-height: 560px;
   overflow: hidden;
 }
@@ -124,11 +124,11 @@ function normalizeZones(zones) {
   align-items: center;
   justify-content: space-between;
   padding: 0 14px;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-light);
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .zone-list {
@@ -146,6 +146,6 @@ function normalizeZones(zones) {
 
 .zone-drag {
   cursor: move;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 </style>

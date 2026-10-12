@@ -206,7 +206,7 @@ function append(target, value) {
   gap: 8px;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 9px 10px;
 }
 
@@ -228,13 +228,13 @@ function append(target, value) {
 }
 
 .cross-object-head strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .cross-object-head span {
   margin-top: 3px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
 }
@@ -280,7 +280,7 @@ function append(target, value) {
 }
 
 .cross-object-grid :deep(.n-form-item-label__text) {
-  color: #334155;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 600;
 }
@@ -289,6 +289,6 @@ function append(target, value) {
 .cross-object-grid :deep(.n-base-selection) {
   --n-border-radius: 6px;
   --n-height: 32px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 </style>

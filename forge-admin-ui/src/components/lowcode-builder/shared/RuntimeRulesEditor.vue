@@ -341,7 +341,7 @@ function emitRules(rules = []) {
 
 .runtime-rules-head span,
 .runtime-rules-empty {
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -349,7 +349,7 @@ function emitRules(rules = []) {
 .runtime-rules-empty {
   border: 1px dashed #d4d4d8;
   border-radius: 8px;
-  background: #fafafa;
+  background: var(--bg-secondary);
   padding: 10px;
 }
 
@@ -358,7 +358,7 @@ function emitRules(rules = []) {
   gap: 10px;
   border: 1px solid #e4e4e7;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 10px;
 }
 
@@ -390,7 +390,7 @@ function emitRules(rules = []) {
 .runtime-rule-grid span,
 .runtime-rule-card > label > span,
 .runtime-rule-effect-line label > span {
-  color: #52525b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
 }
@@ -408,7 +408,7 @@ function emitRules(rules = []) {
 }
 
 .runtime-rule-effect-line small {
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 11px;
   line-height: 1.5;
 }
@@ -419,7 +419,7 @@ function emitRules(rules = []) {
 }
 
 .runtime-rule-advanced summary {
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 12px;
   cursor: pointer;
   user-select: none;

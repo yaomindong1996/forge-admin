@@ -402,7 +402,7 @@ function submit() {
 
 .strategy-icon.is-tenant {
   background: rgb(71 85 105 / 9%);
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .strategy-icon.is-system {

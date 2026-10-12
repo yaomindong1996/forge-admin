@@ -468,14 +468,14 @@ function operatorLabel(op) {
   gap: 12px;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 12px;
 }
 
 .debugger-summary span,
 .debugger-result span,
 .sample-head strong {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -484,7 +484,7 @@ function operatorLabel(op) {
 .debugger-result code {
   display: block;
   margin-top: 4px;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -506,7 +506,7 @@ function operatorLabel(op) {
 }
 
 .debugger-result em {
-  color: #64748b;
+  color: var(--text-secondary);
   font-style: normal;
   font-size: 12px;
 }
@@ -514,9 +514,9 @@ function operatorLabel(op) {
 .debugger-samples {
   display: grid;
   gap: 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 12px;
 }
 
@@ -525,7 +525,7 @@ function operatorLabel(op) {
   gap: 10px;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 12px;
 }
 
@@ -537,12 +537,12 @@ function operatorLabel(op) {
 }
 
 .rule-debug-head strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
 .rule-debug-head span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -557,10 +557,10 @@ function operatorLabel(op) {
   justify-content: space-between;
   gap: 10px;
   min-height: 30px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #f8fafc;
-  color: #334155;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   font-size: 12px;
   padding: 4px 8px;
 }

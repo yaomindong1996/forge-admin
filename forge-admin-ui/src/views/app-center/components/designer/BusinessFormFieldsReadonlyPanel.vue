@@ -342,7 +342,7 @@ function readBoolean(value, fallback = false) {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: calc(100vh - 106px);
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .readonly-fields-head {
@@ -350,20 +350,20 @@ function readBoolean(value, fallback = false) {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
   padding: 14px 16px;
 }
 
 .readonly-fields-head h3 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 15px;
 }
 
 .readonly-fields-head p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -387,9 +387,9 @@ function readBoolean(value, fallback = false) {
 .asset-column,
 .field-column {
   min-width: 0;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .asset-column {
@@ -410,7 +410,7 @@ function readBoolean(value, fallback = false) {
 .section-title strong,
 .field-toolbar strong {
   display: block;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
@@ -418,7 +418,7 @@ function readBoolean(value, fallback = false) {
 .field-toolbar span {
   display: block;
   margin-top: 2px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -427,9 +427,9 @@ function readBoolean(value, fallback = false) {
   gap: 7px;
   width: 100%;
   cursor: pointer;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 10px;
   text-align: left;
 }
@@ -452,7 +452,7 @@ function readBoolean(value, fallback = false) {
 }
 
 .asset-card-title {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
 }
@@ -464,13 +464,13 @@ function readBoolean(value, fallback = false) {
 }
 
 .asset-card-meta em {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   font-style: normal;
 }
 
 .asset-card-key {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -479,7 +479,7 @@ function readBoolean(value, fallback = false) {
 }
 
 .field-toolbar {
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-light);
   padding: 12px;
 }
 
@@ -493,7 +493,7 @@ function readBoolean(value, fallback = false) {
 }
 
 .field-table-wrap code {
-  color: #334155;
+  color: var(--text-primary);
   font-size: 12px;
 }
 
@@ -503,13 +503,13 @@ function readBoolean(value, fallback = false) {
 }
 
 .field-name-cell strong {
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 650;
 }
 
 .field-name-cell span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 

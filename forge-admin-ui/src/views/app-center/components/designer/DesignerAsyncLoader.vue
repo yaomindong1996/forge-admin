@@ -34,9 +34,9 @@ defineProps({
   width: min(360px, 100%);
   margin: 56px auto;
   padding: 14px 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .designer-async-loader.is-overlay {
@@ -58,7 +58,7 @@ defineProps({
 }
 
 .loader-copy span {
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 12px;
   line-height: 18px;
 }
@@ -68,7 +68,7 @@ defineProps({
   height: 3px;
   overflow: hidden;
   border-radius: 999px;
-  background: #e5e7eb;
+  background: var(--bg-tertiary);
 }
 
 .loader-segment {

@@ -62,7 +62,7 @@ const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
   flex: 1;
   overflow-x: hidden;
   overflow-y: auto;
-  background: var(--gray-100);
+  background: var(--bg-primary);
   padding: 8px;
   min-height: 0;
 }
@@ -79,7 +79,7 @@ const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
 }
 
 .immersive-content::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--bg-tertiary);
 }
 
 .immersive-content::-webkit-scrollbar-thumb {

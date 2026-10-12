@@ -1086,7 +1086,7 @@ defineExpose({ addAction })
   padding: 6px 14px;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-primary);
   cursor: pointer;
   font-size: 13px;
   color: #606266;
@@ -1113,7 +1113,7 @@ defineExpose({ addAction })
   gap: 6px;
 }
 .detail-card {
-  border: 1px solid #eee;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   padding: 14px 16px;
   background: #fafbfc;
@@ -1121,7 +1121,7 @@ defineExpose({ addAction })
 .card-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2329;
+  color: var(--text-primary);
   margin-bottom: 10px;
 }
 .card-title-row {
@@ -1136,13 +1136,13 @@ defineExpose({ addAction })
 .card-hint {
   margin: 0 0 10px;
   font-size: 12px;
-  color: #86909c;
+  color: var(--text-tertiary);
 }
 .step-card {
-  border: 1px solid #eee;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
   margin-bottom: 10px;
-  background: #fff;
+  background: var(--bg-primary);
   overflow: hidden;
 }
 .step-card:last-child {
@@ -1153,8 +1153,8 @@ defineExpose({ addAction })
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: #f7f8fa;
-  border-bottom: 1px solid #eee;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
 }
 .step-number {
   display: inline-flex;
@@ -1189,7 +1189,7 @@ defineExpose({ addAction })
 }
 .loading-hint {
   font-size: 12px;
-  color: #86909c;
+  color: var(--text-tertiary);
 }
 .mapping-head {
   display: flex;
@@ -1214,7 +1214,7 @@ defineExpose({ addAction })
   align-items: center;
   gap: 16px;
   padding: 12px 0 0;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-light);
 }
 .dirty-hint {
   font-size: 12px;

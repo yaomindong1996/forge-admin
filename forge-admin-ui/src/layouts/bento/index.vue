@@ -39,7 +39,7 @@ const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
   width: 100%;
   height: 100vh;
   display: flex;
-  background: var(--bg-page);
+  background: var(--bg-primary);
   overflow: hidden;
 }
 
@@ -76,7 +76,7 @@ const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
   overflow-x: hidden;
   overflow-y: auto;
   padding: 8px;
-  background: var(--bg-page);
+  background: var(--bg-primary);
   min-height: 0;
 }
 

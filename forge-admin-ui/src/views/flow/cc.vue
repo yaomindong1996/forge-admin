@@ -464,7 +464,7 @@ onMounted(() => {
   background: var(--bg-secondary);
 }
 .page-header {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 16px 20px;
   display: flex;
@@ -499,7 +499,7 @@ onMounted(() => {
 .page-title {
   font-size: 18px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
   margin: 0;
 }
 .header-right {
@@ -534,7 +534,7 @@ onMounted(() => {
   font-weight: 600;
 }
 .table-container {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 16px 20px;
   flex: 1;
@@ -542,7 +542,7 @@ onMounted(() => {
 }
 :deep(.cc-title) {
   font-weight: 500;
-  color: #0f172a;
+  color: var(--text-primary);
   cursor: pointer;
 }
 :deep(.cc-title:hover) {
@@ -555,7 +555,7 @@ onMounted(() => {
 }
 :deep(.user-name-text) {
   font-weight: 500;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 :deep(.read-tag) {
   padding: 2px 8px;
@@ -591,14 +591,14 @@ onMounted(() => {
 }
 
 .cc-detail-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 16px;
   font-weight: 700;
 }
 
 .cc-detail-meta {
   margin-top: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -618,21 +618,21 @@ onMounted(() => {
 
 .cc-info-card,
 .cc-content-panel {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 12px 14px;
 }
 
 .cc-info-label {
   margin-bottom: 8px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .cc-info-value,
 .cc-user-line {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
 }
@@ -645,7 +645,7 @@ onMounted(() => {
 
 .cc-content-text {
   min-height: 120px;
-  color: #172033;
+  color: var(--text-primary);
   font-size: 14px;
   line-height: 1.7;
   white-space: pre-wrap;
@@ -653,9 +653,9 @@ onMounted(() => {
 }
 
 .cc-business-form-panel {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 14px;
 }
 
@@ -670,14 +670,14 @@ onMounted(() => {
 }
 
 .cc-business-form-title {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
 }
 
 .cc-business-form-subtitle {
   margin-top: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -687,7 +687,7 @@ onMounted(() => {
   justify-content: center;
   gap: 8px;
   min-height: 120px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 

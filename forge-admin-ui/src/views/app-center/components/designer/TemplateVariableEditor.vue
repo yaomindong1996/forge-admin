@@ -171,7 +171,7 @@ function sampleFromVariable(value) {
 
 .token-groups section > span,
 .template-preview span {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -185,13 +185,13 @@ function sampleFromVariable(value) {
   display: grid;
   gap: 4px;
   border-radius: 6px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 8px 10px;
 }
 
 .template-preview strong {
   overflow-wrap: anywhere;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
 }

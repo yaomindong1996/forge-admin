@@ -50,7 +50,7 @@
   .org-filter-tip
   .n-tag {
   background: #1e293b;
-  border-color: #334155;
+  border-color: var(--border-light);
 }
 
 .dark :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal) .empty-state {

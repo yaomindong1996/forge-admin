@@ -257,7 +257,7 @@ onMounted(() => {
 
 .detail-content {
   line-height: 1.8;
-  color: #333;
+  color: var(--text-primary);
   min-height: 200px;
 }
 

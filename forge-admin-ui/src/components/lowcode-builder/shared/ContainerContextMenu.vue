@@ -172,9 +172,9 @@ function onPanelClick(event) {
   max-height: min(560px, calc(100vh - 24px));
   padding: 10px;
   overflow: hidden;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-primary);
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
 }
 .container-ctx-head {
@@ -184,7 +184,7 @@ function onPanelClick(event) {
   gap: 8px;
 }
 .container-ctx-head strong {
-  color: #1d2129;
+  color: var(--text-primary);
   font-size: 13px;
 }
 .container-ctx-close {
@@ -193,14 +193,14 @@ function onPanelClick(event) {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
 }
 .container-ctx-close:hover {
-  background: #f2f3f5;
-  color: #1d2129;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 .container-ctx-actions {
   display: flex;
@@ -209,10 +209,10 @@ function onPanelClick(event) {
 }
 .container-ctx-action {
   padding: 4px 10px;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
   background: #fafbfc;
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 12px;
   cursor: pointer;
 }
@@ -230,7 +230,7 @@ function onPanelClick(event) {
   color: #cb2634;
 }
 .container-ctx-section-title {
-  color: #86909c;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 .container-ctx-scroll {
@@ -245,7 +245,7 @@ function onPanelClick(event) {
   gap: 6px;
 }
 .container-ctx-group header {
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
 }
@@ -270,7 +270,7 @@ function onPanelClick(event) {
 .container-ctx-item strong {
   display: block;
   overflow: hidden;
-  color: #1d2129;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 500;
   text-overflow: ellipsis;

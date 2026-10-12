@@ -355,7 +355,7 @@ function handleUploadChange({ fileList: files }) {
 
 .form-description {
   margin: 8px 0;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 </style>

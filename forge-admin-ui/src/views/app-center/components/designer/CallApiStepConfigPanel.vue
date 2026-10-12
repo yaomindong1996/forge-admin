@@ -386,7 +386,7 @@ function stringValue(value) {
 
 .call-api-config__head strong,
 .call-api-section__head strong {
-  color: #27272a;
+  color: var(--text-primary);
   font-size: 13px;
 }
 
@@ -394,7 +394,7 @@ function stringValue(value) {
 .call-api-section__head span {
   display: block;
   margin: 3px 0 0;
-  color: #71717a;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -426,14 +426,14 @@ function stringValue(value) {
 
 .call-api-param-name strong {
   overflow: hidden;
-  color: #3f3f46;
+  color: var(--text-secondary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .call-api-param-name span {
-  color: #a1a1aa;
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 
@@ -442,7 +442,7 @@ function stringValue(value) {
 }
 
 .call-api-arrow {
-  color: #71717a;
+  color: var(--text-tertiary);
   text-align: center;
 }
 

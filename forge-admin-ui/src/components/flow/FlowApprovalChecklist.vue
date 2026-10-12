@@ -111,7 +111,7 @@ defineExpose({
   padding: 13px 14px;
   border: 1px solid #dde5ee;
   border-radius: 6px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .responsibility-panel {
@@ -135,7 +135,7 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 7px;
-  color: #334155;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 700;
 }
@@ -153,7 +153,7 @@ defineExpose({
 .responsibility-panel p,
 .legacy-approval-point p {
   margin: 7px 0 0;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.7;
   white-space: pre-wrap;
@@ -189,7 +189,7 @@ defineExpose({
   padding: 9px 10px;
   border: 1px solid #eadfc9;
   border-radius: 5px;
-  background: #fff;
+  background: var(--bg-primary);
   cursor: pointer;
 }
 
@@ -208,7 +208,7 @@ defineExpose({
 
 .approval-point-content {
   min-width: 0;
-  color: #334155;
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 1.55;
   overflow-wrap: anywhere;

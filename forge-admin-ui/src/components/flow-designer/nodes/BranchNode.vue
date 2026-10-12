@@ -174,10 +174,10 @@ function handleContextMenu(event) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
   border-radius: 4px;
-  background: #fff;
-  color: #94a3b8;
+  background: var(--bg-primary);
+  color: var(--text-tertiary);
   opacity: 0;
   transform: rotate(-45deg);
   transition:
@@ -191,8 +191,8 @@ function handleContextMenu(event) {
 }
 
 .branch-node-delete:hover {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 
 .branch-node-shell.is-readonly {
