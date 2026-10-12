@@ -25,7 +25,8 @@
       v-model:show="onlineModalVisible"
       title="在线用户"
       preset="card"
-      style="width: 80%"
+      class="client-online-modal"
+      :style="{ width: 'min(960px, calc(100vw - 24px))' }"
     >
       <div class="mb-16">
         <n-statistic label="当前在线人数" :value="onlineUsers.length" />
@@ -33,6 +34,7 @@
       <n-data-table
         :columns="onlineTableColumns"
         :data="onlineUsers"
+        :scroll-x="ONLINE_TABLE_SCROLL_X"
         :pagination="false"
       />
     </n-modal>
@@ -330,6 +332,9 @@ const editSchema = computed(() => [
   },
 ])
 
+/** 在线用户列宽合计，避免无 scroll-x 时撑破弹窗 */
+const ONLINE_TABLE_SCROLL_X = 860
+
 // 在线用户表格列
 const onlineTableColumns = [
   { title: '用户ID', key: 'userId', width: 80 },
@@ -437,5 +442,13 @@ async function handleReloadCache(row) {
 .client-management-page :deep(.ai-crud-page) {
   flex: 1 1 auto;
   min-height: 0;
+}
+</style>
+
+<style>
+.client-online-modal.n-card,
+.client-online-modal .n-card__content {
+  max-width: 100%;
+  overflow: hidden;
 }
 </style>

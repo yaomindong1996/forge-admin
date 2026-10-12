@@ -4,18 +4,20 @@
     v-model:show="usersModalVisible"
     :title="`租户用户 - ${currentTenant.tenantName || ''}`"
     preset="card"
-    :style="{ width: 'min(920px, calc(100vw - 24px))' }"
+    class="tenant-users-dialog"
+    :style="{ width: 'min(960px, calc(100vw - 24px))' }"
     :mask-closable="false"
   >
     <div class="tenant-users-modal">
+      <!-- 筛选区 -->
       <div class="tenant-users-search">
-        <n-space>
+        <n-space :wrap="true" :size="[8, 8]">
           <n-input
             v-model:value="userSearchParams.username"
             placeholder="用户名"
             clearable
             size="small"
-            style="width: 150px"
+            class="tenant-users-filter-control"
             @clear="handleUserSearch"
             @keyup.enter="handleUserSearch"
           />
@@ -24,7 +26,7 @@
             placeholder="真实姓名"
             clearable
             size="small"
-            style="width: 150px"
+            class="tenant-users-filter-control"
             @clear="handleUserSearch"
             @keyup.enter="handleUserSearch"
           />
@@ -33,7 +35,7 @@
             placeholder="手机号"
             clearable
             size="small"
-            style="width: 150px"
+            class="tenant-users-filter-control"
             @clear="handleUserSearch"
             @keyup.enter="handleUserSearch"
           />
@@ -42,7 +44,7 @@
             placeholder="用户状态"
             clearable
             size="small"
-            style="width: 120px"
+            class="tenant-users-filter-status"
             :options="userStatusOptions"
           />
           <n-button size="small" type="primary" @click="handleUserSearch">
@@ -57,26 +59,27 @@
         </n-space>
       </div>
 
+      <!-- 工具栏 -->
       <div class="tenant-users-toolbar">
-        <n-space justify="space-between">
-          <NTag type="info" size="small">
-            共 {{ userPagination.itemCount }} 个用户
-          </NTag>
-          <n-button size="small" @click="loadTenantUsers">
-            <template #icon>
-              <i class="i-material-symbols:refresh" />
-            </template>
-            刷新
-          </n-button>
-        </n-space>
+        <NTag type="info" size="small">
+          共 {{ userPagination.itemCount }} 个用户
+        </NTag>
+        <n-button size="small" @click="loadTenantUsers">
+          <template #icon>
+            <i class="i-material-symbols:refresh" />
+          </template>
+          刷新
+        </n-button>
       </div>
 
+      <!-- 表格 -->
       <n-spin :show="usersLoading">
         <n-data-table
           :columns="userTableColumns"
           :data="tenantUsers"
           :pagination="userPaginationConfig"
           :row-key="row => row.id"
+          :scroll-x="USER_TABLE_SCROLL_X"
           remote
           striped
           size="small"
@@ -108,6 +111,8 @@ const emit = defineEmits(['changed'])
 const userStore = useUserStore()
 const USER_TYPE_DICT = 'sys_user_type'
 const USER_STATUS_DICT = 'sys_user_status'
+/** 列宽合计，供表格横向滚动，避免撑破弹窗 */
+const USER_TABLE_SCROLL_X = 1040
 const usersModalVisible = ref(false)
 const usersLoading = ref(false)
 const currentTenant = ref({})
@@ -139,12 +144,14 @@ const userTableColumns = [
   {
     title: '用户名',
     key: 'username',
-    width: 150,
+    width: 140,
+    ellipsis: { tooltip: true },
   },
   {
     title: '真实姓名',
     key: 'realName',
-    width: 120,
+    width: 110,
+    ellipsis: { tooltip: true },
   },
   {
     title: '用户类型',
@@ -157,17 +164,18 @@ const userTableColumns = [
   {
     title: '手机号',
     key: 'phone',
-    width: 130,
+    width: 120,
   },
   {
     title: '邮箱',
     key: 'email',
     width: 180,
+    ellipsis: { tooltip: true },
   },
   {
     title: '状态',
     key: 'userStatus',
-    width: 90,
+    width: 80,
     render: (row) => {
       return h(DictTag, { dictType: USER_STATUS_DICT, value: row.userStatus, size: 'small' })
     },
@@ -312,12 +320,59 @@ defineExpose({ open })
 .tenant-users-modal {
   display: grid;
   gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 320px;
+  overflow: hidden;
 }
+
 .tenant-users-search {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 10px;
   border: 1px solid var(--border-light);
   border-radius: 6px;
   background: var(--bg-secondary);
+}
+
+.tenant-users-filter-control {
+  width: 140px;
+}
+
+.tenant-users-filter-status {
+  width: 120px;
+}
+
+.tenant-users-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.tenant-users-modal :deep(.n-data-table) {
+  width: 100%;
+  max-width: 100%;
+}
+
+.tenant-users-modal :deep(.n-spin-container),
+.tenant-users-modal :deep(.n-spin-content) {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+</style>
+
+<style>
+/* n-modal teleport 到 body，需非 scoped 约束卡片内容宽度 */
+.tenant-users-dialog.n-card,
+.tenant-users-dialog .n-card__content {
+  max-width: 100%;
+  overflow: hidden;
 }
 </style>

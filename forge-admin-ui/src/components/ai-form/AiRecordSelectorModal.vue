@@ -54,6 +54,7 @@
       :row-key="row => row.id"
       :checked-row-keys="checkedRowKeys"
       :pagination="pagination"
+      :scroll-x="tableScrollX"
       :single-line="false"
       remote
       @update:checked-row-keys="handleCheckedKeys"
@@ -299,6 +300,11 @@ const tableColumns = computed(() => [
     ellipsis: { tooltip: true },
   })),
 ])
+
+/** 动态列宽合计，防止多字段时撑破 920 弹窗 */
+const tableScrollX = computed(() =>
+  tableColumns.value.reduce((sum, column) => sum + (Number(column.width) || 140), 0),
+)
 
 watch(() => props.show, (visible) => {
   if (visible) {

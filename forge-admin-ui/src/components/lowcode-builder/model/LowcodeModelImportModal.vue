@@ -66,6 +66,7 @@
           :data="previewFields"
           :pagination="false"
           :bordered="false"
+          :scroll-x="870"
           size="small"
           max-height="360"
         />

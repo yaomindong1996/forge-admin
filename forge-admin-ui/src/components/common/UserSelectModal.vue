@@ -10,7 +10,7 @@
     <div class="user-select-container">
       <!-- 搜索条件 -->
       <div class="search-bar">
-        <n-space>
+        <n-space :wrap="true" :size="[8, 8]">
           <n-input
             v-model:value="searchForm.keyword"
             placeholder="用户名/姓名"
@@ -47,6 +47,7 @@
         :loading="loading"
         :row-key="row => String(row.id)"
         :checked-row-keys="checkedKeys"
+        :scroll-x="560"
         :single-line="false"
         :max-height="400"
         @update:checked-row-keys="handleCheck"
@@ -349,9 +350,17 @@ function handleClose() {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .search-bar {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 12px;
   background: var(--bg-secondary);
   border-radius: 4px;

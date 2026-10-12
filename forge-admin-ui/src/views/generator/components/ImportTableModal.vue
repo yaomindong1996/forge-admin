@@ -9,7 +9,7 @@
     <div class="import-table-modal">
       <!-- 数据源选择和搜索 -->
       <div class="search-bar">
-        <n-space :size="16" align="center" style="width: 100%">
+        <n-space :wrap="true" :size="[16, 8]" align="center" style="width: 100%">
           <n-form-item label="数据源" label-placement="left" :show-feedback="false">
             <n-select
               v-model:value="selectedDatasourceId"

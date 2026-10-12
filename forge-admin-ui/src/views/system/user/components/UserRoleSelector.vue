@@ -43,6 +43,7 @@
         :checked-row-keys="checkedRoleKeys"
         :pagination="rolePaginationConfig"
         :row-key="row => row.id"
+        :scroll-x="800"
         remote
         striped
         size="small"

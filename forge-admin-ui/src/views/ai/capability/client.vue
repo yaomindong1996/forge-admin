@@ -300,6 +300,7 @@
               :bordered="false"
               :loading="mappingPageLoading"
               :pagination="mappingPagination"
+              :scroll-x="760"
               remote
               size="small"
               class="mapping-table"

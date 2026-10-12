@@ -308,6 +308,7 @@
           :data="logs"
           :loading="logLoading"
           :pagination="false"
+          :scroll-x="640"
           size="small"
         />
         <div class="log-pagination">
