@@ -91,3 +91,17 @@ git diff --check
   version check 通过 1.2.0，SFC 规模核对未超 1000 行，git diff --check 通过。
 - 本次为源码测试交付，不正式发版、不升版、不创建标签、不发布制品或部署。
   提交号、推送结果与最终遗留文件在实际执行后回填，不预先宣称成功。
+
+## 当前分支代码提交与 push 结果
+
+- 提交 7ce8974ecf98a0072e2b03cf3e66f6c03e54275e，说明：
+  `[spring-boot4] 完成底座升级及现有功能兼容回归`；491 文件，16,146 行增加 / 2,448 行删除。
+- 暂存后开源边界再次通过（索引/工作区均 10,237 个可提交文件）；版本保持 1.2.0。
+  暂存内容 diff --check、禁入文件路径及明显密钥格式筛查通过，不代替正式安全审查。
+- `git push -u origin HEAD:refs/heads/codex/spring-boot4-t0-compatibility` 成功，
+  远端新分支建立，本地开始跟踪同名 origin 分支；没有 force、main 写入或其它项目远端操作。
+- 提交后工作区仅剩 6 个原有无关文件：.DS_Store、multicolor-navigation-icons 的
+  execution-log/spec/tasks/test-spec、forge-server/scripts/deployment/production-runbook.md。
+- 当前回填仅文档，单独提交并推送，不重编译、不将旧验证包标为新提交的正式发行包。
+- 最终发布状态：源码已提交并 push 当前测试分支；版本 1.2.0 / Unreleased；
+  正式标签、制品发布、真实迁移、生产部署、main 合并均未执行。由用户继续真实业务测试。

@@ -7,7 +7,8 @@
 
 继续 `codex/spring-boot4-t0-compatibility`，main 不动，保留 T0–T5 及无关工作区改动。
 复用 T5 的 53 模块 / 3,464 项后端、324 文件 / 2,353 项 PC 证据。
-本轮不正式发版，revision 保持 1.2.0，CHANGELOG 归入 Unreleased；不提交、push 或部署。
+本轮不正式发版，revision 保持 1.2.0，CHANGELOG 归入 Unreleased；
+开发阶段未提交或 push，当前分支交付已获单独授权，不部署。
 遵守用户的真实环境门禁，不连接真实数据库、Redis、模型或对象存储。
 
 ### 2026-10-12：用户明确收敛升级范围

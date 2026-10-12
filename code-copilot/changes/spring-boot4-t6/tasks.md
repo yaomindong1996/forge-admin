@@ -14,7 +14,7 @@
 
 ## 用户授权的当前分支交付
 
-- [ ] 单独提交升级相关代码/记录并推送 codex/spring-boot4-t0-compatibility，保留无关改动。
+- [x] 单独提交升级相关代码/记录并推送 codex/spring-boot4-t0-compatibility，保留无关改动。
 
 ## 用户排除的新增能力（不是未完成的升级任务）
 
