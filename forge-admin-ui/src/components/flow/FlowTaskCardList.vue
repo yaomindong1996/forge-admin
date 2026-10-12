@@ -1,5 +1,9 @@
 <template>
-  <section class="flow-task-card-list">
+  <section class="flow-task-card-list" :class="{ 'is-embedded': embedded }">
+    <div v-if="$slots.prepend" class="task-list-prepend">
+      <slot name="prepend" />
+    </div>
+
     <div class="task-list-toolbar">
       <div class="task-list-titlebar">
         <div class="task-list-title">
@@ -59,7 +63,7 @@
           </div>
 
           <div class="task-card-node">
-            当前所在节点：
+            <span class="task-card-node-label">{{ nodeTitle }}：</span>
             <slot name="node" :row="item">
               {{ item.currentNode || item.taskName || item.nodeName || '-' }}
             </slot>
@@ -72,8 +76,10 @@
                 <span>{{ item.startUserName || item.userName || '-' }}</span>
               </slot>
             </div>
-            <div class="task-card-time">
-              提交于 {{ item.createTime || item.submitTime || '-' }}
+            <div v-if="showTime" class="task-card-time">
+              <slot name="time" :row="item">
+                提交于 {{ item.createTime || item.submitTime || '-' }}
+              </slot>
             </div>
           </div>
 
@@ -120,6 +126,10 @@ const props = defineProps({
   emptyText: { type: String, default: '暂无数据' },
   selectable: { type: Boolean, default: true },
   showSearch: { type: Boolean, default: true },
+  /** 是否显示卡片右下角时间；抄送等已在 user 区展示时间时关闭，避免贴紧重复 */
+  showTime: { type: Boolean, default: true },
+  /** 嵌在外层工作台时去掉自身边框，避免双框贴合 */
+  embedded: { type: Boolean, default: false },
   unreadKey: { type: String, default: '' },
   entityTitle: { type: String, default: '任务详情' },
   statusTitle: { type: String, default: '当前状态' },
@@ -170,6 +180,19 @@ function clearSelection() {
   overflow: hidden;
   border: 1px solid var(--border-light, #e8ecf1);
   border-radius: 8px;
+  background: var(--bg-primary, #fff);
+}
+
+.flow-task-card-list.is-embedded {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.task-list-prepend {
+  flex: 0 0 auto;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border-light, #e8ecf1);
   background: var(--bg-primary, #fff);
 }
 
@@ -288,8 +311,9 @@ function clearSelection() {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 8px;
-  gap: 8px;
+  padding: 12px;
+  gap: 10px;
+  scrollbar-gutter: stable;
 }
 
 .task-card-list.empty {
@@ -371,6 +395,10 @@ function clearSelection() {
   white-space: nowrap;
 }
 
+.task-card-node-label {
+  color: var(--text-tertiary, #8c8c9a);
+}
+
 .task-card-footer {
   display: flex;
   align-items: center;
@@ -381,13 +409,14 @@ function clearSelection() {
 .task-card-user {
   display: flex;
   align-items: center;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 6px 10px;
   min-width: 0;
   color: var(--text-secondary, #5c5c6e);
   font-size: 12px;
 }
 
-.task-card-user span {
+.task-card-user > span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

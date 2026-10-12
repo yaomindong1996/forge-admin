@@ -140,12 +140,16 @@ const resolvedValueList = computed(() => {
 
 const displayFallback = computed(() => resolvedValueList.value.join('、') || resolvedValue.value)
 
+/** 空数组不算“已提供 options”，否则字典异步加载前会一直回退成原始编码 */
+const hasProvidedOptions = computed(() => Array.isArray(props.options) && props.options.length > 0)
+
 const currentDictItems = computed(() => {
-  const list = props.options || dictList.value
+  const list = hasProvidedOptions.value ? props.options : dictList.value
   if (!list || list.length === 0)
     return []
   return resolvedValueList.value
-    .map(value => list.find(item => String(item.value) === String(value)))
+    .map(value => list.find(item => String(item.value) === String(value)
+      || String(item.dictValue ?? '') === String(value)))
     .filter(Boolean)
 })
 
@@ -208,7 +212,7 @@ const shouldShowAsText = computed(() => {
 })
 
 // 切换类型或从 options 切回自加载时重新请求，旧请求不影响当前加载状态。
-watch([() => props.dictType, () => Boolean(props.options)], async ([dictType, hasOptions], _, onCleanup) => {
+watch([() => props.dictType, hasProvidedOptions], async ([dictType, hasOptions], _, onCleanup) => {
   let active = true
   onCleanup(() => {
     active = false

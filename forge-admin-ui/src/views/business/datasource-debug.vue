@@ -1,11 +1,10 @@
 <template>
   <div class="business-datasource-debug-page">
-    <section class="debug-header">
-      <div>
-        <p class="debug-kicker">
-          Tenant Business Datasource
-        </p>
+    <!-- 工具栏 -->
+    <section class="debug-toolbar">
+      <div class="debug-toolbar-title">
         <h2>业务数据源调试</h2>
+        <span class="debug-toolbar-desc">验证租户默认业务库路由、写入与读取是否落到正确数据源</span>
       </div>
       <n-space>
         <n-button :loading="tenantLoading" @click="loadTenants">
@@ -23,21 +22,17 @@
       </n-space>
     </section>
 
+    <!-- 上下文 + 路由结果 -->
     <div class="debug-layout">
-      <section class="debug-panel control-panel">
+      <section class="debug-panel">
         <div class="panel-title-row">
-          <div>
-            <p class="panel-kicker">
-              Context
-            </p>
-            <h3>调试上下文</h3>
-          </div>
+          <h3>调试上下文</h3>
           <NTag :type="selectedTenant?.defaultBusinessDatasourceCode ? 'success' : 'default'" size="small">
-            {{ selectedTenant?.defaultBusinessDatasourceCode || 'master' }}
+            {{ displayDatasourceCode(selectedTenant?.defaultBusinessDatasourceCode) }}
           </NTag>
         </div>
 
-        <n-form label-placement="top" :show-feedback="false">
+        <n-form label-placement="top" :show-feedback="false" class="debug-form">
           <n-form-item label="租户">
             <n-select
               v-model:value="form.tenantId"
@@ -50,7 +45,7 @@
             />
           </n-form-item>
 
-          <n-grid :cols="2" :x-gap="12">
+          <n-grid :cols="2" :x-gap="12" :y-gap="4">
             <n-form-item-gi label="写入标题">
               <n-input
                 v-model:value="form.title"
@@ -87,7 +82,7 @@
 
         <div class="tenant-config-box">
           <div class="config-row">
-            <span>租户ID</span>
+            <span>租户 ID</span>
             <strong>{{ selectedTenant?.id || form.tenantId || '-' }}</strong>
           </div>
           <div class="config-row">
@@ -95,12 +90,12 @@
             <strong>{{ selectedTenant?.tenantName || '-' }}</strong>
           </div>
           <div class="config-row">
-            <span>默认业务数据源ID</span>
+            <span>默认业务数据源 ID</span>
             <strong>{{ selectedTenant?.defaultBusinessDatasourceId || '-' }}</strong>
           </div>
           <div class="config-row">
             <span>默认业务数据源编码</span>
-            <strong>{{ selectedTenant?.defaultBusinessDatasourceCode || 'master' }}</strong>
+            <strong>{{ displayDatasourceCode(selectedTenant?.defaultBusinessDatasourceCode) }}</strong>
           </div>
         </div>
 
@@ -109,24 +104,12 @@
         </n-alert>
       </section>
 
-      <section class="debug-panel result-panel">
+      <section class="debug-panel">
         <div class="panel-title-row">
-          <div>
-            <p class="panel-kicker">
-              Runtime
-            </p>
-            <h3>路由结果</h3>
-          </div>
+          <h3>路由结果</h3>
           <NTag :type="datasourceTagType" size="small">
             {{ routeModeText }}
           </NTag>
-        </div>
-
-        <div class="metric-grid">
-          <div v-for="item in routeMetrics" :key="item.key" class="metric-card">
-            <span>{{ item.label }}</span>
-            <strong>{{ item.value }}</strong>
-          </div>
         </div>
 
         <n-descriptions
@@ -136,19 +119,25 @@
           bordered
           class="route-descriptions"
         >
-          <n-descriptions-item label="解析 dsKey">
+          <n-descriptions-item label="当前数据库">
+            {{ routeResult?.databaseName || '-' }}
+          </n-descriptions-item>
+          <n-descriptions-item label="路由状态">
+            {{ routeModeText }}
+          </n-descriptions-item>
+          <n-descriptions-item label="解析数据源键">
             {{ datasource.dsKey || '-' }}
           </n-descriptions-item>
-          <n-descriptions-item label="线程 dsKey">
+          <n-descriptions-item label="线程数据源键">
             {{ currentDsKey }}
           </n-descriptions-item>
           <n-descriptions-item label="数据源编码">
-            {{ datasource.datasourceCode || '-' }}
+            {{ displayDatasourceCode(datasource.datasourceCode) }}
           </n-descriptions-item>
           <n-descriptions-item label="数据源名称">
             {{ datasource.datasourceName || '-' }}
           </n-descriptions-item>
-          <n-descriptions-item label="数据源ID">
+          <n-descriptions-item label="数据源 ID">
             {{ datasource.datasourceId || '-' }}
           </n-descriptions-item>
           <n-descriptions-item label="允许写入">
@@ -165,21 +154,17 @@
           <div class="latest-content">
             <span>{{ latestRecord.title }}</span>
             <NTag size="small" type="info">
-              {{ latestRecord.routeKey || 'master' }}
+              {{ displayDatasourceCode(latestRecord.routeKey) }}
             </NTag>
           </div>
         </div>
       </section>
     </div>
 
+    <!-- 演示表记录 -->
     <section class="debug-panel records-panel">
       <div class="panel-title-row">
-        <div>
-          <p class="panel-kicker">
-            Records
-          </p>
-          <h3>演示表记录</h3>
-        </div>
+        <h3>演示表记录</h3>
         <NTag size="small" type="info">
           {{ records.length }} 条
         </NTag>
@@ -221,7 +206,7 @@ const form = reactive({
 })
 
 const tenantOptions = computed(() => tenants.value.map(item => ({
-  label: `${item.tenantName || `租户 ${item.id}`} (${item.defaultBusinessDatasourceCode || 'master'})`,
+  label: `${item.tenantName || `租户 ${item.id}`}（${displayDatasourceCode(item.defaultBusinessDatasourceCode)}）`,
   value: item.id,
 })))
 
@@ -231,31 +216,8 @@ const records = computed(() => routeResult.value?.records || [])
 const latestRecord = computed(() => routeResult.value?.record || records.value[0] || null)
 const tableLoading = computed(() => currentLoading.value || prepareLoading.value || listLoading.value)
 const datasourceTagType = computed(() => datasource.value.master ? 'default' : 'success')
-const routeModeText = computed(() => datasource.value.master ? 'master' : 'tenant ds')
+const routeModeText = computed(() => datasource.value.master ? '主库' : '业务库')
 const currentDsKey = computed(() => routeResult.value?.currentDsKey || datasource.value.dsKey || 'master')
-
-const routeMetrics = computed(() => [
-  {
-    key: 'database',
-    label: '当前数据库',
-    value: routeResult.value?.databaseName || '-',
-  },
-  {
-    key: 'threadDsKey',
-    label: '线程 dsKey',
-    value: currentDsKey.value,
-  },
-  {
-    key: 'tenantDsKey',
-    label: '租户配置',
-    value: selectedTenant.value?.defaultBusinessDatasourceCode || 'master',
-  },
-  {
-    key: 'route',
-    label: '路由状态',
-    value: datasource.value.master ? '主库' : '业务库',
-  },
-])
 
 const recordColumns = [
   {
@@ -265,7 +227,7 @@ const recordColumns = [
     ellipsis: true,
   },
   {
-    title: '租户ID',
+    title: '租户 ID',
     key: 'tenantId',
     width: 100,
   },
@@ -276,14 +238,14 @@ const recordColumns = [
     ellipsis: true,
   },
   {
-    title: 'routeKey',
+    title: '路由键',
     key: 'routeKey',
     width: 160,
     render: row => h(NTag, {
       size: 'small',
       type: row.routeKey ? 'success' : 'default',
     }, {
-      default: () => row.routeKey || 'master',
+      default: () => displayDatasourceCode(row.routeKey),
     }),
   },
   {
@@ -304,6 +266,12 @@ onMounted(async () => {
   await loadTenants()
   await loadCurrentRoute()
 })
+
+function displayDatasourceCode(code) {
+  if (!code || code === 'master')
+    return '主库'
+  return code
+}
 
 async function loadTenants() {
   tenantLoading.value = true
@@ -401,86 +369,93 @@ function formatDateTime(value) {
 
 <style scoped>
 .business-datasource-debug-page {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   min-height: 100%;
-  padding: 16px;
-  background: #f5f7fb;
+  background: var(--bg-secondary);
 }
 
-.debug-header,
+.debug-toolbar,
 .debug-panel {
   border: 1px solid var(--border-light);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--bg-primary);
 }
 
-.debug-header {
+.debug-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-  padding: 18px 20px;
+  gap: 12px;
+  padding: 12px 14px;
 }
 
-.debug-header h2,
+.debug-toolbar-title {
+  min-width: 0;
+}
+
+.debug-toolbar h2,
 .panel-title-row h3 {
   margin: 0;
   color: var(--text-primary);
-  font-weight: 650;
-  letter-spacing: 0;
-}
-
-.debug-header h2 {
-  font-size: 22px;
-}
-
-.panel-title-row h3 {
-  font-size: 16px;
-}
-
-.debug-kicker,
-.panel-kicker {
-  margin: 0 0 4px;
-  color: var(--text-secondary);
-  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0;
-  text-transform: uppercase;
+}
+
+.debug-toolbar h2 {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.debug-toolbar-desc {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .debug-layout {
   display: grid;
-  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
-  gap: 16px;
-  margin-bottom: 16px;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  gap: 8px;
+  min-height: 0;
 }
 
 .debug-panel {
-  padding: 16px;
+  padding: 12px 14px;
 }
 
 .panel-title-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+}
+
+.panel-title-row h3 {
+  font-size: 14px;
+}
+
+.debug-form :deep(.n-form-item) {
+  margin-bottom: 12px;
 }
 
 .control-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 4px;
+  gap: 8px;
 }
 
 .tenant-config-box {
   display: grid;
-  gap: 10px;
-  margin-top: 16px;
-  padding: 12px;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
   border: 1px solid var(--border-light);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--bg-secondary);
 }
 
@@ -502,56 +477,23 @@ function formatDateTime(value) {
 }
 
 .debug-error {
-  margin-top: 16px;
-}
-
-.metric-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.metric-card {
-  min-width: 0;
-  padding: 14px;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  background: var(--bg-secondary);
-}
-
-.metric-card span {
-  display: block;
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.metric-card strong {
-  display: block;
-  margin-top: 8px;
-  overflow: hidden;
-  color: var(--text-primary);
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin-top: 12px;
 }
 
 .route-descriptions {
-  margin-top: 4px;
+  margin-top: 0;
 }
 
 .latest-record {
-  margin-top: 16px;
-  padding: 12px;
-  border-left: 3px solid #10b981;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #ecfdf5;
+  background: var(--bg-secondary);
 }
 
 .latest-title {
-  color: #047857;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
 }
@@ -562,7 +504,8 @@ function formatDateTime(value) {
   justify-content: space-between;
   gap: 12px;
   margin-top: 8px;
-  color: #064e3b;
+  color: var(--text-primary);
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -571,18 +514,13 @@ function formatDateTime(value) {
 }
 
 @media (max-width: 1180px) {
-  .debug-layout,
-  .metric-grid {
+  .debug-layout {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 760px) {
-  .business-datasource-debug-page {
-    padding: 12px;
-  }
-
-  .debug-header,
+  .debug-toolbar,
   .panel-title-row,
   .latest-content {
     align-items: stretch;

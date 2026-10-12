@@ -175,6 +175,7 @@
                   size="small"
                   :type="expandedKeys.has(segment.segmentKey) ? 'primary' : 'default'"
                   title="高级配置"
+                  aria-label="高级配置"
                   @click="toggleExpanded(segment.segmentKey)"
                 >
                   <template #icon>
@@ -189,10 +190,11 @@
                   type="error"
                   :disabled="rows.length <= 1"
                   title="删除分段"
+                  aria-label="删除分段"
                   @click="removeSegment(index)"
                 >
                   <template #icon>
-                    <i class="i-material-symbols:close-rounded" />
+                    <i class="i-material-symbols:delete-outline-rounded" />
                   </template>
                 </n-button>
               </div>
@@ -465,7 +467,7 @@ function toggleExpanded(key) {
 .segment-editor {
   color: var(--text-primary, #1d2129);
   border: 1px solid var(--border-light, #e5e6eb);
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--bg-primary, #fff);
   overflow: hidden;
 }
@@ -474,8 +476,8 @@ function toggleExpanded(key) {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
-  padding: 16px 18px;
+  gap: 12px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--border-light, #e5e6eb);
 }
 
@@ -483,15 +485,16 @@ function toggleExpanded(key) {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text-primary, #1d2129);
 }
 
 .segment-editor__header p {
-  margin: 5px 0 0;
+  margin: 4px 0 0;
   color: var(--text-tertiary, #86909c);
   font-size: 12px;
+  line-height: 1.4;
 }
 
 .segment-editor__table {
@@ -541,7 +544,13 @@ function toggleExpanded(key) {
 }
 
 .segment-editor__row-main {
-  padding: 12px 16px;
+  padding: 10px 14px;
+}
+
+.segment-editor__row-main > .n-select,
+.segment-editor__row-main > .n-input-number,
+.segment-editor__value {
+  min-width: 0;
 }
 
 .segment-editor__row--ghost {

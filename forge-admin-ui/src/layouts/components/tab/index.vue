@@ -661,31 +661,8 @@ async function handleContextMenu(e, tagItem) {
   flex: 0 0 auto;
   margin-right: 7px;
   border-radius: 50%;
-  background: #94a3b8;
-}
-
-.top-tab-item.is-group-system .top-tab-group-marker {
-  background: #3b82f6;
-}
-
-.top-tab-item.is-group-flow .top-tab-group-marker {
-  background: #8b5cf6;
-}
-
-.top-tab-item.is-group-app .top-tab-group-marker {
-  background: #10b981;
-}
-
-.top-tab-item.is-group-data .top-tab-group-marker {
-  background: #f59e0b;
-}
-
-.top-tab-item.is-group-develop .top-tab-group-marker {
-  background: #06b6d4;
-}
-
-.top-tab-item.is-group-message .top-tab-group-marker {
-  background: #ec4899;
+  /* 分组圆点统一主题色，不再按模块分色 */
+  background: var(--primary-color, #4242f7);
 }
 
 .top-tab-page-icon {

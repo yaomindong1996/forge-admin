@@ -2,17 +2,14 @@
   <section class="code-rule-workspace">
     <header class="workspace-header">
       <div class="workspace-header__identity">
-        <n-button quaternary circle title="返回编码规则列表" @click="closeWorkspace">
+        <n-button quaternary circle title="返回编码规则列表" aria-label="返回编码规则列表" @click="closeWorkspace">
           <template #icon>
             <i class="i-material-symbols:arrow-back-rounded" />
           </template>
         </n-button>
         <div>
-          <div class="workspace-header__eyebrow">
-            编码规则配置
-          </div>
           <h2>{{ workspaceTitle }}</h2>
-          <p>按顺序设计编码分段，并在右侧确认最终生成结果。</p>
+          <p>按顺序配置编码分段，右侧实时预览生成结果</p>
         </div>
       </div>
       <div class="workspace-header__actions">
@@ -20,6 +17,9 @@
           内置规则
         </n-tag>
         <n-button @click="closeWorkspace">
+          <template #icon>
+            <i class="i-material-symbols:list-alt-outline" />
+          </template>
           返回列表
         </n-button>
         <n-button
@@ -28,6 +28,9 @@
           :disabled="loading || !validation.valid"
           @click="saveRule"
         >
+          <template #icon>
+            <i class="i-material-symbols:save-outline-rounded" />
+          </template>
           保存规则
         </n-button>
       </div>
@@ -195,7 +198,7 @@
                 </div>
                 <div>
                   <span>重置周期</span>
-                  <strong>{{ preview?.period || 'all' }}</strong>
+                  <strong>{{ periodLabel(preview?.period) }}</strong>
                 </div>
               </div>
 
@@ -325,6 +328,9 @@
       <template #footer>
         <div class="mapping-dialog__footer">
           <n-button @click="closeMappingModal">
+            <template #icon>
+              <i class="i-material-symbols:close-rounded" />
+            </template>
             取消
           </n-button>
           <n-button
@@ -333,6 +339,9 @@
             :loading="mappingLoading"
             @click="confirmLowCodeMapping"
           >
+            <template #icon>
+              <i class="i-material-symbols:check-rounded" />
+            </template>
             确认映射
           </n-button>
         </div>
@@ -565,6 +574,18 @@ function segmentTone(type) {
   return codeRuleSegmentTypeMeta(type).tone
 }
 
+function periodLabel(period) {
+  const labels = {
+    DAY: '按日',
+    MONTH: '按月',
+    YEAR: '按年',
+    NONE: '不重置',
+    all: '全周期',
+    ALL: '全周期',
+  }
+  return labels[period] || period || '全周期'
+}
+
 async function refreshPreview() {
   clearTimeout(previewTimer)
   if (!previewValidation.value.valid)
@@ -791,9 +812,9 @@ function closeWorkspace() {
   flex: none;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  min-height: 72px;
-  padding: 12px 18px;
+  gap: 16px;
+  min-height: 56px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border-light, #e5e6eb);
   background: var(--bg-primary, #fff);
 }
@@ -805,7 +826,7 @@ function closeWorkspace() {
 }
 
 .workspace-header__identity {
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -813,44 +834,40 @@ function closeWorkspace() {
   min-width: 0;
 }
 
-.workspace-header__eyebrow {
-  margin-bottom: 2px;
-  color: var(--text-tertiary, #86909c);
-  font-size: 11px;
-}
-
 .workspace-header h2 {
   overflow: hidden;
   margin: 0;
   color: var(--text-primary, #1d2129);
-  font-size: 17px;
-  font-weight: 650;
+  font-size: 16px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .workspace-header p {
-  margin: 3px 0 0;
+  margin: 2px 0 0;
   color: var(--text-tertiary, #86909c);
   font-size: 12px;
+  line-height: 1.4;
 }
 
 .workspace-header__actions {
   flex: none;
-  gap: 10px;
+  gap: 8px;
 }
 
 .workspace-scroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 16px;
+  padding: 12px;
+  scrollbar-gutter: stable;
 }
 
 .code-rule-editor {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
-  gap: 18px;
+  gap: 12px;
   width: 100%;
   max-width: 1600px;
   min-height: 100%;
@@ -861,40 +878,44 @@ function closeWorkspace() {
 .code-rule-editor__main {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   min-width: 0;
 }
 
 .editor-section {
   border: 1px solid var(--border-light, #e5e6eb);
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--bg-primary, #fff);
-  padding: 18px;
+  padding: 14px;
 }
 
 .editor-section__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 14px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .editor-section__header h3 {
   margin: 0;
   color: var(--text-primary, #1d2129);
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .editor-section__header p {
-  margin: 5px 0 0;
+  margin: 4px 0 0;
   color: var(--text-tertiary, #86909c);
   font-size: 12px;
+  line-height: 1.4;
 }
 
 .basic-form-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  column-gap: 16px;
+  column-gap: 12px;
+  row-gap: 4px;
 }
 
 .basic-form-grid__wide {
@@ -996,7 +1017,7 @@ function closeWorkspace() {
   top: 0;
   overflow: hidden;
   border: 1px solid var(--border-light, #e5e6eb);
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--bg-primary, #fff);
 }
 

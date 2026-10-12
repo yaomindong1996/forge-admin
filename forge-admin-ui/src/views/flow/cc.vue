@@ -8,109 +8,117 @@
         </NButton>
       </template>
     </n-alert>
-    <!-- 数据标签页 -->
-    <div class="tabs-container">
-      <n-tabs v-model:value="activeTab" type="line" @update:value="handleTabChange">
-        <n-tab name="received">
-          <div class="tab-content">
-            <i class="i-material-symbols:inbox" />
-            抄送给我的
-            <span v-if="unreadCc > 0" class="tab-badge">{{ unreadCc > 99 ? '99+' : unreadCc }}未读</span>
-          </div>
-        </n-tab>
-        <n-tab name="sent">
-          <div class="tab-content">
-            <i class="i-material-symbols:outbox" />
-            我发送的
-          </div>
-        </n-tab>
-      </n-tabs>
-    </div>
 
-    <!-- 抄送列表 -->
-    <FlowTaskCardList
-      v-model:selected-keys="selectedRowKeys"
-      v-model:search-value="queryParams.title"
-      :title="activeTab === 'received' ? '抄送给我的' : '我发送的'"
-      :items="dataSource"
-      :loading="loading"
-      :pagination="pagination"
-      :selectable="activeTab === 'received'"
-      row-key="id"
-      unread-key="isRead"
-      search-placeholder="搜索流程名称或编号..."
-      empty-text="暂无抄送记录"
-      status-title="阅读状态"
-      node-title="抄送内容"
-      :user-title="activeTab === 'received' ? '发送人' : '抄送人'"
-      @search="handleSearch"
-      @refresh="loadData"
-      @row-click="openCcDetail"
-      @update:page="pagination.onChange"
-      @update:page-size="pagination.onUpdatePageSize"
-    >
-      <template #filters>
-        <n-select
-          v-if="activeTab === 'received'"
-          v-model:value="queryParams.isRead"
-          placeholder="阅读状态"
-          clearable
-          class="read-select"
-          :options="readOptions"
-          @update:value="handleSearch"
-        />
-        <NButton secondary @click="handleReset">
-          重置
-        </NButton>
-      </template>
-      <template #batch-actions>
-        <NButton v-if="activeTab === 'received' && selectedRowKeys.length > 0" size="small" secondary @click="handleBatchMarkRead">
-          批量已读
-        </NButton>
-        <NButton v-if="activeTab === 'received'" size="small" secondary @click="handleMarkAllRead">
-          全部已读
-        </NButton>
-      </template>
-      <template #status="{ row }">
-        <span class="task-status-pill" :class="row.isRead === 1 ? 'read' : 'unread'">
-          {{ row.status === 1 ? getCcStatusLabel('flow_cc_status', row.status) : getLabel('flow_read_status', row.isRead) }}
-        </span>
-      </template>
-      <template #title="{ row }">
-        {{ getRowDisplayTitle(row) }}
-      </template>
-      <template #node="{ row }">
-        {{ row.content || '暂无内容' }}
-      </template>
-      <template #user="{ row }">
-        <span>{{ activeTab === 'received' ? (row.sendUserName || '-') : (row.ccUserName || '-') }}</span>
-        <small>{{ row.ccTime || '-' }}</small>
-      </template>
-      <template #summary="{ row }">
-        <FlowTaskBusinessSummary :row="row" />
-      </template>
-      <template #actions="{ row }">
-        <button type="button" class="task-row-link-action" aria-label="查看抄送" @click="openCcDetail(row)">
-          查看
-        </button>
-        <template v-if="activeTab === 'received' && row.isRead === 0">
+    <!-- 连体工作台：页签 + 列表同一外框，避免双卡片贴合 -->
+    <div class="cc-workspace">
+      <FlowTaskCardList
+        v-model:selected-keys="selectedRowKeys"
+        v-model:search-value="queryParams.title"
+        :title="activeTab === 'received' ? '抄送给我的' : '我发送的'"
+        :items="dataSource"
+        :loading="loading"
+        :pagination="pagination"
+        :selectable="activeTab === 'received'"
+        :show-time="false"
+        embedded
+        row-key="id"
+        unread-key="isRead"
+        search-placeholder="搜索流程名称或编号..."
+        empty-text="暂无抄送记录"
+        status-title="阅读状态"
+        node-title="抄送内容"
+        :user-title="activeTab === 'received' ? '发送人' : '抄送人'"
+        @search="handleSearch"
+        @refresh="loadData"
+        @row-click="openCcDetail"
+        @update:page="pagination.onChange"
+        @update:page-size="pagination.onUpdatePageSize"
+      >
+        <template #prepend>
+          <n-tabs
+            v-model:value="activeTab"
+            type="line"
+            class="cc-tabs"
+            @update:value="handleTabChange"
+          >
+            <n-tab name="received">
+              <div class="tab-content">
+                <i class="i-material-symbols:inbox" />
+                抄送给我的
+                <span v-if="unreadCc > 0" class="tab-badge">{{ unreadCc > 99 ? '99+' : unreadCc }}未读</span>
+              </div>
+            </n-tab>
+            <n-tab name="sent">
+              <div class="tab-content">
+                <i class="i-material-symbols:outbox" />
+                我发送的
+              </div>
+            </n-tab>
+          </n-tabs>
+        </template>
+        <template #filters>
+          <n-select
+            v-if="activeTab === 'received'"
+            v-model:value="queryParams.isRead"
+            placeholder="阅读状态"
+            clearable
+            class="read-select"
+            :options="readOptions"
+            @update:value="handleSearch"
+          />
+          <NButton secondary @click="handleReset">
+            重置
+          </NButton>
+        </template>
+        <template #batch-actions>
+          <NButton v-if="activeTab === 'received' && selectedRowKeys.length > 0" size="small" secondary @click="handleBatchMarkRead">
+            批量已读
+          </NButton>
+          <NButton v-if="activeTab === 'received'" size="small" secondary @click="handleMarkAllRead">
+            全部已读
+          </NButton>
+        </template>
+        <template #status="{ row }">
+          <span class="task-status-pill" :class="row.isRead === 1 ? 'read' : 'unread'">
+            {{ row.status === 1 ? getCcStatusLabel('flow_cc_status', row.status) : getLabel('flow_read_status', row.isRead) }}
+          </span>
+        </template>
+        <template #title="{ row }">
+          {{ getRowDisplayTitle(row) }}
+        </template>
+        <template #node="{ row }">
+          {{ row.content || '暂无内容' }}
+        </template>
+        <template #user="{ row }">
+          <span class="cc-user-name">{{ activeTab === 'received' ? (row.sendUserName || '-') : (row.ccUserName || '-') }}</span>
+          <span class="cc-user-time">{{ row.ccTime || '-' }}</span>
+        </template>
+        <template #summary="{ row }">
+          <FlowTaskBusinessSummary :row="row" />
+        </template>
+        <template #actions="{ row }">
+          <button type="button" class="task-row-link-action" aria-label="查看抄送" @click="openCcDetail(row)">
+            查看
+          </button>
+          <template v-if="activeTab === 'received' && row.isRead === 0">
+            <span class="task-row-action-separator" />
+            <button type="button" class="task-row-link-action" aria-label="标记已读" @click="handleMarkRead(row.id)">
+              已读
+            </button>
+          </template>
+          <template v-if="activeTab === 'sent' && row.status !== 1">
+            <span class="task-row-action-separator" />
+            <button type="button" class="task-row-link-action text-error" aria-label="撤回抄送" @click.stop="handleRevoke(row)">
+              撤回
+            </button>
+          </template>
           <span class="task-row-action-separator" />
-          <button type="button" class="task-row-link-action" aria-label="标记已读" @click="handleMarkRead(row.id)">
-            已读
+          <button type="button" class="task-row-link-action muted" aria-label="更多操作" @click="openCcDetail(row)">
+            <i class="i-lucide:more-horizontal" />
           </button>
         </template>
-        <template v-if="activeTab === 'sent' && row.status !== 1">
-          <span class="task-row-action-separator" />
-          <button type="button" class="task-row-link-action text-error" aria-label="撤回抄送" @click.stop="handleRevoke(row)">
-            撤回
-          </button>
-        </template>
-        <span class="task-row-action-separator" />
-        <button type="button" class="task-row-link-action muted" aria-label="更多操作" @click="openCcDetail(row)">
-          <i class="i-lucide:more-horizontal" />
-        </button>
-      </template>
-    </FlowTaskCardList>
+      </FlowTaskCardList>
+    </div>
 
     <n-modal
       v-model:show="showDetailModal"
@@ -456,67 +464,29 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   min-height: 0;
-  padding: 0;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 8px;
   overflow: hidden;
   background: var(--bg-secondary);
 }
-.page-header {
-  background: var(--bg-primary);
-  border-radius: 12px;
-  padding: 16px 20px;
+
+.cc-workspace {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
-  margin-bottom: 16px;
-}
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.title-icon {
-  width: 36px;
-  height: 36px;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 18px;
+  background: var(--bg-primary);
 }
-.title-icon.cc {
-  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
-}
-.page-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-}
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+
 .read-select {
   width: 116px;
 }
-.tabs-container {
-  flex: 0 0 auto;
-  background: var(--bg-primary);
-  padding: 0 12px;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-}
+
 .tab-content {
   display: flex;
   align-items: center;
@@ -524,38 +494,34 @@ onMounted(() => {
   color: var(--text-secondary);
   font-weight: 500;
 }
+
 .tab-badge {
-  border: 1px solid #fecdd3;
-  background: #fff1f2;
-  color: #be123c;
+  border: 1px solid color-mix(in srgb, var(--error-color, #d03050) 28%, transparent);
+  background: color-mix(in srgb, var(--error-color, #d03050) 10%, var(--bg-primary));
+  color: var(--error-color, #d03050);
   font-size: 10px;
   padding: 1px 6px;
   border-radius: 10px;
   font-weight: 600;
 }
-.table-container {
-  background: var(--bg-primary);
-  border-radius: 12px;
-  padding: 16px 20px;
-  flex: 1;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+
+.cc-tabs :deep(.n-tabs-nav) {
+  margin-bottom: 0;
 }
-:deep(.cc-title) {
+
+.cc-tabs :deep(.n-tabs-tab) {
+  padding: 10px 4px;
+}
+
+.cc-user-name {
   font-weight: 500;
   color: var(--text-primary);
-  cursor: pointer;
 }
-:deep(.cc-title:hover) {
-  color: #0369a1;
-}
-:deep(.table-user) {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-:deep(.user-name-text) {
-  font-weight: 500;
-  color: var(--text-primary);
+
+.cc-user-time {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 :deep(.read-tag) {
   padding: 2px 8px;
@@ -563,19 +529,15 @@ onMounted(() => {
   font-size: 11px;
   font-weight: 600;
 }
+
 :deep(.read-tag.read) {
-  background: #dcfce7;
-  color: #15803d;
-}
-:deep(.read-tag.unread) {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: color-mix(in srgb, var(--success-color, #18a058) 14%, var(--bg-primary));
+  color: var(--success-color, #18a058);
 }
 
-:deep(.cc-actions) {
-  display: flex;
-  gap: 6px;
-  align-items: center;
+:deep(.read-tag.unread) {
+  background: color-mix(in srgb, var(--error-color, #d03050) 12%, var(--bg-primary));
+  color: var(--error-color, #d03050);
 }
 
 .cc-detail-modal {
@@ -666,7 +628,7 @@ onMounted(() => {
   gap: 12px;
   margin-bottom: 12px;
   padding-bottom: 10px;
-  border-bottom: 1px solid #edf2f7;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .cc-business-form-title {
@@ -698,8 +660,7 @@ onMounted(() => {
     margin: 0;
   }
 
-  .cc-detail-header,
-  .header-right {
+  .cc-detail-header {
     align-items: stretch;
     flex-direction: column;
   }

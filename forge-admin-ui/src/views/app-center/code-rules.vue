@@ -10,12 +10,13 @@
   />
 
   <div v-else class="code-rule-page">
+    <!-- 页头 -->
     <header class="code-rule-page__header">
-      <div>
+      <div class="code-rule-page__title">
         <h2>编码规则</h2>
-        <p>配置日期、固定值、流水号和上下文变量，为业务字段生成稳定编号。</p>
+        <p>为业务字段配置日期、固定值、流水号与变量组成的编号规则</p>
       </div>
-      <div class="code-rule-page__legend">
+      <div class="code-rule-page__legend" aria-label="分段类型图例">
         <span><i class="legend-dot legend-dot--date" />日期</span>
         <span><i class="legend-dot legend-dot--fixed" />固定值</span>
         <span><i class="legend-dot legend-dot--sequence" />流水号</span>
@@ -23,34 +24,40 @@
       </div>
     </header>
 
-    <AiCrudPage
-      ref="crudRef"
-      api="/system/code-rule"
-      :api-config="{
-        list: 'get@/system/code-rule/page',
-      }"
-      :search-schema="searchSchema"
-      :columns="tableColumns"
-      :edit-schema="[]"
-      row-key="id"
-      :hide-add="true"
-      :hide-batch-delete="true"
-      :bordered="false"
-      empty-title="暂无编码规则"
-      empty-description="创建第一条结构化规则，为业务字段提供自动编号"
-    >
-      <template #toolbar>
-        <div class="code-rule-toolbar">
-          <n-button v-if="canAdd" type="primary" size="small" @click="openCreate">
-            <template #icon>
-              <i class="i-material-symbols:add-rounded" />
-            </template>
-            新增规则
-          </n-button>
-          <span>规则修改不会重置已分配的数值序列。</span>
-        </div>
-      </template>
-    </AiCrudPage>
+    <!-- 与其它 CRUD 页一致：查询 + 工具栏 + 表格同一面板 -->
+    <section class="code-rule-list-panel">
+      <AiCrudPage
+        ref="crudRef"
+        api="/system/code-rule"
+        :api-config="{
+          list: 'get@/system/code-rule/page',
+        }"
+        :search-schema="searchSchema"
+        :columns="tableColumns"
+        :edit-schema="[]"
+        row-key="id"
+        :hide-add="true"
+        :hide-batch-delete="true"
+        :bordered="false"
+        empty-title="暂无编码规则"
+        empty-description="创建规则后，可为业务字段自动生成稳定编号"
+      >
+        <template #toolbar>
+          <div class="code-rule-toolbar">
+            <n-button v-if="canAdd" type="primary" size="small" @click="openCreate">
+              <template #icon>
+                <i class="i-material-symbols:add-rounded" />
+              </template>
+              新增规则
+            </n-button>
+            <span class="code-rule-toolbar__hint">
+              <i class="i-material-symbols:info-outline-rounded" />
+              修改规则不会重置已分配的流水号
+            </span>
+          </div>
+        </template>
+      </AiCrudPage>
+    </section>
   </div>
 </template>
 
@@ -129,7 +136,8 @@ const tableColumns = computed(() => [
     label: '编码分类',
     width: 120,
     render: row => h(DictTag, {
-      options: categoryOptions.value,
+      dictType: 'sys_code_rule_category',
+      ...(categoryOptions.value.length ? { options: categoryOptions.value } : {}),
       value: row.category,
       size: 'small',
       forceTag: true,
@@ -141,7 +149,8 @@ const tableColumns = computed(() => [
     label: '适用场景',
     width: 120,
     render: row => h(DictTag, {
-      options: sceneOptions.value,
+      dictType: 'sys_code_rule_scene',
+      ...(sceneOptions.value.length ? { options: sceneOptions.value } : {}),
       value: row.scene,
       size: 'small',
       forceTag: true,
@@ -176,7 +185,8 @@ const tableColumns = computed(() => [
     label: '状态',
     width: 88,
     render: row => h(DictTag, {
-      options: statusOptions.value,
+      dictType: 'sys_normal_disable',
+      ...(statusOptions.value.length ? { options: statusOptions.value } : {}),
       value: String(row.status),
       size: 'small',
       forceTag: true,
@@ -192,15 +202,31 @@ const tableColumns = computed(() => [
     ? [{
         prop: 'actions',
         label: '操作',
-        width: 210,
+        width: 220,
         fixed: 'right',
         render: row => h('div', { class: 'code-rule-actions' }, [
-          canEdit.value ? actionLink('编辑', 'text-primary', () => openEdit(row)) : null,
           canEdit.value
-            ? actionLink(Number(row.status) === 1 ? '停用' : '启用', Number(row.status) === 1 ? 'text-warning' : 'text-success', () => toggleStatus(row))
+            ? actionLink('编辑', 'text-primary', () => openEdit(row), 'i-material-symbols:edit-outline-rounded')
+            : null,
+          canEdit.value
+            ? actionLink(
+              Number(row.status) === 1 ? '停用' : '启用',
+              Number(row.status) === 1 ? 'text-warning' : 'text-success',
+              () => toggleStatus(row),
+              Number(row.status) === 1
+                ? 'i-material-symbols:pause-circle-outline-rounded'
+                : 'i-material-symbols:play-circle-outline-rounded',
+            )
             : null,
           canRemove.value
-            ? actionLink('删除', Number(row.builtin) === 1 ? 'is-disabled' : 'text-error', () => Number(row.builtin) === 1 ? message.info('内置规则不能删除，可停用后新建自定义规则') : confirmRemove(row))
+            ? actionLink(
+              '删除',
+              Number(row.builtin) === 1 ? 'is-disabled' : 'text-error',
+              () => Number(row.builtin) === 1
+                ? message.info('内置规则不能删除，可停用后新建自定义规则')
+                : confirmRemove(row),
+              'i-material-symbols:delete-outline-rounded',
+            )
             : null,
         ].filter(Boolean)),
       }]
@@ -212,11 +238,16 @@ onMounted(async () => {
   capabilities.value = res.data || {}
 })
 
-function actionLink(label, className, onClick) {
-  return h('a', {
+function actionLink(label, className, onClick, icon) {
+  return h('button', {
+    type: 'button',
     class: ['code-rule-action', className],
+    title: label,
     onClick,
-  }, label)
+  }, [
+    icon ? h('i', { class: icon, 'aria-hidden': 'true' }) : null,
+    h('span', label),
+  ].filter(Boolean))
 }
 
 function openCreate() {
@@ -278,41 +309,48 @@ async function handleSaved() {
 .code-rule-page {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  box-sizing: border-box;
+  gap: 8px;
   height: 100%;
   min-height: 0;
-  padding: 16px;
-  color: var(--text-primary, #1d2129);
-  background: var(--bg-secondary, #f7f8fa);
+  color: var(--text-primary);
 }
 
 .code-rule-page__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  padding: 2px 2px 0;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: var(--bg-primary);
+}
+
+.code-rule-page__title {
+  min-width: 0;
 }
 
 .code-rule-page__header h2 {
   margin: 0;
-  color: var(--text-primary, #1d2129);
-  font-size: 18px;
-  font-weight: 680;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .code-rule-page__header p {
-  margin: 4px 0 0;
-  color: var(--text-tertiary, #86909c);
-  font-size: 13px;
+  margin: 3px 0 0;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .code-rule-page__legend {
   display: flex;
+  flex: none;
   flex-wrap: wrap;
-  gap: 8px 16px;
-  color: var(--text-tertiary, #86909c);
+  gap: 6px;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -320,6 +358,10 @@ async function handleSaved() {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  padding: 3px 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  background: var(--bg-secondary);
 }
 
 .legend-dot {
@@ -329,49 +371,64 @@ async function handleSaved() {
 }
 
 .legend-dot--date {
-  background: var(--primary-color, #4242f7);
-}
-.legend-dot--fixed {
-  background: var(--warning-500, #f59e0b);
-}
-.legend-dot--sequence {
-  background: var(--success-500, #10b981);
-}
-.legend-dot--variable {
-  background: var(--info-500, #0ea5e9);
+  background: var(--primary-color);
 }
 
-.code-rule-page :deep(.ai-crud-page) {
+.legend-dot--fixed {
+  background: var(--warning-color, #f0a020);
+}
+
+.legend-dot--sequence {
+  background: var(--success-color, #18a058);
+}
+
+.legend-dot--variable {
+  background: var(--info-color, #2080f0);
+}
+
+.code-rule-list-panel {
   flex: 1;
   min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: var(--bg-primary);
 }
 
-.code-rule-page :deep(.ai-crud-table) {
-  border-radius: 10px;
-  border: 1px solid var(--border-light, #e5e6eb);
-  background: var(--bg-primary, #fff);
+.code-rule-list-panel :deep(.ai-crud-page) {
+  height: 100%;
 }
 
 .code-rule-toolbar {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
+  min-width: 0;
 }
 
-.code-rule-toolbar > span {
-  color: var(--text-tertiary, #86909c);
+.code-rule-toolbar__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  color: var(--text-tertiary);
   font-size: 12px;
+}
+
+.code-rule-toolbar__hint > i {
+  flex: none;
+  font-size: 14px;
 }
 
 :deep(.rule-code-cell) {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
 }
 
 :deep(.rule-code-cell code),
 :deep(.rule-template-cell) {
-  color: var(--text-secondary, #4e5969);
+  color: var(--text-secondary);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
 }
@@ -379,22 +436,43 @@ async function handleSaved() {
 :deep(.code-rule-actions) {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 4px;
 }
 
 :deep(.code-rule-action) {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
   cursor: pointer;
+  font: inherit;
   font-size: 13px;
+  line-height: 1.4;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+:deep(.code-rule-action > i) {
+  font-size: 15px;
+  line-height: 1;
+}
+
+:deep(.code-rule-action:hover:not(.is-disabled)) {
+  background: var(--bg-secondary);
 }
 
 :deep(.code-rule-action.is-disabled) {
-  color: var(--text-disabled, #c9cdd4);
+  color: var(--text-disabled);
   cursor: not-allowed;
 }
 
 @media (max-width: 900px) {
   .code-rule-page__header {
-    align-items: flex-start;
+    align-items: stretch;
     flex-direction: column;
   }
 }
