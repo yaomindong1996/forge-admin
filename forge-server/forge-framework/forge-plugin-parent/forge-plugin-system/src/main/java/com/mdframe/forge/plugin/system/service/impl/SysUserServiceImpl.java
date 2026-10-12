@@ -170,11 +170,16 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteUserById(Long id) {
-        assertCanManageUser(id);
-        assertNotSelfManagementUnlessAdmin(id);
+        accessPolicy().assertCanDeleteUser(id);
         LoginUser loginUser = requireLoginUser();
+        Long currentTenantId = loginUser.getTenantId();
+        // 非超管：只从当前租户解绑
         if (!loginUser.isAdmin()) {
-            return removeUserFromTenant(id, loginUser.getTenantId());
+            return removeUserFromTenant(id, currentTenantId);
+        }
+        // 超管切到非默认租户后：只解除该租户成员关系，禁止全局物理删除（避免误删账号导致无法切回）
+        if (currentTenantId != null && !Objects.equals(currentTenantId, 1L)) {
+            return removeUserFromTenant(id, currentTenantId);
         }
         return deleteUserGlobally(id);
     }
@@ -182,6 +187,9 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteUserByIds(Long[] ids) {
+        if (ids == null || ids.length == 0) {
+            return false;
+        }
         for (Long id : ids) {
             deleteUserById(id);
         }

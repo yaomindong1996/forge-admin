@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.mdframe.forge.plugin.system.constant.SystemConstants;
 import com.mdframe.forge.plugin.system.dto.SysTenantDTO;
 import com.mdframe.forge.plugin.system.dto.SysTenantQuery;
 import com.mdframe.forge.plugin.system.dto.SysUserQuery;
@@ -235,6 +236,10 @@ public class SysTenantServiceImpl extends ServiceImpl<SysTenantMapper, SysTenant
         if (!currentUser.isAdmin() && !isUserBoundTenant(currentUser.getUserId(), tenantId)) {
             throw new RuntimeException("用户未绑定该租户");
         }
+        SysUser persisted = TenantContextHolder.executeIgnore(() -> userMapper.selectById(currentUser.getUserId()));
+        if (persisted == null) {
+            throw new RuntimeException("当前登录用户已失效，请重新登录");
+        }
         LoginUser switchedUser = userLoadService.loadUserByUserId(currentUser.getUserId(), tenantId);
         switchedUser.setLoginTime(currentUser.getLoginTime());
         switchedUser.setLoginIp(currentUser.getLoginIp());
@@ -261,20 +266,30 @@ public class SysTenantServiceImpl extends ServiceImpl<SysTenantMapper, SysTenant
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean deleteTenantById(Long id) {
         assertSuperAdmin();
         validateTenantDeletable(id);
-        return tenantMapper.deleteById(id) > 0;
+        return TenantContextHolder.executeIgnore(() -> {
+            cleanupTenantMemberships(id);
+            return tenantMapper.deleteById(id) > 0;
+        });
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean deleteTenantByIds(Long[] ids) {
         assertSuperAdmin();
         if (ids == null || ids.length == 0) {
             return false;
         }
         Arrays.stream(ids).forEach(this::validateTenantDeletable);
-        return tenantMapper.deleteBatchIds(Arrays.asList(ids)) > 0;
+        return TenantContextHolder.executeIgnore(() -> {
+            for (Long id : ids) {
+                cleanupTenantMemberships(id);
+            }
+            return tenantMapper.deleteBatchIds(Arrays.asList(ids)) > 0;
+        });
     }
 
     private void validateTenantDeletable(Long id) {
@@ -284,13 +299,68 @@ public class SysTenantServiceImpl extends ServiceImpl<SysTenantMapper, SysTenant
         if (DEFAULT_TENANT_ID.equals(id)) {
             throw new RuntimeException("默认租户不能删除");
         }
-        Long userCount = TenantContextHolder.executeIgnore(() -> tenantMapper.countUsersByTenant(id));
-        if (userCount != null && userCount > 0) {
-            throw new RuntimeException("租户下已存在用户，不能删除");
+        LoginUser loginUser = requireLoginUser();
+        if (Objects.equals(loginUser.getTenantId(), id)) {
+            throw new RuntimeException("不能删除当前所在租户，请先切换回默认租户后再删除");
         }
-        Long bindingCount = TenantContextHolder.executeIgnore(() -> tenantMapper.countUserTenantBindings(id));
-        if (bindingCount != null && bindingCount > 0) {
-            throw new RuntimeException("租户下已绑定用户，不能删除");
+    }
+
+    /**
+     * 删除租户前清理成员：解绑关系；仅属于该租户的非系统管理员用户一并删除。
+     * 系统管理员只解绑、永不物理删除。
+     */
+    private void cleanupTenantMemberships(Long tenantId) {
+        List<SysUserTenant> bindings = userTenantMapper.selectList(new LambdaQueryWrapper<SysUserTenant>()
+                .eq(SysUserTenant::getTenantId, tenantId));
+        if (bindings == null || bindings.isEmpty()) {
+            return;
+        }
+        for (SysUserTenant binding : bindings) {
+            Long userId = binding.getUserId();
+            if (userId == null) {
+                continue;
+            }
+            SysUser user = userMapper.selectById(userId);
+            userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>()
+                    .eq(SysUserRole::getUserId, userId)
+                    .eq(SysUserRole::getTenantId, tenantId));
+            userOrgRoleMapper.delete(new LambdaQueryWrapper<SysUserOrgRole>()
+                    .eq(SysUserOrgRole::getUserId, userId)
+                    .eq(SysUserOrgRole::getTenantId, tenantId));
+            userOrgMapper.delete(new LambdaQueryWrapper<SysUserOrg>()
+                    .eq(SysUserOrg::getUserId, userId)
+                    .eq(SysUserOrg::getTenantId, tenantId));
+            userPostMapper.delete(new LambdaQueryWrapper<SysUserPost>()
+                    .eq(SysUserPost::getUserId, userId)
+                    .eq(SysUserPost::getTenantId, tenantId));
+            userTenantMapper.delete(new LambdaQueryWrapper<SysUserTenant>()
+                    .eq(SysUserTenant::getUserId, userId)
+                    .eq(SysUserTenant::getTenantId, tenantId));
+            if (user == null) {
+                continue;
+            }
+            if (Objects.equals(user.getUserType(), SystemConstants.UserType.SYSTEM_ADMIN)) {
+                continue;
+            }
+            Long remaining = userTenantMapper.selectCount(new LambdaQueryWrapper<SysUserTenant>()
+                    .eq(SysUserTenant::getUserId, userId)
+                    .eq(SysUserTenant::getStatus, 1));
+            if (remaining == null || remaining == 0) {
+                userMapper.deleteById(userId);
+            } else if (Objects.equals(user.getTenantId(), tenantId)) {
+                SysUserTenant nextDefault = userTenantMapper.selectOne(new LambdaQueryWrapper<SysUserTenant>()
+                        .eq(SysUserTenant::getUserId, userId)
+                        .eq(SysUserTenant::getStatus, 1)
+                        .orderByDesc(SysUserTenant::getIsDefault)
+                        .orderByAsc(SysUserTenant::getTenantId)
+                        .last("LIMIT 1"));
+                if (nextDefault != null) {
+                    SysUser updateUser = new SysUser();
+                    updateUser.setId(userId);
+                    updateUser.setTenantId(nextDefault.getTenantId());
+                    userMapper.updateById(updateUser);
+                }
+            }
         }
     }
 

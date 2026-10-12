@@ -247,7 +247,7 @@ function handleDelete(row) {
   }
   window.$dialog.warning({
     title: '确认删除',
-    content: `确定要删除租户"${row.tenantName}"吗？删除后将无法恢复！`,
+    content: `确定要删除租户「${row.tenantName}」吗？将自动清理该租户下的用户绑定；仅属于该租户的账号也会删除。系统管理员账号不会被删除。删除后无法恢复。`,
     positiveText: '确定',
     negativeText: '取消',
     onPositiveClick: async () => {
@@ -258,8 +258,8 @@ function handleDelete(row) {
           crudRef.value?.refresh()
         }
       }
-      catch {
-        window.$message.error('删除失败')
+      catch (error) {
+        window.$message.error(error?.message || '删除失败')
       }
     },
   })

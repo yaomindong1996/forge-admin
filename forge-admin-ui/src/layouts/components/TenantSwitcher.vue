@@ -121,8 +121,14 @@ async function handleTenantSwitch(tenantId) {
       await router.replace({ path: '/', query: { tenantSwitch: Date.now() } })
     }
   }
-  catch {
-    $message.error('切换租户失败')
+  catch (error) {
+    const msg = error?.message || '切换租户失败'
+    $message.error(msg)
+    // 当前登录用户已失效时强制退出，避免卡在坏会话里
+    if (String(msg).includes('已失效') || String(msg).includes('用户不存在')) {
+      await authStore.logout?.()
+      await router.replace('/login')
+    }
   }
   finally {
     switchingTenant.value = false

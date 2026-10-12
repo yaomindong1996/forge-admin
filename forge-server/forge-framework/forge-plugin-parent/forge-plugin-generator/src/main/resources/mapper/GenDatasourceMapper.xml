@@ -68,4 +68,57 @@
         LIMIT 1
     </select>
 
+    <!-- 删除前引用检查：任一条 refCount>0 即不可删 -->
+    <select id="selectReferenceHits" resultType="com.mdframe.forge.plugin.generator.vo.GenDatasourceReferenceHitVO">
+        SELECT '低代码运行配置' AS refLabel, COUNT(*) AS refCount
+        FROM ai_crud_config
+        WHERE runtime_datasource_id = #{datasourceId}
+           OR (#{datasourceCode} IS NOT NULL AND #{datasourceCode} != ''
+               AND runtime_datasource_code = #{datasourceCode})
+
+        UNION ALL
+        SELECT '低代码运行配置版本' AS refLabel, COUNT(*) AS refCount
+        FROM ai_crud_config_version
+        WHERE runtime_datasource_id = #{datasourceId}
+           OR (#{datasourceCode} IS NOT NULL AND #{datasourceCode} != ''
+               AND runtime_datasource_code = #{datasourceCode})
+
+        UNION ALL
+        SELECT '低代码数据模型' AS refLabel, COUNT(*) AS refCount
+        FROM ai_lowcode_model
+        WHERE runtime_datasource_id = #{datasourceId}
+           OR (#{datasourceCode} IS NOT NULL AND #{datasourceCode} != ''
+               AND runtime_datasource_code = #{datasourceCode})
+
+        UNION ALL
+        SELECT '低代码发布任务' AS refLabel, COUNT(*) AS refCount
+        FROM ai_lowcode_publish_task
+        WHERE runtime_datasource_id = #{datasourceId}
+           OR (#{datasourceCode} IS NOT NULL AND #{datasourceCode} != ''
+               AND runtime_datasource_code = #{datasourceCode})
+
+        UNION ALL
+        SELECT '代码生成表' AS refLabel, COUNT(*) AS refCount
+        FROM gen_table
+        WHERE datasource_id = #{datasourceId}
+
+        UNION ALL
+        SELECT '租户默认业务数据源' AS refLabel, COUNT(*) AS refCount
+        FROM sys_tenant
+        WHERE default_business_datasource_id = #{datasourceId}
+           OR (#{datasourceCode} IS NOT NULL AND #{datasourceCode} != ''
+               AND default_business_datasource_code = #{datasourceCode})
+
+        UNION ALL
+        SELECT '业务对象运行数据源' AS refLabel, COUNT(*) AS refCount
+        FROM ai_business_object
+        WHERE options IS NOT NULL
+          AND (
+                options LIKE CONCAT('%"runtimeDatasourceId":', #{datasourceId}, '%')
+             OR options LIKE CONCAT('%"runtimeDatasourceId": ', #{datasourceId}, '%')
+             OR options LIKE CONCAT('%"datasourceId":', #{datasourceId}, '%')
+             OR options LIKE CONCAT('%"datasourceId": ', #{datasourceId}, '%')
+          )
+    </select>
+
 </mapper>

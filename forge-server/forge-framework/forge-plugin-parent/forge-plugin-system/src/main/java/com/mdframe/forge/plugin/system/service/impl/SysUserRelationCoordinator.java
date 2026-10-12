@@ -2,6 +2,7 @@ package com.mdframe.forge.plugin.system.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.mdframe.forge.plugin.system.constant.SystemConstants;
 import com.mdframe.forge.plugin.system.dto.BatchUserRoleBindDTO;
 import com.mdframe.forge.plugin.system.dto.BatchUserTenantBindDTO;
 import com.mdframe.forge.plugin.system.dto.UserTenantBindDTO;
@@ -570,6 +571,10 @@ final class SysUserRelationCoordinator {
 
     boolean removeUserFromTenant(Long userId, Long tenantId) {
         return TenantContextHolder.executeIgnore(() -> {
+            SysUser user = userMapper.selectById(userId);
+            if (user == null) {
+                return false;
+            }
             deleteTenantRelations(userId, List.of(tenantId));
             int deleted = userTenantMapper.delete(new LambdaQueryWrapper<SysUserTenant>()
                 .eq(SysUserTenant::getUserId, userId)
@@ -577,7 +582,9 @@ final class SysUserRelationCoordinator {
             Long remainingTenants = userTenantMapper.selectCount(new LambdaQueryWrapper<SysUserTenant>()
                 .eq(SysUserTenant::getUserId, userId)
                 .eq(SysUserTenant::getStatus, 1));
-            if (remainingTenants == null || remainingTenants == 0) {
+            // 系统管理员账号永不随「移出租户」被物理删除
+            if ((remainingTenants == null || remainingTenants == 0)
+                    && !Objects.equals(user.getUserType(), SystemConstants.UserType.SYSTEM_ADMIN)) {
                 userMapper.deleteById(userId);
             }
             return deleted > 0;
@@ -586,6 +593,13 @@ final class SysUserRelationCoordinator {
 
     boolean deleteUserGlobally(Long userId) {
         return TenantContextHolder.executeIgnore(() -> {
+            SysUser user = userMapper.selectById(userId);
+            if (user == null) {
+                return false;
+            }
+            if (Objects.equals(user.getUserType(), SystemConstants.UserType.SYSTEM_ADMIN)) {
+                throw new RuntimeException("不能删除系统管理员");
+            }
             userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, userId));
             userOrgRoleMapper.delete(new LambdaQueryWrapper<SysUserOrgRole>().eq(SysUserOrgRole::getUserId, userId));
             userOrgMapper.delete(new LambdaQueryWrapper<SysUserOrg>().eq(SysUserOrg::getUserId, userId));

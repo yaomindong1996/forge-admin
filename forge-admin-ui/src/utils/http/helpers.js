@@ -19,7 +19,6 @@ const SESSION_INVALID_CODES = new Set([-8, '-8', 11007, 11008, 11011, 11012, 110
 
 const NON_SESSION_AUTH_PATHS = [
   '/api/flow',
-  '/api/workspace',
   '/openapi/v1/jobs',
   '/openapi/v1/executions',
   '/openapi/v1/capabilities',

@@ -168,13 +168,6 @@ export default defineConfig(({ mode, command }) => {
           secure: false,
           rewrite: path => path.replace(/^\/[^/]+/, ''),
         },
-        // 工作台接口由流程服务提供，需在主代理之前匹配
-        [`${VITE_REQUEST_PREFIX}/api/workspace`]: {
-          target: VITE_FLOW_PROXY_TARGET || 'http://localhost:8081',
-          changeOrigin: true,
-          secure: false,
-          rewrite: path => path.replace(/^\/[^/]+/, ''),
-        },
         // 主代理 - 匹配所有其他请求
         [VITE_REQUEST_PREFIX]: {
           secure: false,

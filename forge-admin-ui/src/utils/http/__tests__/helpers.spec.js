@@ -37,7 +37,7 @@ describe('auth error logout rules', () => {
 
   it('does not treat flow or workspace 401 as whole-app session death', () => {
     expect(shouldForceReLogin(401, '登录凭证无效', { url: '/dev-api/api/flow/task/todo' })).toBe(false)
-    expect(shouldForceReLogin(401, '登录凭证无效', { url: '/api/workspace/home' })).toBe(false)
+    expect(shouldForceReLogin(401, '登录凭证无效', { url: '/api/flow/workspace/home' })).toBe(false)
   })
 
   it('logs out on admin session-invalid 401', () => {

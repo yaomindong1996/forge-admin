@@ -15,8 +15,10 @@ import com.mdframe.forge.plugin.generator.service.lowcode.runtime.RuntimeDatabas
 import com.mdframe.forge.plugin.generator.util.DynamicDataSourceUtil;
 import com.mdframe.forge.plugin.generator.util.GenDatasourcePasswordCodec;
 import com.mdframe.forge.plugin.generator.util.GenUtils;
+import com.mdframe.forge.plugin.generator.vo.GenDatasourceReferenceHitVO;
 import com.mdframe.forge.starter.core.domain.PageQuery;
 import com.mdframe.forge.starter.core.enums.EnableStatus;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,6 +28,8 @@ import java.io.Serializable;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -85,14 +89,76 @@ public class GenDatasourceServiceImpl extends ServiceImpl<GenDatasourceMapper, G
 
     @Override
     public boolean removeById(Serializable id) {
-        GenDatasource existing = id == null ? null : genDatasourceMapper.selectById(id);
+        if (id == null) {
+            return false;
+        }
+        GenDatasource existing = genDatasourceMapper.selectById(id);
+        if (existing == null) {
+            return false;
+        }
+        assertNotReferenced(existing);
         boolean removed = super.removeById(id);
-        if (removed && id != null) {
+        if (removed) {
             Long datasourceId = Long.valueOf(String.valueOf(id));
             DynamicDataSourceUtil.removeDataSource(datasourceId);
-            runtimeDataSourceResolver.evictDatasource(datasourceId, existing == null ? null : existing.getDatasourceCode());
+            runtimeDataSourceResolver.evictDatasource(datasourceId, existing.getDatasourceCode());
         }
         return removed;
+    }
+
+    @Override
+    public boolean removeByIds(Collection<?> list) {
+        if (list == null || list.isEmpty()) {
+            return false;
+        }
+        for (Object id : list) {
+            if (!(id instanceof Serializable serializableId)) {
+                continue;
+            }
+            GenDatasource existing = genDatasourceMapper.selectById(serializableId);
+            if (existing != null) {
+                assertNotReferenced(existing);
+            }
+        }
+        boolean removed = super.removeByIds(list);
+        if (removed) {
+            for (Object id : list) {
+                if (id == null) {
+                    continue;
+                }
+                Long datasourceId = Long.valueOf(String.valueOf(id));
+                DynamicDataSourceUtil.removeDataSource(datasourceId);
+                runtimeDataSourceResolver.evictDatasource(datasourceId, null);
+            }
+        }
+        return removed;
+    }
+
+    /**
+     * 存在低代码/租户/代码生成等引用时禁止删除，避免运行配置悬空。
+     */
+    void assertNotReferenced(GenDatasource datasource) {
+        if (datasource == null || datasource.getDatasourceId() == null) {
+            return;
+        }
+        List<GenDatasourceReferenceHitVO> hits = genDatasourceMapper.selectReferenceHits(
+                datasource.getDatasourceId(), datasource.getDatasourceCode());
+        List<String> parts = new ArrayList<>();
+        if (hits != null) {
+            for (GenDatasourceReferenceHitVO hit : hits) {
+                if (hit == null || hit.getRefCount() == null || hit.getRefCount() <= 0) {
+                    continue;
+                }
+                parts.add(hit.getRefLabel() + hit.getRefCount() + " 条");
+            }
+        }
+        if (parts.isEmpty()) {
+            return;
+        }
+        String label = StrUtil.blankToDefault(datasource.getDatasourceName(), datasource.getDatasourceCode());
+        throw new BusinessException("数据源「" + label + "」仍被引用，无法删除："
+                + String.join("、", parts)
+                + "。请先解除引用或迁移到其他数据源后再删");
     }
 
     @Override

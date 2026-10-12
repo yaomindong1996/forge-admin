@@ -211,6 +211,24 @@ final class SysUserAccessPolicy {
         }
     }
 
+    /**
+     * 删除用户红线：禁止删当前登录账号、禁止删系统管理员（userType=0）。
+     */
+    void assertCanDeleteUser(Long userId) {
+        LoginUser loginUser = requireLoginUser();
+        assertCanManageUser(userId);
+        if (isCurrentLoginUser(userId, loginUser)) {
+            throw new RuntimeException("不能删除当前登录用户");
+        }
+        SysUser user = TenantContextHolder.executeIgnore(() -> userMapper.selectById(userId));
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        if (Objects.equals(user.getUserType(), SystemConstants.UserType.SYSTEM_ADMIN)) {
+            throw new RuntimeException("不能删除系统管理员");
+        }
+    }
+
     boolean isCurrentLoginUser(Long userId, LoginUser loginUser) {
         return userId != null && loginUser != null && Objects.equals(userId, loginUser.getUserId());
     }

@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 我的工作台聚合接口。
  */
 @RestController
-@RequestMapping("/api/workspace")
+@RequestMapping("/api/flow/workspace")
 @RequiredArgsConstructor
 @ApiDecrypt
 @ApiEncrypt

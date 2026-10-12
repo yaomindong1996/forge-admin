@@ -200,8 +200,12 @@ public class LowcodeRuntimeDataSourceResolver {
     }
 
     private GenDatasource findDatasource(LowcodeRuntimeDatasourceSnapshot snapshot) {
+        // ID 优先；库被重建/手工改过后 ID 可能失效，再按编码回退，避免整站低代码报“运行数据源不存在”
         if (snapshot.getDatasourceId() != null) {
-            return getCachedDatasourceById(snapshot.getDatasourceId());
+            GenDatasource byId = getCachedDatasourceById(snapshot.getDatasourceId());
+            if (byId != null) {
+                return byId;
+            }
         }
         if (StringUtils.isBlank(snapshot.getDatasourceCode())) {
             return null;
