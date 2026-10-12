@@ -33,6 +33,14 @@ export function buildNavigationTree(list = [], keyword = '') {
     if (keyword && !matched && !children.length) {
       return null
     }
-    return { ...item, key: item.id, label: item.resourceName, children }
+    // 无下级时不要保留空 children[]，否则 n-tree 仍显示展开箭头误导可展开
+    const hasChildren = children.length > 0
+    return {
+      ...item,
+      key: item.id,
+      label: item.resourceName,
+      children: hasChildren ? children : undefined,
+      isLeaf: !hasChildren,
+    }
   }).filter(Boolean)
 }

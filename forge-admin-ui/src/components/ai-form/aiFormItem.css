@@ -36,16 +36,26 @@
 .ai-form-item-label {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   min-width: 0;
   gap: 6px;
   vertical-align: middle;
 }
 
 .ai-form-item-label__text {
-  overflow: hidden;
+  /* 表单标签必须完整可见，禁止省略号裁切成「看不见」 */
+  overflow: visible;
   min-width: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: keep-all;
+}
+
+.n-form-item--left-labelled .ai-form-item-label {
+  justify-content: flex-end;
+}
+
+.n-form-item--left-labelled .ai-form-item-label__text {
+  text-align: right;
 }
 
 .ai-form-item-label__badge {

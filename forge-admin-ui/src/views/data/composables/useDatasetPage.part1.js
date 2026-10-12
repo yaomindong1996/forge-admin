@@ -15,6 +15,7 @@ import {
 } from '@/api/data/dataset'
 import { getDataDimensionList } from '@/api/data/dimension'
 import { AiCrudPage } from '@/components/ai-form'
+import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DatasetParamSchemaEditor from '@/components/data/DatasetParamSchemaEditor.vue'
 import DictTag from '@/components/DictTag.vue'
 import SqlEditor from '@/components/SqlEditor.vue'
@@ -342,69 +343,76 @@ export function applyDatasetPagePart1() {
     ]
   })
 
+  function resolveDatasetTypeLabel(type) {
+    const option = datasetTypeOptions.value.find(item => String(item.value) === String(type))
+    return option?.label || type || ''
+  }
+
+  function resolveDatasetSourceText(row) {
+    const connection = row.connectionName || getConnectionName(row.connectionId) || '-'
+    if (row.datasetType === 'TABLE' && row.tableName)
+      return `${connection} / ${row.tableName}`
+    if (row.datasetType === 'SQL')
+      return `${connection} / SQL`
+    return connection
+  }
+
+  // 列表按「实体 + 单标签状态 + 单列元数据」对齐，避免单元格内叠多行抢视觉
   const tableColumns = computed(() => [
     {
       prop: 'datasetName',
-      label: '数据集资产',
-      width: 250,
-      render: row => h('div', { class: 'asset-name-card' }, [
-        h('div', { class: 'asset-name-row' }, [
-          h('div', { class: 'asset-name', title: row.description || row.datasetName }, row.datasetName),
-          h(DictTag, {
-            options: datasetTypeOptions.value,
-            value: row.datasetType,
-            size: 'small',
-            bordered: false,
-            forceTag: true,
-          }),
-        ]),
-        h('div', { class: 'asset-code' }, row.datasetCode),
-      ]),
-    },
-    {
-      prop: 'categoryName',
-      label: '业务分类',
-      width: 130,
-      render: row => h('div', { class: 'asset-category' }, [
-        h('div', { class: 'asset-category-name' }, row.categoryName || '未分类'),
-        h('div', { class: 'asset-category-code' }, row.categoryCode || '暂未归档'),
-      ]),
-    },
-    {
-      prop: 'connectionId',
-      label: '数据来源',
-      width: 190,
-      render: row => h('div', { class: 'asset-source', title: `最大返回 ${row.maxRows ?? '-'} 行` }, [
-        h('div', { class: 'asset-source-name' }, row.connectionName || getConnectionName(row.connectionId)),
-        h('div', { class: 'asset-source-detail' }, row.datasetType === 'TABLE'
-          ? `表：${row.tableName || '-'}`
-          : 'SQL 查询模式'),
-      ]),
+      label: '数据集',
+      width: 280,
+      render: row => h(SystemTableCell, {
+        title: row.datasetName,
+        subtitle: [resolveDatasetTypeLabel(row.datasetType), row.datasetCode].filter(Boolean).join(' · '),
+        interactive: true,
+        avatar: true,
+        tooltip: row.description || row.datasetName,
+        onActivate: () => (row.publishStatus === 1 ? handleViewDataset(row) : handleEdit(row)),
+      }),
     },
     {
       prop: 'publishStatus',
-      label: '状态',
+      label: '发布状态',
       width: 100,
-      render: row => h('div', { class: 'asset-status' }, [
-        h(DictTag, { dictType: 'data_dataset_publish_status', value: String(row.publishStatus), size: 'small' }),
-        h(DictTag, { dictType: 'sys_enable_disable', value: String(row.status), size: 'small' }),
-      ]),
+      render: row => h(DictTag, {
+        dictType: 'data_dataset_publish_status',
+        value: String(row.publishStatus),
+        size: 'small',
+        forceTag: true,
+      }),
     },
     {
       prop: 'accessMode',
       label: '访问权限',
-      width: 90,
+      width: 110,
       render: row => h(DictTag, {
         dictType: 'data_dataset_access_mode',
         value: row.accessMode,
         size: 'small',
+        forceTag: true,
       }),
     },
-    { prop: 'updateTime', label: '更新时间', width: 150, render: row => formatDatasetDate(row.updateTime) },
+    {
+      prop: 'categoryName',
+      label: '分类',
+      width: 120,
+      ellipsis: { tooltip: true },
+      render: row => row.categoryName || '未分类',
+    },
+    {
+      prop: 'connectionId',
+      label: '数据来源',
+      width: 180,
+      ellipsis: { tooltip: true },
+      render: row => resolveDatasetSourceText(row),
+    },
+    { prop: 'updateTime', label: '更新时间', width: 160, render: row => formatDatasetDate(row.updateTime) },
     {
       prop: 'action',
       label: '操作',
-      width: 160,
+      width: 148,
       fixed: 'right',
       maxActionButtons: 2,
       actions: [

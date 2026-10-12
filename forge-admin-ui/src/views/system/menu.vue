@@ -389,7 +389,8 @@
           :grid-cols="2"
           :show-actions="false"
           label-placement="left"
-          label-width="96"
+          label-width="120"
+          label-align="right"
           size="small"
         >
           <template #icon="{ value, updateValue }">

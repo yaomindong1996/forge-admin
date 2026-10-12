@@ -184,7 +184,7 @@ const props = defineProps({
   },
   labelWidth: {
     type: [String, Number],
-    default: 'auto',
+    default: 120,
   },
   labelAlign: {
     type: String,

@@ -150,7 +150,8 @@ describe('菜单树展示规则', () => {
     const original = JSON.stringify(resources)
     const tree = buildNavigationTree(resources, '用户')
     expect(tree[0].children).toHaveLength(1)
-    expect(tree[0].children[0].children).toEqual([])
+    expect(tree[0].children[0].children).toBeUndefined()
+    expect(tree[0].children[0].isLeaf).toBe(true)
     expect(JSON.stringify(resources)).toBe(original)
   })
   it('语义图标无随机彩色块，未知类型安全回退', () => {

@@ -277,7 +277,8 @@ export const aiCrudPageProps = {
    */
   editLabelWidth: {
     type: [String, Number],
-    default: 'auto',
+    // 覆盖「最低用户类型」等 6 字标签，避免裁切；配合右对齐贴控件
+    default: 120,
   },
 
   editLabelPlacement: {

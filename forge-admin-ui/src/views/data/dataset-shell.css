@@ -146,44 +146,16 @@
 }
 
 .dataset-crud :deep(.n-data-table-td) {
-  padding: 12px;
+  padding: 14px 12px;
+  vertical-align: middle;
 }
 
-.dataset-crud :deep(.asset-name),
-.dataset-crud :deep(.asset-source-name),
-.dataset-crud :deep(.asset-category-name) {
-  font-size: 13px;
-  font-weight: 400;
+.dataset-crud :deep(.n-data-table-th) {
+  font-weight: 500;
 }
 
-.dataset-crud :deep(.asset-name-row) {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.dataset-crud :deep(.asset-status) {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-}
-
-.dataset-crud :deep(.asset-code),
-.dataset-crud :deep(.asset-desc),
-.dataset-crud :deep(.asset-category-code),
-.dataset-crud :deep(.asset-source-detail) {
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--text-tertiary, #86909c);
-}
-
-.dataset-crud :deep(.asset-name),
-.dataset-crud :deep(.asset-code),
-.dataset-crud :deep(.asset-source-name) {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.dataset-crud :deep(.system-table-cell) {
+  width: 100%;
 }
 
 .dataset-filters-panel {

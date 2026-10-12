@@ -97,17 +97,30 @@
   margin-bottom: 0;
 }
 
-.ai-crud-edit-form :deep(.n-form-item-label) {
+.ai-crud-edit-form :deep(.n-form-item-label),
+.ai-form :deep(.n-form-item-label) {
+  /* 保留 Naive 的 grid 结构，只用 text-align 靠右贴控件 */
   min-height: 32px;
-  display: grid;
-  align-items: center;
   color: var(--text-secondary);
   font-weight: 600;
 }
 
-.ai-crud-edit-form :deep(.n-form-item-label__asterisk) {
+.ai-crud-edit-form :deep(.n-form-item-label__asterisk),
+.ai-form :deep(.n-form-item-label__asterisk) {
   align-self: center;
   line-height: 1;
+}
+
+.ai-crud-edit-form :deep(.n-form-item--left-labelled > .n-form-item-label),
+.ai-form :deep(.n-form-item--left-labelled > .n-form-item-label) {
+  text-align: right;
+}
+
+.ai-crud-edit-form :deep(.n-form-item--left-labelled .n-form-item-label__text),
+.ai-form :deep(.n-form-item--left-labelled .n-form-item-label__text) {
+  display: block;
+  width: 100%;
+  text-align: right;
 }
 
 .ai-crud-edit-form :deep(.n-form-item-blank) {
