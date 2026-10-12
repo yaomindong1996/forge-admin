@@ -218,3 +218,13 @@ Forge AI 中枢的真实 Flyway、Admin/Flow 服务启动、MCP Streamable HTTP 
 环境基线和操作入口见 `forge-server/scripts/deployment/production-runbook.md`；
 发版仍遵循第 28 项所指权威规范，具体目标模块以当次请求为准。
 
+## 30. Spring Boot 升级只做现有功能兼容，不扩展新能力
+
+**记录日期**：2026-10-12
+
+用户明确本轮 Spring Boot 4 升级的目标是原有功能正常，不新增功能。
+后续只进行兼容审查、回归与有证据的最小修复，不把跨节点 SSE、持久化任务恢复、
+新授权体系等增强不断追加为必做阶段。已完成工作保留，已知边界如实记录。
+仍在当前升级分支，不动 main；真实环境验证继续按此前要求暂不执行，
+不能将本地测试通过等同于生产全部功能已验收。当前范围记录见 spring-boot4-t6 Spec/Tasks/Report。
+

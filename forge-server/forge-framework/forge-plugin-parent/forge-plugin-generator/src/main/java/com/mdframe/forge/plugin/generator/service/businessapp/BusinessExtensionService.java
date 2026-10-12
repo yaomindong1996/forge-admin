@@ -1,7 +1,7 @@
 package com.mdframe.forge.plugin.generator.service.businessapp;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mdframe.forge.plugin.generator.constant.BusinessExtensionHook;
 import com.mdframe.forge.plugin.generator.constant.BusinessExtensionStatus;

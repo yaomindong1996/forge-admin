@@ -13,10 +13,10 @@ import com.mdframe.forge.plugin.mcp.security.McpCallerContextResolver;
 import com.mdframe.forge.plugin.mcp.security.McpRequestLifecycle;
 import com.mdframe.forge.plugin.mcp.spi.McpToolContributor;
 import com.mdframe.forge.plugin.mcp.spi.McpToolContributorAggregator;
-import io.modelcontextprotocol.json.jackson.JacksonMcpJsonMapper;
+import io.modelcontextprotocol.json.jackson3.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.server.McpServerFeatures;
-import io.modelcontextprotocol.server.transport.WebMvcStreamableServerTransportProvider;
-import org.springframework.ai.mcp.server.autoconfigure.McpServerStreamableHttpWebMvcAutoConfiguration;
+import org.springframework.ai.mcp.server.webmvc.transport.WebMvcStreamableServerTransportProvider;
+import org.springframework.ai.mcp.server.webmvc.autoconfigure.McpServerStreamableHttpWebMvcAutoConfiguration;
 import org.springframework.ai.mcp.server.common.autoconfigure.properties.McpServerStreamableHttpProperties;
 import org.springframework.ai.mcp.server.common.autoconfigure.properties.McpServerProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -70,12 +70,12 @@ public class ForgeMcpServerAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(WebMvcStreamableServerTransportProvider.class)
     public WebMvcStreamableServerTransportProvider forgeWebMvcStreamableServerTransportProvider(
-            @Qualifier("mcpServerObjectMapper") ObjectMapper objectMapper,
+            @Qualifier("mcpServerJsonMapper") tools.jackson.databind.json.JsonMapper jsonMapper,
             McpServerStreamableHttpProperties properties,
             McpCallerContextResolver callerContextResolver,
             ForgeMcpProtocolGuard protocolGuard) {
         return WebMvcStreamableServerTransportProvider.builder()
-                .jsonMapper(new JacksonMcpJsonMapper(objectMapper))
+                .jsonMapper(new JacksonMcpJsonMapper(jsonMapper))
                 .mcpEndpoint(properties.getMcpEndpoint())
                 .keepAliveInterval(properties.getKeepAliveInterval())
                 .disallowDelete(properties.isDisallowDelete())

@@ -26,6 +26,7 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import reactor.core.publisher.Flux;
 
 import java.math.BigDecimal;
@@ -98,6 +99,8 @@ class AiClientImplTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(adapterRegistry.createChatModel(any(AiProvider.class), any(AiModelRuntimeOptions.class)))
                 .thenReturn(chatModel);
+        // Spring AI 2 从模型 getOptions() 构造请求；Mock 必须模拟真实模型的非空选项契约。
+        when(chatModel.getOptions()).thenReturn(ChatOptions.builder().build());
     }
 
     @Test

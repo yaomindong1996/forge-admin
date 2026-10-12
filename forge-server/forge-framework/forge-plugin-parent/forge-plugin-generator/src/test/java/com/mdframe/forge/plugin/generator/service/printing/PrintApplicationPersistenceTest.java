@@ -97,7 +97,13 @@ class PrintApplicationPersistenceTest {
             if (!statement.isBlank()) { jdbc.execute(statement); }
         }
         jdbc.execute("ALTER TABLE sys_print_template MODIFY page_id VARCHAR(128)");
+        // 实体随独立打印来源迁移增加了列；H2 fixture 必须对应当前结构，不能只导入旧基线。
+        jdbc.execute("ALTER TABLE sys_print_template ADD business_source_id BIGINT");
+        jdbc.execute("ALTER TABLE sys_print_template ADD source_code VARCHAR(80)");
         jdbc.execute("ALTER TABLE sys_print_binding MODIFY page_id VARCHAR(128)");
+        jdbc.execute("ALTER TABLE sys_print_binding ADD business_source_id BIGINT");
+        jdbc.execute("ALTER TABLE sys_print_binding ADD source_code VARCHAR(80)");
+        jdbc.execute("ALTER TABLE sys_print_binding ADD template_version_id BIGINT");
         var configuration = new MybatisConfiguration();
         configuration.setEnvironment(new Environment("test", new SpringManagedTransactionFactory(), ds));
         for (String name : List.of("BusinessApplication", "BusinessApplicationVersion", "PrintTemplate", "PrintTemplateVersion", "PrintBinding", "AiCrudConfig")) {

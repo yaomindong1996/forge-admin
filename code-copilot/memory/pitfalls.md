@@ -36,8 +36,9 @@
 
 ## 分类目录
 
-### [前端 / 构建 / 路由](pitfalls/frontend.md)（54）
+### [前端 / 构建 / 路由](pitfalls/frontend.md)（55）
 
+- HTTP EOF 不是 Agent 成功终态，SSE JSON 也不走 Long 策略
 - Vue scoped 的 global 片段可能丢失后续选择器
 - Vitest 2 不能直接使用较新版本的合并 Mock 断言
 - Vue 指令 updated 钩子不能依赖 this 调用 mounted
@@ -262,7 +263,17 @@
 - 167. DAG 分支路由必须同时处理跨层穿卡和三种顺序一致性
 - 183. 捕获参与当前事务的下游异常不能清除 rollback-only
 
-### [后端框架 / Spring / Maven](pitfalls/backend.md)（50）
+### [后端框架 / Spring / Maven](pitfalls/backend.md)（56）
+
+- 异步线程池与 ThreadLocal 事件批次不共享，短流终态必须刷新
+
+- 线程池清理探针会再次捕获上下文，续租池不能成为默认调度器
+
+- 扩展回归不能只修测试夹具，也不能把旧契约漂移都算作升级故障
+
+- Spring AI Alibaba milestone 不能与 AI 2 GA 只靠 BOM 混配
+- Boot 4 迁移必须验证 MVC 协议和异步身份，不能只看编译
+- Agent 工具声明不等于执行闭环，确认恢复不能重放
 
 - 脚手架包名替换不能再次命中新包名前缀
 - Redis 逻辑库不能隔离流程 Pub/Sub 频道
@@ -398,4 +409,4 @@
 - 157. 桌面常驻属性面板不能用移动端抽屉显隐状态判断是否保存
 - 158. 低代码业务字段编码不能被当作同名物理列
 
-合计 286 条。
+合计 336 条（按上述分类计数汇总）。

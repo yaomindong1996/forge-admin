@@ -33,14 +33,11 @@ class IdempotentIntegrationTest {
     @Mock
     private TokenService tokenService;
     
-    @BeforeEach
-    void setUp() throws Throwable {
-        when(joinPoint.proceed()).thenReturn("success");
-    }
     
     @Test
     @DisplayName("并发场景 - 严格模式测试")
     void testConcurrentStrictMode() throws Throwable {
+        when(joinPoint.proceed()).thenReturn("success");
         AtomicInteger successCount = new AtomicInteger(0);
         AtomicInteger failCount = new AtomicInteger(0);
         

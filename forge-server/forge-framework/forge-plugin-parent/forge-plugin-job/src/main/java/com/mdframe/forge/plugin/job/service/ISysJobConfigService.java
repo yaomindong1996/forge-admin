@@ -1,7 +1,7 @@
 package com.mdframe.forge.plugin.job.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.mdframe.forge.plugin.job.dto.JobConfigQuery;
 import com.mdframe.forge.plugin.job.dto.JobConfigSaveRequest;
 import com.mdframe.forge.plugin.job.entity.SysJobConfig;

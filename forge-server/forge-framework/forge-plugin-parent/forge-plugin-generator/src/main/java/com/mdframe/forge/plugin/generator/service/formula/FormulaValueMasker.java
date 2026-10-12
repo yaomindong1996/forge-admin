@@ -19,7 +19,7 @@ public class FormulaValueMasker {
         Pattern.compile("(?<!\\d)(1[3-9]\\d)\\d{4}(\\d{4})(?!\\d)");
 
     private static final Pattern ID_CARD_PATTERN =
-        Pattern.compile("(?<!\\d)([1-9]\\d{5}\\d{4})\\d{6}([0-9Xx]{4})(?!\\d)");
+        Pattern.compile("(?<!\\d)([1-9]\\d{5}\\d{4})\\d{4}([0-9Xx]{4})(?!\\d)");
 
     private static final Pattern BANK_CARD_PATTERN =
         Pattern.compile("(?<!\\d)(\\d{6})\\d{6,9}(\\d{4})(?!\\d)");

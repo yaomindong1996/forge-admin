@@ -834,3 +834,119 @@ mainClass 仍按 basePackage 转换；用包含原品牌前缀且 groupId 与 ba
 独立产品即使用不同 Redis database，默认 `flow:event:all` 仍会互相收到事件。
 缓存和登录态需要独立逻辑库/实例，事件发布与订阅还必须一致使用产品级频道前缀。
 同时检查浏览器登录、协商密钥缓存与内部 Flow 客户端 URL，不能只改 MySQL 库名和 Java 包名。
+
+## Spring AI Alibaba milestone 不能与 AI 2 GA 只靠 BOM 混配
+
+**发现日期**：2026-10-11
+
+**问题描述**：
+Boot 4.1.1 / Spring AI 2.0.1 / Alibaba 2.0.0-M1.1 下，真实通义原生适配器能编译，
+构造模型却报 `NoClassDefFoundError: ToolExecutionEligibilityPredicate`。
+同样三项测试在 Alibaba 声明的 Boot 4.0.0 / AI 2.0.0-M1 组合通过；正式 AI 2 已移除其依赖的接口。
+因此依赖解析和源码编译不能证明第三方 milestone 的二进制兼容；Maven 元数据的 release 也可能是预发布。
+
+**解决方案**：
+隔离工程直接编译真实适配器，先当前基线、再目标、最后上游对照，保留负面结果。
+等经过验证的配套版本或经确认调整供应商能力路径，不自建同名类掩盖缺类。
+同时验证现有 OpenAI API 移除和 MCP transport 包迁移；不要只升 BOM 或默认关闭模块。
+T0 阶段只是隔离验证，当时尚未实施生产修复；原始矩阵与命令见 `code-copilot/changes/spring-boot4-t0/`。
+T1 后续采用独立原生协议桥解除该二进制阻塞，覆盖范围见 `code-copilot/changes/spring-boot4-t1/`。
+
+## Boot 4 迁移必须验证 MVC 协议和异步身份，不能只看编译
+
+**发现日期**：2026-10-11
+
+**问题描述**：
+Boot 4 / MP 3.5.17 / Sa-Token 1.45 / AI 2 的源码迁移能解除编译错误，但有额外运行时边界：
+默认 Jackson 3 会改变既有业务 mapper 选择；Tomcat 表单大小上限不涵盖 JSON；
+Sa-Token 改用 ThreadLocal ModelBox，旧测试强换 Spring 上下文会使 CORS Filter 报错，
+未显式注册 ASYNC 时 MCP 重新分派还会丢失上下文。
+Mock Mapper 缺少表元数据、Redis `setIfAbsent` 新重载和 ChatModel 的 `getOptions` 也会暴露旧 fixture 缺项。
+
+**解决方案**：
+业务 HTTP 明确 Jackson 2 兼容桥，MCP 的 Jackson 3 mapper 单独 qualifier 注入；
+JSON 请求在读流时计数并返回 413，不预读无限缓冲。
+Sa-Token 注册上游同一个 Filter 实例，保留顺序并覆盖 REQUEST/ASYNC/ERROR，验证结束清理而非豁免认证。
+MyBatis-Plus 新 Spring Service 包名连同生成模板一起改；Mock 测试初始化内存元数据，不启动真实数据库。
+测试类型与模型 options 按实际新 API 修正，保留权限断言；供应商错误按结构化状态分类，不日志输出 SDK 正文。
+包级 build 成功、444 项风险相关回归、H2/HTTP 协议通过都不能替代真实库与模型验收。
+
+## Agent 工具声明不等于执行闭环，确认恢复不能重放
+
+**发现日期**：2026-10-12
+
+只给 OpenAiChatModel 设置 toolCallbacks，会使原生供应商看不到 Agent 绑定；
+把工具结果变成普通 assistant 文本也丢失原调用 ID。必须用供应商无关 options 复制，
+真正 assistant/tool transcript，以及当前 Agent 已绑定实例的唯一执行入口。
+声明 callback 不能执行，否则 SDK/Advisor 能绕过 ALLOW/ASK/DENY 和人工确认。
+
+中断不要序列化 ChatModel/API Key/工具对象；保存待执行游标和对话白名单 DTO，
+恢复重验当前用户/租户、配置与授权，CAS 消费后只处理未完成调用，不重新请求旧模型轮次。
+会话占用必须早于初始建行/恢复落库，避免竞争请求覆盖活跃持久化状态。
+
+异步普通用户不能伪造 MCP 客户端身份。专用有界 Spring 池显式传递可信用户、租户、DS、
+原机器 Scope 和 MDC；首次建线程禁止继承临时租户 TTL，结束恢复上下文。
+全局 TaskDecorator 后处理器可能覆盖自定义装饰器，应验证最终 Spring 装配而非只测包装类。
+受控 HTTP 工具必须使用真实 SUPPORTED 场景；Mock 客户端测试无法发现不存在的场景名，
+须补真实策略类 + 合成 Mapper/DNS 验证，不自动放开白名单。
+
+证据：`code-copilot/changes/spring-boot4-t2/`。确认消费只提供至多一次，不代替业务事务幂等；
+Mock Redis 和合成工具的本地闭环不能替代真实 Redis、供应商和全部注册源/业务验收。
+
+## 扩展回归不能只修测试夹具，也不能把旧契约漂移都算作升级故障
+
+**发现日期**：2026-10-12
+
+**问题描述**：
+Boot 4 全量回归扩展后，定向测试未覆盖的低代码/打印/公式/幂等旧测试出现大量失败。
+MP baseMapper 移入祖先、AI 2 要求 getOptions 属于 fixture API 适配；H2 缺后续迁移列和
+进程级审计索引残留属于 fixture 漂移。另有真实缺陷：字段 isXxx 辅助 getter 被 Jackson 序列化后
+不能回读，打印 record 的 isDefault wire 名字及来源 DTO 扩展字段与封闭快照键不匹配，
+LOOKUP 降级值未写入结果、FORMULA_ERROR 被公共收集器误降为提醒。
+
+**解决方案**：
+先记录全量失败，再恢复长期源码排除。按实质区分 API/fixture、已有重构后的源码字面断言与真实逻辑错误；
+协议辅助 getter 标记 JsonIgnore，wire 名称显式固定；扩展字段只兼容已知 null，非空来源身份仍拒绝。
+保留权限、错误状态、固定版本和发布阻断断言，不通过关闭校验、删测试或添加排除实现绿灯。
+Vue 初始选择监听若早于 hydrate，需要监听真正布局就绪，且不能每次布局更新覆盖用户手动选择。
+单进程 Map、Mock Redis、合成模型及 H2 不能证明真实库、多节点与外部供应商链路完整通过。
+
+证据：`code-copilot/changes/spring-boot4-t3/`；53 模块干净构建和 3,397 项本地 Java 回归通过，
+PC/H5/源码工具分别回归，真实环境与明确遗留项保持门禁。
+
+## 线程池清理探针会再次捕获上下文，续租池不能成为默认调度器
+
+**发现日期**：2026-10-12
+
+T4 图像工作池装配测试中，直接提交清理探针时请求线程仍持有租户/DS/MDC。
+全局 TaskDecorator 把这些值再次带入探针，断言出现“残留租户”，并不证明上一工作任务未清理。
+先清理探针提交线程，再保留用户/租户/DS/MDC 无残留断言；不能删断言或关闭装饰器。
+另一个夹具问题是 AiSecretCrypto 的非空即密文约定，未 stub decrypt 会把 null 传给适配器，
+不能据此改为默认凭据或放宽生产密钥验证。
+
+装配自检还发现，新增通用 TaskScheduler Bean 会参与平台 @Scheduled 默认调度器选择，
+业务扫描可能挤占心跳。续租 scheduler 用独立生命周期包装，不暴露为通用类型，
+测试确认没有通用 TaskScheduler Bean 且真实心跳线程不继承用户/租户/机器身份。
+这里是本地装配发现与预防，不是已观测到生产续租事故。
+
+证据：`code-copilot/changes/spring-boot4-t4/`；本地 3,456 项 Java 回归通过，真实环境未验证。
+
+## 异步线程池与 ThreadLocal 事件批次不共享，短流终态必须刷新
+
+**发现日期**：2026-10-12
+
+**问题描述**：
+T6 检查 AgentEventPersistence 发现 `@Async persist` 把逐条事件分派到不同线程，
+每个线程只有自己的 ThreadLocal 批次；请求/loop 线程的 flush 不能刷新其它工作线程。
+而原调用链没有可靠的尾批次刷新，少于 20 条的短对话和确认轮次可能一直没有落库。
+原实体还用时间加随机数生成 ID，未显式捕获可信 tenantId。此为源码与本地契约审查，
+不据此声称已观测生产数据丢失。
+
+**解决方案**：
+保留可信 loop 线程的有界同步批次，以 Mapper XML 单语句保存；结束/确认刷新余量，
+loop finally 清理本线程尾批次。使用框架 ID 与可信租户，不在通用异步池临时解析 Servlet 身份。
+真实 Spring @EnableAsync 装配、短流、H2 批量原子性、断连、失去租约和复用线程跨租户用例都要验证。
+数据库失败只记录安全类型，不输出事件/SQL 正文，也不因审计失败重发工具或付费模型。
+这仍是尽力审计，进程突然退出的未提交批次、数据库 fencing 与跨节点事件重放另有门禁。
+
+证据：`code-copilot/changes/spring-boot4-t6/`；定向 52 项通过，真实环境未验证。

@@ -1,6 +1,6 @@
 package com.mdframe.forge.plugin.data.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.mdframe.forge.plugin.data.entity.DataDatasetField;
 
 import java.util.List;

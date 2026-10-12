@@ -349,10 +349,15 @@ class FlowControllerBoundaryContractTest {
                         + "com/mdframe/forge/starter/flow/service/support/FlowCleanupTransactionExecutor.java"));
         String controller = Files.readString(Path.of(
                 "src/main/java/com/mdframe/forge/flow/controller/FlowMonitorController.java"));
+        String assembler = Files.readString(Path.of(
+                "../../forge-framework/forge-plugin-parent/forge-plugin-flow/src/main/java/"
+                        + "com/mdframe/forge/starter/flow/service/impl/FlowMonitorViewAssembler.java"));
 
         assertThat(service)
                 .contains("cleanupTransactionExecutor.execute", "PROCESS_CLEANUP_FAILURE_MESSAGE",
-                        "查询流程监控当前任务失败")
+                        "FlowMonitorViewAssembler.toAdminProcessInstance(")
+                .doesNotContain("failure.put(\"message\", e.getMessage())", "catch (Exception ignored)");
+        assertThat(assembler).contains("查询流程监控当前任务失败")
                 .doesNotContain("failure.put(\"message\", e.getMessage())", "catch (Exception ignored)");
         assertThat(transactionExecutor)
                 .contains("PROPAGATION_REQUIRES_NEW", "transactionTemplate.execute");
@@ -391,8 +396,16 @@ class FlowControllerBoundaryContractTest {
         String service = Files.readString(Path.of(
                 "../../forge-framework/forge-plugin-parent/forge-plugin-flow/src/main/java/"
                         + "com/mdframe/forge/starter/flow/service/impl/FlowMonitorServiceImpl.java"));
+        String assembler = Files.readString(Path.of(
+                "../../forge-framework/forge-plugin-parent/forge-plugin-flow/src/main/java/"
+                        + "com/mdframe/forge/starter/flow/service/impl/FlowMonitorViewAssembler.java"));
 
+        // 可选用户查询已迁入视图装配器，校验真实链路，避免旧结构断言误报。
         assertThat(service)
+                .contains("FlowMonitorUserLookup", "FlowMonitorViewAssembler.toAdminProcessInstance(",
+                        "taskSummaries.get(business.getProcessInstanceId()), userLookupProvider")
+                .doesNotContain("com.mdframe.forge.plugin.system", "ISysUserService");
+        assertThat(assembler)
                 .contains("FlowMonitorUserLookup", "userLookupProvider.getIfAvailable()")
                 .doesNotContain("com.mdframe.forge.plugin.system", "ISysUserService");
     }

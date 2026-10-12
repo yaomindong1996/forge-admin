@@ -1,7 +1,7 @@
 package com.mdframe.forge.starter.auth.config;
 
 import cn.dev33.satoken.session.SaSession;
-import cn.dev33.satoken.stp.SaLoginModel;
+import cn.dev33.satoken.stp.parameter.SaLoginParameter;
 import cn.dev33.satoken.stp.StpLogic;
 import cn.dev33.satoken.stp.StpUtil;
 import com.mdframe.forge.flow.client.FlowTokenAcquisitionException;
@@ -156,7 +156,7 @@ public class SaTokenFlowTokenProvider implements FlowTokenProvider {
     private String issueDelegatedToken(ExecutionIdentity identity, LoginUser loginUser) {
         StpLogic stpLogic = stpLogicSupplier.get();
         String delegationSessionId = UUID.randomUUID().toString();
-        SaLoginModel loginModel = SaLoginModel.create()
+        SaLoginParameter loginModel = SaLoginParameter.create()
                 .setDevice(FlowDelegationConstants.FLOW_DELEGATION_DEVICE_PREFIX + identity.clientId() + ":"
                         + loginUser.getActiveOrgId() + ":" + delegationSessionId)
                 .setTimeout(DELEGATED_TOKEN_TIMEOUT_SECONDS)

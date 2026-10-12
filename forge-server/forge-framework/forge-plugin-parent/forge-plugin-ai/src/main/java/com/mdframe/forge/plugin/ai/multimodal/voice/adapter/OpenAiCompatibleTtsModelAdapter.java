@@ -1,10 +1,10 @@
 package com.mdframe.forge.plugin.ai.multimodal.voice.adapter;
 
 import com.mdframe.forge.starter.core.exception.BusinessException;
+import com.mdframe.forge.plugin.ai.provider.adapter.OpenAiSdkSupport;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.openai.OpenAiAudioSpeechModel;
 import org.springframework.ai.openai.OpenAiAudioSpeechOptions;
-import org.springframework.ai.openai.api.OpenAiAudioApi;
 import org.springframework.stereotype.Component;
 
 /**
@@ -35,22 +35,18 @@ public class OpenAiCompatibleTtsModelAdapter implements AiTtsModelAdapter {
     @Override
     public byte[] synthesize(String baseUrl, String apiKey, String model, String text) {
         try {
-            OpenAiAudioApi audioApi = OpenAiAudioApi.builder()
-                    .baseUrl(baseUrl)
-                    .apiKey(apiKey)
-                    .build();
-
             OpenAiAudioSpeechOptions options = OpenAiAudioSpeechOptions.builder()
-                    .model(model)
+                    .baseUrl(OpenAiSdkSupport.baseUrl(baseUrl)).apiKey(apiKey).model(model)
+                    .timeout(OpenAiSdkSupport.REQUEST_TIMEOUT).maxRetries(0)
                     .input(text)
                     .build();
 
-            OpenAiAudioSpeechModel speechModel = new OpenAiAudioSpeechModel(audioApi, options);
+            OpenAiAudioSpeechModel speechModel = OpenAiAudioSpeechModel.builder().options(options).build();
 
             return speechModel.call(text);
         } catch (Exception e) {
-            log.error("[AI TTS] 语音合成失败, baseUrl={}, model={}, error={}", baseUrl, model, e.getMessage());
-            throw new BusinessException("语音合成失败: " + e.getMessage());
+            log.warn("[AI TTS] 语音合成失败, model={}, type={}", model, e.getClass().getSimpleName());
+            throw new BusinessException("语音合成失败，请稍后重试");
         }
     }
 }

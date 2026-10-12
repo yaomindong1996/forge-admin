@@ -24,4 +24,12 @@ public enum AiImageGenerateStatus {
     public boolean matches(String value) {
         return value != null && this.code.equalsIgnoreCase(value.trim());
     }
+
+    public boolean canTransitionTo(AiImageGenerateStatus next) {
+        return switch (this) {
+            case PENDING -> next == GENERATING || next == FAILED;
+            case GENERATING -> next == SUCCESS || next == FAILED;
+            case SUCCESS, FAILED -> false;
+        };
+    }
 }

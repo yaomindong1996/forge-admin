@@ -36,6 +36,11 @@ class PrintApplicationSnapshotCodecTest {
     }
 
     @Test void rejectsLossyIdsUnknownFieldsAndUntrustedSource() throws Exception {
+        for (String field : List.of("businessSourceId", "sourceCode")) {
+            ObjectNode root = root();
+            ((ObjectNode) root.at("/printing/bindings/0/source")).put(field, "99");
+            assertThatThrownBy(() -> codec.read(root.toString(), 2L)).isInstanceOf(BusinessException.class);
+        }
         for (String field : List.of("templateId", "templateVersionId")) {
             for (String value : List.of("1.5", "true", "-1", "9223372036854775808", "\"01\"")) {
                 ObjectNode root = root();

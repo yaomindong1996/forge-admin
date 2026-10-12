@@ -57,6 +57,8 @@ class DataAuditCaptureServiceTest {
 
     @BeforeEach
     void setUp() {
+        // 索引是进程级缓存，第一项测试不能继承前一个测试类的租户策略。
+        DataAuditTransactionHolder.index().clearTenant(TENANT_ID);
         TenantContextHolder.setTenantId(TENANT_ID);
         TransactionSynchronizationManager.initSynchronization();
         TransactionSynchronizationManager.setActualTransactionActive(true);

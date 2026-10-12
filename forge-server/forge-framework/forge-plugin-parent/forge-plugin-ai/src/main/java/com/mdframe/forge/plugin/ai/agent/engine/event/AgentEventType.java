@@ -1,13 +1,15 @@
 package com.mdframe.forge.plugin.ai.agent.engine.event;
 
 /**
- * Agent 事件类型枚举（29种 + CUSTOM）
+ * Agent 事件类型枚举（含直接订阅错误与自定义扩展事件）。
  */
 public enum AgentEventType {
 
     AGENT_START("AGENT_START"),
     AGENT_END("AGENT_END"),
     AGENT_RESULT("AGENT_RESULT"),
+    /** 本次直接订阅失败提示；失去占用时不得发布给全局持久化监听器。 */
+    ERROR("ERROR"),
 
     MODEL_CALL_START("MODEL_CALL_START"),
     MODEL_CALL_END("MODEL_CALL_END"),

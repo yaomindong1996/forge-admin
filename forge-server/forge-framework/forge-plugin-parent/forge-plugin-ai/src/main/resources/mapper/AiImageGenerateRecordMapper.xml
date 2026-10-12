@@ -21,4 +21,12 @@
         ORDER BY create_time DESC
     </select>
 
+    <!-- 状态转换与身份在同一更新中比较；重复调度不能重复调用供应商或覆盖终态。 -->
+    <update id="transition">
+        UPDATE ai_image_generate_record
+        SET status = #{record.status}, result_file_id = #{record.resultFileId}, error_msg = #{record.errorMsg},
+            update_by = #{record.userId}, update_time = NOW()
+        WHERE id = #{record.id} AND tenant_id = #{record.tenantId} AND user_id = #{record.userId}
+          AND del_flag = 0 AND status = #{expectedStatus}
+    </update>
 </mapper>

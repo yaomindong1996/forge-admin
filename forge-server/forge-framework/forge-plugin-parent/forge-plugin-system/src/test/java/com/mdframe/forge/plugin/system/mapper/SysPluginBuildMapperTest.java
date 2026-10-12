@@ -1,7 +1,7 @@
 package com.mdframe.forge.plugin.system.mapper;
 
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
-import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
+import com.baomidou.mybatisplus.spring.MybatisSqlSessionFactoryBean;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mdframe.forge.plugin.system.config.PluginWorkerIdentity;
 import com.mdframe.forge.plugin.system.dto.PluginBuildClaimDTO;

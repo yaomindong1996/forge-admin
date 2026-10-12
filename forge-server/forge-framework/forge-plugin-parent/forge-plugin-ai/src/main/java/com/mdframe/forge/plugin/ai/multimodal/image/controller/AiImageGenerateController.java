@@ -4,9 +4,11 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.ai.multimodal.image.AiImageGenerationService;
 import com.mdframe.forge.plugin.ai.multimodal.image.domain.AiImageGenerateRecord;
+import com.mdframe.forge.plugin.ai.multimodal.image.dto.AiImageGenerateDTO;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
 
 /**
  * AI图片生成控制器
@@ -23,8 +25,8 @@ public class AiImageGenerateController {
      */
     @SaCheckPermission("ai:image:generate")
     @PostMapping
-    public RespInfo<Long> generate(@RequestBody AiImageGenerateRecord record) {
-        Long recordId = imageGenerationService.generate(record);
+    public RespInfo<Long> generate(@Validated @RequestBody AiImageGenerateDTO request) {
+        Long recordId = imageGenerationService.generate(request.toRecord());
         return RespInfo.success(recordId);
     }
 

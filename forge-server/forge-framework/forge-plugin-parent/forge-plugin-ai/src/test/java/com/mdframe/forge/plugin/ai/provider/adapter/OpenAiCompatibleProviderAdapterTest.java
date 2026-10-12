@@ -36,7 +36,7 @@ class OpenAiCompatibleProviderAdapterTest {
         ChatModel chatModel = adapter.createChatModel(provider, runtimeOptions);
 
         assertInstanceOf(OpenAiChatModel.class, chatModel);
-        OpenAiChatOptions options = assertInstanceOf(OpenAiChatOptions.class, chatModel.getDefaultOptions());
+        OpenAiChatOptions options = assertInstanceOf(OpenAiChatOptions.class, chatModel.getOptions());
         assertEquals("model-a", options.getModel());
         assertEquals(0.5D, options.getTemperature());
         assertEquals(256, options.getMaxTokens());

@@ -1,6 +1,6 @@
 package com.mdframe.forge.plugin.message.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.message.domain.entity.SysEmailConfig;
 import com.mdframe.forge.plugin.message.mapper.SysEmailConfigMapper;
 import com.mdframe.forge.plugin.message.service.EmailConfigService;

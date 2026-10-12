@@ -105,13 +105,16 @@ public class AiClientImpl implements AiClient {
             abortOrFailLease(resolved, dispatched, e);
             recordObservation(requestId, request, resolved, resolved == null ? AiInvocationOutcome.ROUTING_FAILED : AiInvocationOutcome.FAILED,
                     dispatched ? AiInvocationPhase.DISPATCHED : AiInvocationPhase.RESOLUTION, dispatched, e, null, elapsedMillis(startedAt));
-            log.warn("[AiClient] 业务异常, requestId={}, agentCode={}, exceptionType={}", requestId, request.getAgentCode(), e.getClass().getSimpleName(), e);
+            log.warn("[AiClient] 业务异常, requestId={}, agentCode={}, exceptionType={}",
+                    requestId, request.getAgentCode(), e.getClass().getSimpleName());
             return handleBusinessException(e, request);
         } catch (Exception e) {
             abortOrFailLease(resolved, dispatched, e);
             recordObservation(requestId, request, resolved, AiInvocationOutcome.FAILED,
                     dispatched ? AiInvocationPhase.DISPATCHED : AiInvocationPhase.PREPARATION, dispatched, e, null, elapsedMillis(startedAt));
-            log.error("[AiClient] AI调用失败, requestId={}, agentCode={}, exceptionType={}", requestId, request.getAgentCode(), e.getClass().getSimpleName(), e);
+            // 官方 SDK 异常链可能含供应商响应正文；诊断状态另行记录，日志不输出异常正文。
+            log.error("[AiClient] AI调用失败, requestId={}, agentCode={}, exceptionType={}",
+                    requestId, request.getAgentCode(), e.getClass().getSimpleName());
             return AiClientResponse.fallback(null, AiFallbackReason.API_ERROR, request.getSessionId());
         }
     }
@@ -232,7 +235,8 @@ public class AiClientImpl implements AiClient {
                     resolved == null ? AiInvocationOutcome.ROUTING_FAILED : AiInvocationOutcome.FAILED,
                     resolved == null ? AiInvocationPhase.RESOLUTION : AiInvocationPhase.PREPARATION,
                     dispatched.get(), e, null, elapsedMillis(startedAt));
-            log.warn("[AiClient] 业务异常(流式), requestId={}, agentCode={}, exceptionType={}", requestId, request.getAgentCode(), e.getClass().getSimpleName(), e);
+            log.warn("[AiClient] 业务异常(流式), requestId={}, agentCode={}, exceptionType={}",
+                    requestId, request.getAgentCode(), e.getClass().getSimpleName());
             AiClientResponse fallbackResp = handleBusinessException(e, request);
             return Flux.just("{\"fallback\":true,\"reason\":\"" + fallbackResp.getFallbackReason() + "\"}");
         } catch (Exception e) {
@@ -241,7 +245,8 @@ public class AiClientImpl implements AiClient {
             recordObservation(requestId, request, resolved, AiInvocationOutcome.FAILED,
                     resolved == null ? AiInvocationPhase.RESOLUTION : AiInvocationPhase.PREPARATION,
                     dispatched.get(), e, null, elapsedMillis(startedAt));
-            log.error("[AiClient] 流式初始化失败, requestId={}, agentCode={}, exceptionType={}", requestId, request.getAgentCode(), e.getClass().getSimpleName(), e);
+            log.error("[AiClient] 流式初始化失败, requestId={}, agentCode={}, exceptionType={}",
+                    requestId, request.getAgentCode(), e.getClass().getSimpleName());
             return Flux.just("{\"fallback\":true,\"reason\":\"API_ERROR\"}");
         }
     }

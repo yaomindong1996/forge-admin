@@ -2,7 +2,7 @@ package com.mdframe.forge.plugin.system.service.impl;
 
 import cn.dev33.satoken.SaManager;
 import cn.dev33.satoken.session.SaSession;
-import cn.dev33.satoken.stp.SaLoginModel;
+import cn.dev33.satoken.stp.parameter.SaLoginParameter;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.IdUtil;
@@ -346,7 +346,7 @@ public class SystemAuthServiceImpl implements IAuthService {
         loginUser.setLoginTime(System.currentTimeMillis());
         loginUser.setUserClient(resolvedClient);
 
-        StpUtil.login(loginUser.getUserId(), new SaLoginModel().setDevice(resolvedClient));
+        StpUtil.login(loginUser.getUserId(), new SaLoginParameter().setDevice(resolvedClient));
         SessionHelper.setLoginUser(loginUser);
         try {
             onlineUserService.addOnlineUser(StpUtil.getTokenValue(), loginUser.getUserId());

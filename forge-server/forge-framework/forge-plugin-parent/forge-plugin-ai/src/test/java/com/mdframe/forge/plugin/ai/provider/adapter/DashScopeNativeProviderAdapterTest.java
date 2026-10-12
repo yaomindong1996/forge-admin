@@ -1,7 +1,6 @@
 package com.mdframe.forge.plugin.ai.provider.adapter;
 
-import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
-import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
+import com.mdframe.forge.plugin.ai.provider.dashscope.DashScopeNativeChatModel;
 import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import org.junit.jupiter.api.Test;
@@ -34,9 +33,9 @@ class DashScopeNativeProviderAdapterTest {
 
         ChatModel chatModel = adapter.createChatModel(provider, runtimeOptions);
 
-        assertInstanceOf(DashScopeChatModel.class, chatModel);
-        DashScopeChatOptions options = assertInstanceOf(DashScopeChatOptions.class,
-                chatModel.getDefaultOptions());
+        assertInstanceOf(DashScopeNativeChatModel.class, chatModel);
+        ToolCallingChatOptions options = assertInstanceOf(ToolCallingChatOptions.class,
+                chatModel.getOptions());
         assertInstanceOf(ToolCallingChatOptions.class, options);
         assertEquals("qwen-plus", options.getModel());
         assertEquals(0.7D, options.getTemperature());

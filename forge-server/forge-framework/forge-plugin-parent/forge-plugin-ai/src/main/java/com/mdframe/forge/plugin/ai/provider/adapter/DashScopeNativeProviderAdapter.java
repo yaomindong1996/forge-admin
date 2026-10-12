@@ -1,15 +1,12 @@
 package com.mdframe.forge.plugin.ai.provider.adapter;
 
-import com.alibaba.cloud.ai.dashscope.api.DashScopeApi;
-import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
-import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
-import com.alibaba.cloud.ai.dashscope.embedding.text.DashScopeEmbeddingModel;
-import com.alibaba.cloud.ai.dashscope.embedding.text.DashScopeEmbeddingOptions;
+import com.mdframe.forge.plugin.ai.provider.dashscope.DashScopeNativeChatModel;
+import com.mdframe.forge.plugin.ai.provider.dashscope.DashScopeNativeEmbeddingModel;
 import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.document.MetadataMode;
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -32,38 +29,24 @@ public class DashScopeNativeProviderAdapter implements AiProviderAdapter {
 
     @Override
     public ChatModel createChatModel(AiProvider provider, AiModelRuntimeOptions options) {
+        validate(provider, options);
         String baseUrl = AiProviderBaseUrlPolicy.normalizeAndValidate(adapterCode(), provider.getBaseUrl());
-        DashScopeApi dashScopeApi = DashScopeApi.builder()
-                .baseUrl(baseUrl)
-                .apiKey(provider.getApiKey())
-                .build();
-        DashScopeChatOptions.DashScopeChatOptionsBuilder optionsBuilder =
-                DashScopeChatOptions.builder().model(options.model());
+        var optionsBuilder = ToolCallingChatOptions.builder().model(options.model());
         if (options.temperature() != null) {
             optionsBuilder.temperature(options.temperature());
         }
         if (options.maxTokens() != null) {
-            optionsBuilder.maxToken(options.maxTokens());
+            optionsBuilder.maxTokens(options.maxTokens());
         }
-        return DashScopeChatModel.builder()
-                .dashScopeApi(dashScopeApi)
-                .defaultOptions(optionsBuilder.build())
-                .build();
+        // 使用原生 generation/SSE 协议；不依赖与 Spring AI 2 GA 不兼容的 Alibaba milestone。
+        return new DashScopeNativeChatModel(baseUrl, provider.getApiKey(), optionsBuilder.build());
     }
 
     @Override
     public EmbeddingModel createEmbeddingModel(AiProvider provider, String model) {
         validateCommon(provider, new AiModelRuntimeOptions(model, null, null));
         String baseUrl = AiProviderBaseUrlPolicy.normalizeAndValidate(adapterCode(), provider.getBaseUrl());
-        DashScopeApi dashScopeApi = DashScopeApi.builder()
-                .baseUrl(baseUrl)
-                .apiKey(provider.getApiKey())
-                .build();
-        return DashScopeEmbeddingModel.builder()
-                .dashScopeApi(dashScopeApi)
-                .metadataMode(MetadataMode.NONE)
-                .defaultOptions(DashScopeEmbeddingOptions.builder().model(model).build())
-                .build();
+        return new DashScopeNativeEmbeddingModel(baseUrl, provider.getApiKey(), model);
     }
 
     private void validateCommon(AiProvider provider, AiModelRuntimeOptions options) {

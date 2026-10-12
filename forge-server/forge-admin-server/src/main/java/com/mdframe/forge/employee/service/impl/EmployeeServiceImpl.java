@@ -3,7 +3,7 @@ package com.mdframe.forge.employee.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.mdframe.forge.employee.dto.EmployeeDTO;
 import com.mdframe.forge.employee.dto.EmployeeQuery;
 import com.mdframe.forge.employee.entity.Employee;

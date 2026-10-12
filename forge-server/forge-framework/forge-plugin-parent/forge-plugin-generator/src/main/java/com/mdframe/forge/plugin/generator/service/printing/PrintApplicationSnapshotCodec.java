@@ -34,7 +34,7 @@ public class PrintApplicationSnapshotCodec {
     private static final Set<String> BINDING_KEYS = Set.of("source", "scene", "templateId",
             "templateVersionId", "schemaHash", "isDefault", "sortOrder");
     private static final Set<String> SOURCE_KEYS = Set.of("applicationId", "sourceType", "pageId",
-            "formKey", "objectCode");
+            "formKey", "objectCode", "businessSourceId", "sourceCode");
     private final Validator validator;
     private final ObjectMapper json = new ObjectMapper(JsonFactory.builder()
             .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
@@ -43,7 +43,9 @@ public class PrintApplicationSnapshotCodec {
             .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
 
     public record Binding(PrintSourceRequest source, PrintScene scene, Long templateId,
-                          Long templateVersionId, String schemaHash, boolean isDefault, int sortOrder) { }
+                          Long templateVersionId, String schemaHash,
+                          @com.fasterxml.jackson.annotation.JsonProperty("isDefault") boolean isDefault,
+                          int sortOrder) { }
 
     public List<Binding> read(String snapshotJson, Long applicationId) {
         if (snapshotJson == null || snapshotJson.isBlank() || snapshotJson.length() > MAX_SNAPSHOT_CHARS) {
@@ -91,6 +93,11 @@ public class PrintApplicationSnapshotCodec {
         keys(item, BINDING_KEYS);
         JsonNode sourceNode = item.path("source");
         keys(sourceNode, SOURCE_KEYS);
+        // 来源 DTO 已扩展独立业务字段；允许历史应用来源序列化出的 null，但不能混入独立来源身份。
+        if (!sourceNode.path("businessSourceId").isMissingNode() && !sourceNode.path("businessSourceId").isNull()
+                || !sourceNode.path("sourceCode").isMissingNode() && !sourceNode.path("sourceCode").isNull()) {
+            throw invalid();
+        }
         PrintSourceRequest source = new PrintSourceRequest(id(sourceNode.path("applicationId")),
                 PrintSourceType.valueOf(text(sourceNode.path("sourceType"))),
                 optionalText(sourceNode.get("pageId")), optionalText(sourceNode.get("formKey")),

@@ -41,8 +41,8 @@ public class IdempotentAspect {
         String idempotentKey = keyGenerator.generate(joinPoint, prefix, idempotent.key());
         
         String requestId = IdUtil.fastSimpleUUID();
-        log.debug("幂等校验开始, requestId={}, strategy={}, key={}", 
-            requestId, idempotent.strategy(), idempotentKey);
+        // key 可能由敏感参数计算，不把原始幂等键（或 Token）写入日志。
+        log.debug("幂等校验开始, requestId={}, strategy={}", requestId, idempotent.strategy());
         
         IdempotentStrategy strategy = idempotent.strategy();
         IdempotentStrategyHandler handler = strategyHandlers.get(strategy);

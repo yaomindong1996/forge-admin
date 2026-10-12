@@ -14,8 +14,8 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.LazyInitializationBeanFactoryPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
-import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
+import org.springframework.boot.jackson2.autoconfigure.Jackson2AutoConfiguration;
+import org.springframework.boot.webmvc.autoconfigure.WebMvcAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -53,7 +53,7 @@ class PluginAutoConfigurationTest {
 
     private final WebApplicationContextRunner web = new WebApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(PluginAutoConfiguration.class, PluginWebAutoConfiguration.class,
-                    JacksonAutoConfiguration.class, WebMvcAutoConfiguration.class))
+                    Jackson2AutoConfiguration.class, WebMvcAutoConfiguration.class))
             .withUserConfiguration(Controllers.class);
 
     @Test

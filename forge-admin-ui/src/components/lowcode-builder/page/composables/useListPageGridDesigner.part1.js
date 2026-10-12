@@ -368,10 +368,10 @@ const localLayout = computed({
 // layout hydrated after later parts wire __impl (see hydrateInitialState)
 
 const blocks = computed(() => localLayout.value.items || [])
-watch(() => props.activeBlockId, (blockId) => {
+watch([() => props.activeBlockId, blocks], ([blockId], [previousId] = []) => {
   if (props.readonly)
     return
-  if (blockId && findBlockInTree(blocks.value, blockId))
+  if (blockId && (blockId !== previousId || !selectedBlockId.value) && findBlockInTree(blocks.value, blockId))
     selectedBlockId.value = blockId
 }, { immediate: true })
 const runtimeTreeFilter = ref({})

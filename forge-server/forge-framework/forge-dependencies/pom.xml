@@ -15,26 +15,26 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring-boot.version>3.5.13</spring-boot.version>
+        <spring-boot.version>4.1.1</spring-boot.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>17</java.version>
-        <mybatis.version>3.5.16</mybatis.version>
-        <springdoc.version>2.6.0</springdoc.version>
+        <mybatis.version>3.5.19</mybatis.version>
+        <springdoc.version>3.1.1</springdoc.version>
         <therapi-javadoc.version>0.15.0</therapi-javadoc.version>
         <easyexcel.version>4.0.2</easyexcel.version>
         <velocity.version>2.3</velocity.version>
         <aviator.version>5.4.3</aviator.version>
-        <satoken.version>1.38.0</satoken.version>
-        <mybatis-plus.version>3.5.7</mybatis-plus.version>
+        <satoken.version>1.45.0</satoken.version>
+        <mybatis-plus.version>3.5.17</mybatis-plus.version>
         <transmittable.version>2.14.5</transmittable.version>
         <p6spy.version>3.9.1</p6spy.version>
         <hutool.version>5.8.31</hutool.version>
         <okhttp.version>4.10.0</okhttp.version>
         <spring-boot-admin.version>3.2.3</spring-boot-admin.version>
-        <redisson.version>3.50.0</redisson.version>
+        <redisson.version>4.8.0</redisson.version>
         <lock4j.version>2.2.7</lock4j.version>
-        <dynamic-ds.version>4.3.1</dynamic-ds.version>
+        <dynamic-ds.version>4.5.0</dynamic-ds.version>
         <oracle.jdbc.version>21.9.0.0</oracle.jdbc.version>
         <snailjob.version>1.1.2</snailjob.version>
         <mapstruct-plus.version>1.4.4</mapstruct-plus.version>
@@ -44,7 +44,6 @@
         <justauth.version>1.16.6</justauth.version>
         <!-- 离线IP地址定位库 -->
         <ip2region.version>2.7.0</ip2region.version>
-        <undertow.version>2.3.15.Final</undertow.version>
         
         <!-- OSS 配置 -->
         <aws.sdk.version>2.25.15</aws.sdk.version>
@@ -57,7 +56,7 @@
         <!-- 面向运行时的D-ORM依赖 -->
         <anyline.version>8.7.2-20240808</anyline.version>
         <!--工作流配置-->
-        <flowable.version>7.0.1</flowable.version>
+        <flowable.version>8.0.0</flowable.version>
         
         <!-- 插件版本 -->
         <maven-jar-plugin.version>3.2.2</maven-jar-plugin.version>
@@ -136,7 +135,7 @@
             <!-- Sa-Token 权限认证, 在线文档：http://sa-token.dev33.cn/ -->
             <dependency>
                 <groupId>cn.dev33</groupId>
-                <artifactId>sa-token-spring-boot3-starter</artifactId>
+                <artifactId>sa-token-spring-boot4-starter</artifactId>
                 <version>${satoken.version}</version>
             </dependency>
             <!-- Sa-Token 整合 jwt -->
@@ -166,7 +165,7 @@
             <!-- dynamic-datasource 多数据源-->
             <dependency>
                 <groupId>com.baomidou</groupId>
-                <artifactId>dynamic-datasource-spring-boot3-starter</artifactId>
+                <artifactId>dynamic-datasource-spring-boot4-starter</artifactId>
                 <version>${dynamic-ds.version}</version>
             </dependency>
 
@@ -184,7 +183,7 @@
             
             <dependency>
                 <groupId>com.baomidou</groupId>
-                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+                <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
             
@@ -197,6 +196,16 @@
             <dependency>
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-extension</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-spring</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-jsqlparser-4.9</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
             
@@ -246,21 +255,6 @@
                 <version>${ip2region.version}</version>
             </dependency>
             
-            <dependency>
-                <groupId>io.undertow</groupId>
-                <artifactId>undertow-core</artifactId>
-                <version>${undertow.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.undertow</groupId>
-                <artifactId>undertow-servlet</artifactId>
-                <version>${undertow.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.undertow</groupId>
-                <artifactId>undertow-websockets-jsr</artifactId>
-                <version>${undertow.version}</version>
-            </dependency>
             
             <dependency>
                 <artifactId>commons-compress</artifactId>

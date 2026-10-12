@@ -57,7 +57,10 @@ export function toolStatusLabel(status) {
   switch (status) {
     case 'running': return '执行中'
     case 'done': return '完成'
+    case 'success': return '完成'
     case 'error': return '失败'
+    case 'waiting_confirm': return '等待确认'
+    case 'aborted': return '未执行'
     default: return status || ''
   }
 }

@@ -8,6 +8,7 @@ import com.mdframe.forge.plugin.ai.knowledge.service.AiKnowledgeService;
 import com.mdframe.forge.plugin.ai.knowledge.service.dto.KnowledgeSearchRequest;
 import com.mdframe.forge.plugin.ai.knowledge.service.dto.KnowledgeSearchResult;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ import java.util.Map;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class RagSearchTool implements AgentTool {
 
     private final AiKnowledgeService knowledgeService;
@@ -112,7 +114,8 @@ public class RagSearchTool implements AgentTool {
             }
             return ToolResult.text(sb.toString());
         } catch (Exception e) {
-            return ToolResult.error("RAG检索失败: " + e.getMessage());
+            log.warn("[AgentRag] 检索失败: exceptionType={}", e.getClass().getSimpleName());
+            return ToolResult.error("RAG 检索失败，请稍后重试");
         }
     }
 

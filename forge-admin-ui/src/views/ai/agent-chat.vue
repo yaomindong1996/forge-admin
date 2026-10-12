@@ -131,8 +131,6 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   agentGetById,
   agentList,
-  engineResume,
-  engineStop,
   messageDelete,
   sessionCreate,
   sessionDeleteByUser,
@@ -140,13 +138,13 @@ import {
   sessionPageByUser,
   sessionPin,
   sessionRename,
-  streamEngineChat,
 } from '@/api/ai'
 import { renderMarkdown, renderMarkdownStreaming } from './components/agent-chat/chat-markdown'
 import { colorFor, formatSessionBucket, parsePresetQuestions } from './components/agent-chat/chat-utils'
 import ChatInput from './components/agent-chat/ChatInput.vue'
 import MessageList from './components/agent-chat/MessageList.vue'
 import SessionSidebar from './components/agent-chat/SessionSidebar.vue'
+import { useAgentChatStream } from './composables/useAgentChatStream'
 import 'highlight.js/styles/atom-one-dark.css'
 
 defineOptions({ name: 'AiAgentChat' })
@@ -172,14 +170,9 @@ const chatInputRef = ref(null)
 const attachFileIds = ref([])
 // 消息内联编辑（仅最新用户消息）：编辑态的消息 id（编辑缓冲由 MessageBubble 自持）
 const editingMsgId = ref(null)
-let abortController = null
-let hitlTimer = null
-let hitlInterval = null
-const HITL_TIMEOUT_SEC = 30
 const hitlCountdown = ref(0)
 let renderTimer = null
 let keywordTimer = null
-let activeAssistantMsg = null
 const sessionActionLoading = ref({})
 
 // 最新用户/助手消息 id：用于把「编辑并重发」限定在最新用户消息、「重新生成/继续生成」限定在最新助手消息
@@ -200,7 +193,7 @@ const lastAssistantId = computed(() => {
 
 // 连接/生成状态（建议项6）：页面级实时状态指示，配合每条消息的状态标签
 const connectionState = computed(() => {
-  if (isStreaming.value && pendingConfirm.value)
+  if (pendingConfirm.value)
     return { label: '等待确认', type: 'warning' }
   if (isStreaming.value)
     return { label: '生成中', type: 'info' }
@@ -257,17 +250,20 @@ function scrollToBottom(force) {
   messageListRef.value?.scrollToBottom(force)
 }
 
-function clearHitlTimer() {
-  if (hitlTimer) {
-    clearTimeout(hitlTimer)
-    hitlTimer = null
-  }
-  if (hitlInterval) {
-    clearInterval(hitlInterval)
-    hitlInterval = null
-  }
-  hitlCountdown.value = 0
-}
+// 流状态、确认计时与终态处理归入独立编排，不再由页面堆叠实现。
+const { startStream, handleConfirm, stopChat, cancelHitl, clearHitlTimer } = useAgentChatStream({
+  message,
+  messages,
+  currentAgent,
+  currentSessionId,
+  isStreaming,
+  connectionError,
+  pendingConfirm,
+  hitlCountdown,
+  scrollToBottom,
+  scheduleRender,
+  flushRender,
+})
 
 // 生成 UUID（会话 ID）
 function generateSessionId() {
@@ -467,7 +463,6 @@ function createAssistantMessage() {
   // 若继续用 push 前的原始对象（assistantMsg），`.content/.thinking += ...` 会绕过 Proxy 的
   // set 拦截、不触发依赖，直到 isStreaming 等其它响应式变化才整篇刷新 →「不流式、一次性全出」。
   const reactiveMsg = messages.value[messages.value.length - 1]
-  activeAssistantMsg = reactiveMsg
   return reactiveMsg
 }
 
@@ -501,8 +496,6 @@ onUnmounted(() => {
     clearTimeout(renderTimer)
   if (keywordTimer)
     clearTimeout(keywordTimer)
-  if (abortController)
-    abortController.abort()
 })
 
 // 显式创建会话并落库（决策 29/30）：创建时即选定并绑定智能体，绑定后不可更改
@@ -655,267 +648,6 @@ function handleSend() {
     session.sessionName = text
     sessionRename(session.id, text).catch(() => { /* 静默，标题以服务端为准 */ })
   }
-}
-
-function startStream(text, assistantMsg, agentCode, images, extra = {}) {
-  isStreaming.value = true
-  assistantMsg.status = 'streaming'
-  assistantMsg.error = ''
-  assistantMsg.firstTokenMs = null
-  assistantMsg.totalMs = null
-  assistantMsg.tokenUsage = null
-  assistantMsg._startedAt = Date.now()
-  connectionError.value = false
-  activeAssistantMsg = assistantMsg
-
-  const payload = {
-    agentCode: agentCode || currentAgent.value?.agentCode,
-    sessionId: currentSessionId.value,
-    message: text,
-    ...extra,
-  }
-  const imgs = (images || []).map(Number).filter(n => !Number.isNaN(n))
-  if (imgs.length)
-    payload.imageFileIds = imgs
-
-  abortController = streamEngineChat(
-    payload,
-    (eventType, data) => {
-      handleSSEEvent(eventType, data, assistantMsg)
-    },
-    () => {
-      flushRender(assistantMsg)
-      assistantMsg.streaming = false
-      if (assistantMsg.status !== 'error' && assistantMsg.status !== 'aborted')
-        assistantMsg.status = assistantMsg.status === 'waiting_confirm' ? 'waiting_confirm' : 'done'
-      if (assistantMsg.status === 'done' && assistantMsg.totalMs == null && assistantMsg._startedAt != null)
-        assistantMsg.totalMs = Date.now() - assistantMsg._startedAt
-      isStreaming.value = false
-      activeAssistantMsg = null
-      scrollToBottom()
-    },
-    (err) => {
-      flushRender(assistantMsg)
-      assistantMsg.streaming = false
-      assistantMsg.status = 'error'
-      assistantMsg.error = err?.message || String(err)
-      isStreaming.value = false
-      connectionError.value = true
-      activeAssistantMsg = null
-      message.error(`对话失败: ${assistantMsg.error}`)
-      scrollToBottom()
-    },
-  )
-}
-
-function handleSSEEvent(eventType, data, assistantMsg) {
-  switch (eventType) {
-    case 'PERSIST_META': {
-      // 流首下发的落库 recordId：让未重载会话也能关联 live 消息到 DB 行
-      if (data?.assistantRecordId != null)
-        assistantMsg.recordId = data.assistantRecordId
-      if (data?.userRecordId != null) {
-        const idx = messages.value.findIndex(m => m.id === assistantMsg.id)
-        for (let i = idx - 1; i >= 0; i -= 1) {
-          if (messages.value[i]?.role === 'user') {
-            messages.value[i].recordId = data.userRecordId
-            break
-          }
-        }
-      }
-      break
-    }
-    case 'TEXT_BLOCK_DELTA': {
-      if (assistantMsg.firstTokenMs == null && assistantMsg._startedAt != null)
-        assistantMsg.firstTokenMs = Date.now() - assistantMsg._startedAt
-      assistantMsg.content += data?.text || ''
-      assistantMsg.status = 'streaming'
-      scheduleRender(assistantMsg)
-      break
-    }
-    case 'THINKING_BLOCK_DELTA': {
-      if (assistantMsg.firstTokenMs == null && assistantMsg._startedAt != null)
-        assistantMsg.firstTokenMs = Date.now() - assistantMsg._startedAt
-      assistantMsg.thinking += data?.text || ''
-      assistantMsg.status = 'streaming'
-      break
-    }
-    case 'TOOL_CALL_START': {
-      const prev = assistantMsg.toolCalls[assistantMsg.toolCalls.length - 1]
-      if (prev && prev.status === 'running')
-        prev.status = 'done'
-      assistantMsg.toolCalls.push({
-        name: data?.tool || '工具',
-        args: data?.args ?? '',
-        result: '',
-        status: 'running',
-        error: '',
-      })
-      assistantMsg.status = 'streaming'
-      break
-    }
-    case 'TOOL_RESULT_TEXT_DELTA':
-    case 'TOOL_RESULT_DATA_DELTA': {
-      const lastTool = assistantMsg.toolCalls[assistantMsg.toolCalls.length - 1]
-      if (lastTool) {
-        if (typeof lastTool.result !== 'string')
-          lastTool.result = ''
-        lastTool.result += data?.content || ''
-      }
-      break
-    }
-    case 'REQUIRE_USER_CONFIRM': {
-      assistantMsg.status = 'waiting_confirm'
-      pendingConfirm.value = {
-        interruptId: data?.interruptId || '',
-        tool: data?.tool || '',
-        args: data?.args ?? '',
-      }
-      clearHitlTimer()
-      hitlCountdown.value = HITL_TIMEOUT_SEC
-      hitlInterval = setInterval(() => {
-        hitlCountdown.value = Math.max(0, hitlCountdown.value - 1)
-        if (hitlCountdown.value <= 0 && hitlInterval) {
-          clearInterval(hitlInterval)
-          hitlInterval = null
-        }
-      }, 1000)
-      hitlTimer = setTimeout(() => {
-        if (pendingConfirm.value) {
-          message.warning(`工具确认超时，已自动拒绝 "${pendingConfirm.value.tool}"`)
-          handleConfirm(false)
-        }
-      }, HITL_TIMEOUT_SEC * 1000)
-      break
-    }
-    case 'HINT_BLOCK': {
-      message.info(data?.hint || '提示信息')
-      break
-    }
-    case 'MODEL_CALL_END': {
-      // 用量：末轮覆盖，与后端 AgentChatPersister 落库语义一致（多轮以最后一轮为准）
-      const total = data?.usage?.totalTokens
-      if (total != null)
-        assistantMsg.tokenUsage = total
-      break
-    }
-    case 'AGENT_END': {
-      flushRender(assistantMsg)
-      if (assistantMsg._startedAt != null)
-        assistantMsg.totalMs = Date.now() - assistantMsg._startedAt
-      assistantMsg.toolCalls.forEach((tc) => {
-        if (tc.status === 'running')
-          tc.status = 'done'
-      })
-      assistantMsg.streaming = false
-      assistantMsg.status = assistantMsg.status === 'waiting_confirm' ? 'waiting_confirm' : (data?.aborted ? 'aborted' : 'done')
-      break
-    }
-    case 'ERROR':
-    case 'error': {
-      flushRender(assistantMsg)
-      assistantMsg.streaming = false
-      assistantMsg.status = 'error'
-      assistantMsg.error = data?.message || data?.error || '对话失败'
-      break
-    }
-    default:
-      break
-  }
-  scrollToBottom()
-}
-
-async function handleConfirm(confirmed) {
-  if (!pendingConfirm.value)
-    return
-  const interruptId = pendingConfirm.value.interruptId
-  const assistantMsg = activeAssistantMsg || getLastAssistantMessage()
-  clearHitlTimer()
-  pendingConfirm.value = null
-
-  try {
-    if (!interruptId) {
-      message.error('确认信息缺失，无法恢复对话')
-      return
-    }
-    if (assistantMsg) {
-      assistantMsg.status = 'streaming'
-      assistantMsg.streaming = true
-      if (assistantMsg._startedAt == null)
-        assistantMsg._startedAt = Date.now()
-    }
-    isStreaming.value = true
-    connectionError.value = false
-    activeAssistantMsg = assistantMsg
-    abortController = engineResume(
-      interruptId,
-      confirmed,
-      (eventType, data) => {
-        if (assistantMsg)
-          handleSSEEvent(eventType, data, assistantMsg)
-      },
-      () => {
-        if (assistantMsg) {
-          flushRender(assistantMsg)
-          assistantMsg.streaming = false
-          assistantMsg.status = 'done'
-          if (assistantMsg.totalMs == null && assistantMsg._startedAt != null)
-            assistantMsg.totalMs = Date.now() - assistantMsg._startedAt
-        }
-        isStreaming.value = false
-        activeAssistantMsg = null
-        scrollToBottom()
-      },
-      (err) => {
-        if (assistantMsg) {
-          flushRender(assistantMsg)
-          assistantMsg.streaming = false
-          assistantMsg.status = 'error'
-          assistantMsg.error = err?.message || String(err)
-        }
-        isStreaming.value = false
-        connectionError.value = true
-        activeAssistantMsg = null
-        message.error(`恢复失败: ${err?.message || err}`)
-      },
-    )
-  }
-  catch {
-    message.error('确认操作失败')
-  }
-}
-
-function cancelHitl() {
-  clearHitlTimer()
-  pendingConfirm.value = null
-  stopChat()
-}
-
-function stopChat() {
-  if (abortController) {
-    if (currentSessionId.value)
-      engineStop(currentSessionId.value).catch(() => {})
-    abortController.abort()
-    abortController = null
-  }
-  if (activeAssistantMsg) {
-    flushRender(activeAssistantMsg)
-    activeAssistantMsg.streaming = false
-    if (activeAssistantMsg.status === 'streaming')
-      activeAssistantMsg.status = 'aborted'
-    if (activeAssistantMsg.totalMs == null && activeAssistantMsg._startedAt != null)
-      activeAssistantMsg.totalMs = Date.now() - activeAssistantMsg._startedAt
-  }
-  isStreaming.value = false
-}
-
-function getLastAssistantMessage() {
-  for (let i = messages.value.length - 1; i >= 0; i -= 1) {
-    const item = messages.value[i]
-    if (item && item.role === 'assistant')
-      return item
-  }
-  return null
 }
 
 function getLastUserMessage() {
@@ -1091,7 +823,9 @@ function flushRender(msg) {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 12px 32px rgba(15, 23, 42, 0.06);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.03),
+    0 12px 32px rgba(15, 23, 42, 0.06);
   overflow: hidden;
 }
 

@@ -1,20 +1,29 @@
 package com.mdframe.forge.plugin.ai.agent.engine;
 
-import com.alibaba.fastjson2.JSON;
 import com.mdframe.forge.plugin.ai.agent.domain.AiAgent;
 import com.mdframe.forge.plugin.ai.agent.engine.tool.AgentTool;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import lombok.Data;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.content.Media;
 import org.springframework.util.MimeTypeUtils;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * ReAct 循环上下文
@@ -58,21 +67,91 @@ public class ReactContext {
      */
     private volatile boolean cancelled;
 
-    /**
-     * 当前轮次的工具调用和结果（用于构造下一轮消息）
-     */
-    private List<String> toolCallResults = new ArrayList<>();
+    /** 失去分布式所有权与用户主动停止不同，旧运行不能再发布终止事件覆盖新运行。 */
+    @JsonIgnore
+    private volatile boolean executionLost;
+    @JsonIgnore
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private Runnable executionGuard = () -> { };
+
+    /** 只在当前 loop 线程修改；人工恢复通过显式快照重建，不序列化 Spring AI 模型对象。 */
+    private List<Message> toolMessages = new ArrayList<>();
+    private List<AssistantMessage.ToolCall> pendingToolCalls = new ArrayList<>();
+    private int pendingToolIndex;
+    private String confirmedToolCallId;
+    private final Sinks.Empty<Void> cancellation = Sinks.empty();
 
     /**
      * 本 Agent 运行时应向模型声明的工具列表（已解析为 AgentTool，去重）。
      * 由 AgentEngineService.buildContext 依据「工具绑定表 + 知识库绑定」解析注入；
      * 空列表表示本次不声明任何工具（普通对话 Agent，行为与历史一致）。
-     * ReactLoop.callModel 据此构造 OpenAiChatOptions.toolCallbacks。
+     * 工具 Prompt 工厂据此复制当前模型的 ToolCallingChatOptions。
      */
     private List<AgentTool> boundTools = new ArrayList<>();
 
-    public void addToolResult(String toolName, String toolArgs, String result) {
-        toolCallResults.add("{\"tool\":\"" + toolName + "\",\"args\":" + toolArgs + ",\"result\":\"" + result + "\"}");
+    public void beginToolTurn(AssistantMessage assistant) {
+        if (pendingToolCall() != null) {
+            throw new BusinessException("仍有待处理工具，不能开始新模型轮次");
+        }
+        Set<String> ids = new HashSet<>();
+        for (Message message : toolMessages) {
+            if (message instanceof AssistantMessage prior) {
+                prior.getToolCalls().forEach(call -> ids.add(call.id()));
+            }
+        }
+        List<AssistantMessage.ToolCall> calls = assistant.getToolCalls();
+        for (AssistantMessage.ToolCall call : calls) {
+            if (call.id() == null || call.id().isBlank() || !ids.add(call.id())
+                    || call.name() == null || call.name().isBlank() || !"function".equals(call.type())) {
+                throw new BusinessException("模型返回无效或重复的工具调用");
+            }
+        }
+        pendingToolCalls = List.copyOf(calls);
+        pendingToolIndex = 0;
+        toolMessages.add(assistant);
+    }
+
+    public AssistantMessage.ToolCall pendingToolCall() {
+        return pendingToolIndex < pendingToolCalls.size() ? pendingToolCalls.get(pendingToolIndex) : null;
+    }
+
+    public void addToolResult(AssistantMessage.ToolCall call, String result) {
+        if (pendingToolCall() == null || !pendingToolCall().id().equals(call.id())) {
+            throw new BusinessException("工具结果与当前待执行调用不匹配");
+        }
+        var response = new ToolResponseMessage.ToolResponse(call.id(), call.name(), result);
+        toolMessages.add(ToolResponseMessage.builder().responses(List.of(response)).build());
+        pendingToolIndex++;
+        confirmedToolCallId = null;
+    }
+
+    public void completeToolTurn() {
+        if (pendingToolCall() != null) {
+            throw new BusinessException("工具调用结果未完整返回");
+        }
+        pendingToolCalls = new ArrayList<>();
+        pendingToolIndex = 0;
+        turnIndex++;
+    }
+
+    public void setCancelled(boolean cancelled) {
+        this.cancelled = cancelled;
+        if (cancelled) {
+            cancellation.tryEmitEmpty();
+        }
+    }
+
+    public Mono<Void> cancellationSignal() {
+        return cancellation.asMono();
+    }
+
+    public void attachExecutionGuard(Runnable guard) {
+        executionGuard = java.util.Objects.requireNonNull(guard);
+    }
+
+    public void verifyExecution() {
+        executionGuard.run();
     }
 
     /**
@@ -95,14 +174,8 @@ public class ReactContext {
             messages.add(userMsg);
         }
 
-        // 如果有工具结果，构造工具结果消息
-        if (!toolCallResults.isEmpty()) {
-            StringBuilder sb = new StringBuilder("工具执行结果：\n");
-            for (String result : toolCallResults) {
-                sb.append(result).append("\n");
-            }
-            messages.add(new AssistantMessage(sb.toString()));
-        }
+        // assistant 工具声明与 tool 结果必须保留原调用 ID 和顺序，不能替换为普通文本。
+        messages.addAll(toolMessages);
 
         return messages;
     }

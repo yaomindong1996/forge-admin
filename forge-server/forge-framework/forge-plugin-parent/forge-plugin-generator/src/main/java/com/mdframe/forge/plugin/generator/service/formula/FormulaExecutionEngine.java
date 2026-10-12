@@ -260,6 +260,8 @@ public class FormulaExecutionEngine {
             context.put(fieldName, hr.fallbackValue);
             resultBuilder.putError(fieldName, hr.errorMessage);
             Map<String, Object> metadata = new LinkedHashMap<>(lookupResult.getMetadata());
+            // 降级值不仅供后续公式使用，也必须保留在对外结果中；错误标记仍保持失败。
+            resultBuilder.putResult(fieldName, hr.fallbackValue);
             metadata.put("lookupMatched", false);
             return StepOutcome.failure(hr.fallbackValue, hr.errorMessage, metadata);
         } catch (Exception e) {
@@ -269,6 +271,7 @@ public class FormulaExecutionEngine {
             handleResults.add(hr);
             context.put(fieldName, hr.fallbackValue);
             resultBuilder.putError(fieldName, hr.errorMessage);
+            resultBuilder.putResult(fieldName, hr.fallbackValue);
             return StepOutcome.failure(hr.fallbackValue, hr.errorMessage);
         }
     }

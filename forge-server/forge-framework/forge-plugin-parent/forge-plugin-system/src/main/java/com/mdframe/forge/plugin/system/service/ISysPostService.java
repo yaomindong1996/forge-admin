@@ -1,7 +1,7 @@
 package com.mdframe.forge.plugin.system.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.mdframe.forge.plugin.system.dto.SysPostDTO;
 import com.mdframe.forge.plugin.system.dto.SysPostQuery;
 import com.mdframe.forge.plugin.system.entity.SysPost;

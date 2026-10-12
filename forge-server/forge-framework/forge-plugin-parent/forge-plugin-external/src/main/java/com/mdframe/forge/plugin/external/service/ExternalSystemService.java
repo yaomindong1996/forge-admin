@@ -1,7 +1,7 @@
 package com.mdframe.forge.plugin.external.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.mdframe.forge.plugin.external.dto.ExternalSystemQuery;
 import com.mdframe.forge.plugin.external.entity.ExternalSystem;
 

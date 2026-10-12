@@ -2,7 +2,7 @@ package com.mdframe.forge.plugin.message.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.message.domain.entity.SysMessageReceiver;
 import com.mdframe.forge.plugin.message.mapper.SysMessageReceiverMapper;
 import com.mdframe.forge.plugin.message.service.MessageReceiverResolver;

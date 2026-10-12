@@ -1,7 +1,7 @@
 package com.mdframe.forge.report.material.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.mdframe.forge.report.material.client.ReportMaterialFileClient;
 import com.mdframe.forge.report.material.domain.ReportMaterial;
 import com.mdframe.forge.report.material.dto.ReportMaterialCreateDTO;

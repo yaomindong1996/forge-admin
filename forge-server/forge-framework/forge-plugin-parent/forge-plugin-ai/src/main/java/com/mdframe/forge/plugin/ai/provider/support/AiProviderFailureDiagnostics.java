@@ -1,5 +1,7 @@
 package com.mdframe.forge.plugin.ai.provider.support;
 
+import com.openai.errors.OpenAIServiceException;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,6 +38,14 @@ public record AiProviderFailureDiagnostics(Integer httpStatus, String errorCode)
         Throwable current = failure;
         int depth = 0;
         while (current != null && depth++ < MAX_CAUSE_DEPTH) {
+            // 新官方 SDK 不再保证旧版 "400 - JSON" 异常格式，优先读取其结构化状态与错误码。
+            if (current instanceof OpenAIServiceException sdk) {
+                return new AiProviderFailureDiagnostics(sdk.statusCode(), sdk.code().orElseGet(
+                        () -> sdk.type().orElse(null)));
+            }
+            if (current instanceof AiProviderRequestException nativeFailure) {
+                return new AiProviderFailureDiagnostics(nativeFailure.httpStatus(), nativeFailure.errorCode());
+            }
             String message = limit(current.getMessage());
             if (httpStatus == null) {
                 httpStatus = extractHttpStatus(message);

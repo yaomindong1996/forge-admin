@@ -186,6 +186,8 @@ describe('runtime form layout hydration', () => {
     const nodes = hydrateRuntimeFormLayout(flatFields(), legacyLayout, uiDocument)
     expect(nodes[0].nodeType).toBe('card')
     expect(nodes[0].children.map(n => n.field)).toEqual(['name', 'age'])
-    expect(nodes[1].field).toBe('remark')
+    // uiDocument 是权威画布，不能追加未在画布中出现的旧字段（避免权限/布局回退）。
+    expect(nodes).toHaveLength(1)
+    expect(JSON.stringify(nodes)).not.toContain('remark')
   })
 })

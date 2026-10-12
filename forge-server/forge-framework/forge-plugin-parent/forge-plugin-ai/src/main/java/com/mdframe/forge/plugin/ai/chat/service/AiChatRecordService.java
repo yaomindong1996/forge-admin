@@ -1,6 +1,6 @@
 package com.mdframe.forge.plugin.ai.chat.service;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.ai.chat.domain.AiChatRecord;
 import com.mdframe.forge.plugin.ai.chat.mapper.AiChatRecordMapper;
 import org.springframework.stereotype.Service;

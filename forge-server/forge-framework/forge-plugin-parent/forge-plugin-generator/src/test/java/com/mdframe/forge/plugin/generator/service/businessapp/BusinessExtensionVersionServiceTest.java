@@ -1,6 +1,6 @@
 package com.mdframe.forge.plugin.generator.service.businessapp;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mdframe.forge.plugin.generator.constant.BusinessExtensionStatus;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessExtension;
@@ -51,7 +51,7 @@ class BusinessExtensionVersionServiceTest {
         });
         BusinessExtensionVersionService service = new BusinessExtensionVersionService(
                 extensionMapper, new PermissiveLockService(extensionMapper), new ObjectMapper(),
-                new BusinessExtensionStateMachine(), null);
+                new BusinessExtensionStateMachine(), org.mockito.Mockito.mock(BusinessApplicationChangeTracker.class));
         setBaseMapper(service, versionMapper);
         BusinessExtensionVersionDTO dto = new BusinessExtensionVersionDTO();
         dto.setContent("return { changed: true }");
@@ -96,7 +96,7 @@ class BusinessExtensionVersionServiceTest {
         });
         BusinessExtensionVersionService service = new BusinessExtensionVersionService(
                 extensionMapper, new PermissiveLockService(extensionMapper), new ObjectMapper(),
-                new BusinessExtensionStateMachine(), null);
+                new BusinessExtensionStateMachine(), org.mockito.Mockito.mock(BusinessApplicationChangeTracker.class));
         setBaseMapper(service, versionMapper);
 
         Integer rollbackVersion = service.rollback(extension.getId(), 1, "lock-token");
@@ -121,7 +121,7 @@ class BusinessExtensionVersionServiceTest {
     }
 
     private static void setBaseMapper(Object service, Object mapper) throws Exception {
-        Field field = ServiceImpl.class.getDeclaredField("baseMapper");
+        Field field = org.springframework.util.ReflectionUtils.findField(ServiceImpl.class, "baseMapper");
         field.setAccessible(true);
         field.set(service, mapper);
     }

@@ -1,7 +1,7 @@
 /**
  * @fileoverview SpecPropertyPanel 组件测试 — C3 两列紧凑网格布局红线
  * @description 验证 schema 驱动属性面板的布局规则：
- *   boolean 内联开关行 / json·textarea 占满整行 / section 分组标题占满整行 /
+ *   boolean 标题上置 / json·textarea 占满整行 / section 分组标题占满整行 /
  *   excludeKeys 排除 / update:prop 事件签名。
  */
 
@@ -34,11 +34,13 @@ function mountPanel(props = {}) {
 }
 
 describe('specPropertyPanel (C3 两列紧凑网格)', () => {
-  it('boolean 属性渲染为内联开关行（label + switch 同行）', () => {
+  it('boolean 属性和其它控件保持统一的上置标题', () => {
     const wrapper = mountPanel({ blockType: 'collapse', modelProps: {} })
     const switches = wrapper.findAll('.spec-property-switch')
     expect(switches).toHaveLength(1)
-    expect(switches[0].text()).toContain('手风琴模式')
+    const field = switches[0].element.closest('.spec-property-field')
+    expect(field.textContent).toContain('手风琴模式')
+    expect(field.querySelector('.spec-property-field-label')).not.toBeNull()
   })
 
   it('json 属性占满整行（full row），不与其它属性并排', () => {

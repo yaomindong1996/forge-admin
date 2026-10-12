@@ -37,13 +37,13 @@ class RedisResultCacheServiceTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
         resultCacheService = new RedisResultCacheService(redisTemplate, objectMapper);
     }
     
     @Test
     @DisplayName("缓存执行结果 - 成功")
     void testCacheResult_Success() throws Exception {
+        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
         String key = "test-key";
         Object result = "test-result";
         int expireSeconds = 3600;
@@ -59,6 +59,7 @@ class RedisResultCacheServiceTest {
     @Test
     @DisplayName("缓存异常结果 - 成功")
     void testCacheException_Success() {
+        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
         String key = "test-key";
         Exception exception = new RuntimeException("test-exception");
         int expireSeconds = 3600;
@@ -144,6 +145,7 @@ class RedisResultCacheServiceTest {
     @Test
     @DisplayName("标记处理中状态 - 成功")
     void testMarkProcessing_Success() {
+        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
         String key = "test-key";
         String requestId = "test-request-id";
         int expireSeconds = 600;

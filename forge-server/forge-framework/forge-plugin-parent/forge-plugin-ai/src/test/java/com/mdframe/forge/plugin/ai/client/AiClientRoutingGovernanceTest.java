@@ -74,6 +74,9 @@ class AiClientRoutingGovernanceTest {
         when(contextInjector.injectContext(anyString(), anyString()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(adapterRegistry.createChatModel(any(), any())).thenReturn(chatModel);
+        // AI 2 要求模型提供默认选项；准备阶段失败的用例不会访问该选项。
+        org.mockito.Mockito.lenient().when(chatModel.getOptions())
+                .thenReturn(org.springframework.ai.chat.prompt.ChatOptions.builder().build());
     }
 
     @Test
