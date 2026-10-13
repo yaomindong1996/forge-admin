@@ -1171,6 +1171,29 @@ CRUD 详情页的渲染逻辑是“主表 `AiForm` + 子表 `ChildTableEditor`�
 
 **解决方案**：需要行锁的 Mapper 查询只保留显式租户/逻辑删除条件和 `FOR UPDATE`，不要在同一条锁 SQL 中拼排序或行数限制；若排序决定业务语义，查询返回后在 Java 中按与原 SQL 相同的字段和方向稳定排序，再执行保留/删除判定。新增锁查询契约测试，禁止 `FOR UPDATE` 与排序/行数限制同时出现。
 
+## Flowable 8 动过库后不能只改版本号回退到 7.x
+
+**发现日期**：2026-10-13
+
+**问题描述**：
+同一测试库先被 Spring Boot 4 / Flowable **8.0.0** 启动写过库，再切回仓库 `main` 的 Flowable **7.0.1** 启动 `flow-server`，会连环失败：
+
+1. `Could not update Flowable database schema: unknown version from database: '8.0.0.0'`  
+   （`act_ge_property.schema.version` / `act_id_property` 已被标成 `8.0.0.0`）
+2. 只把版本号改回 `7.0.1.1` 后，又报 Liquibase：`Table 'flw_event_deployment' already exists`（以及后续 App/CMMN/DMN 同类问题）  
+   （8 已建好 `flw_*` / `act_app_*` / `act_cmmn_*` / `act_dmn_*` 表，但 `flw_ev_databasechangelog` 等变更记录为空或与 7.x changelog 不一致，7.x 会再执行 `CREATE TABLE`）
+
+**根因**：Flowable 主版本与**库内 schema 版本标记 + Liquibase 托管引擎表**是一套的。只回写 `act_ge_property` 不够；半升级/半回退会把「有表、无 changelog」留给 7.x。
+
+**解决方案**：
+- **代码与库必须同主版本**：继续跑 7.0.1 就不要用 8.x 进程碰共享测试库；要上 SB4/Flowable 8 就整条链路（Admin + Flow + 依赖）一起升，不要只升一半。
+- 误用 8 污染测试库、且仍要跑 **7.0.1** 时（测试库、无重要流程运行数据）：
+  1. 将 `act_ge_property` / `act_id_property` 中各 `*.schema.version` 恢复为 `7.0.1.1`（含 `common` / `batch` / `job` / `task` / `variable` / `entitylink` / `identitylink` / `eventsubscription` 等 7.x 键；去掉 8 独有的 `app`/`cmmn`/`dmn`/`eventregistry` 版本键或整表按 7.x 种子重建）。
+  2. **删除** Liquibase 托管且 changelog 已乱的引擎表，让 7.x 启动时重建：Event Registry（`flw_event_*`、`flw_channel_definition`、`flw_ev_databasechangelog*`）、App（`act_app_*`）、CMMN（`act_cmmn_*`）、DMN（`act_dmn_*`）。
+  3. **保留**流程引擎核心表（`act_re_*` / `act_ru_*` / `act_hi_*` / `act_ge_*` / `act_id_*`）及业务侧 `sys_flow_*`，勿整库清空。
+- 禁止只插 `INSERT INTO act_ge_property … 8.0.0.0` 的反向操作却不处理 Liquibase 表状态。
+- 社区「纯净版 SQL」仍应跳过 `act_*`/`flw_*` 导出（启动自动建）；与本次「版本混用」是不同坑，见 `forge-project-init` 的 `references/pure-sql-export.md`。
+
 ## Flow 服务承载业务表单接口时不能沿用旧的 FlowClient 8080 默认端口
 
 **发现日期**：2026-09-28
