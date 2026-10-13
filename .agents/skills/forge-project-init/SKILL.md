@@ -1,6 +1,6 @@
 ---
 name: forge-project-init
-description: Bootstrap or maintain projects generated from Forge, initialize a clean template database, and install, upgrade or remove Forge source plugins in template or generated Admin projects. Use for forge:create presets, package/artifact/database renaming, local configuration, init-db.sh/clean-db.sh maintenance, and forge:plugin delivery. Not for Codex app plugins or commercial license implementation.
+description: Bootstrap or maintain projects generated from Forge, initialize a clean template database, export community pure-version SQL dumps, and install, upgrade or remove Forge source plugins in template or generated Admin projects. Use for forge:create presets, package/artifact/database renaming, local configuration, init-db.sh/clean-db.sh/dump-safe-full.sh, community 纯净版 SQL, and forge:plugin delivery. Not for Codex app plugins or commercial license implementation.
 ---
 
 # Forge Project Init
@@ -95,7 +95,19 @@ With Docker:
 
 Run only step 3 against a new database. Keep the template repo's own `code-copilot/changes` untouched unless the user explicitly asks to delete them there.
 
-### 5. Optional source plugins
+### 5. Export community pure SQL (按版本纯净版)
+
+When the user asks for a downloadable **纯净版 SQL** (e.g. `ForgeAdmin-纯净版-V1.2.0.sql`) from a test database, follow [references/pure-sql-export.md](references/pure-sql-export.md).
+
+Short rules (do not violate):
+
+1. Clone the test DB → run `clean-db.sh` on the **clone only** → `dump-safe-full.sh`.
+2. **Keep** `dump-safe-full.sh` skipping `^act_|^flw_` (and version tables). Flowable engine tables are **created on first application start**; they must not be in the community SQL file. Skipping only `act_*` leaves `flw_ru_batch` etc. and causes startup `already exists` + `db version is null`.
+3. **Never** append `INSERT INTO act_ge_property` (or any `act_*` / `flw_*` DDL/DML) after the dump. That causes import error `1146 Table '….act_ge_property' doesn't exist`.
+4. Optionally append only `forge_schema_history` + safe local `sys_file_storage_config` (no cloud secrets). Scrub env usernames like `rdsroot` from Flyway `installed_by`.
+5. Smoke-import into an empty DB: 0 errors, one `admin` user, **zero** `act_%` / `flw_%` tables before startup.
+
+### 6. Optional source plugins
 
 Only when plugins are requested, read [references/plugins.md](references/plugins.md) before installation,
 upgrade or removal. It also applies to an existing generated project without repeating database initialization.
@@ -119,7 +131,8 @@ upgrade or removal. It also applies to an existing generated project without rep
   - Do this before truncating `ai_crud_config`.
   - Never seed from `ai_lowcode_domain.menu_parent_id`; it points at system directories.
 - **Code-backed tables**: tables referenced by `@TableName` or Mapper XML (`sample_purchase_order`, `biz_leave_request`, `sys_employee`, `worker_node` …) must be truncated, never dropped.
-- **Flowable**: keep `ACT_GE_PROPERTY`, `ACT_ID_PROPERTY` and the Flowable liquibase tables; truncate the other `ACT_*` / `FLW_*` tables.
+- **Flowable (in-DB cleanup)**: keep `ACT_GE_PROPERTY`, `ACT_ID_PROPERTY` and the Flowable liquibase tables; truncate the other `ACT_*` / `FLW_*` tables.
+- **Flowable (community pure SQL export)**: do **not** export `act_*` / `flw_*` DDL or data. `dump-safe-full.sh` must ignore `^act_|^flw_`. See [references/pure-sql-export.md](references/pure-sql-export.md).
 - **Project-specific tweaks**: use `--extra-sql FILE`, `--keep-table`, `--drop-table` or `--keep-business-tables`. Do not fork the scripts per project.
 - **Passwords**: pass them via `MYSQL_PWD` or `--password`. The scripts forward them with a temporary `--defaults-extra-file`, never on the mysql command line.
 - **Destructive scope**: `clean-db.sh` physically deletes data. Use it only on template or dev databases, and offer `--backup-file` first.

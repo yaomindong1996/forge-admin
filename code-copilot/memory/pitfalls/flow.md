@@ -1192,7 +1192,24 @@ CRUD 详情页的渲染逻辑是“主表 `AiForm` + 子表 `ChildTableEditor`�
   2. **删除** Liquibase 托管且 changelog 已乱的引擎表，让 7.x 启动时重建：Event Registry（`flw_event_*`、`flw_channel_definition`、`flw_ev_databasechangelog*`）、App（`act_app_*`）、CMMN（`act_cmmn_*`）、DMN（`act_dmn_*`）。
   3. **保留**流程引擎核心表（`act_re_*` / `act_ru_*` / `act_hi_*` / `act_ge_*` / `act_id_*`）及业务侧 `sys_flow_*`，勿整库清空。
 - 禁止只插 `INSERT INTO act_ge_property … 8.0.0.0` 的反向操作却不处理 Liquibase 表状态。
-- 社区「纯净版 SQL」仍应跳过 `act_*`/`flw_*` 导出（启动自动建）；与本次「版本混用」是不同坑，见 `forge-project-init` 的 `references/pure-sql-export.md`。
+- 社区「纯净版 SQL」仍应跳过 `act_*`/`flw_*` 导出（启动自动建）；与本次「版本混用」是不同坑，见下节与 `forge-project-init` 的 `references/pure-sql-export.md`。
+
+## 纯净版 SQL 不能只跳过 act_* 而留下 flw_*
+
+**发现日期**：2026-10-13
+
+**问题描述**：
+社区纯净版从测试库 `dump-safe-full` 导出时，`full_ignore_regex` 只写了 `^act_`，把 `flw_ru_batch`、`flw_event_*`、`flw_channel_definition` 等带进 SQL。空库导入后启动失败：
+
+1. `Table 'flw_ru_batch' already exists`（引擎 schema 脚本再 CREATE）
+2. `FlowableWrongDbException: version mismatch: library version is '7.0.1.1', db version is null`（没有 `act_ge_property`，引擎读不到 schema.version）
+
+**根因**：Flowable 表必须整套由启动创建。半套 `flw_*` + 无 `act_ge_property` 比「完全没有流程表」更糟。
+
+**解决方案**：
+- `dump-safe-full.sh`：`full_ignore_regex="^act_|^flw_|(^|_)version$"`。
+- 发布前全文确认无 `CREATE TABLE \`flw_` / `CREATE TABLE \`act_`。
+- 已误导入的库：删除全部残留 `flw_*`（或空库重导修正后的纯净版），再启动让 7.x 重建。
 
 ## Flow 服务承载业务表单接口时不能沿用旧的 FlowClient 8080 默认端口
 

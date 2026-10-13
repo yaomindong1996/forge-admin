@@ -226,7 +226,8 @@ if [[ "$GZIP_OUTPUT" == "true" && "$OUTPUT" != *.gz ]]; then
   OUTPUT="${OUTPUT}.gz"
 fi
 
-full_ignore_regex="^act_|(^|_)version$"
+# Flowable 引擎表由应用首次启动创建；社区纯净版/安全全量导出不得带 act_*/flw_*（否则有表无 schema.version → WrongDbException）
+full_ignore_regex="^act_|^flw_|(^|_)version$"
 log_regex="(^|_)log($|_)|(^|_)logs($|_)|_log$|^log_|_history$|^qrtz_(fired_triggers|scheduler_state|locks)$|^worker_node$|^sys_auth_online_user$|^ai_crud_export_task$|^ai_chat_(record|session)$|^ai_dashboard_generate_record$"
 sensitive_tables=(
   ai_business_message_channel
