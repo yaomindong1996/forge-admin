@@ -213,6 +213,48 @@ describe('page form object promotion', () => {
     expect(payload.fields.map(field => field.fieldCode)).toEqual(['templateName'])
   })
 
+  it('does not duplicate camelCase object fields when form binds use snake_case', () => {
+    const payload = buildBusinessObjectDesignerPayloadFromFormAsset({
+      id: 'form_enterprise',
+      name: '企业档案',
+      formDesignerSchema: {
+        formKey: 'enterprise_form',
+        formName: '企业档案',
+        components: [
+          {
+            id: 'cmp_ent_name',
+            componentKey: 'input',
+            label: '企业全称',
+            fieldBinding: {
+              mode: 'field',
+              fieldCode: 'ent_name',
+              columnName: 'ent_name',
+              createIfMissing: true,
+            },
+          },
+          {
+            id: 'cmp_credit',
+            componentKey: 'input',
+            label: '统一社会信用代码',
+            fieldBinding: {
+              mode: 'field',
+              fieldCode: 'unified_credit_code',
+              columnName: 'unified_credit_code',
+              createIfMissing: true,
+            },
+          },
+        ],
+      },
+    }, [
+      { fieldCode: 'entName', fieldName: '企业全称', columnName: 'ent_name' },
+      { fieldCode: 'unifiedCreditCode', fieldName: '统一社会信用代码', columnName: 'unified_credit_code' },
+    ])
+
+    expect(payload.fields.map(field => field.fieldCode)).toEqual(['entName', 'unifiedCreditCode'])
+    expect(payload.formDesignerSchema.components.map(item => item.fieldBinding.fieldCode))
+      .toEqual(['entName', 'unifiedCreditCode'])
+  })
+
   it('also drops previously promoted camelCase clones of child fields', () => {
     const payload = buildBusinessObjectDesignerPayloadFromFormAsset({
       id: 'form_main',

@@ -269,6 +269,65 @@ class BusinessApplicationPageDesignServiceTest {
     }
 
     @Test
+    @DisplayName("snake_case and camelCase field twins are merged after normalizeFieldCode")
+    void mergesSnakeAndCamelFieldCodeTwins() {
+        BusinessApplicationPageDesignDTO request = designRequest();
+        BusinessFieldDTO camel = textField();
+        camel.setFieldCode("entName");
+        camel.setColumnName("ent_name");
+        camel.setFieldName("企业全称");
+        BusinessFieldDTO snake = textField();
+        snake.setFieldCode("ent_name");
+        snake.setColumnName("ent_name");
+        snake.setFieldName("企业全称");
+        BusinessFieldDTO creditCamel = textField();
+        creditCamel.setFieldCode("unifiedCreditCode");
+        creditCamel.setColumnName("unified_credit_code");
+        creditCamel.setFieldName("统一社会信用代码");
+        BusinessFieldDTO creditSnake = textField();
+        creditSnake.setFieldCode("unified_credit_code");
+        creditSnake.setColumnName("unified_credit_code");
+        creditSnake.setFieldName("统一社会信用代码");
+        request.setFields(List.of(camel, snake, creditCamel, creditSnake));
+
+        when(namingService.normalizeFieldCode(any(), any())).thenAnswer(invocation -> {
+            String value = invocation.getArgument(0);
+            if ("ent_name".equals(value) || "entName".equals(value)) {
+                return "entName";
+            }
+            if ("unified_credit_code".equals(value) || "unifiedCreditCode".equals(value)) {
+                return "unifiedCreditCode";
+            }
+            return value;
+        });
+        when(namingService.camelToSnake(any())).thenAnswer(invocation -> {
+            Object argument = invocation.getArgument(0);
+            String value = argument == null ? "" : String.valueOf(argument);
+            if ("entName".equals(value)) {
+                return "ent_name";
+            }
+            if ("unifiedCreditCode".equals(value)) {
+                return "unified_credit_code";
+            }
+            return value;
+        });
+        when(applicationService.requireEntity(APPLICATION_ID)).thenReturn(application());
+        when(applicationObjectService.list(APPLICATION_ID)).thenReturn(List.of());
+        when(datasourceService.selectEnabledDatasources("LOWCODE_RUNTIME")).thenReturn(List.of(runtimeDatasource()));
+        when(objectCreateService.create(any())).thenReturn(OBJECT_ID);
+        when(objectService.requireEntity(OBJECT_ID)).thenReturn(savedObject());
+        when(designerService.loadContext(OBJECT_ID)).thenReturn(designerContext(new LowcodeModelSchema()));
+
+        service.save(APPLICATION_ID, request);
+
+        ArgumentCaptor<BusinessObjectDesignerDTO> designer = ArgumentCaptor.forClass(BusinessObjectDesignerDTO.class);
+        verify(designerService).saveDesigner(eq(OBJECT_ID), designer.capture());
+        List<BusinessFieldDTO> savedFields = designer.getValue().getFields();
+        assertEquals(List.of("entName", "unifiedCreditCode"),
+                savedFields.stream().map(BusinessFieldDTO::getFieldCode).toList());
+    }
+
+    @Test
     @DisplayName("a data page must contain the submitted form asset and page binding")
     void rejectsBuilderWithoutBoundFormAsset() {
         BusinessApplicationPageDesignDTO request = designRequest();

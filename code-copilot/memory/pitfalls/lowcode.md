@@ -1879,3 +1879,15 @@ Flyway 脚本为新环境写了包含完整字段的 `CREATE TABLE IF NOT EXISTS
 金额问题同源：uiDocument / fields 常出现 `type=input` 但 `componentKey=switch|forgeUserSelect|deptSelect|upload|date|money`。若只读 `type`，会落到文本框；人员/组织若不看 `componentKey` 也会漏判。
 
 处理：共享 `control-type-utils` 与后端 `normalizeTaskFormFieldType` 对齐；`resolve-ai-form` 节点解析优选取强 componentKey；`isUserSelectLikeField` / `isOrgSelectLikeField` 检查 componentKey；子表 `useRuntimeCell` 对弱 type+强控件走 AiFormItem。
+
+## 表单设计进编辑报「字段编码不能重复」常是 snake/camel 双胞胎
+
+**发现日期**: 2026-10-13
+
+**问题描述**:
+进入表单页设计即 500：`字段编码不能重复: entName` / `unifiedCreditCode`。对象字段目录已是驼峰（`entName`），表单组件 `fieldBinding.fieldCode` 仍是下划线（`ent_name`）。`buildAutoFieldAssets` 用原始字符串精确匹配，把 snake 绑定当成新字段追加；保存走 `design-page` → `normalizeFields` → `normalizeFieldCode` 后两者归一成同一码，唯一性校验失败。
+
+**解决方案**:
+1. 前端 `autoFieldRegistry` 按 `normalizeFieldCode` 做等价查找；新建字段写入驼峰码，并把组件绑定回写为目录规范码。
+2. `buildBusinessObjectDesignerPayloadFromFormAsset` / 表单设计器草稿用 `alignFormDesignerBindingsToFields` 就地对齐绑定。
+3. 后端 `normalizeFields` 对归一化后重复做跳过（保留首次），兜底历史脏 payload，不再因双胞胎阻断进设计器。

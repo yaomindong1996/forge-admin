@@ -94,6 +94,64 @@ describe('formDesignerSchema', () => {
     })
   })
 
+  it('treats snake_case binds as the same field as existing camelCase codes', () => {
+    const { fields, createdFields, formDesignerSchema } = buildAutoFieldAssets({
+      components: [
+        {
+          id: 'cmp_ent_name',
+          componentKey: 'input',
+          label: '企业全称',
+          fieldBinding: {
+            mode: 'field',
+            fieldCode: 'ent_name',
+            columnName: 'ent_name',
+            createIfMissing: true,
+          },
+        },
+        {
+          id: 'cmp_credit',
+          componentKey: 'input',
+          label: '统一社会信用代码',
+          fieldBinding: {
+            mode: 'field',
+            fieldCode: 'unified_credit_code',
+            columnName: 'unified_credit_code',
+            createIfMissing: true,
+          },
+        },
+      ],
+    }, [
+      { fieldCode: 'entName', fieldName: '企业全称', columnName: 'ent_name' },
+      { fieldCode: 'unifiedCreditCode', fieldName: '统一社会信用代码', columnName: 'unified_credit_code' },
+    ])
+
+    expect(createdFields).toHaveLength(0)
+    expect(fields.map(field => field.fieldCode)).toEqual(['entName', 'unifiedCreditCode'])
+    expect(formDesignerSchema.components.map(item => item.fieldBinding.fieldCode))
+      .toEqual(['entName', 'unifiedCreditCode'])
+  })
+
+  it('canonicalizes newly created snake_case binds to camelCase field codes', () => {
+    const { fields, createdFields, formDesignerSchema } = buildAutoFieldAssets({
+      components: [{
+        id: 'cmp_scope',
+        componentKey: 'textarea',
+        label: '经营范围',
+        fieldBinding: {
+          mode: 'field',
+          fieldCode: 'business_scope',
+          columnName: 'business_scope',
+          createIfMissing: true,
+        },
+      }],
+    }, [])
+
+    expect(createdFields).toHaveLength(1)
+    expect(fields[0].fieldCode).toBe('businessScope')
+    expect(formDesignerSchema.components[0].fieldBinding.fieldCode).toBe('businessScope')
+    expect(formDesignerSchema.components[0].fieldBinding.columnName).toBe('business_scope')
+  })
+
   it('preserves the business-data structure lock when reusing an object field', () => {
     const component = createComponentFromField({
       field: 'customerName',

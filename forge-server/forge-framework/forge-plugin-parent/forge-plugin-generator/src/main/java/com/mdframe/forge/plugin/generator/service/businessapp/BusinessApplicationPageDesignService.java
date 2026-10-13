@@ -295,8 +295,12 @@ public class BusinessApplicationPageDesignService {
             field.setFieldCode(namingService.normalizeFieldCode(field.getFieldCode(), field.getFieldName()));
             field.setColumnName(namingService.camelToSnake(
                     StringUtils.defaultIfBlank(field.getColumnName(), field.getFieldCode())));
+            // 前端历史脏数据会同时带上 entName + ent_name；归一化后等价，保留首次出现即可。
+            // 真正语义冲突仍会在对象设计器/DDL 侧暴露，这里不要因 snake/camel 双胞胎阻断进设计器。
             if (!codes.add(field.getFieldCode())) {
-                throw new BusinessException("字段编码不能重复: " + field.getFieldCode());
+                log.warn("[页面设计] 跳过归一化后重复的字段编码: {} (fieldName={})",
+                        field.getFieldCode(), field.getFieldName());
+                continue;
             }
             normalized.add(field);
         }

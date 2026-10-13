@@ -1,14 +1,22 @@
 import { isChildListField } from '@/components/lowcode-builder/page/page-schema-fields'
-import { buildAutoFieldAssets } from '@/views/app-center/components/designer/form-first/autoFieldRegistry'
+import {
+  alignFormDesignerBindingsToFields,
+  buildAutoFieldAssets,
+  toCanonicalFieldCode,
+} from '@/views/app-center/components/designer/form-first/autoFieldRegistry'
 import { normalizeFormDesignerSchema } from '@/views/app-center/components/designer/form-first/formDesignerSchema'
 
 export function buildBusinessObjectDesignerPayloadFromFormAsset(asset = {}, existingFields = []) {
-  const formDesignerSchema = normalizeFormDesignerSchema(asset.formDesignerSchema || asset.schema || {})
   // 子表列（model__field / fieldScope=child）只服务列表选列，绝不能写进主对象字段目录；
   // 否则删了再拖子表会把同一列以「扁平编码」反复入库，保存时报字段编码重复。
-  const subTableChildCodes = collectSubTableQualifiedFieldCodes(formDesignerSchema)
+  const sourceSchema = asset.formDesignerSchema || asset.schema || {}
+  const previewSchema = normalizeFormDesignerSchema(sourceSchema)
+  const subTableChildCodes = collectSubTableQualifiedFieldCodes(previewSchema)
   const primaryExisting = filterPrimaryObjectDesignerFields(existingFields, subTableChildCodes)
-  const fields = buildAutoFieldAssets(formDesignerSchema, primaryExisting).fields
+  const { fields: autoFields, formDesignerSchema } = buildAutoFieldAssets(sourceSchema, primaryExisting)
+  // 回写绑定码到返回的 schema，避免 snake/camel 混用再次提交
+  alignFormDesignerBindingsToFields(formDesignerSchema, autoFields)
+  const fields = autoFields
     .filter(field => !isChildScopedFormFieldAsset(field))
     .map(toBusinessFieldPayload)
   return {
@@ -74,22 +82,9 @@ function collectPromotedChildFlatCodes(fields = []) {
   return codes
 }
 
-/** 对齐 BusinessNamingService.normalizeFieldCode：按下划线切词再转 lowerCamel */
+/** 对齐 BusinessNamingService.normalizeFieldCode（含 camelCase 拆词） */
 function flattenFieldCodeLikeBackend(value = '') {
-  const source = String(value || '').trim()
-  if (!source)
-    return ''
-  const words = source.includes('_') ? source.split('_') : [source]
-  let result = ''
-  for (const word of words) {
-    const normalized = String(word || '').replace(/[^A-Za-z0-9]/g, '').toLowerCase()
-    if (!normalized)
-      continue
-    result = result.length === 0
-      ? normalized
-      : result + normalized.charAt(0).toUpperCase() + normalized.slice(1)
-  }
-  return result || 'field'
+  return toCanonicalFieldCode(value)
 }
 
 /** 从画布 subTable 列收集 model__field 合成编码 */

@@ -25,7 +25,7 @@ import {
 } from '../child-table-section-config'
 import ChildTableSectionWizard from '../ChildTableSectionWizard.vue'
 import ForgeFormDesigner from '../forge-form-designer/ForgeFormDesigner.vue'
-import { buildAutoFieldAssets } from '../form-first/autoFieldRegistry'
+import { alignFormDesignerBindingsToFields, buildAutoFieldAssets } from '../form-first/autoFieldRegistry'
 import { FIELD_COMPONENT_DEFAULTS as COMPONENT_FIELD_DEFAULTS, FORM_FIELD_COMPONENT_KEYS } from '../form-first/fieldComponentCatalog'
 import { extractForgeSchemaFieldRefs, forgeSchemaToFormCreate } from '../form-first/forgeToFormCreate'
 import { applyGridColumnsToFormDesignerSchema, generateFieldCode, normalizeFormDesignerSchema, normalizeFormDesignerSchemaForSave } from '../form-first/formDesignerSchema'
@@ -245,6 +245,8 @@ export function applyBusinessFormDesignerPart2(props, emit, expose, deps = {}) {
       primaryBusinessFieldAssets.value,
     )
     const { fields: nextFields, createdFields } = buildAutoFieldAssets(normalizedFormSchema, primaryBusinessFieldAssets.value)
+    // 就地回写外层 ForSave schema（含 forms[]），避免 snake 绑定与驼峰目录再次撞码
+    alignFormDesignerBindingsToFields(normalizedFormSchema, nextFields)
     const formFieldComponents = buildFormFieldComponentMap(normalizedFormSchema)
     const createdFieldCodes = new Set(createdFields.map(field => field.fieldCode || field.field).filter(Boolean))
     const normalizedFields = nextFields.map(field => normalizeUnconfiguredDesignerField(
