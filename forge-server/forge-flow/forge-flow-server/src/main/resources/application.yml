@@ -32,6 +32,10 @@ spring:
     name: forge-flow-service
   profiles:
     active: dev
+  # Boot 4：自定义 Executor 存在时默认不创建 applicationTaskExecutor；Flowable 8 强制依赖该 Bean
+  task:
+    execution:
+      mode: force
   servlet:
     multipart:
       max-file-size: 10MB

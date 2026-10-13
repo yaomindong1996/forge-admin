@@ -387,6 +387,22 @@ Table 'forge_admin_test.sys_data_scope_config' doesn't exist
 - 平台表（如 `sys_tenant`）继续走 ignoreTables；跨租户绑定只留在租户管理和用户高级关系。
 - 登录页和顶栏仅在可切换租户数 > 1 时展示选择器。
 
+## Sa-Token 1.45 + Jackson3 读不出旧 Redis Session 的 SaSessionForJacksonCustomized
+
+**发现日期**: 2026-10-13
+
+**问题描述**:
+Boot4 升级到 Sa-Token 1.45 后，管理端读 Redis Session 报
+`InvalidTypeIdException: Could not resolve type id 'cn.dev33.satoken.dao.SaSessionForJacksonCustomized'`。
+随后 `SessionHelper.getLoginUser` 失败，级联出现「设置租户上下文失败」、
+访问租户表缺少租户上下文。根因是 ≤1.38 的 `sa-token-redis-jackson` 把 Session 写成该类，
+1.45 已删除该类，而 `sa-token-spring-boot4-starter` 使用 Jackson3 按 `@class` 解析。
+
+**解决方案**:
+- 在 `forge-starter-auth` 保留同名空子类 `cn.dev33.satoken.dao.SaSessionForJacksonCustomized` 兼容读旧数据。
+- 升级后也可清 Redis 中 `Authorization:*` 键后重新登录（新会话写 `SaSession`）。
+- 不要把「缺租户上下文」当成租户拦截器本身坏了，先查 Session 反序列化。
+
 ## 初始化 SQL 不能从开发库直接导出存储凭据
 
 **发现日期**: 2026-09-30
