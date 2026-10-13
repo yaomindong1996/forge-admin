@@ -59,7 +59,14 @@
                   停用
                 </template>
               </n-switch>
-              <NButton v-if="form.id" size="small" quaternary type="error" :loading="saving" @click="confirmRemove">
+              <NButton
+                v-if="form.id && !isBuiltInBizType(form.bizType)"
+                size="small"
+                quaternary
+                type="error"
+                :loading="saving"
+                @click="confirmRemove"
+              >
                 删除
               </NButton>
               <NButton type="primary" size="small" :loading="saving" @click="saveItem">
@@ -247,6 +254,7 @@ import {
   buildJavaSendExample,
   DEFAULT_SAMPLE_BIZ_KEY,
   describeJumpResult,
+  isBuiltInBizType,
   isBuiltInFlowTodo,
   JUMP_PRESETS,
   normalizeBizTypeCode,

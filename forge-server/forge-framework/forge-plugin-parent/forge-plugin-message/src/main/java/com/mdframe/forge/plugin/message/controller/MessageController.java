@@ -1,5 +1,6 @@
 package com.mdframe.forge.plugin.message.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.mdframe.forge.plugin.message.domain.dto.MessageQueryDTO;
 import com.mdframe.forge.plugin.message.domain.dto.MessageSendRequestDTO;
 import com.mdframe.forge.plugin.message.service.MessageService;
@@ -30,9 +31,10 @@ public class MessageController {
     }
 
     /**
-     * 发送消息
+     * 发送消息（需 message:send 权限；内部 Java 调用走 MessageService 不受此门禁影响）
      */
     @PostMapping("/send")
+    @SaCheckPermission("message:send")
     public RespInfo<?> send(@RequestBody MessageSendRequestDTO req) {
         return RespInfo.success(messageService.send(req));
     }

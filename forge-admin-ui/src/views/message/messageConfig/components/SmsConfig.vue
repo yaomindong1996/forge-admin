@@ -365,7 +365,15 @@ const rules = {
   supplier: { required: true, message: '请选择短信厂商', trigger: 'change' },
   configId: { required: true, message: '请输入配置标识', trigger: 'blur' },
   accessKeyId: { required: true, message: '请输入 AccessKey ID', trigger: 'blur' },
-  accessKeySecret: { required: true, message: '请输入 AccessKey Secret', trigger: 'blur' },
+  accessKeySecret: {
+    required: true,
+    trigger: 'blur',
+    validator: (_rule, value) => {
+      if (value === '******' || (value && String(value).trim()))
+        return true
+      return new Error('请输入 AccessKey Secret')
+    },
+  },
 }
 
 const supplierOptions = ref([])

@@ -136,6 +136,9 @@ public class MessageManageServiceImpl implements MessageManageService {
         SysMessageSendRecord sendRecord = sendRecordMapper.selectOne(
             new LambdaQueryWrapper<SysMessageSendRecord>()
                 .eq(SysMessageSendRecord::getMessageId, messageId)
+                .orderByDesc(SysMessageSendRecord::getCreateTime)
+                .orderByDesc(SysMessageSendRecord::getId)
+                .last("LIMIT 1")
         );
         
         List<ReceiverVO> receiverVos = receiverMapper.selectReceiversWithUserInfo(messageId);

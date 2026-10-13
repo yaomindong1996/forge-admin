@@ -3,6 +3,7 @@ import {
   buildHttpSendExample,
   buildJavaSendExample,
   describeJumpResult,
+  isBuiltInBizType,
   isBuiltInFlowTodo,
   normalizeBizTypeCode,
   previewJumpUrl,
@@ -23,6 +24,8 @@ describe('message biz type usage helpers', () => {
   it('代码示例带上当前业务编码', () => {
     expect(normalizeBizTypeCode(' purchase order ')).toBe('PURCHASE_ORDER')
     expect(isBuiltInFlowTodo('flow_todo')).toBe(true)
+    expect(isBuiltInBizType('FLOW_TASK_OVERDUE')).toBe(true)
+    expect(isBuiltInBizType('CUSTOM_ORDER')).toBe(false)
     const java = buildJavaSendExample({ bizType: 'PURCHASE_ORDER', bizName: '采购审批', sampleKey: 'PO88' })
     expect(java).toContain('req.setBizType("PURCHASE_ORDER")')
     expect(java).toContain('markWebReadByBiz("PURCHASE_ORDER", "PO88")')

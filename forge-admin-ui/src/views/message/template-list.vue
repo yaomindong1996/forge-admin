@@ -56,7 +56,14 @@
                   停用
                 </template>
               </n-switch>
-              <NButton v-if="form.id" size="small" quaternary type="error" :loading="saving" @click="confirmRemove">
+              <NButton
+                v-if="form.id && !isBuiltInTemplate(form.templateCode)"
+                size="small"
+                quaternary
+                type="error"
+                :loading="saving"
+                @click="confirmRemove"
+              >
                 删除
               </NButton>
               <NButton type="primary" size="small" :loading="saving" @click="saveItem">
@@ -313,6 +320,7 @@ import {
   getStyleSnippets,
   hasUnsupportedAtVariables,
   insertAtCursor,
+  isBuiltInTemplate,
   normalizeTemplateCode,
   renderPreviewHtml,
   renderTemplatePreview,

@@ -63,6 +63,9 @@
           AND m.biz_key = #{bizKey}
           AND m.send_channel = 'WEB'
           AND r.read_flag = 0
+          <if test="userId != null">
+              AND r.user_id = #{userId}
+          </if>
     </update>
 
     <update id="markMessagesReadBatch">

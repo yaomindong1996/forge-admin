@@ -198,7 +198,15 @@ const rules = {
   smtpServer: { required: true, message: '请输入 SMTP 服务器地址', trigger: 'blur' },
   port: { required: true, type: 'number', message: '请输入端口', trigger: 'blur' },
   username: { required: true, message: '请输入用户名', trigger: 'blur' },
-  password: { required: true, message: '请输入密码/授权码', trigger: 'blur' },
+  password: {
+    required: true,
+    trigger: 'blur',
+    validator: (_rule, value) => {
+      if (value === '******' || (value && String(value).trim()))
+        return true
+      return new Error('请输入密码/授权码')
+    },
+  },
   fromAddress: { required: true, message: '请输入发件人地址', trigger: 'blur' },
 }
 

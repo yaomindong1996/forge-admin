@@ -31,6 +31,7 @@ public interface SysMessageReceiverMapper extends BaseMapper<SysMessageReceiver>
 
     int markWebMessagesReadByBiz(@Param("bizType") String bizType,
                                  @Param("bizKey") String bizKey,
+                                 @Param("userId") Long userId,
                                  @Param("readTime") LocalDateTime readTime);
 
     int markMessagesReadBatch(@Param("tenantId") Long tenantId,

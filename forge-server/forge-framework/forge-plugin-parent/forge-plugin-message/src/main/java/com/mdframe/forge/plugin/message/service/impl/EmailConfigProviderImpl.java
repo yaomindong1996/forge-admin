@@ -16,11 +16,12 @@ public class EmailConfigProviderImpl implements EmailConfigProvider {
     @Override
     @IgnoreTenant
     public EmailConfig getEmailConfig() {
-        SysEmailConfig entity = sysEmailConfigMapper.selectEnabledConfig(null);
+        Long tenantId = MessageChannelConfigSupport.resolveTenantId(null);
+        SysEmailConfig entity = sysEmailConfigMapper.selectEnabledConfig(tenantId);
         if (entity == null) {
             return null;
         }
-        
+
         EmailConfig config = new EmailConfig();
         config.setConfigId(entity.getConfigId());
         config.setSmtpServer(entity.getSmtpServer());
@@ -34,7 +35,7 @@ public class EmailConfigProviderImpl implements EmailConfigProvider {
         config.setRetryInterval(entity.getRetryInterval());
         config.setMaxRetries(entity.getMaxRetries());
         config.setStatus(entity.getStatus());
-        
+
         return config;
     }
 }

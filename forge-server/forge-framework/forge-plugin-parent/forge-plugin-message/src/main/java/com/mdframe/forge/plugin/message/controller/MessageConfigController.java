@@ -4,6 +4,7 @@ import com.mdframe.forge.plugin.message.domain.entity.SysEmailConfig;
 import com.mdframe.forge.plugin.message.domain.entity.SysSmsConfig;
 import com.mdframe.forge.plugin.message.service.EmailConfigService;
 import com.mdframe.forge.plugin.message.service.SmsConfigService;
+import com.mdframe.forge.plugin.message.service.impl.MessageChannelConfigSupport;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.domain.RespInfo;
@@ -34,8 +35,8 @@ public class MessageConfigController {
     @GetMapping("/sms")
     @OperationLog(module = "消息配置管理", type = OperationType.QUERY, desc = "获取短信配置")
     public RespInfo<SysSmsConfig> getSmsConfig() {
-        SysSmsConfig config = smsConfigService.getEnabledConfig(null);
-        return RespInfo.success(config);
+        SysSmsConfig config = smsConfigService.getEnabledConfig(SessionHelper.getTenantId());
+        return RespInfo.success(maskSms(config));
     }
 
     @PostMapping("/sms/save")
@@ -57,8 +58,8 @@ public class MessageConfigController {
     @GetMapping("/email")
     @OperationLog(module = "消息配置管理", type = OperationType.QUERY, desc = "获取邮件配置")
     public RespInfo<SysEmailConfig> getEmailConfig() {
-        SysEmailConfig config = emailConfigService.getEnabledConfig(null);
-        return RespInfo.success(config);
+        SysEmailConfig config = emailConfigService.getEnabledConfig(SessionHelper.getTenantId());
+        return RespInfo.success(maskEmail(config));
     }
 
     @PostMapping("/email/save")
@@ -103,5 +104,21 @@ public class MessageConfigController {
         suppliers.put("danmi", "单米短信");
         suppliers.put("emay", "亿美软通");
         return RespInfo.success(suppliers);
+    }
+
+    private static SysSmsConfig maskSms(SysSmsConfig config) {
+        if (config == null) {
+            return null;
+        }
+        config.setAccessKeySecret(MessageChannelConfigSupport.maskSecret(config.getAccessKeySecret()));
+        return config;
+    }
+
+    private static SysEmailConfig maskEmail(SysEmailConfig config) {
+        if (config == null) {
+            return null;
+        }
+        config.setPassword(MessageChannelConfigSupport.maskSecret(config.getPassword()));
+        return config;
     }
 }

@@ -276,6 +276,28 @@ export function normalizeTemplateCode(value) {
     .toUpperCase()
 }
 
+const BUILT_IN_TEMPLATE_CODES = new Set([
+  'SYSTEM_NOTICE',
+  'TASK_ASSIGN',
+  'SMS_VERIFY_CODE',
+  'APPROVAL_PASS',
+  'FLOW_TODO_CARD',
+  'FLOW_TODO_CARD_WECOM',
+  'FLOW_TODO_CARD_DINGTALK',
+  'FLOW_TODO_CARD_FEISHU',
+  'FLOW_RESULT_CARD',
+  'FLOW_RESULT_CARD_WECOM',
+  'FLOW_CC_CARD',
+  'FLOW_CC_CARD_WECOM',
+])
+
+export function isBuiltInTemplate(templateCode) {
+  const code = normalizeTemplateCode(templateCode)
+  if (!code)
+    return false
+  return BUILT_IN_TEMPLATE_CODES.has(code) || code.startsWith('FLOW_')
+}
+
 export function buildJavaTemplateExample({ templateCode, variables } = {}) {
   const code = normalizeTemplateCode(templateCode) || 'FLOW_TODO_CARD'
   const keys = (variables || []).slice(0, 4)

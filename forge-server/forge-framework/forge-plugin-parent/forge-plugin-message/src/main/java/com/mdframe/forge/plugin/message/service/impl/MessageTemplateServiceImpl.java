@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.message.domain.entity.SysMessageTemplate;
 import com.mdframe.forge.plugin.message.mapper.SysMessageTemplateMapper;
 import com.mdframe.forge.plugin.message.service.MessageTemplateService;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +34,7 @@ public class MessageTemplateServiceImpl implements MessageTemplateService {
                 .eq(SysMessageTemplate::getTemplateCode, template.getTemplateCode())
         );
         if (count > 0) {
-            throw new RuntimeException("模板编码已存在：" + template.getTemplateCode());
+            throw new BusinessException("模板编码已存在：" + template.getTemplateCode());
         }
         templateMapper.insert(template);
     }
@@ -43,9 +44,10 @@ public class MessageTemplateServiceImpl implements MessageTemplateService {
     public void update(SysMessageTemplate template) {
         SysMessageTemplate existing = templateMapper.selectById(template.getId());
         if (existing == null) {
-            throw new RuntimeException("模板不存在");
+            throw new BusinessException("模板不存在");
         }
-        
+        MessageTemplateAccessPolicy.assertMutable(existing, template.getTemplateCode());
+
         // 如果修改了模板编码，检查新编码是否已被使用
         if (!existing.getTemplateCode().equals(template.getTemplateCode())) {
             Long count = templateMapper.selectCount(
@@ -54,7 +56,7 @@ public class MessageTemplateServiceImpl implements MessageTemplateService {
                     .ne(SysMessageTemplate::getId, template.getId())
             );
             if (count > 0) {
-                throw new RuntimeException("模板编码已存在：" + template.getTemplateCode());
+                throw new BusinessException("模板编码已存在：" + template.getTemplateCode());
             }
         }
         
@@ -64,6 +66,11 @@ public class MessageTemplateServiceImpl implements MessageTemplateService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
+        SysMessageTemplate existing = templateMapper.selectById(id);
+        if (existing == null) {
+            throw new BusinessException("模板不存在");
+        }
+        MessageTemplateAccessPolicy.assertDeletable(existing);
         templateMapper.deleteById(id);
     }
 

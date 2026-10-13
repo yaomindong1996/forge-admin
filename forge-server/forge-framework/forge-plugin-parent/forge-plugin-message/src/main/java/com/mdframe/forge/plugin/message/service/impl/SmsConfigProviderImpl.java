@@ -16,11 +16,13 @@ public class SmsConfigProviderImpl implements SmsConfigProvider {
     @Override
     @IgnoreTenant
     public SmsConfig getSmsConfig() {
-        SysSmsConfig entity = sysSmsConfigMapper.selectEnabledConfig(null);
+        // 显式按当前租户取启用配置，避免 @IgnoreTenant 下跨租户误用他人凭证
+        Long tenantId = MessageChannelConfigSupport.resolveTenantId(null);
+        SysSmsConfig entity = sysSmsConfigMapper.selectEnabledConfig(tenantId);
         if (entity == null) {
             return null;
         }
-        
+
         SmsConfig config = new SmsConfig();
         config.setConfigId(entity.getConfigId());
         config.setSupplier(entity.getSupplier());
@@ -36,7 +38,7 @@ public class SmsConfigProviderImpl implements SmsConfigProvider {
         config.setDailyLimit(entity.getDailyLimit());
         config.setMinuteLimit(entity.getMinuteLimit());
         config.setStatus(entity.getStatus());
-        
+
         return config;
     }
 }

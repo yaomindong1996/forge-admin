@@ -169,6 +169,7 @@ import { AiCrudPage } from '@/components/ai-form'
 import UserSelectPicker from '@/components/common/UserSelectPicker.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
+import { formatDateTime } from '@/utils/common'
 import { sanitizeHtml } from '@/utils/sanitize-html'
 
 defineOptions({ name: 'MessageManage' })
@@ -356,8 +357,9 @@ function handleBeforeSearch(params) {
 
   if (params.timeRange && params.timeRange.length === 2) {
     const [start, end] = params.timeRange
-    result.startTime = new Date(start).toISOString().slice(0, 19).replace('T', ' ')
-    result.endTime = new Date(end).toISOString().slice(0, 19).replace('T', ' ')
+    // 使用本地时区格式，避免 toISOString() 转 UTC 导致筛窗偏移
+    result.startTime = formatDateTime(start)
+    result.endTime = formatDateTime(end)
     delete result.timeRange
   }
 

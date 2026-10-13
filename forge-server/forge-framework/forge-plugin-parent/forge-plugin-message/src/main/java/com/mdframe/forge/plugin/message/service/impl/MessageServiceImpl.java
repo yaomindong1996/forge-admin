@@ -26,6 +26,7 @@ import com.mdframe.forge.plugin.message.service.MessageService;
 import com.mdframe.forge.plugin.message.service.SysMessageReceiverService;
 import com.mdframe.forge.plugin.system.entity.SysUser;
 import com.mdframe.forge.plugin.system.service.ISysUserService;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.message.channel.MessageChannel;
 import com.mdframe.forge.starter.message.sdk.MessageClient;
@@ -198,17 +199,22 @@ public class MessageServiceImpl extends ServiceImpl<SysMessageMapper,SysMessage>
                     .eq(SysMessageTemplate::getTemplateCode, req.getTemplateCode())
                     .eq(SysMessageTemplate::getEnabled, 1)
             );
-            if (template != null) {
-                if (StrUtil.isBlank(title) && StrUtil.isNotBlank(template.getTitleTemplate())) {
-                    title = templateEngine.render(template.getTitleTemplate(), req.getParams());
-                }
-                if (StrUtil.isBlank(content)) {
-                    content = templateEngine.render(template.getContentTemplate(), req.getParams());
-                }
-                if (StrUtil.isBlank(channel)) {
-                    channel = template.getDefaultChannel();
-                }
+            if (template == null) {
+                throw new BusinessException("消息模板不存在或已停用：" + req.getTemplateCode());
             }
+            if (StrUtil.isBlank(title) && StrUtil.isNotBlank(template.getTitleTemplate())) {
+                title = templateEngine.render(template.getTitleTemplate(), req.getParams());
+            }
+            if (StrUtil.isBlank(content)) {
+                content = templateEngine.render(template.getContentTemplate(), req.getParams());
+            }
+            if (StrUtil.isBlank(channel)) {
+                channel = template.getDefaultChannel();
+            }
+        }
+
+        if (StrUtil.isBlank(title) && StrUtil.isBlank(content)) {
+            throw new BusinessException("消息标题和内容不能同时为空");
         }
         
         return new RenderResult(title, content, channel);
@@ -503,15 +509,23 @@ public class MessageServiceImpl extends ServiceImpl<SysMessageMapper,SysMessage>
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int markWebReadByBiz(String bizType, String bizKey) {
+        // 流程办结等系统场景：按业务键清理该笔站内信全部收件人未读（任务已结束）
+        return markWebReadByBiz(bizType, bizKey, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int markWebReadByBiz(String bizType, String bizKey, Long userId) {
         if (StrUtil.isBlank(bizType) || StrUtil.isBlank(bizKey)) {
             return 0;
         }
         Long tenantId = resolveTenantId();
         Integer updated = TenantContextHolder.executeWithTenant(tenantId,
-                () -> receiverMapper.markWebMessagesReadByBiz(bizType, bizKey, LocalDateTime.now()));
+                () -> receiverMapper.markWebMessagesReadByBiz(bizType, bizKey, userId, LocalDateTime.now()));
         int count = updated == null ? 0 : updated;
         if (count > 0) {
-            log.info("按业务键标记站内信已读: bizType={}, bizKey={}, updated={}", bizType, bizKey, count);
+            log.info("按业务键标记站内信已读: bizType={}, bizKey={}, userId={}, updated={}",
+                    bizType, bizKey, userId, count);
         }
         return count;
     }
@@ -558,21 +572,20 @@ public class MessageServiceImpl extends ServiceImpl<SysMessageMapper,SysMessage>
         if (message == null) {
             return null;
         }
-        
+
         SysMessageReceiver receiver = receiverMapper.selectOne(
             new LambdaQueryWrapper<SysMessageReceiver>()
                 .eq(SysMessageReceiver::getMessageId, messageId)
                 .eq(SysMessageReceiver::getUserId, userId)
         );
-        
+        if (receiver == null) {
+            throw new BusinessException(403, "无权查看该消息");
+        }
+
         MessageVO vo = new MessageVO();
         BeanUtils.copyProperties(message, vo);
-        
-        if (receiver != null) {
-            vo.setReadFlag(receiver.getReadFlag());
-            vo.setReadTime(receiver.getReadTime());
-        }
-        
+        vo.setReadFlag(receiver.getReadFlag());
+        vo.setReadTime(receiver.getReadTime());
         return vo;
     }
 

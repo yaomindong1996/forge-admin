@@ -39,11 +39,19 @@ public interface MessageService extends IService<SysMessage> {
     void markAllRead(Long userId);
 
     /**
-     * 按业务类型和业务键将站内信标记为已读。
+     * 按业务类型和业务键将站内信标记为已读（全部收件人，供流程办结等系统场景）。
      *
      * @return 更新的接收人记录数
      */
     int markWebReadByBiz(String bizType, String bizKey);
+
+    /**
+     * 按业务类型、业务键和用户将站内信标记为已读。
+     * {@code userId} 为 null 时等同于 {@link #markWebReadByBiz(String, String)}。
+     *
+     * @return 更新的接收人记录数
+     */
+    int markWebReadByBiz(String bizType, String bizKey, Long userId);
     
     /**
      * 分页查询用户消息

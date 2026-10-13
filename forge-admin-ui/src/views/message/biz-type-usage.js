@@ -96,6 +96,12 @@ export function isBuiltInFlowTodo(bizType) {
   return normalizeBizTypeCode(bizType) === 'FLOW_TODO'
 }
 
+const BUILT_IN_BIZ_TYPES = new Set(['FLOW_TODO', 'FLOW_TASK_OVERDUE', 'SYSTEM'])
+
+export function isBuiltInBizType(bizType) {
+  return BUILT_IN_BIZ_TYPES.has(normalizeBizTypeCode(bizType))
+}
+
 export function buildJavaSendExample({ bizType, bizName, sampleKey } = {}) {
   const code = normalizeBizTypeCode(bizType) || 'PURCHASE_ORDER'
   const key = sampleKey || DEFAULT_SAMPLE_BIZ_KEY

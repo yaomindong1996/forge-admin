@@ -1,5 +1,6 @@
 package com.mdframe.forge.plugin.message.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.mdframe.forge.plugin.message.domain.dto.MessageManageQueryDTO;
 import com.mdframe.forge.plugin.message.service.MessageManageService;
 import com.mdframe.forge.starter.core.domain.RespInfo;
@@ -18,6 +19,7 @@ public class MessageManageController {
     }
 
     @PostMapping("/page")
+    @SaCheckPermission("message:manage:query")
     public RespInfo<?> page(
             @RequestBody MessageManageQueryDTO query,
             @RequestParam(defaultValue = "1") Integer pageNum,
@@ -26,6 +28,7 @@ public class MessageManageController {
     }
 
     @GetMapping("/{messageId}/detail")
+    @SaCheckPermission("message:manage:query")
     public RespInfo<?> getDetail(@PathVariable Long messageId) {
         return RespInfo.success(messageManageService.getMessageDetail(messageId));
     }
