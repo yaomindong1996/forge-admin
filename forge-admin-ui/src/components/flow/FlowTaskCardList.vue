@@ -48,41 +48,57 @@
           v-for="item in items"
           :key="getRowKey(item)"
           class="task-card-item"
-          :class="{ selected: isSelected(item), unread: isUnread(item) }"
+          :class="{
+            selected: isSelected(item),
+            unread: isUnread(item),
+            'has-actions': !!$slots.actions,
+          }"
           @click="emit('rowClick', item)"
         >
-          <div class="task-card-header">
-            <button type="button" class="task-card-title" @click.stop="emit('rowClick', item)">
-              <slot name="title" :row="item">
-                {{ item.title || item.taskName || '-' }}
+          <div class="task-card-body">
+            <!-- 左侧彩色类型图标 -->
+            <div class="task-card-icon" :class="resolveRowIconTone(item)">
+              <slot name="icon" :row="item">
+                <i :class="resolveRowIcon(item)" />
               </slot>
-            </button>
-            <div class="task-card-status">
-              <slot name="status" :row="item" />
+            </div>
+
+            <div class="task-card-main">
+              <div class="task-card-header">
+                <button type="button" class="task-card-title" @click.stop="emit('rowClick', item)">
+                  <slot name="title" :row="item">
+                    {{ item.title || item.taskName || '-' }}
+                  </slot>
+                </button>
+                <div class="task-card-status">
+                  <slot name="status" :row="item" />
+                </div>
+              </div>
+
+              <div class="task-card-node">
+                <span class="task-card-node-label">{{ nodeTitle }}：</span>
+                <slot name="node" :row="item">
+                  {{ item.currentNode || item.taskName || item.nodeName || '-' }}
+                </slot>
+              </div>
+
+              <div class="task-card-footer">
+                <div class="task-card-user">
+                  <slot name="user" :row="item">
+                    <span class="user-avatar-small">{{ (item.startUserName || item.userName || '?').charAt(0) }}</span>
+                    <span>{{ item.startUserName || item.userName || '-' }}</span>
+                  </slot>
+                </div>
+                <div v-if="showTime" class="task-card-time">
+                  <slot name="time" :row="item">
+                    提交于 {{ item.createTime || item.submitTime || '-' }}
+                  </slot>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="task-card-node">
-            <span class="task-card-node-label">{{ nodeTitle }}：</span>
-            <slot name="node" :row="item">
-              {{ item.currentNode || item.taskName || item.nodeName || '-' }}
-            </slot>
-          </div>
-
-          <div class="task-card-footer">
-            <div class="task-card-user">
-              <slot name="user" :row="item">
-                <span class="user-avatar-small">{{ (item.startUserName || item.userName || '?').charAt(0) }}</span>
-                <span>{{ item.startUserName || item.userName || '-' }}</span>
-              </slot>
-            </div>
-            <div v-if="showTime" class="task-card-time">
-              <slot name="time" :row="item">
-                提交于 {{ item.createTime || item.submitTime || '-' }}
-              </slot>
-            </div>
-          </div>
-
+          <!-- 操作单独占一行，不挤在内容右侧 -->
           <div v-if="$slots.actions" class="task-card-actions" @click.stop>
             <slot name="actions" :row="item" />
           </div>
@@ -136,6 +152,8 @@ const props = defineProps({
   nodeTitle: { type: String, default: '当前节点' },
   userTitle: { type: String, default: '申请人' },
   actionTitle: { type: String, default: '操作' },
+  /** 列表左侧默认图标：todo / done / started / cc */
+  iconPreset: { type: String, default: 'todo' },
 })
 
 const emit = defineEmits([
@@ -150,6 +168,13 @@ const emit = defineEmits([
 
 const selectedSet = computed(() => new Set(props.selectedKeys))
 
+const ICON_PRESETS = {
+  todo: { icon: 'i-material-symbols:pending-actions', tone: 'blue' },
+  done: { icon: 'i-material-symbols:task-alt', tone: 'green' },
+  started: { icon: 'i-material-symbols:send', tone: 'amber' },
+  cc: { icon: 'i-material-symbols:mark-email-unread', tone: 'violet' },
+}
+
 function getRowKey(row) {
   if (typeof props.rowKey === 'function')
     return props.rowKey(row)
@@ -162,6 +187,51 @@ function isSelected(row) {
 
 function isUnread(row) {
   return props.unreadKey ? row?.[props.unreadKey] === 0 : false
+}
+
+function resolveRowIcon(row) {
+  if (props.iconPreset === 'cc')
+    return Number(row?.isRead) === 1 ? 'i-material-symbols:mark-email-read' : 'i-material-symbols:mark-email-unread'
+  if (props.iconPreset === 'done') {
+    if (Number(row?.status) === 3)
+      return 'i-material-symbols:cancel'
+    if (Number(row?.status) === 4 || Number(row?.status) === 7)
+      return 'i-material-symbols:keyboard-return'
+    return 'i-material-symbols:task-alt'
+  }
+  if (props.iconPreset === 'started') {
+    if ([2, 6].includes(Number(row?.status)))
+      return 'i-material-symbols:check-circle'
+    if ([3, 5, 8].includes(Number(row?.status)))
+      return 'i-material-symbols:stop-circle'
+    return 'i-material-symbols:schedule'
+  }
+  // todo：未签收 / 处理中
+  if (Number(row?.status) === 0 && !row?.assignee)
+    return 'i-material-symbols:assignment-ind'
+  return 'i-material-symbols:pending-actions'
+}
+
+function resolveRowIconTone(row) {
+  if (props.iconPreset === 'cc')
+    return Number(row?.isRead) === 1 ? 'green' : 'violet'
+  if (props.iconPreset === 'done') {
+    if (Number(row?.status) === 3)
+      return 'red'
+    if (Number(row?.status) === 4 || Number(row?.status) === 7)
+      return 'amber'
+    return 'green'
+  }
+  if (props.iconPreset === 'started') {
+    if ([2, 6].includes(Number(row?.status)))
+      return 'green'
+    if ([3, 5, 8].includes(Number(row?.status)))
+      return 'red'
+    return 'amber'
+  }
+  if (Number(row?.status) === 0 && !row?.assignee)
+    return 'amber'
+  return ICON_PRESETS.todo.tone
 }
 
 function clearSelection() {
@@ -308,6 +378,7 @@ function clearSelection() {
   display: flex;
   flex: 1;
   flex-direction: column;
+  align-content: flex-start;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
@@ -323,9 +394,16 @@ function clearSelection() {
 
 .task-card-item {
   position: relative;
-  padding: 12px;
-  border: 1px solid var(--border-light, #e8ecf1);
-  border-radius: 8px;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  min-height: 132px;
+  padding: 0;
+  overflow: visible;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 6px;
   background: var(--bg-primary, #fff);
   cursor: pointer;
   transition:
@@ -335,27 +413,88 @@ function clearSelection() {
 }
 
 .task-card-item:hover {
-  border-color: var(--primary-color, #2563eb);
-  background: var(--bg-secondary, #fafbff);
-  box-shadow: 0 1px 4px rgb(37 99 235 / 8%);
+  border-color: #cbd5e1;
+  background: #fcfcfd;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
 }
 
 .task-card-item.selected {
-  border-left: 3px solid var(--primary-color, #2563eb);
-  border-color: var(--primary-color, #2563eb);
-  background: color-mix(in srgb, var(--primary-color, #2563eb) 4%, var(--bg-primary, #fff));
+  border-color: color-mix(in srgb, var(--primary-color, #165dff) 45%, #e5e7eb);
+  background: color-mix(in srgb, var(--primary-color, #165dff) 4%, #fff);
 }
 
 .task-card-item.unread {
-  background: color-mix(in srgb, var(--primary-color, #2563eb) 3%, var(--bg-primary, #fff));
+  background: color-mix(in srgb, var(--primary-color, #165dff) 3%, #fff);
+}
+
+.task-card-body {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  align-items: flex-start;
+  min-width: 0;
+  min-height: 88px;
+  flex: 1 1 auto;
+  padding: 14px 16px 12px;
+}
+
+.task-card-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.task-card-icon.blue {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.task-card-icon.green {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.task-card-icon.amber {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.task-card-icon.red {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.task-card-icon.violet {
+  border-color: #ddd6fe;
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.task-card-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-top: 1px;
 }
 
 .task-card-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 10px;
+  margin-bottom: 8px;
 }
 
 .task-card-title {
@@ -388,8 +527,8 @@ function clearSelection() {
 .task-card-node {
   color: var(--text-secondary, #5c5c6e);
   font-size: 12px;
-  line-height: 1.5;
-  margin-bottom: 10px;
+  line-height: 1.55;
+  margin-bottom: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -444,13 +583,21 @@ function clearSelection() {
 }
 
 .task-card-actions {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-light, #e8ecf1);
+  box-sizing: border-box;
   display: flex;
-  align-items: center;
-  gap: 4px;
+  flex: 0 0 auto;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px 6px;
+  width: 100%;
+  min-height: 32px;
+  margin: 0;
+  padding: 5px 12px;
+  overflow: visible;
+  border-top: 1px solid var(--border-light, #eef1f5);
+  border-radius: 0 0 6px 6px;
+  background: #f8fafc;
 }
 
 .task-list-empty {
@@ -544,21 +691,26 @@ function clearSelection() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 1px;
-  padding: 0;
+  gap: 2px;
+  min-height: 24px;
+  padding: 0 4px;
   border: 0;
+  border-radius: 4px;
   background: transparent;
   color: var(--primary-color, #2563eb);
   cursor: pointer;
   font: inherit;
   font-size: 12px;
   font-weight: 500;
-  line-height: 1;
+  line-height: 18px;
   white-space: nowrap;
-  transition: color 150ms ease;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
 }
 
 :global(.task-row-link-action:hover) {
+  background: rgba(37, 99, 235, 0.06);
   color: color-mix(in srgb, var(--primary-color, #2563eb) 82%, var(--text-primary));
 }
 
@@ -587,9 +739,12 @@ function clearSelection() {
 }
 
 :global(.task-row-action-separator) {
+  display: inline-block;
+  flex: 0 0 auto;
   width: 1px;
-  height: 12px;
-  background: var(--border-light, #e2e8f0);
+  height: 14px;
+  margin: 0 2px;
+  background: #e2e8f0;
 }
 
 :global(.task-row-link-action i) {

@@ -9,12 +9,19 @@
       </template>
     </n-alert>
 
+    <WorkspaceSummaryMetrics
+      class="flow-summary-metrics"
+      compact
+      emphasis-key="cc"
+    />
+
     <!-- 连体工作台：页签 + 列表同一外框，避免双卡片贴合 -->
     <div class="cc-workspace">
       <FlowTaskCardList
         v-model:selected-keys="selectedRowKeys"
         v-model:search-value="queryParams.title"
         :title="activeTab === 'received' ? '抄送给我的' : '我发送的'"
+        icon-preset="cc"
         :items="dataSource"
         :loading="loading"
         :pagination="pagination"
@@ -223,6 +230,7 @@ import FlowBusinessForm from '@/components/common/FlowBusinessForm.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import FlowTaskBusinessSummary from '@/components/flow/FlowTaskBusinessSummary.vue'
 import FlowTaskCardList from '@/components/flow/FlowTaskCardList.vue'
+import WorkspaceSummaryMetrics from '@/views/workspace/WorkspaceSummaryMetrics.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
 import { getRowDisplayTitle } from './utils/processDisplay'
@@ -470,6 +478,10 @@ onMounted(() => {
   gap: 8px;
   overflow: hidden;
   background: var(--bg-secondary);
+}
+
+.flow-summary-metrics {
+  flex: 0 0 auto;
 }
 
 .cc-workspace {

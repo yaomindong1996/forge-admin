@@ -16,6 +16,10 @@
   background: var(--bg-secondary);
 }
 
+.flow-summary-metrics {
+  flex: 0 0 auto;
+}
+
 .page-header {
   background: var(--bg-primary);
   border-radius: 12px;

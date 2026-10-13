@@ -8,11 +8,18 @@
         </NButton>
       </template>
     </n-alert>
+    <!-- 顶部彩色统计：待办/已办/发起/抄送 -->
+    <WorkspaceSummaryMetrics
+      class="flow-summary-metrics"
+      compact
+      emphasis-key="todo"
+    />
     <!-- 任务列表 -->
     <FlowTaskCardList
       v-model:selected-keys="selectedTaskKeys"
       v-model:search-value="queryParams.title"
       title="我的待办任务"
+      icon-preset="todo"
       :items="dataSource"
       :loading="loading"
       :pagination="pagination"

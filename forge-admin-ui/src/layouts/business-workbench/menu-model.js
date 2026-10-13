@@ -67,3 +67,48 @@ export function filterMegaSections(sections = [], search = '') {
 export function countMenuLeaves(items = []) {
   return items.reduce((total, item) => total + (item.children?.length ? countMenuLeaves(item.children) : 1), 0)
 }
+
+function menuTreeContainsKey(items = [], key) {
+  const target = key === null || key === undefined ? '' : String(key)
+  if (!target)
+    return false
+  return items.some((item) => {
+    if (String(item.key) === target)
+      return true
+    return menuTreeContainsKey(item.children || [], target)
+  })
+}
+
+/**
+ * 解析大面板左侧当前应高亮的二级：预览 > 路由所属二级 > 首项。
+ * 禁止「第一个有子菜单的目录」抢叶子入口的高亮（工作台下请假管理是典型误伤）。
+ */
+export function resolveMegaActiveSection(sections = [], { previewKey = null, routeSectionKey = '', activeKey = '' } = {}) {
+  const visible = Array.isArray(sections) ? sections : []
+  if (!visible.length)
+    return undefined
+
+  const preview = previewKey === null || previewKey === undefined || previewKey === ''
+    ? undefined
+    : visible.find(section => String(section.key) === String(previewKey))
+  if (preview)
+    return preview
+
+  const routeKey = routeSectionKey === null || routeSectionKey === undefined ? '' : String(routeSectionKey)
+  const active = activeKey === null || activeKey === undefined ? '' : String(activeKey)
+
+  const byRouteKey = routeKey
+    ? visible.find(section => String(section.key) === routeKey)
+    : undefined
+  if (byRouteKey)
+    return byRouteKey
+
+  const byActiveKey = active
+    ? visible.find(section => String(section.key) === active)
+      || visible.find(section => menuTreeContainsKey(section.items || [], active))
+    : undefined
+  if (byActiveKey)
+    return byActiveKey
+
+  return visible[0]
+}

@@ -8,10 +8,16 @@
         </NButton>
       </template>
     </n-alert>
+    <WorkspaceSummaryMetrics
+      class="flow-summary-metrics"
+      compact
+      emphasis-key="started"
+    />
     <!-- 任务列表 -->
     <FlowTaskCardList
       v-model:search-value="queryParams.title"
       title="我发起的"
+      icon-preset="started"
       :items="dataSource"
       :loading="loading"
       :pagination="pagination"
@@ -280,6 +286,7 @@ import FlowPrintAction from '@/components/flow/FlowPrintAction.vue'
 import FlowTaskBusinessSummary from '@/components/flow/FlowTaskBusinessSummary.vue'
 import FlowTaskCardList from '@/components/flow/FlowTaskCardList.vue'
 import FlowTaskDetailShell from '@/components/flow/FlowTaskDetailShell.vue'
+import WorkspaceSummaryMetrics from '@/views/workspace/WorkspaceSummaryMetrics.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
 import { createFlowActionCredentials } from '@/utils/flow-action-idempotency'

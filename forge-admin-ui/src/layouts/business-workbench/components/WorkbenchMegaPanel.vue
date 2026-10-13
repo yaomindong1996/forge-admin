@@ -36,8 +36,11 @@
           >
             <button
               v-for="section in filteredSections" :key="section.key" type="button"
-              :class="{ 'is-active': activeSection?.key === section.key, 'is-current': currentSectionKey === section.key }"
-              :aria-current="currentSectionKey === section.key ? 'page' : undefined"
+              :class="{
+                'is-active': activeSection?.key === section.key,
+                'is-current': isRouteSection(section),
+              }"
+              :aria-current="isRouteSection(section) ? 'page' : undefined"
               @click="handleSection(section)"
               @mouseenter="scheduleSectionPreview(section, $event)"
               @mouseleave="onSectionButtonLeave(section, $event)"
@@ -109,7 +112,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import IconRenderer from '@/components/IconRenderer.vue'
 import { useBusinessWorkbenchStore } from '@/stores/layout/businessWorkbenchStore'
-import { countMenuLeaves, filterMegaSections } from '../menu-model'
+import { countMenuLeaves, filterMegaSections, resolveMegaActiveSection } from '../menu-model'
 import { useWorkbenchNavigation } from '../useWorkbenchNavigation'
 import WorkbenchMenuBranch from './WorkbenchMenuBranch.vue'
 
@@ -133,14 +136,23 @@ let lastPointer = { x: 0, y: 0 }
 const filteredSections = computed(() => filterMegaSections(sections.value, searchQuery.value))
 const menuDescription = computed(() => `集中查看和使用${expandedMenu.value?.label || '当前模块'}下的授权能力。`)
 const currentSectionKey = computed(() => trail.value[1]?.key)
-const activeSection = computed(() => {
-  const visible = filteredSections.value
-  return visible.find(section => section.hasChildren && section.key === selectedSectionKey.value)
-    || visible.find(section => section.hasChildren && section.key === currentSectionKey.value)
-    || visible.find(section => section.hasChildren)
-    || visible.find(section => section.key === activeKey.value)
-    || visible[0]
+const routeSectionKey = computed(() => {
+  // 当前路由落在二级菜单上时，优先高亮该二级（含无子级的直接入口）
+  if (currentSectionKey.value)
+    return String(currentSectionKey.value)
+  if (activeKey.value !== null && activeKey.value !== undefined)
+    return String(activeKey.value)
+  return ''
 })
+const activeSection = computed(() => resolveMegaActiveSection(filteredSections.value, {
+  previewKey: selectedSectionKey.value,
+  routeSectionKey: routeSectionKey.value,
+  activeKey: activeKey.value,
+}))
+
+function isRouteSection(section) {
+  return Boolean(section?.key) && String(section.key) === routeSectionKey.value
+}
 const activeFeatureCount = computed(() => activeSection.value?.hasChildren ? countMenuLeaves(activeSection.value.items) : 1)
 const totalFeatureCount = computed(() => filteredSections.value.reduce((total, section) => total + (section.hasChildren ? countMenuLeaves(section.items) : 1), 0))
 
@@ -176,25 +188,24 @@ function isMovingTowardMain(event) {
 
 function commitSectionPreview(section) {
   cancelSectionIntent()
-  if (section.hasChildren)
-    selectedSectionKey.value = section.key
+  selectedSectionKey.value = section.key
 }
 
 function scheduleSectionPreview(section, event) {
-  if (!section.hasChildren)
-    return
   if (!window.matchMedia('(hover: hover)').matches) {
     commitSectionPreview(section)
     return
   }
-  if (activeSection.value?.key === section.key) {
+  if (String(activeSection.value?.key) === String(section.key)) {
     cancelSectionIntent()
     return
   }
+  // 斜向进入右侧内容区时不切换，避免「请假管理」子菜单被途经叶子抢走后消失
   if (browsingFeatures || isMovingTowardMain(event)) {
     cancelSectionIntent()
     return
   }
+  // 叶子与目录统一延迟切换：点选/悬停目录后移开鼠标仍保持右侧子菜单，直到明确停在另一项
   cancelSectionIntent()
   pendingSectionKey = section.key
   sectionIntentTimer = window.setTimeout(() => {
@@ -216,10 +227,12 @@ function onSectionButtonLeave(section, event) {
 }
 
 function onSectionNavLeave(event) {
-  if (isInsideMain(event.relatedTarget))
+  if (isInsideMain(event.relatedTarget)) {
     lockSectionPreview()
-  else
-    cancelSectionIntent()
+    return
+  }
+  // 只取消尚未生效的悬停意图，不清已选中的目录预览（否则请假管理子菜单会立刻没）
+  cancelSectionIntent()
 }
 
 function lockSectionPreview() {
@@ -273,6 +286,12 @@ watch(() => store.activeMenu, () => {
   searchQuery.value = ''
   selectedSectionKey.value = null
   syncPanelAnchor()
+})
+// 路由切换后清掉预览态，避免仍高亮上一次悬停的「请假管理」等分组
+watch(activeKey, () => {
+  browsingFeatures = false
+  cancelSectionIntent()
+  selectedSectionKey.value = null
 })
 watch(searchQuery, () => {
   browsingFeatures = false

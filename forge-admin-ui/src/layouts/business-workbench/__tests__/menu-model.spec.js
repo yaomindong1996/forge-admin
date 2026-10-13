@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildMegaSections, buildWorkbenchMenus, countMenuLeaves, filterMegaSections, findWorkbenchTrail } from '../menu-model'
+import { buildMegaSections, buildWorkbenchMenus, countMenuLeaves, filterMegaSections, findWorkbenchTrail, resolveMegaActiveSection } from '../menu-model'
 
 const menu = (id, label, path, children = [], extra = {}) => ({ id, label, path, children, type: children.length ? 'module' : 'menu', ...extra })
 
@@ -138,5 +138,24 @@ describe('业务工作台接口菜单', () => {
     ]
     expect(countMenuLeaves(items)).toBe(3)
     expect(countMenuLeaves()).toBe(0)
+  })
+
+  it('工作台混合叶子与目录时，当前路由叶子优先于请假管理等分组回退', () => {
+    const [root] = buildWorkbenchMenus([menu(43, '工作台', '/workbench', [
+      menu(9283, '首页', '/home'),
+      menu(80, '我的待办', '/flow/todo'),
+      menu(81, '我的已办', '/flow/done'),
+      menu(900, '请假管理', '/leave', [
+        menu(901, '请假申请', '/leave/apply'),
+        menu(902, '我的请假', '/leave/list'),
+      ]),
+    ])])
+    const sections = buildMegaSections(root)
+
+    expect(resolveMegaActiveSection(sections, { routeSectionKey: '80', activeKey: '80' })?.title).toBe('我的待办')
+    expect(resolveMegaActiveSection(sections, { routeSectionKey: '900', activeKey: '901' })?.title).toBe('请假管理')
+    expect(resolveMegaActiveSection(sections, { activeKey: '901' })?.title).toBe('请假管理')
+    expect(resolveMegaActiveSection(sections, { previewKey: '900', routeSectionKey: '80', activeKey: '80' })?.title).toBe('请假管理')
+    expect(resolveMegaActiveSection(sections, {})?.title).toBe('首页')
   })
 })

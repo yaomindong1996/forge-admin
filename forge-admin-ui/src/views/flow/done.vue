@@ -8,10 +8,16 @@
         </NButton>
       </template>
     </n-alert>
+    <WorkspaceSummaryMetrics
+      class="flow-summary-metrics"
+      compact
+      emphasis-key="done"
+    />
     <!-- 任务列表 -->
     <FlowTaskCardList
       v-model:search-value="queryParams.title"
       title="已办"
+      icon-preset="done"
       :items="dataSource"
       :loading="loading"
       :pagination="pagination"
@@ -171,6 +177,7 @@ import FlowTaskBusinessSummary from '@/components/flow/FlowTaskBusinessSummary.v
 import FlowTaskCardList from '@/components/flow/FlowTaskCardList.vue'
 import FlowTaskDetailShell from '@/components/flow/FlowTaskDetailShell.vue'
 import SignatureImage from '@/components/flow/SignatureImage.vue'
+import WorkspaceSummaryMetrics from '@/views/workspace/WorkspaceSummaryMetrics.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
 import { buildFlowCategoryTreeOptions, resolveFlowCategoryLabel } from './utils/categoryOptions'
@@ -326,12 +333,16 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   min-height: 0;
-  padding: 0;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 8px;
   overflow: hidden;
   background: var(--bg-secondary);
+}
+
+.flow-summary-metrics {
+  flex: 0 0 auto;
 }
 .page-header {
   background: var(--bg-primary);

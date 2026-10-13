@@ -13,6 +13,7 @@ import FlowTaskDetailShell from '@/components/flow/FlowTaskDetailShell.vue'
 import SignaturePad from '@/components/flow/SignaturePad.vue'
 import ChildTableEditor from '@/components/page-templates/ChildTableEditor.vue'
 import { AiForm } from '@/components/ai-form'
+import WorkspaceSummaryMetrics from '@/views/workspace/WorkspaceSummaryMetrics.vue'
 
 export const flowTodoLocalComponents = {
   NButton,
@@ -31,4 +32,5 @@ export const flowTodoLocalComponents = {
   SignaturePad,
   ChildTableEditor,
   AiForm,
+  WorkspaceSummaryMetrics,
 }

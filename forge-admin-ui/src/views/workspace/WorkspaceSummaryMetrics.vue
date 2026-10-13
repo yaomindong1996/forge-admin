@@ -9,6 +9,7 @@
           v-for="item in visibleMetricItems"
           :key="item.key"
           class="summary-metric"
+          :class="[`tone-${item.tone}`, { 'is-emphasis': item.key === emphasisKey }]"
           type="button"
           :disabled="readonly"
           @click="handleMetricClick(item)"
@@ -20,6 +21,10 @@
             <strong>{{ item.value }}</strong>
             <span>{{ item.label }}</span>
             <small>{{ item.desc }}</small>
+            <!-- 占比条：让统计区更像“图表”，而不是纯数字 -->
+            <span class="metric-share" aria-hidden="true">
+              <i :style="{ width: `${item.sharePercent}%` }" />
+            </span>
           </span>
           <i v-if="!readonly" class="i-material-symbols:chevron-right metric-arrow" />
         </button>
@@ -60,6 +65,11 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  /** 当前页高亮的指标 key：todo / done / started / cc */
+  emphasisKey: {
+    type: String,
+    default: '',
+  },
 })
 
 const emit = defineEmits(['navigate', 'loaded'])
@@ -93,7 +103,7 @@ const metricCatalog = computed(() => [
     value: summary.value.doneWeekCount,
     systemPageId: 'system:done',
     fallbackPath: '/workspace/done',
-    icon: 'i-material-symbols:task-alt-outline',
+    icon: 'i-material-symbols:task-alt',
     tone: 'green',
   },
   {
@@ -103,7 +113,7 @@ const metricCatalog = computed(() => [
     value: summary.value.startedRunningCount,
     systemPageId: 'system:sent',
     fallbackPath: '/workspace/started',
-    icon: 'i-material-symbols:send-outline',
+    icon: 'i-material-symbols:send',
     tone: 'amber',
   },
   {
@@ -113,7 +123,7 @@ const metricCatalog = computed(() => [
     value: summary.value.ccUnreadCount,
     systemPageId: 'system:cc',
     fallbackPath: '/workspace/cc',
-    icon: 'i-material-symbols:alternate-email',
+    icon: 'i-material-symbols:mark-email-unread',
     tone: 'red',
   },
 ])
@@ -121,9 +131,14 @@ const metricCatalog = computed(() => [
 const visibleMetricItems = computed(() => {
   const keys = new Set((props.visibleKeys || []).map(item => String(item)))
   const list = metricCatalog.value.filter(item => keys.has(item.key))
-  return (list.length ? list : metricCatalog.value).map(item => ({
+  const items = list.length ? list : metricCatalog.value
+  const total = items.reduce((sum, item) => sum + Number(item.value || 0), 0)
+  return items.map(item => ({
     ...item,
     target: resolveMetricTarget(item),
+    sharePercent: total > 0
+      ? Math.max(6, Math.round((Number(item.value || 0) / total) * 100))
+      : 0,
   }))
 })
 
@@ -155,6 +170,16 @@ function resolveMetricTarget(item = {}) {
         },
       }
     }
+  }
+  // 流程管理菜单下停留在 /flow/*，避免跳到 /workspace
+  if (String(route.path || '').startsWith('/flow/')) {
+    const flowPathMap = {
+      todo: '/flow/todo',
+      done: '/flow/done',
+      started: '/flow/started',
+      cc: '/flow/cc',
+    }
+    return flowPathMap[key] || item.fallbackPath || '/flow/todo'
   }
   return item.fallbackPath || '/workspace/todo'
 }
@@ -252,8 +277,33 @@ defineExpose({ loadSummary, summary })
   transform: translateY(-1px);
 }
 
+.summary-metric.is-emphasis {
+  border-color: color-mix(in srgb, var(--metric-accent, var(--primary-color, #2563eb)) 42%, #e5eaf3);
+  box-shadow: inset 3px 0 0 var(--metric-accent, var(--primary-color, #2563eb));
+}
+
+.summary-metric.tone-blue {
+  --metric-accent: #2563eb;
+  background: linear-gradient(135deg, #eff6ff 0%, var(--bg-primary) 58%);
+}
+
+.summary-metric.tone-green {
+  --metric-accent: #16a34a;
+  background: linear-gradient(135deg, #ecfdf5 0%, var(--bg-primary) 58%);
+}
+
+.summary-metric.tone-amber {
+  --metric-accent: #d97706;
+  background: linear-gradient(135deg, #fffbeb 0%, var(--bg-primary) 58%);
+}
+
+.summary-metric.tone-red {
+  --metric-accent: #dc2626;
+  background: linear-gradient(135deg, #fff1f2 0%, var(--bg-primary) 58%);
+}
+
 .is-compact .summary-metric {
-  min-height: 96px;
+  min-height: 88px;
   padding: 12px;
 }
 
@@ -268,22 +318,22 @@ defineExpose({ loadSummary, summary })
 }
 
 .metric-icon.blue {
-  background: #f0f2f5;
-  color: var(--text-secondary);
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .metric-icon.green {
-  background: #e9f8ef;
+  background: #dcfce7;
   color: #15803d;
 }
 
 .metric-icon.amber {
-  background: #fff6df;
+  background: #fef3c7;
   color: #b45309;
 }
 
 .metric-icon.red {
-  background: #fff0f0;
+  background: #ffe4e6;
   color: #dc2626;
 }
 
@@ -323,6 +373,28 @@ defineExpose({ loadSummary, summary })
   margin-top: 2px;
   color: #667085;
   font-size: 12px;
+}
+
+.metric-share {
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--metric-accent, #2563eb) 14%, #eef2f7);
+}
+
+.metric-share > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--metric-accent, #2563eb);
+  transition: width 0.18s ease;
+}
+
+.is-compact .metric-share {
+  margin-top: 6px;
 }
 
 .metric-arrow {

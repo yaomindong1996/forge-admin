@@ -408,6 +408,7 @@
   color: var(--text-primary, var(--text-secondary));
   background: color-mix(in srgb, var(--side-menu-bg-color-hover, var(--bg-secondary)) 55%, transparent);
 }
+/* 蓝底高亮只给「当前右侧正在展示」的那一项，避免当前路由与预览分组双高亮 */
 .mega-section-nav > button.is-active {
   color: var(--side-menu-text-color-active, var(--workbench-primary));
   background: var(--side-menu-bg-color-active, var(--bg-secondary));
@@ -416,6 +417,11 @@
 .mega-section-nav > button.is-active:focus-visible {
   color: var(--side-menu-text-color-active, var(--workbench-primary));
   background: var(--side-menu-bg-color-active, var(--bg-secondary));
+}
+/* 当前路由菜单仅加字重，不用第二块蓝底 */
+.mega-section-nav > button.is-current:not(.is-active) {
+  color: var(--text-primary, var(--text-secondary));
+  background: transparent;
 }
 .mega-section-nav > button.is-current .mega-section-nav__label {
   font-weight: 650;
