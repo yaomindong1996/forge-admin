@@ -56,6 +56,8 @@ const message = window.$message
 const crudRef = ref()
 const onlineModalVisible = ref(false)
 const onlineUsers = ref([])
+/** 当前在线用户弹窗所属客户端，踢出后按此编码刷新 */
+const currentOnlineClientCode = ref('')
 const { dict } = useDict(
   'sys_client_auth_method',
   'sys_enable_disable',
@@ -174,7 +176,13 @@ const tableColumns = computed(() => [
       { label: '编辑', key: 'edit', type: 'primary', onClick: row => crudRef.value?.showEdit(row) },
       { label: '在线用户', key: 'online', type: 'primary', onClick: handleViewOnline },
       { label: '刷新缓存', key: 'reloadCache', type: 'primary', onClick: handleReloadCache },
-      { label: '删除', key: 'delete', type: 'error', onClick: row => crudRef.value?.handleDelete(row), visible: row => row.id > 4 },
+      {
+        label: '删除',
+        key: 'delete',
+        type: 'error',
+        onClick: row => crudRef.value?.handleDelete(row),
+        visible: row => !row.builtIn,
+      },
     ],
   },
 ])
@@ -194,6 +202,8 @@ const editSchema = computed(() => [
     label: '客户端编码',
     type: 'input',
     rules: [{ required: true, message: '请输入客户端编码', trigger: 'blur' }],
+    // 内置客户端编码由后端锁定；编辑时禁用输入避免误改
+    disabled: ({ formData }) => Boolean(formData?.id && formData?.builtIn),
     props: {
       placeholder: '如：pc, app, h5, wechat',
     },
@@ -316,6 +326,7 @@ const editSchema = computed(() => [
     label: '状态',
     type: 'radio',
     defaultValue: 1,
+    disabled: ({ formData }) => Boolean(formData?.id && formData?.builtIn),
     props: {
       options: statusOptions.value,
     },
@@ -394,7 +405,13 @@ function beforeSubmit(formData) {
 // 查看在线用户
 async function handleViewOnline(row) {
   try {
-    const res = await request.get(`/system/client/online/${row.clientCode}`)
+    const clientCode = row?.clientCode
+    if (!clientCode) {
+      message.error('客户端编码无效')
+      return
+    }
+    currentOnlineClientCode.value = clientCode
+    const res = await request.get(`/system/client/online/${clientCode}`)
     if (res.data) {
       onlineUsers.value = res.data
       onlineModalVisible.value = true
@@ -405,12 +422,17 @@ async function handleViewOnline(row) {
   }
 }
 
-// 踢出用户
+// 踢出用户（必须使用当前弹窗客户端，禁止写死 pc）
 async function handleKickoutUser(row) {
+  const clientCode = currentOnlineClientCode.value
+  if (!clientCode || !row?.userId) {
+    message.error('踢出失败：缺少客户端或用户信息')
+    return
+  }
   try {
-    await request.post(`/system/client/kickout/${row.userId}/pc`)
+    await request.post(`/system/client/kickout/${row.userId}/${clientCode}`)
     message.success('已踢出该用户')
-    handleViewOnline({ clientCode: 'pc' })
+    handleViewOnline({ clientCode })
   }
   catch {
     message.error('踢出失败')

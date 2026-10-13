@@ -8,6 +8,7 @@ import com.mdframe.forge.plugin.system.entity.SysFileStorageConfig;
 import com.mdframe.forge.plugin.system.mapper.SysFileStorageConfigMapper;
 import com.mdframe.forge.plugin.system.service.ISysFileStorageConfigService;
 import com.mdframe.forge.starter.core.domain.PageQuery;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.util.SensitiveDataUtil;
 import com.mdframe.forge.starter.file.core.FileManager;
 import com.mdframe.forge.starter.file.model.StorageConfig;
@@ -67,9 +68,7 @@ public class SysFileStorageConfigServiceImpl extends ServiceImpl<SysFileStorageC
     @Transactional(rollbackFor = Exception.class)
     public void setDefault(Long id) {
         SysFileStorageConfig config = this.getById(id);
-        if (config == null) {
-            throw new RuntimeException("文件存储配置不存在");
-        }
+        SysFileStorageAccessPolicy.assertCanSetDefault(config);
         normalizeRequiredAllowedTypes(config);
 
         // 取消所有默认配置
@@ -92,19 +91,23 @@ public class SysFileStorageConfigServiceImpl extends ServiceImpl<SysFileStorageC
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateEnabled(Long id, Boolean enabled) {
-        SysFileStorageConfig config = null;
-        if (Boolean.TRUE.equals(enabled)) {
-            config = this.getById(id);
-            if (config == null) {
-                throw new RuntimeException("文件存储配置不存在");
-            }
+        SysFileStorageConfig config = this.getById(id);
+        if (config == null) {
+            throw new BusinessException("文件存储配置不存在");
+        }
+        if (Boolean.FALSE.equals(enabled)) {
+            long enabledCount = this.lambdaQuery()
+                    .eq(SysFileStorageConfig::getEnabled, true)
+                    .count();
+            SysFileStorageAccessPolicy.assertCanDisableOrRemove(config, "禁用", enabledCount);
+        } else {
             normalizeRequiredAllowedTypes(config);
         }
 
         var update = this.lambdaUpdate()
                 .eq(SysFileStorageConfig::getId, id)
                 .set(SysFileStorageConfig::getEnabled, enabled);
-        if (config != null) {
+        if (Boolean.TRUE.equals(enabled)) {
             update.set(SysFileStorageConfig::getAllowedTypes, config.getAllowedTypes());
         }
         update.update();
@@ -192,6 +195,10 @@ public class SysFileStorageConfigServiceImpl extends ServiceImpl<SysFileStorageC
     public boolean updateById(SysFileStorageConfig entity) {
         preserveMaskedCredentials(entity);
         normalizeRequiredAllowedTypes(entity);
+        if (entity != null && entity.getId() != null) {
+            SysFileStorageAccessPolicy.assertEditableDefault(
+                    this.getById(entity.getId()), entity.getEnabled(), entity.getIsDefault());
+        }
         boolean success = super.updateById(entity);
         configProvider.refreshConfig();
         fileManager.refreshConfiguredStorages();
@@ -200,6 +207,14 @@ public class SysFileStorageConfigServiceImpl extends ServiceImpl<SysFileStorageC
 
     @Override
     public boolean removeById(java.io.Serializable id) {
+        SysFileStorageConfig config = this.getById(id);
+        if (config == null) {
+            return false;
+        }
+        long enabledCount = this.lambdaQuery()
+                .eq(SysFileStorageConfig::getEnabled, true)
+                .count();
+        SysFileStorageAccessPolicy.assertCanDisableOrRemove(config, "删除", enabledCount);
         boolean success = super.removeById(id);
         configProvider.refreshConfig();
         fileManager.refreshConfiguredStorages();

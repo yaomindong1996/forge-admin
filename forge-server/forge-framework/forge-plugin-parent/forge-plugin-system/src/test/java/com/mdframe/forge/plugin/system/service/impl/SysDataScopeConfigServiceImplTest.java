@@ -84,6 +84,15 @@ class SysDataScopeConfigServiceImplTest {
     }
 
     @Test
+    void shouldRejectEmptyBatchDeleteIds() {
+        BusinessException nullError = assertThrows(BusinessException.class, () -> service.deleteConfigByIds(null));
+        assertTrue(nullError.getMessage().contains("请选择要删除"));
+        BusinessException emptyError = assertThrows(BusinessException.class, () -> service.deleteConfigByIds(new Long[0]));
+        assertTrue(emptyError.getMessage().contains("请选择要删除"));
+        verifyNoInteractions(mapper, cache);
+    }
+
+    @Test
     void shouldReportThatSaveCommittedWhenRefreshFails() {
         TransactionSynchronizationManager.initSynchronization();
         when(mapper.insert(any(SysDataScopeConfig.class))).thenReturn(1);

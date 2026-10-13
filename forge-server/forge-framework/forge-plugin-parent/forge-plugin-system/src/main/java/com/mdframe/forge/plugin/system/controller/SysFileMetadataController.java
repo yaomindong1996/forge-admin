@@ -37,11 +37,11 @@ public class SysFileMetadataController {
     }
     
     /**
-     * 详情
+     * 详情（私有文件需上传者或超管）
      */
     @GetMapping("/{id}")
     public RespInfo<SysFileMetadata> detail(@PathVariable Long id) {
-        return RespInfo.success(fileMetadataService.getById(id));
+        return RespInfo.success(fileMetadataService.getReadableById(id));
     }
 
     /**

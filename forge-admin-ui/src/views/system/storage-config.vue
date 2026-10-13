@@ -214,12 +214,12 @@ const tableColumns = computed(() => [
     fixed: 'right',
     actions: [
       { label: '编辑', key: 'edit', onClick: handleEdit },
-      { label: '设为默认', key: 'setDefault', onClick: handleSetDefault, visible: row => !row.isDefault },
+      { label: '设为默认', key: 'setDefault', onClick: handleSetDefault, visible: row => !row.isDefault && row.enabled },
       { label: '测试连接', key: 'testConnection', onClick: handleTestConnection },
       { label: '创建桶', key: 'createBucket', onClick: handleCreateBucket, visible: row => row.storageType !== 'local' },
-      { label: '禁用', key: 'disable', onClick: handleToggleEnabled, visible: row => row.enabled },
+      { label: '禁用', key: 'disable', onClick: handleToggleEnabled, visible: row => row.enabled && !row.isDefault },
       { label: '启用', key: 'enable', onClick: handleToggleEnabled, visible: row => !row.enabled },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete, visible: row => !row.isDefault },
     ],
   },
 ])

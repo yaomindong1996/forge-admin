@@ -86,9 +86,14 @@ public class ClientServiceImpl extends ServiceImpl<SysClientMapper, SysClient> i
         if (existing == null) {
             return false;
         }
+        SysClientAccessPolicy.assertMutable(existing, dto.getClientCode(), dto.getStatus());
 
         SysClient client = new SysClient();
         BeanUtils.copyProperties(dto, client, "appSecret", "clientAuthMethod");
+        // 内置客户端强制保留原编码，避免前端漏传导致被改写
+        if (SysClientAccessPolicy.isBuiltIn(existing)) {
+            client.setClientCode(existing.getClientCode());
+        }
         String storedSecret;
         try {
             String requestedAuthMethod = StrUtil.isBlank(dto.getClientAuthMethod())
@@ -122,6 +127,7 @@ public class ClientServiceImpl extends ServiceImpl<SysClientMapper, SysClient> i
         if (existing == null) {
             return false;
         }
+        SysClientAccessPolicy.assertDeletable(existing);
         boolean deleted = clientMapper.deleteById(id) > 0;
         if (deleted) {
             evictClientCacheAfterCommit(existing.getClientCode());

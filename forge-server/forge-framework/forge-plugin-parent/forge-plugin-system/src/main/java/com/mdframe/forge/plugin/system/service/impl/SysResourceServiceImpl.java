@@ -170,6 +170,7 @@ public class SysResourceServiceImpl extends ServiceImpl<SysResourceMapper, SysRe
         List<SysResource> selectedResources = loadSelectedResources(resourceIds);
         validateSelectedResourcesExist(resourceIds, selectedResources);
         validateNoUnselectedDescendants(resourceIds);
+        SysResourceAccessPolicy.assertDeletable(selectedResources);
         deleteRoleResourceBindings(resourceIds);
 
         int deletedCount = resourceMapper.deleteBatchIds(resourceIds);

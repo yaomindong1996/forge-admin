@@ -23,9 +23,14 @@ public interface ISysFileMetadataService extends IService<SysFileMetadata> {
     List<SysFileMetadata> listByBusiness(String businessType, String businessId);
     
     /**
-     * 根据 fileId 字符串查询元数据
+     * 根据 fileId 字符串查询元数据（带读权限校验）
      */
     SysFileMetadata getByFileId(String fileId);
+
+    /**
+     * 根据主键查询元数据（带读权限校验）
+     */
+    SysFileMetadata getReadableById(Long id);
 
     /**
      * 根据 fileId 字符串删除（带所有权校验）

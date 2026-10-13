@@ -88,6 +88,9 @@ public class SysDataScopeConfigServiceImpl implements ISysDataScopeConfigService
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteConfigByIds(Long[] ids) {
+        if (ids == null || ids.length == 0) {
+            throw new BusinessException("请选择要删除的数据权限规则");
+        }
         int result = dataScopeConfigMapper.deleteBatchIds(Arrays.asList(ids));
         if (result > 0) {
             // 刷新数据权限配置缓存

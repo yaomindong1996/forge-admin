@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.mdframe.forge.plugin.system.entity.SysOnlineUser;
 import com.mdframe.forge.plugin.system.entity.SysUser;
+import com.mdframe.forge.plugin.system.mapper.SysClientMapper;
 import com.mdframe.forge.plugin.system.mapper.SysOnlineUserMapper;
 import com.mdframe.forge.plugin.system.mapper.SysUserMapper;
 import com.mdframe.forge.starter.core.exception.BusinessException;
@@ -49,8 +50,7 @@ class SysOnlineUserServiceSecurityTest {
                 (methodName, arguments) -> defaultValue(methodName));
         SysUserMapper userMapper = proxy(SysUserMapper.class,
                 (methodName, arguments) -> defaultValue(methodName));
-        SysOnlineUserServiceImpl service = new SysOnlineUserServiceImpl(
-                onlineUserMapper, noOpMessagePushService(), userMapper);
+        SysOnlineUserServiceImpl service = newService(onlineUserMapper, userMapper);
 
         assertThatThrownBy(() -> service.kickoutSession(41L))
                 .isInstanceOf(BusinessException.class)
@@ -81,8 +81,7 @@ class SysOnlineUserServiceSecurityTest {
             }
             return defaultValue(methodName);
         });
-        SysOnlineUserServiceImpl service = new SysOnlineUserServiceImpl(
-                onlineUserMapper, noOpMessagePushService(), userMapper);
+        SysOnlineUserServiceImpl service = newService(onlineUserMapper, userMapper);
 
         assertThat(service.getUserSessionIds(52L)).containsExactly(101L, 102L);
         assertThat(userLookupCount.get()).isEqualTo(1);
@@ -108,8 +107,7 @@ class SysOnlineUserServiceSecurityTest {
             return defaultValue(methodName);
         });
 
-        SysOnlineUserServiceImpl service = new SysOnlineUserServiceImpl(
-                onlineUserMapper, noOpMessagePushService(),
+        SysOnlineUserServiceImpl service = newService(onlineUserMapper,
                 proxy(SysUserMapper.class, (methodName, arguments) -> defaultValue(methodName)));
 
         assertThatThrownBy(() -> service.batchKickoutSessions(List.of(101L, 202L)))
@@ -131,8 +129,7 @@ class SysOnlineUserServiceSecurityTest {
             }
             return defaultValue(methodName);
         });
-        SysOnlineUserServiceImpl service = new SysOnlineUserServiceImpl(
-                onlineUserMapper, noOpMessagePushService(),
+        SysOnlineUserServiceImpl service = newService(onlineUserMapper,
                 proxy(SysUserMapper.class, (methodName, arguments) -> defaultValue(methodName)));
         SysOnlineUser onlineUser = new SysOnlineUser();
         onlineUser.setTenantId(7L);
@@ -175,8 +172,7 @@ class SysOnlineUserServiceSecurityTest {
             }
             return defaultValue(methodName);
         });
-        SysOnlineUserServiceImpl service = new SysOnlineUserServiceImpl(
-                onlineUserMapper, noOpMessagePushService(),
+        SysOnlineUserServiceImpl service = newService(onlineUserMapper,
                 proxy(SysUserMapper.class, (methodName, arguments) -> defaultValue(methodName)));
 
         service.removeOnlineUser("opaque-token");
@@ -201,8 +197,7 @@ class SysOnlineUserServiceSecurityTest {
             }
             return defaultValue(methodName);
         });
-        SysOnlineUserServiceImpl service = new SysOnlineUserServiceImpl(
-                onlineUserMapper, noOpMessagePushService(),
+        SysOnlineUserServiceImpl service = newService(onlineUserMapper,
                 proxy(SysUserMapper.class, (methodName, arguments) -> defaultValue(methodName)));
 
         service.updateLastActivityTime("unknown-token");
@@ -210,6 +205,14 @@ class SysOnlineUserServiceSecurityTest {
         assertThat(updateCount.get()).isZero();
         assertThat(TenantContextHolder.getTenantId()).isNull();
         assertThat(TenantContextHolder.isIgnore()).isFalse();
+    }
+
+    private SysOnlineUserServiceImpl newService(SysOnlineUserMapper onlineUserMapper, SysUserMapper userMapper) {
+        return new SysOnlineUserServiceImpl(
+                onlineUserMapper,
+                noOpMessagePushService(),
+                userMapper,
+                proxy(SysClientMapper.class, (methodName, arguments) -> defaultValue(methodName)));
     }
 
     private IMessagePushService noOpMessagePushService() {

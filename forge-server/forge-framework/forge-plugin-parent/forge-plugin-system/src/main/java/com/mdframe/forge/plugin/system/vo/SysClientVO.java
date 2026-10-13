@@ -35,6 +35,8 @@ public class SysClientVO {
     private Integer status;
     private String description;
     private Long tenantId;
+    /** 模板内置客户端（pc/app/h5/forge_report），前端据此隐藏删除并锁定编码 */
+    private Boolean builtIn;
     
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

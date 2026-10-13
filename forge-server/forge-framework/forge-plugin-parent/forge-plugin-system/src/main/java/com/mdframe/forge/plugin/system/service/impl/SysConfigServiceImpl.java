@@ -85,21 +85,44 @@ public class SysConfigServiceImpl extends ServiceImpl<SysConfigMapper, SysConfig
     @Override
     public boolean updateConfig(SysConfigDTO dto) {
         SysConfig existing = dto == null || dto.getConfigId() == null ? null : configMapper.selectById(dto.getConfigId());
-        rejectDeploymentCryptoSecret(dto == null ? null : dto.getConfigKey(),
-                existing == null ? null : existing.getConfigKey());
+        if (existing == null) {
+            return false;
+        }
+        SysConfigAccessPolicy.assertMutable(existing,
+                dto == null ? null : dto.getConfigKey(),
+                dto == null ? null : dto.getConfigType());
+        rejectDeploymentCryptoSecret(dto == null ? null : dto.getConfigKey(), existing.getConfigKey());
         SysConfig config = new SysConfig();
         BeanUtil.copyProperties(dto, config);
+        if (SysConfigAccessPolicy.isBuiltIn(existing)) {
+            config.setConfigKey(existing.getConfigKey());
+            config.setConfigType(SysConfigAccessPolicy.BUILT_IN);
+        }
         preserveMaskedSensitiveValue(dto, config, existing);
         return configMapper.updateById(config) > 0;
     }
 
     @Override
     public boolean deleteConfigById(Long configId) {
+        SysConfig existing = configMapper.selectById(configId);
+        if (existing == null) {
+            return false;
+        }
+        SysConfigAccessPolicy.assertDeletable(existing);
         return configMapper.deleteById(configId) > 0;
     }
 
     @Override
     public boolean deleteConfigByIds(Long[] configIds) {
+        if (configIds == null || configIds.length == 0) {
+            throw new BusinessException("请选择要删除的参数");
+        }
+        for (Long configId : configIds) {
+            SysConfig existing = configMapper.selectById(configId);
+            if (existing != null) {
+                SysConfigAccessPolicy.assertDeletable(existing);
+            }
+        }
         return configMapper.deleteBatchIds(Arrays.asList(configIds)) > 0;
     }
 

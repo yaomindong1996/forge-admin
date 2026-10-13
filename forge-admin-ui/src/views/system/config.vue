@@ -118,7 +118,13 @@ const tableColumns = computed(() => [
     fixed: 'right',
     actions: [
       { label: '编辑', key: 'edit', onClick: handleEdit },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+      {
+        label: '删除',
+        key: 'delete',
+        type: 'error',
+        onClick: handleDelete,
+        visible: row => String(row.configType || '').toUpperCase() !== 'Y',
+      },
     ],
   },
 ])
@@ -147,6 +153,8 @@ const editSchema = computed(() => [
     label: '参数键名',
     type: 'input',
     rules: [{ required: true, message: '请输入参数键名', trigger: 'blur' }],
+    disabled: ({ formData }) => Boolean(formData?.configId)
+      && String(formData?.configType || '').toUpperCase() === 'Y',
     props: {
       placeholder: '请输入参数键名，如：sys.login.timeout',
     },
@@ -168,6 +176,8 @@ const editSchema = computed(() => [
     type: 'radio',
     defaultValue: 'N',
     rules: [{ required: true, message: '请选择是否系统内置', trigger: 'change' }],
+    disabled: ({ formData }) => Boolean(formData?.configId)
+      && String(formData?.configType || '').toUpperCase() === 'Y',
     props: {
       options: configTypeOptions.value,
     },

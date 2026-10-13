@@ -150,7 +150,14 @@ const tableColumns = computed(() => [
     actions: [
       { label: '字典数据', key: 'dictData', onClick: handleManageData },
       { label: '编辑', key: 'edit', onClick: handleEdit },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+      {
+        label: '删除',
+        key: 'delete',
+        type: 'error',
+        onClick: handleDelete,
+        // 系统前缀字典与后端 SysDictTypeAccessPolicy 一致，前端隐藏删除
+        visible: row => !String(row.dictType || '').toLowerCase().startsWith('sys_'),
+      },
     ],
   },
 ])
@@ -179,6 +186,8 @@ const editSchema = [
     label: '字典类型',
     type: 'input',
     rules: [{ required: true, message: '请输入字典类型', trigger: 'blur' }],
+    // 创建后锁定编码，避免孤儿化 sys_dict_data
+    disabled: ({ formData }) => Boolean(formData?.dictId),
     props: {
       placeholder: '请输入字典类型，如：sys_user_sex',
     },

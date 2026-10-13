@@ -10,8 +10,10 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.system.constant.SystemConstants;
+import com.mdframe.forge.plugin.system.entity.SysClient;
 import com.mdframe.forge.plugin.system.entity.SysOnlineUser;
 import com.mdframe.forge.plugin.system.entity.SysUser;
+import com.mdframe.forge.plugin.system.mapper.SysClientMapper;
 import com.mdframe.forge.plugin.system.mapper.SysOnlineUserMapper;
 import com.mdframe.forge.plugin.system.mapper.SysUserMapper;
 import com.mdframe.forge.plugin.system.service.ISysOnlineUserService;
@@ -44,6 +46,7 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
     private final SysOnlineUserMapper sysOnlineUserMapper;
     private final IMessagePushService messagePushService;
     private final SysUserMapper sysUserMapper;
+    private final SysClientMapper sysClientMapper;
 
     @Override
     public void addOnlineUser(String tokenValue, Object loginId) {
@@ -454,13 +457,34 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
     
     @Override
     public Map<String, Long> getOnlineCountByClient() {
-        Map<String, Long> result = new HashMap<>();
-        
-        result.put("pc", (long) getOnlineUsersByClient("pc").size());
-        result.put("app", (long) getOnlineUsersByClient("app").size());
-        result.put("h5", (long) getOnlineUsersByClient("h5").size());
-        result.put("wechat", (long) getOnlineUsersByClient("wechat").size());
-        
+        // 以库中客户端为基线，再按会话 client 聚合；未入库的会话码也会出现在结果中
+        Map<String, Long> result = new LinkedHashMap<>();
+        List<SysClient> clients = sysClientMapper.selectList(null);
+        if (clients != null) {
+            for (SysClient client : clients) {
+                if (client != null && StrUtil.isNotBlank(client.getClientCode())) {
+                    result.putIfAbsent(client.getClientCode(), 0L);
+                }
+            }
+        }
+
+        List<String> tokens = StpUtil.searchTokenValue("", 0, -1, false);
+        for (String token : tokens) {
+            try {
+                SaSession session = StpUtil.getTokenSessionByToken(token);
+                LoginUser loginUser = (LoginUser) session.get("loginUser");
+                if (loginUser == null || StrUtil.isBlank(loginUser.getUserClient())) {
+                    continue;
+                }
+                // 与 getOnlineUsersByClient 一致：仅统计库中仍有效的在线会话
+                if (sysOnlineUserMapper.selectActiveByTokenValue(token) == null) {
+                    continue;
+                }
+                result.merge(loginUser.getUserClient(), 1L, Long::sum);
+            } catch (Exception e) {
+                log.warn("统计在线客户端失败", e);
+            }
+        }
         return result;
     }
 

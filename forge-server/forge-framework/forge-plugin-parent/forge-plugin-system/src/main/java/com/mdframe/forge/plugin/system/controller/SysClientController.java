@@ -6,6 +6,7 @@ import com.mdframe.forge.plugin.system.entity.SysClient;
 import com.mdframe.forge.plugin.system.entity.SysOnlineUser;
 import com.mdframe.forge.plugin.system.service.IClientService;
 import com.mdframe.forge.plugin.system.service.ISysOnlineUserService;
+import com.mdframe.forge.plugin.system.service.impl.SysClientAccessPolicy;
 import com.mdframe.forge.plugin.system.vo.SysClientVO;
 import com.mdframe.forge.plugin.system.vo.SysOnlineUserVO;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
@@ -130,6 +131,7 @@ public class SysClientController {
         boolean hasAppSecret = client.getAppSecret() != null && !client.getAppSecret().isBlank();
         vo.setAppSecretMasked(hasAppSecret ? "****" : "");
         vo.setHasAppSecret(hasAppSecret);
+        vo.setBuiltIn(SysClientAccessPolicy.isBuiltIn(client));
         return vo;
     }
 
@@ -139,6 +141,7 @@ public class SysClientController {
         vo.setClientCode(client.getClientCode());
         vo.setClientName(client.getClientName());
         vo.setStatus(client.getStatus());
+        vo.setBuiltIn(SysClientAccessPolicy.isBuiltIn(client));
         return vo;
     }
 }
