@@ -21,6 +21,7 @@ export function applyBusinessFieldPropertyPanelPart1(props, emit) {
     formulaPreviewTimer: null,
     formulaPreviewInitializing: false,
     businessObjectLoadPromise: null,
+    partsReady: false,
   }
   const appendExpressionVariables = (...args) => __impl.appendExpressionVariables(...args)
   const appendFormulaDependsOn = (...args) => __impl.appendFormulaDependsOn(...args)
@@ -70,6 +71,194 @@ export function applyBusinessFieldPropertyPanelPart1(props, emit) {
   const syncFormulaDependsOnFromExpression = (...args) => __impl.syncFormulaDependsOnFromExpression(...args)
   const updateCascadeEnabled = (...args) => __impl.updateCascadeEnabled(...args)
   const updateCascadeIncludeChildren = (...args) => __impl.updateCascadeIncludeChildren(...args)
+
+  // createFieldForm / normalizePayload / watch(changed) 在 part1 顶层即跑；
+  // 下列纯函数须先于 form 与 watch 挂到 __impl，不能等 part2 再注册。
+  function bootstrapParseTextList(value) {
+    return String(value || '')
+      .split(/[\n,，]/)
+      .map(item => item.trim())
+      .filter(Boolean)
+  }
+  function bootstrapNormalizeTextList(value) {
+    if (Array.isArray(value))
+      return value.map(item => String(item || '').trim()).filter(Boolean)
+    if (typeof value === 'string')
+      return bootstrapParseTextList(value)
+    return []
+  }
+  function bootstrapNormalizeMappingList(value) {
+    if (Array.isArray(value)) {
+      return value
+        .map(item => ({
+          sourceField: String(item?.sourceField || item?.source || '').trim(),
+          targetField: String(item?.targetField || item?.target || '').trim(),
+        }))
+        .filter(item => item.sourceField && item.targetField)
+    }
+    if (value && typeof value === 'object') {
+      return Object.entries(value)
+        .map(([sourceField, targetField]) => ({
+          sourceField: String(sourceField || '').trim(),
+          targetField: String(targetField || '').trim(),
+        }))
+        .filter(item => item.sourceField && item.targetField)
+    }
+    return []
+  }
+  function bootstrapNormalizeSearchParams(value) {
+    if (!value)
+      return {}
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return Object.entries(value).reduce((result, [key, item]) => {
+        const paramKey = String(key || '').trim()
+        if (paramKey && item !== undefined && item !== null && item !== '')
+          result[paramKey] = item
+        return result
+      }, {})
+    }
+    return {}
+  }
+  function bootstrapCreateDefaultCascade(source = {}) {
+    return {
+      enabled: !!source.enabled,
+      sourceField: source.sourceField || '',
+      mode: source.mode || source.matchMode || 'linkedDict',
+      paramName: source.paramName || '',
+      includeChildren: source.includeChildren !== false,
+      clearOnParentChange: source.clearOnParentChange !== false,
+    }
+  }
+  function bootstrapCreateDefaultRecordSelector(source = {}) {
+    const config = source && typeof source === 'object' ? source : {}
+    return {
+      suiteCode: config.suiteCode || '',
+      objectCode: config.objectCode || '',
+      valueField: config.valueField || 'id',
+      labelField: config.labelField || config.labelSourceField || '',
+      targetLabelField: config.targetLabelField || config.labelTargetField || '',
+      displayFields: bootstrapNormalizeTextList(config.displayFields),
+      keywordFields: bootstrapNormalizeTextList(config.keywordFields),
+      fieldMappings: bootstrapNormalizeMappingList(config.fieldMappings || config.mappings),
+      searchParams: bootstrapNormalizeSearchParams(config.searchParams),
+    }
+  }
+  function bootstrapMappingsToLines(value) {
+    return bootstrapNormalizeMappingList(value)
+      .map(item => `${item.sourceField}=${item.targetField}`)
+      .join('\n')
+  }
+  function bootstrapSearchParamsToLines(value) {
+    return Object.entries(bootstrapNormalizeSearchParams(value))
+      .map(([key, item]) => `${key}=${item}`)
+      .join('\n')
+  }
+  function bootstrapNormalizeCascade(source = {}) {
+    const cascade = bootstrapCreateDefaultCascade(source)
+    if (!cascade.enabled || !cascade.sourceField)
+      return { ...cascade, enabled: false }
+    if (cascade.mode === 'orgFilter') {
+      cascade.paramName = ''
+      return cascade
+    }
+    if (cascade.mode !== 'remoteParam')
+      cascade.paramName = ''
+    return cascade
+  }
+  function bootstrapParseMappingLines(value) {
+    return String(value || '')
+      .split(/\n/)
+      .map(item => item.trim())
+      .filter(Boolean)
+      .map((item) => {
+        const parts = item.split(/\s*(?:=>|=|:)\s*/, 2)
+        return {
+          sourceField: String(parts[0] || '').trim(),
+          targetField: String(parts[1] || '').trim(),
+        }
+      })
+      .filter(item => item.sourceField && item.targetField)
+  }
+  function bootstrapParseSearchParamLines(value) {
+    const text = String(value || '').trim()
+    if (!text)
+      return {}
+    if (text.startsWith('{')) {
+      try {
+        return bootstrapNormalizeSearchParams(JSON.parse(text))
+      }
+      catch {
+        return {}
+      }
+    }
+    return text
+      .split(/\n/)
+      .map(item => item.trim())
+      .filter(Boolean)
+      .reduce((result, item) => {
+        const parts = item.split(/\s*(?:=>|=|:)\s*/, 2)
+        const key = String(parts[0] || '').trim()
+        const paramValue = String(parts[1] || '').trim()
+        if (key && paramValue)
+          result[key] = paramValue
+        return result
+      }, {})
+  }
+  function bootstrapPruneRecordSelectorConfig(config = {}) {
+    const result = {}
+    ;['suiteCode', 'objectCode', 'valueField', 'labelField', 'targetLabelField'].forEach((key) => {
+      if (config[key])
+        result[key] = config[key]
+    })
+    if (config.displayFields?.length)
+      result.displayFields = config.displayFields
+    if (config.keywordFields?.length)
+      result.keywordFields = config.keywordFields
+    if (config.fieldMappings?.length)
+      result.fieldMappings = config.fieldMappings
+    if (config.searchParams && Object.keys(config.searchParams).length)
+      result.searchParams = config.searchParams
+    return result
+  }
+  function bootstrapBuildRecordSelectorConfig(source) {
+    const isRecordSelector = source.fieldType === 'RECORD_SELECTOR' || source.componentType === 'recordSelector'
+    if (!isRecordSelector && source.fieldType !== 'REFERENCE' && source.componentType !== 'objectReference')
+      return null
+    const config = bootstrapCreateDefaultRecordSelector({
+      suiteCode: source.recordSelectorSuiteCode,
+      objectCode: source.recordSelectorObjectCode,
+      valueField: source.recordSelectorValueField,
+      labelField: source.recordSelectorLabelField,
+      targetLabelField: source.recordSelectorTargetLabelField,
+      displayFields: source.recordSelectorDisplayFields,
+      keywordFields: source.recordSelectorKeywordFields,
+      fieldMappings: bootstrapParseMappingLines(source.recordSelectorMappingsText),
+      searchParams: bootstrapParseSearchParamLines(source.recordSelectorSearchParamsText),
+    })
+    if (isRecordSelector && !config.objectCode)
+      return null
+    const pruned = bootstrapPruneRecordSelectorConfig(config)
+    return Object.keys(pruned).length ? pruned : null
+  }
+  // resetForm / watch(changed) 可能在 part2 注册前触发；预览相关先挂空实现
+  function bootstrapResetPreviewForm() {}
+  function bootstrapSyncFormulaDependsOnFromExpression() {}
+  __impl.parseTextList = bootstrapParseTextList
+  __impl.normalizeTextList = bootstrapNormalizeTextList
+  __impl.normalizeMappingList = bootstrapNormalizeMappingList
+  __impl.normalizeSearchParams = bootstrapNormalizeSearchParams
+  __impl.mappingsToLines = bootstrapMappingsToLines
+  __impl.searchParamsToLines = bootstrapSearchParamsToLines
+  __impl.createDefaultCascade = bootstrapCreateDefaultCascade
+  __impl.createDefaultRecordSelector = bootstrapCreateDefaultRecordSelector
+  __impl.normalizeCascade = bootstrapNormalizeCascade
+  __impl.parseMappingLines = bootstrapParseMappingLines
+  __impl.parseSearchParamLines = bootstrapParseSearchParamLines
+  __impl.pruneRecordSelectorConfig = bootstrapPruneRecordSelectorConfig
+  __impl.buildRecordSelectorConfig = bootstrapBuildRecordSelectorConfig
+  __impl.resetPreviewForm = bootstrapResetPreviewForm
+  __impl.syncFormulaDependsOnFromExpression = bootstrapSyncFormulaDependsOnFromExpression
+
   const activeTab = ref(props.defaultActiveTab || 'basic')
   const defaultVisibleTabs = ['basic', 'display', 'advanced']
   const enabledTabs = computed(() => {
@@ -350,10 +539,15 @@ export function applyBusinessFieldPropertyPanelPart1(props, emit) {
   })
   const hasOrgFieldForCascade = computed(() => props.allFields.some(item => item && item.componentType === 'orgTreeSelect' && item.fieldCode !== form.fieldCode && item.fieldStatus !== 'HIDDEN'))
 
+  // 首次 resetForm 延后到 orchestrator 在 part2 注册完成后再调用，避免 __impl 尚未就绪
   watch(
     () => props.field,
-    () => resetForm(),
-    { immediate: true, deep: true },
+    () => {
+      if (!mut.partsReady)
+        return
+      resetForm()
+    },
+    { deep: true },
   )
 
   watch(

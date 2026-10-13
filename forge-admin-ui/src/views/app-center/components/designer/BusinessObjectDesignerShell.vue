@@ -474,7 +474,10 @@ function handleTopbarActionsClick(event) {
 
 .designer-main-content {
   position: relative;
-  min-height: 100%;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
   height: 100%;
 }
 
@@ -768,6 +771,8 @@ function handleTopbarActionsClick(event) {
 }
 
 .designer-main {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -783,6 +788,8 @@ function handleTopbarActionsClick(event) {
 
 .panel-frame {
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -843,11 +850,29 @@ function handleTopbarActionsClick(event) {
   }
 }
 .panel-frame {
+  flex: 1 1 auto;
   min-height: 0;
   padding: 0;
 }
 
 .panel-frame > * {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+/* 列表/表单/字段工作台占满剩余高度；上面的表映射摘要等保持内容高度 */
+.panel-frame > :deep(.business-list-designer),
+.panel-frame > :deep(.business-form-designer),
+.panel-frame > :deep(.field-manager) {
+  flex: 1 1 0;
   min-height: 0;
+  height: auto;
+  max-height: 100%;
+}
+
+/* 嵌入运行页：外层不再滚动，避免与内部画布叠双滚动条 */
+.designer-shell.embedded .panel-frame {
+  overflow: hidden;
 }
 </style>

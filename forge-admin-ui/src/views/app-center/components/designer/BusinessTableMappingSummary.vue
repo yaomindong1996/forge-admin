@@ -20,44 +20,50 @@
           <i />
           {{ syncLabel(mapping?.syncStatus) }}
         </span>
-        <span>{{ mapping?.sharedApplicationCount || 0 }} 个应用使用</span>
-        <span v-if="mapping?.lastSyncTime">最近同步 {{ mapping.lastSyncTime }}</span>
-        <n-button v-if="expanded" size="small" secondary :loading="loading" @click="loadMapping">
-          刷新结构
-        </n-button>
+        <span v-if="!expanded">{{ mapping?.sharedApplicationCount || 0 }} 个应用使用</span>
+        <span v-if="!expanded && mapping?.lastSyncTime">最近同步 {{ mapping.lastSyncTime }}</span>
+        <template v-if="expanded">
+          <n-button v-if="canAlignImportedFields" size="small" secondary @click="confirmAlignImportedFields">
+            <template #icon>
+              <n-icon><SwapHorizontalOutline /></n-icon>
+            </template>
+            按数据库校准字段
+          </n-button>
+          <n-button size="small" secondary @click="openIndexDesigner">
+            <template #icon>
+              <n-icon><KeyOutline /></n-icon>
+            </template>
+            配置索引
+          </n-button>
+          <n-button size="small" secondary :loading="previewing" @click="previewDiff">
+            <template #icon>
+              <n-icon><EyeOutline /></n-icon>
+            </template>
+            预览数据库变更
+          </n-button>
+          <n-button
+            type="primary"
+            size="small"
+            :disabled="mapping?.readonly || mapping?.allowDdl === false"
+            :loading="syncing"
+            @click="confirmSync"
+          >
+            <template #icon>
+              <n-icon><SyncOutline /></n-icon>
+            </template>
+            确认同步数据库
+          </n-button>
+        </template>
         <n-button v-else size="small" secondary @click="emit('openStructure')">
+          <template #icon>
+            <n-icon><GridOutline /></n-icon>
+          </template>
           查看数据结构
         </n-button>
       </div>
     </header>
 
     <template v-if="expanded">
-      <div class="mapping-toolbar">
-        <div>
-          <strong>数据库结构同步</strong>
-          <span>字段维护与数据库列映射已合并到下方字段工作区</span>
-        </div>
-        <n-space>
-          <n-button v-if="canAlignImportedFields" secondary @click="confirmAlignImportedFields">
-            按数据库校准字段
-          </n-button>
-          <n-button secondary @click="openIndexDesigner">
-            配置索引
-          </n-button>
-          <n-button secondary :loading="previewing" @click="previewDiff">
-            预览数据库变更
-          </n-button>
-          <n-button
-            type="primary"
-            :disabled="mapping?.readonly || mapping?.allowDdl === false"
-            :loading="syncing"
-            @click="confirmSync"
-          >
-            确认同步数据库
-          </n-button>
-        </n-space>
-      </div>
-
       <n-alert v-if="mapping?.sharedApplicationCount > 1" type="warning" :bordered="false">
         当前对象被 {{ mapping.sharedApplicationCount }} 个应用共同使用，字段结构变更会影响所有引用应用。
       </n-alert>
@@ -158,7 +164,14 @@
 </template>
 
 <script setup>
-import { ServerOutline } from '@vicons/ionicons5'
+import {
+  EyeOutline,
+  GridOutline,
+  KeyOutline,
+  ServerOutline,
+  SwapHorizontalOutline,
+  SyncOutline,
+} from '@vicons/ionicons5'
 import { useDialog, useMessage } from 'naive-ui'
 import { computed, onMounted, ref, watch } from 'vue'
 import {
@@ -526,18 +539,20 @@ defineExpose({ refresh: loadMapping })
 <style scoped>
 .table-mapping {
   display: grid;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding: 14px;
-  border: 1px solid var(--border-light);
-  border-radius: 7px;
+  gap: 8px;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--border-light);
+  border-radius: 0;
   background: var(--bg-primary, #fff);
   color: var(--text-primary, #1f2328);
 }
 
 .table-mapping.compact {
-  margin: 0 0 10px;
-  padding: 9px 12px;
+  margin: 0;
+  padding: 8px 12px;
 }
 
 .mapping-header,
@@ -632,13 +647,7 @@ defineExpose({ refresh: loadMapping })
 }
 
 .mapping-toolbar {
-  padding-top: 10px;
-  border-top: 1px solid var(--border-light);
-}
-
-.mapping-toolbar span {
-  color: var(--text-tertiary);
-  font-size: 11px;
+  display: none;
 }
 
 .ddl-summary {

@@ -1,6 +1,6 @@
 .property-panel {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   width: 100%;
   min-height: 0;
   min-width: 0;
@@ -23,9 +23,10 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  flex: 0 0 auto;
   border-bottom: 1px solid var(--border-default, #e5e6eb);
   background: var(--bg-primary);
-  padding: 16px;
+  padding: 10px 14px;
 }
 
 .property-head > div:first-child {
@@ -43,14 +44,16 @@
 .property-head h3 {
   margin: 0;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 20px;
   letter-spacing: 0;
 }
 
 .property-head p {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: var(--n-text-color-3, var(--text-secondary, #86909c));
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 16px;
 }
 
 .property-head code {
@@ -66,12 +69,14 @@
 }
 
 .property-body {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
   min-height: 0;
   min-width: 0;
   overflow: hidden;
   background: var(--bg-primary);
-  padding: 0 16px 16px;
+  padding: 0 14px 0;
 }
 
 .property-body.formula-only-body {
@@ -87,34 +92,41 @@
 }
 
 .property-tabs {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  display: flex !important;
+  flex-direction: column;
+  flex: 1 1 0;
   width: 100%;
   height: 100%;
   min-height: 0;
   min-width: 0;
+  overflow: hidden;
 }
 
 .property-tabs :deep(.n-tabs-nav) {
-  position: sticky;
-  top: 0;
+  flex: 0 0 auto;
+  position: relative;
   z-index: 2;
   background: var(--bg-primary);
-  padding-top: 10px;
+  padding-top: 6px;
 }
 
-.property-tabs :deep(.n-tab-pane) {
-  height: 100%;
-  min-width: 0;
-  min-height: 0;
-  padding-top: 14px;
-}
-
+/* height:0 + flex:1 强制在父级定高时出现内部滚动，避免内容把面板撑破后被裁切 */
 .property-tabs :deep(.n-tabs-pane-wrapper) {
+  flex: 1 1 0;
+  height: 0;
   min-width: 0;
   min-height: 0;
   background: var(--bg-primary);
   overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.property-tabs :deep(.n-tab-pane) {
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 12px 2px 28px;
+  box-sizing: border-box;
 }
 
 .property-tabs :deep(.n-form) {

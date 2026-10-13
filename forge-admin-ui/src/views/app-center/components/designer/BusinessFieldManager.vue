@@ -105,62 +105,76 @@
       v-model:show="createVisible"
       title="新增业务字段"
       preset="card"
-      style="width: 520px"
+      class="create-field-modal"
+      style="width: 480px"
       :mask-closable="false"
     >
-      <n-form label-placement="top" :show-feedback="false">
-        <n-form-item label="字段名称">
-          <n-input v-model:value="createForm.fieldName" placeholder="例如：客户等级" />
-        </n-form-item>
+      <!-- 核心身份：名称 + 类型优先；编码与约束次之 -->
+      <n-form label-placement="top" size="small" :show-feedback="false" class="create-field-form">
+        <n-grid :cols="2" :x-gap="12">
+          <n-form-item-gi label="字段名称">
+            <n-input
+              v-model:value="createForm.fieldName"
+              placeholder="例如：客户等级"
+              @blur="createForm.fieldCode = normalizeFieldCode(createForm.fieldCode, createForm.fieldName)"
+            />
+          </n-form-item-gi>
+          <n-form-item-gi label="字段类型">
+            <n-select v-model:value="createForm.fieldType" :options="fieldTypeOptions" filterable />
+          </n-form-item-gi>
+        </n-grid>
+
         <n-form-item label="字段英文名">
           <n-input
             v-model:value="createForm.fieldCode"
-            placeholder="例如：customerLevel，留空自动生成"
+            placeholder="留空自动生成，例如 customerLevel"
             @blur="createForm.fieldCode = normalizeFieldCode(createForm.fieldCode, createForm.fieldName)"
           />
         </n-form-item>
-        <n-form-item label="字段类型">
-          <n-select v-model:value="createForm.fieldType" :options="fieldTypeOptions" filterable />
-        </n-form-item>
+
         <n-form-item v-if="needsCreateDict" label="字典类型">
           <DictTypeSelect v-model:value="createForm.dictType" :fields="visibleFields" />
         </n-form-item>
+
         <template v-if="createForm.fieldType === 'REFERENCE'">
-          <n-form-item label="目标对象">
-            <n-select
-              v-model:value="createForm.referenceObjectCode"
-              :options="businessObjectOptions"
-              :loading="businessObjectLoading"
-              filterable
-              clearable
-              placeholder="选择关联的业务对象"
-            />
-          </n-form-item>
-          <n-form-item v-if="createForm.referenceObjectCode" label="回显字段">
-            <n-select
-              v-model:value="createForm.referenceDisplayField"
-              :options="referenceTargetFieldOptions"
-              filterable
-              clearable
-              placeholder="自动推断，也可手动选择"
-            />
-          </n-form-item>
+          <n-grid :cols="2" :x-gap="12">
+            <n-form-item-gi label="目标对象">
+              <n-select
+                v-model:value="createForm.referenceObjectCode"
+                :options="businessObjectOptions"
+                :loading="businessObjectLoading"
+                filterable
+                clearable
+                placeholder="选择关联对象"
+              />
+            </n-form-item-gi>
+            <n-form-item-gi v-if="createForm.referenceObjectCode" label="回显字段">
+              <n-select
+                v-model:value="createForm.referenceDisplayField"
+                :options="referenceTargetFieldOptions"
+                filterable
+                clearable
+                placeholder="可自动推断"
+              />
+            </n-form-item-gi>
+          </n-grid>
         </template>
-        <div class="create-field-tip">
-          创建后字段会加入字段资产。是否出现在当前表单、列表或查询区，请在对应页面设计器中配置。
-        </div>
-        <n-grid :cols="2" :x-gap="12">
-          <n-form-item-gi>
+
+        <div class="create-field-constraints">
+          <span class="create-field-constraints-label">基础约束</span>
+          <div class="create-field-constraint-options">
             <n-checkbox v-model:checked="createForm.required">
               必填
             </n-checkbox>
-          </n-form-item-gi>
-          <n-form-item-gi>
             <n-checkbox v-model:checked="createForm.unique">
               唯一校验
             </n-checkbox>
-          </n-form-item-gi>
-        </n-grid>
+          </div>
+        </div>
+
+        <p class="create-field-tip">
+          字段先进入资产库；是否出现在表单、列表或查询区，请在对应页面设计器中配置。
+        </p>
       </n-form>
       <template #footer>
         <n-space justify="end">
@@ -842,31 +856,31 @@ defineExpose({
 .field-manager {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
-  min-height: calc(100vh - 106px);
+  height: 100%;
+  min-height: 0;
   background: var(--bg-secondary);
 }
 
 .field-asset-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   border-bottom: 1px solid var(--border-default, #e5e6eb);
   background: var(--bg-primary);
-  padding: 14px 18px;
+  padding: 8px 14px;
 }
 
 .field-asset-head h2 {
   margin: 0;
   color: var(--text-primary);
-  font-size: 16px;
+  font-size: 14px;
+  line-height: 20px;
   letter-spacing: 0;
 }
 
 .field-asset-head p {
-  margin: 5px 0 0;
-  color: var(--n-text-color-3, var(--text-secondary, #86909c));
-  font-size: 12px;
+  display: none;
 }
 
 .field-summary {
@@ -881,25 +895,25 @@ defineExpose({
   border-radius: 5px;
   background: var(--bg-secondary);
   color: var(--n-text-color-3, var(--text-secondary, #86909c));
-  font-size: 12px;
-  line-height: 24px;
-  padding: 0 8px;
+  font-size: 11px;
+  line-height: 22px;
+  padding: 0 7px;
   white-space: nowrap;
 }
 
 .field-summary strong {
   margin-left: 3px;
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .field-asset-toolbar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   border-bottom: 1px solid var(--border-default, #e5e6eb);
   background: var(--bg-primary);
-  padding: 10px 18px;
+  padding: 8px 14px;
 }
 
 .field-search {
@@ -931,23 +945,42 @@ defineExpose({
 
 .field-asset-workbench {
   display: grid;
-  grid-template-columns: minmax(440px, 1fr) minmax(420px, 460px);
+  grid-template-columns: minmax(320px, 1fr) minmax(460px, 540px);
   gap: 0;
   min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .field-list-pane {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
   border-right: 1px solid var(--border-default, #e5e6eb);
   background: var(--bg-secondary);
 }
 
+.field-list-pane :deep(.field-list) {
+  flex: 1 1 0;
+  min-height: 0;
+  height: 100%;
+}
+
 .field-property-pane {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
   background: var(--bg-primary);
+}
+
+.field-property-pane > :deep(.property-panel) {
+  flex: 1 1 0;
+  min-height: 0;
+  height: 100%;
 }
 
 .field-property-drawer-panel {
@@ -957,15 +990,46 @@ defineExpose({
   overflow: hidden;
 }
 
-.create-field-tip {
-  margin-bottom: 14px;
+.create-field-form {
+  display: grid;
+  gap: 2px;
+}
+
+.create-field-form :deep(.n-form-item) {
+  margin-bottom: 10px;
+}
+
+.create-field-constraints {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0 8px;
+  padding: 8px 10px;
   border: 1px solid var(--border-default, #e5e6eb);
   border-radius: 6px;
   background: var(--bg-secondary);
+}
+
+.create-field-constraints-label {
+  flex: 0 0 auto;
   color: var(--n-text-color-3, var(--text-secondary, #86909c));
   font-size: 12px;
-  line-height: 1.6;
-  padding: 9px 10px;
+  white-space: nowrap;
+}
+
+.create-field-constraint-options {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  min-width: 0;
+}
+
+.create-field-tip {
+  margin: 0;
+  color: var(--n-text-color-3, var(--text-secondary, #86909c));
+  font-size: 11px;
+  line-height: 1.55;
 }
 
 @media (max-width: 980px) {
