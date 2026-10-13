@@ -201,7 +201,10 @@ public class SysTenantServiceImpl extends ServiceImpl<SysTenantMapper, SysTenant
                     .orderByDesc(SysUserTenant::getIsDefault)
                     .orderByAsc(SysUserTenant::getTenantId));
             if (remainingBindings.isEmpty()) {
-                userMapper.deleteById(userId);
+                // 与 removeUserFromTenant / 删租户清理一致：系统管理员只解绑，永不物理删除
+                if (!Objects.equals(user.getUserType(), SystemConstants.UserType.SYSTEM_ADMIN)) {
+                    userMapper.deleteById(userId);
+                }
                 return true;
             }
 
@@ -260,9 +263,22 @@ public class SysTenantServiceImpl extends ServiceImpl<SysTenantMapper, SysTenant
     @Override
     public boolean updateTenant(SysTenantDTO dto) {
         assertCanAccessTenant(dto.getId());
+        assertDefaultTenantNotDisabled(dto);
         SysTenant tenant = new SysTenant();
         BeanUtil.copyProperties(dto, tenant);
         return tenantMapper.updateById(tenant) > 0;
+    }
+
+    private void assertDefaultTenantNotDisabled(SysTenantDTO dto) {
+        if (dto == null || !DEFAULT_TENANT_ID.equals(dto.getId())) {
+            return;
+        }
+        if (dto.getTenantStatus() != null && !EnableStatus.ENABLED.matches(dto.getTenantStatus())) {
+            throw new RuntimeException("默认租户不能禁用");
+        }
+        if (dto.getExpireTime() != null && dto.getExpireTime().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("默认租户不能设置为已过期");
+        }
     }
 
     @Override

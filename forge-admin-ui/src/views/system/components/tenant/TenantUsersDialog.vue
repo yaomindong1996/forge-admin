@@ -194,6 +194,9 @@ const userTableColumns = [
       if (isCurrentTenantUser(row)) {
         return h('span', { class: 'text-disabled cursor-not-allowed' }, '当前登录用户')
       }
+      if (Number(row?.userType) === 0) {
+        return h('span', { class: 'text-disabled cursor-not-allowed', title: '系统管理员不可移出租户' }, '系统管理员')
+      }
       return h(
         'a',
         {

@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.mdframe.forge.plugin.system.constant.SystemConstants;
 import com.mdframe.forge.plugin.system.entity.SysOnlineUser;
 import com.mdframe.forge.plugin.system.entity.SysUser;
 import com.mdframe.forge.plugin.system.mapper.SysOnlineUserMapper;
@@ -272,7 +273,10 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
 
     @Override
     public void banUser(Long userId, long banSeconds, String reason) {
-        requireTenantUser(userId);
+        SysUser user = requireTenantUser(userId);
+        if (Objects.equals(user.getUserType(), SystemConstants.UserType.SYSTEM_ADMIN)) {
+            throw new BusinessException("不能封禁系统管理员");
+        }
         try {
             // 封禁用户
             StpUtil.disable(userId, banSeconds);
@@ -471,10 +475,15 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
         return onlineUser;
     }
 
-    private void requireTenantUser(Long userId) {
-        if (userId == null || sysUserMapper.selectById(userId) == null) {
+    private SysUser requireTenantUser(Long userId) {
+        if (userId == null) {
             throw new BusinessException("用户不存在或无权操作");
         }
+        SysUser user = sysUserMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在或无权操作");
+        }
+        return user;
     }
 
     void persistOnlineUser(SysOnlineUser onlineUser) {

@@ -10,11 +10,13 @@ import com.mdframe.forge.plugin.system.entity.SysTenant;
 import com.mdframe.forge.plugin.system.mapper.SysOrgMapper;
 import com.mdframe.forge.plugin.system.mapper.SysRoleMapper;
 import com.mdframe.forge.plugin.system.mapper.SysTenantMapper;
+import com.mdframe.forge.starter.core.enums.EnableStatus;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.datascope.enums.DataScopeType;
 import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -91,10 +93,28 @@ class SysRoleAccessPolicy {
     }
 
     void validateRoleDeletable(SysRole role) {
+        if (role != null && role.getIsSystem() != null && role.getIsSystem() == 1) {
+            throw new RuntimeException("系统内置角色不能删除");
+        }
         Long userCount = TenantContextHolder.executeIgnore(() ->
                 roleMapper.countUsersByRole(role.getId(), role.getTenantId()));
         if (userCount != null && userCount > 0) {
             throw new RuntimeException("当前角色已绑定用户，不能删除");
+        }
+    }
+
+    /**
+     * 内置角色禁止停用、改编码；其它字段仍可由超管维护。
+     */
+    void assertSystemRoleFieldsMutable(SysRole existing, Integer nextRoleStatus, String nextRoleKey) {
+        if (existing == null || existing.getIsSystem() == null || existing.getIsSystem() != 1) {
+            return;
+        }
+        if (nextRoleStatus != null && !EnableStatus.ENABLED.matches(nextRoleStatus)) {
+            throw new RuntimeException("系统内置角色不能停用");
+        }
+        if (StringUtils.isNotBlank(nextRoleKey) && !Objects.equals(nextRoleKey, existing.getRoleKey())) {
+            throw new RuntimeException("系统内置角色标识不能修改");
         }
     }
 

@@ -29,6 +29,11 @@ export function toNumberOptions(options = []) {
   }))
 }
 
+/** 系统管理员（userType=0），与后端 SystemConstants.UserType.SYSTEM_ADMIN 对齐 */
+export function isSystemAdminUser(row = {}) {
+  return Number(row?.userType) === 0
+}
+
 export function normalizeSingleNumber(value, fallback = null) {
   if (Array.isArray(value)) {
     const first = value.find(item => item !== null && item !== undefined && item !== '')

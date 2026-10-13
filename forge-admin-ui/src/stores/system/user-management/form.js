@@ -1,6 +1,6 @@
 import { computed, h } from 'vue'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
-import { FORM_MAIN_ORG_ID_EXPR, FORM_TENANT_ID_EXPR, normalizeNumberList, normalizeSingleNumber, renderDictTag, resolveOptionLabel, resolveUserAccountLabel, resolveUserDisplayName, splitTableCellValues } from './utils'
+import { FORM_MAIN_ORG_ID_EXPR, FORM_TENANT_ID_EXPR, isSystemAdminUser, normalizeNumberList, normalizeSingleNumber, renderDictTag, resolveOptionLabel, resolveUserAccountLabel, resolveUserDisplayName, splitTableCellValues } from './utils'
 
 // 共享状态由 Pinia 创建；跨领域调用通过同一工作台实例协调。
 export function createUserForm(state, runtime, workspace) {
@@ -118,9 +118,9 @@ export function createUserForm(state, runtime, workspace) {
           },
         },
         { label: '高级关系维护', key: 'relation', type: 'info', onClick: workspace.handleRelation, visible: row => !workspace.isRestrictedCurrentUser(row.id) },
-        { label: '禁用', key: 'disable', type: 'warning', onClick: row => workspace.handleUpdateStatus(row, 0), visible: row => row.id !== 1 && !workspace.isRestrictedCurrentUser(row.id) && row.userStatus === 1 },
-        { label: '启用', key: 'enable', type: 'success', onClick: workspace.handleUntieDisable, visible: row => row.id !== 1 && !workspace.isRestrictedCurrentUser(row.id) && row.userStatus !== 1 },
-        { label: '删除', key: 'delete', type: 'error', onClick: workspace.handleDelete, visible: row => row.id !== 1 && !workspace.isRestrictedCurrentUser(row.id) },
+        { label: '禁用', key: 'disable', type: 'warning', onClick: row => workspace.handleUpdateStatus(row, 0), visible: row => !isSystemAdminUser(row) && !workspace.isRestrictedCurrentUser(row.id) && row.userStatus === 1 },
+        { label: '启用', key: 'enable', type: 'success', onClick: workspace.handleUntieDisable, visible: row => !isSystemAdminUser(row) && !workspace.isRestrictedCurrentUser(row.id) && row.userStatus !== 1 },
+        { label: '删除', key: 'delete', type: 'error', onClick: workspace.handleDelete, visible: row => !isSystemAdminUser(row) && !workspace.isRestrictedCurrentUser(row.id) },
       ],
     },
   ])
@@ -365,7 +365,7 @@ export function createUserForm(state, runtime, workspace) {
       label: '用户状态',
       type: 'radio',
       defaultValue: 1,
-      vIf: formData => !workspace.isRestrictedCurrentUser(formData.id),
+      vIf: formData => !workspace.isRestrictedCurrentUser(formData.id) && !isSystemAdminUser(formData),
       props: {
         options: workspace.userStatusOptions.value,
       },

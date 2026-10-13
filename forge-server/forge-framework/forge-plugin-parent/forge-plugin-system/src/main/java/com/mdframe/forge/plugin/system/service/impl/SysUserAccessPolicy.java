@@ -10,6 +10,7 @@ import com.mdframe.forge.plugin.system.entity.SysUserTenant;
 import com.mdframe.forge.plugin.system.mapper.SysTenantMapper;
 import com.mdframe.forge.plugin.system.mapper.SysUserMapper;
 import com.mdframe.forge.plugin.system.mapper.SysUserTenantMapper;
+import com.mdframe.forge.starter.core.enums.EnableStatus;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
@@ -220,17 +221,77 @@ final class SysUserAccessPolicy {
         if (isCurrentLoginUser(userId, loginUser)) {
             throw new RuntimeException("不能删除当前登录用户");
         }
-        SysUser user = TenantContextHolder.executeIgnore(() -> userMapper.selectById(userId));
-        if (user == null) {
-            throw new RuntimeException("用户不存在");
-        }
-        if (Objects.equals(user.getUserType(), SystemConstants.UserType.SYSTEM_ADMIN)) {
+        SysUser user = requireUser(userId);
+        if (isSystemAdminUser(user)) {
             throw new RuntimeException("不能删除系统管理员");
         }
     }
 
+    /**
+     * 停用红线：系统管理员仅在仍有其他启用态超管时可停用。
+     */
+    void assertCanChangeUserStatus(Long userId, Integer status) {
+        assertCanManageUser(userId);
+        if (status == null || EnableStatus.ENABLED.matches(status)) {
+            return;
+        }
+        SysUser user = requireUser(userId);
+        if (!isSystemAdminUser(user)) {
+            return;
+        }
+        assertNotLastEnabledSystemAdmin(userId, "不能停用唯一启用的系统管理员");
+    }
+
+    /**
+     * 降级红线：系统管理员仅在仍有其他启用态超管时可改为非超管。
+     */
+    void assertCanChangeUserType(Long userId, Integer nextUserType) {
+        if (nextUserType == null || nextUserType == SystemConstants.UserType.SYSTEM_ADMIN) {
+            return;
+        }
+        assertCanManageUser(userId);
+        SysUser user = requireUser(userId);
+        if (!isSystemAdminUser(user)) {
+            return;
+        }
+        assertNotLastEnabledSystemAdmin(userId, "不能降级唯一启用的系统管理员");
+    }
+
+    /**
+     * 封禁红线：系统管理员账号禁止封禁。
+     */
+    void assertCanBanUser(Long userId) {
+        SysUser user = requireUser(userId);
+        if (isSystemAdminUser(user)) {
+            throw new RuntimeException("不能封禁系统管理员");
+        }
+    }
+
+    boolean isSystemAdminUser(SysUser user) {
+        return user != null && Objects.equals(user.getUserType(), SystemConstants.UserType.SYSTEM_ADMIN);
+    }
+
     boolean isCurrentLoginUser(Long userId, LoginUser loginUser) {
         return userId != null && loginUser != null && Objects.equals(userId, loginUser.getUserId());
+    }
+
+    private SysUser requireUser(Long userId) {
+        SysUser user = TenantContextHolder.executeIgnore(() -> userMapper.selectById(userId));
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        return user;
+    }
+
+    private void assertNotLastEnabledSystemAdmin(Long userId, String message) {
+        Long remaining = TenantContextHolder.executeIgnore(() ->
+            userMapper.selectCount(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getUserType, SystemConstants.UserType.SYSTEM_ADMIN)
+                .eq(SysUser::getUserStatus, EnableStatus.ENABLED.getCode())
+                .ne(userId != null, SysUser::getId, userId)));
+        if (remaining == null || remaining <= 0) {
+            throw new RuntimeException(message);
+        }
     }
 
     private void assertUserAccess(Long userId, boolean readOnly) {

@@ -80,9 +80,12 @@ describe('用户管理拆分行为契约', () => {
     expect(actions.find(action => action.key === 'enable').visible({ id: '9', userStatus: 0 })).toBe(true)
     expect(actions.find(action => action.key === 'delete').visible({ id: '9', userStatus: 1 })).toBe(true)
     expect(store.editSchema.find(item => item.field === 'userStatus').vIf({ id: '9' })).toBe(true)
-    // 初始账号（id=1）禁用/删除的防自毁保护仍然保留
-    expect(actions.find(action => action.key === 'disable').visible({ id: 1, userStatus: 1 })).toBe(false)
-    expect(actions.find(action => action.key === 'delete').visible({ id: 1, userStatus: 1 })).toBe(false)
+    // 系统管理员（userType=0）禁用/删除保护，不依赖硬编码 id
+    expect(actions.find(action => action.key === 'disable').visible({ id: 1, userType: 0, userStatus: 1 })).toBe(false)
+    expect(actions.find(action => action.key === 'delete').visible({ id: 1, userType: 0, userStatus: 1 })).toBe(false)
+    expect(actions.find(action => action.key === 'disable').visible({ id: 99, userType: 0, userStatus: 1 })).toBe(false)
+    expect(actions.find(action => action.key === 'delete').visible({ id: 99, userType: 0, userStatus: 1 })).toBe(false)
+    expect(actions.find(action => action.key === 'disable').visible({ id: 9, userType: 2, userStatus: 1 })).toBe(true)
     // 批量授权允许包含自己
     store.batchAuthTenantId = 1
     store.batchAuthOrgId = 10

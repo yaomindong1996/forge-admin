@@ -413,7 +413,7 @@ export function applyRolePagePart1() {
         { label: '查看用户', key: 'viewUsers', onClick: handleViewUsers },
         { label: '添加用户', key: 'addUsers', type: 'success', onClick: handleAddUserFromList },
         { label: '授权', key: 'auth', onClick: handleAuth },
-        { label: '删除', key: 'delete', type: 'error', onClick: handleDelete, visible: row => row.id !== 1 },
+        { label: '删除', key: 'delete', type: 'error', onClick: handleDelete, visible: row => Number(row.isSystem) !== 1 },
       ],
     },
   ])

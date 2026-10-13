@@ -324,7 +324,7 @@
 - 打印 style 不能用封闭白名单拦展示属性
 - Mockito 内联 MockMaker 在受限 JDK 上需要预加载 Byte Buddy Agent
 
-### [安全 / 加密 / 租户 / 鉴权](pitfalls/security.md)（20）
+### [安全 / 加密 / 租户 / 鉴权](pitfalls/security.md)（21）
 
 - 多租户拦截器会破坏 LIMIT 1 FOR UPDATE 顺序
 - 登录密码 RSA 不能复用通用 API 传输加密开关
@@ -345,6 +345,7 @@
 - 159. REQUIRES_NEW 建单后外层 REPEATABLE_READ 可能仍看不到新记录
 - 171. 动作路径 `record.*` 的单测必须构造服务端权威记录上下文
 - 超级管理员不能全局忽略租户隔离
+- 系统管理员保护不能只挡「用户删除」接口
 - 初始化 SQL 不能从开发库直接导出存储凭据
 
 ### [数据库 / Flyway / 索引](pitfalls/db-flyway.md)（19）

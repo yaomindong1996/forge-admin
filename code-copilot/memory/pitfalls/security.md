@@ -375,6 +375,19 @@ Table 'forge_admin_test.sys_data_scope_config' doesn't exist
 
 测试执行器时应显式构造与 `BusinessActionExecutionService.buildContext` 一致的 `recordData`；测试请求回退语义时则不要配置 `targetRecordIdField`。主子表动作还应分别构造权威 `parentRecordData` 和子行 `recordData`，避免用浏览器自报父子记录模拟服务端关系校验。
 
+## 系统管理员保护不能只挡「用户删除」接口
+
+**发现日期**: 2026-10-13
+
+**问题描述**:
+用户删除 API 已禁止删 `userType=0`，但租户「移出用户」在最后一条成员关系时会 `userMapper.deleteById`，旁路物理删除超管。同类缺口还有：停用/降级唯一超管、在线封禁超管、删除/停用 `isSystem` 角色、禁用默认租户；前端曾用 `id===1` 做保护，其它超管账号仍暴露危险操作。
+
+**解决方案**:
+- `removeTenantUser` 与 `removeUserFromTenant` 对齐：超管只解绑不硬删。
+- `SysUserAccessPolicy` 增加停用/降级「最后一名启用超管」校验与封禁禁令。
+- 内置角色禁删/禁停；默认租户禁禁用/禁设为已过期。
+- 前端按 `userType===0` / `isSystem===1` 隐藏危险操作，不再写死 id。
+
 ## 超级管理员不能全局忽略租户隔离
 
 **发现日期**: 2026-08-31

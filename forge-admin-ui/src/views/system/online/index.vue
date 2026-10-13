@@ -219,7 +219,7 @@ const tableColumns = computed(() => [
     actions: [
       { label: '详情', key: 'detail', onClick: handleViewDetail },
       { label: '强制下线', key: 'kickout', type: 'error', onClick: handleKickout },
-      { label: '封禁(1小时)', key: 'ban', type: 'warning', onClick: handleBan, visible: row => !row.banned },
+      { label: '封禁(1小时)', key: 'ban', type: 'warning', onClick: handleBan, visible: row => !row.banned && Number(row.userType) !== 0 },
       { label: '解封', key: 'unban', onClick: handleUnban, visible: row => !!row.banned },
     ],
   },
@@ -259,6 +259,10 @@ function handleKickout(row) {
 }
 
 function handleBan(row) {
+  if (Number(row?.userType) === 0) {
+    window.$message?.warning('不能封禁系统管理员')
+    return
+  }
   window.$dialog.warning({
     title: '确认封禁',
     content: `确定要封禁用户 "${row.username}" 1小时并强制下线所有会话吗？`,

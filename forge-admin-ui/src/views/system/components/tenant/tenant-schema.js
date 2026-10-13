@@ -20,6 +20,8 @@ export function createTenantEditSchema({ tenantStatusOptions, businessDatasource
       label: '租户状态',
       type: 'radio',
       defaultValue: 1,
+      // 默认租户（id=1）禁止在表单里改状态，与后端红线一致
+      vIf: formData => Number(formData?.id) !== 1,
       props: { options: tenantStatusOptions },
     },
     {

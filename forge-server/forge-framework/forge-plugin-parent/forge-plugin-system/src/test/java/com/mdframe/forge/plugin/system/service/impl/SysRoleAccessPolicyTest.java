@@ -85,6 +85,27 @@ class SysRoleAccessPolicyTest {
                 .hasMessageContaining("组织不属于");
     }
 
+    @Test
+    void rejectsDeletingBuiltInSystemRole() {
+        SysRole systemRole = role(1L, 1L);
+        systemRole.setIsSystem(1);
+
+        assertThatThrownBy(() -> policy.validateRoleDeletable(systemRole))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("系统内置角色不能删除");
+    }
+
+    @Test
+    void rejectsDisablingBuiltInSystemRole() {
+        SysRole systemRole = role(1L, 1L);
+        systemRole.setIsSystem(1);
+        systemRole.setRoleKey("admin");
+
+        assertThatThrownBy(() -> policy.assertSystemRoleFieldsMutable(systemRole, 0, "admin"))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("系统内置角色不能停用");
+    }
+
     private LoginUser user(int userType, Long tenantId) {
         LoginUser user = new LoginUser();
         user.setUserId(100L);

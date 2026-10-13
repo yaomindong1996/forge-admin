@@ -107,6 +107,72 @@ class SysUserAccessPolicyTest {
         }
     }
 
+    @Test
+    void blocksDisablingLastEnabledSystemAdmin() {
+        LoginUser loginUser = loginUser(SystemConstants.UserType.SYSTEM_ADMIN, 1L, 1L, Set.of());
+        SysUser target = new SysUser();
+        target.setId(99L);
+        target.setUserType(SystemConstants.UserType.SYSTEM_ADMIN);
+        target.setUserStatus(1);
+        when(userMapper.selectById(99L)).thenReturn(target);
+        when(userMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
+
+        try (MockedStatic<SessionHelper> session = mockStatic(SessionHelper.class);
+             MockedStatic<TenantContextHolder> tenant = mockStatic(TenantContextHolder.class)) {
+            session.when(SessionHelper::getLoginUser).thenReturn(loginUser);
+            tenant.when(() -> TenantContextHolder.executeIgnore(any(Supplier.class)))
+                .thenAnswer(invocation -> {
+                    Supplier<?> supplier = invocation.getArgument(0);
+                    return supplier.get();
+                });
+
+            RuntimeException error = assertThrows(RuntimeException.class,
+                () -> policy.assertCanChangeUserStatus(99L, 0));
+            assertEquals("不能停用唯一启用的系统管理员", error.getMessage());
+        }
+    }
+
+    @Test
+    void allowsDisablingSystemAdminWhenAnotherEnabledAdminExists() {
+        LoginUser loginUser = loginUser(SystemConstants.UserType.SYSTEM_ADMIN, 1L, 1L, Set.of());
+        SysUser target = new SysUser();
+        target.setId(99L);
+        target.setUserType(SystemConstants.UserType.SYSTEM_ADMIN);
+        when(userMapper.selectById(99L)).thenReturn(target);
+        when(userMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(1L);
+
+        try (MockedStatic<SessionHelper> session = mockStatic(SessionHelper.class);
+             MockedStatic<TenantContextHolder> tenant = mockStatic(TenantContextHolder.class)) {
+            session.when(SessionHelper::getLoginUser).thenReturn(loginUser);
+            tenant.when(() -> TenantContextHolder.executeIgnore(any(Supplier.class)))
+                .thenAnswer(invocation -> {
+                    Supplier<?> supplier = invocation.getArgument(0);
+                    return supplier.get();
+                });
+
+            assertDoesNotThrow(() -> policy.assertCanChangeUserStatus(99L, 0));
+        }
+    }
+
+    @Test
+    void blocksBanningSystemAdmin() {
+        SysUser target = new SysUser();
+        target.setId(99L);
+        target.setUserType(SystemConstants.UserType.SYSTEM_ADMIN);
+        when(userMapper.selectById(99L)).thenReturn(target);
+
+        try (MockedStatic<TenantContextHolder> tenant = mockStatic(TenantContextHolder.class)) {
+            tenant.when(() -> TenantContextHolder.executeIgnore(any(Supplier.class)))
+                .thenAnswer(invocation -> {
+                    Supplier<?> supplier = invocation.getArgument(0);
+                    return supplier.get();
+                });
+
+            RuntimeException error = assertThrows(RuntimeException.class, () -> policy.assertCanBanUser(99L));
+            assertEquals("不能封禁系统管理员", error.getMessage());
+        }
+    }
+
     private LoginUser loginUser(Integer userType, Long userId, Long tenantId, Set<String> permissions) {
         LoginUser loginUser = new LoginUser();
         loginUser.setUserType(userType);

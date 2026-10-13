@@ -111,6 +111,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     public boolean updateRole(SysRoleDTO dto) {
         SysRole existing = accessPolicy().loadRoleForAccess(dto.getId());
         accessPolicy().assertCanMaintainRole(existing);
+        accessPolicy().assertSystemRoleFieldsMutable(existing, dto.getRoleStatus(), dto.getRoleKey());
         SysRole role = new SysRole();
         BeanUtil.copyProperties(dto, role);
         role.setOrgScopeType(null);

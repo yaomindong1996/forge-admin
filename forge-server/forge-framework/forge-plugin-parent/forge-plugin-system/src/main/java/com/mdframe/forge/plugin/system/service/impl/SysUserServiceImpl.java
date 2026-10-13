@@ -131,6 +131,12 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         assertCanManageUser(dto.getId());
         assertNotSelfManagementUnlessAdmin(dto.getId());
         validateUserTypeForWrite(dto);
+        if (dto.getUserStatus() != null) {
+            accessPolicy().assertCanChangeUserStatus(dto.getId(), dto.getUserStatus());
+        }
+        if (loginUser.isAdmin() && dto.getUserType() != null) {
+            accessPolicy().assertCanChangeUserType(dto.getId(), dto.getUserType());
+        }
         SysUser user = new SysUser();
         BeanUtil.copyProperties(dto, user);
         // 修改时不更新密码
@@ -319,6 +325,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     public boolean updateUserStatus(Long userId, Integer status) {
         assertCanManageUser(userId);
         assertNotSelfManagementUnlessAdmin(userId);
+        accessPolicy().assertCanChangeUserStatus(userId, status);
         LoginUser loginUser = requireLoginUser();
         if (!loginUser.isAdmin()) {
             SysUserTenant member = new SysUserTenant();
