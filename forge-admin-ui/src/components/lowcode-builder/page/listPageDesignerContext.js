@@ -1,7 +1,9 @@
-import { getCurrentInstance, inject, isRef, provide } from 'vue'
+import { getCurrentInstance, inject, isRef, provide, unref } from 'vue'
 
 /** Symbol + helpers: child panels share parent ListPageGridDesigner setupState without props drilling. */
 export const LIST_PAGE_DESIGNER_KEY = Symbol('listPageDesigner')
+/** 页面资源表单下拉选项（与顶部「页面资源」同源）；单独 provide，避免 Proxy 解包失败导致空下拉 */
+export const PAGE_FORM_ASSET_OPTIONS_KEY = Symbol('pageFormAssetOptions')
 
 /**
  * Forward setupState + declared props. Include set/accessor descriptors so panel
@@ -37,7 +39,8 @@ function createSetupStateProxy(instance) {
     get(_target, prop) {
       if (prop === '__v_isRef' || prop === '__v_isReadonly' || prop === 'constructor')
         return undefined
-      return resolve(prop).value
+      // 子面板模板直接绑 options/数组；这里解包 Ref，避免 n-select 收到 ComputedRef 表现为「没有选项」
+      return unref(resolve(prop).value)
     },
     set(_target, prop, value) {
       return assign(prop, value)
@@ -59,7 +62,7 @@ function createSetupStateProxy(instance) {
       return {
         configurable: true,
         enumerable: true,
-        get: () => resolve(prop).value,
+        get: () => unref(resolve(prop).value),
         set: value => assign(prop, value),
       }
     },

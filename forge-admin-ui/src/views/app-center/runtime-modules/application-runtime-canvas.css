@@ -103,11 +103,20 @@
   font-size: 12px;
   line-height: 1.4;
 }
-.page-form-draft-card {
+.page-form-draft-card,
+.page-form-bind-card {
   display: grid;
   gap: 8px;
   border-top: 1px solid var(--border-light);
   padding-top: 11px;
+}
+.page-form-bind-card {
+  margin-bottom: 10px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  border-top: 1px solid var(--border-light);
+  padding: 10px;
+  background: var(--bg-secondary, #f7f8fa);
 }
 .page-form-draft-head {
   display: grid;
@@ -122,6 +131,9 @@
   color: var(--text-tertiary);
   font-size: 11px;
   line-height: 1.5;
+}
+.page-form-bind-card .form-asset-actions {
+  margin: 0;
 }
 .crud-property-source-notice {
   display: grid;
@@ -1243,9 +1255,9 @@ body.is-catalog-pointer-dragging .n-popover {
 }
 .application-form-assets-popover {
   display: grid;
-  width: 280px;
+  width: 360px;
   max-height: min(420px, calc(100vh - 100px));
-  gap: 4px;
+  gap: 6px;
   overflow: auto;
 }
 .application-form-assets-popover-head {
@@ -1265,21 +1277,36 @@ body.is-catalog-pointer-dragging .n-popover {
   font-size: 11px;
 }
 .application-form-asset-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  display: grid;
+  gap: 6px;
   width: 100%;
-  border: 0;
-  border-radius: 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
   padding: 8px;
   background: transparent;
   color: #646a73;
   font-size: 12px;
+}
+.application-form-asset-row.is-bound {
+  border-color: #c7d7ff;
+  background: #f5f8ff;
+}
+.application-form-asset-row:hover {
+  background: var(--bg-tertiary);
+}
+.application-form-asset-row.is-bound:hover {
+  background: #eef3ff;
+}
+.application-form-asset-main {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
   text-align: left;
   cursor: pointer;
 }
-.application-form-asset-row > span:first-child {
+.application-form-asset-main > span {
   display: grid;
   gap: 2px;
   min-width: 0;
@@ -1294,8 +1321,10 @@ body.is-catalog-pointer-dragging .n-popover {
 .application-form-asset-row small {
   color: #8f959e;
 }
-.application-form-asset-row:hover {
-  background: var(--bg-tertiary);
+.application-form-asset-ops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 .form-asset-actions {
   display: flex;
@@ -1307,6 +1336,9 @@ body.is-catalog-pointer-dragging .n-popover {
   color: var(--text-tertiary);
   font-size: 12px;
   line-height: 18px;
+}
+.form-asset-default-hint.is-warning {
+  color: #b45309;
 }
 .form-asset-help {
   margin: 0 0 12px;

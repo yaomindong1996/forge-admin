@@ -14,6 +14,12 @@ describe('page-flow-geometry', () => {
     expect(resolveDefaultPageBlockHeight({ blockType: 'info-panel' })).toBe(88)
   })
 
+  it('keeps list CRUD default height aligned with portal runtime', () => {
+    expect(resolveDefaultPageBlockHeight({ blockType: 'AiCrudPage' })).toBe(560)
+    expect(resolveDefaultPageBlockHeight({ blockType: 'AiTable' })).toBe(560)
+    expect(resolveDefaultPageBlockHeight({ blockType: 'search-form' })).toBe(220)
+  })
+
   it('keeps fixed-height shells shrinkable and in sync with anchors', () => {
     const block = {
       id: 't1',

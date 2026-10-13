@@ -832,7 +832,6 @@ export function applyAiCrudPagePart1(props, emit, deps = {}) {
       page: pagination.value.page,
       pageSize: pagination.value.pageSize,
       itemCount: pagination.value.itemCount,
-      pageCount: Math.ceil(pagination.value.itemCount / pagination.value.pageSize),
       showSizePicker: true,
       pageSizes: props.pageSizes,
       showQuickJumper: true,

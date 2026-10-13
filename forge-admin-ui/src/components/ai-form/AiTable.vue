@@ -971,13 +971,18 @@ const paginationProps = computed(() => {
 
   const config = {
     ...props.pagination,
-    onChange: (page) => {
+    onUpdatePage: (page) => {
       emit('page-change', page)
     },
     onUpdatePageSize: (pageSize) => {
       emit('page-size-change', pageSize)
     },
   }
+  // 避免调用方同时传入 pageCount + itemCount 触发 Naive 告警；以 itemCount 为准
+  if (config.itemCount != null && config.pageCount != null)
+    delete config.pageCount
+  // onChange 已废弃，统一走 onUpdatePage
+  delete config.onChange
   return config
 })
 

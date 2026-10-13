@@ -12,6 +12,8 @@ import {
   isDesignPreviewCrudProps,
   isManagedBusinessFlowField,
   mergeDesignerEditSchema,
+  overlayFormDesignerOnRuntimeCrudProps,
+  resolveBoundFormDesignerSchema,
   resolveCrudPreviewReloadKey,
   resolveCrudSearchFieldCatalog,
   resolveDesignerFormGovernance,
@@ -693,5 +695,44 @@ describe('runtime CRUD design preview props', () => {
     const fields = [{ field: 'a', type: 'input' }]
     expect(applyDesignerVisibilityToFields(fields, null)).toEqual(fields)
     expect(mergeDesignerEditSchema(fields, null)).toEqual(fields)
+  })
+
+  it('overlayFormDesignerOnRuntimeCrudProps switches add/edit form to bound page form asset', () => {
+    const base = buildRuntimeCrudProps({
+      configKey: 'customer',
+      editSchema: [{ field: 'oldName', type: 'input', label: '旧名称' }],
+      options: {
+        formDesignerSchema: {
+          components: [
+            { componentKey: 'input', label: '旧名称', fieldBinding: { fieldCode: 'oldName' } },
+          ],
+        },
+      },
+    })
+    const overlaid = overlayFormDesignerOnRuntimeCrudProps(base, {
+      components: [
+        { componentKey: 'input', label: '客户名', fieldBinding: { fieldCode: 'customerName' } },
+        { componentKey: 'input', label: '手机号', fieldBinding: { fieldCode: 'mobile' } },
+      ],
+      layout: { formOpenMode: 'drawer', modalWidth: '960px' },
+    })
+
+    expect(overlaid.editSchema.map(item => item.field)).toEqual(['customerName', 'mobile'])
+    expect(overlaid.pageFormAssetBound).toBe(true)
+    expect(overlaid.formOpenMode).toBe('drawer')
+    expect(overlaid.modalWidth).toBe('960px')
+    expect(overlaid.apiConfig).toEqual(base.apiConfig)
+    expect(overlaid.configKey).toBe('customer')
+  })
+
+  it('resolveBoundFormDesignerSchema reads formAssetId or single form fallback', () => {
+    const assets = [
+      { id: 'form_a', formDesignerSchema: { components: [{ fieldBinding: { fieldCode: 'a' } }] } },
+      { id: 'form_b', formDesignerSchema: { components: [{ fieldBinding: { fieldCode: 'b' } }] } },
+    ]
+    expect(resolveBoundFormDesignerSchema({ props: { formAssetId: 'form_b' } }, assets))
+      .toEqual(assets[1].formDesignerSchema)
+    expect(resolveBoundFormDesignerSchema({}, [assets[0]])).toEqual(assets[0].formDesignerSchema)
+    expect(resolveBoundFormDesignerSchema({}, assets)).toBeNull()
   })
 })

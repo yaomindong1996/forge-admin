@@ -1,3 +1,43 @@
+.page-form-asset-binder {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 12px;
+  border: 1px solid #c7d7ff;
+  border-radius: 8px;
+  padding: 10px;
+  background: #f5f8ff;
+}
+
+.page-form-asset-binder__head {
+  display: grid;
+  gap: 2px;
+}
+
+.page-form-asset-binder__head strong {
+  color: #1f2a44;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.page-form-asset-binder__head small {
+  color: #66748a;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.page-form-asset-binder__warn {
+  margin: 0;
+  color: #b45309;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.page-form-asset-binder__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .advanced-config-collapse {
   display: grid;
   gap: 6px;

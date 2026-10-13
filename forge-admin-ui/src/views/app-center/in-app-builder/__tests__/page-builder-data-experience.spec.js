@@ -43,6 +43,38 @@ describe('page builder data experience', () => {
     expect(source).toContain('@click="openSelectedBlockFormDesigner"')
   })
 
+  it('uses top 页面资源 as the only add/edit form binder entry', () => {
+    const vueSource = readFileSync(
+      resolve('src/views/app-center/application-runtime.[applicationCode].vue'),
+      'utf8',
+    )
+    expect(vueSource).toContain('设为新增编辑表单')
+    expect(vueSource).toContain('setFormAssetAsListCrudForm')
+    expect(vueSource).not.toContain('page-form-bind-card')
+    expect(vueSource).not.toContain('page-form-draft-card')
+    expect(vueSource).toContain('请在顶部「页面资源」里点「设为新增编辑表单」')
+  })
+
+  it('lets page resources set a form as list add/edit form', () => {
+    const vueSource = readFileSync(
+      resolve('src/views/app-center/application-runtime.[applicationCode].vue'),
+      'utf8',
+    )
+    const runtimeSource = readSplitVueSource('src/views/app-center/application-runtime.[applicationCode].vue', 'useApplicationRuntime')
+    const portalSource = readFileSync(
+      resolve('src/views/app-center/components/portal/PortalPageRenderer.vue'),
+      'utf8',
+    )
+    expect(vueSource).toContain('设为新增编辑表单')
+    expect(vueSource).toContain('setFormAssetAsListCrudForm')
+    expect(vueSource).toContain(':form-assets="formAssets"')
+    expect(runtimeSource).toMatch(/function setFormAssetAsListCrudForm|setFormAssetAsListCrudForm =/)
+    expect(runtimeSource).toContain('已将「')
+    expect(runtimeSource).toContain('overlayFormDesignerOnRuntimeCrudProps')
+    expect(portalSource).toContain('overlayFormDesignerOnRuntimeCrudProps')
+    expect(portalSource).toContain('resolveBoundFormDesignerSchema')
+  })
+
   it('clears object-specific field configuration only when the business object changes', () => {
     const source = readSplitVueSource('src/views/app-center/application-runtime.[applicationCode].vue', 'useApplicationRuntime')
     const switchStart = source.indexOf('function updateSelectedPageBlockRuntimeObject(objectId)')

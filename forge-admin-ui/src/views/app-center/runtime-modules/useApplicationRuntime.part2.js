@@ -72,6 +72,10 @@ import {
   WORKBENCH_PAGE_ID,
 } from '../in-app-builder/workbench-page'
 import { inAppPageTemplateCatalog, resolveInAppPageTemplate } from '../in-app-builder/page-template-catalog'
+import {
+  overlayFormDesignerOnRuntimeCrudProps,
+  resolveBoundFormDesignerSchema,
+} from '@/components/lowcode-builder/shared/runtime-crud-props'
 import { findPageBlockInTree, mapPageBlocksInTree, removePageBlockFromTree, visitPageBlocksInTree } from './page-block-tree'
 import { resolvePageBlockShellStyle as computePageBlockShellStyle, readPageBlockLength, resolveDefaultPageBlockHeight, resolveDefaultPageBlockYFromItems, resolvePageBlockFlowGeometry, resolveRootPageBlockCollisions, shouldUsePageFlowStack, normalizePagePadding, resolvePagePaddingCss, migratePageFlowToContentCoords, canvasToContentFlowPoint, contentToCanvasFlowPoint, DEFAULT_PAGE_PADDING } from './page-flow-geometry'
 import { flattenNodes, hasPermission, isNavigationVisible } from './runtime-navigation-utils'
@@ -881,6 +885,10 @@ export function applyApplicationRuntimePart2(deps = {}) {
   }
   __impl.attachDefaultRuntimeObject = attachDefaultRuntimeObject
 
+  function resolveBlockBoundFormDesignerSchema(block = {}) {
+    return resolveBoundFormDesignerSchema(block, formAssets.value)
+  }
+
   function resolvePageBlockRuntimeCrudProps(block = {}) {
     if (!isDataFieldBlockType(block.blockType) && block.blockType !== 'tree-panel')
       return null
@@ -900,9 +908,14 @@ export function applyApplicationRuntimePart2(deps = {}) {
       treePanelProps,
       runtimeProps,
     })
-    const alignedProps = searchSchema === runtimeProps.searchSchema
+    let alignedProps = searchSchema === runtimeProps.searchSchema
       ? runtimeProps
       : { ...runtimeProps, searchSchema }
+    // 页面资源绑定的表单覆盖新增/编辑布局（否则一直用对象旧 formDesignerSchema）
+    alignedProps = overlayFormDesignerOnRuntimeCrudProps(
+      alignedProps,
+      resolveBlockBoundFormDesignerSchema(block),
+    ) || alignedProps
     const blockId = String(block?.id || '').trim()
     const treeFilter = blockId ? runtimeTreeFilterByBlockId.value[blockId] : null
     const pageTreeFilter = runtimeTreeFilter.value
@@ -1038,26 +1051,43 @@ export function applyApplicationRuntimePart2(deps = {}) {
   }
   __impl.createFormFieldVisibilitySettings = createFormFieldVisibilitySettings
 
+  function resolveFormAssetIdentity(asset = {}) {
+    return String(asset?.id || asset?.formKey || '').trim()
+  }
+
+  function findFormAssetByIdentity(formAssetId = '') {
+    const key = String(formAssetId || '').trim()
+    if (!key)
+      return null
+    return formAssets.value.find(item => resolveFormAssetIdentity(item) === key) || null
+  }
+
+  function applyFormAssetToBlock(block, formAssetId = '') {
+    const nextId = String(formAssetId || '').trim()
+    const asset = findFormAssetByIdentity(nextId)
+    const fieldRefs = asset ? resolveFormAssetFields(asset).map(field => field.fieldCode).filter(Boolean) : []
+    return {
+      ...block,
+      fieldRefs: fieldRefs.length ? fieldRefs : block.fieldRefs,
+      props: {
+        ...(block.props || {}),
+        formAssetId: nextId,
+        formAssetFieldsInitialized: fieldRefs.length > 0,
+        fieldSettings: createFormFieldVisibilitySettings(block.props?.fieldSettings, fieldRefs, true),
+        ...(['AiCrudPage', 'search-form'].includes(block.blockType) && fieldRefs.length
+          ? { searchFieldRefs: fieldRefs.slice(0, 8) }
+          : {}),
+      },
+    }
+  }
+
   function updateSelectedBlockFormAsset(formAssetId) {
     if (!selectedPageBlock.value)
       return
-    const asset = formAssets.value.find(item => item.id === formAssetId)
-    const fieldRefs = asset ? resolveFormAssetFields(asset).map(field => field.fieldCode) : []
-    updatePageBlocks(mapPageBlocksInTree(pageBlocks.value, item => item.id === selectedPageBlock.value.id
-      ? {
-          ...item,
-          fieldRefs: fieldRefs.length ? fieldRefs : item.fieldRefs,
-          props: {
-            ...(item.props || {}),
-            formAssetId: formAssetId || '',
-            formAssetFieldsInitialized: fieldRefs.length > 0,
-            fieldSettings: createFormFieldVisibilitySettings(item.props?.fieldSettings, fieldRefs, true),
-            ...(['AiCrudPage', 'search-form'].includes(item.blockType) && fieldRefs.length
-              ? { searchFieldRefs: fieldRefs.slice(0, 8) }
-              : {}),
-          },
-        }
-      : item))
+    const targetId = selectedPageBlock.value.id
+    updatePageBlocks(mapPageBlocksInTree(pageBlocks.value, item => (
+      item.id === targetId ? applyFormAssetToBlock(item, formAssetId) : item
+    )))
   }
   __impl.updateSelectedBlockFormAsset = updateSelectedBlockFormAsset
 
@@ -1067,6 +1097,70 @@ export function applyApplicationRuntimePart2(deps = {}) {
     formAssetSelectorKeyword.value = ''
   }
   __impl.selectFormAssetFromPicker = selectFormAssetFromPicker
+
+  function listPageBlocksFlat() {
+    const list = []
+    visitPageBlocksInTree(pageBlocks.value, block => list.push(block))
+    return list
+  }
+
+  /**
+   * 页面资源：把指定表单设为当前页列表的新增/编辑表单。
+   * 优先绑到当前选中的列表块；未选中时自动绑到本页第一个 AiCrudPage。
+   */
+  function setFormAssetAsListCrudForm(formAssetId = '') {
+    const nextId = String(formAssetId || '').trim()
+    const asset = findFormAssetByIdentity(nextId)
+    if (!asset) {
+      message.warning('表单不存在')
+      return false
+    }
+    const selected = selectedPageBlock.value
+    const selectedIsList = selected && ['AiCrudPage', 'AiForm', 'data-table'].includes(selected.blockType)
+    let target = selectedIsList ? selected : null
+    if (!target) {
+      const flat = listPageBlocksFlat()
+      target = flat.find(item => item?.blockType === 'AiCrudPage')
+        || flat.find(item => ['AiForm', 'data-table'].includes(item?.blockType))
+        || null
+    }
+    if (!target) {
+      message.warning('当前页还没有数据列表，请先选中或放入一个列表组件')
+      return false
+    }
+    if (!selectedIsList || selected?.id !== target.id)
+      selectedPageBlockId.value = target.id
+    updatePageBlocks(mapPageBlocksInTree(pageBlocks.value, item => (
+      item.id === target.id ? applyFormAssetToBlock(item, nextId) : item
+    )))
+    // 绑定变更后清掉对象级 CRUD 缓存，下一帧按新 formAsset 重新叠表单
+    const objectRef = resolvePageBlockObjectRef(target)
+    const cacheKey = resolveRuntimeObjectCacheKey(objectRef)
+    if (cacheKey) {
+      const nextCache = { ...runtimeCrudPropsByObjectId.value }
+      delete nextCache[cacheKey]
+      runtimeCrudPropsByObjectId.value = nextCache
+      runtimeCrudUnavailableObjectIds.delete(cacheKey)
+      preloadPageBlockCrudRuntimeProps(target)
+    }
+    configPanelVisible.value = true
+    inspectorTab.value = 'properties'
+    message.success(`已将「${asset.name || nextId}」设为新增/编辑表单，点「新增/编辑」将使用该表单`)
+    return true
+  }
+  __impl.setFormAssetAsListCrudForm = setFormAssetAsListCrudForm
+
+  function isFormAssetBoundToListCrud(formAssetId = '') {
+    const key = String(formAssetId || '').trim()
+    if (!key)
+      return false
+    return listPageBlocksFlat().some((item) => {
+      if (!['AiCrudPage', 'AiForm', 'data-table'].includes(item?.blockType))
+        return false
+      return String(item?.props?.formAssetId || '').trim() === key
+    })
+  }
+  __impl.isFormAssetBoundToListCrud = isFormAssetBoundToListCrud
 
   function updateSelectedPageBlockRuntimeObject(objectId) {
     if (!selectedPageBlock.value)
@@ -1632,6 +1726,8 @@ export function applyApplicationRuntimePart2(deps = {}) {
   __impl.createFormFieldVisibilitySettings = createFormFieldVisibilitySettings
   __impl.updateSelectedBlockFormAsset = updateSelectedBlockFormAsset
   __impl.selectFormAssetFromPicker = selectFormAssetFromPicker
+  __impl.setFormAssetAsListCrudForm = setFormAssetAsListCrudForm
+  __impl.isFormAssetBoundToListCrud = isFormAssetBoundToListCrud
   __impl.updateSelectedPageBlockRuntimeObject = updateSelectedPageBlockRuntimeObject
   __impl.createFormAssetForSelectedBlock = createFormAssetForSelectedBlock
   __impl.createStandaloneFormAsset = createStandaloneFormAsset

@@ -201,10 +201,13 @@ export function buildRuntimeCrudBlockProps({
       aiSearchSchema,
       configuredFieldRefs,
     }),
+    // 列表 fieldRefs 只约束表格列；绑定页面表单后不能再用列表字段把新增/编辑裁回旧表单
     editSchema: hydrateRuntimeFormLayout(
       filterCrudItemsByFieldRefs(
         runtimeProps.editSchema?.length ? runtimeProps.editSchema : aiFormSchema,
-        configuredFieldRefs,
+        (runtimeProps.pageFormAssetBound === true || String(blockProps.formAssetId || '').trim())
+          ? []
+          : configuredFieldRefs,
       ),
       runtimeProps.options?.editFormLayout,
       runtimeProps.uiDocument,

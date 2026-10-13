@@ -38,12 +38,14 @@ export function shouldUsePageFlowStack(blocks = [], options = {}) {
 }
 
 export function shouldUseContentSizedFlow(blocks = [], options = {}) {
-  if (options.fillHost)
-    return false
   const items = Array.isArray(blocks) ? blocks.filter(Boolean) : []
   if (!items.length)
     return false
-  // 运行态预览：只要不是填满宿主，就用文档流（绝对定位只留给设计态自由摆放）
+  // fillHost：单块继续 100% 填满宿主；多块必须文档流堆叠。
+  // 若仍走绝对定位，外层 overflow:hidden 会把列表底（分页/末行）裁掉，和列表设计预览不一致。
+  if (options.fillHost)
+    return items.length > 1
+  // 运行态预览：用文档流（绝对定位只留给设计态自由摆放）
   if (options.runtimePreview)
     return true
   if (shouldUsePageFlowStack(items, options))

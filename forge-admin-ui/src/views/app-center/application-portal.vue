@@ -120,11 +120,13 @@
             <PortalPageRenderer
               v-else
               :key="currentPageId"
+              fill-host
               :node="currentNode"
               :page="currentPage"
               :objects="runtime.objects"
               :entries="runtime.entries"
               :extensions="runtime.extensions"
+              :form-assets="builder?.formAssets || []"
               :application-id="String(application.id || '')"
               :application-code="application.applicationCode"
               :page-id="currentPageId"
@@ -512,20 +514,27 @@ function resolveErrorMessage(error) {
 
 .portal-main {
   position: relative;
+  display: flex;
   min-width: 0;
   min-height: 0;
   flex: 1;
-  overflow-x: hidden;
-  overflow-y: auto;
+  flex-direction: column;
+  overflow: hidden;
   /* 正式门户内容区用白底，避免灰底+大留白像「套了一层卡片」 */
   background: var(--portal-surface);
 }
 
+.portal-main > :deep(.portal-page-renderer),
 .portal-system-page {
   box-sizing: border-box;
+  flex: 1 1 auto;
+  width: 100%;
   height: 100%;
   min-height: 0;
   overflow: hidden;
+}
+
+.portal-system-page {
   padding: 8px;
 }
 

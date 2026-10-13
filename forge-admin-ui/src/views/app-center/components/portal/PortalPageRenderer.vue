@@ -77,7 +77,11 @@ import { computed, defineAsyncComponent, h, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { crudConfigRender } from '@/api/ai'
 import { executePublishedExtensionHook } from '@/api/business-extension'
-import { buildRuntimeCrudProps } from '@/components/lowcode-builder/shared/runtime-crud-props'
+import {
+  buildRuntimeCrudProps,
+  overlayFormDesignerOnRuntimeCrudProps,
+  resolveBoundFormDesignerSchema,
+} from '@/components/lowcode-builder/shared/runtime-crud-props'
 import {
   alignSearchSchemaWithLeftTree,
   buildLeftTreeFilterParams,
@@ -142,6 +146,8 @@ const props = defineProps({
    * 有 seed 时首屏可直接渲染，避免壳出来后再等 render。
    */
   seedRuntimeCrudProps: { type: Object, default: () => ({}) },
+  /** 应用内页面资源表单；按区块 formAssetId 覆盖新增/编辑表单 */
+  formAssets: { type: Array, default: () => [] },
 })
 
 const runtimeCrudPropsByKey = ref({})
@@ -447,37 +453,42 @@ function resolveRuntimeCrudProps(block) {
     runtimeProps,
   })
   const pageRouteParams = resolveDeclaredPageRouteParams()
+  // 页面资源绑定的表单覆盖对象默认新增/编辑（与设计态 resolvePageBlockRuntimeCrudProps 一致）
+  const withBoundForm = overlayFormDesignerOnRuntimeCrudProps(
+    runtimeProps,
+    resolveBoundFormDesignerSchema(block, props.formAssets),
+  ) || runtimeProps
   // 页面已有 tree-panel 时，不要再套 TreeCrudTemplate，也不要把右表渲成嵌套树
   if (hasTreePanel && block?.blockType === 'AiCrudPage') {
-    const { treeConfig: _treeConfig, ...runtimeOptions } = runtimeProps.options || {}
+    const { treeConfig: _treeConfig, ...runtimeOptions } = withBoundForm.options || {}
     return {
-      ...runtimeProps,
+      ...withBoundForm,
       suppressTreeCrudShell: true,
       treeConfig: {},
       options: runtimeOptions,
       searchSchema,
       publicParams: {
-        ...(runtimeProps.publicParams || {}),
+        ...(withBoundForm.publicParams || {}),
         ...pageRouteParams,
         ...(treeFilter || {}),
       },
       formDefaultValues: {
-        ...(runtimeProps.formDefaultValues || {}),
+        ...(withBoundForm.formDefaultValues || {}),
         ...pageRouteParams,
         ...(pageInitDefaultsByObject.value[key] || {}),
       },
     }
   }
   return {
-    ...runtimeProps,
+    ...withBoundForm,
     searchSchema,
     publicParams: {
-      ...(runtimeProps.publicParams || {}),
+      ...(withBoundForm.publicParams || {}),
       ...pageRouteParams,
       ...(treeFilter || {}),
     },
     formDefaultValues: {
-      ...(runtimeProps.formDefaultValues || {}),
+      ...(withBoundForm.formDefaultValues || {}),
       ...pageRouteParams,
       ...(pageInitDefaultsByObject.value[key] || {}),
     },
@@ -671,12 +682,17 @@ function mergePortalFieldCatalogs(formFields = [], runtimeFields = []) {
 }
 
 function resolveBlockShellStyle(block, index) {
+  // 单块填满宿主：跟列表设计预览一样占满可用高度，由 AiCrud 内部滚动，禁止外层再锁死 min-height 裁切
   if (props.fillHost && blocks.value.length === 1) {
     return {
       position: 'relative',
       inset: 'auto',
       width: '100%',
       height: '100%',
+      minHeight: 0,
+      flex: '1 1 auto',
+      boxSizing: 'border-box',
+      overflow: 'hidden',
       textAlign: block.props?.style?.textAlign || block.props?.textAlign || block.props?.align || 'left',
     }
   }
@@ -686,6 +702,7 @@ function resolveBlockShellStyle(block, index) {
   const runtimeAutoHeight = isRuntimeAutoHeightBlock(block) && heightMode !== 'fixed'
   const contentSized = contentSizedFlow.value
   const isContainer = ['grid-layout', 'card', 'box-layout', 'tabs'].includes(block.blockType)
+  const isListCrud = ['AiCrudPage', 'AiTable', 'data-table'].includes(block.blockType) && !runtimeAutoHeight
 
   // 文档流：彻底丢掉 pageFlowX/Y，避免 top 残留把块钉死在旧坐标
   if (contentSized) {
@@ -705,15 +722,25 @@ function resolveBlockShellStyle(block, index) {
       shell.minHeight = `${Math.max(40, customHeight)}px`
       return shell
     }
-    if (heightMode === 'fixed') {
-      shell.height = `${Math.max(40, customHeight)}px`
-      shell.minHeight = `${Math.max(40, customHeight)}px`
+    // 列表 CRUD 必须先于 heightMode=fixed：设计态常把 pageFlowHeight 压到很小（如 100），
+    // 若走 fixed 分支会内联 height/minHeight=100px，覆盖 CSS 560 保底，运行态被裁成一条缝。
+    if (isListCrud && props.fillHost) {
+      // 多块填满宿主：列表块吃掉剩余高度，与列表设计 fill-host 预览一致
+      const minHeight = Math.max(customHeight, 560)
+      shell.flex = '1 1 auto'
+      shell.height = 'auto'
+      shell.minHeight = `${minHeight}px`
+      shell.overflow = 'hidden'
     }
-    else if (['AiCrudPage', 'AiTable', 'data-table'].includes(block.blockType) && !runtimeAutoHeight) {
+    else if (isListCrud) {
       // 左树右表 + 搜索/工具栏需要更高可视区，过小会被 overflow:hidden 压成“有数据看不见”
       const minHeight = Math.max(customHeight, 560)
       shell.height = `${minHeight}px`
       shell.minHeight = `${minHeight}px`
+    }
+    else if (heightMode === 'fixed') {
+      shell.height = `${Math.max(40, customHeight)}px`
+      shell.minHeight = `${Math.max(40, customHeight)}px`
     }
     else {
       shell.minHeight = `${Math.max(40, customHeight)}px`
@@ -915,7 +942,7 @@ function readLength(value) {
   height: 100% !important;
 }
 
-/* 左树右表 / 列表块：防止内容流高度不足把表格压成空白 */
+/* 左树右表 / 列表块：非填满宿主时保底高度，避免表格被压成空白 */
 .portal-page-block[data-page-block-type='AiCrudPage'] {
   min-height: 560px;
 }
@@ -923,6 +950,20 @@ function readLength(value) {
 .portal-page-block[data-page-block-type='AiCrudPage'] :deep(.tree-crud-layout),
 .portal-page-block[data-page-block-type='AiCrudPage'] :deep(.ai-crud-preview) {
   min-height: 520px;
+}
+
+/* 填满宿主（发布运行 / 列表设计预览）：跟随可用高度内部滚动，禁止 560 保底把底裁掉 */
+.portal-page-renderer.is-fill .portal-page-block[data-page-block-type='AiCrudPage'],
+.portal-page-renderer.is-fill .portal-page-block.is-fill {
+  min-height: 0;
+}
+
+.portal-page-renderer.is-fill .portal-page-block[data-page-block-type='AiCrudPage'] :deep(.tree-crud-layout),
+.portal-page-renderer.is-fill .portal-page-block[data-page-block-type='AiCrudPage'] :deep(.ai-crud-preview),
+.portal-page-renderer.is-fill .portal-page-block[data-page-block-type='AiCrudPage'] :deep(.runtime-list-grid-flow),
+.portal-page-renderer.is-fill .portal-page-block[data-page-block-type='AiCrudPage'] :deep(.ai-crud-page) {
+  min-height: 0;
+  height: 100%;
 }
 
 .portal-page-flow.is-content-sized .portal-page-block.is-runtime-form :deep(.grid-block),

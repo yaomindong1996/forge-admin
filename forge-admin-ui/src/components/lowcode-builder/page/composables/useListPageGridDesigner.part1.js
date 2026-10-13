@@ -1,5 +1,5 @@
 /** Auto-split part 1 of ListPageGridDesigner setup. */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, unref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import { businessObjectFields, businessObjectList, enabledApiConfigs } from '@/api/business-app'
 import {
@@ -44,7 +44,7 @@ import {
   syncGridLayoutWithModel,
 } from '../page-schema'
 
-import { provideListPageDesignerApi } from '../listPageDesignerContext'
+import { PAGE_FORM_ASSET_OPTIONS_KEY, provideListPageDesignerApi } from '../listPageDesignerContext'
 import {
   alignSearchSchemaWithLeftTree,
   findTreePanelProps,
@@ -714,6 +714,80 @@ const formTargetOptions = computed(() => props.formOptions
     label: item.label || item.value,
     value: item.value,
   })))
+function normalizePageFormAssetSelectOptions(optionsInput, assetsInput) {
+  const fromProp = Array.isArray(unref(optionsInput)) ? unref(optionsInput) : []
+  const normalized = fromProp
+    .map((item) => {
+      const raw = unref(item)
+      const value = String(raw?.value || raw?.id || raw?.formKey || '').trim()
+      if (!value)
+        return null
+      return {
+        label: raw.label || raw.name || value,
+        value,
+      }
+    })
+    .filter(Boolean)
+  if (normalized.length)
+    return normalized
+  // 与顶部「页面资源」同源：父级传 formAssets 原始数组时同样可下拉
+  const rawAssets = Array.isArray(unref(assetsInput)) ? unref(assetsInput) : []
+  return rawAssets
+    .map((asset) => {
+      const raw = unref(asset)
+      const value = String(raw?.id || raw?.formKey || '').trim()
+      if (!value)
+        return null
+      return {
+        label: raw.name || raw.formKey || value,
+        value,
+      }
+    })
+    .filter(Boolean)
+}
+const pageFormAssetSelectOptions = computed(() => normalizePageFormAssetSelectOptions(
+  props.pageFormAssetOptions,
+  props.pageFormAssets,
+))
+// 单独 provide 纯 computed，子面板不要只靠大 Proxy（解包失败时会显示「还没有表单」）
+provide(PAGE_FORM_ASSET_OPTIONS_KEY, pageFormAssetSelectOptions)
+/** 模板统一走函数，保证读到数组而不是 ComputedRef */
+function getPageFormAssetSelectOptions() {
+  const list = unref(pageFormAssetSelectOptions)
+  return Array.isArray(list) ? list : []
+}
+const showPageFormAssetBinder = computed(() => {
+  if (!['AiCrudPage', 'AiForm', 'data-table'].includes(selectedBlock.value?.blockType))
+    return false
+  // panel-only（应用运行态右侧「配置组件」）外层已有 page-form-bind-card，与顶部「页面资源」同源；
+  // 这里再做一份容易因 props/inject 解包失败显示「还没有表单」，故 panel-only 不再重复渲染。
+  if (props.panelOnly)
+    return false
+  return true
+})
+const boundPageFormAssetLabel = computed(() => {
+  const id = String(selectedBlock.value?.props?.formAssetId || '').trim()
+  if (!id)
+    return ''
+  const matched = pageFormAssetSelectOptions.value.find(item => String(item.value) === id)
+  return matched?.label || id
+})
+function bindPageFormAsset(formAssetId = '') {
+  if (!selectedBlock.value?.id)
+    return
+  const nextId = formAssetId || ''
+  patchBlockProps(selectedBlock.value.id, { formAssetId: nextId })
+  emit('bind-form-asset', nextId)
+}
+function emitCreatePageFormAsset() {
+  emit('create-form-asset')
+}
+function emitEditPageFormAsset() {
+  const id = String(selectedBlock.value?.props?.formAssetId || '').trim()
+  if (!id)
+    return
+  emit('edit-form-asset', id)
+}
 const rowFieldOptions = computed(() => props.fields
   .filter(field => field?.field)
   .map(field => ({
@@ -1398,6 +1472,13 @@ __impl.hydrateInitialState = hydrateInitialState
     blockTargetOptions,
     pageTargetOptions,
     formTargetOptions,
+    pageFormAssetSelectOptions,
+    getPageFormAssetSelectOptions,
+    showPageFormAssetBinder,
+    boundPageFormAssetLabel,
+    bindPageFormAsset,
+    emitCreatePageFormAsset,
+    emitEditPageFormAsset,
     rowFieldOptions,
     runtimeRuleFieldOptions,
     NESTED_CONTAINER_BLOCK_TYPES,

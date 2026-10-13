@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveRuntimeSearchSchema } from '../runtime-crud-block-props'
+import { buildRuntimeCrudBlockProps, resolveRuntimeSearchSchema } from '../runtime-crud-block-props'
 
 describe('resolveRuntimeSearchSchema', () => {
   it('prefers runtime searchSchema ordered by explicit searchFieldRefs', () => {
@@ -35,5 +35,30 @@ describe('resolveRuntimeSearchSchema', () => {
       aiSearchSchema: [{ field: 'fieldA', label: 'local-A' }],
     })
     expect(schema).toEqual([{ field: 'fieldA', label: 'local-A' }])
+  })
+})
+
+describe('buildRuntimeCrudBlockProps page form binding', () => {
+  it('does not clip editSchema by list fieldRefs when page form asset is bound', () => {
+    const props = buildRuntimeCrudBlockProps({
+      runtimeProps: {
+        configKey: 'customer',
+        pageFormAssetBound: true,
+        editSchema: [
+          { field: 'customerName', type: 'input', label: '客户名' },
+          { field: 'mobile', type: 'input', label: '手机号' },
+        ],
+        columns: [{ field: 'oldName', title: '旧名称' }],
+        searchSchema: [],
+        apiConfig: {},
+        options: {},
+      },
+      blockProps: { formAssetId: 'form_new' },
+      configuredFieldRefs: ['oldName'],
+      aiFormSchema: [],
+      aiTableColumns: [],
+      aiSearchSchema: [],
+    })
+    expect(props.editSchema.map(item => item.field)).toEqual(['customerName', 'mobile'])
   })
 })

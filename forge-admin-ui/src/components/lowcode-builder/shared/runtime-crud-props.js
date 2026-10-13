@@ -128,6 +128,76 @@ export function buildRuntimeCrudProps(config = {}, { designPreview = false } = {
   return applyEmbeddedTreeTableRuntimeProps(baseProps, config, { designPreview })
 }
 
+/**
+ * 用页面资源绑定的 formDesignerSchema 覆盖运行 CRUD 的新增/编辑表单。
+ * 业务对象 config 仍负责接口与列表列；表单布局/字段以绑定的页面表单为准。
+ */
+export function overlayFormDesignerOnRuntimeCrudProps(runtimeProps = null, formDesignerSchema = null) {
+  if (!runtimeProps || typeof runtimeProps !== 'object')
+    return runtimeProps
+  if (!formDesignerSchema || typeof formDesignerSchema !== 'object')
+    return runtimeProps
+  const designerLayout = resolveDesignerFormLayout(formDesignerSchema)
+  const formOpenMode = resolveFormOpenMode(runtimeProps.options || {}, runtimeProps, designerLayout)
+  const governance = resolveDesignerFormGovernance(formDesignerSchema)
+  // 切换页面表单时以设计器字段为准，不再把旧 editSchema 字段拼回来
+  const designerFields = mergeDesignerEditSchema([], formDesignerSchema)
+  const flatEditSchema = designerFields.length
+    ? designerFields
+    : mergeDesignerEditSchema(normalizeFields(runtimeProps.editSchema), formDesignerSchema)
+  const uiDocument = compileUiDocumentFromDesigner(formDesignerSchema, { resolvedFields: flatEditSchema })
+  return {
+    ...runtimeProps,
+    // 标记：新增/编辑已切到页面资源表单，后续勿再用列表 fieldRefs 裁切 editSchema
+    pageFormAssetBound: true,
+    editSchema: flatEditSchema,
+    uiDocument: uiDocument || runtimeProps.uiDocument || null,
+    protocolVersion: uiDocument ? UI_DOCUMENT_PROTOCOL_VERSION : runtimeProps.protocolVersion,
+    formOpenMode,
+    modalType: resolveModalType(formOpenMode, runtimeProps.options || {}, runtimeProps, designerLayout),
+    modalWidth: designerLayout.modalWidth || runtimeProps.modalWidth || '800px',
+    detailModalWidth: designerLayout.detailModalWidth || runtimeProps.detailModalWidth || 'min(1080px, 92vw)',
+    drawerPlacement: designerLayout.drawerPlacement || runtimeProps.drawerPlacement || 'right',
+    editGridCols: designerLayout.gridColumns || runtimeProps.editGridCols || 1,
+    editLabelWidth: designerLayout.labelWidth || runtimeProps.editLabelWidth || 'auto',
+    editLabelPlacement: designerLayout.labelPlacement || runtimeProps.editLabelPlacement || 'left',
+    editLabelAlign: designerLayout.labelAlign || runtimeProps.editLabelAlign || 'right',
+    editSize: designerLayout.size || runtimeProps.editSize || 'medium',
+    editEnableCollapse: designerLayout.enableCollapse ?? runtimeProps.editEnableCollapse ?? false,
+    editMaxVisibleFields: numberOption(
+      designerLayout.maxVisibleFields ?? runtimeProps.editMaxVisibleFields,
+      6,
+    ),
+    editShowFeedback: designerLayout.showFeedback ?? runtimeProps.editShowFeedback ?? true,
+    editFormClass: designerLayout.formClass || runtimeProps.editFormClass || '',
+    editFormStyle: designerLayout.formStyle || runtimeProps.editFormStyle,
+    editXGap: numberOption(designerLayout.columnGap ?? runtimeProps.editXGap, 12),
+    editYGap: numberOption(designerLayout.rowGap ?? runtimeProps.editYGap, 8),
+    fieldEvents: Array.isArray(governance.fieldEvents) ? governance.fieldEvents : (runtimeProps.fieldEvents || []),
+    formInit: governance.formInit && typeof governance.formInit === 'object'
+      ? governance.formInit
+      : (runtimeProps.formInit || {}),
+    options: {
+      ...(runtimeProps.options || {}),
+      formDesignerSchema,
+    },
+  }
+}
+
+/** 按区块绑定的 formAssetId（或唯一表单兜底）取页面资源表单设计稿 */
+export function resolveBoundFormDesignerSchema(block = {}, formAssets = []) {
+  const assets = Array.isArray(formAssets) ? formAssets : []
+  const explicit = String(block?.props?.formAssetId || '').trim()
+  const fallback = assets.length === 1
+    ? String(assets[0]?.id || assets[0]?.formKey || '').trim()
+    : ''
+  const key = explicit || fallback
+  if (!key)
+    return null
+  const asset = assets.find(item => String(item?.id || item?.formKey || '').trim() === key)
+  return asset?.formDesignerSchema || null
+}
+
 function normalizeApiConfig(apiConfig, configKey, designPreview) {
   const source = typeof apiConfig === 'string'
     ? safeParseJsonObject(apiConfig)

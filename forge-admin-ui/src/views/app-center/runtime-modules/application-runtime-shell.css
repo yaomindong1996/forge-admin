@@ -1287,6 +1287,9 @@
   background: var(--bg-primary);
   overflow: hidden;
 }
+.runtime-inspector > .page-form-bind-card {
+  flex: 0 0 auto;
+}
 .runtime-inspector :deep(.list-grid-designer.panel-only) {
   height: auto;
   min-height: 0;

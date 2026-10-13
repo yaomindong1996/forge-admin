@@ -101,25 +101,42 @@
               <div class="application-form-assets-popover-head">
                 <div>
                   <strong>页面表单资产</strong>
-                  <small>统一设计字段、布局和录入体验</small>
+                  <small>可设为列表「新增 / 编辑」使用的表单</small>
                 </div>
                 <n-button size="tiny" type="primary" @click="createStandaloneFormAsset">
                   新建表单
                 </n-button>
               </div>
-              <button
+              <div
                 v-for="asset in formAssets"
-                :key="asset.id"
-                type="button"
+                :key="asset.id || asset.formKey"
                 class="application-form-asset-row"
-                @click="openFormAssetDesigner(asset.id)"
+                :class="{ 'is-bound': isFormAssetBoundToListCrud(asset.id || asset.formKey) }"
               >
-                <span>
-                  <strong>{{ asset.name }}</strong>
-                  <small>{{ resolveFormAssetFields(asset).length }} 个字段</small>
-                </span>
-                <span>编辑</span>
-              </button>
+                <button type="button" class="application-form-asset-main" @click="openFormAssetDesigner(asset.id || asset.formKey)">
+                  <span>
+                    <strong>{{ asset.name || asset.formKey || asset.id }}</strong>
+                    <small>
+                      {{ resolveFormAssetFields(asset).length }} 个字段
+                      <template v-if="isFormAssetBoundToListCrud(asset.id || asset.formKey)"> · 当前新增/编辑表单</template>
+                    </small>
+                  </span>
+                </button>
+                <div class="application-form-asset-ops">
+                  <n-button
+                    size="tiny"
+                    quaternary
+                    type="primary"
+                    :disabled="isFormAssetBoundToListCrud(asset.id || asset.formKey)"
+                    @click.stop="setFormAssetAsListCrudForm(asset.id || asset.formKey)"
+                  >
+                    {{ isFormAssetBoundToListCrud(asset.id || asset.formKey) ? '已设为新增编辑' : '设为新增编辑表单' }}
+                  </n-button>
+                  <n-button size="tiny" quaternary @click.stop="openFormAssetDesigner(asset.id || asset.formKey)">
+                    编辑
+                  </n-button>
+                </div>
+              </div>
               <n-empty v-if="!formAssets.length" size="small" description="还没有页面表单，先创建一个" />
             </div>
           </n-popover>
@@ -554,6 +571,7 @@
               :objects="objects"
               :entries="workspaceEntries"
               :extensions="workspaceExtensions"
+              :form-assets="formAssets"
               :application-id="String(application?.id || '')"
               :application-code="application?.applicationCode || ''"
               :page-id="currentNode?.id || ''"
@@ -1009,79 +1027,18 @@
                   </n-button>
                 </div>
               </div>
-              <div v-if="!selectedPageBlockUsesObjectRuntime" class="page-form-draft-card">
-                <div class="page-form-draft-head">
-                  <span>关联表单</span>
-                  <small>表单中的字段会直接用于列表、查询和新增编辑。</small>
-                </div>
-                <n-select
-                  size="small"
-                  :value="selectedPageBlockFormAssetId || null"
-                  :options="pageFormAssetOptions"
-                  placeholder="选择已经设计好的表单"
-                  @update:value="updateSelectedBlockFormAsset"
-                />
-                <div class="form-asset-actions">
-                  <n-button size="tiny" type="primary" secondary @click="createFormAssetForSelectedBlock">
-                    新建表单
-                  </n-button>
-                  <n-button size="tiny" :disabled="!selectedPageBlockFormAssetId" @click="editSelectedBlockFormAsset">
-                    编辑表单
-                  </n-button>
-                </div>
-              </div>
             </template>
-            <template v-else-if="supportsFormAsset(selectedPageBlock) && !selectedPageBlockUsesObjectRuntime">
-              <n-popover v-model:show="formAssetSelectorOpen" trigger="click" placement="bottom-start" :show-arrow="false" :to="false">
-                <template #trigger>
-                  <button type="button" class="form-asset-selector-trigger" :class="{ active: formAssetSelectorOpen }">
-                    <NIcon><FolderOpenOutline /></NIcon>
-                    <span>{{ selectedPageBlockFormAsset?.name || '选择已经设计好的表单' }}</span>
-                    <span v-if="selectedPageBlockFormAssetId" class="form-asset-selector-open" title="编辑表单" role="button" tabindex="0" @click.stop="editSelectedBlockFormAsset">↗</span>
-                    <span class="form-asset-selector-arrow" aria-hidden="true">{{ formAssetSelectorOpen ? '⌃' : '⌄' }}</span>
-                  </button>
-                </template>
-                <div class="form-asset-selector-menu">
-                  <n-input v-model:value="formAssetSelectorKeyword" clearable size="small" placeholder="搜索">
-                    <template #prefix>
-                      ⌕
-                    </template>
-                  </n-input>
-                  <button
-                    v-for="asset in filteredFormAssets"
-                    :key="asset.id"
-                    type="button"
-                    class="form-asset-selector-option"
-                    :class="{ selected: asset.id === selectedPageBlockFormAssetId }"
-                    @click="selectFormAssetFromPicker(asset.id)"
-                  >
-                    <NIcon><FolderOpenOutline /></NIcon>
-                    <span>{{ asset.name }}</span>
-                    <span v-if="asset.id === selectedPageBlockFormAssetId" class="form-asset-selector-check">✓</span>
-                  </button>
-                  <n-empty v-if="!filteredFormAssets.length" size="small" description="没有匹配的表单" />
-                </div>
-              </n-popover>
-              <p v-if="formAssets.length === 1" class="form-asset-default-hint">
-                当前应用只有一个表单，已自动关联。
-              </p>
-              <div class="form-asset-actions">
-                <n-button size="tiny" type="primary" secondary @click="createFormAssetForSelectedBlock">
-                  新建表单
-                </n-button>
-                <n-button size="tiny" :disabled="!selectedPageBlockFormAssetId" @click="editSelectedBlockFormAsset">
-                  编辑表单
-                </n-button>
-              </div>
-            </template>
-            <n-empty v-else size="small" description="该组件没有可绑定的数据表单" />
-          </div>
-          <div v-if="selectedPageBlockIsCrud && !selectedPageBlockUsesObjectRuntime && inspectorTab === 'properties'" class="crud-property-source-notice">
-            <NIcon><InformationCircleOutline /></NIcon>
-            <span><strong>当前使用表单字段。</strong>字段选择、隐藏和排序可以直接保存；系统会在保存表单后自动准备数据存储。</span>
-            <n-button text type="primary" @click="inspectorTab = 'data'">
-              查看表单数据
-            </n-button>
+            <n-empty
+              v-if="selectedPageBlock && !supportsFormAsset(selectedPageBlock)"
+              size="small"
+              description="该组件没有可绑定的数据表单"
+            />
+            <p
+              v-else-if="supportsFormAsset(selectedPageBlock)"
+              class="form-asset-default-hint"
+            >
+              新增/编辑表单请在顶部「页面资源」里点「设为新增编辑表单」。
+            </p>
           </div>
           <ListPageGridDesigner
             v-if="inspectorTab === 'properties' && selectedPageBlock"

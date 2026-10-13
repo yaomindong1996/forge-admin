@@ -136,7 +136,10 @@ export function resolveDefaultPageBlockHeight(block = {}) {
     return 128
   if (['grid-layout', 'card', 'box-layout', 'tabs'].includes(blockType))
     return 180
-  if (['AiCrudPage', 'AiTable', 'data-table', 'search-form', 'toolbar'].includes(blockType))
+  // 与门户运行态 / 列表设计预览一致，过小会被 overflow 裁成“列表看不全”
+  if (['AiCrudPage', 'AiTable', 'data-table'].includes(blockType))
+    return 560
+  if (['search-form', 'toolbar'].includes(blockType))
     return 220
   return 96
 }

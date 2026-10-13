@@ -939,6 +939,16 @@ export default {
     type: Array,
     default: () => [],
   },
+  /** 页面资源表单下拉：{ label, value: formAssetId }，用于列表新增/编辑绑定 */
+  pageFormAssetOptions: {
+    type: Array,
+    default: () => [],
+  },
+  /** 原始页面资源表单（兜底，当 options 未传入时用） */
+  pageFormAssets: {
+    type: Array,
+    default: () => [],
+  },
   readonly: {
     type: Boolean,
     default: false,
@@ -968,7 +978,14 @@ export default {
     default: '',
   },
 },
-  emits: ['update:modelValue', 'update:modelSchema', 'update:customActions'],
+  emits: [
+    'update:modelValue',
+    'update:modelSchema',
+    'update:customActions',
+    'bind-form-asset',
+    'create-form-asset',
+    'edit-form-asset',
+  ],
   setup(props, { emit, expose }) {
     return useListPageGridDesigner(props, emit, expose)
   },

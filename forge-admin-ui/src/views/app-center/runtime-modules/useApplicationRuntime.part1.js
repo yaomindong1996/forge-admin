@@ -317,6 +317,8 @@ export function applyApplicationRuntimePart1() {
   const updateResizeCollisionHighlights = (...args) => __impl.updateResizeCollisionHighlights(...args)
   const updateSelectedBlockAppearance = (...args) => __impl.updateSelectedBlockAppearance(...args)
   const updateSelectedBlockFormAsset = (...args) => __impl.updateSelectedBlockFormAsset(...args)
+  const setFormAssetAsListCrudForm = (...args) => __impl.setFormAssetAsListCrudForm(...args)
+  const isFormAssetBoundToListCrud = (...args) => __impl.isFormAssetBoundToListCrud(...args)
   const updateSelectedPageBlockRuntimeObject = (...args) => __impl.updateSelectedPageBlockRuntimeObject(...args)
   const route = useRoute()
   const router = useRouter()
@@ -826,10 +828,25 @@ export function applyApplicationRuntimePart1() {
       ? formAssets.value
       : formAssets.value.filter(asset => `${asset.name || ''}${asset.id || ''}`.toLowerCase().includes(keyword))
   })
-  const pageFormAssetOptions = computed(() => formAssets.value.map(asset => ({
-    label: `${asset.name || asset.formKey || asset.id}（${resolveFormAssetFields(asset).length} 个字段）`,
-    value: asset.id,
-  })))
+  const pageFormAssetOptions = computed(() => formAssets.value
+    .map((asset) => {
+      const value = String(asset?.id || asset?.formKey || '').trim()
+      if (!value)
+        return null
+      const fieldCount = (() => {
+        try {
+          return resolveFormAssetFields(asset).length
+        }
+        catch {
+          return 0
+        }
+      })()
+      return {
+        label: `${asset.name || asset.formKey || value}（${fieldCount} 个字段）`,
+        value,
+      }
+    })
+    .filter(Boolean))
   const activeFormAsset = computed(() => formAssets.value.find(asset => asset.id === activeFormAssetId.value) || null)
   // activeFormDesignerSchema：从 computed 改为 ref + watch 签名去重。
   // 原因：normalizeFormDesignerSchema 每次做深拷贝（JSON.parse/JSON.stringify），
@@ -906,8 +923,20 @@ export function applyApplicationRuntimePart1() {
     return filterPrimaryObjectDesignerFields(merged, subTableCodes)
   })
   const activeFormDataState = computed(() => formDataProvisioningByAssetId.value[activeFormAssetId.value] || { status: 'idle', message: '' })
-  const selectedPageBlockFormAssetId = computed(() => selectedPageBlock.value?.props?.formAssetId || (formAssets.value.length === 1 ? formAssets.value[0].id : ''))
-  const selectedPageBlockFormAsset = computed(() => formAssets.value.find(asset => asset.id === selectedPageBlockFormAssetId.value) || null)
+  const selectedPageBlockFormAssetId = computed(() => {
+    const bound = String(selectedPageBlock.value?.props?.formAssetId || '').trim()
+    if (bound)
+      return bound
+    if (formAssets.value.length !== 1)
+      return ''
+    return String(formAssets.value[0]?.id || formAssets.value[0]?.formKey || '').trim()
+  })
+  const selectedPageBlockFormAsset = computed(() => {
+    const key = selectedPageBlockFormAssetId.value
+    if (!key)
+      return null
+    return formAssets.value.find(asset => String(asset?.id || asset?.formKey || '').trim() === key) || null
+  })
   const selectedPageBlockRuntimeObjectRef = computed(() => selectedPageBlock.value ? resolvePageBlockObjectRef(selectedPageBlock.value) : null)
   const selectedPageBlockIsCrud = computed(() => selectedPageBlock.value?.blockType === 'AiCrudPage')
   const selectedPageBlockSupportsDataSource = computed(() => isDataFieldBlockType(selectedPageBlock.value?.blockType))
@@ -1726,6 +1755,7 @@ export function applyApplicationRuntimePart1() {
     startCatalogPointerDrag, startComponentButtonMove, startPageBlockMove, startPageBlockResize, startRenameApplication, supportsFormAsset, switchPageDesignTab, switchRuntimeView,
     syncActiveFormAssetForPage, syncActivePageShapeObject, syncCatalogDropActiveClass, toggleGroupExpanded, toggleNavigationVisible, unmountSystemMenu, updateActiveFormDesignerSchema, updateCurrentGridLayout,
     updatePageAlignGuides, updatePageBlockBackgroundColor, updatePageBlockSize, updatePageBlocks, updatePageCanvasPadding, updateResizeCollisionHighlights, updateSelectedBlockAppearance, updateSelectedBlockFormAsset,
+    setFormAssetAsListCrudForm, isFormAssetBoundToListCrud,
     updateSelectedPageBlockRuntimeObject, warmCurrentPortalPageCrud, route, router, message, tenantStore, defaultLogo, WORKBENCH_PAGE_ID, isNavigationVisible, DEFAULT_PAGE_PADDING, formComponentIconModules, formComponentIconCache,
     formComponentIconFileByBlockType, userStore, asyncPanelLoader, ApplicationObjectsPanel, ApplicationExtensionsPanel, ApplicationProcessPanel, ApplicationSettingsPanel, runtimeWorkspacePanelImporters,
     BusinessObjectDesignerPage, BusinessProcessPage, ForgeFormDesigner, ListPageGridDesigner, IconSelector, PageTypeSelector, PageDesignSettingsPanel, PageDesignPublishPanel,

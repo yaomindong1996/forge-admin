@@ -53,6 +53,17 @@ describe('portal-page-runtime-layout', () => {
     expect(shouldUseContentSizedFlow(formBlocks, { fillHost: true })).toBe(false)
   })
 
+  it('keeps fillHost multi-block pages on document flow so lists are not clipped', () => {
+    const mixed = [
+      { blockType: 'page-title', props: { style: { widthMode: 'full' } } },
+      { blockType: 'AiCrudPage', props: { style: { widthMode: 'full' } } },
+    ]
+    expect(shouldUseContentSizedFlow(mixed, { fillHost: true })).toBe(true)
+    expect(shouldUseContentSizedFlow([
+      { blockType: 'AiCrudPage' },
+    ], { fillHost: true })).toBe(false)
+  })
+
   it('stacks full-width workbench blocks in document flow so resize cannot overlap', () => {
     const workbench = [
       { id: 'm', blockType: 'workspace-summary-metrics', props: { style: { widthMode: 'full', pageFlowY: 20 } } },
