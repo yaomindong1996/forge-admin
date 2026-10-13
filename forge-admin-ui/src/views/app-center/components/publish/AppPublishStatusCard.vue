@@ -15,17 +15,20 @@
     </div>
     <n-space class="publish-status-actions">
       <n-button secondary :type="application.status === 1 ? 'warning' : 'success'" :loading="toggling" @click="emit('toggle')">
+        <template #icon>
+          <n-icon>
+            <PauseCircleOutline v-if="application.status === 1" />
+            <PlayCircleOutline v-else />
+          </n-icon>
+        </template>
         {{ application.status === 1 ? '停用应用' : '启用应用' }}
-      </n-button>
-      <n-button type="primary" :disabled="application.status !== 1" @click="emit('publish')">
-        立即发布
       </n-button>
     </n-space>
   </section>
 </template>
 
 <script setup>
-import { RocketOutline } from '@vicons/ionicons5'
+import { PauseCircleOutline, PlayCircleOutline, RocketOutline } from '@vicons/ionicons5'
 import { computed } from 'vue'
 import { parseJsonObject } from '../portal/portal-config'
 
@@ -33,7 +36,7 @@ const props = defineProps({
   application: { type: Object, required: true },
   toggling: Boolean,
 })
-const emit = defineEmits(['toggle', 'publish'])
+const emit = defineEmits(['toggle'])
 const pageCount = computed(() => {
   const nodes = parseJsonObject(props.application.options)?.inAppBuilder?.nodes
   return Array.isArray(nodes) ? nodes.filter(node => node?.type === 'page').length : 0

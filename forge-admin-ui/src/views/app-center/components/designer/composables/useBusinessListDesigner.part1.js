@@ -1054,11 +1054,14 @@ export function applyBusinessListDesignerPart1(props, emit) {
                 ? tableProps.enableTreeAddChild
                 : true)
         : crudBlock?.props?.enableTreeAddChild === true || tableProps.enableTreeAddChild === true
+    const designerColumns = buildDesignerColumns(tableZone, fieldMap)
     const baseProps = {
       lazy: true,
       designPreview: true,
       loadDetailOnEdit: false,
-      columns: buildDesignerColumns(tableZone, fieldMap),
+      // 列表列以 tableZone 为准；fieldCatalog 供缺列合成与流程状态列补齐
+      columns: designerColumns,
+      fieldCatalog: Array.from(fieldMap.values()),
       searchSchema: buildDesignerSearchSchema(searchZone, fieldMap, schema),
       editSchema: editFields,
       apiConfig: appendDesignPreviewToApiConfig({

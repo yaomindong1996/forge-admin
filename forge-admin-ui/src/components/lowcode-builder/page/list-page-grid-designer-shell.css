@@ -920,8 +920,23 @@
   border: 0;
   border-radius: 0;
   background: var(--bg-secondary);
-  padding: 6px;
+  padding: 8px;
   overflow: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.property-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.property-panel::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.55);
+}
+
+.property-panel::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .property-empty {
@@ -971,6 +986,11 @@
   border-radius: 8px;
   background: var(--bg-primary);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+/* Part2/Part3 对当前组件无内容时仍会挂空卡片，直接隐藏 */
+.property-tab-content:not(:has(> *)) {
+  display: none !important;
 }
 
 .property-search-anchor {

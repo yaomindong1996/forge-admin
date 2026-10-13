@@ -38,7 +38,7 @@ describe('homepage section contracts', () => {
   it('keeps the four business building steps and renders visible SVG icons', async () => {
     const wrapper = render(HomeBuildPath)
     const buttons = wrapper.findAll('nav button')
-    const paths = ['/app-center', '/ai/lowcode-apps', '/flow/model', '/system/menu']
+    const paths = ['/app-center', '/app-center', '/flow/model', '/system/menu']
     expect(buttons).toHaveLength(paths.length)
     for (const [index, button] of buttons.entries()) {
       expect(button.find('svg').exists()).toBe(true)

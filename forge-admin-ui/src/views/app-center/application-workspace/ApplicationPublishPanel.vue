@@ -7,9 +7,15 @@
       </div>
       <div class="heading-actions">
         <n-button size="small" :loading="loading" @click="refreshHistory">
+          <template #icon>
+            <n-icon><RefreshOutline /></n-icon>
+          </template>
           刷新记录
         </n-button>
         <n-button v-if="showPublishAction" size="small" type="primary" :loading="publishing || checking" @click="preparePublish">
+          <template #icon>
+            <n-icon><RocketOutline /></n-icon>
+          </template>
           发布应用
         </n-button>
       </div>
@@ -25,6 +31,9 @@
           <div class="readiness-actions">
             <span class="readiness-state" :class="readinessClass">{{ readinessLabel }}</span>
             <n-button size="tiny" secondary :loading="checking" @click="runPublishCheck">
+              <template #icon>
+                <n-icon><ShieldCheckmarkOutline /></n-icon>
+              </template>
               {{ checkResult ? '重新检查' : '执行发布检查' }}
             </n-button>
           </div>
@@ -139,6 +148,7 @@
 </template>
 
 <script setup>
+import { RefreshOutline, RocketOutline, ShieldCheckmarkOutline } from '@vicons/ionicons5'
 import { computed, onMounted, ref, watch } from 'vue'
 import {
   businessApplicationPublishRuns,

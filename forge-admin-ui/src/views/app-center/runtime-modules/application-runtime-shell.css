@@ -175,6 +175,12 @@
   color: var(--text-primary);
   font-weight: 600;
 }
+.runtime-app-tab.is-loading,
+.runtime-app-tab:disabled {
+  cursor: wait;
+  opacity: 0.72;
+  color: var(--text-primary);
+}
 .runtime-header-actions {
   display: flex;
   align-items: center;
@@ -312,6 +318,12 @@
   min-height: 0;
   overflow: hidden;
   background: var(--bg-secondary);
+}
+.application-design-section > * {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 .application-design-section.settings-section {
   grid-template-rows: auto minmax(0, 1fr);

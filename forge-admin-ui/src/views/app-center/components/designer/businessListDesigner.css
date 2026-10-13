@@ -1,7 +1,7 @@
 .business-list-designer {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 106px);
+  /* 高度由 panel-frame 的 flex 分配，勿用 100vh/100%（同层还有表映射摘要时会撑出滚动条） */
   min-height: 0;
   container-type: inline-size;
   background: #f8f9fa;

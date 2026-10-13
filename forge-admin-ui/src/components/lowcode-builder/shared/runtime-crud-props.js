@@ -353,6 +353,77 @@ export function filterCrudItemsByFieldRefs(items = [], fieldRefs = []) {
 }
 
 /**
+ * 列表列以 fieldRefs 为唯一顺序与成员来源；发布 columnsSchema 只提供标题/渲染等元数据。
+ * 缺列时从字段目录补齐（常见如 id），避免设计态有列、预览/运行被求交吃掉。
+ */
+export function resolveColumnsByFieldRefs(columns = [], fieldRefs = [], fieldCatalog = []) {
+  const source = Array.isArray(columns) ? columns : []
+  const refs = Array.isArray(fieldRefs) ? fieldRefs.filter(Boolean) : []
+  if (!refs.length)
+    return source
+
+  const byKey = new Map()
+  source.forEach((column) => {
+    const key = canonicalFlowStatusCode(
+      String(column?.prop || column?.field || column?.key || column?.dataIndex || '').trim(),
+      column,
+    )
+    if (key && !byKey.has(key))
+      byKey.set(key, column)
+  })
+
+  const catalogByCode = new Map()
+  ;(Array.isArray(fieldCatalog) ? fieldCatalog : []).forEach((field) => {
+    const code = canonicalFlowStatusCode(String(field?.field || field?.fieldCode || '').trim(), field)
+    if (code && !catalogByCode.has(code))
+      catalogByCode.set(code, field)
+  })
+
+  const ordered = []
+  const used = new Set()
+  refs.forEach((ref) => {
+    const key = canonicalFlowStatusCode(String(ref).trim())
+    if (!key || used.has(key))
+      return
+    const existing = byKey.get(key)
+    if (existing) {
+      ordered.push(existing)
+      used.add(key)
+      return
+    }
+    const field = catalogByCode.get(key)
+    if (field?.listVisible === false)
+      return
+    ordered.push({
+      key,
+      field: key,
+      prop: key,
+      dataIndex: key,
+      title: field?.label || field?.fieldName || field?.title || key,
+      listVisible: true,
+      minWidth: Number(field?.width) || 110,
+    })
+    used.add(key)
+  })
+
+  source.forEach((column) => {
+    const key = String(column?.prop || column?.field || column?.key || column?.dataIndex || '').trim()
+    if (!key || used.has(key))
+      return
+    if (column?.type === 'action' || column?.fixed === 'right' || key === 'action' || key === 'actions' || key === '__actions') {
+      ordered.push(column)
+      used.add(key)
+    }
+  })
+  return ordered
+}
+
+/** @deprecated 使用 resolveColumnsByFieldRefs；保留给旧调用方 */
+export function ensureFieldRefColumns(columns = [], fieldRefs = [], fieldCatalog = []) {
+  return resolveColumnsByFieldRefs(columns, fieldRefs, fieldCatalog)
+}
+
+/**
  * 平台后补的流程状态字段不能被应用页面块较早保存的 fieldRefs 快照吞掉。
  * 用户在页面块中显式隐藏该字段时仍尊重隐藏配置。
  */

@@ -42,13 +42,26 @@
               应用发布
             </button>
           </template>
-          <!-- 编辑模式：页面级 Tab -->
+          <!-- 编辑 / 草稿预览：页面级 Tab（预览始终保留，避免切设置/发布/列表后丢失） -->
           <template v-else>
+            <button
+              type="button"
+              class="runtime-app-tab"
+              :class="{
+                active: isDraftPreviewMode() && !['settings', 'publish'].includes(activePageDesignTab),
+                'is-loading': previewTabLoading,
+              }"
+              :disabled="previewTabLoading"
+              :aria-busy="previewTabLoading ? 'true' : undefined"
+              @click="switchPageDesignTab('preview')"
+            >
+              {{ previewTabLoading ? '打开预览中…' : '预览' }}
+            </button>
             <button
               v-if="showPageDesignTab"
               type="button"
               class="runtime-app-tab"
-              :class="{ active: isPageDesignTabActive }"
+              :class="{ active: editing && isPageDesignTabActive }"
               @click="switchPageDesignTab('page')"
             >
               页面设计
@@ -57,7 +70,7 @@
               v-if="showFormDesignTab"
               type="button"
               class="runtime-app-tab"
-              :class="{ active: activePageDesignTab === 'form' }"
+              :class="{ active: editing && activePageDesignTab === 'form' }"
               @click="switchPageDesignTab('form')"
             >
               表单设计
@@ -66,15 +79,25 @@
               v-if="showListDesignTab"
               type="button"
               class="runtime-app-tab"
-              :class="{ active: activePageDesignTab === 'list' }"
+              :class="{ active: editing && activePageDesignTab === 'list' }"
               @click="switchPageDesignTab('list')"
             >
               列表设计
             </button>
-            <button type="button" class="runtime-app-tab" :class="{ active: activePageDesignTab === 'settings' }" @click="switchPageDesignTab('settings')">
+            <button
+              type="button"
+              class="runtime-app-tab"
+              :class="{ active: (editing || isDraftPreviewMode()) && activePageDesignTab === 'settings' }"
+              @click="switchPageDesignTab('settings')"
+            >
               页面设置
             </button>
-            <button type="button" class="runtime-app-tab" :class="{ active: activePageDesignTab === 'publish' }" @click="switchPageDesignTab('publish')">
+            <button
+              type="button"
+              class="runtime-app-tab"
+              :class="{ active: (editing || isDraftPreviewMode()) && activePageDesignTab === 'publish' }"
+              @click="switchPageDesignTab('publish')"
+            >
               发布
             </button>
           </template>
@@ -271,8 +294,8 @@
         </n-empty>
       </section>
 
-      <!-- 编辑模式：页面设置（须排在自由布局画布之前，避免 editing 兜底抢占） -->
-      <section v-else-if="editing && activePageDesignTab === 'settings'" class="runtime-inline-panel">
+      <!-- 编辑/草稿预览：页面设置（须排在自由布局画布之前，避免兜底抢占） -->
+      <section v-else-if="(editing || isDraftPreviewMode()) && activePageDesignTab === 'settings'" class="runtime-inline-panel">
         <PageDesignSettingsPanel
           v-if="currentNode"
           :node="currentNode"
@@ -286,8 +309,8 @@
         <n-empty v-else description="请先选择要设置的页面" />
       </section>
 
-      <!-- 编辑模式：发布 -->
-      <section v-else-if="editing && activePageDesignTab === 'publish'" class="runtime-inline-panel">
+      <!-- 编辑/草稿预览：发布（预览页可直接改挂载并跳转应用发布，避免来回跳） -->
+      <section v-else-if="(editing || isDraftPreviewMode()) && activePageDesignTab === 'publish'" class="runtime-inline-panel">
         <PageDesignPublishPanel
           v-if="currentNode"
           :application="application"
@@ -1054,8 +1077,8 @@
         </aside>
       </div>
 
-      <!-- 编辑模式：页面设置 -->
-      <section v-else-if="editing && activePageDesignTab === 'settings'" class="runtime-inline-panel">
+      <!-- 编辑/草稿预览：页面设置（与上方主分支条件一致，避免嵌套分支漏接） -->
+      <section v-else-if="(editing || isDraftPreviewMode()) && activePageDesignTab === 'settings'" class="runtime-inline-panel">
         <PageDesignSettingsPanel
           v-if="currentNode"
           :node="currentNode"
@@ -1066,8 +1089,8 @@
         <n-empty v-else description="请先选择要设置的页面" />
       </section>
 
-      <!-- 编辑模式：发布 -->
-      <section v-else-if="editing && activePageDesignTab === 'publish'" class="runtime-inline-panel">
+      <!-- 编辑/草稿预览：发布 -->
+      <section v-else-if="(editing || isDraftPreviewMode()) && activePageDesignTab === 'publish'" class="runtime-inline-panel">
         <PageDesignPublishPanel
           v-if="currentNode"
           :application="application"

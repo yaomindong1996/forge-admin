@@ -2,13 +2,13 @@
   <div class="application-publish-page">
     <header class="publish-header">
       <div class="publish-header-left">
-        <n-button quaternary circle aria-label="返回页面管理" @click="returnWorkspace">
+        <n-button quaternary circle :aria-label="runtimeReturnLabel" @click="returnWorkspace">
           <template #icon>
             <n-icon><ArrowBackOutline /></n-icon>
           </template>
         </n-button>
         <button type="button" class="publish-breadcrumb" @click="returnWorkspace">
-          <span>应用中心</span>
+          <span>{{ runtimeReturnLabel }}</span>
           <span aria-hidden="true">›</span>
         </button>
         <div class="publish-header-title">
@@ -18,7 +18,7 @@
       </div>
       <nav class="publish-header-tabs">
         <button type="button" class="publish-header-tab" @click="goRuntime">
-          页面管理
+          {{ runtimeReturnLabel }}
         </button>
         <button type="button" class="publish-header-tab" @click="openSettings">
           应用设置
@@ -28,10 +28,16 @@
         </button>
       </nav>
       <div class="publish-header-actions">
-        <n-button secondary :disabled="!application" @click="openSettings">
-          应用设置
+        <n-button secondary :disabled="!application" @click="openPcRuntime">
+          <template #icon>
+            <n-icon><DesktopOutline /></n-icon>
+          </template>
+          电脑端运行
         </n-button>
         <n-button type="primary" :disabled="!application || application.status !== 1" @click="historyRef?.preparePublish()">
+          <template #icon>
+            <n-icon><RocketOutline /></n-icon>
+          </template>
           立即发布
         </n-button>
       </div>
@@ -39,7 +45,7 @@
 
     <n-spin :show="loading">
       <div v-if="application" class="publish-page-body">
-        <AppPublishStatusCard :application="application" :toggling="toggling" @toggle="toggleStatus" @publish="historyRef?.preparePublish()" />
+        <AppPublishStatusCard :application="application" :toggling="toggling" @toggle="toggleStatus" />
         <div class="publish-section-layout">
           <aside class="publish-section-nav">
             <button
@@ -72,6 +78,9 @@
       <n-result v-else-if="!loading" status="error" title="应用发布信息加载失败" :description="loadError">
         <template #footer>
           <n-button @click="loadApplication">
+            <template #icon>
+              <n-icon><RefreshOutline /></n-icon>
+            </template>
             重新加载
           </n-button>
         </template>
@@ -83,7 +92,9 @@
 <script setup>
 import {
   ArrowBackOutline,
+  DesktopOutline,
   LinkOutline,
+  RefreshOutline,
   RocketOutline,
   ShareSocialOutline,
   SparklesOutline,
@@ -158,12 +169,70 @@ async function toggleStatus() {
   }
 }
 
+const fromPageDesign = computed(() => String(route.query.fromPageDesign || '') === '1'
+  || route.query.draft === '1'
+  || route.query.edit === '1'
+  || route.query.returnEdit === '1')
+
+const runtimeReturnLabel = computed(() => {
+  if (route.query.draft === '1')
+    return '返回预览'
+  if (fromPageDesign.value)
+    return '返回设计'
+  return '页面管理'
+})
+
+function buildRuntimeReturnQuery() {
+  if (!fromPageDesign.value)
+    return {}
+  const query = {}
+  const pageId = String(route.query.pageId || '').trim()
+  if (pageId)
+    query.pageId = pageId
+  // 优先回到草稿预览；否则回到编辑态
+  if (route.query.draft === '1') {
+    query.draft = '1'
+    query.returnEdit = '1'
+  }
+  else if (route.query.edit === '1' || route.query.returnEdit === '1') {
+    query.edit = '1'
+    if (route.query.returnEdit === '1')
+      query.returnEdit = '1'
+  }
+  return query
+}
+
 function returnWorkspace() {
-  router.push({ name: 'BusinessApplicationRuntime', params: { applicationCode: route.params.applicationCode } })
+  router.push({
+    name: 'BusinessApplicationRuntime',
+    params: { applicationCode: route.params.applicationCode },
+    query: buildRuntimeReturnQuery(),
+  })
 }
 
 function goRuntime() {
-  router.push({ name: 'BusinessApplicationRuntime', params: { applicationCode: route.params.applicationCode } })
+  router.push({
+    name: 'BusinessApplicationRuntime',
+    params: { applicationCode: route.params.applicationCode },
+    query: buildRuntimeReturnQuery(),
+  })
+}
+
+/** 与应用列表「运行」一致：打开电脑端门户运行页；带 pageId 时直达当前页 */
+function openPcRuntime() {
+  if (!application.value?.applicationCode) {
+    message.warning('应用信息未加载完成')
+    return
+  }
+  const pageId = String(route.query.pageId || '').trim()
+  const target = router.resolve({
+    name: 'ApplicationPortal',
+    params: {
+      applicationCodeOrSlug: application.value.portalSlug || application.value.applicationCode,
+    },
+    query: pageId ? { pageId } : undefined,
+  })
+  window.open(target.href, '_blank', 'noopener,noreferrer')
 }
 
 function openSettings() {

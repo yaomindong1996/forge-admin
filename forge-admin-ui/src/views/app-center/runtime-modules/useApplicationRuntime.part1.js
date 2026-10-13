@@ -428,6 +428,7 @@ export function applyApplicationRuntimePart1() {
   /** 编辑态自由布局：顶栏已出但画布 chunk/首帧未就绪时，中间盖骨架避免纯白屏 */
   const editCanvasBootstrapping = ref(false)
   const saving = ref(false)
+  const previewTabLoading = ref(false)
   const restoringObjectPageLayout = ref(false)
   const editing = ref(route.query.edit === '1')
   // Created early so part1 watches / load / part2 handlers can mutate before part4 re-resolves from URL+shape.
@@ -1760,7 +1761,7 @@ export function applyApplicationRuntimePart1() {
     formComponentIconFileByBlockType, userStore, asyncPanelLoader, ApplicationObjectsPanel, ApplicationExtensionsPanel, ApplicationProcessPanel, ApplicationSettingsPanel, runtimeWorkspacePanelImporters,
     BusinessObjectDesignerPage, BusinessProcessPage, ForgeFormDesigner, ListPageGridDesigner, IconSelector, PageTypeSelector, PageDesignSettingsPanel, PageDesignPublishPanel,
     PageManagementSystemView, GridBlockRenderer, application, objects, builder, processSelectableObjects, loadError, loading,
-    editCanvasBootstrapping, saving, restoringObjectPageLayout, editing, activePageDesignTab, runtimeViewMode, exitEditingVisible, selectedNodeId, enhanceContextPageId,
+    editCanvasBootstrapping, saving, previewTabLoading, restoringObjectPageLayout, editing, activePageDesignTab, runtimeViewMode, exitEditingVisible, selectedNodeId, enhanceContextPageId,
     newNodePopoverVisible, selectedPageTemplateKey, iconPickerVisible, iconPickerNodeId, navigationActionVisible, navigationActionMode, navigationActionNodeId, navigationActionForm,
     systemMenuMountVisible, systemMenuMountNodeId, systemMenuMountNode, componentPopoverVisible, componentKeyword, savedSignature, selectedPageBlockId, draggingPageBlockId,
     dragPreview, pageAlignGuides, PAGE_ALIGN_SNAP_PX, configPanelVisible, inspectorTab, componentButtonPosition, componentButtonMoveCtx, catalogDragBlockType,

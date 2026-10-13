@@ -1,5 +1,6 @@
 <template>
-            <div v-show="propertyPanelTab === 'props'" class="property-tab-content">
+            <!-- 无匹配区块类型时不挂空卡片（靠 CSS :not(:has(> *)) 兜底） -->
+            <div v-show="propertyPanelTab === 'props'" class="property-tab-content property-tab-content--widgets">
               <template v-if="selectedBlock.blockType === 'timeline'">
                 <n-form-item :label="isTimelineBound(selectedBlock) ? '静态节点（无数据时占位）' : '时间线节点'">
                   <div class="metrics-editor">

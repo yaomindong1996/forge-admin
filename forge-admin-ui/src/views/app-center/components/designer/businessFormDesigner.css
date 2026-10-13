@@ -1,7 +1,7 @@
 .business-form-designer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 280px;
-  height: calc(100vh - 106px);
+  /* 高度由 panel-frame flex 分配，避免 100vh/100% 与同层摘要叠高出滚动条 */
   min-height: 0;
   container-type: inline-size;
   background: #f8f9fa;

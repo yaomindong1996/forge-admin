@@ -28,9 +28,15 @@
               :loading="saving"
               @click="disableWorkbench"
             >
+              <template #icon>
+                <n-icon><CloseCircleOutline /></n-icon>
+              </template>
               取消工作台分发
             </n-button>
             <n-button type="primary" :loading="saving" :disabled="!application.lastPublishVersion" @click="distributeWorkbench">
+              <template #icon>
+                <n-icon><SaveOutline /></n-icon>
+              </template>
               保存工作台分发
             </n-button>
           </n-space>
@@ -54,6 +60,9 @@
           </n-form-item>
           <n-space justify="end">
             <n-button type="primary" :loading="saving" :disabled="!application.lastPublishVersion" @click="prepareDingtalk">
+              <template #icon>
+                <n-icon><CloudUploadOutline /></n-icon>
+              </template>
               保存并等待外部同步
             </n-button>
           </n-space>
@@ -64,6 +73,7 @@
 </template>
 
 <script setup>
+import { CloseCircleOutline, CloudUploadOutline, SaveOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { computed, reactive, ref } from 'vue'
 import { distributeBusinessApplicationToWorkbench } from '@/api/business-application'

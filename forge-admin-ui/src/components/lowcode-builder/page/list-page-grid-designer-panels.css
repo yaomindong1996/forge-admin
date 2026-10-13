@@ -1312,9 +1312,111 @@
 }
 
 .list-tree-model-property {
+  margin: 0 0 8px;
+  padding: 0;
+  border-bottom: 0;
+}
+
+.list-tree-model-collapse {
+  display: grid;
+  gap: 0;
+}
+
+.list-tree-model-collapse :deep(.n-collapse-item) {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  background: var(--bg-primary);
+}
+
+.list-tree-model-collapse :deep(.n-collapse-item__header) {
+  min-height: 36px;
+  padding: 0 10px;
+  border-bottom: 1px solid transparent;
+  background: var(--bg-primary);
+}
+
+.list-tree-model-collapse :deep(.n-collapse-item--active > .n-collapse-item__header) {
+  border-bottom-color: #eef2f7;
+}
+
+.list-tree-model-collapse :deep(.n-collapse-item__header-main) {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.list-tree-model-collapse :deep(.n-collapse-item__content-inner) {
+  padding: 10px;
+  background: var(--bg-primary);
+}
+
+.list-tree-model-alert {
   margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #eceff3;
+}
+
+.list-tree-model-form {
+  display: grid;
+  gap: 10px;
+}
+
+.list-tree-model-fields {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+}
+
+.list-tree-model-fields.is-disabled {
+  opacity: 0.62;
+}
+
+.list-tree-model-fields :deep(.n-form-item) {
+  margin-bottom: 0;
+}
+
+.list-tree-model-fields :deep(.n-form-item-label),
+.list-tree-model-fields :deep(.n-form-item-label__text) {
+  min-height: 18px;
+  padding-bottom: 2px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.tree-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+}
+
+.tree-switch-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tree-switch-copy strong {
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.tree-switch-copy span {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 16px;
 }
 
 .tree-panel-property {
@@ -1357,11 +1459,6 @@
 
 .tree-panel-property-tip:hover {
   color: var(--text-tertiary);
-}
-
-.list-tree-model-property :deep(.n-collapse-item__header) {
-  font-size: 13px;
-  font-weight: 700;
 }
 
 .tree-action-compact > div {

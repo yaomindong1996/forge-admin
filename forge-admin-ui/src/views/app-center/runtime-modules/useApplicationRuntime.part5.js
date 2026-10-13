@@ -109,7 +109,7 @@ export function applyApplicationRuntimePart5(deps = {}) {
     formComponentIconCache, formComponentIconFileByBlockType, userStore, asyncPanelLoader, ApplicationObjectsPanel, ApplicationExtensionsPanel, ApplicationProcessPanel, ApplicationSettingsPanel,
     runtimeWorkspacePanelImporters, BusinessObjectDesignerPage, BusinessProcessPage, ForgeFormDesigner, ListPageGridDesigner, IconSelector, PageTypeSelector, PageDesignSettingsPanel,
     PageDesignPublishPanel, PageManagementSystemView, GridBlockRenderer, application, objects, builder, processSelectableObjects, loadError,
-    loading, editCanvasBootstrapping, saving, restoringObjectPageLayout, editing, runtimeViewMode, exitEditingVisible, selectedNodeId,
+    loading, editCanvasBootstrapping, saving, previewTabLoading, restoringObjectPageLayout, editing, runtimeViewMode, exitEditingVisible, selectedNodeId,
     enhanceContextPageId, newNodePopoverVisible, selectedPageTemplateKey, iconPickerVisible, iconPickerNodeId, navigationActionVisible, navigationActionMode, navigationActionNodeId,
     navigationActionForm, systemMenuMountVisible, systemMenuMountNodeId, systemMenuMountNode, componentPopoverVisible, componentKeyword, savedSignature, selectedPageBlockId,
     draggingPageBlockId, dragPreview, pageAlignGuides, PAGE_ALIGN_SNAP_PX, configPanelVisible, inspectorTab, componentButtonPosition, componentButtonMoveCtx,
@@ -135,6 +135,53 @@ export function applyApplicationRuntimePart5(deps = {}) {
   
   } = deps
   function switchPageDesignTab(tab) {
+    const requested = String(tab || '').trim()
+    // 预览 Tab：草稿预览里回到预览内容；编辑态则同页进入草稿预览（保留顶栏预览入口）
+    if (requested === 'preview') {
+      if (previewTabLoading.value)
+        return
+      if (isDraftPreviewMode()) {
+        const entry = resolveEntryDesignTab(selectedNodeId.value)
+        activePageDesignTab.value = entry
+        if (formDesignerMode.value)
+          formDesignerMode.value = false
+        const nextQuery = { ...route.query }
+        if (nextQuery.designTab == null || nextQuery.designTab === '')
+          return
+        delete nextQuery.designTab
+        router.replace({ query: nextQuery })
+        return
+      }
+      if (editing.value) {
+        void openDraftPreviewInPlace()
+        return
+      }
+    }
+    // 草稿预览：设置/发布就地切换；列表/表单/页面设计回编辑态（预览 Tab 在编辑顶栏仍保留）
+    if (isDraftPreviewMode()) {
+      const next = resolvePageDesignTab(requested, selectedNodeId.value)
+      if (next === 'settings' || next === 'publish') {
+        activePageDesignTab.value = next
+        if (formDesignerMode.value)
+          formDesignerMode.value = false
+        const defaultTab = resolveEntryDesignTab(selectedNodeId.value)
+        const designTab = next === defaultTab ? undefined : next
+        const current = route.query.designTab == null || route.query.designTab === ''
+          ? undefined
+          : String(route.query.designTab)
+        if (current === designTab)
+          return
+        router.replace({
+          query: {
+            ...route.query,
+            designTab,
+          },
+        })
+        return
+      }
+      returnToEditorFromDraftPreview({ designTab: next })
+      return
+    }
     const next = resolvePageDesignTab(tab, selectedNodeId.value)
     activePageDesignTab.value = next
     if (formDesignerMode.value)
@@ -475,26 +522,60 @@ export function applyApplicationRuntimePart5(deps = {}) {
   }
   __impl.openFormAssetDesignerForPage = openFormAssetDesignerForPage
 
-  async function openDraftPreview() {
-    // 列表/表单设计态：预览前始终落盘（dirty 可能漏标），保存成功后再跳转
-    const mustSaveBeforePreview = editing.value
-      && ['list', 'form'].includes(String(activePageDesignTab.value || ''))
-    if ((mustSaveBeforePreview || currentDesignerDirty()) && !await saveCurrentDesignerSection())
-      return
-    // 自由编排页面走应用运行壳；对象页面/数据结构落到对象自身的 CRUD 运行页预览。
-    if (!pageBuilderResourceActive.value && previewableResourceActive.value) {
-      openObjectResourcePreview()
-      return
-    }
+  function resolveDraftPreviewPageId() {
     const selected = String(selectedNodeId.value || '').trim()
     const routeId = String(route.query.pageId || '').trim()
     const resourcePageId = String(activeDesignerResource.value?.pageId || '').trim()
-    const previewPageId = (isPageManagementSystemPageId(resourcePageId) && resourcePageId)
+    return (isPageManagementSystemPageId(resourcePageId) && resourcePageId)
       || (isPageManagementSystemPageId(selected) && selected)
       || routeId
       || resolveActiveDesignerPageId()
       || selected
       || WORKBENCH_PAGE_ID
+  }
+
+  async function prepareDraftPreviewNavigation() {
+    const tab = String(activePageDesignTab.value || '')
+    const onListOrForm = editing.value && ['list', 'form'].includes(tab)
+    // 设置/发布页：仅脏时保存；列表/表单仍尽量落盘（dirty 可能漏标）
+    const needsSave = currentDesignerDirty() || onListOrForm
+    if (needsSave && !await saveCurrentDesignerSection())
+      return null
+    // 自由编排页面走应用运行壳；对象页面/数据结构落到对象自身的 CRUD 运行页预览。
+    if (!pageBuilderResourceActive.value && previewableResourceActive.value) {
+      openObjectResourcePreview()
+      return null
+    }
+    return resolveDraftPreviewPageId()
+  }
+
+  /** 顶栏「预览」Tab：同页切到草稿预览，避免新开窗口后丢 Tab */
+  async function openDraftPreviewInPlace() {
+    if (previewTabLoading.value)
+      return
+    previewTabLoading.value = true
+    const loadingMsg = message.loading('正在保存草稿并打开预览…', { duration: 0 })
+    try {
+      const previewPageId = await prepareDraftPreviewNavigation()
+      if (!previewPageId)
+        return
+      await router.replace({
+        name: 'BusinessApplicationRuntime',
+        params: { applicationCode: application.value.applicationCode },
+        query: { pageId: previewPageId, draft: '1', returnEdit: '1' },
+      })
+    }
+    finally {
+      loadingMsg?.destroy?.()
+      previewTabLoading.value = false
+    }
+  }
+  __impl.openDraftPreviewInPlace = openDraftPreviewInPlace
+
+  async function openDraftPreview() {
+    const previewPageId = await prepareDraftPreviewNavigation()
+    if (!previewPageId)
+      return
     const target = router.resolve({
       name: 'BusinessApplicationRuntime',
       params: { applicationCode: application.value.applicationCode },

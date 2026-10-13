@@ -6,6 +6,10 @@ import draggable from 'vuedraggable'
 import CrudDefaultParamsEditor from '../CrudDefaultParamsEditor.vue'
 import CrudHookRulesEditor from '../CrudHookRulesEditor.vue'
 import GridBlockRenderer from '../GridBlockRenderer.vue'
+import {
+  patchCrudGridLayoutItems,
+  resolveCrudPreviewFieldBindings,
+} from '../list-page-field-bindings'
 import { isPageFieldVisible } from '../page-schema'
 
 export function applyStructuredListPageDesignerPart1(props, emit) {
@@ -430,18 +434,20 @@ export function applyStructuredListPageDesignerPart1(props, emit) {
     }
   })
   const crudPreviewBlock = computed(() => {
-    const fieldRefs = uniqueRefs([
-      ...(searchZone.value?.fieldRefs || []),
-      ...(tableZone.value?.fieldRefs || []),
-    ])
     const tableProps = tableZone.value?.props || {}
     const searchProps = searchZone.value?.props || {}
     const formOpenMode = resolveTableFormOpenMode(tableProps)
+    // 查询区与表格区字段必须分离，禁止再把 search fieldRefs 合并进列表 fieldRefs
+    const { fieldRefs, searchFieldRefs } = resolveCrudPreviewFieldBindings({
+      tableFieldRefs: tableZone.value?.fieldRefs || [],
+      searchFieldRefs: searchZone.value?.fieldRefs || [],
+      fallbackTableFields: tableFields.value,
+    })
     return {
       id: 'structured_crud_preview',
       blockType: 'AiCrudPage',
       label: tableProps.title || '业务列表',
-      fieldRefs: fieldRefs.length ? fieldRefs : tableFields.value.map(field => field.field),
+      fieldRefs,
       props: {
         title: tableProps.title || '业务列表',
         rowKey: tableProps.rowKey || 'id',
@@ -473,6 +479,8 @@ export function applyStructuredListPageDesignerPart1(props, emit) {
         searchLabelWidth: tableProps.searchLabelWidth || 'auto',
         searchMaxVisibleFields: tableProps.searchMaxVisibleFields || 3,
         searchEnableCollapse: tableProps.searchEnableCollapse !== false,
+        searchFieldRefs,
+        searchFieldSettings: searchProps.fieldSettings || {},
         formOpenMode,
         tabWorkspace: tableProps.tabWorkspace || {},
         modalType: resolveTableModalType(formOpenMode, tableProps),
@@ -497,10 +505,7 @@ export function applyStructuredListPageDesignerPart1(props, emit) {
         previewLiveData: tableProps.previewLiveData === true,
         defaultSortField: tableProps.defaultSortField || 'id',
         defaultSortOrder: tableProps.defaultSortOrder || 'desc',
-        fieldSettings: {
-          ...(searchProps.fieldSettings || {}),
-          ...(tableProps.fieldSettings || {}),
-        },
+        fieldSettings: { ...(tableProps.fieldSettings || {}) },
         style: {
           widthMode: 'full',
           width: '100%',
@@ -901,6 +906,7 @@ export function applyStructuredListPageDesignerPart1(props, emit) {
   function createGridPatchForZone(zoneKey, patch) {
     if (zoneKey === 'search') {
       return {
+        zoneKey: 'search',
         blockTypes: ['AiCrudPage', 'search-form'],
         fieldRefs: patch.fieldRefs,
         props: patch.props,
@@ -908,6 +914,7 @@ export function applyStructuredListPageDesignerPart1(props, emit) {
     }
     if (zoneKey === 'table') {
       return {
+        zoneKey: 'table',
         blockTypes: ['AiCrudPage', 'data-table', 'AiTable'],
         fieldRefs: patch.fieldRefs,
         props: patch.props,
@@ -919,29 +926,9 @@ export function applyStructuredListPageDesignerPart1(props, emit) {
   function patchCrudGridLayout(layout = {}, gridPatch = {}) {
     if (!layout?.items?.length)
       return layout
-    const blockTypes = new Set(gridPatch.blockTypes || [])
     return {
       ...layout,
-      items: (layout.items || []).map((item) => {
-        if (!blockTypes.has(item.blockType))
-          return item
-        return {
-          ...item,
-          fieldRefs: Array.isArray(gridPatch.fieldRefs) ? gridPatch.fieldRefs : item.fieldRefs,
-          props: gridPatch.props
-            ? {
-                ...(item.props || {}),
-                ...gridPatch.props,
-                fieldSettings: gridPatch.props.fieldSettings
-                  ? {
-                      ...(item.props?.fieldSettings || {}),
-                      ...gridPatch.props.fieldSettings,
-                    }
-                  : item.props?.fieldSettings,
-              }
-            : item.props,
-        }
-      }),
+      items: patchCrudGridLayoutItems(layout.items || [], gridPatch),
     }
   }
 

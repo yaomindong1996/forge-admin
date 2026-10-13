@@ -4,6 +4,7 @@ import {
   applyTableColumnLayout,
   ensureManagedFlowStatusColumns,
   filterCrudItemsByFieldRefs,
+  resolveColumnsByFieldRefs,
   includeCompiledChildColumnRefs,
   includeManagedRuntimeFieldRefs,
   isDesignPreviewCrudProps,
@@ -12,6 +13,12 @@ import {
   resolveRuntimeBlockApi,
   shouldUseStaticCrudPreview,
 } from '../shared/runtime-crud-props'
+import {
+  resolvePageSchemaSearchFieldRefs,
+  resolvePageSchemaTableFieldRefs,
+  resolvePreferredTableFieldRefs,
+  resolveTableColumnFieldRefs,
+} from './list-page-field-bindings'
 import { hydrateRuntimeFormLayout } from '../shared/runtime-form-layout'
 import { applyCrudHookRules, CRUD_HOOK_RULE_TARGETS, normalizeCrudHookRules } from './crud-hook-rules'
 
@@ -115,13 +122,40 @@ export function buildRuntimeCrudBlockProps({
     return handlers
   }, {})
   const runtimeConfigKey = runtimeProps.configKey || ''
+  const columnSource = Array.isArray(runtimeProps.columns) && runtimeProps.columns.length
+    ? runtimeProps.columns
+    : aiTableColumns
+  // 仅作「查询污染」修理兜底，不能拿来覆盖用户勾选（否则会多出 ID/创建时间/更新时间）
+  const defaultTableFieldRefs = (Array.isArray(runtimeProps.fieldCatalog) ? runtimeProps.fieldCatalog : [])
+    .filter(field => field?.field && field.listVisible === true)
+    .map(field => field.field)
+  const searchFieldRefs = Array.isArray(blockProps.searchFieldRefs) && blockProps.searchFieldRefs.length
+    ? blockProps.searchFieldRefs
+    : resolvePageSchemaSearchFieldRefs(runtimeProps.pageSchema)
+  const pageSchemaTableRefs = resolvePageSchemaTableFieldRefs(
+    runtimeProps.pageSchema,
+    defaultTableFieldRefs,
+  )
+  // 编辑勾选（block.fieldRefs）优先；仅污染或未勾选时才用 pageSchema 表格区
+  const preferredFieldRefs = resolvePreferredTableFieldRefs({
+    configuredFieldRefs,
+    pageSchemaTableRefs,
+    searchFieldRefs,
+  })
+  const tableColumnFieldRefs = resolveTableColumnFieldRefs({
+    fieldRefs: preferredFieldRefs,
+    searchFieldRefs,
+    columns: columnSource,
+    designPreview,
+    defaultTableFieldRefs,
+  })
   const runtimeTableFieldRefs = includeCompiledChildColumnRefs(
     includeManagedRuntimeFieldRefs(
-      configuredFieldRefs,
+      tableColumnFieldRefs,
       runtimeProps.fieldCatalog,
       blockProps.fieldSettings,
     ),
-    runtimeProps.columns,
+    columnSource,
   )
   const runtimeBlockApi = resolveRuntimeBlockApi(blockProps.api, runtimeConfigKey, designPreview)
   const runtimeBlockApiConfig = Object.fromEntries(Object.entries(blockApiConfig)
@@ -170,11 +204,13 @@ export function buildRuntimeCrudBlockProps({
     api: runtimeBlockApi || runtimeProps.api || '',
     rowKey: blockProps.rowKey || runtimeProps.rowKey || 'id',
     title: blockProps.title || runtimeProps.title,
+    // 列表列：设计预览跟 tableZone columns；运行态跟修理后的 fieldRefs，缺列从字段目录合成
     columns: ensureManagedFlowStatusColumns(
       applyTableColumnLayout(
-        filterCrudItemsByFieldRefs(
-          runtimeProps.columns?.length ? runtimeProps.columns : aiTableColumns,
+        resolveColumnsByFieldRefs(
+          columnSource,
           runtimeTableFieldRefs,
+          runtimeProps.fieldCatalog,
         ),
         blockProps,
       ),

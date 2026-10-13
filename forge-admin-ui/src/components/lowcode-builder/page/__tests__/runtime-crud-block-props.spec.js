@@ -61,4 +61,128 @@ describe('buildRuntimeCrudBlockProps page form binding', () => {
     })
     expect(props.editSchema.map(item => item.field)).toEqual(['customerName', 'mobile'])
   })
+
+  it('keeps list fieldRefs like id even when published columnsSchema omitted them', () => {
+    const props = buildRuntimeCrudBlockProps({
+      runtimeProps: {
+        configKey: 'customer',
+        columns: [
+          { field: 'customerName', title: '客户名' },
+          { key: 'actions', title: '操作', fixed: 'right', type: 'action' },
+        ],
+        fieldCatalog: [
+          { field: 'id', label: 'ID', listVisible: true },
+          { field: 'customerName', label: '客户名', listVisible: true },
+        ],
+        searchSchema: [],
+        editSchema: [],
+        apiConfig: {},
+        options: {},
+      },
+      blockProps: {},
+      configuredFieldRefs: ['id', 'customerName'],
+      aiFormSchema: [],
+      aiTableColumns: [],
+      aiSearchSchema: [],
+    })
+    expect(props.columns.map(item => item.field || item.key)).toEqual(['id', 'customerName', 'actions'])
+    expect(props.columns.find(item => item.field === 'id')?.title).toBe('ID')
+  })
+
+  it('respects explicit list fieldRefs during design preview even when tableZone columns are wider', () => {
+    const props = buildRuntimeCrudBlockProps({
+      runtimeProps: {
+        configKey: 'customer',
+        designPreview: true,
+        columns: [
+          { field: 'id', title: 'ID' },
+          { field: 'fieldInput', title: '输入框' },
+          { field: 'createTime', title: '创建时间' },
+          { key: 'actions', title: '操作', fixed: 'right', type: 'action' },
+        ],
+        fieldCatalog: [
+          { field: 'id', label: 'ID', listVisible: true },
+          { field: 'fieldInput', label: '输入框', listVisible: true },
+          { field: 'createTime', label: '创建时间', listVisible: true },
+        ],
+        searchSchema: [],
+        editSchema: [],
+        apiConfig: {},
+        options: {},
+      },
+      blockProps: { searchFieldRefs: ['fieldMoney'] },
+      configuredFieldRefs: ['fieldInput'],
+      aiFormSchema: [],
+      aiTableColumns: [],
+      aiSearchSchema: [],
+    })
+    expect(props.columns.map(item => item.field || item.key)).toEqual(['fieldInput', 'actions'])
+  })
+
+  it('drops polluted fieldMoney from page block when pageSchema table only has 输入框', () => {
+    const props = buildRuntimeCrudBlockProps({
+      runtimeProps: {
+        configKey: 'customer',
+        columns: [
+          { field: 'fieldInput', title: '输入框' },
+          { field: 'fieldMoney', title: 'fieldMoney' },
+          { key: 'actions', title: '操作', fixed: 'right', type: 'action' },
+        ],
+        fieldCatalog: [
+          { field: 'fieldInput', label: '输入框', listVisible: true },
+          { field: 'fieldMoney', label: '金额', listVisible: true },
+        ],
+        pageSchema: {
+          zones: [
+            { zoneKey: 'search', fieldRefs: ['fieldMoney'] },
+            { zoneKey: 'table', fieldRefs: ['fieldInput'] },
+          ],
+        },
+        searchSchema: [],
+        editSchema: [],
+        apiConfig: {},
+        options: {},
+      },
+      blockProps: { searchFieldRefs: ['fieldMoney'] },
+      configuredFieldRefs: ['fieldInput', 'fieldMoney'],
+      aiFormSchema: [],
+      aiTableColumns: [],
+      aiSearchSchema: [],
+    })
+    expect(props.columns.map(item => item.field || item.key)).toEqual(['fieldInput', 'actions'])
+  })
+
+  it('keeps a narrowed page-block selection that is a subset of pageSchema table refs', () => {
+    const props = buildRuntimeCrudBlockProps({
+      runtimeProps: {
+        configKey: 'customer',
+        columns: [
+          { field: 'id', title: 'ID' },
+          { field: 'fieldInput', title: '输入框' },
+          { field: 'createTime', title: '创建时间' },
+          { key: 'actions', title: '操作', fixed: 'right', type: 'action' },
+        ],
+        fieldCatalog: [
+          { field: 'id', label: 'ID', listVisible: true },
+          { field: 'fieldInput', label: '输入框', listVisible: true },
+          { field: 'createTime', label: '创建时间', listVisible: true },
+        ],
+        pageSchema: {
+          zones: [
+            { zoneKey: 'table', fieldRefs: ['id', 'fieldInput', 'createTime'] },
+          ],
+        },
+        searchSchema: [],
+        editSchema: [],
+        apiConfig: {},
+        options: {},
+      },
+      blockProps: { searchFieldRefs: ['fieldMoney'] },
+      configuredFieldRefs: ['fieldInput'],
+      aiFormSchema: [],
+      aiTableColumns: [],
+      aiSearchSchema: [],
+    })
+    expect(props.columns.map(item => item.field || item.key)).toEqual(['fieldInput', 'actions'])
+  })
 })

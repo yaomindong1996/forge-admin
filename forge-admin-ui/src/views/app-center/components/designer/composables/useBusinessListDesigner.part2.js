@@ -929,7 +929,13 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
     const source = (Array.isArray(liveLayout?.items) && liveLayout.items.length)
       ? liveLayout
       : persisted
-    listPreviewLayout.value = normalizeListPreviewLayout(filterDesignerGridBlocks(source))
+    // 预览前同步并修理 AiCrudPage.fieldRefs，避免查询字段污染列表列
+    const syncedSource = syncGridLayoutWithModel(
+      source,
+      effectiveModelSchema.value,
+      { layoutType: localSchema.value.layoutType },
+    )
+    listPreviewLayout.value = normalizeListPreviewLayout(filterDesignerGridBlocks(syncedSource))
     listPreviewLayoutKey.value += 1
     listPreviewVisible.value = true
   }

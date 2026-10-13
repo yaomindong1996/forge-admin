@@ -6,7 +6,7 @@ import HomeSection from './HomeSection.vue'
 const router = useRouter()
 const steps = [
   { title: '创建应用', desc: '定义业务应用入口', path: '/app-center', icon: 'create' },
-  { title: '设计对象', desc: '配置表单、列表与字段', path: '/ai/lowcode-apps', icon: 'design' },
+  { title: '设计对象', desc: '配置表单、列表与字段', path: '/app-center', icon: 'design' },
   { title: '编排流程', desc: '组织审批与状态流转', path: '/flow/model', icon: 'workflow' },
   { title: '发布授权', desc: '配置菜单与访问权限', path: '/system/menu', icon: 'authorization' },
 ]
@@ -27,7 +27,7 @@ const steps = [
     </template>
     <nav class="build-step-list" aria-label="业务搭建路径">
       <button
-        v-for="(step, index) in steps" :key="step.path" type="button" class="build-step"
+        v-for="(step, index) in steps" :key="step.title" type="button" class="build-step"
         @click="router.push(step.path)"
       >
         <span class="build-step-icon"><HomeActionIcon :name="step.icon" :size="24" /></span>

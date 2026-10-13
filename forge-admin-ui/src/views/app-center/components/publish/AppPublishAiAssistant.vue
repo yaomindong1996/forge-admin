@@ -65,9 +65,15 @@
       </n-form-item>
       <n-space justify="end">
         <n-button secondary @click="router.push('/ai/agent')">
+          <template #icon>
+            <n-icon><SparklesOutline /></n-icon>
+          </template>
           管理智能体
         </n-button>
         <n-button type="primary" :loading="saving" @click="save">
+          <template #icon>
+            <n-icon><SaveOutline /></n-icon>
+          </template>
           保存 AI 配置
         </n-button>
       </n-space>
@@ -76,6 +82,7 @@
 </template>
 
 <script setup>
+import { SaveOutline, SparklesOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'

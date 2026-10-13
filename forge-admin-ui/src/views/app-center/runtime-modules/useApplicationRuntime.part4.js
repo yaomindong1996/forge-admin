@@ -1080,10 +1080,11 @@ export function applyApplicationRuntimePart4(deps = {}) {
   }
   __impl.handleRuntimeBack = handleRuntimeBack
 
-  function returnToEditorFromDraftPreview() {
+  function returnToEditorFromDraftPreview(options = {}) {
     const pageId = String(route.query.pageId || selectedNodeId.value || '').trim()
-    // 预览若在新标签打开，优先关窗回到编辑页；同标签则恢复 edit=1
-    if (window.opener && !window.opener.closed) {
+    // 预览若在新标签打开且未指定目标 Tab：优先关窗回到编辑页；同标签则恢复 edit=1
+    const requestedTab = String(options?.designTab || '').trim()
+    if (!requestedTab && window.opener && !window.opener.closed) {
       try {
         window.opener.focus?.()
       }
@@ -1095,9 +1096,19 @@ export function applyApplicationRuntimePart4(deps = {}) {
     }
     const nextQuery = { ...route.query, edit: '1' }
     delete nextQuery.draft
-    delete nextQuery.returnEdit
+    // 保留 returnEdit，编辑顶栏继续显示「预览」并可一键回预览
+    if (!nextQuery.returnEdit)
+      nextQuery.returnEdit = '1'
     if (pageId)
       nextQuery.pageId = pageId
+    if (requestedTab) {
+      const defaultTab = resolveEntryDesignTab(pageId)
+      if (requestedTab === defaultTab)
+        delete nextQuery.designTab
+      else
+        nextQuery.designTab = requestedTab
+      activePageDesignTab.value = resolvePageDesignTab(requestedTab, pageId)
+    }
     router.replace({
       name: 'BusinessApplicationRuntime',
       params: { applicationCode: application.value?.applicationCode || route.params.applicationCode },
@@ -1126,6 +1137,8 @@ export function applyApplicationRuntimePart4(deps = {}) {
     editing.value = false
     const nextQuery = { ...route.query }
     delete nextQuery.edit
+    delete nextQuery.draft
+    delete nextQuery.returnEdit
     delete nextQuery.designResource
     delete nextQuery.designTab
     delete nextQuery.designSection

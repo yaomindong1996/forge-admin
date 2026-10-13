@@ -3,7 +3,6 @@
     <ApplicationPublishPanel
       ref="panelRef"
       :application="application"
-      show-publish-action
       @changed="emit('changed')"
       @navigate="emit('navigate', $event)"
     />

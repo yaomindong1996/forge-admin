@@ -6,7 +6,9 @@ import {
   buildCrudSearchTypeRequestParams,
   buildRuntimeCrudProps,
   ensureManagedFlowStatusColumns,
+  ensureFieldRefColumns,
   filterCrudItemsByFieldRefs,
+  resolveColumnsByFieldRefs,
   includeCompiledChildColumnRefs,
   includeManagedRuntimeFieldRefs,
   isDesignPreviewCrudProps,
@@ -275,6 +277,36 @@ describe('runtime CRUD design preview props', () => {
       { field: 'fieldNumber', title: '数字' },
       { key: 'action', type: 'action', title: '操作' },
     ], ['fieldSlider']).map(item => item.field || item.key)).toEqual(['fieldSlider', 'action'])
+  })
+
+  it('resolves table columns by fieldRefs order and synthesizes missing ones like id', () => {
+    const columns = resolveColumnsByFieldRefs(
+      [
+        { field: 'customerName', title: '客户名' },
+        { key: 'actions', title: '操作', fixed: 'right', type: 'action' },
+      ],
+      ['id', 'customerName'],
+      [
+        { field: 'id', label: 'ID', listVisible: true },
+        { field: 'customerName', label: '客户名', listVisible: true },
+      ],
+    )
+    expect(columns.map(item => item.field || item.key)).toEqual(['id', 'customerName', 'actions'])
+    expect(columns.find(item => item.field === 'id')?.title).toBe('ID')
+
+    // 兼容旧 ensureFieldRefColumns：目录缺失时仍按已选 fieldRefs 顺序补列
+    expect(ensureFieldRefColumns(
+      [{ field: 'name', title: '名称' }],
+      ['id', 'name'],
+      [],
+    ).map(item => item.field)).toEqual(['id', 'name'])
+
+    // listVisible=false 的字段不补列
+    expect(resolveColumnsByFieldRefs(
+      [{ field: 'name', title: '名称' }],
+      ['id', 'name'],
+      [{ field: 'id', label: 'ID', listVisible: false }],
+    ).map(item => item.field)).toEqual(['name'])
   })
 
   it('keeps a managed flow status column when the application block has an older field snapshot', () => {

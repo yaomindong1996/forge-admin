@@ -18,9 +18,15 @@
           <p>{{ pageId ? '在电脑浏览器直接打开当前页面，不经过应用门户。' : '在电脑浏览器打开应用门户。' }}</p>
           <n-space>
             <n-button secondary @click="copyLink(pcUrl, '电脑端')">
+              <template #icon>
+                <n-icon><CopyOutline /></n-icon>
+              </template>
               复制链接
             </n-button>
             <n-button type="primary" :disabled="!portalAvailable" @click="openLink(pcUrl)">
+              <template #icon>
+                <n-icon><DesktopOutline /></n-icon>
+              </template>
               打开电脑端
             </n-button>
           </n-space>
@@ -34,9 +40,15 @@
           <p>扫码在手机打开 H5 运行页，和旧访问入口同一套地址。</p>
           <n-space>
             <n-button secondary :disabled="!h5Url" @click="copyLink(h5Url, '移动端')">
+              <template #icon>
+                <n-icon><CopyOutline /></n-icon>
+              </template>
               复制移动端链接
             </n-button>
             <n-button type="primary" :disabled="!portalAvailable || !h5Url" @click="openLink(h5Url)">
+              <template #icon>
+                <n-icon><PhonePortraitOutline /></n-icon>
+              </template>
               打开移动端
             </n-button>
           </n-space>
@@ -47,6 +59,7 @@
 </template>
 
 <script setup>
+import { CopyOutline, DesktopOutline, PhonePortraitOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { computed } from 'vue'
 import { buildPortalAccessUrls, normalizePortalConfig } from '../portal/portal-config'

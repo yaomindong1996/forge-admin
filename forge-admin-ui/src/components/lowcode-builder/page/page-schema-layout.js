@@ -21,6 +21,7 @@ import {
   resolveDefaultTreeConfig,
   normalizeTreeConfigAliases,
 } from './page-schema-catalog.js'
+import { repairAiCrudTableFieldRefs } from './list-page-field-bindings.js'
 
 export function createDefaultListGridLayout(modelSchema, options = {}) {
   const fields = modelSchema?.fields || []
@@ -110,7 +111,7 @@ export function syncGridLayoutWithModel(layout, modelSchema, options = {}) {
   }).map((item) => {
     const meta = resolveListPageBlockMeta(item.blockType) || {}
     const fieldSet = item.blockType === 'search-form' ? searchFieldSet : tableFieldSet
-    const refs = (item.fieldRefs || []).filter(field => fieldSet.has(field))
+    let refs = (item.fieldRefs || []).filter(field => fieldSet.has(field))
     let props = item.blockType === 'tree-panel'
       ? {
           ...sanitizeGridBlockProps(item.blockType, item.props || {}, new Set(refs), searchFieldSet),
@@ -141,6 +142,12 @@ export function syncGridLayoutWithModel(layout, modelSchema, options = {}) {
           searchFieldSettings: sanitizeFieldSettings({}, new Set(defaultSearchRefs), searchFieldSet),
         }
       }
+      // 历史 bug：查询区 fieldRefs 曾误写入列表 fieldRefs，与 searchFieldRefs 撞车时回退默认列表列
+      refs = repairAiCrudTableFieldRefs(
+        refs,
+        props.searchFieldRefs || [],
+        filterDefaultListFields(modelSchema?.fields || []).map(field => field.field),
+      )
       // 左树右表：右表未开本表嵌入式树时清掉残留「添加下级」；已启用则跟随 model
       if (layoutType === 'tree-crud') {
         const embeddedOn = modelSchema?.treeConfig?.enabled === true || modelSchema?.appType === 'TREE'
