@@ -1034,7 +1034,7 @@
                             secondary
                             :disabled="!selectedGenerationRuleCode"
                             :loading="codeRulePreviewing"
-                            @click="previewSelectedGenerationRule"
+                            @click="() => previewSelectedGenerationRule()"
                           >
                             预览编号
                           </n-button>

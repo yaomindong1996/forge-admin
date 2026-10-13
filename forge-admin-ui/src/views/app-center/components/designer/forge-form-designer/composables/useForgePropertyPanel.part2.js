@@ -1205,14 +1205,16 @@ function updateGenerationReadonly(value) {
 __impl.updateGenerationReadonly = updateGenerationReadonly
 
 async function previewSelectedGenerationRule(ruleCode = selectedGenerationRuleCode.value) {
-  if (!ruleCode)
+  // @click 直接绑定时会把 MouseEvent 当作首参，需忽略非字符串
+  const code = typeof ruleCode === 'string' ? ruleCode : selectedGenerationRuleCode.value
+  if (!code)
     return
   await loadCodeRuleOptions()
   codeRulePreviewing.value = true
   try {
     const fieldCode = selectedComponent.value?.fieldBinding?.fieldCode || selectedComponent.value?.field || 'code'
     const res = await previewCodeRule({
-      ruleCode,
+      ruleCode: code,
       sequence: 1,
       fields: {
         suiteCode: props.schema?.suiteCode || props.schema?.settings?.suiteCode || 'SUITE',
