@@ -82,9 +82,18 @@ mysqldump … --no-create-info forge_admin_vXXX_pure \
 # 文件名建议：ForgeAdmin-纯净版-V{版本}.sql
 ```
 
-导出后全文检索确认无 `CREATE TABLE \`flw_` / `CREATE TABLE \`act_`。
+导出后全文检索确认：
+
+- 无 `CREATE TABLE \`flw_` / `CREATE TABLE \`act_`
+- **有** `INSERT INTO \`sys_user\`` / `sys_dict_data` / `sys_config` / `sys_resource`（基础数据不可缺）
 
 `sys_file_storage_config` 只允许导出 **local、无 AK/SK** 的默认行；若含 COS/密钥，先改再导出或不要追加该表。
+
+### 禁止用错误方式“手工删 flw_*”
+
+若旧 dump 仍含 `flw_*`，删除时必须**按表一块一块删**（每个 `Table structure` / `Dumping data` 块各自结束），**不能**从第一个 `flw_*` 数据段一路 skip 到文件尾——mysqldump 的 data 段按表名排序，`flw_*` 后面是 `sys_*`，误 skip 会把 admin/字典/参数/菜单等 INSERT 全部干掉。
+
+优先依赖已修复的 `dump-safe-full.sh`（`^act_|^flw_`），避免事后剥离。
 
 ## 验收
 
@@ -94,6 +103,7 @@ mysqldump … --no-create-info forge_admin_vXXX_pure \
 |--------|------|
 | 导入 ERROR | 0 |
 | `sys_user` / `sys_tenant` / `sys_role` | 各 1 行，`admin` |
+| `sys_dict_type` / `sys_dict_data` / `sys_config` / `sys_resource` | 有数据（系统基础配置） |
 | `forge_schema_history` | 有数据，版本与源库一致 |
 | `information_schema` 中 `act_%` / `flw_%` | **0 张**（启动应用后才会出现） |
 | 全文检索 | 无 `AKID` / `LTAI` / 真实库密码 / 云密钥 |
