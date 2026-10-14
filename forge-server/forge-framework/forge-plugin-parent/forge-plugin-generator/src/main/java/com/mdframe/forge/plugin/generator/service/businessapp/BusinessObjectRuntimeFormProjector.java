@@ -6,6 +6,7 @@ import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeModelSchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePageSchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePageZone;
 import com.mdframe.forge.plugin.generator.service.lowcode.LowcodeComponentCatalog;
+import com.mdframe.forge.plugin.generator.util.DynamicQueryGenerator;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
@@ -22,18 +23,18 @@ import java.util.function.Predicate;
  *
  * <p>采用 Projector 模式集中字段设置、嵌套布局、动态可见性及弹窗/抽屉配置编译。</p>
  */
-final class BusinessObjectRuntimeFormProjector {
+public final class BusinessObjectRuntimeFormProjector {
 
     private static final String FORM_DESIGNER_SCHEMA_OPTION_KEY = "formDesignerSchema";
     private static final Set<String> FORM_FIELD_COMPONENT_KEYS = LowcodeComponentCatalog.FIELD_COMPONENT_KEYS;
 
     private final Predicate<Object> dynamicOptionSource;
 
-    BusinessObjectRuntimeFormProjector(Predicate<Object> dynamicOptionSource) {
+    public BusinessObjectRuntimeFormProjector(Predicate<Object> dynamicOptionSource) {
         this.dynamicOptionSource = dynamicOptionSource;
     }
 
-    void applyFormDesignerSchemaToEditZone(LowcodePageSchema pageSchema, LowcodeModelSchema modelSchema,
+    public void applyFormDesignerSchemaToEditZone(LowcodePageSchema pageSchema, LowcodeModelSchema modelSchema,
                                                    FormDesignerSchemaDTO formSchema) {
         if (pageSchema == null || modelSchema == null || formSchema == null) {
             return;
@@ -47,8 +48,11 @@ final class BusinessObjectRuntimeFormProjector {
         int rowGap = integerValue(mapValue(formSchema.getLayout()).get("rowGap"), 16);
         int columnGap = integerValue(mapValue(formSchema.getLayout()).get("columnGap"), 16);
 
-        collectRuntimeFormFields(formSchema.getComponents(), modelFields, gridColumns, defaultLabelWidth,
+        Map<String, LowcodeFieldSchema> modelFieldMap = lowcodeFieldMap(modelSchema);
+        collectRuntimeFormFields(formSchema.getComponents(), modelFieldMap, gridColumns, defaultLabelWidth,
                 null, formFieldRefs, compiledSettings);
+        // 表单设计器上的自动编号必须回写模型字段，否则发布态 DynamicCrud 读不到 generation
+        syncFormGenerationToModel(formSchema.getComponents(), modelFieldMap);
 
         List<String> retainedRelationRefs = editZone.getFieldRefs() == null
                 ? new ArrayList<>()
@@ -76,7 +80,7 @@ final class BusinessObjectRuntimeFormProjector {
         applyFormLayoutOpenModeAndModalProps(props, mapValue(formSchema.getLayout()));
         props.put("rowGap", rowGap);
         props.put("columnGap", columnGap);
-        props.put("formLayout", buildRuntimeFormLayout(formSchema.getComponents(), modelFields, gridColumns));
+        props.put("formLayout", buildRuntimeFormLayout(formSchema.getComponents(), modelFieldMap, gridColumns));
         props.put("compiledFrom", FORM_DESIGNER_SCHEMA_OPTION_KEY);
         props.put(FORM_DESIGNER_SCHEMA_OPTION_KEY, formSchema);
         props.remove("formCreateRule");
@@ -85,7 +89,8 @@ final class BusinessObjectRuntimeFormProjector {
         editZone.setProps(props);
     }
 
-    private void collectRuntimeFormFields(List<Map<String, Object>> components, Set<String> modelFields,
+    private void collectRuntimeFormFields(List<Map<String, Object>> components,
+                                          Map<String, LowcodeFieldSchema> modelFieldMap,
                                           int gridColumns, int defaultLabelWidth, Integer inheritedSpan,
                                           List<String> formFieldRefs, Map<String, Object> compiledSettings) {
         if (components == null) {
@@ -99,16 +104,21 @@ final class BusinessObjectRuntimeFormProjector {
             if (FORM_FIELD_COMPONENT_KEYS.contains(componentKey)
                     && !"virtual".equals(StringUtils.defaultIfBlank(text(mapValue(component.get("fieldBinding")).get("mode")), "field"))) {
                 Map<String, Object> binding = mapValue(component.get("fieldBinding"));
-                String fieldCode = text(binding.get("fieldCode"));
-                if (StringUtils.isBlank(fieldCode) || !modelFields.contains(fieldCode)) {
+                String fieldCode = resolveModelFieldCode(text(binding.get("fieldCode")), modelFieldMap);
+                if (StringUtils.isBlank(fieldCode)) {
                     continue;
                 }
                 Map<String, Object> visibility = mapValue(component.get("visibility"));
-                if (readBoolean(visibility.get("hidden"), false)
-                        && !hasRuntimeVisibilityRules(component)) {
+                boolean hidden = readBoolean(visibility.get("hidden"), false)
+                        && !hasRuntimeVisibilityRules(component);
+                boolean generationEnabled = isGenerationEnabled(mapValue(component.get("props")).get("generation"));
+                // 隐藏字段默认不进表单；但开启自动编号时仍要编译设置，否则 generation 丢失
+                if (hidden && !generationEnabled) {
                     continue;
                 }
-                formFieldRefs.add(fieldCode);
+                if (!hidden) {
+                    formFieldRefs.add(fieldCode);
+                }
                 compiledSettings.put(fieldCode, buildFormFieldSetting(component, componentKey, gridColumns,
                         defaultLabelWidth, inheritedSpan));
                 continue;
@@ -119,13 +129,105 @@ final class BusinessObjectRuntimeFormProjector {
                 nextSpan = clamp(integerValue(mapValue(component.get("layout")).get("span"),
                         integerValue(mapValue(component.get("props")).get("span"), fallbackSpan)), 1, gridColumns);
             }
-            collectRuntimeFormFields(listOfMap(component.get("children")), modelFields, gridColumns,
+            collectRuntimeFormFields(listOfMap(component.get("children")), modelFieldMap, gridColumns,
                     defaultLabelWidth, nextSpan, formFieldRefs, compiledSettings);
         }
     }
 
+    private void syncFormGenerationToModel(List<Map<String, Object>> components,
+                                           Map<String, LowcodeFieldSchema> modelFieldMap) {
+        if (components == null || modelFieldMap == null || modelFieldMap.isEmpty()) {
+            return;
+        }
+        for (Map<String, Object> component : flattenFormComponents(components)) {
+            if (component == null) {
+                continue;
+            }
+            String componentKey = text(component.get("componentKey"));
+            if (!FORM_FIELD_COMPONENT_KEYS.contains(componentKey)
+                    || "virtual".equals(StringUtils.defaultIfBlank(
+                    text(mapValue(component.get("fieldBinding")).get("mode")), "field"))) {
+                continue;
+            }
+            String fieldCode = resolveModelFieldCode(
+                    text(mapValue(component.get("fieldBinding")).get("fieldCode")), modelFieldMap);
+            LowcodeFieldSchema field = StringUtils.isBlank(fieldCode) ? null : modelFieldMap.get(fieldCode);
+            Map<String, Object> generation = mapValue(mapValue(component.get("props")).get("generation"));
+            if (field == null || generation.isEmpty()) {
+                continue;
+            }
+            Map<String, Object> basicProps = field.getBasicProps() == null
+                    ? new LinkedHashMap<>()
+                    : new LinkedHashMap<>(field.getBasicProps());
+            Map<String, Object> advancedProps = field.getAdvancedProps() == null
+                    ? new LinkedHashMap<>()
+                    : new LinkedHashMap<>(field.getAdvancedProps());
+            basicProps.put("generation", new LinkedHashMap<>(generation));
+            advancedProps.put("generation", new LinkedHashMap<>(generation));
+            field.setBasicProps(basicProps);
+            field.setAdvancedProps(advancedProps);
+            if (isGenerationEnabled(generation)) {
+                field.setReadonly(true);
+                field.setRequired(false);
+            }
+        }
+    }
+
+    private String resolveModelFieldCode(String fieldCode, Map<String, LowcodeFieldSchema> modelFieldMap) {
+        if (StringUtils.isBlank(fieldCode) || modelFieldMap == null || modelFieldMap.isEmpty()) {
+            return null;
+        }
+        if (modelFieldMap.containsKey(fieldCode)) {
+            return fieldCode;
+        }
+        String camel = DynamicQueryGenerator.snakeToCamel(fieldCode);
+        if (modelFieldMap.containsKey(camel)) {
+            return camel;
+        }
+        String snake = DynamicQueryGenerator.camelToSnake(fieldCode);
+        for (Map.Entry<String, LowcodeFieldSchema> entry : modelFieldMap.entrySet()) {
+            if (entry.getKey() == null) {
+                continue;
+            }
+            if (snake.equals(DynamicQueryGenerator.camelToSnake(entry.getKey()))) {
+                return entry.getKey();
+            }
+            LowcodeFieldSchema field = entry.getValue();
+            if (field != null && (fieldCode.equals(field.getColumnName()) || snake.equals(field.getColumnName()))) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    private boolean isGenerationEnabled(Object generationValue) {
+        Map<String, Object> generation = mapValue(generationValue);
+        if (generation.isEmpty()) {
+            return false;
+        }
+        return readBoolean(generation.get("enabled"), false)
+                && StringUtils.isNotBlank(StringUtils.firstNonBlank(
+                text(generation.get("ruleCode")),
+                text(generation.get("codeRuleCode")),
+                text(generation.get("generatorCode"))));
+    }
+
     List<Map<String, Object>> buildRuntimeFormLayout(List<Map<String, Object>> components,
                                                              Set<String> modelFields,
+                                                             int gridColumns) {
+        Map<String, LowcodeFieldSchema> modelFieldMap = new LinkedHashMap<>();
+        if (modelFields != null) {
+            for (String field : modelFields) {
+                if (StringUtils.isNotBlank(field)) {
+                    modelFieldMap.put(field, new LowcodeFieldSchema());
+                }
+            }
+        }
+        return buildRuntimeFormLayout(components, modelFieldMap, gridColumns);
+    }
+
+    List<Map<String, Object>> buildRuntimeFormLayout(List<Map<String, Object>> components,
+                                                             Map<String, LowcodeFieldSchema> modelFieldMap,
                                                              int gridColumns) {
         List<Map<String, Object>> nodes = new ArrayList<>();
         if (components == null) {
@@ -133,7 +235,7 @@ final class BusinessObjectRuntimeFormProjector {
         }
         int index = 0;
         for (Map<String, Object> component : components) {
-            Object node = buildRuntimeFormLayoutNode(component, modelFields, gridColumns, index++);
+            Object node = buildRuntimeFormLayoutNode(component, modelFieldMap, gridColumns, index++);
             if (node instanceof List<?> list) {
                 for (Object item : list) {
                     if (item instanceof Map<?, ?> map) {
@@ -147,7 +249,8 @@ final class BusinessObjectRuntimeFormProjector {
         return nodes;
     }
 
-    private Object buildRuntimeFormLayoutNode(Map<String, Object> component, Set<String> modelFields,
+    private Object buildRuntimeFormLayoutNode(Map<String, Object> component,
+                                              Map<String, LowcodeFieldSchema> modelFieldMap,
                                               int gridColumns, int index) {
         if (component == null) {
             return null;
@@ -157,8 +260,8 @@ final class BusinessObjectRuntimeFormProjector {
         if (FORM_FIELD_COMPONENT_KEYS.contains(componentKey)
                 && !"virtual".equals(StringUtils.defaultIfBlank(text(mapValue(component.get("fieldBinding")).get("mode")), "field"))) {
             Map<String, Object> binding = mapValue(component.get("fieldBinding"));
-            String fieldCode = text(binding.get("fieldCode"));
-            if (StringUtils.isBlank(fieldCode) || !modelFields.contains(fieldCode)
+            String fieldCode = resolveModelFieldCode(text(binding.get("fieldCode")), modelFieldMap);
+            if (StringUtils.isBlank(fieldCode)
                     || (readBoolean(mapValue(component.get("visibility")).get("hidden"), false)
                     && !hasRuntimeVisibilityRules(component))) {
                 return null;
@@ -172,7 +275,7 @@ final class BusinessObjectRuntimeFormProjector {
         }
 
         List<Map<String, Object>> children = buildRuntimeFormLayout(listOfMap(component.get("children")),
-                modelFields, gridColumns);
+                modelFieldMap, gridColumns);
         Map<String, Object> props = sanitizeRuntimeLayoutProps(mapValue(component.get("props")));
         String label = resolveRuntimeLayoutLabel(component);
         int span = clamp(integerValue(mapValue(component.get("layout")).get("span"),

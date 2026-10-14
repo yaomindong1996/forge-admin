@@ -373,7 +373,7 @@ Gitee/GitHub 等仅支持扫码登录。`,
     type: 'input',
     labelTip: `连接的全局唯一标识，用于拼接免登链接和事件回调地址，创建后不建议修改。
 留空将按「平台-随机后缀」自动生成，如 wecom-a1b2。`,
-    disabled: ({ formData }) => Boolean(formData?.id),
+    disabled: ({ formData, context }) => Boolean(context?.isEdit || formData?.id),
     props: { placeholder: '新建时留空自动生成，如 wecom-a1b2' },
   },
   {

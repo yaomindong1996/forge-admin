@@ -245,6 +245,8 @@ function updateComponentHidden(value) {
         }
       : {}),
   })
+  if (selectedGenerationConfig.value?.enabled === true)
+    emitFieldGenerationUpdate(selectedGenerationConfig.value, { hideOnForm: hidden })
 }
 __impl.updateComponentHidden = updateComponentHidden
 
@@ -1143,6 +1145,21 @@ function normalizeGenerationConfig(patch = {}) {
 }
 __impl.normalizeGenerationConfig = normalizeGenerationConfig
 
+function emitFieldGenerationUpdate(generation = {}, options = {}) {
+  const fieldCode = selectedComponent.value?.fieldBinding?.fieldCode
+    || selectedComponent.value?.field
+    || ''
+  if (!fieldCode || typeof emit !== 'function')
+    return
+  emit('updateFieldGeneration', {
+    fieldCode,
+    generation,
+    hideOnForm: options.hideOnForm === true
+      || (options.hideOnForm !== false && !!selectedComponent.value?.visibility?.hidden),
+  })
+}
+__impl.emitFieldGenerationUpdate = emitFieldGenerationUpdate
+
 async function handleGenerationEnabled(value) {
   if (value) {
     await loadCodeRuleOptions()
@@ -1166,18 +1183,21 @@ async function handleGenerationEnabled(value) {
         hidden: false,
       },
     })
+    emitFieldGenerationUpdate(next, { hideOnForm: false })
     if (next.ruleCode)
       previewSelectedGenerationRule(next.ruleCode)
     return
   }
+  const disabled = {
+    ...(selectedGenerationConfig.value || {}),
+    enabled: false,
+  }
   updateComponent({
     props: {
-      generation: {
-        ...(selectedGenerationConfig.value || {}),
-        enabled: false,
-      },
+      generation: disabled,
     },
   })
+  emitFieldGenerationUpdate(disabled, { hideOnForm: false })
   codeRulePreview.value = null
 }
 __impl.handleGenerationEnabled = handleGenerationEnabled
@@ -1187,6 +1207,9 @@ function updateGenerationConfig(patch = {}) {
   updateComponent({
     props: { generation: next },
     ...(next.readonly !== false ? { visibility: { readonly: true } } : {}),
+  })
+  emitFieldGenerationUpdate(next, {
+    hideOnForm: !!selectedComponent.value?.visibility?.hidden,
   })
 }
 __impl.updateGenerationConfig = updateGenerationConfig

@@ -271,7 +271,7 @@ export default {
     default: 'basic',
   },
 },
-  emits: ['update:schema', 'update:selectedId', 'close', 'fieldAssetUpdated'],
+  emits: ['update:schema', 'update:selectedId', 'close', 'fieldAssetUpdated', 'updateFieldGeneration'],
   setup(props, { emit }) {
     return useForgePropertyPanel(props, emit)
   },

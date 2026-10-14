@@ -186,8 +186,8 @@ const editSchema = [
     label: '字典类型',
     type: 'input',
     rules: [{ required: true, message: '请输入字典类型', trigger: 'blur' }],
-    // 创建后锁定编码，避免孤儿化 sys_dict_data
-    disabled: ({ formData }) => Boolean(formData?.dictId),
+    // 创建后锁定编码，避免孤儿化 sys_dict_data；优先用 modal 态，兼容仅有 dictId 的回填
+    disabled: ({ formData, context }) => Boolean(context?.isEdit || formData?.dictId),
     props: {
       placeholder: '请输入字典类型，如：sys_user_sex',
     },

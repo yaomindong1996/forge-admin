@@ -232,6 +232,7 @@
         @update:schema="updateSchema"
         @update:selected-id="selectedId = $event"
         @field-asset-updated="emit('fieldAssetUpdated', $event)"
+        @update-field-generation="emit('updateFieldGeneration', $event)"
         @close="rightOpen = false"
       />
     </aside>
@@ -439,6 +440,7 @@ export default {
   'dirtyChange',
   'moreSelect',
   'fieldAssetUpdated',
+  'updateFieldGeneration',
   'configureBottomAction',
   'editSubTableContainer',
   'editChildTableSection',

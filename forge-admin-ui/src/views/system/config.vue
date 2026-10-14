@@ -153,7 +153,7 @@ const editSchema = computed(() => [
     label: '参数键名',
     type: 'input',
     rules: [{ required: true, message: '请输入参数键名', trigger: 'blur' }],
-    disabled: ({ formData }) => Boolean(formData?.configId)
+    disabled: ({ formData, context }) => Boolean(context?.isEdit || formData?.configId)
       && String(formData?.configType || '').toUpperCase() === 'Y',
     props: {
       placeholder: '请输入参数键名，如：sys.login.timeout',
@@ -176,7 +176,7 @@ const editSchema = computed(() => [
     type: 'radio',
     defaultValue: 'N',
     rules: [{ required: true, message: '请选择是否系统内置', trigger: 'change' }],
-    disabled: ({ formData }) => Boolean(formData?.configId)
+    disabled: ({ formData, context }) => Boolean(context?.isEdit || formData?.configId)
       && String(formData?.configType || '').toUpperCase() === 'Y',
     props: {
       options: configTypeOptions.value,

@@ -816,8 +816,9 @@ export function applyObjectDesignerPart2(props, emit, expose, deps = {}) {
     }
   }
 
-  function updateFormDesignerFieldGeneration(schema = {}, fieldCode = '', generation = {}) {
+  function updateFormDesignerFieldGeneration(schema = {}, fieldCode = '', generation = {}, options = {}) {
     const next = cloneSchema(schema || {})
+    const hideOnForm = options.hideOnForm === true
     visitFormDesignerSchema(next)
     return next
 
@@ -847,7 +848,8 @@ export function applyObjectDesignerPart2(props, emit, expose, deps = {}) {
             component.visibility = {
               ...(component.visibility || {}),
               readonly: true,
-              hidden: true,
+              // 与属性面板一致：默认只读可见，避免运行态整字段被投影滤掉
+              hidden: hideOnForm,
             }
           }
         }

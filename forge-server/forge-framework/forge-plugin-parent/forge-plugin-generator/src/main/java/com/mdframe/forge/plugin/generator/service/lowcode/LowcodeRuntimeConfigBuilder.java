@@ -947,8 +947,14 @@ public class LowcodeRuntimeConfigBuilder {
 
     private boolean isEditFieldVisibleAtDesignTime(LowcodePageSchema pageSchema,
                                                    LowcodeFieldSchema field) {
-        if (field == null || Boolean.TRUE.equals(field.getSystemField())
-                || Boolean.TRUE.equals(field.getReadonly())) {
+        if (field == null || Boolean.TRUE.equals(field.getSystemField())) {
+            return false;
+        }
+        // 自动编号字段常为只读/表单隐藏，但仍需进入 editSchema，否则创建时读不到 generation
+        if (hasEnabledGeneration(field)) {
+            return true;
+        }
+        if (Boolean.TRUE.equals(field.getReadonly())) {
             return false;
         }
         if (field.getFormVisible() == null || Boolean.TRUE.equals(field.getFormVisible())) {
@@ -957,6 +963,33 @@ public class LowcodeRuntimeConfigBuilder {
         Map<String, Object> setting = resolveEditFieldSetting(pageSchema, field.getField());
         return containsVisibilityRuntimeRules(setting.get("runtimeRules"))
                 || containsVisibilityRuntimeRules(mapValue(setting.get("props")).get("runtimeRules"));
+    }
+
+    private boolean hasEnabledGeneration(LowcodeFieldSchema field) {
+        if (field == null) {
+            return false;
+        }
+        return isEnabledGenerationMap(field.getBasicProps())
+                || isEnabledGenerationMap(field.getAdvancedProps());
+    }
+
+    private boolean isEnabledGenerationMap(Map<String, Object> props) {
+        if (props == null || props.isEmpty()) {
+            return false;
+        }
+        Object generation = props.get("generation");
+        if (!(generation instanceof Map<?, ?> map) || map.isEmpty()) {
+            return false;
+        }
+        Object enabled = map.get("enabled");
+        if (enabled instanceof Boolean bool) {
+            return bool;
+        }
+        if (enabled instanceof Number number) {
+            return number.intValue() != 0;
+        }
+        String text = StringUtils.trimToEmpty(String.valueOf(enabled));
+        return "true".equalsIgnoreCase(text) || "1".equals(text) || "yes".equalsIgnoreCase(text);
     }
 
     private boolean containsVisibilityRuntimeRules(Object value) {

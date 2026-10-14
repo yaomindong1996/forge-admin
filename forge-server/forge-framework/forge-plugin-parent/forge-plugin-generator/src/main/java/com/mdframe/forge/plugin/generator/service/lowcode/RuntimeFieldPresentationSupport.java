@@ -86,6 +86,8 @@ final class RuntimeFieldPresentationSupport {
         copyBasicProp(field.getBasicProps(), props, "inlineCreateEnabled");
         copyBasicProp(field.getBasicProps(), props, "showInDetail");
         copyBasicProp(field.getBasicProps(), props, "validation");
+        // 自动编号配置必须进入 editSchema.props，供 DynamicCrud 创建时生成
+        copyBasicProp(field.getBasicProps(), props, "generation");
         copyBasicProp(field.getBasicProps(), props, "min");
         copyBasicProp(field.getBasicProps(), props, "max");
         copyBasicProp(field.getBasicProps(), props, "minimum");

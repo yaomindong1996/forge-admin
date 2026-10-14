@@ -18,6 +18,11 @@ export function buildRuntimeRuleContext(context = {}) {
   }
 }
 
+/** schema 上的 disabled/readonly 允许是函数，留给 AiFormItem 按 formData 求值；这里只认静态布尔。 */
+function isStaticTrueFlag(value) {
+  return typeof value !== 'function' && Boolean(value)
+}
+
 export function resolveRuntimeControl(target = {}, context = {}) {
   const runtimeContext = buildRuntimeRuleContext(context)
   const visibility = target.visibility || {}
@@ -25,8 +30,14 @@ export function resolveRuntimeControl(target = {}, context = {}) {
   const rules = normalizeRuntimeRules(target)
   const control = {
     visible: !(target.hidden === true || target.visible === false || visibility.hidden === true),
-    readonly: Boolean(target.readonly || target.props?.readonly || visibility.readonly || behavior.readonly),
-    disabled: Boolean(target.disabled || target.props?.disabled || visibility.disabled || behavior.disabled),
+    readonly: isStaticTrueFlag(target.readonly)
+      || isStaticTrueFlag(target.props?.readonly)
+      || isStaticTrueFlag(visibility.readonly)
+      || isStaticTrueFlag(behavior.readonly),
+    disabled: isStaticTrueFlag(target.disabled)
+      || isStaticTrueFlag(target.props?.disabled)
+      || isStaticTrueFlag(visibility.disabled)
+      || isStaticTrueFlag(behavior.disabled),
     required: target.required,
     style: {},
     className: '',

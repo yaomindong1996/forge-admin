@@ -113,6 +113,7 @@
             @dirty-change="emit('dirtyChange', $event)"
             @update:linkage-schema="emit('update:linkageSchema', $event)"
             @field-asset-updated="handleFieldAssetUpdated"
+            @update-field-generation="emit('updateFieldGeneration', $event)"
             @more-select="handleFormDesignerMoreSelect"
             @configure-bottom-action="handleConfigureBottomAction"
             @edit-sub-table-container="handleEditSubTableContainer"
@@ -379,7 +380,7 @@ export default {
     default: 'layout',
   },
 },
-  emits: ['update:modelValue', 'update:formDesignerSchema', 'update:viewSchema', 'update:linkageSchema', 'saved', 'fieldsUpdated', 'dirtyChange', 'createField', 'openRelations'],
+  emits: ['update:modelValue', 'update:formDesignerSchema', 'update:viewSchema', 'update:linkageSchema', 'saved', 'fieldsUpdated', 'dirtyChange', 'createField', 'openRelations', 'updateFieldGeneration'],
   setup(props, { emit, expose }) {
     return useBusinessFormDesigner(props, emit, expose)
   },

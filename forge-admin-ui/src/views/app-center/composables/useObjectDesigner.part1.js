@@ -865,6 +865,7 @@ export function applyObjectDesignerPart1(props, emit) {
     if (!fieldCode)
       return
     const generation = cloneSchema(payload.generation || { enabled: false })
+    const hideOnForm = payload.hideOnForm === true
     draft.fields = (draft.fields || []).map((field) => {
       const code = field.fieldCode || field.field
       if (code !== fieldCode)
@@ -872,9 +873,10 @@ export function applyObjectDesignerPart1(props, emit) {
       const enabled = generation.enabled === true
       return {
         ...field,
+        // 自动编号默认只读可见；仅显式要求隐藏时才从填写表单拿掉
         readonly: enabled ? true : field.readonly,
         required: enabled ? false : field.required,
-        formVisible: enabled ? false : field.formVisible,
+        formVisible: enabled ? !hideOnForm : field.formVisible,
         basicProps: {
           ...(field.basicProps || {}),
           generation,
@@ -886,7 +888,12 @@ export function applyObjectDesignerPart1(props, emit) {
       }
     })
     syncDraftModelFields(draft.fields)
-    draft.formDesignerSchema = updateFormDesignerFieldGeneration(draft.formDesignerSchema || {}, fieldCode, generation)
+    draft.formDesignerSchema = updateFormDesignerFieldGeneration(
+      draft.formDesignerSchema || {},
+      fieldCode,
+      generation,
+      { hideOnForm },
+    )
     dirty.value = true
     designerDraftDirty.value = true
   }

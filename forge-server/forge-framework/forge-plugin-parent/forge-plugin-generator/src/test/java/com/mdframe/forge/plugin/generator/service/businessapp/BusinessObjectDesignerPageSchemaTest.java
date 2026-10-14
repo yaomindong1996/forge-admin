@@ -528,6 +528,59 @@ class BusinessObjectDesignerPageSchemaTest {
         );
     }
 
+    @Test
+    @DisplayName("syncs form designer generation onto model fields including snake_case bindings")
+    @SuppressWarnings("unchecked")
+    void syncsFormDesignerGenerationOntoModelFields() {
+        LowcodeModelSchema modelSchema = new LowcodeModelSchema();
+        modelSchema.setTableName("biz_customer");
+        LowcodeFieldSchema customerCode = field("customerCode", "customer_code", "input", "varchar");
+        customerCode.setLabel("客户编码");
+        modelSchema.setFields(new ArrayList<>(List.of(customerCode)));
+
+        FormDesignerSchemaDTO formSchema = new FormDesignerSchemaDTO();
+        formSchema.setComponents(List.of(Map.of(
+                "id", "cmp_code",
+                "componentKey", "input",
+                "label", "客户编码",
+                "fieldBinding", Map.of("mode", "field", "fieldCode", "customer_code"),
+                "props", Map.of(
+                        "generation", Map.of(
+                                "enabled", true,
+                                "ruleCode", "customer_code",
+                                "trigger", "ON_CREATE",
+                                "fillPolicy", "EMPTY_ONLY"
+                        )
+                ),
+                "visibility", Map.of("readonly", true, "hidden", true),
+                "layout", Map.of("span", 1)
+        )));
+
+        LowcodePageSchema pageSchema = new LowcodePageSchema();
+        pageSchema.setZones(new ArrayList<>());
+        new BusinessObjectRuntimeFormProjector(value -> false)
+                .applyFormDesignerSchemaToEditZone(pageSchema, modelSchema, formSchema);
+
+        LowcodeFieldSchema synced = modelSchema.getFields().stream()
+                .filter(item -> "customerCode".equals(item.getField()))
+                .findFirst()
+                .orElseThrow();
+        Map<String, Object> generation = (Map<String, Object>) synced.getBasicProps().get("generation");
+        assertEquals(true, generation.get("enabled"));
+        assertEquals("customer_code", generation.get("ruleCode"));
+        assertTrue(Boolean.TRUE.equals(synced.getReadonly()));
+
+        LowcodePageZone editZone = pageSchema.getZones().stream()
+                .filter(zone -> "edit".equals(zone.getZoneKey()))
+                .findFirst()
+                .orElseThrow();
+        Map<String, Object> fieldSettings = (Map<String, Object>) editZone.getProps().get("fieldSettings");
+        assertNotNull(fieldSettings.get("customerCode"));
+        Map<String, Object> setting = (Map<String, Object>) fieldSettings.get("customerCode");
+        Map<String, Object> props = (Map<String, Object>) setting.get("props");
+        assertEquals("customer_code", ((Map<?, ?>) props.get("generation")).get("ruleCode"));
+    }
+
     private BusinessObjectRelationCoordinator relationCoordinator() {
         return new BusinessObjectRelationCoordinator(
                 new ObjectMapper(), null, null, () -> 1L, ignored -> null, (context, status) -> { });

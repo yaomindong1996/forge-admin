@@ -50,4 +50,26 @@ describe('lowcode runtime visibility rules', () => {
     expect(resolveRuntimeControl(target, { formData: { deliveryMode: 'DELIVERY' } }).visible).toBe(false)
     expect(resolveRuntimeControl(target, { formData: { deliveryMode: 'PICKUP' } }).visible).toBe(true)
   })
+
+  it('does not treat function disabled/readonly as statically disabled', () => {
+    const target = {
+      field: 'dictType',
+      disabled: ({ formData }) => Boolean(formData?.dictId),
+      readonly: ({ formData }) => Boolean(formData?.dictId),
+    }
+
+    const control = resolveRuntimeControl(target, { formData: {} })
+    expect(control.disabled).toBe(false)
+    expect(control.readonly).toBe(false)
+
+    const applied = applyRuntimeControl(target, { formData: {} })
+    expect(applied.disabled).toBe(target.disabled)
+    expect(applied.props?.disabled).toBeUndefined()
+  })
+
+  it('still honors static boolean disabled/readonly', () => {
+    expect(resolveRuntimeControl({ disabled: true }, {}).disabled).toBe(true)
+    expect(resolveRuntimeControl({ readonly: true }, {}).disabled).toBe(true)
+    expect(resolveRuntimeControl({ props: { disabled: true } }, {}).disabled).toBe(true)
+  })
 })

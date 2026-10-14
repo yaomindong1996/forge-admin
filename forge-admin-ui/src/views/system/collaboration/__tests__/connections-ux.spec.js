@@ -29,7 +29,7 @@ describe('collaboration connection editing contract', () => {
     const source = readSource('../connections.vue')
 
     expect(source).toContain('field: \'connectionCode\'')
-    expect(source).toContain('disabled: ({ formData }) => Boolean(formData?.id)')
+    expect(source).toContain('disabled: ({ formData, context }) => Boolean(context?.isEdit || formData?.id)')
     expect(source).toContain('type: \'orgTreeSelect\'')
     expect(source).toContain('String(formData.defaultOrgId)')
     expect(source).toContain('normalizeConnectionDetail(data)')

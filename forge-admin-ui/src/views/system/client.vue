@@ -202,8 +202,8 @@ const editSchema = computed(() => [
     label: '客户端编码',
     type: 'input',
     rules: [{ required: true, message: '请输入客户端编码', trigger: 'blur' }],
-    // 内置客户端编码由后端锁定；编辑时禁用输入避免误改
-    disabled: ({ formData }) => Boolean(formData?.id && formData?.builtIn),
+    // 内置客户端编码由后端锁定；仅编辑内置客户端时禁用（非内置编辑仍可改）
+    disabled: ({ formData, context }) => Boolean((context?.isEdit || formData?.id) && formData?.builtIn),
     props: {
       placeholder: '如：pc, app, h5, wechat',
     },
@@ -326,7 +326,7 @@ const editSchema = computed(() => [
     label: '状态',
     type: 'radio',
     defaultValue: 1,
-    disabled: ({ formData }) => Boolean(formData?.id && formData?.builtIn),
+    disabled: ({ formData, context }) => Boolean((context?.isEdit || formData?.id) && formData?.builtIn),
     props: {
       options: statusOptions.value,
     },

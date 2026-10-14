@@ -157,6 +157,7 @@
       @dirty-change="handleDirtyChange"
       @create-field="handlePanelSwitch('fields')"
       @open-relations="handlePanelSwitch('relations')"
+      @update-field-generation="handleFieldGenerationUpdate"
     />
 
     <BusinessListDesigner
