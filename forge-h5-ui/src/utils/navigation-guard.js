@@ -1,6 +1,6 @@
 import { useAuthStore } from '@/store'
 import { notify } from '@/utils/notify'
-import { buildLoginUrl, HOME_PAGE, LOGIN_PAGE } from '@/utils/route'
+import { buildLoginUrl, HOME_PAGE, isLoginRoute, LOGIN_PAGE } from '@/utils/route'
 import { hasPermission, normalizeRoutePath, resolvePageAccess } from '@/utils/access-control'
 
 const ROUTE_METHODS = ['navigateTo', 'redirectTo', 'reLaunch', 'switchTab']
@@ -67,6 +67,10 @@ async function guardRouteAccess(url, context = {}) {
   }
 
   if (!authStore.isLogin) {
+    // 启动或拦截时如果目标已是登录页，直接放行，避免 redirect 自嵌套刷新。
+    if (isLoginRoute(url)) {
+      return true
+    }
     if (!context.launch) {
       notify({
         title: '需要登录',
@@ -84,6 +88,9 @@ async function guardRouteAccess(url, context = {}) {
     }
     catch (error) {
       authStore.resetAuth()
+      if (isLoginRoute(url)) {
+        return true
+      }
       routeTo(buildLoginUrl(url), 'reLaunch')
       return false
     }

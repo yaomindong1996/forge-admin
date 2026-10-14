@@ -35,8 +35,87 @@ export function buildUrl(url, params = {}) {
   return `${url}${url.includes('?') ? '&' : '?'}${query}`
 }
 
+function normalizePathOnly(url = '') {
+  const raw = String(url || '').trim()
+  if (!raw) {
+    return ''
+  }
+  const path = raw.split('?')[0].split('#')[0]
+  return path.startsWith('/') ? path : `/${path}`
+}
+
+function safeDecode(value = '') {
+  let current = String(value || '')
+  for (let i = 0; i < 5; i += 1) {
+    try {
+      const decoded = decodeURIComponent(current)
+      if (decoded === current) {
+        return current
+      }
+      current = decoded
+    }
+    catch {
+      return current
+    }
+  }
+  return current
+}
+
+function readRedirectParam(url = '') {
+  const raw = String(url || '')
+  const queryIndex = raw.indexOf('?')
+  if (queryIndex < 0) {
+    return ''
+  }
+  const search = raw.slice(queryIndex + 1)
+  const matched = search.match(/(?:^|&)redirect=([^&]*)/)
+  if (!matched) {
+    return ''
+  }
+  return safeDecode(matched[1] || '')
+}
+
+export function isLoginRoute(url = '') {
+  const path = normalizePathOnly(url)
+  return path === LOGIN_PAGE
+}
+
+/**
+ * 清洗登录回跳地址，避免把登录页自己（含已嵌套的 redirect）再次包进去。
+ */
+export function sanitizeLoginRedirect(redirect) {
+  let value = String(redirect || '').trim()
+  if (!value) {
+    return HOME_PAGE
+  }
+
+  for (let i = 0; i < 8; i += 1) {
+    value = safeDecode(value).trim()
+    if (!value) {
+      return HOME_PAGE
+    }
+
+    if (!isLoginRoute(value)) {
+      return value.startsWith('/') ? value : `/${value}`
+    }
+
+    const nested = readRedirectParam(value)
+    if (!nested) {
+      return HOME_PAGE
+    }
+    value = nested
+  }
+
+  return HOME_PAGE
+}
+
 export function buildLoginUrl(redirect = getCurrentRoutePath()) {
-  return buildUrl(LOGIN_PAGE, redirect ? { redirect } : {})
+  const safeRedirect = sanitizeLoginRedirect(redirect)
+  // 默认回首页时不带 redirect，避免登录页 URL 无意义膨胀。
+  if (!safeRedirect || safeRedirect === LOGIN_PAGE || safeRedirect === HOME_PAGE) {
+    return LOGIN_PAGE
+  }
+  return buildUrl(LOGIN_PAGE, { redirect: safeRedirect })
 }
 
 /**
@@ -53,7 +132,8 @@ export function resolveBrowserRouteUrl(url) {
   }
 
   const routePath = value.startsWith('/') ? value : `/${value}`
-  const rawBase = import.meta.env.BASE_URL || import.meta.env.VITE_PUBLIC_PATH || '/'
+  const env = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {}
+  const rawBase = env.BASE_URL || env.VITE_PUBLIC_PATH || '/'
   const base = String(rawBase || '/').replace(/\/+$/, '')
   const basePrefix = !base || base === '/' || base === '.' ? '' : base
   return `${basePrefix}/#${routePath}`
@@ -113,7 +193,14 @@ export function redirectToLogin(options = {}) {
   const {
     redirect = getCurrentRoutePath(),
     method = 'reLaunch',
+    force = false,
   } = options
+
+  // 已在登录页时禁止再次 reLaunch，否则 redirect 会无限嵌套并整页刷新。
+  if (!force && isLoginRoute(getCurrentRoutePath(false))) {
+    return
+  }
+
   const url = buildLoginUrl(redirect)
   callUniRoute(method, { url }, 'redirectTo')
 }
