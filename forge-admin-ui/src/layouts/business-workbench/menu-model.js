@@ -80,8 +80,8 @@ function menuTreeContainsKey(items = [], key) {
 }
 
 /**
- * 解析大面板左侧当前应高亮的二级：预览 > 路由所属二级 > 首项。
- * 禁止「第一个有子菜单的目录」抢叶子入口的高亮（工作台下请假管理是典型误伤）。
+ * 解析大面板左侧当前应高亮的二级：预览 > 路由所属二级。
+ * 无匹配时不回退到首项，避免一打开一级菜单就默认蓝底第一个子菜单。
  */
 export function resolveMegaActiveSection(sections = [], { previewKey = null, routeSectionKey = '', activeKey = '' } = {}) {
   const visible = Array.isArray(sections) ? sections : []
@@ -110,5 +110,5 @@ export function resolveMegaActiveSection(sections = [], { previewKey = null, rou
   if (byActiveKey)
     return byActiveKey
 
-  return visible[0]
+  return undefined
 }

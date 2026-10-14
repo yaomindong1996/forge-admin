@@ -85,6 +85,21 @@ export function applyMenuPagePart1() {
     }))
   })
 
+  /** 顶部客户端筛选；列表未返回前先用当前选中项占位，避免选中态空白 */
+  const clientFilterTabs = computed(() => {
+    if (clientList.value.length)
+      return clientList.value
+    const code = currentClientCode.value
+    if (!code)
+      return []
+    return [{
+      clientCode: code,
+      clientName: code === 'pc' ? 'PC端' : code,
+    }]
+  })
+
+  const isAllClientsFilter = computed(() => !currentClientCode.value)
+
   const resourceTypeFilterOptions = computed(() => resourceTypeOptions.value)
   const visibleFilterOptions = computed(() => visibleOptions.value)
 
@@ -1162,8 +1177,10 @@ export function applyMenuPagePart1() {
     routeOptions,
     pageRef,
     formRef,
+    clientFilterTabs,
     clientList,
     currentClientCode,
+    isAllClientsFilter,
     loading,
     submitLoading,
     batchActionLoading,

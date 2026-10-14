@@ -68,8 +68,10 @@
         >
           <header class="mega-panel-toolbar">
             <div>
-              <strong>{{ activeSection?.title || '全部功能' }}</strong>
-              <span>{{ activeSection?.hasChildren ? `${activeFeatureCount} 个可访问入口` : '直接入口' }}</span>
+              <strong>{{ activeSection?.title || (searchQuery ? '搜索结果' : '请选择菜单') }}</strong>
+              <span v-if="activeSection">{{ activeSection.hasChildren ? `${activeFeatureCount} 个可访问入口` : '直接入口' }}</span>
+              <span v-else-if="!searchQuery">悬停或点击左侧二级菜单查看入口</span>
+              <span v-else>共 {{ filteredSections.length }} 个匹配项</span>
             </div>
             <button class="mega-close" type="button" aria-label="关闭菜单" @click="store.closeMenus()">
               <i class="i-lucide:x" />
@@ -94,13 +96,19 @@
             </section>
           </div>
 
-          <div v-else class="mega-search-empty" role="status">
+          <div v-else-if="searchQuery" class="mega-search-empty" role="status">
             <i class="i-lucide:search-x" aria-hidden="true" />
             <strong>没有找到相关菜单</strong>
             <span>请换一个关键词，或清空搜索查看全部功能。</span>
             <button type="button" @click="searchQuery = ''">
               清空搜索
             </button>
+          </div>
+
+          <div v-else class="mega-search-empty" role="status">
+            <i class="i-lucide:mouse-pointer-click" aria-hidden="true" />
+            <strong>请选择左侧菜单</strong>
+            <span>悬停或点击二级菜单后，这里会显示对应功能入口。</span>
           </div>
         </section>
       </div>

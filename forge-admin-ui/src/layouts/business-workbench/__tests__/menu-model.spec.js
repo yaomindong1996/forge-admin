@@ -156,6 +156,7 @@ describe('业务工作台接口菜单', () => {
     expect(resolveMegaActiveSection(sections, { routeSectionKey: '900', activeKey: '901' })?.title).toBe('请假管理')
     expect(resolveMegaActiveSection(sections, { activeKey: '901' })?.title).toBe('请假管理')
     expect(resolveMegaActiveSection(sections, { previewKey: '900', routeSectionKey: '80', activeKey: '80' })?.title).toBe('请假管理')
-    expect(resolveMegaActiveSection(sections, {})?.title).toBe('首页')
+    // 无预览、无路由命中时不默认高亮第一项
+    expect(resolveMegaActiveSection(sections, {})).toBeUndefined()
   })
 })

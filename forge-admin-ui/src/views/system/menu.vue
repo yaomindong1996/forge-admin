@@ -1,10 +1,32 @@
 <template>
   <div ref="pageRef" class="system-menu-page">
-    <!-- 客户端与页面级操作 -->
+    <!-- 标题、客户端筛选与页面级操作（单行，避免 n-tabs 异步挂载后下划线不刷新） -->
     <div class="menu-workbench-header">
       <div class="header-main">
-        <div class="header-title">
+        <div class="header-brand">
           <h2>菜单管理</h2>
+          <div class="client-segment" role="tablist" aria-label="按客户端筛选菜单">
+            <button
+              type="button"
+              role="tab"
+              :aria-selected="isAllClientsFilter"
+              :class="{ 'is-active': isAllClientsFilter }"
+              @click="handleClientTabChange('')"
+            >
+              全部
+            </button>
+            <button
+              v-for="client in clientFilterTabs"
+              :key="client.clientCode"
+              type="button"
+              role="tab"
+              :aria-selected="currentClientCode === client.clientCode"
+              :class="{ 'is-active': currentClientCode === client.clientCode }"
+              @click="handleClientTabChange(client.clientCode)"
+            >
+              {{ client.clientName }}
+            </button>
+          </div>
         </div>
 
         <div class="header-actions">
@@ -21,21 +43,6 @@
             新增顶级菜单
           </NButton>
         </div>
-      </div>
-
-      <div class="client-tabs-container">
-        <n-tabs type="line" size="small" :value="currentClientCode" @update:value="handleClientTabChange">
-          <n-tab-pane name="" tab="全部">
-            <template #tab>
-              <span class="tab-label">全部</span>
-            </template>
-          </n-tab-pane>
-          <n-tab-pane v-for="client in clientList" :key="client.clientCode" :name="client.clientCode">
-            <template #tab>
-              <span class="tab-label">{{ client.clientName }}</span>
-            </template>
-          </n-tab-pane>
-        </n-tabs>
       </div>
     </div>
 
@@ -566,10 +573,12 @@ const {
   checkedResourceIdSet,
   checkedResourceIds,
   clearCheckedResources,
+  clientFilterTabs,
   clientList,
   collapseNavigationTree,
   contextBreadcrumbs,
   currentClientCode,
+  isAllClientsFilter,
   currentNode,
   displayRows,
   displayRowsCheckIndeterminate,
