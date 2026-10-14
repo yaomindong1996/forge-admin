@@ -1211,6 +1211,20 @@ CRUD 详情页的渲染逻辑是“主表 `AiForm` + 子表 `ChildTableEditor`�
 - 发布前全文确认无 `CREATE TABLE \`flw_` / `CREATE TABLE \`act_`。
 - 已误导入的库：删除全部残留 `flw_*`（或空库重导修正后的纯净版），再启动让 7.x 重建。
 
+
+## 纯净版 dump 不能用 (^|_)version$ 忽略框架 *_version 表
+
+**发现日期**：2026-10-14
+
+**问题描述**：
+`dump-safe-full.sh` 的 `full_ignore_regex` 曾含 `(^|_)version$`，把 `ai_business_extension_version`、`ai_crud_config_version`、`sys_flow_model_version` 等整表跳过（DDL+数据都没有）。导入纯净版后业务写扩展版本报缺表。
+
+**根因**：该正则本想跳过无关 version 表，实际匹配了所有以 `_version` 结尾的框架表。
+
+**解决方案**：
+- `full_ignore_regex` 只保留 `^act_|^flw_`。
+- 验收时确认纯净版含 `CREATE TABLE \`ai_business_extension_version\``（可无业务数据）。
+
 ## Flow 服务承载业务表单接口时不能沿用旧的 FlowClient 8080 默认端口
 
 **发现日期**：2026-09-28

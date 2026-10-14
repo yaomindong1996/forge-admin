@@ -102,7 +102,7 @@ When the user asks for a downloadable **纯净版 SQL** (e.g. `ForgeAdmin-纯净
 Short rules (do not violate):
 
 1. Clone the test DB → run `clean-db.sh` on the **clone only** → `dump-safe-full.sh`.
-2. **Keep** `dump-safe-full.sh` skipping `^act_|^flw_` (and version tables). Flowable engine tables are **created on first application start**; they must not be in the community SQL file. Skipping only `act_*` leaves `flw_ru_batch` etc. and causes startup `already exists` + `db version is null`.
+2. **Keep** `dump-safe-full.sh` skipping only `^act_|^flw_`. Flowable engine tables are **created on first application start**; they must not be in the community SQL file. Skipping only `act_*` leaves `flw_ru_batch` etc. and causes startup `already exists` + `db version is null`. **Never** add `(^|_)version$` — that drops framework tables like `ai_business_extension_version`.
 3. **Never** append `INSERT INTO act_ge_property` (or any `act_*` / `flw_*` DDL/DML) after the dump. That causes import error `1146 Table '….act_ge_property' doesn't exist`.
 4. Optionally append only `forge_schema_history` + safe local `sys_file_storage_config` (no cloud secrets). Scrub env usernames like `rdsroot` from Flyway `installed_by`.
 5. Smoke-import into an empty DB: 0 errors, one `admin` user, **zero** `act_%` / `flw_%` tables before startup.

@@ -14,8 +14,10 @@
 `dump-safe-full.sh` 的 `full_ignore_regex` 必须为：
 
 ```bash
-full_ignore_regex="^act_|^flw_|(^|_)version$"
+full_ignore_regex="^act_|^flw_"
 ```
+
+**禁止**再加 `(^|_)version$`：会把 `ai_business_extension_version`、`ai_crud_config_version`、`sys_flow_model_version` 等框架表整表跳过，导入后业务一写版本就报缺表。
 
 只跳过 `^act_` **不够**：`flw_ru_batch`、`flw_event_*`、`flw_channel_definition` 等会进 dump。导入后启动会：
 

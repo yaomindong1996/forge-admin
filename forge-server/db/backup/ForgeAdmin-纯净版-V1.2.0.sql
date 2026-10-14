@@ -6,7 +6,7 @@
 --           Flyway 历史、本地存储默认配置
 -- Removed : 低代码业务表与演示数据、流程运行/模型垃圾数据、多租户与测试账号、
 --           日志/文件运行数据；敏感配置默认不导出
--- Note    : Flowable act_*/flw_* 表均不导出，应用首次启动时自动创建
+-- Note    : Flowable act_*/flw_* 表均不导出，应用首次启动时自动创建；框架 *_version 表保留空结构
 -- Login   : admin / 123456
 -- Usage   : 仅导入空库；启动 Admin 后 Flyway 应显示已是最新
 -- Generated: 2026-10-14
@@ -81,17 +81,6 @@
 --   act_ru_task
 --   act_ru_timer_job
 --   act_ru_variable
---   ai_business_application_version
---   ai_business_extension_version
---   ai_business_object_design_version
---   ai_business_process_version
---   ai_capability_version
---   ai_crud_config_version
---   ai_formula_function_version
---   ai_report_project_version
---   sys_flow_form_version
---   sys_flow_model_version
---   sys_print_template_version
 --
 -- Data skipped tables:
 --   act_evt_log
@@ -499,6 +488,38 @@ CREATE TABLE `ai_business_application` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ai_business_application_version`
+--
+
+DROP TABLE IF EXISTS `ai_business_application_version`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ai_business_application_version` (
+  `id` bigint NOT NULL COMMENT '主键ID',
+  `tenant_id` bigint NOT NULL DEFAULT '1' COMMENT '租户ID',
+  `application_id` bigint NOT NULL COMMENT '业务应用ID',
+  `version_no` int NOT NULL COMMENT '应用内单调版本号',
+  `snapshot_json` longtext NOT NULL COMMENT '不可变应用发布快照，不保存密钥',
+  `snapshot_hash` char(64) NOT NULL COMMENT '快照SHA-256摘要',
+  `publish_status` varchar(24) NOT NULL COMMENT 'PUBLISHED/ROLLBACK',
+  `publish_summary` varchar(1000) DEFAULT NULL COMMENT '脱敏发布摘要',
+  `source_version_no` int DEFAULT NULL COMMENT '回滚来源版本号',
+  `published_by` bigint DEFAULT NULL COMMENT '可信发布人ID',
+  `published_time` datetime NOT NULL COMMENT '发布时间',
+  `del_flag` bigint NOT NULL DEFAULT '0' COMMENT '逻辑删除标记：0正常，删除后写主键',
+  `create_by` bigint DEFAULT NULL COMMENT '创建人',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `create_dept` bigint DEFAULT NULL COMMENT '创建部门',
+  `update_by` bigint DEFAULT NULL COMMENT '更新人',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_ai_business_application_version_active` (`tenant_id`,`application_id`,`version_no`,`del_flag`),
+  KEY `idx_ai_business_application_version_hash` (`tenant_id`,`application_id`,`snapshot_hash`,`del_flag`),
+  KEY `idx_ai_business_application_version_time` (`tenant_id`,`application_id`,`published_time`,`del_flag`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='低代码业务应用不可变发布版本';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ai_business_application_object`
 --
 
@@ -743,6 +764,40 @@ CREATE TABLE `ai_business_extension` (
   KEY `idx_ai_business_extension_entry` (`tenant_id`,`entry_id`,`status`,`del_flag`),
   KEY `idx_ai_business_extension_lock` (`tenant_id`,`lock_user_id`,`lock_expire_time`,`del_flag`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='低代码受治理业务扩展';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ai_business_extension_version`
+--
+
+DROP TABLE IF EXISTS `ai_business_extension_version`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ai_business_extension_version` (
+  `id` bigint NOT NULL COMMENT '主键ID',
+  `tenant_id` bigint NOT NULL DEFAULT '1' COMMENT '租户ID',
+  `extension_id` bigint NOT NULL COMMENT '业务扩展ID',
+  `version_no` int NOT NULL COMMENT '扩展内单调版本号',
+  `content` longtext NOT NULL COMMENT '扩展原始内容',
+  `processed_content` longtext COMMENT '服务端复核的作用域或编译结果',
+  `config_json` json NOT NULL COMMENT '非敏感结构化配置',
+  `content_hash` char(64) NOT NULL COMMENT '内容SHA-256摘要',
+  `validation_passed` tinyint NOT NULL DEFAULT '0' COMMENT '校验是否通过',
+  `validation_summary` varchar(1000) DEFAULT NULL COMMENT '校验摘要，不含原始输入',
+  `test_passed` tinyint NOT NULL DEFAULT '0' COMMENT '受限测试是否通过',
+  `test_summary` varchar(1000) DEFAULT NULL COMMENT '测试摘要，不含原始输入',
+  `change_summary` varchar(500) DEFAULT NULL COMMENT '版本变更说明',
+  `del_flag` bigint NOT NULL DEFAULT '0' COMMENT '逻辑删除标记：0正常，删除后写主键',
+  `create_by` bigint DEFAULT NULL COMMENT '创建人',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `create_dept` bigint DEFAULT NULL COMMENT '创建部门',
+  `update_by` bigint DEFAULT NULL COMMENT '更新人',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_ai_business_extension_version_active` (`tenant_id`,`extension_id`,`version_no`,`del_flag`),
+  KEY `idx_ai_business_extension_version_hash` (`tenant_id`,`extension_id`,`content_hash`,`del_flag`),
+  KEY `idx_ai_business_extension_version_created` (`tenant_id`,`extension_id`,`create_time`,`del_flag`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='低代码业务扩展不可变内容版本';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1013,6 +1068,43 @@ CREATE TABLE `ai_business_object` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ai_business_object_design_version`
+--
+
+DROP TABLE IF EXISTS `ai_business_object_design_version`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ai_business_object_design_version` (
+  `id` bigint NOT NULL COMMENT '主键ID',
+  `tenant_id` bigint NOT NULL DEFAULT '1' COMMENT '租户ID',
+  `object_id` bigint NOT NULL COMMENT '业务对象ID',
+  `suite_code` varchar(48) NOT NULL COMMENT '业务套件编码',
+  `object_code` varchar(48) NOT NULL COMMENT '业务对象编码',
+  `config_id` bigint DEFAULT NULL COMMENT '关联低代码运行配置ID',
+  `config_key` varchar(128) DEFAULT NULL COMMENT '关联低代码运行配置键',
+  `crud_config_version_id` bigint DEFAULT NULL COMMENT '关联AI CRUD发布版本ID',
+  `version_no` int NOT NULL COMMENT '对象设计版本号',
+  `version_type` varchar(32) NOT NULL DEFAULT 'draft' COMMENT '版本类型：draft/publish/rollback',
+  `model_snapshot` json DEFAULT NULL COMMENT '模型Schema快照',
+  `page_snapshot` json DEFAULT NULL COMMENT '页面Schema快照',
+  `relation_snapshot` json DEFAULT NULL COMMENT '关系配置快照',
+  `designer_options_snapshot` json DEFAULT NULL COMMENT '表单优先设计器扩展快照',
+  `publish_status` varchar(32) NOT NULL DEFAULT 'DRAFT' COMMENT '发布状态：DRAFT/PUBLISHED/FAILED',
+  `publish_version` int DEFAULT NULL COMMENT '发布版本号',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  `create_by` bigint DEFAULT NULL COMMENT '创建人',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `create_dept` bigint DEFAULT NULL COMMENT '创建部门',
+  `update_by` bigint DEFAULT NULL COMMENT '更新人',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_ai_business_design_version_no` (`tenant_id`,`object_id`,`version_no`),
+  KEY `idx_ai_business_design_version_object` (`tenant_id`,`object_id`,`version_no`),
+  KEY `idx_ai_business_design_version_crud` (`tenant_id`,`crud_config_version_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='AI业务应用平台-业务对象设计版本表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ai_business_object_relation`
 --
 
@@ -1081,6 +1173,43 @@ CREATE TABLE `ai_business_process` (
   KEY `idx_ai_business_process_application` (`tenant_id`,`application_id`,`status`,`design_status`,`update_time`,`del_flag`),
   KEY `idx_ai_business_process_subject` (`tenant_id`,`subject_object_id`,`status`,`del_flag`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='应用级业务流程定义与设计草稿';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ai_business_process_version`
+--
+
+DROP TABLE IF EXISTS `ai_business_process_version`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ai_business_process_version` (
+  `id` bigint NOT NULL COMMENT '主键ID',
+  `tenant_id` bigint NOT NULL DEFAULT '1' COMMENT '租户ID',
+  `application_id` bigint NOT NULL COMMENT '发布时所属业务应用ID',
+  `process_id` bigint NOT NULL COMMENT '业务流程定义ID',
+  `process_code` varchar(128) NOT NULL COMMENT '发布时流程编码',
+  `version_no` int NOT NULL COMMENT '流程内单调版本号',
+  `application_version` int NOT NULL COMMENT '生成该版本的应用版本号',
+  `publish_run_id` bigint DEFAULT NULL COMMENT '应用协调发布运行单ID',
+  `schema_version` varchar(16) NOT NULL COMMENT 'businessProcessJson协议版本',
+  `schema_json` longtext NOT NULL COMMENT '不可变业务流程协议，不保存敏感配置',
+  `schema_hash` char(64) NOT NULL COMMENT '规范化协议SHA-256摘要',
+  `dependency_snapshot_json` longtext NOT NULL COMMENT '对象、审批模型、表单、动作和能力版本快照',
+  `publish_time` datetime NOT NULL COMMENT '发布时间',
+  `published_by` bigint DEFAULT NULL COMMENT '可信发布人ID',
+  `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态：1有效 0停用',
+  `del_flag` bigint NOT NULL DEFAULT '0' COMMENT '逻辑删除标记：0正常，删除后写主键',
+  `create_by` bigint DEFAULT NULL COMMENT '创建人',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `create_dept` bigint DEFAULT NULL COMMENT '创建部门',
+  `update_by` bigint DEFAULT NULL COMMENT '更新人',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_ai_business_process_version_active` (`tenant_id`,`process_id`,`version_no`,`del_flag`),
+  UNIQUE KEY `uk_ai_business_process_app_version_active` (`tenant_id`,`process_id`,`application_version`,`del_flag`),
+  KEY `idx_ai_business_process_version_application` (`tenant_id`,`application_id`,`application_version`,`status`,`del_flag`),
+  KEY `idx_ai_business_process_version_hash` (`tenant_id`,`process_id`,`schema_hash`,`del_flag`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='应用级业务流程不可变发布版本';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1433,6 +1562,41 @@ CREATE TABLE `ai_capability` (
   KEY `idx_ai_capability_source` (`tenant_id`,`source_type`,`source_key`,`del_flag`),
   KEY `idx_ai_capability_publish` (`tenant_id`,`publish_status`,`enabled`,`del_flag`,`update_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='AI中枢能力目录';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ai_capability_version`
+--
+
+DROP TABLE IF EXISTS `ai_capability_version`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ai_capability_version` (
+  `id` bigint NOT NULL,
+  `tenant_id` bigint NOT NULL DEFAULT '1',
+  `capability_id` bigint NOT NULL,
+  `version` varchar(32) NOT NULL,
+  `input_schema` json NOT NULL,
+  `output_schema` json NOT NULL,
+  `source_type` varchar(32) NOT NULL,
+  `source_key` varchar(128) NOT NULL,
+  `source_version` varchar(64) NOT NULL,
+  `behavior` varchar(24) NOT NULL,
+  `risk_level` varchar(16) NOT NULL,
+  `visibility` varchar(16) NOT NULL,
+  `policy_snapshot` json DEFAULT NULL,
+  `schema_checksum` char(64) NOT NULL,
+  `status` varchar(16) NOT NULL DEFAULT 'PUBLISHED',
+  `del_flag` bigint NOT NULL DEFAULT '0' COMMENT '逻辑删除标记：0正常，删除后写主键',
+  `create_by` bigint DEFAULT NULL,
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `create_dept` bigint DEFAULT NULL,
+  `update_by` bigint DEFAULT NULL,
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_ai_capability_version_active` (`tenant_id`,`capability_id`,`version`,`del_flag`),
+  KEY `idx_ai_capability_version_checksum` (`tenant_id`,`capability_id`,`schema_checksum`,`del_flag`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='AI中枢能力不可变版本';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2096,6 +2260,56 @@ CREATE TABLE `ai_crud_config` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ai_crud_config_version`
+--
+
+DROP TABLE IF EXISTS `ai_crud_config_version`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ai_crud_config_version` (
+  `id` bigint NOT NULL COMMENT '主键ID',
+  `tenant_id` bigint NOT NULL DEFAULT '1' COMMENT '租户ID',
+  `config_id` bigint NOT NULL COMMENT 'CRUD配置ID',
+  `config_key` varchar(64) NOT NULL COMMENT 'CRUD配置键',
+  `domain_id` bigint DEFAULT NULL COMMENT '业务领域ID',
+  `domain_code` varchar(48) DEFAULT NULL COMMENT '业务领域编码',
+  `object_code` varchar(48) DEFAULT NULL COMMENT '业务对象编码',
+  `object_name` varchar(128) DEFAULT NULL COMMENT '业务对象名称',
+  `version_no` int NOT NULL COMMENT '版本号',
+  `version_type` varchar(20) NOT NULL DEFAULT 'publish' COMMENT '版本类型：publish发布 rollback回滚',
+  `model_schema` json DEFAULT NULL COMMENT '可视化数据模型协议',
+  `page_schema` json DEFAULT NULL COMMENT '可视化页面搭建协议',
+  `search_schema` json DEFAULT NULL COMMENT '搜索表单Schema JSON',
+  `columns_schema` json DEFAULT NULL COMMENT '表格列Schema JSON',
+  `edit_schema` json DEFAULT NULL COMMENT '编辑表单Schema JSON',
+  `api_config` json DEFAULT NULL COMMENT 'API配置JSON',
+  `options` json DEFAULT NULL COMMENT 'AiCrudPage运行时配置',
+  `publish_snapshot` longtext COMMENT '发布快照JSON',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  `create_by` bigint DEFAULT NULL COMMENT '创建者',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `create_dept` bigint DEFAULT NULL COMMENT '创建部门',
+  `update_by` bigint DEFAULT NULL COMMENT '更新者',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `runtime_datasource_id` bigint DEFAULT NULL COMMENT '运行数据源ID',
+  `runtime_datasource_code` varchar(64) DEFAULT NULL COMMENT '运行数据源编码',
+  `runtime_datasource_snapshot` json DEFAULT NULL COMMENT '运行数据源快照，不含密码',
+  `runtime_table_name` varchar(128) DEFAULT NULL COMMENT '运行表名',
+  `primary_key_field` varchar(64) NOT NULL DEFAULT 'id' COMMENT '主键字段名',
+  `primary_key_column` varchar(64) NOT NULL DEFAULT 'id' COMMENT '主键列名',
+  `primary_key_type` varchar(32) NOT NULL DEFAULT 'bigint' COMMENT '主键类型',
+  `tenant_strategy` json DEFAULT NULL COMMENT '租户隔离策略',
+  `audit_strategy` json DEFAULT NULL COMMENT '审计字段策略',
+  `logic_delete_strategy` json DEFAULT NULL COMMENT '逻辑删除策略',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_ai_crud_version_no` (`tenant_id`,`config_id`,`version_no`),
+  KEY `idx_ai_crud_version_config` (`tenant_id`,`config_id`,`create_time`),
+  KEY `idx_ai_crud_version_key` (`tenant_id`,`config_key`,`version_no`),
+  KEY `idx_ai_crud_version_domain` (`tenant_id`,`domain_id`,`version_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='AI CRUD低代码发布版本表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ai_crud_export_task`
 --
 
@@ -2518,6 +2732,38 @@ CREATE TABLE `ai_formula_function` (
   UNIQUE KEY `uk_ai_formula_function_code` (`tenant_id`,`function_code`),
   KEY `idx_ai_formula_function_query` (`tenant_id`,`category`,`source_type`,`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='AI业务应用平台-公式函数注册表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ai_formula_function_version`
+--
+
+DROP TABLE IF EXISTS `ai_formula_function_version`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ai_formula_function_version` (
+  `id` bigint NOT NULL COMMENT '主键ID',
+  `tenant_id` bigint NOT NULL DEFAULT '1' COMMENT '租户ID',
+  `function_code` varchar(64) NOT NULL COMMENT '函数编码',
+  `version` varchar(32) NOT NULL COMMENT '函数版本',
+  `implementation_type` varchar(32) NOT NULL DEFAULT 'JAVA_BEAN' COMMENT '实现类型',
+  `bean_name` varchar(128) DEFAULT NULL COMMENT 'Spring Bean名称',
+  `method_name` varchar(128) DEFAULT NULL COMMENT '方法名称',
+  `argument_schema` json DEFAULT NULL COMMENT '参数Schema',
+  `return_type` varchar(32) DEFAULT NULL COMMENT '返回类型',
+  `example` text COMMENT '示例',
+  `release_note` varchar(500) DEFAULT NULL COMMENT '版本说明',
+  `status` varchar(32) NOT NULL DEFAULT 'ENABLED' COMMENT '状态：ENABLED/DISABLED/DEPRECATED',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  `create_by` bigint DEFAULT NULL COMMENT '创建人',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `create_dept` bigint DEFAULT NULL COMMENT '创建部门',
+  `update_by` bigint DEFAULT NULL COMMENT '更新人',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_ai_formula_function_version` (`tenant_id`,`function_code`,`version`),
+  KEY `idx_ai_formula_function_version_code` (`tenant_id`,`function_code`,`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='AI业务应用平台-公式函数版本表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3476,6 +3722,44 @@ CREATE TABLE `ai_report_project` (
   KEY `idx_tenant_id` (`tenant_id`),
   KEY `idx_create_by` (`create_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='go-view项目表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ai_report_project_version`
+--
+
+DROP TABLE IF EXISTS `ai_report_project_version`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ai_report_project_version` (
+  `id` bigint NOT NULL COMMENT '主键ID',
+  `tenant_id` bigint NOT NULL DEFAULT '1' COMMENT '租户ID',
+  `project_id` bigint NOT NULL COMMENT '大屏项目ID',
+  `project_name` varchar(100) NOT NULL COMMENT '大屏项目名称',
+  `version_no` int NOT NULL COMMENT '版本号',
+  `version_name` varchar(32) NOT NULL COMMENT '版本名称',
+  `operation_type` varchar(20) NOT NULL DEFAULT 'publish' COMMENT '操作类型：publish发布 rollback回退',
+  `source_version_id` bigint DEFAULT NULL COMMENT '回退来源版本ID',
+  `publisher_id` bigint DEFAULT NULL COMMENT '发布人ID',
+  `publisher_name` varchar(100) DEFAULT NULL COMMENT '发布人名称',
+  `publish_time` datetime DEFAULT NULL COMMENT '发布时间',
+  `publish_url` varchar(500) DEFAULT NULL COMMENT '发布地址',
+  `index_img` varchar(500) DEFAULT NULL COMMENT '封面图文件ID',
+  `canvas_width` int DEFAULT NULL COMMENT '画布宽度',
+  `canvas_height` int DEFAULT NULL COMMENT '画布高度',
+  `background_color` varchar(20) DEFAULT NULL COMMENT '背景颜色',
+  `component_data` longtext COMMENT '组件配置JSON',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  `create_by` bigint DEFAULT NULL COMMENT '创建者',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `create_dept` bigint DEFAULT NULL COMMENT '创建部门',
+  `update_by` bigint DEFAULT NULL COMMENT '更新者',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_report_project_version_no` (`tenant_id`,`project_id`,`version_no`),
+  KEY `idx_report_project_version_project` (`tenant_id`,`project_id`,`create_time`),
+  KEY `idx_report_project_version_publisher` (`tenant_id`,`publisher_id`,`publish_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='大屏项目发布版本表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5442,6 +5726,40 @@ CREATE TABLE `sys_flow_form` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `sys_flow_form_version`
+--
+
+DROP TABLE IF EXISTS `sys_flow_form_version`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sys_flow_form_version` (
+  `id` bigint NOT NULL COMMENT '主键ID',
+  `tenant_id` bigint NOT NULL DEFAULT '1' COMMENT '租户ID',
+  `form_id` bigint NOT NULL COMMENT '流程表单ID',
+  `form_key` varchar(128) NOT NULL COMMENT '表单Key',
+  `form_name` varchar(128) NOT NULL COMMENT '表单名称',
+  `form_category` varchar(64) DEFAULT NULL COMMENT '表单分类',
+  `form_type` varchar(32) NOT NULL DEFAULT 'dynamic' COMMENT '表单类型',
+  `version` int NOT NULL COMMENT '版本号',
+  `form_schema` longtext COMMENT '表单Schema快照',
+  `field_registry` json DEFAULT NULL COMMENT '字段目录快照',
+  `form_config` json DEFAULT NULL COMMENT '表单配置快照',
+  `default_data_mode` varchar(32) NOT NULL DEFAULT 'PROCESS_ONLY' COMMENT '默认数据模式',
+  `publish_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
+  `publish_by` bigint DEFAULT NULL COMMENT '发布人ID',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  `create_by` bigint DEFAULT NULL COMMENT '创建人',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `create_dept` bigint DEFAULT NULL COMMENT '创建部门',
+  `update_by` bigint DEFAULT NULL COMMENT '更新人',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_flow_form_version` (`tenant_id`,`form_id`,`version`),
+  KEY `idx_flow_form_version_key` (`tenant_id`,`form_key`,`version`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='流程表单发布版本表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `sys_flow_form_instance`
 --
 
@@ -5535,6 +5853,36 @@ CREATE TABLE `sys_flow_model` (
   KEY `idx_sys_flow_model_tenant` (`tenant_id`,`status`,`create_time`),
   KEY `idx_flow_model_tenant_sort` (`tenant_id`,`del_flag`,`sort_order`,`create_time`,`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='流程模型表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sys_flow_model_version`
+--
+
+DROP TABLE IF EXISTS `sys_flow_model_version`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sys_flow_model_version` (
+  `id` varchar(64) NOT NULL COMMENT '主键',
+  `model_id` varchar(64) NOT NULL COMMENT '模型ID',
+  `version` int NOT NULL COMMENT '版本号',
+  `version_name` varchar(100) NOT NULL COMMENT '版本名称',
+  `version_tag` varchar(20) NOT NULL DEFAULT 'draft' COMMENT '版本标记（draft/test/release/deprecated）',
+  `bpmn_xml` text NOT NULL COMMENT 'BPMN XML',
+  `form_json` text COMMENT '表单配置',
+  `change_description` varchar(500) DEFAULT NULL COMMENT '变更说明',
+  `deployment_id` varchar(64) DEFAULT NULL COMMENT '部署ID',
+  `process_definition_id` varchar(64) DEFAULT NULL COMMENT '流程定义ID',
+  `publish_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '发布人',
+  `publish_time` datetime NOT NULL COMMENT '发布时间',
+  `tenant_id` bigint NOT NULL DEFAULT '1' COMMENT '租户ID',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `del_flag` int NOT NULL DEFAULT '0' COMMENT '删除标志（0-正常/1-删除）',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_model_version` (`model_id`,`version`),
+  KEY `idx_model_id` (`model_id`),
+  KEY `idx_sys_flow_model_version_tenant` (`tenant_id`,`model_id`,`version`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='流程模型版本历史表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6952,6 +7300,35 @@ CREATE TABLE `sys_print_template` (
   KEY `idx_print_template_source` (`tenant_id`,`application_id`,`source_key`,`status`,`del_flag`),
   KEY `idx_print_template_business_source` (`tenant_id`,`business_source_id`,`status`,`del_flag`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sys_print_template_version`
+--
+
+DROP TABLE IF EXISTS `sys_print_template_version`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sys_print_template_version` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint NOT NULL,
+  `template_id` bigint NOT NULL COMMENT '模板 ID',
+  `version_no` int NOT NULL COMMENT '跨历史永久唯一版本号',
+  `schema_version` int NOT NULL COMMENT '协议版本',
+  `schema_json` mediumtext NOT NULL COMMENT '不可变规范化协议',
+  `schema_hash` char(64) NOT NULL COMMENT '规范化协议 SHA-256',
+  `resource_manifest` text NOT NULL COMMENT '受控文件标识清单，不含签名 URL',
+  `publish_time` datetime NOT NULL COMMENT '发布时间',
+  `del_flag` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除，不释放版本号',
+  `create_by` bigint NOT NULL,
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `create_dept` bigint DEFAULT NULL,
+  `update_by` bigint NOT NULL,
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_print_version_no` (`tenant_id`,`template_id`,`version_no`),
+  KEY `idx_print_version_hash` (`tenant_id`,`template_id`,`schema_hash`,`del_flag`)
+) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --

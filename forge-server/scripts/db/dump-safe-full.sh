@@ -26,10 +26,10 @@ usage() {
 Usage: dump-safe-full.sh [options]
 
 Exports one SQL file containing DDL and safe INSERT data.
-DDL and data are skipped for runtime/history tables that are rebuilt or not
-needed during normal restore, including act_* Flowable tables and *_version
-tables. Data is skipped for log/runtime tables and sensitive configuration
-tables by default.
+DDL and data are skipped for Flowable engine tables (act_*/flw_*) that the
+application recreates on first start. Do NOT skip framework *_version tables
+(e.g. ai_business_extension_version) — they are required schema. Data is
+skipped for log/runtime tables and sensitive configuration tables by default.
 
 Options:
   --host HOST                    MySQL host, default 127.0.0.1
@@ -227,7 +227,8 @@ if [[ "$GZIP_OUTPUT" == "true" && "$OUTPUT" != *.gz ]]; then
 fi
 
 # Flowable 引擎表由应用首次启动创建；社区纯净版/安全全量导出不得带 act_*/flw_*（否则有表无 schema.version → WrongDbException）
-full_ignore_regex="^act_|^flw_|(^|_)version$"
+# 注意：不要用 (^|_)version$ —— 会误伤 ai_business_extension_version 等框架表，导致导入后缺表
+full_ignore_regex="^act_|^flw_"
 log_regex="(^|_)log($|_)|(^|_)logs($|_)|_log$|^log_|_history$|^qrtz_(fired_triggers|scheduler_state|locks)$|^worker_node$|^sys_auth_online_user$|^ai_crud_export_task$|^ai_chat_(record|session)$|^ai_dashboard_generate_record$"
 sensitive_tables=(
   ai_business_message_channel
