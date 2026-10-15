@@ -37,59 +37,57 @@ public class SaTokenConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 .order(2);
 
+        // 登录页/认证公开面：Spring 级排除 + SaRouter.notMatch 双保险。
+        // 仅靠 SaRouter.notMatch 时，个别路径（如 /auth/loginConfig）仍可能落入 checkLogin，
+        // 导致登录页读不到群二维码配置；公开 Controller 方法另补 @SaIgnore。
+        String[] anonymousAuthPaths = {
+                "/auth/login",
+                "/auth/logout",
+                "/auth/loginConfig",
+                "/auth/loginQrcode",
+                "/auth/tenant/options",
+                "/auth/tenant/assets/**",
+                "/auth/register",
+                "/auth/resetPassword",
+                "/auth/resetPassword/code",
+                "/auth/sso/exchange",
+                "/auth/captcha",
+                "/auth/captcha/slider",
+                "/auth/captcha/sms",
+                "/crypto/config",
+                "/crypto/public-key",
+                "/crypto/exchange",
+                "/.well-known/oauth-protected-resource",
+                "/.well-known/oauth-authorization-server",
+                "/oauth2/token",
+                "/oauth2/revoke",
+                "/oauth2/userinfo",
+                "/mcp",
+                "/openapi/v1/jobs",
+                "/openapi/v1/jobs/**",
+                "/openapi/v1/executions/**",
+                "/openapi/v1/capabilities/**",
+                "/static/**",
+                "/css/**",
+                "/js/**",
+                "/images/**",
+                "/actuator/health",
+                "/health",
+                "/ws/**"
+        };
+
         // 1. 注册 Sa-Token 登录校验拦截器
         registry.addInterceptor(new SaInterceptor(handle -> {
             // 根据路由进行规则校验
             SaRouter.match("/**")
-                    // 排除登录接口（统一入口）
-                    .notMatch("/auth/login")
-                    // 排除登出接口，支持前端重复/无效 token 登出时幂等返回
-                    .notMatch("/auth/logout")
-                    // 排除登录页配置接口
-                    .notMatch("/auth/loginConfig")
-                    // 排除登录页群二维码公开图片接口
-                    .notMatch("/auth/loginQrcode")
-                    // 排除登录页租户选项接口
-                    .notMatch("/auth/tenant/options")
-                    // 排除登录页租户品牌图接口
-                    .notMatch("/auth/tenant/assets/**")
-                    // 排除注册接口
-                    .notMatch("/auth/register")
-                    // 排除重置密码接口
-                    .notMatch("/auth/resetPassword")
-                    .notMatch("/auth/resetPassword/code")
-                    // 排除 SSO 票据交换接口
-                    .notMatch("/auth/sso/exchange")
-                    // 排除密钥交换相关接口（未登录时也需要先完成协商）
-                    .notMatch("/crypto/config")
-                    .notMatch("/crypto/public-key")
-                    .notMatch("/crypto/exchange")
-                    // MCP OAuth 公开元数据与 token 端点由专用认证链处理
-                    .notMatch("/.well-known/oauth-protected-resource")
-                    .notMatch("/.well-known/oauth-authorization-server")
-                    .notMatch("/oauth2/token")
-                    .notMatch("/oauth2/revoke")
-                    .notMatch("/oauth2/userinfo")
-                    // /mcp 必须由 MCP Bearer Filter 强制认证，禁止通用 Sa-Token 二次拦截
-                    .notMatch("/mcp")
-                    // 定时任务开放API由独立服务账号Bearer认证处理
-                    .notMatch("/openapi/v1/jobs", "/openapi/v1/jobs/**", "/openapi/v1/executions/**")
-                    // 能力开放网关由 OpenGatewayAuthenticator 自行完成双模式认证
-                    .notMatch("/openapi/v1/capabilities/**")
-                    // 排除获取验证码接口
-                    .notMatch("/auth/captcha")
-                    .notMatch("/auth/captcha/slider")
-                    .notMatch("/auth/captcha/sms")
-                    // 排除静态资源
-                    .notMatch("/static/**", "/css/**", "/js/**", "/images/**")
-                    // 排除健康检查
-                    .notMatch("/actuator/health", "/health")
-                    .notMatch("/ws/**")
+                    .notMatch(anonymousAuthPaths)
                     .check(r -> {
                         StpUtil.checkLogin();
                         LoginSessionRenewal.renewIfHalfwayExpired();
                     });
-        })).addPathPatterns("/**").order(1);  // 优先级1，先执行登录校验
+        })).addPathPatterns("/**")
+                .excludePathPatterns(anonymousAuthPaths)
+                .order(1);  // 优先级1，先执行登录校验
 
         // 2. 注册 API 接口权限拦截器（基于数据库资源表配置）
         registry.addInterceptor(apiPermissionInterceptor)

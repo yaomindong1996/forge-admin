@@ -83,6 +83,8 @@ class BusinessApplicationReadinessServiceTest {
     @DisplayName("PUBLISHED object skips design context load during readiness")
     void publishedObjectSkipsDesignContextLoad() {
         object.setSyncStatus("IN_SYNC");
+        object.setDesignVersion(3);
+        object.setSyncDesignVersion(3);
 
         service.check(101L);
 
@@ -104,9 +106,11 @@ class BusinessApplicationReadinessServiceTest {
     }
 
     @Test
-    @DisplayName("association IN_SYNC summary skips live table mapping")
-    void associationInSyncSummarySkipsLiveTableMapping() {
+    @DisplayName("version-matched IN_SYNC summary skips live table mapping")
+    void versionMatchedInSyncSummarySkipsLiveTableMapping() {
         object.setSyncStatus("IN_SYNC");
+        object.setDesignVersion(7);
+        object.setSyncDesignVersion(7);
 
         BusinessApplicationReadinessVO readiness = service.check(101L);
 
@@ -114,6 +118,23 @@ class BusinessApplicationReadinessServiceTest {
                 .anyMatch(issue -> issue.getIssueCode() != null
                         && issue.getIssueCode().startsWith("OBJECT_DATABASE_")));
         verify(tableMappingService, never()).getTableMapping(object.getObjectId());
+    }
+
+    @Test
+    @DisplayName("stale IN_SYNC after design change forces live table mapping")
+    void staleInSyncAfterDesignChangeForcesLiveTableMapping() {
+        object.setSyncStatus("IN_SYNC");
+        object.setDesignVersion(9);
+        object.setSyncDesignVersion(7);
+        when(tableMappingService.getTableMapping(object.getObjectId()))
+                .thenReturn(mapping("OUT_OF_SYNC", List.of(
+                        field("ys_type", "预算类型", "varchar", "int", "TYPE_MISMATCH", true)), 1));
+
+        BusinessApplicationReadinessVO readiness = service.check(101L);
+
+        assertTrue(readiness.getIssues().stream()
+                .anyMatch(issue -> "OBJECT_DATABASE_OUT_OF_SYNC".equals(issue.getIssueCode())));
+        verify(tableMappingService).getTableMapping(object.getObjectId());
     }
 
     @Test

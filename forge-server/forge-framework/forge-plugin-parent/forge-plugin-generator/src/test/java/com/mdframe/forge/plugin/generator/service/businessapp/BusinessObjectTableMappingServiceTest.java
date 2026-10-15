@@ -51,6 +51,28 @@ class BusinessObjectTableMappingServiceTest {
     }
 
     @Test
+    @DisplayName("live IN_SYNC reconciles stale PARTIAL databaseSync marker")
+    void liveInSyncReconcilesStalePartialMarker() {
+        StubDdlService ddlService = new StubDdlService();
+        ddlService.tableExists = true;
+        ddlService.columns.put("customer_name", new ColumnMetadata(
+                "customer_name", "varchar(128)", "NO", null, "", "客户名称", ""));
+        BusinessObjectDesignerService.DesignerContext context = context();
+        context.getObject().setDesignerOptions(
+                "{\"databaseSync\":{\"status\":\"PARTIAL\",\"designVersion\":5,"
+                        + "\"message\":\"已跳过高风险差异\",\"ddlCount\":0}}");
+        AtomicBoolean updated = new AtomicBoolean(false);
+        BusinessObjectTableMappingService service = service(ddlService, 1L, context, updated);
+
+        BusinessObjectTableMappingVO mapping = service.getTableMapping(201L);
+
+        assertEquals("IN_SYNC", mapping.getSyncStatus());
+        assertEquals("IN_SYNC", mapping.getLastSyncStatus());
+        assertTrue(updated.get());
+        assertTrue(context.getObject().getDesignerOptions().contains("\"status\":\"IN_SYNC\""));
+    }
+
+    @Test
     @DisplayName("nullable unmapped database columns remain visible without blocking")
     void unmappedDatabaseColumnsRemainVisible() {
         StubDdlService ddlService = new StubDdlService();
@@ -205,19 +227,35 @@ class BusinessObjectTableMappingServiceTest {
     }
 
     private static BusinessObjectTableMappingService service(StubDdlService ddlService, Long sharedCount) {
-        return service(ddlService, sharedCount, context());
+        return service(ddlService, sharedCount, context(), null);
     }
 
     private static BusinessObjectTableMappingService service(
             StubDdlService ddlService,
             Long sharedCount,
             BusinessObjectDesignerService.DesignerContext context) {
+        return service(ddlService, sharedCount, context, null);
+    }
+
+    private static BusinessObjectTableMappingService service(
+            StubDdlService ddlService,
+            Long sharedCount,
+            BusinessObjectDesignerService.DesignerContext context,
+            AtomicBoolean updated) {
         BusinessObjectDesignContextProvider contextProvider = objectId -> context;
         BusinessApplicationObjectMapper applicationObjectMapper = proxy(BusinessApplicationObjectMapper.class,
                 (method, args) -> "countByObjectId".equals(method.getName())
                         ? sharedCount : defaultValue(method.getReturnType()));
         BusinessObjectMapper objectMapper = proxy(BusinessObjectMapper.class,
-                (method, args) -> defaultValue(method.getReturnType()));
+                (method, args) -> {
+                    if ("updateById".equals(method.getName())) {
+                        if (updated != null) {
+                            updated.set(true);
+                        }
+                        return 1;
+                    }
+                    return defaultValue(method.getReturnType());
+                });
         return new BusinessObjectTableMappingService(contextProvider, ddlService,
                 applicationObjectMapper, objectMapper);
     }

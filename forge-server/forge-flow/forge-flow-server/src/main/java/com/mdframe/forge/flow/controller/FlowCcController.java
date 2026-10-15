@@ -88,11 +88,12 @@ public class FlowCcController {
         if (cc == null) {
             return RespInfo.error("抄送记录不存在");
         }
+        // 抄送接收人通常不是任务办理人：按流程实例可见性（含抄送关系）取表单，避免误走任务参与人校验。
         TaskFormInfo formInfo = flowTaskService.getProcessFormInfo(
                 cc.getProcessInstanceId(),
                 cc.getBusinessKey(),
                 cc.getProcessDefKey(),
-                cc.getTaskId(),
+                null,
                 null);
         return RespInfo.success(formInfo);
     }

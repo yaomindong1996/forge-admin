@@ -128,5 +128,9 @@ export function applyExternalManagePart2(props, emit, deps = {}) {
 
   return {
     ...deps,
+    validateApiSchemaFields,
+    formatSystemForm,
+    trimPayload,
+    cleanSystemAuthFields,
   }
 }

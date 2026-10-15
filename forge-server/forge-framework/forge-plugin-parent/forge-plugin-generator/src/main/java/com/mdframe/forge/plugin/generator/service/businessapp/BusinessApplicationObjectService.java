@@ -205,9 +205,11 @@ public class BusinessApplicationObjectService
             JSONObject databaseSync = designerOptions == null ? null : designerOptions.getJSONObject("databaseSync");
             if (databaseSync != null && StringUtils.isNotBlank(databaseSync.getString("status"))) {
                 object.setSyncStatus(databaseSync.getString("status"));
+                object.setSyncDesignVersion(databaseSync.getInteger("designVersion"));
             }
         } catch (Exception ignored) {
             object.setSyncStatus("UNKNOWN");
+            object.setSyncDesignVersion(null);
         }
     }
 

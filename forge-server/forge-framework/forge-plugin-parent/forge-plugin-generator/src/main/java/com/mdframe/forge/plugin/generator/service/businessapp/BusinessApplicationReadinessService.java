@@ -389,8 +389,9 @@ public class BusinessApplicationReadinessService {
             BusinessApplicationObjectVO object,
             String objectName,
             List<BusinessApplicationReadinessIssueVO> issues) {
-        // 关联对象摘要已带 designer_options.databaseSync.status；IN_SYNC 时跳过实时 DDL 探查。
-        if ("IN_SYNC".equalsIgnoreCase(StringUtils.trimToEmpty(object.getSyncStatus()))) {
+        // 仅当「状态=IN_SYNC 且同步时的设计版本仍等于当前草稿版本」才信任摘要，避免改字段后
+        // 仍拿旧 IN_SYNC 跳过探库，导致预览已一致/预检放行、发布 OBJECTS 又因 DDL 失败。
+        if (canTrustCachedDatabaseInSync(object)) {
             return;
         }
         BusinessObjectTableMappingVO mapping;
@@ -422,6 +423,18 @@ public class BusinessApplicationReadinessService {
         issues.add(issue("OBJECT_DATABASE_OUT_OF_SYNC", BLOCK, "数据库结构未同步",
                 databaseDiffMessage(objectName, mapping),
                 "objects", "objects", "OBJECT", object.getObjectId(), object.getObjectCode()));
+    }
+
+    /**
+     * 摘要 IN_SYNC 必须与当前设计版本对齐；缺版本号、版本漂移或 PARTIAL/FAILED 一律实时探库。
+     */
+    private boolean canTrustCachedDatabaseInSync(BusinessApplicationObjectVO object) {
+        if (object == null || !"IN_SYNC".equalsIgnoreCase(StringUtils.trimToEmpty(object.getSyncStatus()))) {
+            return false;
+        }
+        Integer currentVersion = object.getDesignVersion();
+        Integer syncedVersion = object.getSyncDesignVersion();
+        return currentVersion != null && currentVersion.equals(syncedVersion);
     }
 
     private String databaseDiffMessage(String objectName, BusinessObjectTableMappingVO mapping) {

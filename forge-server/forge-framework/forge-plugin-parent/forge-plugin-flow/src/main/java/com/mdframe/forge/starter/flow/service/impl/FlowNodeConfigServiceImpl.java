@@ -68,17 +68,12 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
             return false;
         }
         nodeConfig.setTenantId(tenantId);
-        // 保存节点配置
-        boolean result = save(nodeConfig);
-        
-        // 保存层级配置
-        if (result && levels != null && !levels.isEmpty()) {
-            for (FlowApprovalLevel level : levels) {
-                level.setNodeConfigId(nodeConfig.getId());
-                approvalLevelMapper.insert(level);
-            }
+        boolean result = upsertNodeConfig(nodeConfig, tenantId);
+
+        // 显式传入 levels 时整表替换；null 表示本次不改层级配置
+        if (result && levels != null) {
+            replaceApprovalLevels(nodeConfig.getId(), levels);
         }
-        
         return result;
     }
 
@@ -113,8 +108,65 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
                 return false;
             }
             nodeConfig.setTenantId(tenantId);
+            if (!upsertNodeConfig(nodeConfig, tenantId)) {
+                return false;
+            }
         }
-        return saveBatch(nodeConfigs);
+        return true;
+    }
+
+    /**
+     * 按主键或 (modelId, nodeId) 做 upsert，避免重复保存触发唯一键冲突。
+     */
+    private boolean upsertNodeConfig(FlowNodeConfig nodeConfig, Long tenantId) {
+        FlowNodeConfig existing = resolveExistingNodeConfig(nodeConfig, tenantId);
+        if (existing != null) {
+            nodeConfig.setId(existing.getId());
+            if (nodeConfig.getCreateTime() == null) {
+                nodeConfig.setCreateTime(existing.getCreateTime());
+            }
+            if (nodeConfig.getCreateBy() == null) {
+                nodeConfig.setCreateBy(existing.getCreateBy());
+            }
+            if (nodeConfig.getDelFlag() == null) {
+                nodeConfig.setDelFlag(existing.getDelFlag());
+            }
+            return updateById(nodeConfig);
+        }
+        // 新建时不要带着已失效/外来 id 去 insert，交给 ASSIGN_ID 生成
+        nodeConfig.setId(null);
+        return save(nodeConfig);
+    }
+
+    private FlowNodeConfig resolveExistingNodeConfig(FlowNodeConfig nodeConfig, Long tenantId) {
+        if (nodeConfig.getId() != null && !nodeConfig.getId().isBlank()) {
+            FlowNodeConfig byId = baseMapper.selectByIdAndTenant(nodeConfig.getId().trim(), tenantId);
+            if (byId != null) {
+                return byId;
+            }
+        }
+        if (nodeConfig.getModelId() == null || nodeConfig.getModelId().isBlank()
+                || nodeConfig.getNodeId() == null || nodeConfig.getNodeId().isBlank()) {
+            return null;
+        }
+        return baseMapper.selectByModelKeyAndNode(
+                nodeConfig.getModelId().trim(), nodeConfig.getNodeId().trim(), tenantId);
+    }
+
+    private void replaceApprovalLevels(String nodeConfigId, List<FlowApprovalLevel> levels) {
+        if (nodeConfigId == null || nodeConfigId.isBlank()) {
+            return;
+        }
+        approvalLevelMapper.delete(new LambdaQueryWrapper<FlowApprovalLevel>()
+                .eq(FlowApprovalLevel::getNodeConfigId, nodeConfigId));
+        if (levels == null || levels.isEmpty()) {
+            return;
+        }
+        for (FlowApprovalLevel level : levels) {
+            level.setId(null);
+            level.setNodeConfigId(nodeConfigId);
+            approvalLevelMapper.insert(level);
+        }
     }
 
     @Override
@@ -209,10 +261,11 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
     @Override
     public List<String> calculateLevelApprovers(String nodeConfigId, int levelIndex, Map<String, Object> variables) {
         List<FlowApprovalLevel> levels = getApprovalLevels(nodeConfigId);
-        if (levels == null || levels.isEmpty() || levelIndex > levels.size()) {
+        // levelIndex 为 1-based；非法下标直接返回空，避免 get(-1) 抛出导致 500。
+        if (levels == null || levels.isEmpty() || levelIndex < 1 || levelIndex > levels.size()) {
             return Collections.emptyList();
         }
-        
+
         FlowApprovalLevel level = levels.get(levelIndex - 1);
         return calculateApproversByLevel(level, variables);
     }

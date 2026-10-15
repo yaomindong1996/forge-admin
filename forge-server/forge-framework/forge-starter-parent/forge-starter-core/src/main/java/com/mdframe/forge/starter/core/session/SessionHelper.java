@@ -22,7 +22,9 @@ public class SessionHelper {
     }
 
     /**
-     * 获取当前登录用户信息
+     * 获取当前登录用户信息。
+     * 未登录或无有效 token 时返回 null，不抛 NotLoginException
+     *（登录页匿名接口如 /auth/loginConfig 会间接触发此方法）。
      */
     public static LoginUser getLoginUser() {
         LoginUser explicitUser = ExecutionIdentityContextHolder.current()
@@ -31,7 +33,14 @@ public class SessionHelper {
         if (explicitUser != null) {
             return explicitUser;
         }
-        return (LoginUser) StpUtil.getTokenSession().get(LOGIN_USER_KEY);
+        try {
+            if (!StpUtil.isLogin()) {
+                return null;
+            }
+            return (LoginUser) StpUtil.getTokenSession().get(LOGIN_USER_KEY);
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     /**

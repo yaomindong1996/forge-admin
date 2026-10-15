@@ -15,11 +15,13 @@ class ActuatorAnonymousSurfaceContractTest {
         String config = Files.readString(Path.of(
                 "src/main/java/com/mdframe/forge/starter/auth/config/SaTokenConfig.java"));
         assertThat(config)
-                .contains(".notMatch(\"/actuator/health\", \"/health\")")
-                .contains(".excludePathPatterns(\"/actuator/health\", \"/health\")")
+                .contains("\"/actuator/health\"")
+                .contains("\"/health\"")
+                .contains(".excludePathPatterns(anonymousAuthPaths)")
+                .contains(".notMatch(anonymousAuthPaths)")
                 .contains("StpUtil.checkLogin()")
                 .contains("LoginSessionRenewal.renewIfHalfwayExpired()")
-                .doesNotContain(".notMatch(\"/actuator/**\", \"/health\")")
+                .doesNotContain("\"/actuator/**\"")
                 .doesNotContain("/doc.html")
                 .doesNotContain("/swagger-ui/**")
                 .doesNotContain("/v3/api-docs/**")

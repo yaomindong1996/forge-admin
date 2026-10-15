@@ -66,10 +66,11 @@ public class ConfigRefresher {
             
             Map<String, String> oldProperties = new HashMap<>(dbPropertySource.getSource());
             
-            // 3. 检查是否有变化
+            // 3. 检查是否有变化：无变化视为成功的空操作。
+            // 不可返回 false，否则 saveCryptoConfig 等调用方会把「已保存但无需刷新」误判为失败。
             if (oldProperties.equals(newProperties)) {
-                //log.debug("配置无变化，跳过刷新");
-                return false;
+                log.debug("配置无变化，跳过刷新");
+                return true;
             }
             
             // 4. 更新PropertySource

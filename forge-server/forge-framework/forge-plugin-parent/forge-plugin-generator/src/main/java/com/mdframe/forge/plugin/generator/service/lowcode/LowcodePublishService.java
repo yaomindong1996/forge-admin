@@ -24,6 +24,7 @@ import com.mdframe.forge.plugin.generator.service.AiCrudConfigService;
 import com.mdframe.forge.plugin.generator.service.MenuRegisterAdapter;
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.LowcodeRuntimeDataSourceContext;
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.LowcodeRuntimeDataSourceResolver;
+import com.mdframe.forge.plugin.generator.vo.lowcode.LowcodeDdlPreviewVO;
 import com.mdframe.forge.plugin.generator.vo.lowcode.LowcodeVersionVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
@@ -249,6 +250,18 @@ public class LowcodePublishService {
             }
             if (!SessionHelper.hasPermission(DDL_PERMISSION)) {
                 throw new BusinessException("缺少在线建表发布权限: " + DDL_PERMISSION);
+            }
+            // 与业务对象「确认同步数据库」同一套预览门禁：无差异直接过；含高风险 MODIFY 则明确拒绝，
+            // 禁止发布阶段用更严/更松的另一套规则把预览已通过的对象再次打挂。
+            LowcodeDdlPreviewVO preview = ddlService.previewCreateTable(modelSchema);
+            if (!Boolean.TRUE.equals(preview.getExecutable())) {
+                throw new BusinessException("当前数据库差异不允许在线执行，请导出迁移脚本后人工审核");
+            }
+            if (preview.getDdlStatements() == null || preview.getDdlStatements().isEmpty()) {
+                return;
+            }
+            if (ddlService.containsUnsafeOnlineDdl(preview.getDdlStatements())) {
+                throw new BusinessException("数据库差异包含高风险或非追加式 DDL，仅允许预览和导出脚本后人工审核执行");
             }
             ddlService.executeCreateTable(modelSchema);
             return;

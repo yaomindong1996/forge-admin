@@ -25,6 +25,7 @@ public final class MessageChannelConfigSupport {
         if (fromContext != null) {
             return fromContext;
         }
+        // SessionHelper 未登录时返回 null；匿名场景（登录页通道探测）回退默认租户
         Long fromSession = SessionHelper.getTenantId();
         return fromSession != null ? fromSession : DEFAULT_TENANT_ID;
     }

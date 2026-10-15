@@ -53,6 +53,9 @@ public class BusinessApplicationObjectVO {
 
     private String syncStatus;
 
+    /** 最近一次 databaseSync 写入时的设计版本；与 {@link #designVersion} 不一致时不能信任 IN_SYNC。 */
+    private Integer syncDesignVersion;
+
     private Integer designVersion;
 
     private Long sharedApplicationCount;

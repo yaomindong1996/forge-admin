@@ -37,6 +37,7 @@ public class AuthController {
      * @param request 登录请求，包含authType字段
      * @return 登录结果
      */
+    @SaIgnore
     @PostMapping("/login")
     @IgnoreTenant
     public RespInfo<LoginResult> login(@RequestBody LoginRequest request) {
@@ -70,6 +71,7 @@ public class AuthController {
     /**
      * 登出
      */
+    @SaIgnore
     @IgnoreTenant
     @PostMapping("/logout")
     public RespInfo<Void> logout() {
@@ -102,6 +104,7 @@ public class AuthController {
     /**
      * 用户注册
      */
+    @SaIgnore
     @PostMapping("/register")
     public RespInfo<LoginUser> register(@RequestBody RegisterRequest request) {
         LoginUser loginUser = authService.register(request);
@@ -121,6 +124,7 @@ public class AuthController {
     /**
      * 发送找回密码验证码。通道由全局短信/邮件配置决定。
      */
+    @SaIgnore
     @PostMapping("/resetPassword/code")
     @IgnoreTenant
     public RespInfo<Void> sendResetPasswordCode(@RequestBody SendResetPasswordCodeRequest request) {
@@ -131,6 +135,7 @@ public class AuthController {
     /**
      * 通过短信或邮箱验证码重置密码。
      */
+    @SaIgnore
     @PostMapping("/resetPassword")
     @IgnoreTenant
     public RespInfo<Void> resetPassword(@RequestBody ResetPasswordRequest request) {
@@ -141,6 +146,7 @@ public class AuthController {
     /**
      * 获取验证码（根据配置返回对应类型的验证码）
      */
+    @SaIgnore
     @GetMapping("/captcha")
     @IgnoreTenant
     public RespInfo<CaptchaResult> getCaptcha() {
@@ -151,6 +157,7 @@ public class AuthController {
     /**
      * 获取滑块验证码
      */
+    @SaIgnore
     @GetMapping("/captcha/slider")
     @IgnoreTenant
     public RespInfo<SliderCaptchaResult> getSliderCaptcha() {
@@ -161,6 +168,7 @@ public class AuthController {
     /**
      * 发送短信验证码
      */
+    @SaIgnore
     @PostMapping("/captcha/sms")
     @IgnoreTenant
     public RespInfo<SmsCaptchaResult> sendSmsCaptcha(@RequestParam String phone) {
@@ -169,8 +177,9 @@ public class AuthController {
     }
 
     /**
-     * 获取登录配置
+     * 获取登录配置（含群二维码开关与图片引用，登录页匿名读取）
      */
+    @SaIgnore
     @GetMapping("/loginConfig")
     @IgnoreTenant
     public RespInfo<LoginConfigResult> getLoginConfig(@RequestParam(required = false) String userClient,
@@ -182,6 +191,7 @@ public class AuthController {
     /**
      * 查询登录页可选租户。
      */
+    @SaIgnore
     @GetMapping("/tenant/options")
     @IgnoreTenant
     public RespInfo<List<LoginTenantOption>> loginTenantOptions() {

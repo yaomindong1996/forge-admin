@@ -21,11 +21,12 @@ export function getJobTimezones() {
 }
 
 export function getPublishedJobFlowModels(params = {}) {
-  return request.get('/api/flow/model/list', { params })
+  // 流程服务未启动时不应阻断「新建任务」整页；由页面自行降级提示
+  return request.get('/api/flow/model/list', { params, needTip: false })
 }
 
 export function getJobFlowModelVersions(modelKey) {
-  return request.get(`/api/flow/model/${encodeURIComponent(modelKey)}/versions`)
+  return request.get(`/api/flow/model/${encodeURIComponent(modelKey)}/versions`, { needTip: false })
 }
 
 export function getJobOverview(id) {

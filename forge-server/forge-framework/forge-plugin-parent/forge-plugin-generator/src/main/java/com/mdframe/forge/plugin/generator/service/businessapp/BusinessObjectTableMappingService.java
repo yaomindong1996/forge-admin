@@ -79,6 +79,8 @@ public class BusinessObjectTableMappingService {
                 mapping.setSyncStatus("OUT_OF_SYNC");
             } else {
                 mapping.setSyncStatus("IN_SYNC");
+                // 库与设计已无差异时，清掉 PARTIAL/FAILED 等过期标记，避免界面「一致」与摘要状态两套口径。
+                reconcileStaleSyncMarker(context, mapping);
             }
         } catch (RuntimeException e) {
             mapping.setTableExists(null);
@@ -535,6 +537,36 @@ public class BusinessObjectTableMappingService {
             } catch (Exception ignored) {
                 mapping.setLastSyncTime(null);
             }
+        }
+    }
+
+    /**
+     * 实时探库已无待执行差异时，把 PARTIAL/FAILED 或旧设计版本的同步摘要纠正为 IN_SYNC，
+     * 与预览「结构一致」和发布门禁使用同一口径。
+     */
+    private void reconcileStaleSyncMarker(
+            BusinessObjectDesignerService.DesignerContext context,
+            BusinessObjectTableMappingVO mapping) {
+        JSONObject sync = readObject(context.getObject().getDesignerOptions()).getJSONObject(DATABASE_SYNC_OPTION_KEY);
+        if (sync == null || StringUtils.isBlank(sync.getString("status"))) {
+            return;
+        }
+        int currentVersion = context.getConfig() == null
+                ? 0 : defaultInteger(context.getConfig().getDraftVersion());
+        String lastStatus = sync.getString("status");
+        Integer syncedVersion = sync.getInteger("designVersion");
+        boolean staleStatus = !"IN_SYNC".equalsIgnoreCase(lastStatus);
+        boolean staleVersion = syncedVersion == null || syncedVersion != currentVersion;
+        if (!staleStatus && !staleVersion) {
+            return;
+        }
+        try {
+            persistSyncResult(context, "IN_SYNC", "数据库结构与当前设计一致", 0);
+            mapping.setLastSyncStatus("IN_SYNC");
+            mapping.setLastSyncMessage("数据库结构与当前设计一致");
+            mapping.setLastSyncTime(LocalDateTime.now());
+        } catch (RuntimeException ignored) {
+            // 摘要回写失败不影响实时探库结果。
         }
     }
 

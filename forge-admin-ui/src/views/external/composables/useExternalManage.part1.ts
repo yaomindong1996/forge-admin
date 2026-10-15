@@ -19,6 +19,87 @@ export function applyExternalManagePart1(props, emit) {
   const __impl = {}
   const mut = {}
 
+  // 拆分 SFC 时遗漏的 setup 状态初始化（缺这些会导致页面空白 / message is not defined）
+  const message = window.$message
+  const authStore = useAuthStore()
+  const systemCrudRef = ref()
+  const apiCrudRef = ref()
+  const logCrudRef = ref()
+  const selectedSystem = ref(null)
+  const systemOptions = ref([])
+  const systemBaseUrlMap = ref({})
+  const systemCount = ref(0)
+  const apiViewMode = ref(false)
+  const logDrawerVisible = ref(false)
+  const logApi = ref(null)
+  const logSummary = ref({})
+  const debugModalVisible = ref(false)
+  const debugApi = ref(null)
+  const debugParamsText = ref('{}')
+  const debugFieldSchema = ref([])
+  const debugFieldValues = ref({})
+  const debugResult = ref(null)
+  const debugLoading = ref(false)
+  const usageModalVisible = ref(false)
+  const usageApi = ref(null)
+  const usageCode = ref('')
+  const docModalVisible = ref(false)
+  const docApi = ref(null)
+  const docFiles = ref([])
+  const docSaving = ref(false)
+  const EXTERNAL_AUTH_ADAPTER_DICT = 'external_auth_adapter'
+  const { dict, getLabel } = useDict(
+    EXTERNAL_AUTH_ADAPTER_DICT,
+    'external_auth_type',
+    'external_api_key_position',
+    'external_request_content_type',
+    'external_call_status',
+    'external_call_type',
+    'external_api_execution_mode',
+    'sys_enable_disable',
+    'sys_req_method',
+    'sys_yes_no',
+  )
+
+  const apiFormSlotNames = ['apiPresetGuide', 'urlPreview', 'requestHeaders', 'requestParams', 'requestBodyTemplate', 'mockResponseJson', 'paramMappings', 'successCodes', 'inputSchemaJson', 'outputSchemaJson']
+  const oauth2GrantTypeOptions = [
+    { label: '客户端凭证', value: 'client_credentials' },
+    { label: '密码模式', value: 'password' },
+    { label: '授权码', value: 'authorization_code' },
+    { label: '刷新令牌', value: 'refresh_token' },
+  ]
+  const tokenHeaderOptions = [
+    { label: 'Authorization', value: 'Authorization' },
+    { label: 'X-Access-Token', value: 'X-Access-Token' },
+    { label: 'X-Auth-Token', value: 'X-Auth-Token' },
+  ]
+  const tokenPrefixOptions = [
+    { label: 'Bearer', value: 'Bearer' },
+    { label: 'Token', value: 'Token' },
+  ]
+
+  const isApiStandalone = computed(() => props.initialView === 'api')
+  const logDrawerWidth = 'min(1120px, 92vw)'
+  const apiPageTitle = computed(() => {
+    if (isApiStandalone.value || !selectedSystem.value)
+      return '外部接口'
+    return `接口管理 · ${selectedSystem.value.systemName || selectedSystem.value.systemCode || ''}`
+  })
+  const panelSubtitle = computed(() => {
+    if (!isApiStandalone.value && !apiViewMode.value)
+      return '维护外部系统连接与认证配置'
+    return selectedSystem.value ? `${selectedSystem.value.systemName || ''} 下的接口配置` : '维护所有外部接口配置'
+  })
+  const logDrawerTitle = computed(() => logApi.value ? `调用日志 - ${logApi.value.apiName || logApi.value.apiCode}` : '外部接口调用日志')
+
+  const systemApiConfig = {
+    list: 'get@/external/system/page',
+    detail: 'get@/external/system/:id',
+    add: 'post@/external/system',
+    update: 'put@/external/system',
+    delete: 'delete@/external/system/:id',
+  }
+
   const apiApiConfig = {
     list: 'get@/external/api/page',
     detail: 'get@/external/api/:id',
@@ -418,18 +499,19 @@ export function applyExternalManagePart1(props, emit) {
   }
 
   function beforeRenderSystemForm(row) {
-    return formatSystemForm(row || getDefaultSystemForm())
+    // part2 写入 __impl.formatSystemForm；提交/渲染时再解析，避免拆分后闭包未绑定
+    return __impl.formatSystemForm(row || getDefaultSystemForm())
   }
 
   function beforeRenderSystemDetail(data) {
-    return formatSystemForm({
+    return __impl.formatSystemForm({
       ...getDefaultSystemForm(),
       ...data,
     })
   }
 
   function beforeSubmitSystem(formData) {
-    const payload = cleanSystemAuthFields(formData)
+    const payload = __impl.cleanSystemAuthFields(formData)
     if (payload.authType === 'custom') {
       if (!payload.customAuthAdapter) {
         message.error('请选择认证适配器')
@@ -439,7 +521,7 @@ export function applyExternalManagePart1(props, emit) {
         return false
       }
     }
-    return trimPayload(payload)
+    return __impl.trimPayload(payload)
   }
 
   function useQichachaPreset(formData, updateValue) {
@@ -602,8 +684,8 @@ export function applyExternalManagePart1(props, emit) {
         return false
       }
     }
-    if (!validateApiSchemaFields(payload.inputSchemaJson, '输入参数定义', false)
-      || !validateApiSchemaFields(payload.outputSchemaJson, '返回字段解析', true)) {
+    if (!__impl.validateApiSchemaFields(payload.inputSchemaJson, '输入参数定义', false)
+      || !__impl.validateApiSchemaFields(payload.outputSchemaJson, '返回字段解析', true)) {
       return false
     }
     const jsonFields = [
@@ -619,7 +701,7 @@ export function applyExternalManagePart1(props, emit) {
     if (payload.requestContentType === 'application/json' && !validateJson(payload.requestBodyTemplate, '请求体模板')) {
       return false
     }
-    return trimPayload(payload)
+    return __impl.trimPayload(payload)
   }
 
   function getSelectedSystemId() {
@@ -1085,13 +1167,13 @@ export function applyExternalManagePart1(props, emit) {
   return {
     props, emit, __impl, mut, backToSystems, beforeLoadApiList, beforeLoadLogList, beforeRenderApiDetail,
     beforeRenderApiForm, beforeRenderSystemDetail, beforeRenderSystemForm, beforeRenderSystemList, beforeSubmitApi, beforeSubmitSystem, boolSwitch, buildLogParams,
-    cleanSystemAuthFields, copyUsageCode, downloadDoc, formatApiForm, formatDebugParams, formatDuration, formatJson, formatPercent,
-    formatSystemForm, getDefaultApiForm, getDefaultSystemForm, getDownloadFileName, getSelectedSystemId, handleApiDeleted, handleApiSaved, handleClearLogs,
+    copyUsageCode, downloadDoc, formatApiForm, formatDebugParams, formatDuration, formatJson, formatPercent,
+    getDefaultApiForm, getDefaultSystemForm, getDownloadFileName, getSelectedSystemId, handleApiDeleted, handleApiSaved, handleClearLogs,
     handleDocRemove, handleDocUploadSuccess, handleOpenDebug, handleOpenDoc, handleOpenLogs, handleOpenSystemApis, handleOpenSystemLogs, handleOpenUsage,
     handleRefreshLogs, handleRunDebug, handleSaveDoc, handleSystemDeleted, handleSystemListLoaded, handleSystemSaved, loadLogSummary, loadSystemOptions,
     mergeSystemOptions, parseSchema, pathOptionsFor, renderApiRequestConfig, renderApiResponseRule, renderBooleanTag, renderDocTag, renderDurationTag,
-    renderMethodTag, renderStatusTag, renderTextWithTooltip, showAllApis, toBool, trimPayload, useQichachaApiPreset, useQichachaPreset,
-    validateApiSchemaFields, validateJson, message, authStore, systemCrudRef, apiCrudRef, logCrudRef, selectedSystem,
+    renderMethodTag, renderStatusTag, renderTextWithTooltip, showAllApis, toBool, useQichachaApiPreset, useQichachaPreset,
+    validateJson, message, authStore, systemCrudRef, apiCrudRef, logCrudRef, selectedSystem,
     systemOptions, systemBaseUrlMap, systemCount, apiViewMode, logDrawerVisible, logApi, logSummary, debugModalVisible,
     debugApi, debugParamsText, debugFieldSchema, debugFieldValues, debugResult, debugLoading, usageModalVisible, usageApi,
     usageCode, docModalVisible, docApi, docFiles, docSaving, EXTERNAL_AUTH_ADAPTER_DICT, apiFormSlotNames, oauth2GrantTypeOptions,

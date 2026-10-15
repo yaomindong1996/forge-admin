@@ -52,12 +52,11 @@
           AND c.status = 0
     </select>
 
-    <!-- 接收人一键已读，仅更新当前租户下仍有效且未读的关系。 -->
+    <!-- 接收人一键已读，仅更新当前租户下仍有效且未读的关系（表无通用审计更新时间字段）。 -->
     <update id="markAllRead">
         UPDATE sys_flow_cc
         SET is_read = 1,
-            read_time = #{readTime},
-            update_time = #{readTime}
+            read_time = #{readTime}
         WHERE tenant_id = #{tenantId}
           AND cc_user_id = #{userId}
           AND is_read = 0
@@ -81,7 +80,7 @@
     <update id="revokeBySender">
         UPDATE sys_flow_cc
         SET status = #{status}, revoke_by = #{senderId}, revoke_time = #{revokeTime},
-            revoke_reason = #{reason}, update_time = #{revokeTime}
+            revoke_reason = #{reason}
         WHERE id = #{id}
           AND tenant_id = #{tenantId}
           AND send_user_id = #{senderId}

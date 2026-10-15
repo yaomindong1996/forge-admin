@@ -234,7 +234,9 @@ forge:
       active-key-id: ${FORGE_CRYPTO_PERSISTENCE_ACTIVE_KEY_ID:}
       active-key: ${FORGE_CRYPTO_PERSISTENCE_ACTIVE_KEY:}
   api-config:
-    enabled: false
+    # 与平台「API配置管理」菜单对齐；关闭后页面仍可打开但自动注册不可用
+    enabled: true
+    auto-register: true
     rate-limit:
       enabled: true
       permits-per-minute: 120

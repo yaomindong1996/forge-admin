@@ -855,7 +855,9 @@ async function loadPublishedFlowModels() {
   }
   catch (error) {
     flowModels.value = []
-    window.$message.warning(resolveErrorMessage(error, '已发布流程模型加载失败'))
+    window.$message.warning(
+      resolveErrorMessage(error, '已发布流程模型加载失败（流程服务可能未启动，仍可配置处理器类任务）'),
+    )
   }
   finally {
     flowModelLoading.value = false

@@ -32,5 +32,7 @@ class FlowCcRevokeContractTest {
         assertTrue(mapper.contains("<update id=\"markAllRead\">"));
         assertTrue(mapper.contains("AND is_read = 0"));
         assertTrue(migration.contains("revoke_reason"));
+        // sys_flow_cc 无审计更新时间字段，禁止在抄送更新 SQL 中引用该列。
+        assertTrue(!mapper.contains("update_time ="));
     }
 }
