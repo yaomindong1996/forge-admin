@@ -251,6 +251,7 @@
       </main>
     </div>
 
+    <!-- 预览始终锁定「列表页」：自定义/弹窗等二级页只通过列表跳转进入，不进预览回落 -->
     <n-modal
       v-model:show="listPreviewVisible"
       preset="card"
@@ -260,9 +261,9 @@
       :style="{ width: 'calc(100vw - 32px)', maxWidth: 'calc(100vw - 32px)', minWidth: 0, height: 'calc(100vh - 32px)' }"
     >
       <n-watermark
-        v-if="pageWatermark.enabled && pageWatermarkContent"
+        v-if="listPreviewWatermark.enabled && listPreviewWatermarkContent"
         class="list-preview-watermark"
-        :content="pageWatermarkContent"
+        :content="listPreviewWatermarkContent"
         cross
         :font-size="16"
         :line-height="16"
@@ -282,17 +283,19 @@
             :layout="listPreviewRuntimeModel.layout"
             :fields="listPreviewRuntimeModel.fields"
             :runtime-crud-props="designerRuntimeCrudProps"
+            :runtime-interactive="false"
+            :force-live-preview="false"
             fill-host
           />
         </div>
         <ListPageGridDesigner
           v-else
           :key="`preview-${listPreviewLayoutKey}`"
-          :model-value="listPreviewLayout || designerPreviewGridLayout"
+          :model-value="listOnlyPreviewLayout"
           :fields="designFields"
           :model-schema="effectiveModelSchema"
           :layout-type="localSchema.layoutType"
-          :page-name="activeDesignerPage?.pageName || '列表页'"
+          :page-name="listPreviewPageName"
           :pages="designerPages"
           :action-pages="actionPageOptions"
           :form-options="formOptions"
@@ -310,17 +313,19 @@
           :layout="listPreviewRuntimeModel.layout"
           :fields="listPreviewRuntimeModel.fields"
           :runtime-crud-props="designerRuntimeCrudProps"
+          :runtime-interactive="false"
+          :force-live-preview="false"
           fill-host
         />
       </div>
       <ListPageGridDesigner
         v-else
         :key="`preview-${listPreviewLayoutKey}`"
-        :model-value="listPreviewLayout || designerPreviewGridLayout"
+        :model-value="listOnlyPreviewLayout"
         :fields="designFields"
         :model-schema="effectiveModelSchema"
         :layout-type="localSchema.layoutType"
-        :page-name="activeDesignerPage?.pageName || '列表页'"
+        :page-name="listPreviewPageName"
         :pages="designerPages"
         :action-pages="actionPageOptions"
         :form-options="formOptions"

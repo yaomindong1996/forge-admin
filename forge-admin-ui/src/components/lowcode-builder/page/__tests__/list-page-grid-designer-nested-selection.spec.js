@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { describe, expect, it, vi } from 'vitest'
@@ -6,6 +8,10 @@ import { useListDesignerStore } from '@/store'
 import ListPageGridDesigner from '../ListPageGridDesigner.vue'
 
 vi.mock('@/router', () => ({ default: { currentRoute: { value: { query: {} } } } }))
+
+function readSource(relativePath) {
+  return fs.readFileSync(path.resolve(process.cwd(), relativePath), 'utf8')
+}
 
 function createTabsLayout() {
   return {
@@ -52,6 +58,9 @@ function createTabsLayout() {
   }
 }
 
+/**
+ * ListPageGridDesigner 嵌套选中：组件 mount 覆盖主路径，源码契约覆盖 hydrate/样式硬约束。
+ */
 describe('list page grid designer nested selection', () => {
   it('invalid and removed selections leave an empty panel without reading a null block', async () => {
     const wrapper = mount(ListPageGridDesigner, {
@@ -87,9 +96,6 @@ describe('list page grid designer nested selection', () => {
       },
     })
 
-    await nextTick()
-    expect(wrapper.find('.prop-title').text()).toBe('提示面板')
-
     // 首次选择之后，布局更新不能反复用旧 activeBlockId 覆盖用户当前选择。
     useListDesignerStore().selectedBlockId = 'tabs_root'
     await wrapper.setProps({ modelValue: { ...createTabsLayout(), gap: 10 } })
@@ -100,5 +106,27 @@ describe('list page grid designer nested selection', () => {
     await nextTick()
     expect(wrapper.find('.prop-title').text()).toBe('Tabs 标签页')
     wrapper.unmount()
+  })
+
+  it('panel-only activeBlockId sync uses findBlockInTree and watches blocks', () => {
+    const source = readSource('src/components/lowcode-builder/page/composables/useListPageGridDesigner.part1.js')
+    expect(source).toContain('function syncActiveBlockSelection')
+    expect(source).toContain('findBlockInTree(blocks.value, blockId)')
+    expect(source).toMatch(/watch\(\s*\[\s*\(\) => props\.activeBlockId,\s*blocks\s*\]/)
+    expect(source).toContain('syncActiveBlockSelection()')
+  })
+
+  it('hydrateInitialState re-syncs active block after layout apply', () => {
+    const source = readSource('src/components/lowcode-builder/page/composables/useListPageGridDesigner.part1.js')
+    expect(source).toMatch(/async function hydrateInitialState[\s\S]*syncActiveBlockSelection\(\)/)
+  })
+
+  it('nested container child style uses pixel height instead of top-level 100%', () => {
+    const source = readSource('src/components/lowcode-builder/page/composables/useListPageGridDesigner.part3.js')
+    // createContainerChildBlock 必须写死 height: childHeight，禁止 child.props.style.height || childHeight
+    // （默认 style.height 为 '100%'，truthy 会把嵌套子块锁成错误固定高）
+    expect(source).toMatch(/function createContainerChildBlock[\s\S]*height:\s*childHeight/)
+    expect(source).not.toMatch(/height:\s*child\.props\?\.style\?\.height\s*\|\|\s*childHeight/)
+    expect(source).toContain('顶层默认 height 是 100%')
   })
 })

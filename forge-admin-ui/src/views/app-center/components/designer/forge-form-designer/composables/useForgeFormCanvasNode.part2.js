@@ -236,13 +236,26 @@ export function applyForgeFormCanvasNodePart2(props, emit, deps = {}) {
     }
   }
 
-  function buildCrudApiConfig(apiBase = '/business/object') {
+  function buildCrudApiConfig(apiBase = '/ai/crud/business_object') {
+    let prefix = String(apiBase || '').trim() || '/ai/crud/business_object'
+    if (!prefix.startsWith('/'))
+      prefix = `/${prefix}`
+    // 与 AiFormLayoutNodes.normalizeEmbeddedCrudApiBase 一致：剥 *_default_form
+    const key = prefix
+      .replace(/^\/ai\/crud\//i, '')
+      .replace(/^\//, '')
+      .replace(/-/g, '_')
+      .replace(/[^a-z0-9_]/gi, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '')
+      .replace(/_default_form$/i, '')
+    prefix = `/ai/crud/${key || 'business_object'}`
     return {
-      list: `get@${apiBase}/page`,
-      detail: `post@${apiBase}/getById`,
-      add: `post@${apiBase}/add`,
-      update: `post@${apiBase}/edit`,
-      delete: `post@${apiBase}/remove/:id`,
+      list: `get@${prefix}/page`,
+      detail: `get@${prefix}/:id`,
+      create: `post@${prefix}`,
+      update: `put@${prefix}`,
+      delete: `delete@${prefix}/:id`,
     }
   }
 

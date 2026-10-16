@@ -169,6 +169,30 @@ describe('runtime CRUD design preview props', () => {
     })])
   })
 
+  it('allows list designer to override search component to dictSelect with label', () => {
+    const fields = [
+      { field: 'status', label: '状态', componentType: 'input', queryType: 'eq' },
+    ]
+
+    expect(resolveCrudSearchFieldCatalog(fields, {
+      props: {
+        searchFieldRefs: ['status'],
+        searchFieldSettings: {
+          status: {
+            label: '启用状态',
+            componentType: 'dictSelect',
+            dictType: 'sys_normal_disable',
+          },
+        },
+      },
+    })).toEqual([expect.objectContaining({
+      field: 'status',
+      label: '启用状态',
+      componentType: 'dictSelect',
+      dictType: 'sys_normal_disable',
+    })])
+  })
+
   it('keeps treeSelect search fields as treeSelect with optionSource', () => {
     const fields = [
       {
@@ -478,6 +502,29 @@ describe('runtime CRUD design preview props', () => {
     expect(columns.map(item => item.prop || item.key)).toEqual(['name', 'actions'])
   })
 
+  it('applies list designer title/width/renderType from fieldSettings', () => {
+    const columns = applyTableColumnLayout(
+      [{ prop: 'status', title: '状态' }],
+      {
+        fieldSettings: {
+          status: {
+            title: '流程状态',
+            width: 120,
+            renderType: 'dictTag',
+            ellipsis: false,
+          },
+        },
+      },
+    )
+    expect(columns).toEqual([expect.objectContaining({
+      prop: 'status',
+      title: '流程状态',
+      width: 120,
+      renderType: 'dictTag',
+      ellipsis: false,
+    })])
+  })
+
   it('passes compiled process runtime actions through to AiCrudPage', () => {
     const props = buildRuntimeCrudProps({
       objectCode: 'order',
@@ -588,6 +635,29 @@ describe('runtime CRUD design preview props', () => {
     expect(props.detailModalWidth).toBe('min(1080px, 92vw)')
   })
 
+  it('passes form designer governance events as beforeRenderForm hook', async () => {
+    const props = buildRuntimeCrudProps({
+      configKey: 'demo',
+      options: {
+        formDesignerSchema: {
+          formKey: 'main',
+          settings: {
+            governance: {
+              events: [{
+                id: 'evt_after',
+                hook: 'afterLoad',
+                action: 'setFieldValue',
+                handler: 'fieldInput=E2E_AFTERLOAD',
+              }],
+            },
+          },
+        },
+      },
+    })
+    expect(typeof props.beforeRenderForm).toBe('function')
+    await expect(props.beforeRenderForm(null)).resolves.toEqual({ fieldInput: 'E2E_AFTERLOAD' })
+  })
+
   it('passes form designer governance fieldEvents and formInit through to AiCrudPage', () => {
     const formInit = {
       contextDefaults: [
@@ -688,6 +758,45 @@ describe('runtime CRUD design preview props', () => {
     expect(props.editSchema.find(item => item.field === 'hiddenField')).toBeUndefined()
     expect(props.uiDocument.components[0].editable).toBe(false)
     expect(props.uiDocument.components[1].editable).toBe(true)
+  })
+
+  it('designer visibility.readonly=false unlocks fields even when base editSchema is readonly', () => {
+    const props = buildRuntimeCrudProps({
+      editSchema: [
+        {
+          field: 'fieldMoney',
+          type: 'number',
+          label: '金额',
+          readonly: true,
+          disabled: true,
+          props: { disabled: true, readonly: true },
+        },
+      ],
+      options: {
+        formDesignerSchema: {
+          components: [
+            {
+              componentKey: 'money',
+              label: 'E2E_money',
+              fieldBinding: { fieldCode: 'fieldMoney' },
+              visibility: { hidden: false, readonly: false },
+              props: { disabled: false, readonly: false, e2eProbe: 1 },
+            },
+          ],
+        },
+      },
+    })
+
+    expect(props.editSchema.find(item => item.field === 'fieldMoney')).toMatchObject({
+      readonly: false,
+      disabled: false,
+      props: {
+        disabled: false,
+        readonly: false,
+        e2eProbe: 1,
+      },
+    })
+    expect(props.uiDocument.components[0].editable).toBe(true)
   })
 
   it('merges designer-only fields into editSchema so new inputs are not dropped by uiDocument', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createForgeFieldTemplateComponent } from '../../forge-form-designer/designerLayoutFactory'
+import { createForgeFieldTemplateComponent, createForgeLayoutComponent } from '../../forge-form-designer/designerLayoutFactory'
 import { buildAutoFieldAssets } from '../autoFieldRegistry'
 import {
   appendDesignerLayoutChild,
@@ -10,6 +10,7 @@ import {
   normalizeFormDesignerSchema,
   normalizeFormDesignerSchemaForSave,
   presentFormDesignerSchema,
+  resolveAppendShelfTarget,
   updateDesignerComponent,
 } from '../formDesignerSchema'
 
@@ -328,6 +329,40 @@ describe('formDesignerSchema', () => {
     expect(normalizedAfterRemoval.components[1].props.runtimeRules).toEqual([])
   })
 
+  it('migrates unbound switch showHide using component id as formData key', () => {
+    const schema = normalizeFormDesignerSchema({
+      components: [
+        {
+          id: 'cmp_e2e_switch_demo',
+          componentKey: 'switch',
+          fieldBinding: { mode: 'virtual', fieldCode: '' },
+          props: {
+            __events: [{
+              id: 'show_rate',
+              action: 'showHide',
+              targetId: 'cmp_e2e_rate_demo',
+              whenValue: 'true',
+              value: 'true',
+            }],
+          },
+        },
+        {
+          id: 'cmp_e2e_rate_demo',
+          componentKey: 'rate',
+          fieldBinding: { mode: 'virtual', fieldCode: '' },
+        },
+      ],
+    })
+
+    expect(schema.components[1].props.runtimeRules).toEqual([
+      expect.objectContaining({
+        legacyEventId: 'legacy:cmp_e2e_switch_demo:show_rate:showHide',
+        conditions: [{ source: 'formData', field: 'cmp_e2e_switch_demo', operator: 'eq', value: 'true' }],
+        effect: { visible: true, whenUnmatched: 'hidden' },
+      }),
+    ])
+  })
+
   it('keeps hidden field assets when they carry visibility rules', () => {
     const schema = createDefaultFormDesignerSchema({
       fields: [{
@@ -360,5 +395,45 @@ describe('formDesignerSchema', () => {
 
     expect(schema.components.map(component => component.fieldBinding.fieldCode)).toEqual(['fieldInput'])
     expect(schema.formName).toBe('明细表单')
+  })
+
+  it('resolves click-append target into selected card / tabs pane / collapse item / grid col', () => {
+    let schema = normalizeFormDesignerSchema({
+      formKey: 'nest_form',
+      formName: '嵌套表单',
+      layout: { gridColumns: 2 },
+      components: [],
+    })
+    const card = createForgeLayoutComponent('card', schema)
+    schema = insertDesignerComponent(schema, { parentId: '', index: 0 }, card)
+    const tabs = createForgeLayoutComponent('tabs', schema)
+    schema = insertDesignerComponent(schema, { parentId: '', index: 1 }, tabs)
+    const collapse = createForgeLayoutComponent('collapse', schema)
+    schema = insertDesignerComponent(schema, { parentId: '', index: 2 }, collapse)
+    const row = createForgeLayoutComponent('row', schema)
+    schema = insertDesignerComponent(schema, { parentId: '', index: 3 }, row)
+
+    const child = createForgeFieldTemplateComponent({ componentKey: 'input', label: '嵌套字段' }, schema)
+    expect(resolveAppendShelfTarget(schema, card.id, child)).toEqual({
+      parentId: card.id,
+      index: 0,
+    })
+    expect(resolveAppendShelfTarget(schema, tabs.id, child)).toEqual({
+      parentId: tabs.children[0].id,
+      index: 0,
+    })
+    expect(resolveAppendShelfTarget(schema, collapse.id, child)).toEqual({
+      parentId: collapse.children[0].id,
+      index: 0,
+    })
+    const firstCol = row.children.find(item => item.componentKey === 'col') || row.children[0]
+    expect(resolveAppendShelfTarget(schema, row.id, child)).toEqual({
+      parentId: firstCol.id,
+      index: 0,
+    })
+    expect(resolveAppendShelfTarget(schema, '', child)).toEqual({
+      parentId: '',
+      index: schema.components.length,
+    })
   })
 })

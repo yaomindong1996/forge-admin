@@ -535,11 +535,8 @@ export function applyApplicationRuntimePart5(deps = {}) {
   }
 
   async function prepareDraftPreviewNavigation() {
-    const tab = String(activePageDesignTab.value || '')
-    const onListOrForm = editing.value && ['list', 'form'].includes(tab)
-    // 设置/发布页：仅脏时保存；列表/表单仍尽量落盘（dirty 可能漏标）
-    const needsSave = currentDesignerDirty() || onListOrForm
-    if (needsSave && !await saveCurrentDesignerSection())
+    // 仅脏时落盘：干净状态直接进预览，避免列表/表单每次点预览都全量保存+重载
+    if (currentDesignerDirty() && !await saveCurrentDesignerSection({ forPreview: true }))
       return null
     // 自由编排页面走应用运行壳；对象页面/数据结构落到对象自身的 CRUD 运行页预览。
     if (!pageBuilderResourceActive.value && previewableResourceActive.value) {
@@ -550,11 +547,37 @@ export function applyApplicationRuntimePart5(deps = {}) {
   }
 
   /** 顶栏「预览」Tab：同页切到草稿预览，避免新开窗口后丢 Tab */
+  /** 草稿预览入口固定 pageKey=list；自定义/弹窗等二级页只允许运行态跳转进入，不改顶栏预览交互 */
+  function buildDraftPreviewQuery(previewPageId) {
+    return {
+      pageId: previewPageId,
+      draft: '1',
+      returnEdit: '1',
+      pageKey: 'list',
+    }
+  }
+
+  /** 点预览瞬间先丢异步 chunk，与保存并行，缩短进草稿后的资源等待 */
+  function prefetchDraftPreviewChunks() {
+    void Promise.all([
+      import('@/components/lowcode-builder/page/GridBlockRenderer.vue').catch(() => {}),
+      import('@/components/ai-form/AiCrudPage.vue').catch(() => {}),
+      import('@/components/lowcode-builder/shared/PageWidgetRenderer.vue').catch(() => {}),
+      import('@/components/lowcode-builder/page/RuntimeListGridFlow.vue').catch(() => {}),
+      import('@/views/app-center/components/portal/PortalPageRenderer.vue').catch(() => {}),
+    ])
+  }
+
   async function openDraftPreviewInPlace() {
     if (previewTabLoading.value)
       return
     previewTabLoading.value = true
-    const loadingMsg = message.loading('正在保存草稿并打开预览…', { duration: 0 })
+    prefetchDraftPreviewChunks()
+    const dirty = currentDesignerDirty()
+    const loadingMsg = message.loading(
+      dirty ? '正在保存草稿并打开预览…' : '正在打开预览…',
+      { duration: 0 },
+    )
     try {
       const previewPageId = await prepareDraftPreviewNavigation()
       if (!previewPageId)
@@ -562,7 +585,7 @@ export function applyApplicationRuntimePart5(deps = {}) {
       await router.replace({
         name: 'BusinessApplicationRuntime',
         params: { applicationCode: application.value.applicationCode },
-        query: { pageId: previewPageId, draft: '1', returnEdit: '1' },
+        query: buildDraftPreviewQuery(previewPageId),
       })
     }
     finally {
@@ -579,7 +602,7 @@ export function applyApplicationRuntimePart5(deps = {}) {
     const target = router.resolve({
       name: 'BusinessApplicationRuntime',
       params: { applicationCode: application.value.applicationCode },
-      query: { pageId: previewPageId, draft: '1', returnEdit: '1' },
+      query: buildDraftPreviewQuery(previewPageId),
     })
     const win = window.open(target.href, '_blank')
     if (!win) {

@@ -1,7 +1,7 @@
 <template>
   <section
     class="portal-page-renderer"
-    :class="{ 'is-fill': fillHost }"
+    :class="{ 'is-fill': useFillHostChrome }"
     :data-forge-app="applicationCode"
     :data-forge-page="pageId"
   >
@@ -28,7 +28,7 @@
     <div
       v-else-if="blocks.length"
       class="portal-page-flow"
-      :class="{ 'is-fill': fillHost, 'is-content-sized': contentSizedFlow }"
+      :class="{ 'is-fill': useFillHostChrome, 'is-content-sized': contentSizedFlow }"
       :style="portalFlowStyle"
     >
       <section
@@ -36,7 +36,7 @@
         :key="block.id || `${block.blockType}-${index}`"
         class="portal-page-block"
         :class="{
-          'is-fill': fillHost && blocks.length === 1,
+          'is-fill': useFillHostChrome && blocks.length === 1,
           'is-runtime-form': isRuntimeAutoHeightBlock(block),
         }"
         :data-page-block-type="block.blockType"
@@ -55,6 +55,7 @@
           :runtime-crud-loading-resolver="isRuntimeCrudLoading"
           :data-source-configured-resolver="isDataSourceConfigured"
           :runtime-tree-active-key="runtimeTreeActiveKey"
+          :suppress-runtime-list-grid="suppressEmbeddedCrudListGrid"
           :selected="false"
           :readonly="!configurable"
           @runtime-tree-select="handleRuntimeTreeSelect"
@@ -198,6 +199,21 @@ const blocks = computed(() => {
 
 const contentSizedFlow = computed(() => shouldUseContentSizedFlow(blocks.value, contentSizedOptions.value))
 
+/** 多块自由布局走绝对定位时禁用 fill 的 overflow:hidden，避免裁切 pageFlowY 较大的块 */
+const useFillHostChrome = computed(() => {
+  if (!props.fillHost)
+    return false
+  if (!contentSizedFlow.value && blocks.value.length > 1)
+    return false
+  return true
+})
+
+/**
+ * 多块自由编排页里的 AiCrudPage 是可配置组件，禁止再嵌套对象列表伴生块壳；
+ * 仅「整页唯一 AiCrudPage」时保留 RuntimeListGridFlow，用于对象列表入口展开伴生布局。
+ */
+const suppressEmbeddedCrudListGrid = computed(() => blocks.value.length > 1)
+
 /** 有数据块但 CRUD 尚未就绪时，整页内容骨架代替空白 */
 const showContentSkeleton = computed(() => {
   if (!blocks.value.length || externalUrl.value)
@@ -245,7 +261,8 @@ function resolvePortalRuntimePagePadding(raw) {
 
 const portalFlowStyle = computed(() => {
   const style = { padding: pagePaddingCss.value }
-  if (!props.fillHost && !contentSizedFlow.value)
+  // 绝对自由布局需要按 pageFlow 坐标撑开画布高度（含 fillHost 宿主场景）
+  if (!contentSizedFlow.value)
     style.minHeight = `${pageHeight.value}px`
   return style
 })
@@ -750,7 +767,7 @@ function resolveBlockShellStyle(block, index) {
 
   const gridLayout = props.page?.layout?.gridLayout || {}
   const pagePadding = resolvePortalRuntimePagePadding(gridLayout.pagePadding || props.page?.layout?.pagePadding)
-  return computePageBlockShellStyle(block, blocks.value, {
+  const shell = computePageBlockShellStyle(block, blocks.value, {
     pageId: props.pageId || props.node?.id || '',
     pagePadding,
     pageFlowCoordSpace: gridLayout.pageFlowCoordSpace,
@@ -758,6 +775,13 @@ function resolveBlockShellStyle(block, index) {
     fillHost: false,
     runtimePreview: true,
   })
+  // 列表 CRUD 若壳为 height:auto，子块 height:100% 会塌成空框；绝对布局锁成可用高度
+  if (isListCrud && (shell.height === 'auto' || shell.height == null)) {
+    const locked = Math.max(420, customHeight)
+    shell.height = `${locked}px`
+    shell.minHeight = `${locked}px`
+  }
+  return shell
 }
 
 function resolveDefaultBlockHeight(block = {}) {
@@ -903,6 +927,11 @@ function readLength(value) {
   min-height: 0;
 }
 
+/* 自由布局绝对定位：允许内容溢出可见（设计高度可能小于真实表格） */
+.portal-page-flow:not(.is-content-sized):not(.is-fill) .portal-page-block {
+  overflow: visible;
+}
+
 .portal-page-block.is-runtime-form :deep(.grid-block),
 .portal-page-block[data-page-block-type='page-title'] :deep(.grid-block),
 .portal-page-block[data-page-block-type='workspace-summary-metrics'] :deep(.grid-block),
@@ -942,13 +971,14 @@ function readLength(value) {
   height: 100% !important;
 }
 
-/* 左树右表 / 列表块：非填满宿主时保底高度，避免表格被压成空白 */
-.portal-page-block[data-page-block-type='AiCrudPage'] {
+/* 文档流列表块保底高度，避免表格被压成空白。
+ * 自由布局绝对定位不套 560，否则设计态 pageFlowHeight（如 300）会被强行撑高。 */
+.portal-page-flow.is-content-sized .portal-page-block[data-page-block-type='AiCrudPage'] {
   min-height: 560px;
 }
 
-.portal-page-block[data-page-block-type='AiCrudPage'] :deep(.tree-crud-layout),
-.portal-page-block[data-page-block-type='AiCrudPage'] :deep(.ai-crud-preview) {
+.portal-page-flow.is-content-sized .portal-page-block[data-page-block-type='AiCrudPage'] :deep(.tree-crud-layout),
+.portal-page-flow.is-content-sized .portal-page-block[data-page-block-type='AiCrudPage'] :deep(.ai-crud-preview) {
   min-height: 520px;
 }
 

@@ -146,7 +146,7 @@
 
 <script setup>
 import { ChevronDownOutline, ChevronUpOutline } from '@vicons/ionicons5'
-import { computed, getCurrentInstance, markRaw, nextTick, onBeforeUnmount, onMounted, reactive, ref, useSlots, watch } from 'vue'
+import { computed, getCurrentInstance, markRaw, nextTick, onBeforeUnmount, onMounted, provide, reactive, ref, useSlots, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { executeLowcodeQuerySource } from '@/api/lowcode-query-source'
 import { isPageWidgetComponentKey } from '@/components/lowcode-builder/shared/page-widget-schema'
@@ -287,6 +287,11 @@ const props = defineProps({
   // 设计器预览模式：保留空布局容器（刚拖入、尚未放置字段的栅格/卡片/标签页等），
   // 默认 false 维持运行态语义——发布后的表单里空容器不渲染。
   keepEmptyLayoutNodes: {
+    type: Boolean,
+    default: false,
+  },
+  // 整表只读（详情态由 AiCrudPage :readonly="isDetailMode" 传入）
+  readonly: {
     type: Boolean,
     default: false,
   },
@@ -556,12 +561,20 @@ const visibleSchema = computed(() => {
   return applySectionNavMarkers(applyShowFeedback(fields))
 })
 
+const formReadonly = computed(() => props.readonly === true
+  || props.context?.formReadonly === true
+  || props.context?.isDetail === true
+  || props.context?.modalStatus === 'detail')
+provide('aiFormReadonly', formReadonly)
+
 const itemContext = computed(() => ({
   ...props.context,
   row: props.context?.currentRow || props.context?.row || formValue.value,
   record: formValue.value,
   formData: formValue.value,
   data: formValue.value,
+  // 显式 prop 优先；详情上下文（isDetail / modalStatus）作为兜底
+  formReadonly: formReadonly.value,
   route: {
     query: route.query || {},
     params: route.params || {},
@@ -583,6 +596,9 @@ const itemContext = computed(() => ({
   getFieldEventState,
   getFieldEventRules: (trigger, field) => fieldEventRuntime?.getRules(trigger, field) || [],
   hasFieldEvent: (trigger, field) => fieldEventRuntime?.hasRule(trigger, field) === true,
+  // 设计器 __events（blur/change）与 fieldEvents（查询回填）分流；blur 由 AiFormItem focusout 触发
+  runComponentInteractionEvents,
+  hasComponentInteractionEvent,
 }))
 
 fieldEventRuntime = createFieldEventRuntime({
@@ -676,6 +692,8 @@ async function handleFieldChange(field, value) {
     emit('update:value', { ...formValue.value })
   }
 
+  // 设计器字段交互 __events（change）：setValue / clearValue / openModal 等
+  runComponentInteractionEvents('change', field, value)
   await dispatchFieldEvent('CHANGE', field)
   await validateChangedField(field)
 }
@@ -844,14 +862,99 @@ function patchFormData(patch = {}) {
   emit('update:value', { ...formValue.value })
 }
 
+function resolveInteractionTargetField(targetId = '') {
+  const key = String(targetId || '').trim()
+  if (!key)
+    return ''
+  const byField = allFieldSchema.value.find(item => item?.field === key || item?.prop === key)
+  if (byField?.field)
+    return byField.field
+  const byId = allFieldSchema.value.find(item => item?.id === key)
+  if (byId?.field)
+    return byId.field
+  // 目标不在当前表单 schema 内时不写入，避免查询区/弹窗把无关字段带进提交或搜索参数
+  return ''
+}
+
+function matchInteractionWhenValue(event = {}, currentValue) {
+  if (event.whenValue === undefined || event.whenValue === null || event.whenValue === '')
+    return true
+  return String(currentValue) === String(event.whenValue)
+}
+
+function coerceFieldEventsList(events) {
+  if (Array.isArray(events))
+    return events
+  // 设计器偶发把数组存成 {0: evt}；空对象条目无 action，运行时直接跳过
+  if (events && typeof events === 'object')
+    return Object.values(events)
+  return []
+}
+
+function collectFieldInteractionEvents(field = '') {
+  const fieldConfig = allFieldSchema.value.find(item => item?.field === field)
+  if (!fieldConfig)
+    return []
+  const fromProps = coerceFieldEventsList(fieldConfig.props?.__events)
+  if (fromProps.length)
+    return fromProps
+  return coerceFieldEventsList(fieldConfig.__events)
+}
+
+/** 运行设计器组件交互规则（非 showHide/enableDisable，那两类已投影到 runtimeRules） */
+function runComponentInteractionEvents(trigger = 'change', field = '', value) {
+  const events = collectFieldInteractionEvents(field)
+  if (!events.length)
+    return
+  const currentValue = value === undefined ? formValue.value?.[field] : value
+  events
+    .filter(event => event && event.enabled !== false)
+    .filter(event => String(event.trigger || 'change') === String(trigger))
+    .filter(event => ['setValue', 'clearValue', 'openModal', 'apiRequest', 'message'].includes(String(event.action || '')))
+    .filter(event => matchInteractionWhenValue(event, currentValue))
+    .forEach(event => handleNodeAction({
+      node: allFieldSchema.value.find(item => item?.field === field),
+      event,
+      action: event.action,
+    }))
+}
+
+function hasComponentInteractionEvent(trigger = 'change', field = '') {
+  return collectFieldInteractionEvents(field).some((event) => {
+    if (!event || event.enabled === false)
+      return false
+    if (!['setValue', 'clearValue', 'openModal', 'apiRequest', 'message'].includes(String(event.action || '')))
+      return false
+    return String(event.trigger || 'change') === String(trigger)
+  })
+}
+
 function handleNodeAction(payload = {}) {
   emit('nodeAction', payload)
   const event = payload.event || {}
-  if (event.action === 'setValue' && event.targetId) {
-    patchFormData({ [event.targetId]: event.value ?? event.targetValue ?? event.whenValue ?? '' })
+  const action = String(event.action || payload.action || '').trim()
+  if (action === 'message') {
+    const text = String(event.message || event.content || event.description || event.value || '').trim()
+    if (text)
+      handleFieldEventNotify({ message: text, type: event.messageType || 'info' })
     return
   }
-  if (event.action !== 'openModal')
+  // 查询区只负责筛选条件，禁止 setValue/clearValue/openModal 把业务字段写进 searchParams
+  if (isSearchForm.value && ['setValue', 'clearValue', 'openModal'].includes(action))
+    return
+  if (action === 'setValue' && event.targetId) {
+    const targetField = resolveInteractionTargetField(event.targetId)
+    if (targetField)
+      patchFormData({ [targetField]: event.value ?? event.targetValue ?? '' })
+    return
+  }
+  if (action === 'clearValue' && event.targetId) {
+    const targetField = resolveInteractionTargetField(event.targetId)
+    if (targetField)
+      patchFormData({ [targetField]: null })
+    return
+  }
+  if (action !== 'openModal')
     return
   const asset = findFormAsset(event.modalFormKey)
   actionModalTitle.value = event.modalTitle || asset?.formName || '业务弹窗'
@@ -889,6 +992,18 @@ function normalizeDesignerComponentForRuntime(component = {}) {
     ? component.children.map(normalizeDesignerComponentForRuntime).filter(Boolean)
     : []
   const isWidget = isPageWidgetComponentKey(componentKey)
+  const generation = component.props?.generation
+  const generationEnabled = generation && typeof generation === 'object' && generation.enabled !== false
+    && Boolean(generation.ruleCode || generation.codeRuleCode)
+  const rawPlaceholder = String(component.props?.placeholder || component.placeholder || '').trim()
+  const placeholderLooksManual = !rawPlaceholder
+    || rawPlaceholder.startsWith('请填写')
+    || rawPlaceholder.startsWith('请输入')
+    || rawPlaceholder.startsWith('占位')
+  // 自动编号字段新增态为空且只读；占位仍写「请输入」时客户会误判为坏了
+  const runtimePlaceholder = generationEnabled && placeholderLooksManual
+    ? '保存后自动生成'
+    : (component.props?.placeholder || component.placeholder)
   const base = {
     ...component,
     ...(component.props || {}),
@@ -902,12 +1017,14 @@ function normalizeDesignerComponentForRuntime(component = {}) {
     required: Boolean(component.validation?.required),
     requiredMessage: component.validation?.requiredMessage,
     hidden: Boolean(component.visibility?.hidden),
-    readonly: Boolean(component.visibility?.readonly),
-    disabled: Boolean(component.visibility?.readonly || component.props?.disabled),
+    readonly: Boolean(component.visibility?.readonly || generationEnabled),
+    disabled: Boolean(component.visibility?.readonly || generationEnabled || component.props?.disabled),
+    placeholder: runtimePlaceholder,
     props: {
       ...(component.props || {}),
-      disabled: Boolean(component.visibility?.readonly || component.props?.disabled),
-      readonly: Boolean(component.visibility?.readonly),
+      placeholder: runtimePlaceholder,
+      disabled: Boolean(component.visibility?.readonly || generationEnabled || component.props?.disabled),
+      readonly: Boolean(component.visibility?.readonly || generationEnabled),
     },
     children,
     ...(isWidget ? { fieldBinding: { ...(component.fieldBinding || {}), mode: component.fieldBinding?.mode || 'virtual' } } : {}),
@@ -1330,7 +1447,7 @@ function isContainerLayoutNode(node = {}) {
 }
 
 function isActionRuntimeNode(node = {}) {
-  return ['button', 'table', 'AiCrudPage', 'aiCrudPage', 'crud', 'crudBlock']
+  return ['button', 'table', 'AiCrudPage', 'aiCrudPage', 'crud', 'crudBlock', 'subTable', 'forgeSubTable', 'childTable']
     .includes(node.type || node.nodeType || node.componentKey)
 }
 

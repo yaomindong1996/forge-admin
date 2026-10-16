@@ -12,6 +12,7 @@ import {
   resolveDocumentNodeControlType,
   resolveFieldControlType,
 } from '@/components/ai-form/control-type-utils'
+import { isPageWidgetComponentKey } from '@/components/lowcode-builder/shared/page-widget-schema'
 
 const LAYOUT_NODE_TYPES = new Set([
   'row',
@@ -43,6 +44,9 @@ const LAYOUT_NODE_TYPES = new Set([
   'aiCrudPage',
   'crud',
   'crudBlock',
+  'subTable',
+  'forgeSubTable',
+  'childTable',
 ])
 
 function fieldKey(field) {
@@ -95,6 +99,9 @@ function resolveLayoutNodeType(type = '') {
     return componentKey
   if (['AiCrudPage', 'aiCrudPage', 'crud', 'crudBlock'].includes(componentKey))
     return 'AiCrudPage'
+  // 关联子表：无 field / 无 children，仍须保留布局节点供 AiFormLayoutNodes 渲染
+  if (['subTable', 'forgeSubTable', 'childTable'].includes(componentKey))
+    return 'subTable'
   return ''
 }
 
@@ -203,8 +210,8 @@ export function mapUiDocumentComponentsToAiFormSchema(components = [], fields = 
 
       if (layoutType || (!key && children.length && isLayoutComponentType(rawType || type))) {
         const mappedChildren = mapNodes(children)
-        if (!mappedChildren.length && !['divider', 'groupTitle', 'button'].includes(layoutType))
-          return
+        // 空布局容器仍保留：设计器可放空 card/tabs/collapse/row/table，
+        // 运行态 AiFormLayoutNodes 会渲染「暂无内容」占位，避免预览/发布静默丢容器与样式。
         const layoutNode = {
           ...node,
           type: layoutType || type || 'row',
@@ -219,6 +226,47 @@ export function mapUiDocumentComponentsToAiFormSchema(components = [], fields = 
       }
 
       if (!key) {
+        const controlType = normalizeRuntimeControlType(type || rawType)
+        // 页面挂件：无字段绑定也必须渲染，否则编辑态可见、预览/发布静默丢失
+        if (isPageWidgetComponentKey(rawType) || isPageWidgetComponentKey(type) || isPageWidgetComponentKey(controlType)) {
+          const widgetKey = String(node.id || node.key || `widget_${rawType || type}`).trim()
+          usedKeys.add(widgetKey)
+          result.push({
+            ...node,
+            field: widgetKey,
+            fieldCode: widgetKey,
+            type: rawType || type || controlType,
+            componentKey: rawType || type || controlType,
+            nodeType: 'widget',
+            label: node.label || rawType || type,
+            props: node.props && typeof node.props === 'object' ? { ...node.props } : {},
+            showLabel: false,
+            showFeedback: false,
+            fieldBinding: { mode: 'virtual' },
+          })
+          return
+        }
+        // 未绑定业务字段的表单控件：用组件 id 合成 field，保证三态可见一致
+        if (DOCUMENT_CONTROL_TYPES.has(controlType) || DOCUMENT_CONTROL_TYPES.has(String(rawType || '').trim())) {
+          const synthKey = String(node.id || node.key || `${controlType || rawType}_${result.length}`).trim()
+          if (synthKey) {
+            usedKeys.add(synthKey)
+            const documentType = controlType || normalizeRuntimeControlType(rawType) || 'input'
+            result.push({
+              field: synthKey,
+              fieldCode: synthKey,
+              type: documentType,
+              componentKey: rawType || type || documentType,
+              label: node.label || synthKey,
+              required: node.required === true,
+              props: node.props && typeof node.props === 'object' ? { ...node.props } : {},
+              span: node.span,
+              gridStyle: node.gridStyle,
+              nodeType: 'field',
+            })
+            return
+          }
+        }
         if (children.length) {
           const mappedChildren = mapNodes(children)
           if (mappedChildren.length) {
@@ -295,7 +343,8 @@ export function mapUiDocumentComponentsToAiFormSchema(components = [], fields = 
   }
 
   const mapped = mapNodes(components)
-  if (!usedKeys.size)
+  // 仅当整棵树都映射不出节点时才回退空；纯挂件表单也必须可预览
+  if (!mapped.length)
     return []
 
   // 有 uiDocument 组件树时，布局即「当前表单」事实来源。

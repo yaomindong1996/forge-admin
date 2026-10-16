@@ -83,6 +83,15 @@
           <span>{{ blocks.length }} 个区块 · {{ canvasGridWidth }}px · {{ canvasViewportSummary }}</span>
         </div>
         <n-space v-if="!readonly" class="canvas-primary-actions" size="small" align="center">
+          <n-button
+            size="small"
+            secondary
+            :disabled="!blocks.length"
+            title="按垂直堆叠拉开重叠/贴边的区块"
+            @click="tidyCanvasBlockSpacing"
+          >
+            整理间距
+          </n-button>
           <n-popconfirm
             :show-icon="false"
             positive-text="清空"

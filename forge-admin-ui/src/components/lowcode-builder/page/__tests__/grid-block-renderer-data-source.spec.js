@@ -117,7 +117,7 @@ describe('grid block renderer data source experience', () => {
     [{ formOnly: false, objectRef: { pageMode: 'form' } }, false],
     [{ objectRef: { pageMode: 'list' } }, false],
     [{ objectRef: { pageMode: 'crud', pageKey: 'form' } }, false],
-  ])('passes the page shape to the actual CRUD component: %o', (blockProps, formOnly) => {
+  ])('passes the page shape to the actual CRUD component: %o', async (blockProps, formOnly) => {
     const wrapper = mountAiForm({
       block: { id: 'crud_shape', blockType: 'AiCrudPage', fieldRefs: ['customerName'], props: blockProps },
       readonly: true,
@@ -131,14 +131,16 @@ describe('grid block renderer data source experience', () => {
         columns: [{ prop: 'customerName', label: '客户名称' }],
       },
     })
+    await flushPromises()
     const crud = wrapper.findComponent(AiCrudPage)
+    expect(crud.exists()).toBe(true)
     expect(crud.props('formOnly')).toBe(formOnly)
     expect(crud.props('editSchema')).toEqual(expect.arrayContaining([expect.objectContaining({ field: 'customerName' })]))
     expect(crud.props('columns')).toHaveLength(1)
     expect(crud.props('formOpenMode')).toBe('flat')
   })
 
-  it('renders a form-shaped static preview and retains submission protection', () => {
+  it('renders a form-shaped static preview and retains submission protection', async () => {
     const wrapper = mountAiForm({
       block: {
         id: 'form_preview',
@@ -149,7 +151,9 @@ describe('grid block renderer data source experience', () => {
       dataSourceConfigured: true,
       fields: [{ field: 'customerName', label: '客户名称', formVisible: true }],
     })
+    await flushPromises()
     const crud = wrapper.findComponent(AiCrudPage)
+    expect(crud.exists()).toBe(true)
     expect(crud.props('formOnly')).toBe(true)
     expect(crud.props('formOnlyTitle')).toBe('登记')
     expect(crud.props('formOnlySubmitText')).toBe('提交登记')

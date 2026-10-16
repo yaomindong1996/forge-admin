@@ -7,7 +7,7 @@
   <n-select
     :value="value"
     :placeholder="placeholder"
-    :options="selectOptions"
+    :options="mergedOptions"
     :loading="loading"
     :disabled="disabled"
     :clearable="clearable"
@@ -17,6 +17,7 @@
     :on-search="handleSearch"
     :label-field="labelField"
     :value-field="valueField"
+    :virtual-scroll="false"
     style="width: 100%"
     v-bind="$attrs"
     @update:value="handleUpdate"
@@ -24,7 +25,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { request } from '@/utils'
 
 const props = defineProps({
@@ -103,14 +104,20 @@ const props = defineProps({
 const emit = defineEmits(['update:value', 'change'])
 
 const loading = ref(false)
-const selectOptions = ref([])
+/** 远程接口拉回的选项；静态/父组件 options 优先走 props.options */
+const remoteOptions = ref([])
 
-// 监听静态选项变化
+const mergedOptions = computed(() => {
+  if (Array.isArray(props.options) && props.options.length > 0)
+    return props.options
+  return remoteOptions.value
+})
+
+// 父级 options 从空变为有值时，清掉陈旧远程缓存，避免和静态源打架
 watch(() => props.options, (newOptions) => {
-  if (newOptions && newOptions.length > 0) {
-    selectOptions.value = newOptions
-  }
-}, { immediate: true })
+  if (Array.isArray(newOptions) && newOptions.length > 0)
+    remoteOptions.value = []
+}, { deep: true })
 
 // 加载数据
 async function loadData(searchQuery = '') {
@@ -147,11 +154,11 @@ async function loadData(searchQuery = '') {
       }))
     }
 
-    selectOptions.value = data
+    remoteOptions.value = data
   }
   catch (error) {
     console.error('加载选项数据失败:', error)
-    selectOptions.value = []
+    remoteOptions.value = []
   }
   finally {
     loading.value = false
@@ -170,15 +177,16 @@ function handleUpdate(newValue) {
   emit('update:value', newValue)
 
   // 触发 change 事件，传递完整的选中项数据
+  const options = mergedOptions.value
   if (newValue !== null && newValue !== undefined) {
     if (props.multiple && Array.isArray(newValue)) {
-      const selectedItems = selectOptions.value.filter(item =>
+      const selectedItems = options.filter(item =>
         newValue.includes(item[props.valueField]),
       )
       emit('change', newValue, selectedItems)
     }
     else {
-      const selectedItem = selectOptions.value.find(item =>
+      const selectedItem = options.find(item =>
         item[props.valueField] === newValue,
       )
       emit('change', newValue, selectedItem || {})

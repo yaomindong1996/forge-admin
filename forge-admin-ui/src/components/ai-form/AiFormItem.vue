@@ -6,7 +6,7 @@
     :anchor-id="field.__sectionId"
     :description="field.props?.description || field.description"
     :badge="field.props?.badge || field.badge"
-    :style="field.style || field.formItemStyle"
+    :style="resolvedFormItemStyle || field.style || field.formItemStyle"
     :class="field.className"
   />
 
@@ -15,7 +15,7 @@
     v-else-if="fieldRuntimeVisible && isGroupTitleField"
     :label="field.label"
     :title="field.props?.title || field.title"
-    :style="field.style || field.formItemStyle"
+    :style="resolvedFormItemStyle || field.style || field.formItemStyle"
     :class-name="field.className"
   />
 
@@ -31,7 +31,7 @@
     :show-feedback="field.showFeedback !== false"
     :required="isFieldRequired"
     :data-ai-field="field.field"
-    :style="field.formItemStyle"
+    :style="resolvedFormItemStyle || field.formItemStyle"
     :class="formItemClass"
   >
     <template #label>
@@ -150,7 +150,7 @@
           v-on="getComponentEvents(field)"
         />
 
-        <!-- 下拉选择 -->
+        <!-- 下拉选择：弹层（modal/drawer）内虚拟列表首屏常算高却不渲染选项，关闭虚拟滚动保证可见 -->
         <n-select
           v-else-if="field.type === 'select'"
           v-bind="controlProps"
@@ -164,6 +164,7 @@
           :on-search="field.onSearch"
           :disabled="disabledHandler(field)"
           :multiple="fieldMultiple"
+          :virtual-scroll="false"
           @update:value="handleSelectUpdate"
           v-on="getComponentEvents(field)"
         />
@@ -307,15 +308,15 @@
           v-on="getComponentEvents(field)"
         />
 
-        <!-- 日期范围选择 -->
+        <!-- 日期范围选择：起止占位优先 props，再回退公共 placeholder -->
         <n-date-picker
           v-else-if="field.type === 'daterange'"
           :value="normalizeTimestampRangePickerValue(value)"
           :formatted-value="normalizeFormattedRangePickerValue(value)"
           type="daterange"
-          :placeholder="field.placeholder"
-          :start-placeholder="field.startPlaceholder || '开始日期'"
-          :end-placeholder="field.endPlaceholder || '结束日期'"
+          :placeholder="getPlaceholder(field)"
+          :start-placeholder="field.startPlaceholder || field.props?.startPlaceholder || getPlaceholder(field) || '开始日期'"
+          :end-placeholder="field.endPlaceholder || field.props?.endPlaceholder || '结束日期'"
           :clearable="field.clearable !== false"
           style="width: 100%"
           v-bind="controlProps"
@@ -327,15 +328,15 @@
           v-on="getComponentEvents(field)"
         />
 
-        <!-- 日期时间范围选择 -->
+        <!-- 日期时间范围选择：起止占位优先 props，再回退公共 placeholder -->
         <n-date-picker
           v-else-if="field.type === 'datetimerange'"
           :value="normalizeTimestampRangePickerValue(value)"
           :formatted-value="normalizeFormattedRangePickerValue(value)"
           type="datetimerange"
-          :placeholder="field.placeholder"
-          :start-placeholder="field.startPlaceholder || '开始时间'"
-          :end-placeholder="field.endPlaceholder || '结束时间'"
+          :placeholder="getPlaceholder(field)"
+          :start-placeholder="field.startPlaceholder || field.props?.startPlaceholder || getPlaceholder(field) || '开始时间'"
+          :end-placeholder="field.endPlaceholder || field.props?.endPlaceholder || '结束时间'"
           :clearable="field.clearable !== false"
           style="width: 100%"
           v-bind="controlProps"
@@ -400,11 +401,11 @@
           v-on="getComponentEvents(field)"
         />
 
-        <!-- 时间范围选择 -->
+        <!-- 时间范围选择：起止占位优先 props，再回退公共 placeholder -->
         <div v-else-if="field.type === 'timerange'" class="time-range-picker">
           <n-time-picker
             :formatted-value="resolveFormattedRangeValue(value, 0)"
-            :placeholder="field.startPlaceholder || '开始时间'"
+            :placeholder="field.startPlaceholder || field.props?.startPlaceholder || getPlaceholder(field) || '开始时间'"
             :clearable="field.clearable !== false"
             style="width: 100%"
             v-bind="controlProps"
@@ -418,7 +419,7 @@
           <span class="time-range-separator">至</span>
           <n-time-picker
             :formatted-value="resolveFormattedRangeValue(value, 1)"
-            :placeholder="field.endPlaceholder || '结束时间'"
+            :placeholder="field.endPlaceholder || field.props?.endPlaceholder || '结束时间'"
             :clearable="field.clearable !== false"
             style="width: 100%"
             v-bind="controlProps"
@@ -619,35 +620,37 @@
           v-on="getComponentEvents(field)"
         />
 
-        <!-- 穿梭框 -->
+        <!-- 穿梭框：Naive Transfer 用 source/target-filter-placeholder，不吃通用 placeholder -->
         <n-transfer
           v-else-if="field.type === 'transfer'"
           :value="resolveOptionValue(value)"
-          :options="currentOptions"
-          :filterable="field.filterable"
+          :filterable="field.filterable !== false && field.props?.filterable !== false"
           v-bind="controlProps"
+          :options="currentOptions"
+          :source-filter-placeholder="field.sourceFilterPlaceholder || field.props?.sourceFilterPlaceholder || getPlaceholder(field) || '请输入'"
+          :target-filter-placeholder="field.targetFilterPlaceholder || field.props?.targetFilterPlaceholder || getPlaceholder(field) || '请输入'"
           :disabled="disabledHandler(field)"
           @update:value="handleUpdate"
           v-on="getComponentEvents(field)"
         />
 
-        <!-- 远程搜索下拉框 -->
+        <!-- 远程搜索下拉框：静态选项走 currentOptions；:options 必须在 v-bind 之后，避免被盖成空 -->
         <AiCustomSelect
           v-else-if="field.type === 'customSelect'"
           :value="value"
           :placeholder="getPlaceholder(field)"
           :clearable="field.clearable !== false"
-          :api="field.api"
-          :method="field.method"
-          :label-field="field.labelField || field.props?.labelName || 'label'"
-          :value-field="field.valueField || field.props?.valueName || 'value'"
+          :api="field.api || field.props?.api"
+          :method="field.method || field.props?.method"
+          :label-field="field.labelField || field.props?.labelName || field.props?.labelField || 'label'"
+          :value-field="field.valueField || field.props?.valueName || field.props?.valueField || 'value'"
           :filterable="field.filterable !== false"
-          :multiple="field.multiple"
-          :remote="field.remote"
-          :options="field.options"
-          :params="field.params"
-          :transform="field.transform"
+          :multiple="fieldMultiple"
+          :remote="field.remote ?? field.props?.remote"
+          :params="field.params || field.props?.params"
+          :transform="field.transform || field.props?.transform"
           v-bind="controlProps"
+          :options="currentOptions"
           :disabled="disabledHandler(field)"
           @update:value="handleUpdate"
           v-on="getComponentEvents(field)"

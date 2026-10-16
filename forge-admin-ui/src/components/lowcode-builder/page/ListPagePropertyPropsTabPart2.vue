@@ -79,6 +79,22 @@
                     @update:value="patchBlockProps(selectedBlock.id, { title: $event })"
                   />
                 </n-form-item>
+                <template v-if="selectedBlock.blockType === 'AiCrudPage'">
+                  <n-form-item label="空态标题">
+                    <n-input
+                      :value="selectedBlock.props?.emptyTitle || ''"
+                      placeholder="暂无数据"
+                      @update:value="patchBlockProps(selectedBlock.id, { emptyTitle: $event || '' })"
+                    />
+                  </n-form-item>
+                  <n-form-item label="空态描述">
+                    <n-input
+                      :value="selectedBlock.props?.emptyDescription || selectedBlock.props?.emptyText || ''"
+                      placeholder="当前列表还没有记录"
+                      @update:value="patchBlockProps(selectedBlock.id, { emptyDescription: $event || '', emptyText: $event || '' })"
+                    />
+                  </n-form-item>
+                </template>
                 <n-collapse v-model:expanded-names="propertyCollapseExpandedNames" class="advanced-config-collapse">
                   <n-collapse-item v-if="propertySectionVisible(['基础配置', '接口', '基础路径', '行主键', '真实接口预览', '响应字段', '表单布局'])" name="base" title="接口与数据源">
                     <div class="property-search-anchor" data-property-search="基础配置 接口 数据源 基础路径 行主键 真实接口预览 响应字段 表单布局 api list detail create update delete import export" />
@@ -736,23 +752,58 @@
 
                   <n-collapse-item v-if="selectedBlock.blockType === 'AiCrudPage' && propertySectionVisible(['表单与弹窗', '新增', '编辑', '表单', '弹窗', '抽屉', '详情', '页脚', '打开方式', '标签位置', '标签对齐', '标签宽度', '表单列数'])" name="edit" title="表单与弹窗">
                     <div class="property-search-anchor" data-property-search="表单与弹窗 新增 编辑 表单 弹窗 抽屉 详情 页脚 打开方式 标签位置 标签对齐 标签宽度 表单列数" />
-                    <div class="form-modal-help">
-                      弹窗方式和表单布局已统一在「表单设计」的「表单属性 → 表单项配置」中管理。
-                    </div>
-                    <div class="form-modal-readonly-summary">
-                      <div class="readonly-summary-row">
-                        <span>打开方式</span>
-                        <strong>{{ selectedAiCrudFormModalProps.formOpenMode || selectedAiCrudFormModalProps.modalType || 'modal' }}</strong>
+                    <!-- 自由布局 panel-only：区块即表单 chrome 编辑入口；对象列表设计器仍只读摘要 -->
+                    <template v-if="panelOnly">
+                      <div class="form-modal-help">
+                        自由布局下打开方式与弹窗宽度写在当前 CRUD 组件上，运行时优先于对象默认配置。
                       </div>
-                      <div class="readonly-summary-row">
-                        <span>弹窗宽度</span>
-                        <strong>{{ selectedAiCrudFormModalProps.modalWidth || '800px' }}</strong>
+                      <n-form-item label="打开方式">
+                        <n-select
+                          :value="selectedAiCrudFormModalProps.formOpenMode || selectedAiCrudFormModalProps.modalType || 'modal'"
+                          :options="formOpenModeOptions"
+                          size="small"
+                          @update:value="patchBlockProps(selectedBlock.id, {
+                            formOpenMode: $event || 'modal',
+                            modalType: ['modal', 'drawer'].includes($event) ? $event : (selectedBlock.props?.modalType || 'modal'),
+                          })"
+                        />
+                      </n-form-item>
+                      <n-form-item v-if="(selectedAiCrudFormModalProps.formOpenMode || 'modal') === 'drawer'" label="抽屉方向">
+                        <n-select
+                          :value="selectedAiCrudFormModalProps.drawerPlacement || 'right'"
+                          :options="drawerPlacementOptions"
+                          size="small"
+                          @update:value="patchBlockProps(selectedBlock.id, { drawerPlacement: $event || 'right' })"
+                        />
+                      </n-form-item>
+                      <n-form-item label="弹窗宽度">
+                        <n-input
+                          :value="selectedAiCrudFormModalProps.modalWidth || '800px'"
+                          size="small"
+                          placeholder="800px / 80vw"
+                          @update:value="patchBlockProps(selectedBlock.id, { modalWidth: $event || '800px' })"
+                        />
+                      </n-form-item>
+                    </template>
+                    <template v-else>
+                      <div class="form-modal-help">
+                        弹窗方式和表单布局已统一在「表单设计」的「表单属性 → 表单项配置」中管理。
                       </div>
-                      <div class="readonly-summary-row">
-                        <span>编辑列数</span>
-                        <strong>{{ selectedAiCrudFormModalProps.editGridCols || 1 }}</strong>
+                      <div class="form-modal-readonly-summary">
+                        <div class="readonly-summary-row">
+                          <span>打开方式</span>
+                          <strong>{{ selectedAiCrudFormModalProps.formOpenMode || selectedAiCrudFormModalProps.modalType || 'modal' }}</strong>
+                        </div>
+                        <div class="readonly-summary-row">
+                          <span>弹窗宽度</span>
+                          <strong>{{ selectedAiCrudFormModalProps.modalWidth || '800px' }}</strong>
+                        </div>
+                        <div class="readonly-summary-row">
+                          <span>编辑列数</span>
+                          <strong>{{ selectedAiCrudFormModalProps.editGridCols || 1 }}</strong>
+                        </div>
                       </div>
-                    </div>
+                    </template>
                     <n-form-item label="详情与页脚">
                       <div class="metrics-editor">
                         <n-checkbox-group
@@ -834,7 +885,7 @@
                           />
                         </div>
                         <div class="field-help">
-                          这些开关只控制当前 AiCrudPage 顶部工具栏的按钮。若“搜索与表格”里的“工具栏”关闭，整排工具按钮都会隐藏。
+                          新增单独显示；批量删除、导入、导出、导出任务收进工具栏「更多」。自定义查询是旁边的独立入口，需要能从列表接口解析出对象编码。若「查询与列表字段 → 显示项」关掉了工具栏，整排都不会出现。
                         </div>
                       </div>
                     </n-form-item>

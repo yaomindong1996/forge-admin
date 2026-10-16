@@ -235,6 +235,20 @@
                     </div>
                   </div>
                   <div class="appearance-field">
+                    <label>边框粗细 (Border Width)</label>
+                    <div class="appearance-radius-shell">
+                      <span>W</span>
+                      <input
+                        :value="resolvePxNumber(selectedDesignerStyle.borderWidth, 1)"
+                        type="number"
+                        min="0"
+                        max="32"
+                        :disabled="(selectedDesignerStyle.borderStyle || 'solid') === 'none'"
+                        @input="updateDesignerBorderWidth($event.target.value)"
+                      >
+                    </div>
+                  </div>
+                  <div class="appearance-field">
                     <label>圆角 (Border Radius)</label>
                     <div class="appearance-radius-shell">
                       <span>R</span>

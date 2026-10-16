@@ -48,6 +48,7 @@
         :item-filter="formShelfItemFilter"
         @item-drag-start="handleUnifiedShelfDragStart"
         @item-drag-end="finishDragging"
+        @item-click="handleUnifiedShelfClick"
         @total-change="unifiedShelfTotal = $event"
       />
     </div>
@@ -129,7 +130,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['appendField'])
+const emit = defineEmits(['appendField', 'appendShelfItem'])
 
 const keyword = ref('')
 const activeShelfTab = ref('components')
@@ -186,18 +187,31 @@ function formShelfItemFilter(spec) {
   return FORM_CANVAS_LAYOUT_KEYS.has(resolveFormComponentKey(spec))
 }
 
-function handleUnifiedShelfDragStart({ spec, event }) {
+function resolveShelfItemPayload(spec = {}) {
   const componentKey = resolveFormComponentKey(spec)
-  // 字段模板（含 transfer 双重身份）走 template 链路生成字段绑定组件；其余走 layout 链路
+  // 字段模板（含 transfer 双重身份）走 template 链路；其余走 layout 链路
   const isFieldTemplate = FORM_FIELD_TEMPLATE_TYPES.has(componentKey) || spec.type === 'transfer'
-  draggingKey.value = `${isFieldTemplate ? 'template' : 'layout'}:${componentKey}`
+  return {
+    componentKey,
+    label: spec.label,
+    kind: isFieldTemplate ? 'template' : 'layout',
+  }
+}
+
+function handleUnifiedShelfDragStart({ spec, event }) {
+  const payload = resolveShelfItemPayload(spec)
+  draggingKey.value = `${payload.kind}:${payload.componentKey}`
   event.dataTransfer.effectAllowed = 'copy'
-  const payload = { componentKey, label: spec.label }
   event.dataTransfer.setData(
-    isFieldTemplate ? 'application/x-forge-form-template' : 'application/x-forge-form-layout',
-    JSON.stringify(payload),
+    payload.kind === 'template' ? 'application/x-forge-form-template' : 'application/x-forge-form-layout',
+    JSON.stringify({ componentKey: payload.componentKey, label: payload.label }),
   )
-  setDesignerDragPreview({ componentKey, label: spec.label })
+  setDesignerDragPreview({ componentKey: payload.componentKey, label: payload.label })
+}
+
+/** 点击组件库项追加：由设计器按当前选中容器解析落点（可嵌套进卡片/Tabs/折叠/栅格） */
+function handleUnifiedShelfClick(spec = {}) {
+  emit('appendShelfItem', resolveShelfItemPayload(spec))
 }
 
 const normalizedKeyword = computed(() => keyword.value.trim().toLowerCase())

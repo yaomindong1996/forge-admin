@@ -110,7 +110,7 @@ export function applyApplicationRuntimePart2(deps = {}) {
     builder, processSelectableObjects, loadError, loading, editCanvasBootstrapping, saving, restoringObjectPageLayout, editing,
     activePageDesignTab, runtimeViewMode, exitEditingVisible, selectedNodeId, enhanceContextPageId, newNodePopoverVisible, selectedPageTemplateKey, iconPickerVisible, iconPickerNodeId,
     navigationActionVisible, navigationActionMode, navigationActionNodeId, navigationActionForm, systemMenuMountVisible, systemMenuMountNodeId, systemMenuMountNode, componentPopoverVisible,
-    componentKeyword, savedSignature, selectedPageBlockId, draggingPageBlockId, dragPreview, pageAlignGuides, PAGE_ALIGN_SNAP_PX, configPanelVisible,
+    componentKeyword, savedSignature, selectedPageBlockId, nestHostPinnedId, draggingPageBlockId, dragPreview, pageAlignGuides, PAGE_ALIGN_SNAP_PX, configPanelVisible,
     inspectorTab, componentButtonPosition, componentButtonMoveCtx, catalogDragBlockType, suppressCatalogClick, activePageFlowTabTarget, activePageFlowGridTarget, activePageFlowContainerTarget,
     resizeCollisionBlockIds, formDesignerObjectContextByObjectId, formDesignerObjectContextLoadingIds, formDesignerMode, designerTransitionLoading, runtimeTreeFilter, runtimeTreeFilterByBlockId, runtimeTreeActiveKeyByBlockId,
     formDesignerFromPageManagement, activeFormAssetId, activePageShapeDesign, pageTypeSelectorVisible, pageTypeSelectorParentId, pageTypeSelectorDefaultType, sidebarCollapsed, renamingApplication,
@@ -468,8 +468,45 @@ export function applyApplicationRuntimePart2(deps = {}) {
   __impl.isNavigationGroupDescendant = isNavigationGroupDescendant
 
   function insertComponent(component) {
-    appendPageBlock(component.blockType)
-    componentPopoverVisible.value = false
+    const blockType = component?.blockType
+    if (!blockType)
+      return
+    // 只有画布主动点选的容器才作为落入目标（货架刚加出的容器不算）
+    const pinnedId = String(nestHostPinnedId.value || '').trim()
+    const selected = pinnedId
+      ? findPageBlockInTree(pageBlocks.value, pinnedId)
+      : null
+    const hostId = selected?.id || ''
+    let nested = false
+    if (selected && ['card', 'box-layout'].includes(selected.blockType)) {
+      nested = !!__impl.appendPageBlockToContainer?.(blockType, hostId)
+    }
+    else if (selected?.blockType === 'tabs') {
+      const tabKey = selected.props?.activeTabKey
+        || selected.props?.tabs?.[0]?.key
+        || ''
+      if (tabKey) {
+        const before = JSON.stringify(pageBlocks.value)
+        __impl.appendPageBlockToTab?.(blockType, hostId, tabKey)
+        nested = before !== JSON.stringify(pageBlocks.value)
+      }
+    }
+    else if (selected?.blockType === 'grid-layout') {
+      const before = JSON.stringify(pageBlocks.value)
+      __impl.appendPageBlockToGridCell?.(blockType, hostId, '', 0)
+      nested = before !== JSON.stringify(pageBlocks.value)
+    }
+    if (!nested)
+      appendPageBlock(blockType)
+    // 连续添加：保持弹层打开并清空搜索；嵌套时保持画布点选宿主方便连加
+    componentKeyword.value = ''
+    if (nested && hostId) {
+      selectedPageBlockId.value = hostId
+      nestHostPinnedId.value = hostId
+    }
+    nextTick(() => {
+      componentPopoverVisible.value = true
+    })
   }
   __impl.insertComponent = insertComponent
 
@@ -495,6 +532,9 @@ export function applyApplicationRuntimePart2(deps = {}) {
     // 属性面板回写整份 layout 时可能丢掉 pagePadding，这里强制保留。
     if (nextLayout.pagePadding == null && previous.pagePadding != null)
       nextLayout.pagePadding = previous.pagePadding
+    // 与当前布局深相等时跳过，避免属性面板回声写入污染撤销栈
+    if (JSON.stringify(previous) === JSON.stringify(nextLayout))
+      return
     builder.value = {
       ...builder.value,
       pages: {
@@ -581,8 +621,43 @@ export function applyApplicationRuntimePart2(deps = {}) {
     updatePageBlocks([...pageBlocks.value, block], { resolveCollisions: true, changedBlockId: block.id })
     selectedPageBlockId.value = block.id
     preloadPageBlockCrudRuntimeProps(block)
+    // 新块堆在画布底部时若不滚入视口，用户会以为「没加上」
+    scrollPageBlockIntoView(block.id)
   }
   __impl.appendPageBlock = appendPageBlock
+
+  /** 自由布局：把指定块滚进 .page-surface 可视区（添加/嵌套后尤其必要） */
+  function scrollPageBlockIntoView(blockId) {
+    const id = String(blockId || '').trim()
+    if (!id)
+      return
+    const run = () => {
+      const el = document.querySelector(`[data-page-block-id="${id}"]`)
+      if (!el)
+        return
+      // 组件弹层打开时原生 scrollIntoView 常滚错容器或被挡住，显式滚 .page-surface
+      const surface = el.closest('.page-surface') || document.querySelector('.page-surface')
+      if (surface) {
+        const er = el.getBoundingClientRect()
+        const sr = surface.getBoundingClientRect()
+        const pad = 24
+        if (er.top < sr.top + pad)
+          surface.scrollTop += er.top - sr.top - pad
+        else if (er.bottom > sr.bottom - pad)
+          surface.scrollTop += er.bottom - sr.bottom + pad
+        return
+      }
+      el.scrollIntoView?.({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+    }
+    nextTick(() => {
+      requestAnimationFrame(() => {
+        run()
+        // 布局高度可能晚一帧才稳定（富文本/日历等）
+        window.setTimeout(run, 80)
+      })
+    })
+  }
+  __impl.scrollPageBlockIntoView = scrollPageBlockIntoView
 
   /** 加号新增：始终落在现有根级组件下方，自上而下排列 */
   function resolveNextPageBlockStackY(items = []) {
@@ -1055,15 +1130,50 @@ export function applyApplicationRuntimePart2(deps = {}) {
     return String(asset?.id || asset?.formKey || '').trim()
   }
 
+  /** 同一表单可能同时有 id 与 formKey，绑定/查找时两边都要认 */
+  function resolveFormAssetMatchKeys(formAssetId = '') {
+    const key = String(formAssetId || '').trim()
+    if (!key)
+      return []
+    const asset = formAssets.value.find(item => String(item?.id || '').trim() === key
+      || String(item?.formKey || '').trim() === key)
+    if (!asset)
+      return [key]
+    return [...new Set([
+      String(asset.id || '').trim(),
+      String(asset.formKey || '').trim(),
+      key,
+    ].filter(Boolean))]
+  }
+
+  function formAssetIdMatches(boundId = '', formAssetId = '') {
+    const bound = String(boundId || '').trim()
+    if (!bound)
+      return false
+    return resolveFormAssetMatchKeys(formAssetId).includes(bound)
+  }
+
   function findFormAssetByIdentity(formAssetId = '') {
     const key = String(formAssetId || '').trim()
     if (!key)
       return null
-    return formAssets.value.find(item => resolveFormAssetIdentity(item) === key) || null
+    return formAssets.value.find(item => String(item?.id || '').trim() === key
+      || String(item?.formKey || '').trim() === key) || null
   }
 
   function applyFormAssetToBlock(block, formAssetId = '') {
     const nextId = String(formAssetId || '').trim()
+    // 清空绑定时只摘掉 formAssetId，保留列表已有 fieldRefs，避免误伤查询列
+    if (!nextId) {
+      return {
+        ...block,
+        props: {
+          ...(block.props || {}),
+          formAssetId: '',
+          formAssetFieldsInitialized: false,
+        },
+      }
+    }
     const asset = findFormAssetByIdentity(nextId)
     const fieldRefs = asset ? resolveFormAssetFields(asset).map(field => field.fieldCode).filter(Boolean) : []
     return {
@@ -1104,9 +1214,13 @@ export function applyApplicationRuntimePart2(deps = {}) {
     return list
   }
 
+  function listPageCrudBlocksFlat() {
+    return listPageBlocksFlat().filter(item => ['AiCrudPage', 'AiForm', 'data-table'].includes(item?.blockType))
+  }
+
   /**
-   * 页面资源：把指定表单设为当前页列表的新增/编辑表单。
-   * 优先绑到当前选中的列表块；未选中时自动绑到本页第一个 AiCrudPage。
+   * 页面资源：把指定表单设为当前页某个列表的新增/编辑表单。
+   * 多 CRUD 时必须先选中目标列表；仅一个时自动绑定。
    */
   function setFormAssetAsListCrudForm(formAssetId = '') {
     const nextId = String(formAssetId || '').trim()
@@ -1115,23 +1229,25 @@ export function applyApplicationRuntimePart2(deps = {}) {
       message.warning('表单不存在')
       return false
     }
+    const listBlocks = listPageCrudBlocksFlat()
     const selected = selectedPageBlock.value
     const selectedIsList = selected && ['AiCrudPage', 'AiForm', 'data-table'].includes(selected.blockType)
     let target = selectedIsList ? selected : null
-    if (!target) {
-      const flat = listPageBlocksFlat()
-      target = flat.find(item => item?.blockType === 'AiCrudPage')
-        || flat.find(item => ['AiForm', 'data-table'].includes(item?.blockType))
-        || null
+    if (!target && listBlocks.length === 1)
+      target = listBlocks[0]
+    if (!target && listBlocks.length > 1) {
+      message.warning('本页有多个数据列表，请先在画布点选要绑定的那个，再点「设为新增编辑表单」')
+      return false
     }
     if (!target) {
       message.warning('当前页还没有数据列表，请先选中或放入一个列表组件')
       return false
     }
+    const bindId = resolveFormAssetIdentity(asset) || nextId
     if (!selectedIsList || selected?.id !== target.id)
       selectedPageBlockId.value = target.id
     updatePageBlocks(mapPageBlocksInTree(pageBlocks.value, item => (
-      item.id === target.id ? applyFormAssetToBlock(item, nextId) : item
+      item.id === target.id ? applyFormAssetToBlock(item, bindId) : item
     )))
     // 绑定变更后清掉对象级 CRUD 缓存，下一帧按新 formAsset 重新叠表单
     const objectRef = resolvePageBlockObjectRef(target)
@@ -1144,8 +1260,10 @@ export function applyApplicationRuntimePart2(deps = {}) {
       preloadPageBlockCrudRuntimeProps(target)
     }
     configPanelVisible.value = true
-    inspectorTab.value = 'properties'
-    message.success(`已将「${asset.name || nextId}」设为新增/编辑表单，点「新增/编辑」将使用该表单`)
+    inspectorTab.value = 'data'
+    scrollPageBlockIntoView(target.id)
+    const targetLabel = target.label || resolveListPageBlockMeta(target.blockType)?.title || '数据列表'
+    message.success(`已将「${asset.name || bindId}」绑定到「${targetLabel}」的新增/编辑`)
     return true
   }
   __impl.setFormAssetAsListCrudForm = setFormAssetAsListCrudForm
@@ -1157,10 +1275,116 @@ export function applyApplicationRuntimePart2(deps = {}) {
     return listPageBlocksFlat().some((item) => {
       if (!['AiCrudPage', 'AiForm', 'data-table'].includes(item?.blockType))
         return false
-      return String(item?.props?.formAssetId || '').trim() === key
+      return formAssetIdMatches(item?.props?.formAssetId, key)
     })
   }
   __impl.isFormAssetBoundToListCrud = isFormAssetBoundToListCrud
+
+  function resolveFormAssetUsagePageTitle(pageId = '') {
+    const id = String(pageId || '').trim()
+    if (!id)
+      return '未命名页面'
+    if (isWorkbenchPageId(id))
+      return '个人工作台'
+    const node = (builder.value?.nodes || []).find(item => String(item?.id || '') === id)
+    return String(node?.title || node?.name || id).trim() || id
+  }
+
+  /**
+   * 扫描全应用 builder：某表单资产被哪些页面 / 组件引用（用于页面资源闭环展示）。
+   */
+  function collectFormAssetUsages(formAssetId = '') {
+    const key = String(formAssetId || '').trim()
+    if (!key)
+      return []
+    const currentPageId = String(resolveActiveDesignerPageId() || '').trim()
+    const usages = []
+    const pages = builder.value?.pages && typeof builder.value.pages === 'object'
+      ? builder.value.pages
+      : {}
+    Object.entries(pages).forEach(([pageId, page]) => {
+      const items = page?.layout?.gridLayout?.items || page?.layout?.items || []
+      visitPageBlocksInTree(items, (block) => {
+        if (!formAssetIdMatches(block?.props?.formAssetId, key))
+          return
+        const meta = resolveListPageBlockMeta(block.blockType)
+        usages.push({
+          pageId,
+          pageTitle: resolveFormAssetUsagePageTitle(pageId),
+          blockId: block.id,
+          blockType: block.blockType,
+          blockLabel: block.label || meta?.title || block.blockType || '组件',
+          isListCrud: ['AiCrudPage', 'AiForm', 'data-table'].includes(block.blockType),
+          isCurrentPage: String(pageId) === currentPageId,
+        })
+      })
+    })
+    return usages
+  }
+  __impl.collectFormAssetUsages = collectFormAssetUsages
+
+  function formatFormAssetUsageSummary(formAssetId = '') {
+    const usages = collectFormAssetUsages(formAssetId)
+    if (!usages.length)
+      return '尚未绑定到任何组件'
+    return usages.map((item) => {
+      const pagePart = item.isCurrentPage ? '本页' : `页面「${item.pageTitle}」`
+      return `${pagePart} · ${item.blockLabel}`
+    }).join('；')
+  }
+  __impl.formatFormAssetUsageSummary = formatFormAssetUsageSummary
+
+  /** 点击引用芯片：本页则选中并滚到组件；跨页只提示去对应页面 */
+  function focusFormAssetUsage(usage = {}) {
+    const blockId = String(usage?.blockId || '').trim()
+    const pageId = String(usage?.pageId || '').trim()
+    if (usage?.isCurrentPage && blockId) {
+      selectPageBlock(blockId)
+      scrollPageBlockIntoView(blockId)
+      configPanelVisible.value = true
+      inspectorTab.value = 'data'
+      return
+    }
+    if (pageId) {
+      message.info(`该表单绑定在页面「${usage.pageTitle || pageId}」，请打开该页后再查看组件`)
+      return
+    }
+    message.info('未找到对应组件')
+  }
+  __impl.focusFormAssetUsage = focusFormAssetUsage
+
+  /**
+   * 取消「设为新增编辑表单」：仅清当前页对该表单的绑定（与设置动作同作用域）。
+   */
+  function clearFormAssetListCrudBinding(formAssetId = '') {
+    const key = String(formAssetId || '').trim()
+    if (!key)
+      return false
+    const asset = findFormAssetByIdentity(key)
+    const targets = listPageBlocksFlat().filter(item => formAssetIdMatches(item?.props?.formAssetId, key))
+    if (!targets.length) {
+      message.info('当前页没有组件绑定该表单')
+      return false
+    }
+    updatePageBlocks(mapPageBlocksInTree(pageBlocks.value, item => (
+      formAssetIdMatches(item?.props?.formAssetId, key)
+        ? applyFormAssetToBlock(item, '')
+        : item
+    )))
+    targets.forEach((target) => {
+      const objectRef = resolvePageBlockObjectRef(target)
+      const cacheKey = resolveRuntimeObjectCacheKey(objectRef)
+      if (!cacheKey)
+        return
+      const nextCache = { ...runtimeCrudPropsByObjectId.value }
+      delete nextCache[cacheKey]
+      runtimeCrudPropsByObjectId.value = nextCache
+      runtimeCrudUnavailableObjectIds.delete(cacheKey)
+    })
+    message.success(`已取消「${asset?.name || key}」作为新增/编辑表单`)
+    return true
+  }
+  __impl.clearFormAssetListCrudBinding = clearFormAssetListCrudBinding
 
   function updateSelectedPageBlockRuntimeObject(objectId) {
     if (!selectedPageBlock.value)
@@ -1252,8 +1476,16 @@ export function applyApplicationRuntimePart2(deps = {}) {
   __impl.createStandaloneFormAsset = createStandaloneFormAsset
 
   function openFormAssetDesigner(formAssetId) {
-    activeFormAssetId.value = formAssetId
-    activePageShapeDesign.value = resolvePageShapeDesignContext(formAssetId)
+    const asset = findFormAssetByIdentity(formAssetId)
+    // 统一落到资产 id，避免 formKey 与 id 混用导致设计器 v-if="activeFormAsset" 空白
+    const normalizedId = String(asset?.id || formAssetId || '').trim()
+    if (!normalizedId || !asset) {
+      message.warning('表单不存在或尚未加载完成，请稍后重试')
+      return
+    }
+    activeFormAssetId.value = normalizedId
+    activePageShapeDesign.value = resolvePageShapeDesignContext(normalizedId)
+      || resolvePageShapeDesignContext(resolveFormAssetIdentity(asset))
     formDesignerMode.value = true
   }
   __impl.openFormAssetDesigner = openFormAssetDesigner
@@ -1297,7 +1529,7 @@ export function applyApplicationRuntimePart2(deps = {}) {
 
   function findPageBlockByFormAssetId(blocks, formAssetId) {
     for (const block of blocks || []) {
-      if (String(block?.props?.formAssetId || '') === String(formAssetId || ''))
+      if (formAssetIdMatches(block?.props?.formAssetId, formAssetId))
         return block
       const nested = [
         ...(block?.children || []),
@@ -1364,8 +1596,15 @@ export function applyApplicationRuntimePart2(deps = {}) {
     if (!editing.value || !block?.id)
       return
     selectedPageBlockId.value = block.id
+    nestHostPinnedId.value = ['card', 'box-layout', 'tabs', 'grid-layout'].includes(block.blockType)
+      ? block.id
+      : ''
     inspectorTab.value = 'properties'
-    configPanelVisible.value = true
+    // 先反馈选中框，属性面板放到下一帧，减轻重型块切换时的卡顿感
+    requestAnimationFrame(() => {
+      if (selectedPageBlockId.value === block.id)
+        configPanelVisible.value = true
+    })
   }
   __impl.openPageBlockConfiguration = openPageBlockConfiguration
 
@@ -1514,6 +1753,7 @@ export function applyApplicationRuntimePart2(deps = {}) {
     if (event.target?.closest?.('[data-page-block-id]'))
       return
     selectedPageBlockId.value = ''
+    nestHostPinnedId.value = ''
     inspectorTab.value = 'properties'
     configPanelVisible.value = true
   }
@@ -1523,7 +1763,18 @@ export function applyApplicationRuntimePart2(deps = {}) {
     if (!editing.value)
       return
     selectedPageBlockId.value = blockId
+    const block = findPageBlockInTree(pageBlocks.value, blockId)
+    nestHostPinnedId.value = block && ['card', 'box-layout', 'tabs', 'grid-layout'].includes(block.blockType)
+      ? block.id
+      : ''
     inspectorTab.value = 'properties'
+    // 画布 @block-activate 只调本函数；需同步打开右侧配置，避免先点「数据」才出现属性
+    if (blockId) {
+      requestAnimationFrame(() => {
+        if (selectedPageBlockId.value === blockId)
+          configPanelVisible.value = true
+      })
+    }
   }
   __impl.selectPageBlock = selectPageBlock
 
@@ -1728,6 +1979,10 @@ export function applyApplicationRuntimePart2(deps = {}) {
   __impl.selectFormAssetFromPicker = selectFormAssetFromPicker
   __impl.setFormAssetAsListCrudForm = setFormAssetAsListCrudForm
   __impl.isFormAssetBoundToListCrud = isFormAssetBoundToListCrud
+  __impl.collectFormAssetUsages = collectFormAssetUsages
+  __impl.formatFormAssetUsageSummary = formatFormAssetUsageSummary
+  __impl.focusFormAssetUsage = focusFormAssetUsage
+  __impl.clearFormAssetListCrudBinding = clearFormAssetListCrudBinding
   __impl.updateSelectedPageBlockRuntimeObject = updateSelectedPageBlockRuntimeObject
   __impl.createFormAssetForSelectedBlock = createFormAssetForSelectedBlock
   __impl.createStandaloneFormAsset = createStandaloneFormAsset

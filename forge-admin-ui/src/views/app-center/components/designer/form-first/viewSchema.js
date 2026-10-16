@@ -155,7 +155,7 @@ export function createViewSchemaFromPageSchema(pageSchema = {}, fields = [], cur
   const base = createDefaultViewSchema({ fields })
   const current = sanitizeViewSchemaFieldRefs(currentSchema || {}, fields)
   const searchZone = resolveSearchZoneForViewSchema(pageSchema)
-  const tableZone = findZone(pageSchema, 'table')
+  const tableZone = resolveTableZoneForViewSchema(pageSchema)
   const detailZone = findZone(pageSchema, 'detail')
 
   return normalizeViewSchema({
@@ -239,6 +239,8 @@ function normalizeSearchField(item = {}, index = 0) {
     defaultValue: item.defaultValue ?? null,
     collapsed: Boolean(item.collapsed),
     matchMode: item.matchMode || item.queryType || 'eq',
+    dictType: item.dictType || '',
+    queryField: item.queryField || item.fieldCode || item.field || '',
   }
 }
 
@@ -322,7 +324,8 @@ function buildSearchFields(zone = {}, fieldMap, fallbackFields = []) {
     const setting = settings[fieldCode] || {}
     return {
       fieldCode,
-      label: field.label || field.fieldName || fieldCode,
+      // 优先保留查询区自定义标签（searchFieldSettings.label），避免保存后被模型字段名覆盖
+      label: setting.label || field.label || field.fieldName || fieldCode,
       componentKey: setting.componentType || resolveSearchComponent(field),
       visible: zone?.enabled !== false,
       order: index,
@@ -330,6 +333,8 @@ function buildSearchFields(zone = {}, fieldMap, fallbackFields = []) {
       defaultValue: setting.defaultValue ?? field.defaultValue ?? null,
       collapsed: Boolean(setting.collapsed),
       matchMode: setting.queryType || field.queryType || 'eq',
+      dictType: setting.dictType || field.dictType || '',
+      queryField: setting.queryField || fieldCode,
     }
   })
 }
@@ -342,7 +347,8 @@ function buildListColumns(zone = {}, fieldMap, fallbackColumns = []) {
     const setting = settings[fieldCode] || {}
     return {
       fieldCode,
-      label: field.label || field.fieldName || fieldCode,
+      // 优先保留列表列自定义标题（fieldSettings.title/label）
+      label: setting.title || setting.label || field.label || field.fieldName || fieldCode,
       visible: zone?.enabled !== false,
       order: index,
       align: setting.align || resolveDefaultColumnAlign(field),
@@ -445,10 +451,7 @@ function isPlainObject(value) {
  */
 function resolveSearchZoneForViewSchema(pageSchema = {}) {
   const searchZone = findZone(pageSchema, 'search') || {}
-  const items = pageSchema?.listGridLayout?.items
-    || (pageSchema?.pages || []).find(page => page?.pageKey === 'list')?.gridLayout?.items
-    || []
-  const crud = (Array.isArray(items) ? items : []).find(item => item?.blockType === 'AiCrudPage')
+  const crud = resolveListCrudBlock(pageSchema)
   if (!crud || !Object.prototype.hasOwnProperty.call(crud.props || {}, 'searchFieldRefs'))
     return searchZone
   return {
@@ -460,4 +463,35 @@ function resolveSearchZoneForViewSchema(pageSchema = {}) {
       fieldSettings: crud.props.searchFieldSettings || searchZone.props?.fieldSettings || {},
     },
   }
+}
+
+/**
+ * 列表列以 AiCrudPage.fieldRefs + fieldSettings 为准（含自定义 title），
+ * 避免仅读 table zone 时列标题保存丢失。
+ */
+function resolveTableZoneForViewSchema(pageSchema = {}) {
+  const tableZone = findZone(pageSchema, 'table') || {}
+  const crud = resolveListCrudBlock(pageSchema)
+  if (!crud)
+    return tableZone
+  const refs = Array.isArray(crud.fieldRefs) ? crud.fieldRefs : tableZone.fieldRefs
+  return {
+    ...tableZone,
+    enabled: tableZone.enabled !== false,
+    fieldRefs: Array.isArray(refs) ? refs : [],
+    props: {
+      ...(tableZone.props || {}),
+      fieldSettings: {
+        ...(tableZone.props?.fieldSettings || {}),
+        ...(crud.props?.fieldSettings || {}),
+      },
+    },
+  }
+}
+
+function resolveListCrudBlock(pageSchema = {}) {
+  const items = pageSchema?.listGridLayout?.items
+    || (pageSchema?.pages || []).find(page => page?.pageKey === 'list')?.gridLayout?.items
+    || []
+  return (Array.isArray(items) ? items : []).find(item => item?.blockType === 'AiCrudPage') || null
 }

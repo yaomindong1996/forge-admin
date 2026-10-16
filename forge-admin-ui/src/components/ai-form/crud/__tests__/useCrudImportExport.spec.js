@@ -104,6 +104,13 @@ describe('导入导出运行态', () => {
     expect(runtime.showExportTaskEntry.value).toBe(false)
   })
 
+  it('无 export 地址时仍可用列表接口反推导出任务入口', () => {
+    const runtime = setup({
+      apiConfig: { list: 'get@/ai/crud/hr_business_object_bkhu/page?designPreview=1' },
+    })
+    expect(runtime.showExportTaskEntry.value).toBe(true)
+  })
+
   it.each(['get', 'post', 'postEncrypt'])('同步导出 %s 保持参数合并及加密分支', async (method) => {
     const runtime = setup({ publicParams: { tenant: '公共值' } }, { export: { method, url: '/export' } })
     request.mockResolvedValue(excel())

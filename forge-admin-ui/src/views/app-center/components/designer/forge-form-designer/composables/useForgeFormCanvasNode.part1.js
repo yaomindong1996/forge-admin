@@ -223,6 +223,9 @@ export function applyForgeFormCanvasNodePart1(props, emit) {
     const backgroundColor = designerStyle.backgroundColor || undefined
     const borderRadius = designerStyle.borderRadius || undefined
     const borderColor = designerBorderHidden.value ? 'transparent' : designerStyle.borderColor || undefined
+    const borderWidth = designerBorderHidden.value
+      ? '0px'
+      : (designerStyle.borderWidth || undefined)
     const style = {
       ...(designerStyle.customStyle || {}),
       width: designerStyle.width || undefined,
@@ -231,6 +234,7 @@ export function applyForgeFormCanvasNodePart1(props, emit) {
       backgroundColor,
       borderColor,
       borderStyle: designerStyle.borderStyle || undefined,
+      borderWidth,
       borderRadius,
       boxShadow: designerStyle.boxShadow || undefined,
       opacity: designerStyle.opacity || undefined,
@@ -241,6 +245,8 @@ export function applyForgeFormCanvasNodePart1(props, emit) {
       style['--forge-node-background'] = backgroundColor
     if (borderRadius)
       style['--forge-node-radius'] = borderRadius
+    if (borderWidth)
+      style['--forge-node-border-width'] = borderWidth
     return style
   })
   const nodeMenuOptions = computed(() => [

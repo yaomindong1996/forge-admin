@@ -54,6 +54,13 @@ import {
 } from '@/components/lowcode-builder/shared/runtime-crud-props'
 import { applyEmbeddedTreeTableRuntimeProps } from '@/components/lowcode-builder/shared/runtime-tree-table'
 import { createViewSchemaFromPageSchema } from '../form-first/viewSchema'
+import {
+  designerActionTypeToListType as bridgeDesignerActionTypeToListType,
+  listActionTypeToDesignerType as bridgeListActionTypeToDesignerType,
+  normalizeDesignerActionType as bridgeNormalizeDesignerActionType,
+  normalizeListActionType as bridgeNormalizeListActionType,
+  resolveListActionTypeFromDesigner as bridgeResolveListActionTypeFromDesigner,
+} from './listActionTypeBridge'
 export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
   const {
     __impl, mut, addActivePageParam, addDesignerPage, buildCurrentViewSchema, buildDesignerActionsForSave, buildDesignerCrudHookHandlers, buildDesignerRuntimeCrudProps,
@@ -66,7 +73,8 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
     HISTORY_LIMIT, VALID_PAGE_TYPES, baseModelSchema, localSchema, pendingModelSchema, workingModelSchema, effectiveModelSchema, designFields,
     layoutModeLabel, canUndo, canRedo, listPreviewVisible, listPreviewLayout, listPreviewLayoutKey, templateSelectValue, listCustomActions, pageTypeOptions, listTemplateOptions,
     activeTemplateLabel, listMoreOptions, pageActionOptions, designerPages, actionPageOptions, activeDesignerPage, currentPageGridLayout, previewGridLayout, designerGridLayout,
-    designerPreviewGridLayout, pageWatermark, pageWatermarkContent, visibleListCustomActions, designerRuntimeCrudProps,
+    designerPreviewGridLayout, listDesignerPage, listPreviewPageName, pageWatermark, pageWatermarkContent,
+    listPreviewWatermark, listPreviewWatermarkContent, visibleListCustomActions, designerRuntimeCrudProps,
   } = deps
   function designerActionToListAction(action = {}, index = 0) {
     const actionType = normalizeDesignerActionType(action.actionType)
@@ -79,16 +87,17 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
         ? (config.url || action.routePath || '')
         : actionType === 'TRIGGER'
           ? (config.triggerCode || action.routePath || '')
-          : actionType === 'COMMAND'
+          : actionType === 'COMMAND' || actionType === 'REFRESH'
             ? ''
             : config.targetPath || action.routePath || ''
+    const listActionType = resolveListActionTypeFromDesigner(actionType, action, config)
     return {
       clientKey: action.clientKey || config.clientKey || key,
       key,
       label: action.actionName || action.label || '自定义操作',
       position,
       type: action.type || resolveDefaultActionButtonType(actionType),
-      actionType: resolveListActionTypeFromDesigner(actionType, action, config),
+      actionType: listActionType,
       visible: action.visible !== false,
       routePath,
       targetPageKey: config.targetPageKey || action.targetPageKey || '',
@@ -103,7 +112,11 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
       successMessage: action.successMessage || config.successMessage || '',
       failureMessage: action.failureMessage || config.failureMessage || '',
       params: normalizeActionParams(config.params || action.params || []),
-      actionConfig: normalizeListActionConfig(resolveListActionTypeFromDesigner(actionType, action, config), config),
+      actionConfig: normalizeListActionConfig(listActionType, {
+        ...config,
+        displayCondition: action.displayCondition || config.displayCondition || '',
+        successBehavior: action.successBehavior || config.successBehavior || 'none',
+      }),
       status: action.status ?? 1,
       sortOrder: action.sortOrder ?? index * 10 + 10,
     }
@@ -118,12 +131,16 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
       actionName: normalized.label || '自定义操作',
       actionPosition: normalizeDesignerActionPosition(normalized.position),
       actionType,
+      // 保留列表侧按钮样式，避免 designerActions 回写后 type 被默认值覆盖
+      type: normalized.type || resolveDefaultListButtonType(normalized.actionType),
       visible: normalized.visible !== false,
       permissionKey: normalized.permissionKey || normalized.permissionCode || '',
       permission: normalized.permissionKey || normalized.permissionCode || '',
       permissionStrategy: normalized.permissionStrategy === 'disable' ? 'disable' : 'hide',
       confirmRequired: Boolean(normalized.confirmText),
       confirmText: normalized.confirmText || '',
+      displayCondition: normalized.displayCondition || '',
+      successBehavior: normalized.successBehavior || 'none',
       successMessage: normalized.successMessage || '',
       failureMessage: normalized.failureMessage || '',
       status: normalized.status ?? 1,
@@ -136,6 +153,8 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
     const config = {
       ...parsePlainObject(action.actionConfig),
       clientKey: action.clientKey || action.actionConfig?.clientKey || action.key || '',
+      // 显示条件随 actionConfig 往返，避免 designerActions 回写丢失
+      displayCondition: action.displayCondition || action.actionConfig?.displayCondition || '',
     }
     const sourceParams = actionType === 'CALL_API'
       ? config.params || []
@@ -186,6 +205,14 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
         successBehavior: action.successBehavior || config.successBehavior || '',
       }
     }
+    if (actionType === 'REFRESH') {
+      return {
+        ...config,
+        clientKey: config.clientKey || action.clientKey || action.key || '',
+        displayCondition: action.displayCondition || config.displayCondition || '',
+        successBehavior: action.successBehavior || config.successBehavior || 'none',
+      }
+    }
     return {
       ...config,
       targetPath: action.routePath || config.targetPath || '',
@@ -197,6 +224,7 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
         ? 'page'
         : (config.navigationMode === 'page' ? 'page' : 'route'),
       params,
+      displayCondition: action.displayCondition || config.displayCondition || '',
       successBehavior: action.successBehavior || config.successBehavior || '',
     }
   }
@@ -274,6 +302,11 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
         params: normalizeActionParams(source.params || []),
       }
     }
+    if (actionType === 'refresh') {
+      return {
+        ...source,
+      }
+    }
     return {
       ...source,
       navigationMode: actionType === 'page' || source.navigationMode === 'page' ? 'page' : (source.navigationMode || 'route'),
@@ -345,85 +378,23 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
   }
 
   function normalizeDesignerActionType(value = '') {
-    const normalized = String(value || 'OPEN_PAGE')
-      .replace(/([a-z])([A-Z])/g, '$1_$2')
-      .replace(/[-\s]+/g, '_')
-      .toUpperCase()
-    if (['CALL_API', 'REQUEST'].includes(normalized))
-      return 'CALL_API'
-    if (['START_FLOW', 'START_APPROVAL'].includes(normalized))
-      return 'START_FLOW'
-    if (normalized === 'OPEN_EXTERNAL')
-      return 'OPEN_EXTERNAL'
-    if (normalized === 'TRIGGER')
-      return 'TRIGGER'
-    if (normalized === 'COMMAND')
-      return 'COMMAND'
-    return 'OPEN_PAGE'
+    return bridgeNormalizeDesignerActionType(value)
   }
 
   function designerActionTypeToListType(actionType = 'OPEN_PAGE') {
-    if (actionType === 'CALL_API')
-      return 'CALL_API'
-    if (actionType === 'START_FLOW')
-      return 'START_FLOW'
-    if (actionType === 'TRIGGER')
-      return 'TRIGGER'
-    if (actionType === 'COMMAND')
-      return 'COMMAND'
-    if (actionType === 'OPEN_EXTERNAL')
-      return 'external'
-    // OPEN_PAGE 可能是「应用内页面」或「站内路由」，由调用方结合 targetPageKey 再细分
-    return 'route'
+    return bridgeDesignerActionTypeToListType(actionType)
   }
 
   function listActionTypeToDesignerType(actionType = 'route') {
-    const normalized = normalizeListActionType(actionType)
-    if (normalized === 'CALL_API')
-      return 'CALL_API'
-    if (normalized === 'START_FLOW')
-      return 'START_FLOW'
-    if (normalized === 'TRIGGER')
-      return 'TRIGGER'
-    if (normalized === 'COMMAND')
-      return 'COMMAND'
-    if (normalized === 'external')
-      return 'OPEN_EXTERNAL'
-    return 'OPEN_PAGE'
+    return bridgeListActionTypeToDesignerType(actionType)
   }
 
   function normalizeListActionType(value = '') {
-    const raw = String(value || 'route')
-    const upper = raw.replace(/[-\s]+/g, '_').toUpperCase()
-    if (['CALL_API', 'REQUEST'].includes(upper))
-      return 'CALL_API'
-    if (['START_FLOW', 'START_APPROVAL'].includes(upper))
-      return 'START_FLOW'
-    if (upper === 'TRIGGER')
-      return 'TRIGGER'
-    if (upper === 'COMMAND')
-      return 'COMMAND'
-    if (upper === 'EXTERNAL')
-      return 'external'
-    if (upper === 'REFRESH')
-      return 'refresh'
-    if (upper === 'PAGE' || upper === 'OPEN_PAGE')
-      return 'page'
-    return 'route'
+    return bridgeNormalizeListActionType(value)
   }
 
   function resolveListActionTypeFromDesigner(actionType = 'OPEN_PAGE', action = {}, config = {}) {
-    const mapped = designerActionTypeToListType(actionType)
-    if (mapped !== 'route')
-      return mapped
-    // 未选目标页时也要保留「应用内页面」，否则会立刻被回写成 route，选择框看起来没反应
-    if (config.navigationMode === 'page')
-      return 'page'
-    const targetPageKey = String(config.targetPageKey || action.targetPageKey || '').trim()
-    const routePath = String(config.targetPath || action.routePath || '').trim()
-    if (targetPageKey && !routePath)
-      return 'page'
-    return 'route'
+    return bridgeResolveListActionTypeFromDesigner(actionType, action, config)
   }
 
   function normalizeListActionPosition(value = '') {
@@ -475,7 +446,7 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
       return config.url || ''
     if (actionType === 'TRIGGER')
       return config.triggerCode || ''
-    if (actionType === 'COMMAND')
+    if (actionType === 'COMMAND' || actionType === 'refresh')
       return ''
     return config.targetPath || ''
   }
@@ -904,6 +875,13 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
       undoSchema()
   }
 
+  function resolveListPagePreviewLayout() {
+    const pages = Array.isArray(localSchema.value?.pages) ? localSchema.value.pages : []
+    const listPage = pages.find(page => page?.pageKey === 'list' || page?.pageType === 'list') || null
+    const persisted = listPage?.gridLayout || localSchema.value?.listGridLayout || {}
+    return Array.isArray(persisted?.items) ? JSON.parse(JSON.stringify(persisted)) : { items: [] }
+  }
+
   async function openLocalPreview() {
     // 先把画布未发出的 layout 刷回 localSchema，再落盘，最后开预览
     const designer = listGridDesignerRef.value
@@ -917,15 +895,20 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
         return
       }
     }
-    const snapshot = typeof designer?.captureLayoutSnapshot === 'function'
+    // 仅 pageKey=list 才采信画布 live；pageType=list 但 key 非 list 的异常页视为二级页
+    const onListPage = activePageKey.value === 'list'
+      || activeDesignerPage.value?.pageKey === 'list'
+    const snapshot = onListPage && typeof designer?.captureLayoutSnapshot === 'function'
       ? designer.captureLayoutSnapshot()
       : null
-    const storeLayout = designerStore.layout
-    const exposedLayout = designer?.localLayout
-    const persisted = previewGridLayout.value || designerGridLayout.value || {}
-    // 实时源优先（含「删块后更少」）；禁止用块数量最多的旧 persisted 盖住删除结果
-    const liveLayout = pickLivePreviewLayout(snapshot, storeLayout, exposedLayout)
-      || (Array.isArray(persisted?.items) && persisted.items.length ? JSON.parse(JSON.stringify(persisted)) : null)
+    const storeLayout = onListPage ? designerStore.layout : null
+    const exposedLayout = onListPage ? designer?.localLayout : null
+    // 多页面时预览必须锁定「列表页」布局；禁止用页面2/弹窗页画布（否则会串出 action-button 等）
+    const persisted = resolveListPagePreviewLayout()
+    const liveLayout = onListPage
+      ? (pickLivePreviewLayout(snapshot, storeLayout, exposedLayout)
+        || (Array.isArray(persisted?.items) && persisted.items.length ? persisted : null))
+      : null
     const source = (Array.isArray(liveLayout?.items) && liveLayout.items.length)
       ? liveLayout
       : persisted
@@ -940,9 +923,24 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
     listPreviewVisible.value = true
   }
 
+  /** 模板回落：永远用列表页，禁止 designerPreviewGridLayout（会跟当前激活的页面2） */
+  const listOnlyPreviewLayout = computed(() => {
+    const snapshot = listPreviewLayout.value
+    if (Array.isArray(snapshot?.items) && snapshot.items.length)
+      return snapshot
+    const persisted = resolveListPagePreviewLayout()
+    const synced = syncGridLayoutWithModel(
+      persisted,
+      effectiveModelSchema.value,
+      { layoutType: localSchema.value?.layoutType || 'simple-crud' },
+    )
+    return normalizeListPreviewLayout(filterDesignerGridBlocks(synced))
+  })
+
   /** 有伴生块时本地预览改走 RuntimeListGridFlow，避免绝对画布裁掉 CRUD 分页 */
   const listPreviewRuntimeModel = computed(() => {
-    const layout = listPreviewLayout.value || designerPreviewGridLayout.value
+    // 回落也只能用列表页，禁止用当前激活的「页面2」画布
+    const layout = listOnlyPreviewLayout.value
     if (!isRichListGridLayout(layout))
       return null
     return resolveRuntimeListGridModel(
@@ -954,6 +952,8 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
         modelSchema: effectiveModelSchema.value,
         layoutType: localSchema.value?.layoutType || 'simple-crud',
         pageKey: 'list',
+        // 与列表画布一致：不要强制实时预览，否则查询字段/工具栏会和设计态分叉
+        forceLivePreview: false,
       },
     )
   })
@@ -1220,6 +1220,7 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
 
   return {
     ...deps,
+    listOnlyPreviewLayout,
     listPreviewRuntimeModel,
   }
 }

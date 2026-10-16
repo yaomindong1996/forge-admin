@@ -34,6 +34,29 @@
   overflow: hidden;
 }
 
+.forge-shelf-boot-skeleton {
+  display: grid;
+  gap: 10px;
+  padding: 16px 14px;
+}
+
+.forge-shelf-boot-skeleton__bar {
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--bg-tertiary, #f0f2f5) 25%, #e6e8eb 37%, var(--bg-tertiary, #f0f2f5) 63%);
+  background-size: 400% 100%;
+  animation: forge-shelf-boot-shimmer 1.2s ease infinite;
+}
+
+.forge-shelf-boot-skeleton__bar.is-short {
+  width: 68%;
+}
+
+@keyframes forge-shelf-boot-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
 .side-rail-toggle-button {
   position: absolute;
   top: 12px;

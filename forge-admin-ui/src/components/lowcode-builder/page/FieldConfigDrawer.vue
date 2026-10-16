@@ -22,10 +22,12 @@ import {
   normalizeParamName,
   queryTypeOptions,
   resolveCrudFieldQuickValue,
+  resolveDefaultSearchComponentType,
   resolveDefaultTableRenderType,
   resolveSearchComponentLabel,
   resolveSearchFieldRefsForWrite,
   resolveSelectedFieldRefs,
+  searchComponentOptions,
   tableRenderOptions,
 } from './fieldDrawerConfig'
 import {
@@ -130,37 +132,7 @@ watch(() => props.show, (show) => {
   const refs = resolveSelectedFieldRefs(selectedBlock.value, zoneKey.value, props.fields)
   activeDrawerFieldName.value = props.initialField || refs?.[0] || ''
   fieldAdvancedOpen.value = false
-  // 打开查询条件抽屉时清理历史误写的 componentType，查询组件始终跟表单字段走
-  if (zoneKey.value === 'search' && selectedBlock.value?.blockType === 'AiCrudPage')
-    stripSearchComponentTypeOverrides()
 })
-
-function stripSearchComponentTypeOverrides() {
-  if (!selectedBlock.value?.id)
-    return
-  const current = selectedBlock.value.props?.searchFieldSettings || {}
-  const keys = Object.keys(current)
-  if (!keys.length)
-    return
-  let changed = false
-  const next = {}
-  keys.forEach((key) => {
-    const setting = { ...(current[key] || {}) }
-    if (Object.prototype.hasOwnProperty.call(setting, 'componentType')
-      || Object.prototype.hasOwnProperty.call(setting, 'type')) {
-      delete setting.componentType
-      delete setting.type
-      changed = true
-    }
-    next[key] = setting
-  })
-  if (!changed)
-    return
-  emit('patchProps', {
-    blockId: selectedBlock.value.id,
-    patch: { searchFieldSettings: next },
-  })
-}
 
 function resolveFieldScopeText(field = {}) {
   if (!isChildListField(field))
@@ -236,17 +208,35 @@ function resolveFieldSetting(fieldName) {
   return selectedBlock.value?.props?.fieldSettings?.[fieldName] || {}
 }
 
+/** 已选列表行：展示覆盖后的查询组件文案 */
+function resolveSearchComponentDisplay(field = {}) {
+  const setting = resolveFieldSetting(field.field)
+  const override = String(setting.componentType || setting.type || '').trim()
+  if (override)
+    return resolveSearchComponentLabel({ ...field, componentType: override })
+  return resolveSearchComponentLabel(field)
+}
+
+function isDictSearchComponent(field = {}) {
+  const setting = resolveFieldSetting(field.field)
+  const type = String(setting.componentType || setting.type || '').trim()
+    || resolveDefaultSearchComponentType(field)
+  return type === 'dictSelect'
+}
+
 function updateFieldSetting(fieldName, settingPatch) {
   if (!selectedBlock.value)
     return
   if (zoneKey.value === 'search' && selectedBlock.value.blockType === 'AiCrudPage') {
-    // 查询组件类型始终跟表单字段走，清理历史误写的 componentType
     const nextSetting = {
       ...(selectedBlock.value.props?.searchFieldSettings?.[fieldName] || {}),
       ...settingPatch,
     }
-    delete nextSetting.componentType
-    delete nextSetting.type
+    // 「自动」清空覆盖，回落表单字段组件类型
+    if (!nextSetting.componentType)
+      delete nextSetting.componentType
+    if (!nextSetting.type)
+      delete nextSetting.type
     emit('patchProps', {
       blockId: selectedBlock.value.id,
       patch: {
@@ -412,33 +402,42 @@ function renderTargetFieldOptions(field = {}) {
                   <n-select
                     :value="resolveFieldSetting(element.field).queryType || element.queryType || 'eq'"
                     size="tiny"
+                    clearable
                     :options="queryTypeOptions"
                     placeholder="查询方式"
-                    @update:value="updateFieldSetting(element.field, { queryType: $event })"
+                    @update:value="updateFieldSetting(element.field, { queryType: $event || 'eq' })"
                   />
-                  <span class="search-component-hint" :title="`与表单字段一致：${resolveSearchComponentLabel(element)}`">
-                    {{ resolveSearchComponentLabel(element) }}
-                  </span>
+                  <n-select
+                    :value="resolveFieldSetting(element.field).componentType || ''"
+                    size="tiny"
+                    clearable
+                    :options="searchComponentOptions"
+                    :placeholder="resolveSearchComponentDisplay(element)"
+                    @update:value="updateFieldSetting(element.field, { componentType: $event || '' })"
+                  />
                   <n-select
                     :value="resolveFieldSetting(element.field).queryField || element.field"
                     size="tiny"
+                    clearable
                     :options="queryFieldOptions"
                     filterable
                     placeholder="映射字段"
-                    @update:value="updateFieldSetting(element.field, { queryField: $event })"
+                    @update:value="updateFieldSetting(element.field, { queryField: $event || element.field })"
                   />
                 </div>
                 <div v-if="zoneKey !== 'search' && ['data-table', 'AiCrudPage', 'AiTable', 'AiForm', 'detail-info'].includes(selectedBlock.blockType)" class="field-setting-row table-setting-row">
                   <n-select
                     :value="resolveFieldSetting(element.field).renderType || resolveDefaultTableRenderType(element)"
                     size="tiny"
+                    clearable
                     :options="tableRenderOptions"
                     placeholder="渲染方式"
-                    @update:value="updateFieldSetting(element.field, { renderType: $event })"
+                    @update:value="updateFieldSetting(element.field, { renderType: $event || resolveDefaultTableRenderType(element) })"
                   />
                   <n-select
                     :value="resolveFieldSetting(element.field).align || 'left'"
                     size="tiny"
+                    clearable
                     :options="alignOptions"
                     placeholder="对齐"
                     @update:value="updateFieldSetting(element.field, { align: $event || 'left' })"
@@ -447,11 +446,12 @@ function renderTargetFieldOptions(field = {}) {
                     v-if="isNameRenderType(resolveFieldSetting(element.field).renderType || resolveDefaultTableRenderType(element))"
                     :value="resolveFieldSetting(element.field).targetField || `${element.field}Name`"
                     size="tiny"
+                    clearable
                     :options="renderTargetFieldOptions(element)"
                     filterable
                     tag
                     placeholder="名称字段"
-                    @update:value="updateFieldSetting(element.field, { targetField: $event })"
+                    @update:value="updateFieldSetting(element.field, { targetField: $event || `${element.field}Name` })"
                   />
                 </div>
                 <div v-if="zoneKey !== 'search' && ['data-table', 'AiCrudPage', 'AiTable'].includes(selectedBlock.blockType)" class="field-setting-row column-link-row">
@@ -469,6 +469,7 @@ function renderTargetFieldOptions(field = {}) {
                     <n-select
                       :value="resolveFieldSetting(element.field).clickAction || 'none'"
                       size="tiny"
+                      clearable
                       :options="columnClickActionOptions"
                       placeholder="点击动作"
                       @update:value="updateFieldSetting(element.field, { clickAction: $event || 'none' })"
@@ -479,6 +480,7 @@ function renderTargetFieldOptions(field = {}) {
                     <n-select
                       :value="resolveFieldSetting(element.field).targetPageKey || ''"
                       size="tiny"
+                      clearable
                       :options="pageTargetOptions"
                       filterable
                       placeholder="目标页面"
@@ -511,6 +513,7 @@ function renderTargetFieldOptions(field = {}) {
                     <n-select
                       :value="resolveFieldSetting(element.field).targetParamField || 'id'"
                       size="tiny"
+                      clearable
                       :options="queryFieldOptions"
                       filterable
                       placeholder="取值字段"
@@ -592,6 +595,7 @@ function renderTargetFieldOptions(field = {}) {
                 <n-select
                   :value="activeDrawerFieldSetting.align || 'left'"
                   size="small"
+                  clearable
                   :options="alignOptions"
                   @update:value="updateFieldSetting(activeDrawerField.field, { align: $event || 'left' })"
                 />
@@ -601,6 +605,7 @@ function renderTargetFieldOptions(field = {}) {
                 <n-select
                   :value="activeDrawerFieldSetting.fixed || ''"
                   size="small"
+                  clearable
                   :options="fixedColumnOptions"
                   @update:value="updateFieldSetting(activeDrawerField.field, { fixed: $event || '' })"
                 />
@@ -620,17 +625,35 @@ function renderTargetFieldOptions(field = {}) {
                 <n-select
                   :value="activeDrawerFieldSetting.queryType || activeDrawerField.queryType || 'eq'"
                   size="small"
+                  clearable
                   :options="queryTypeOptions"
-                  @update:value="updateFieldSetting(activeDrawerField.field, { queryType: $event })"
+                  @update:value="updateFieldSetting(activeDrawerField.field, { queryType: $event || 'eq' })"
                 />
               </label>
               <label class="field-detail-control">
                 <span>查询组件</span>
-                <n-input
-                  :value="resolveSearchComponentLabel(activeDrawerField)"
+                <n-select
+                  :value="activeDrawerFieldSetting.componentType || ''"
                   size="small"
-                  readonly
-                  placeholder="与表单字段一致"
+                  clearable
+                  :options="searchComponentOptions"
+                  placeholder="自动（跟表单字段）"
+                  @update:value="updateFieldSetting(activeDrawerField.field, { componentType: $event || '' })"
+                />
+                <span class="field-detail-hint">
+                  默认：{{ resolveSearchComponentDisplay(activeDrawerField) }}
+                </span>
+              </label>
+              <label
+                v-if="isDictSearchComponent(activeDrawerField)"
+                class="field-detail-control"
+              >
+                <span>字典类型</span>
+                <n-input
+                  :value="activeDrawerFieldSetting.dictType || activeDrawerField.dictType || ''"
+                  size="small"
+                  placeholder="如 sys_user_sex"
+                  @update:value="updateFieldSetting(activeDrawerField.field, { dictType: $event || '' })"
                 />
               </label>
               <label class="field-detail-control">
@@ -638,9 +661,10 @@ function renderTargetFieldOptions(field = {}) {
                 <n-select
                   :value="activeDrawerFieldSetting.queryField || activeDrawerField.field"
                   size="small"
+                  clearable
                   :options="queryFieldOptions"
                   filterable
-                  @update:value="updateFieldSetting(activeDrawerField.field, { queryField: $event })"
+                  @update:value="updateFieldSetting(activeDrawerField.field, { queryField: $event || activeDrawerField.field })"
                 />
               </label>
             </div>
@@ -673,8 +697,9 @@ function renderTargetFieldOptions(field = {}) {
                 <n-select
                   :value="activeDrawerFieldSetting.renderType || resolveDefaultTableRenderType(activeDrawerField)"
                   size="small"
+                  clearable
                   :options="tableRenderOptions"
-                  @update:value="updateFieldSetting(activeDrawerField.field, { renderType: $event })"
+                  @update:value="updateFieldSetting(activeDrawerField.field, { renderType: $event || resolveDefaultTableRenderType(activeDrawerField) })"
                 />
               </label>
               <label v-if="isNameRenderType(activeDrawerFieldSetting.renderType || resolveDefaultTableRenderType(activeDrawerField))" class="field-detail-control">
@@ -682,10 +707,11 @@ function renderTargetFieldOptions(field = {}) {
                 <n-select
                   :value="activeDrawerFieldSetting.targetField || `${activeDrawerField.field}Name`"
                   size="small"
+                  clearable
                   :options="renderTargetFieldOptions(activeDrawerField)"
                   filterable
                   tag
-                  @update:value="updateFieldSetting(activeDrawerField.field, { targetField: $event })"
+                  @update:value="updateFieldSetting(activeDrawerField.field, { targetField: $event || `${activeDrawerField.field}Name` })"
                 />
               </label>
               <label class="field-detail-control">
@@ -693,6 +719,7 @@ function renderTargetFieldOptions(field = {}) {
                 <n-select
                   :value="activeDrawerFieldSetting.clickAction || 'none'"
                   size="small"
+                  clearable
                   :options="columnClickActionOptions"
                   @update:value="updateFieldSetting(activeDrawerField.field, { clickAction: $event || 'none' })"
                 />
@@ -706,6 +733,57 @@ function renderTargetFieldOptions(field = {}) {
                   @update:value="updateFieldSetting(activeDrawerField.field, { textColor: $event || '' })"
                 />
               </label>
+              <!-- 与列表行内「点击动作=跳转」配置对齐，避免只在更多里选了跳转却配不了目标 -->
+              <template v-if="activeDrawerFieldSetting.clickAction === 'navigate'">
+                <label class="field-detail-control">
+                  <span>目标页面</span>
+                  <n-select
+                    :value="activeDrawerFieldSetting.targetPageKey || ''"
+                    size="small"
+                    clearable
+                    :options="pageTargetOptions"
+                    filterable
+                    placeholder="目标页面"
+                    @update:value="updateFieldSetting(activeDrawerField.field, { targetPageKey: $event || '' })"
+                  />
+                </label>
+                <label v-if="formTargetOptions.length" class="field-detail-control">
+                  <span>目标表单</span>
+                  <n-select
+                    :value="activeDrawerFieldSetting.targetFormKey || ''"
+                    size="small"
+                    :options="formTargetOptions"
+                    clearable
+                    filterable
+                    placeholder="默认表单"
+                    @update:value="updateFieldSetting(activeDrawerField.field, { targetFormKey: $event || '' })"
+                  />
+                </label>
+                <label class="field-detail-control">
+                  <span>参数名</span>
+                  <n-input
+                    :value="activeDrawerFieldSetting.targetParamName || 'id'"
+                    size="small"
+                    placeholder="参数名"
+                    @update:value="updateFieldSetting(activeDrawerField.field, { targetParamName: normalizeParamName($event) || 'id' })"
+                  />
+                </label>
+                <label class="field-detail-control">
+                  <span>取值字段</span>
+                  <n-select
+                    :value="activeDrawerFieldSetting.targetParamField || 'id'"
+                    size="small"
+                    clearable
+                    :options="queryFieldOptions"
+                    filterable
+                    placeholder="取值字段"
+                    @update:value="updateFieldSetting(activeDrawerField.field, { targetParamField: $event || 'id' })"
+                  />
+                </label>
+                <div class="field-help">
+                  点击当前列后跳到目标页面，默认传参：id = 当前行 id。参数名是目标页面接收的名字，取值字段是从当前行取哪个字段。
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -830,8 +908,15 @@ function renderTargetFieldOptions(field = {}) {
 }
 
 .search-setting-row {
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.2fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: center;
+}
+
+.field-detail-hint {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .search-component-hint {

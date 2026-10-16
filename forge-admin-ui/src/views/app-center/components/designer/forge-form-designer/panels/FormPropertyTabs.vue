@@ -628,7 +628,7 @@
                     <select
                       :value="formStyle.borderStyle || 'solid'"
                       class="appearance-select"
-                      @change="updateFormStyle({ borderStyle: $event.target.value || undefined })"
+                      @change="updateFormBorderStyle($event.target.value)"
                     >
                       <option value="solid">
                         实线
@@ -652,6 +652,20 @@
                       class="appearance-hex-input"
                       placeholder="E4E4E7"
                       @input="updateFormAppearanceBorder($event.target.value)"
+                    >
+                  </div>
+                </div>
+                <div class="appearance-field">
+                  <label>边框粗细 (Border Width)</label>
+                  <div class="appearance-radius-shell">
+                    <span>W</span>
+                    <input
+                      :value="resolvePxNumber(formStyle.borderWidth, 1)"
+                      type="number"
+                      min="0"
+                      max="32"
+                      :disabled="(formStyle.borderStyle || 'solid') === 'none'"
+                      @input="updateFormBorderWidth($event.target.value)"
                     >
                   </div>
                 </div>

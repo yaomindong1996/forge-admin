@@ -168,13 +168,7 @@ export function createForgeLayoutComponent(componentKey = 'title', schema = {}) 
         description: '查询、表格、操作按钮的业务区块',
         apiBase,
         rowKey: 'id',
-        apiConfig: {
-          list: `get@${apiBase}/page`,
-          detail: `post@${apiBase}/getById`,
-          add: `post@${apiBase}/add`,
-          update: `post@${apiBase}/edit`,
-          delete: `post@${apiBase}/remove/:id`,
-        },
+        apiConfig: buildDefaultCrudApiConfig(apiBase),
         crudOptions: {
           searchGridCols: Math.max(1, Math.min(MAX_FORM_GRID_COLUMNS, gridColumns)),
           searchLabelWidth: 'auto',
@@ -470,12 +464,38 @@ function clampGridColumns(value, fallback = 2) {
   return Math.max(1, Math.min(MAX_FORM_GRID_COLUMNS, number))
 }
 
+/**
+ * 动态 CRUD 接口前缀必须是 `/ai/crud/{configKey}`。
+ * 优先使用 schema.configKey（常含领域前缀，如 hr_business_object_xxx）；
+ * 历史实现曾把 objectCode/formKey 收成 kebab `/business-object-xxx-default-form`，
+ * 运行时会 404；也不要剥掉可用的完整 configKey 再丢领域前缀。
+ */
 function buildDefaultApiBase(schema = {}) {
-  const rawKey = String(schema?.objectCode || schema?.formKey || 'business/object').trim()
-  const normalized = rawKey
-    .replace(/^form_/, '')
-    .replace(/_/g, '-')
-    .replace(/[^a-z0-9/-]/gi, '')
-    .replace(/\/+/g, '/')
-  return `/${normalized || 'business/object'}`
+  const preferred = String(schema?.configKey || '').trim()
+  const rawKey = String(
+    preferred
+    || schema?.objectCode
+    || schema?.formKey
+    || 'business_object',
+  ).trim()
+  const configKey = rawKey
+    .replace(/^form_/i, '')
+    .replace(/-/g, '_')
+    .replace(/[^a-z0-9_]/gi, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    // formKey（*_default_form）不是动态 CRUD configKey
+    .replace(/_default_form$/i, '')
+  return `/ai/crud/${configKey || 'business_object'}`
+}
+
+function buildDefaultCrudApiConfig(apiBase = '/ai/crud/business_object') {
+  const prefix = String(apiBase || '').trim() || '/ai/crud/business_object'
+  return {
+    list: `get@${prefix}/page`,
+    detail: `get@${prefix}/:id`,
+    create: `post@${prefix}`,
+    update: `put@${prefix}`,
+    delete: `delete@${prefix}/:id`,
+  }
 }

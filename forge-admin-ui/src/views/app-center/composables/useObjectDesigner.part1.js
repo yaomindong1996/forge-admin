@@ -385,9 +385,12 @@ export function applyObjectDesignerPart1(props, emit) {
     runtimeInfo.value = res.data || null
   }
 
-  async function handleSave() {
+  async function handleSave(options = {}) {
     if (saving.value)
       return false
+    // 预览落盘：只写接口，不 loadDesigner，避免设计器整页重刷
+    const reload = options.reload !== false
+    const quiet = options.quiet === true
     saving.value = true
     await waitForSaveLoadingPaint()
     try {
@@ -402,27 +405,30 @@ export function applyObjectDesignerPart1(props, emit) {
       }
       if (isCodeAppDesigner.value && currentPanel === 'form') {
         await syncActiveFormDraft()
-        await saveCodeAppDesignerDraft(true)
+        await saveCodeAppDesignerDraft(!quiet, { reload })
         return true
       }
       if (isCodeAppDesigner.value && currentPanel === 'list') {
         await syncActiveListDraft()
-        await saveCodeAppDesignerDraft(true)
+        await saveCodeAppDesignerDraft(!quiet, { reload })
         return true
       }
       if (currentPanel === 'form') {
-        await formDesignerRef.value?.saveLayout?.()
-        await loadDesigner()
+        await formDesignerRef.value?.saveLayout?.({ quiet })
+        if (reload)
+          await loadDesigner()
         return true
       }
       if (currentPanel === 'list') {
-        await listDesignerRef.value?.saveLayout?.()
-        await loadDesigner()
+        await listDesignerRef.value?.saveLayout?.({ quiet })
+        if (reload)
+          await loadDesigner()
         return true
       }
       if (currentPanel === 'relations') {
         await relationDesignerRef.value?.saveRelations?.()
-        await loadDesigner()
+        if (reload)
+          await loadDesigner()
         return true
       }
       if (currentPanel === 'flow-app') {
@@ -432,13 +438,14 @@ export function applyObjectDesignerPart1(props, emit) {
         if (!isCodeAppDesigner.value)
           await persistPendingDesignerDraft()
         await flowAppConfigRef.value?.saveConfig?.({ codeAppMetadata })
-        await loadDesigner()
+        if (reload)
+          await loadDesigner()
         return true
       }
       if (currentPanel === 'tree-model') {
         treeModelRef.value?.saveConfig?.()
       }
-      await saveDesignerDraft(true, { manageSaving: false })
+      await saveDesignerDraft(!quiet, { manageSaving: false, reload })
       return true
     }
     finally {

@@ -705,28 +705,57 @@ function sanitizeBlockStyle(style = {}, blockType = '') {
   return next
 }
 
+function coerceBlockEventsList(events = []) {
+  if (Array.isArray(events))
+    return events
+  // 设计器/E2E 偶发写成 {0: evt} 类数组对象，按 values 回收
+  if (events && typeof events === 'object')
+    return Object.values(events)
+  return []
+}
+
 function sanitizeBlockEvents(events = []) {
-  if (!Array.isArray(events))
-    return []
-  return events
-    .filter(event => event && typeof event === 'object')
-    .map((event, index) => ({
-      id: event.id || `evt_${Date.now()}_${index}`,
-      trigger: event.trigger || 'click',
-      action: event.action || 'none',
-      targetBlockId: event.targetBlockId || '',
-      targetPageKey: event.targetPageKey || '',
-      targetFormKey: event.targetFormKey || '',
-      description: event.description || '',
-      params: Array.isArray(event.params)
-        ? event.params.map(param => ({
-            name: param?.name || '',
-            value: param?.value || '',
-            sourceType: param?.sourceType || 'static',
-            sourceField: param?.sourceField || '',
-          }))
-        : [],
-    }))
+  return coerceBlockEventsList(events)
+    .filter(event => event && typeof event === 'object' && Object.keys(event).length > 0)
+    .map((event, index) => {
+      // 运行态依赖 confirmText / requestUrl / successBehavior / handler / message 等字段，
+      // 保存归一化时必须保留，否则设计器配置在草稿/发布态丢失。
+      const next = {
+        id: event.id || `evt_${Date.now()}_${index}`,
+        trigger: event.trigger || 'click',
+        action: event.action || 'none',
+        targetBlockId: event.targetBlockId || '',
+        targetPageKey: event.targetPageKey || '',
+        targetFormKey: event.targetFormKey || '',
+        requestUrl: event.requestUrl || '',
+        description: event.description || '',
+        permissionCode: event.permissionCode || '',
+        confirmText: event.confirmText || '',
+        displayCondition: event.displayCondition || '',
+        successBehavior: event.successBehavior || 'none',
+        params: Array.isArray(event.params)
+          ? event.params.map(param => ({
+              name: param?.name || '',
+              value: param?.value || '',
+              sourceType: param?.sourceType || 'static',
+              sourceField: param?.sourceField || '',
+            }))
+          : [],
+      }
+      if (event.message !== undefined && event.message !== null && event.message !== '')
+        next.message = String(event.message)
+      if (event.messageType !== undefined && event.messageType !== null && event.messageType !== '')
+        next.messageType = String(event.messageType)
+      if (event.content !== undefined && event.content !== null && event.content !== '')
+        next.content = String(event.content)
+      if (event.handler !== undefined && event.handler !== null && event.handler !== '')
+        next.handler = String(event.handler)
+      if (event.script !== undefined && event.script !== null && event.script !== '')
+        next.script = String(event.script)
+      if (event.e2eMarker)
+        next.e2eMarker = String(event.e2eMarker)
+      return next
+    })
 }
 
 function sanitizeContainerChildren(children = [], modelSchema = {}, layoutType = 'simple-crud') {
@@ -1376,6 +1405,9 @@ function createDefaultAiCrudPageProps() {
   return {
     title: '数据列表',
     description: '自动生成筛选、列表和数据维护表单',
+    emptyTitle: '暂无数据',
+    emptyDescription: '当前列表还没有记录',
+    emptyText: '当前列表还没有记录',
     api: '',
     rowKey: 'id',
     listApi: '',

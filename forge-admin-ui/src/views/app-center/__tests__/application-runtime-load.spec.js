@@ -214,6 +214,7 @@ describe('application runtime route loading', () => {
     expect(runtimeSource).toContain(':runtime-crud-loading="isPageBlockRuntimeCrudLoading(block)"')
     expect(runtimeSource).toContain('warmCurrentPortalPageCrud')
     expect(runtimeSource).toContain('seed-runtime-crud-props')
+    expect(runtimeSource).toContain('buildRuntimeWarmChunks')
     expect(runtimeSource).toContain('import(\'@/components/ai-form/AiCrudPage.vue\')')
     expect(runtimeSource).toContain('import(\'@/components/lowcode-builder/page/RuntimeListGridFlow.vue\')')
     expect(runtimeSource).toContain('editCanvasBootstrapping')
@@ -227,8 +228,9 @@ describe('application runtime route loading', () => {
     expect(rendererSource).toContain('RuntimeListGridFlow')
     expect(rendererSource).not.toContain('ListPageGridDesigner')
     expect(rendererSource).toContain('v-else-if="effectiveRuntimeCrudProps"')
-    // GridBlock 拆分后改为同步注册 AiCrudPage，避免 async wrapper 导致单测 props 为空
-    expect(rendererSource).toContain('import AiCrudPage from \'@/components/ai-form/AiCrudPage.vue\'')
+    // 自由布局首屏：AiCrudPage 异步注册，避免 GridBlockRenderer 同步拖入整棵 CRUD 依赖树
+    expect(rendererSource).toContain("import('@/components/ai-form/AiCrudPage.vue')")
+    expect(rendererSource).toContain('blockAsyncLoader')
   })
 
   it('keeps list design tab after refresh when nodes are not loaded yet', () => {

@@ -54,8 +54,19 @@ function hydrateRuntimeLayoutNode(node = {}, fieldMap, usedFields) {
   const nodeType = resolveRuntimeLayoutNodeType(node)
   if (node.nodeType === 'field') {
     const field = fieldMap.get(node.field)
-    if (!field)
-      return null
+    // 未绑定合成字段：fields[] 可能尚无定义，仍按节点本身渲染
+    if (!field) {
+      if (!node.field && !node.type && !node.componentKey)
+        return null
+      usedFields.add(node.field || node.key)
+      return {
+        ...node,
+        nodeType: 'field',
+        field: node.field || node.key,
+        type: node.type || node.componentKey || 'input',
+        label: node.label || node.field || node.key,
+      }
+    }
     usedFields.add(node.field)
     return {
       ...field,
@@ -63,6 +74,11 @@ function hydrateRuntimeLayoutNode(node = {}, fieldMap, usedFields) {
       key: node.key || field.field,
       span: node.span || field.span,
       gridStyle: node.gridStyle || field.gridStyle,
+      style: node.style || field.style,
+      props: {
+        ...(field.props || {}),
+        ...(node.props || {}),
+      },
     }
   }
 

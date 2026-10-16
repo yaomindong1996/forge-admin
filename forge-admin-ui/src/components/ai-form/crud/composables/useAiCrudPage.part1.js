@@ -646,6 +646,31 @@ export function applyAiCrudPagePart1(props, emit, deps = {}) {
    */
   const formContext = computed(() => {
     const runtimeContext = props.formRuntimeContext || {}
+    const objectRef = props.objectRef
+      || runtimeContext.objectRef
+      || props.options?.objectRef
+      || null
+    const apiConfigKey = String(props.api || props.apiBase || '')
+      .trim()
+      .replace(/^\/ai\/crud\//i, '')
+      .split('?')[0]
+      .replace(/\/$/, '')
+      .trim()
+    const configKey = String(
+      props.configKey
+      || objectRef?.configKey
+      || runtimeContext.configKey
+      || apiConfigKey
+      || '',
+    ).trim()
+    const objectCode = String(
+      objectRef?.objectCode
+      || runtimeContext.objectCode
+      || '',
+    ).trim()
+    let configKeyPrefix = String(runtimeContext.configKeyPrefix || '').trim()
+    if (!configKeyPrefix && configKey && objectCode && configKey.endsWith(objectCode))
+      configKeyPrefix = configKey.slice(0, -objectCode.length)
     return {
       // 未传 formRuntimeContext 的运行链路（低代码应用页等）兜底注入登录上下文，
       // 保证「初始化默认值 / 字段事件」的 currentUser.* 取值可用；调用方显式传入的优先。
@@ -660,6 +685,11 @@ export function applyAiCrudPagePart1(props, emit, deps = {}) {
       fieldEvents: props.fieldEvents,
       fieldEventLoadToken: fieldEventLoadToken.value,
       formInit: props.formInit,
+      // 内嵌 CRUD 纠正 apiBase：用主表 configKey（如 hr_business_object_bkhu）对齐领域前缀
+      objectRef: objectRef || runtimeContext.objectRef || null,
+      configKey: configKey || runtimeContext.configKey || '',
+      objectCode: objectCode || runtimeContext.objectCode || '',
+      configKeyPrefix: configKeyPrefix || runtimeContext.configKeyPrefix || '',
     }
   })
 
@@ -1030,12 +1060,17 @@ export function applyAiCrudPagePart1(props, emit, deps = {}) {
 
   const hasActiveListFilters = computed(() => hasFilledSearchParams(searchParams.value) || !!customQueryPayload.value)
 
-  const resolvedEmptyTitle = computed(() => hasActiveListFilters.value ? '没有匹配结果' : '暂无数据')
+  const resolvedEmptyTitle = computed(() => {
+    if (hasActiveListFilters.value)
+      return props.emptyFilterTitle || '没有匹配结果'
+    return props.emptyTitle || '暂无数据'
+  })
 
   const resolvedEmptyDescription = computed(() => {
     if (hasActiveListFilters.value)
-      return '调整筛选条件后再试'
-    return '当前列表还没有记录'
+      return props.emptyFilterDescription || '调整筛选条件后再试'
+    // emptyText 兼容列表区块历史字段名
+    return props.emptyDescription || props.emptyText || '当前列表还没有记录'
   })
 
   const normalizedSearchSchema = computed(() => {

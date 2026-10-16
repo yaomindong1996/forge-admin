@@ -1,5 +1,5 @@
 /** Auto-split part 4 of ListPageGridDesigner setup. */
-import { nextTick, onBeforeUnmount, onMounted } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, watch } from 'vue'
 import {
   findBlockInTree,
   mapBlockSiblingsInTree,
@@ -16,6 +16,8 @@ import {
   blockEventActionOptions,
   eventTriggerOptions,
 } from '../listDesignerOptions'
+import { resolveVerticalPushY } from '../listPageFramePush'
+import { isAccidentalSelectionChrome, selectionChromeClearPatch } from '../block-style-chrome'
 export function useListPageGridDesignerPart4(props, emit, deps = {}) {
   const {
     __impl,
@@ -99,6 +101,20 @@ function crudPreviewStatusText(status) {
   return '模拟预览'
 }
 
+/** 自由布局画布读 pageFlow*；属性面板改帧时必须同步，否则宽高/坐标与画布脱节 */
+function buildPanelOnlyPageFlowStyle(next = {}, widthMode = 'fixed') {
+  if (!props.panelOnly)
+    return {}
+  return {
+    pageFlowX: Math.max(0, Math.round(Number(next.x) || 0)),
+    pageFlowY: Math.max(0, Math.round(Number(next.y) || 0)),
+    pageFlowWidth: widthMode === 'full'
+      ? 'calc(100% - 48px)'
+      : `${Math.max(24, Math.round(Number(next.width) || 24))}px`,
+    pageFlowHeight: Math.max(24, Math.round(Number(next.height) || 24)),
+  }
+}
+
 function patchBlockFrame(id, patch) {
   const source = blocks.value.find(block => block.id === id)
   if (!source)
@@ -118,8 +134,6 @@ function patchBlockFrame(id, patch) {
   next.height = Math.max(24, Number(next.height) || current.height)
   next.x = clamp(Number(next.x) || 0, 0, Math.max(0, canvasGridWidth.value - next.width))
   next.y = Math.max(0, Number(next.y) || 0)
-  if (doesFrameOverlapBlocks(id, next, { ignoreTreeMainBlocks: source.blockType === 'tree-panel' }))
-    return false
   const gridPatch = frameToGridPatch(next)
   const nextWidthValue = nextWidthMode === 'full' ? '100%' : nextWidthMode === 'auto' ? 'auto' : next.width
   const patchedItems = blocks.value.map(block => block.id === id
@@ -135,19 +149,84 @@ function patchBlockFrame(id, patch) {
             y: next.y,
             widthMode: nextWidthMode,
             width: nextWidthValue,
-            ...(props.panelOnly && widthChanged ? { pageFlowWidth: `${next.width}px` } : {}),
             heightMode: nextHeightMode,
             height: next.height,
+            ...buildPanelOnlyPageFlowStyle(next, nextWidthMode),
           },
         },
       }
     : block)
-  const nextItems = applyTreePanelResponsiveMainFrames(source, next, patchedItems)
+  const withTree = applyTreePanelResponsiveMainFrames(source, next, patchedItems)
+  // 拉高/拖动撞到下方块时下推，而不是静默失败（否则高度手柄几乎拖不动）
+  const nextItems = pushStackedBlocksDown(withTree, {
+    ignoreTreeMainFor: source.blockType === 'tree-panel' ? id : '',
+  })
   localLayout.value = {
     ...localLayout.value,
     items: normalizeGridItems(nextItems),
   }
   return true
+}
+
+/** 按垂直堆叠规则补齐块间距，消除重叠与贴边 */
+function pushStackedBlocksDown(items = [], options = {}) {
+  const ignoreTreeMainFor = options.ignoreTreeMainFor || ''
+  const frames = items
+    .filter((block) => {
+      if (!ignoreTreeMainFor || block.id === ignoreTreeMainFor)
+        return true
+      if (isTreeCrudMainBlock(block) && resolveBlockWidthMode(block) === 'full')
+        return false
+      return true
+    })
+    .map((block) => {
+      const frame = resolveBlockFrame(block)
+      return {
+        id: block.id,
+        x: frame.x,
+        y: frame.y,
+        width: frame.width,
+        height: frame.height,
+      }
+    })
+  const pushedY = resolveVerticalPushY(frames, Math.max(12, Number(gap) || 8))
+  return items.map((block) => {
+    const nextY = pushedY.get(block.id)
+    if (nextY === undefined)
+      return block
+    const current = resolveBlockFrame(block)
+    if (Math.round(current.y) === Math.round(nextY))
+      return block
+    const nextFrame = { ...current, y: nextY }
+    const gridPatch = frameToGridPatch(nextFrame)
+    const widthMode = resolveBlockWidthMode(block)
+    return {
+      ...block,
+      ...gridPatch,
+      props: {
+        ...(block.props || {}),
+        style: {
+          ...createDefaultBlockStyle(),
+          ...(block.props?.style || {}),
+          x: nextFrame.x,
+          y: nextFrame.y,
+          width: block.props?.style?.width ?? nextFrame.width,
+          height: block.props?.style?.height ?? nextFrame.height,
+          widthMode,
+          heightMode: resolveBlockHeightMode(block),
+          ...buildPanelOnlyPageFlowStyle(nextFrame, widthMode),
+        },
+      },
+    }
+  })
+}
+
+function tidyCanvasBlockSpacing() {
+  const nextItems = pushStackedBlocksDown(blocks.value)
+  localLayout.value = {
+    ...localLayout.value,
+    items: normalizeGridItems(nextItems),
+  }
 }
 
 function applyTreePanelResponsiveMainFrames(source = {}, nextTreeFrame = {}, items = []) {
@@ -254,10 +333,8 @@ function setBlockWidthMode(id, mode = 'full') {
               y: nextFrame.y,
               widthMode,
               width: widthMode === 'full' ? '100%' : widthMode === 'auto' ? 'auto' : nextFrame.width,
-              ...(props.panelOnly
-                ? { pageFlowWidth: widthMode === 'full' ? 'calc(100% - 48px)' : `${nextFrame.width}px` }
-                : {}),
               height: nextFrame.height,
+              ...buildPanelOnlyPageFlowStyle(nextFrame, widthMode),
             },
           },
         }
@@ -276,6 +353,7 @@ function setBlockHeightMode(id, mode = 'fixed') {
     height: heightMode === 'auto' ? Math.max(48, Math.min(240, current.height)) : current.height,
   }
   const gridPatch = frameToGridPatch(nextFrame)
+  const widthMode = resolveBlockWidthMode(source)
   localLayout.value = {
     ...localLayout.value,
     items: normalizeGridItems(blocks.value.map(block => block.id === id
@@ -292,6 +370,7 @@ function setBlockHeightMode(id, mode = 'fixed') {
               width: nextFrame.width,
               heightMode,
               height: nextFrame.height,
+              ...buildPanelOnlyPageFlowStyle(nextFrame, widthMode),
             },
           },
         }
@@ -438,6 +517,19 @@ function patchBlockStyle(id, patch) {
   })
 }
 __impl.patchBlockStyle = patchBlockStyle
+
+// 自由布局选中时清掉误写入的选中态蓝边（含挂载时已选中：须 immediate）
+watch(
+  () => selectedBlock.value?.id,
+  (id) => {
+    if (!props.panelOnly || props.readonly || !id || !selectedBlock.value)
+      return
+    if (!isAccidentalSelectionChrome(selectedBlock.value.props?.style))
+      return
+    patchBlockStyle(id, selectionChromeClearPatch())
+  },
+  { immediate: true },
+)
 
 function removeBlock(id) {
   if (!id)
@@ -1200,6 +1292,8 @@ function openInlineFieldDrawer(fieldName = '', mode = 'table') {
     handleCrudPreviewStateChange,
     crudPreviewStatusText,
     patchBlockFrame,
+    tidyCanvasBlockSpacing,
+    pushStackedBlocksDown,
     applyTreePanelResponsiveMainFrames,
     isTreeCrudMainBlock,
     doesFrameOverlapBlocks,

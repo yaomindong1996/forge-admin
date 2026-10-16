@@ -165,15 +165,16 @@ export function applyApplicationRuntimePart3(deps = {}) {
       : null
     document.body.classList.remove('is-catalog-pointer-dragging')
     syncCatalogDropActiveClass('')
-    componentPopoverVisible.value = false
     clearPageAlignGuides()
     activePageFlowTabTarget.value = null
     activePageFlowGridTarget.value = null
     activePageFlowContainerTarget.value = null
+    // 未拖动：交给 click → insertComponent；若此处关浮层会先卸掉按钮，click 丢失
     if (!ctx?.moved) {
       catalogDragBlockType.value = ''
       return
     }
+    componentPopoverVisible.value = false
     if (tabTarget)
       appendPageBlockToTab(blockType, tabTarget.blockId, tabTarget.tabKey)
     else if (gridTarget) {
@@ -697,6 +698,7 @@ export function applyApplicationRuntimePart3(deps = {}) {
       : item))
     selectedPageBlockId.value = block.id
     preloadPageBlockCrudRuntimeProps(block)
+    __impl.scrollPageBlockIntoView?.(block.id)
     return true
   }
   __impl.appendPageBlockToContainer = appendPageBlockToContainer
@@ -850,6 +852,7 @@ export function applyApplicationRuntimePart3(deps = {}) {
       : item))
     selectedPageBlockId.value = block.id
     preloadPageBlockCrudRuntimeProps(block)
+    __impl.scrollPageBlockIntoView?.(block.id)
   }
   __impl.appendPageBlockToGridCell = appendPageBlockToGridCell
 
@@ -880,6 +883,7 @@ export function applyApplicationRuntimePart3(deps = {}) {
       : item))
     selectedPageBlockId.value = block.id
     preloadPageBlockCrudRuntimeProps(block)
+    __impl.scrollPageBlockIntoView?.(block.id)
   }
   __impl.appendPageBlockToTab = appendPageBlockToTab
 
@@ -1076,6 +1080,10 @@ export function applyApplicationRuntimePart3(deps = {}) {
       y,
       left,
       top,
+      // 顶层 createDefaultBlockStyle 默认 height:100% + heightMode:fixed；
+      // 进嵌套后百分比无参照，必须从 style 里解构丢掉，不能只设 undefined（仍可能被残留）。
+      height: _topLevelHeight,
+      heightMode: _topLevelHeightMode,
       ...containerStyle
     } = block.props?.style || {}
     return {
@@ -1084,11 +1092,11 @@ export function applyApplicationRuntimePart3(deps = {}) {
         ...(block.props || {}),
         style: {
           ...containerStyle,
-          // 嵌套容器内默认铺满，禁止带出画布绝对坐标/固定宽
+          // 嵌套容器内默认铺满宽、高度跟内容，禁止带出画布绝对坐标/100% 固定高
           widthMode: 'full',
           width: '100%',
           maxWidth: '100%',
-          heightMode: containerStyle.heightMode || 'auto',
+          heightMode: 'auto',
           x: 0,
           y: 0,
           left: 0,

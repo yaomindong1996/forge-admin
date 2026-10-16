@@ -27,6 +27,7 @@ import {
   normalizeCrudHookRules,
 } from '@/components/lowcode-builder/page/crud-hook-rules'
 import ListPageGridDesigner from '@/components/lowcode-builder/page/ListPageGridDesigner.vue'
+import { resolveVerticalPushY } from '@/components/lowcode-builder/page/listPageFramePush'
 import {
   applyGridLayoutToZones,
   bootstrapGridLayoutFromZones,
@@ -214,20 +215,29 @@ export function applyBusinessListDesignerPart1(props, emit) {
     { label: '新增空白页面', key: 'addPage', icon: renderMenuIcon(AddOutline) },
     { type: 'divider', key: 'pageActionDivider2' },
     { label: '复制页面', key: 'duplicate', icon: renderMenuIcon(CopyOutline) },
+    { label: '整理区块间距', key: 'tidySpacing', icon: renderMenuIcon(SparklesOutline) },
     { label: '重置布局', key: 'reset', icon: renderMenuIcon(SparklesOutline) },
     { label: '重置当前列表', key: 'resetListSchema', icon: renderMenuIcon(RefreshOutline) },
   ])
   const designerPages = computed(() => localSchema.value.pages || [])
+  // 对象多画布页 + 应用页都要能选：仅 applicationPages 时会丢掉 dialog/list 等 pageKey
   const actionPageOptions = computed(() => {
-    const appPages = Array.isArray(props.applicationPages) ? props.applicationPages : []
-    if (appPages.length) {
-      return appPages.map(page => ({
-        pageKey: String(page.pageKey || page.id || ''),
-        pageName: page.pageName || page.title || page.name || String(page.pageKey || page.id || ''),
+    const seen = new Set()
+    const merged = []
+    const pushPage = (page) => {
+      const pageKey = String(page?.pageKey || page?.id || '').trim()
+      if (!pageKey || seen.has(pageKey))
+        return
+      seen.add(pageKey)
+      merged.push({
+        pageKey,
+        pageName: page.pageName || page.title || page.name || pageKey,
         pageType: page.pageType || page.type || 'custom',
-      })).filter(page => page.pageKey)
+      })
     }
-    return designerPages.value
+    designerPages.value.forEach(pushPage)
+    ;(Array.isArray(props.applicationPages) ? props.applicationPages : []).forEach(pushPage)
+    return merged
   })
   const activeDesignerPage = computed(() => designerPages.value.find(page => page.pageKey === activePageKey.value) || designerPages.value[0] || null)
   const currentPageGridLayout = computed(() => activeDesignerPage.value?.gridLayout || localSchema.value.listGridLayout || {})
@@ -248,6 +258,12 @@ export function applyBusinessListDesignerPart1(props, emit) {
   }
   const designerGridLayout = computed(() => filterDesignerGridBlocks(currentPageGridLayout.value))
   const designerPreviewGridLayout = computed(() => filterDesignerGridBlocks(previewGridLayout.value))
+  /** 多页面入口：仅 pageKey/pageType=list 的主列表页；自定义/弹窗等是二级页 */
+  const listDesignerPage = computed(() => {
+    const pages = Array.isArray(designerPages.value) ? designerPages.value : []
+    return pages.find(page => page?.pageKey === 'list' || page?.pageType === 'list') || null
+  })
+  const listPreviewPageName = computed(() => listDesignerPage.value?.pageName || '列表页')
   const pageWatermark = computed(() => {
     const raw = activeDesignerPage.value?.pageWatermark || localSchema.value?.pageWatermark || {}
     return {
@@ -256,6 +272,17 @@ export function applyBusinessListDesignerPart1(props, emit) {
     }
   })
   const pageWatermarkContent = computed(() => pageWatermark.value.text || '内部资料')
+  // 预览水印只取列表页，避免停在「页面2」时把二级页水印带进预览
+  const listPreviewWatermark = computed(() => {
+    const raw = listDesignerPage.value?.pageWatermark
+      || localSchema.value?.pageWatermark
+      || {}
+    return {
+      enabled: raw.enabled === true,
+      text: String(raw.text || '').trim().slice(0, 50),
+    }
+  })
+  const listPreviewWatermarkContent = computed(() => listPreviewWatermark.value.text || '内部资料')
   const visibleListCustomActions = computed(() => props.defaultViewOnly ? [] : listCustomActions.value)
   const designerRuntimeCrudProps = computed(() => buildDesignerRuntimeCrudProps(localSchema.value, designFields.value, visibleListCustomActions.value))
 
@@ -609,9 +636,58 @@ export function applyBusinessListDesignerPart1(props, emit) {
       duplicateActivePage()
       return
     }
+    if (key === 'tidySpacing') {
+      tidyActivePageSpacing()
+      return
+    }
     if (key === 'reset') {
       resetActivePageLayout()
     }
+  }
+
+  /** 消除当前页画布块重叠/贴边：按垂直堆叠下推，保留相对左右位置 */
+  function tidyActivePageSpacing() {
+    const grid = currentPageGridLayout.value || {}
+    const items = Array.isArray(grid.items) ? grid.items : []
+    if (!items.length)
+      return
+    const frames = items.map((block) => {
+      const style = block.props?.style || {}
+      const width = Number(style.width) || Number(block.gridW) * 80 || 240
+      const height = Number(style.height) || Number(block.gridH) * 40 || 80
+      return {
+        id: block.id,
+        x: Number(style.x) || 0,
+        y: Number(style.y) || 0,
+        width: Number.isFinite(width) ? width : 240,
+        height: Number.isFinite(height) ? height : 80,
+      }
+    })
+    const pushedY = resolveVerticalPushY(frames, 12)
+    const nextItems = items.map((block) => {
+      const nextY = pushedY.get(block.id)
+      if (nextY === undefined || Math.round(Number(block.props?.style?.y) || 0) === Math.round(nextY))
+        return block
+      return {
+        ...block,
+        props: {
+          ...(block.props || {}),
+          style: {
+            ...(block.props?.style || {}),
+            y: nextY,
+          },
+        },
+      }
+    })
+    const nextGrid = { ...grid, items: nextItems, gap: Math.max(12, Number(grid.gap) || 12) }
+    if (activeDesignerPage.value) {
+      patchActivePage({ gridLayout: nextGrid })
+      return
+    }
+    setLocalSchema({
+      ...localSchema.value,
+      listGridLayout: nextGrid,
+    })
   }
 
   function addDesignerPage() {
@@ -926,9 +1002,10 @@ export function applyBusinessListDesignerPart1(props, emit) {
     })
   }
 
-  async function saveLayout() {
+  async function saveLayout(options = {}) {
     if (!props.objectId)
       return
+    const quiet = options.quiet === true
     // 保存前刷掉画布延迟 emit，避免落盘缺少刚拖入的伴生块
     listGridDesignerRef.value?.flushDeferredLayoutEmit?.()
     const schema = normalizeSchemaForSave(resolveSchema(localSchema.value, effectiveModelSchema.value))
@@ -976,7 +1053,8 @@ export function applyBusinessListDesignerPart1(props, emit) {
         emit('update:designerActions', cloneSchema(designerActions))
       emit('saved', cloneSchema(schema))
       emit('dirtyChange', false)
-      message.success('列表布局已保存')
+      if (!quiet)
+        message.success('列表布局已保存')
       return schema
     }
     catch (error) {
@@ -1323,6 +1401,8 @@ export function applyBusinessListDesignerPart1(props, emit) {
     pendingModelSchema, workingModelSchema, effectiveModelSchema, designFields, layoutModeLabel, canUndo, canRedo, listPreviewVisible, listPreviewLayout, listPreviewLayoutKey,
     templateSelectValue, listCustomActions, pageTypeOptions, listTemplateOptions, activeTemplateLabel, listMoreOptions, pageActionOptions, designerPages,
     actionPageOptions,
-    activeDesignerPage, currentPageGridLayout, previewGridLayout, designerGridLayout, designerPreviewGridLayout, pageWatermark, pageWatermarkContent, visibleListCustomActions, designerRuntimeCrudProps,
+    activeDesignerPage, currentPageGridLayout, previewGridLayout, designerGridLayout, designerPreviewGridLayout,
+    listDesignerPage, listPreviewPageName, pageWatermark, pageWatermarkContent, listPreviewWatermark, listPreviewWatermarkContent,
+    visibleListCustomActions, designerRuntimeCrudProps,
   }
 }

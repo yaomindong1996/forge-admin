@@ -7,19 +7,19 @@ export default {
    * 我的待办任务
    */
   getTodoTasks: (params, config = {}) =>
-    request.get('/api/flow/task/todo', { ...config, params }),
+    request.get('/api/flow/task/todo', { needTip: false, ...config, params }),
 
   /**
    * 我的已办任务
    */
   getDoneTasks: (params, config = {}) =>
-    request.get('/api/flow/task/done', { ...config, params }),
+    request.get('/api/flow/task/done', { needTip: false, ...config, params }),
 
   /**
    * 我发起的流程
    */
   getStartedTasks: (params, config = {}) =>
-    request.get('/api/flow/task/started', { ...config, params }),
+    request.get('/api/flow/task/started', { needTip: false, ...config, params }),
 
   /**
    * 候选任务（未签收）
@@ -350,14 +350,14 @@ export default {
   /**
    * 我的抄送
    */
-  getMyCc: params =>
-    request.get('/api/flow/cc/my', { params }),
+  getMyCc: (params, config = {}) =>
+    request.get('/api/flow/cc/my', { needTip: false, ...config, params }),
 
   /**
    * 我发送的抄送
    */
-  getSentCc: params =>
-    request.get('/api/flow/cc/sent', { params }),
+  getSentCc: (params, config = {}) =>
+    request.get('/api/flow/cc/sent', { needTip: false, ...config, params }),
 
   /**
    * 获取抄送关联业务表单

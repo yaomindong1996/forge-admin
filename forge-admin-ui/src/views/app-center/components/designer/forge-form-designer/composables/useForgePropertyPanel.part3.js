@@ -1,6 +1,8 @@
 /** Auto-split part 3 of ForgePropertyPanel setup. */
 import { computed, nextTick, onBeforeUnmount, onMounted, watch } from 'vue'
+import { serializeSelectionValues } from '@/components/ai-form/selection-multi-value'
 import { getDictData } from '@/composables/useDict'
+import { colorToHexInput, hexInputToColor } from '@/utils/designer-color'
 import {
   appendDesignerLayoutChild,
   cloneValue,
@@ -8,11 +10,9 @@ import {
   getDesignerComponent,
   isFieldComponent,
   normalizeFormDesignerSchema,
-  updateDesignerComponent,
 } from '../../form-first/formDesignerSchema'
 import { normalizeGridCount } from '../formLayoutConfig'
 import { buildDefaultPlaceholder, shouldSyncPlaceholder } from '../placeholder-utils'
-import { serializeSelectionValues } from '@/components/ai-form/selection-multi-value'
 
 export function useForgePropertyPanelPart3(props, emit, deps = {}) {
   const {
@@ -195,7 +195,9 @@ __impl.updateDefaultValue = updateDefaultValue
 function addLayoutChild(componentKey = '') {
   if (!selectedComponent.value)
     return
-  emit('update:schema', appendDesignerLayoutChild(props.schema, selectedComponent.value.id, componentKey))
+  designerStore.applySchema(
+    appendDesignerLayoutChild(designerStore.schema, selectedComponent.value.id, componentKey),
+  )
 }
 __impl.addLayoutChild = addLayoutChild
 
@@ -282,6 +284,8 @@ function addInteractionPreset(key = '') {
     showHide: {
       trigger: 'change',
       action: 'showHide',
+      // 默认「开关打开时显示目标」；不设 whenValue 时条件为空会永远命中，联动看起来无效
+      whenValue: 'true',
       value: 'true',
     },
     enableDisable: {
@@ -479,14 +483,15 @@ function resetSelectedCodeDraft() {
 __impl.resetSelectedCodeDraft = resetSelectedCodeDraft
 
 function applySelectedCode() {
-  if (!props.selectedId)
+  const componentId = designerStore.selectedId || props.selectedId
+  if (!componentId)
     return false
   try {
     const parsed = JSON.parse(selectedCodeText.value || '{}')
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
       throw new Error('当前组件 JSON 必须是对象')
-    const nextSchema = replaceComponentInSchema(props.schema, props.selectedId, parsed)
-    emit('update:schema', normalizeFormDesignerSchema(nextSchema))
+    const nextSchema = replaceComponentInSchema(designerStore.schema, componentId, parsed)
+    designerStore.applySchema(normalizeFormDesignerSchema(nextSchema))
     sourceError.value = ''
     selectedCodeDraftTarget.value = ''
     selectedCodeDraft.value = ''
@@ -516,7 +521,7 @@ __impl.resetSchemaCodeDraft = resetSchemaCodeDraft
 function applySchemaCode() {
   try {
     const parsed = JSON.parse(schemaCodeText.value || '{}')
-    emit('update:schema', normalizeFormDesignerSchema(parsed))
+    designerStore.applySchema(normalizeFormDesignerSchema(parsed))
     sourceError.value = ''
     schemaCodeDirty.value = false
     schemaCodeDraft.value = ''
@@ -558,24 +563,7 @@ function replaceComponentInSchema(schema = {}, componentId = '', replacement = {
 }
 __impl.replaceComponentInSchema = replaceComponentInSchema
 
-function colorToHexInput(value, fallback = '') {
-  const text = String(value || '').trim()
-  const match = text.match(/^#?([0-9a-f]{3}(?:[0-9a-f]{3})?)/i)
-  if (!match)
-    return fallback
-  const hex = match[1]
-  if (hex.length === 3)
-    return hex.split('').map(item => `${item}${item}`).join('').toUpperCase()
-  return hex.toUpperCase()
-}
 __impl.colorToHexInput = colorToHexInput
-
-function hexInputToColor(value, fallback = '#ffffff') {
-  const text = String(value || '').trim().replace(/^#/, '')
-  if (!/^[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(text))
-    return fallback
-  return `#${text}`
-}
 __impl.hexInputToColor = hexInputToColor
 
 function normalizeAppearanceColor(value, fallback = '#ffffff') {
@@ -618,11 +606,17 @@ function updateDesignerStyle(stylePatch = {}) {
 }
 __impl.updateDesignerStyle = updateDesignerStyle
 
+function resolveActiveBorderWidthPx(current, fallbackPx = 1) {
+  const width = resolvePxNumber(current, 0)
+  return valueToPx(width > 0 ? width : fallbackPx)
+}
+
 function updateDesignerBorderStyle(value) {
   if (value === 'none') {
     updateDesignerStyle({
       borderStyle: 'none',
       borderColor: 'transparent',
+      borderWidth: '0px',
       hideInnerBorder: true,
     })
     return
@@ -632,6 +626,7 @@ function updateDesignerBorderStyle(value) {
     borderColor: selectedDesignerStyle.value.borderColor === 'transparent'
       ? undefined
       : selectedDesignerStyle.value.borderColor,
+    borderWidth: resolveActiveBorderWidthPx(selectedDesignerStyle.value.borderWidth),
     hideInnerBorder: false,
   })
 }
@@ -647,10 +642,32 @@ function updateDesignerBorderColor(value) {
     borderStyle: selectedDesignerStyle.value.borderStyle === 'none'
       ? 'solid'
       : selectedDesignerStyle.value.borderStyle || 'solid',
+    borderWidth: resolveActiveBorderWidthPx(selectedDesignerStyle.value.borderWidth),
     hideInnerBorder: false,
   })
 }
 __impl.updateDesignerBorderColor = updateDesignerBorderColor
+
+function updateDesignerBorderWidth(value) {
+  const width = Math.max(0, Math.min(32, resolvePxNumber(value, 1)))
+  if (width <= 0) {
+    updateDesignerStyle({
+      borderWidth: '0px',
+      borderStyle: 'none',
+      borderColor: 'transparent',
+      hideInnerBorder: true,
+    })
+    return
+  }
+  updateDesignerStyle({
+    borderWidth: valueToPx(width),
+    borderStyle: selectedDesignerStyle.value.borderStyle === 'none'
+      ? 'solid'
+      : selectedDesignerStyle.value.borderStyle || 'solid',
+    hideInnerBorder: false,
+  })
+}
+__impl.updateDesignerBorderWidth = updateDesignerBorderWidth
 
 function updateWidthMode(value) {
   updateDesignerStyle({
@@ -728,9 +745,48 @@ function updateFormAppearanceBorder(value) {
     borderStyle: formStyle.value.borderStyle === 'none'
       ? 'solid'
       : formStyle.value.borderStyle || 'solid',
+    borderWidth: resolveActiveBorderWidthPx(formStyle.value.borderWidth),
   })
 }
 __impl.updateFormAppearanceBorder = updateFormAppearanceBorder
+
+function updateFormBorderStyle(value) {
+  if (value === 'none') {
+    updateFormStyle({
+      borderStyle: 'none',
+      borderColor: 'transparent',
+      borderWidth: '0px',
+    })
+    return
+  }
+  updateFormStyle({
+    borderStyle: value || 'solid',
+    borderColor: formStyle.value.borderColor === 'transparent'
+      ? '#e4e4e7'
+      : formStyle.value.borderColor,
+    borderWidth: resolveActiveBorderWidthPx(formStyle.value.borderWidth),
+  })
+}
+__impl.updateFormBorderStyle = updateFormBorderStyle
+
+function updateFormBorderWidth(value) {
+  const width = Math.max(0, Math.min(32, resolvePxNumber(value, 1)))
+  if (width <= 0) {
+    updateFormStyle({
+      borderWidth: '0px',
+      borderStyle: 'none',
+      borderColor: 'transparent',
+    })
+    return
+  }
+  updateFormStyle({
+    borderWidth: valueToPx(width),
+    borderStyle: formStyle.value.borderStyle === 'none'
+      ? 'solid'
+      : formStyle.value.borderStyle || 'solid',
+  })
+}
+__impl.updateFormBorderWidth = updateFormBorderWidth
 
 function updateFormAppearanceOpacity(value) {
   updateFormStyle({ opacity: normalizeOpacityPercent(value, formOpacityPercent.value) / 100 })
@@ -1036,16 +1092,16 @@ __impl.parseJsonObjectProp = parseJsonObjectProp
 function updateCrudFieldRole(componentId, role, value) {
   if (!componentId)
     return
-  const field = getDesignerComponent(props.schema, componentId)
+  const field = getDesignerComponent(designerStore.schema, componentId)
   const currentRoles = field?.props?.__crudRoles || {}
-  emit('update:schema', updateDesignerComponent(props.schema, componentId, {
+  designerStore.updateComponent(componentId, {
     props: {
       __crudRoles: {
         ...currentRoles,
         [role]: Boolean(value),
       },
     },
-  }))
+  })
 }
 __impl.updateCrudFieldRole = updateCrudFieldRole
 
@@ -1070,9 +1126,9 @@ __impl.updateCrudFieldConfig = updateCrudFieldConfig
 function updateCrudFieldConfigById(componentId, area, patch = {}) {
   if (!componentId || !area)
     return
-  const field = getDesignerComponent(props.schema, componentId)
+  const field = getDesignerComponent(designerStore.schema, componentId)
   const current = field?.props?.__crudConfig || {}
-  emit('update:schema', updateDesignerComponent(props.schema, componentId, {
+  designerStore.updateComponent(componentId, {
     props: {
       __crudConfig: {
         ...current,
@@ -1082,7 +1138,7 @@ function updateCrudFieldConfigById(componentId, area, patch = {}) {
         },
       },
     },
-  }))
+  })
 }
 __impl.updateCrudFieldConfigById = updateCrudFieldConfigById
 
@@ -1311,18 +1367,29 @@ __impl.createColumn = createColumn
 function normalizeApiBase(value) {
   const text = String(value || '').trim().replace(/\/+/g, '/')
   if (!text)
-    return '/business/object'
-  return text.startsWith('/') ? text : `/${text}`
+    return '/ai/crud/business_object'
+  const withSlash = text.startsWith('/') ? text : `/${text}`
+  // 历史 kebab / formKey 路径纠正为对象 CRUD configKey（剥 *_default_form）
+  const key = withSlash
+    .replace(/^\/ai\/crud\//i, '')
+    .replace(/^\//, '')
+    .replace(/-/g, '_')
+    .replace(/[^a-z0-9_]/gi, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .replace(/_default_form$/i, '')
+  return `/ai/crud/${key || 'business_object'}`
 }
 __impl.normalizeApiBase = normalizeApiBase
 
-function buildDefaultCrudApiConfig(apiBase = '/business/object') {
+function buildDefaultCrudApiConfig(apiBase = '/ai/crud/business_object') {
+  const prefix = String(apiBase || '').trim() || '/ai/crud/business_object'
   return {
-    list: `get@${apiBase}/page`,
-    detail: `post@${apiBase}/getById`,
-    add: `post@${apiBase}/add`,
-    update: `post@${apiBase}/edit`,
-    delete: `post@${apiBase}/remove/:id`,
+    list: `get@${prefix}/page`,
+    detail: `get@${prefix}/:id`,
+    create: `post@${prefix}`,
+    update: `put@${prefix}`,
+    delete: `delete@${prefix}/:id`,
   }
 }
 __impl.buildDefaultCrudApiConfig = buildDefaultCrudApiConfig
@@ -1553,6 +1620,7 @@ onBeforeUnmount(() => {
     updateDesignerStyle,
     updateDesignerBorderStyle,
     updateDesignerBorderColor,
+    updateDesignerBorderWidth,
     updateWidthMode,
     updateHeightMode,
     updateComponentStyleText,
@@ -1562,6 +1630,8 @@ onBeforeUnmount(() => {
     updateFormStyle,
     updateFormAppearanceBackground,
     updateFormAppearanceBorder,
+    updateFormBorderStyle,
+    updateFormBorderWidth,
     updateFormAppearanceOpacity,
     updateFormStyleText,
     updateFormSpacing,

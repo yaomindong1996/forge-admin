@@ -19,7 +19,7 @@ describe('page design tabs', () => {
     expect(source).toContain('PageDesignPublishPanel')
     expect(source).toContain('(editing || isDraftPreviewMode()) && activePageDesignTab === \'settings\'')
     expect(source).toContain('(editing || isDraftPreviewMode()) && activePageDesignTab === \'publish\'')
-    expect(source).toContain('v-else-if="(!editing && runtimeViewMode === \'pages\') || showFreeLayoutCanvas"')
+    expect(source).toContain('v-if="((!editing && runtimeViewMode === \'pages\') || showFreeLayoutCanvas) && !showListDesignerSurface && !showFormDesignerSurface"')
   })
 
   it('draft preview can open settings/publish without returning to page management first', () => {
@@ -33,6 +33,10 @@ describe('page design tabs', () => {
     expect(part5).toContain('requested === \'preview\'')
     expect(part5).toContain('openDraftPreviewInPlace')
     expect(part5).toContain('正在保存草稿并打开预览')
+    expect(part5).toContain('正在打开预览')
+    expect(part5).toContain('currentDesignerDirty()')
+    expect(part5).toContain('forPreview: true')
+    expect(part5).not.toContain('needsSave = currentDesignerDirty() || onListOrForm')
     expect(part5).toContain('previewTabLoading')
     expect(part5).toContain('returnToEditorFromDraftPreview({ designTab: next })')
     expect(part4).toContain('function returnToEditorFromDraftPreview(options = {})')

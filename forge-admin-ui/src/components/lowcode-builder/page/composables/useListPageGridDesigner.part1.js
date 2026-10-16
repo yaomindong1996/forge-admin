@@ -45,6 +45,7 @@ import {
 } from '../page-schema'
 
 import { PAGE_FORM_ASSET_OPTIONS_KEY, provideListPageDesignerApi } from '../listPageDesignerContext'
+import { resolveEffectiveFormOpenMode, resolveEffectiveModalType } from '../runtime-crud-block-props'
 import {
   alignSearchSchemaWithLeftTree,
   findTreePanelProps,
@@ -149,7 +150,8 @@ const selectBlock = (...args) => __impl.selectBlock(...args)
 const updateGridLayoutStructure = (...args) => __impl.updateGridLayoutStructure(...args)
 
 const rowHeight = 32
-const gap = 8
+// 列表块默认垂直/栅格间距：过小会显得「贴在一起」，拖高时也几乎没有缓冲
+const gap = 12
 const previewMinWidth = 360
 const TREE_PANEL_COLLAPSED_WIDTH = 44
 
@@ -285,11 +287,17 @@ const propertySearchTabIndex = {
     '高度',
     '固定宽',
     '自适应',
+    '字号',
+    '行高',
+    '文字颜色',
+    '排版',
     '背景',
     '背景色',
     '边框色',
     '圆角',
     '阴影',
+    '透明度',
+    'opacity',
     '内边距',
     '外边距',
     'padding',
@@ -353,6 +361,8 @@ const mut = {
   canvasResizeObserver: null,
   treeSourceFieldRequestId: 0,
   treeSourceCatalogPromise: null,
+  /** props.modelValue → localLayout 同步中，禁止再 emit 回去（否则撤销会被属性面板旧布局盖掉） */
+  syncingLayoutFromProps: false,
 }
 
 // 设计态：localLayout 直连 Pinia；只读预览：用本地 ref，避免踩设计器 store
@@ -368,12 +378,24 @@ const localLayout = computed({
 // layout hydrated after later parts wire __impl (see hydrateInitialState)
 
 const blocks = computed(() => localLayout.value.items || [])
-watch([() => props.activeBlockId, blocks], ([blockId], [previousId] = []) => {
+/** panel-only 挂载时 hydrate 晚于 activeBlockId immediate watch，需同时盯 blocks */
+function syncActiveBlockSelection() {
   if (props.readonly)
     return
-  if (blockId && (blockId !== previousId || !selectedBlockId.value) && findBlockInTree(blocks.value, blockId))
+  const blockId = props.activeBlockId
+  if (!blockId) {
+    if (props.panelOnly)
+      selectedBlockId.value = null
+    return
+  }
+  if (findBlockInTree(blocks.value, blockId))
     selectedBlockId.value = blockId
-}, { immediate: true })
+}
+watch(
+  [() => props.activeBlockId, blocks],
+  () => { syncActiveBlockSelection() },
+  { immediate: true },
+)
 const runtimeTreeFilter = ref({})
 const runtimeTreeActiveKey = ref('__all__')
 const collapsedTreePanelMap = ref({})
@@ -465,7 +487,9 @@ const selectedBlock = computed(() => {
 // ─── 统一组件属性面板（designer-core spec 驱动，P2）──────────
 // 手写模板分支已覆盖的属性 key：spec 面板跳过，仅渲染增量属性，避免重复入口
 const SPEC_PANEL_EXCLUDED_PROPS = {
-  'AiCrudPage': ['addButtonText', 'api', 'createApi', 'deleteApi', 'detailApi', 'enableTreeAddChild', 'exportApi', 'exportButtonText', 'exportFileName', 'importApi', 'listApi', 'listDataField', 'listMethod', 'listTotalField', 'maxHeight', 'previewRecordId', 'renderMode', 'rowKey', 'scrollX', 'searchGridCols', 'searchLabelWidth', 'searchMaxVisibleFields', 'searchYGap', 'tableSize', 'updateApi'],
+  // 表单弹窗类属性以表单设计器 layout 为单一事实来源（resolveEffectiveFormOpenMode）；
+  // Spec 抽屉再暴露会改了看起来没生效。手写「表单与弹窗」区已只读摘要。
+  'AiCrudPage': ['addButtonText', 'api', 'createApi', 'deleteApi', 'detailApi', 'drawerPlacement', 'editGridCols', 'editLabelPlacement', 'editLabelWidth', 'editSize', 'emptyDescription', 'emptyFilterDescription', 'emptyFilterTitle', 'emptyText', 'emptyTitle', 'enableTreeAddChild', 'exportApi', 'exportButtonText', 'exportFileName', 'formOpenMode', 'importApi', 'listApi', 'listDataField', 'listMethod', 'listTotalField', 'maxHeight', 'modalWidth', 'previewRecordId', 'renderMode', 'rowKey', 'scrollX', 'searchGridCols', 'searchLabelWidth', 'searchMaxVisibleFields', 'searchYGap', 'tableSize', 'updateApi'],
   'AiForm': ['cancelText', 'resetText', 'submitText', 'xGap', 'yGap'],
   'AiTable': ['gridCols', 'labelAlign', 'labelPlacement', 'labelWidth', 'maxHeight', 'maxVisibleFields', 'renderMode', 'rowKey', 'scrollX', 'size'],
   // action-button：手写区已有 文案/类型/尺寸/点击动作；secondary/dashed/block/loading/disabled
@@ -545,12 +569,38 @@ function handleSpecPropUpdate({ key, value }) {
   patchBlockProps(selectedBlock.value.id, { [key]: value })
 }
 
+const formOpenModeOptions = [
+  { label: '弹窗', value: 'modal' },
+  { label: '抽屉', value: 'drawer' },
+  { label: '平铺', value: 'flat' },
+  { label: '多页签', value: 'tabWorkspace' },
+]
+const drawerPlacementOptions = [
+  { label: '右侧', value: 'right' },
+  { label: '左侧', value: 'left' },
+  { label: '顶部', value: 'top' },
+  { label: '底部', value: 'bottom' },
+]
 const selectedAiCrudFormModalProps = computed(() => {
   if (selectedBlock.value?.blockType !== 'AiCrudPage')
     return {}
+  const blockProps = selectedBlock.value.props || {}
+  const runtime = resolvedRuntimeCrudProps.value || {}
+  // 自由布局右侧属性面板：与 suppressRuntimeListGrid 一致，区块 chrome 优先
+  if (props.panelOnly) {
+    const chrome = { preferBlockFormChrome: true }
+    return {
+      ...runtime,
+      ...blockProps,
+      formOpenMode: resolveEffectiveFormOpenMode(blockProps, runtime, chrome),
+      modalType: resolveEffectiveModalType(blockProps, runtime, chrome),
+      modalWidth: blockProps.modalWidth || runtime.modalWidth,
+      drawerPlacement: blockProps.drawerPlacement || runtime.drawerPlacement,
+    }
+  }
   return {
-    ...(selectedBlock.value.props || {}),
-    ...(resolvedRuntimeCrudProps.value || {}),
+    ...blockProps,
+    ...runtime,
   }
 })
 const selectedBlockEvents = computed(() => selectedBlock.value?.props?.events || [])
@@ -560,8 +610,22 @@ const selectedBlockStyle = computed(() => ({
 }))
 const selectedBlockBackgroundHex = computed(() => colorToHexInput(selectedBlockStyle.value.backgroundColor, ''))
 const selectedBlockBorderHex = computed(() => colorToHexInput(selectedBlockStyle.value.borderColor, 'E4E4E7'))
+const selectedBlockTextColorHex = computed(() => colorToHexInput(selectedBlockStyle.value.color, ''))
 const selectedBlockBackgroundPreview = computed(() => hexInputToColor(selectedBlockBackgroundHex.value, 'transparent'))
 const selectedBlockBackgroundColorInput = computed(() => hexInputToColor(selectedBlockBackgroundHex.value, '#ffffff'))
+const selectedBlockTextColorPreview = computed(() => hexInputToColor(selectedBlockTextColorHex.value, '#111827'))
+const selectedBlockTextColorInput = computed(() => hexInputToColor(selectedBlockTextColorHex.value, '#111827'))
+const selectedBlockOpacityPercent = computed(() => {
+  const raw = selectedBlockStyle.value.opacity
+  if (raw == null || raw === '')
+    return 100
+  const num = Number(raw)
+  if (!Number.isFinite(num))
+    return 100
+  // 支持 0–1 与 0–100 两种写法
+  const pct = num <= 1 ? Math.round(num * 100) : Math.round(num)
+  return Math.max(20, Math.min(100, pct))
+})
 const selectedBlockBorderPreview = computed(() => {
   if (selectedBlockStyle.value.borderStyle === 'none')
     return '#e4e4e7'
@@ -1268,8 +1332,18 @@ watch(
   () => props.modelValue,
   (value) => {
     const next = normalizeDesignerLayout(syncGridLayoutWithModel(value, buildGridSyncModelSchema(props.modelSchema, props.fields), { layoutType: props.layoutType }))
-    if (JSON.stringify(next) !== JSON.stringify(localLayout.value))
+    if (JSON.stringify(next) === JSON.stringify(localLayout.value))
+      return
+    mut.syncingLayoutFromProps = true
+    try {
       localLayout.value = next
+    }
+    finally {
+      // 等 localLayout 的 deep watch 跑完再解除，避免同 tick 回写污染撤销栈
+      nextTick(() => {
+        mut.syncingLayoutFromProps = false
+      })
+    }
   },
   { deep: true },
 )
@@ -1305,7 +1379,7 @@ watch(
 watch(
   localLayout,
   (value) => {
-    if (props.readonly)
+    if (props.readonly || mut.syncingLayoutFromProps)
       return
     if (designerStore.deferLayoutEmit) {
       designerStore.markDeferredLayoutEmit()
@@ -1346,6 +1420,8 @@ async function hydrateInitialState() {
     buildGridSyncModelSchema(props.modelSchema, props.fields),
     { layoutType: props.layoutType },
   ))
+  // hydrate 写入 layout 后补一次选中（immediate watch 当时可能还找不到块）
+  syncActiveBlockSelection()
   // one-shot equivalent of the former immediate tree-panel watch
   const blockType = selectedBlock.value?.blockType
   const sourceValue = selectedTreeSourceValue.value
@@ -1434,12 +1510,18 @@ __impl.hydrateInitialState = hydrateInitialState
     specPanelPropertyCount,
     handleSpecPropUpdate,
     selectedAiCrudFormModalProps,
+    formOpenModeOptions,
+    drawerPlacementOptions,
     selectedBlockEvents,
     selectedBlockStyle,
     selectedBlockBackgroundHex,
     selectedBlockBorderHex,
+    selectedBlockTextColorHex,
     selectedBlockBackgroundPreview,
     selectedBlockBackgroundColorInput,
+    selectedBlockTextColorPreview,
+    selectedBlockTextColorInput,
+    selectedBlockOpacityPercent,
     selectedBlockBorderPreview,
     selectedBlockFrame,
     selectedBlockWidthMode,

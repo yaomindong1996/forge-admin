@@ -16,7 +16,7 @@
         :block="treeBlock"
         :fields="fields"
         readonly
-        runtime-interactive
+        :runtime-interactive="runtimeInteractive"
         suppress-runtime-list-grid
         :runtime-crud-props="nestedRuntimeCrudProps"
         :runtime-crud-loading="runtimeCrudLoading"
@@ -33,6 +33,14 @@
       />
     </aside>
     <div class="runtime-list-grid-flow__main">
+      <!-- 自定义/弹窗页尚未拖入组件：空壳占位，禁止回退裸列表 CRUD -->
+      <div
+        v-if="!mainBlocks.length && !treeBlock"
+        class="runtime-list-grid-flow__empty"
+        data-runtime-empty-page="1"
+      >
+        当前页面暂无组件
+      </div>
       <section
         v-for="(block, index) in mainBlocks"
         :key="block.id || `${block.blockType}-${index}`"
@@ -44,7 +52,7 @@
           :block="block"
           :fields="fields"
           readonly
-          runtime-interactive
+          :runtime-interactive="runtimeInteractive"
           suppress-runtime-list-grid
           :runtime-crud-props="nestedRuntimeCrudProps"
           :runtime-crud-loading="runtimeCrudLoading"
@@ -88,11 +96,17 @@ const props = defineProps({
   runtimeTreeActiveKey: { type: [String, Number], default: '__all__' },
   /** 门户 fillHost：占满宿主并内部滚动，避免绝对画布把下面组件裁掉 */
   fillHost: { type: Boolean, default: true },
+  /** 门户运行态 true；列表设计器内预览应 false，与画布查询/工具栏一致 */
+  runtimeInteractive: { type: Boolean, default: true },
+  /** 是否强制 CRUD 实时预览（门户 true；设计器内预览 false） */
+  forceLivePreview: { type: Boolean, default: true },
 })
 
 defineEmits(['runtimeTreeSelect'])
 
-const flowBlocks = computed(() => buildRuntimeListFlowBlocks(props.layout))
+const flowBlocks = computed(() => buildRuntimeListFlowBlocks(props.layout, {
+  forceLivePreview: props.forceLivePreview,
+}))
 
 const treeBlock = computed(() => flowBlocks.value.find(item => item?.blockType === 'tree-panel') || null)
 
@@ -153,7 +167,9 @@ const nestedRuntimeCrudPropsResolver = computed(() => {
   flex: 1 1 auto;
   height: 100%;
   min-height: 0;
-  overflow: hidden;
+  /* 上方展示块过多时允许纵向滚动，避免把底部 CRUD 区压成 0 高导致搜索/表格点不到 */
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .runtime-list-grid-flow.has-tree {
@@ -194,13 +210,28 @@ const nestedRuntimeCrudPropsResolver = computed(() => {
 
 .runtime-list-grid-flow.has-tree .runtime-list-grid-flow__main {
   height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding-left: 12px;
   box-sizing: border-box;
 }
 
 .runtime-list-grid-flow.has-tree.is-tree-collapsed .runtime-list-grid-flow__main {
   padding-left: 8px;
+}
+
+.runtime-list-grid-flow__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: 24px;
+  color: var(--text-secondary, #6b7280);
+  font-size: 14px;
+  background: var(--bg-secondary, #f8fafc);
+  border: 1px dashed var(--border-light, #e5e7eb);
+  border-radius: 8px;
+  box-sizing: border-box;
 }
 
 .runtime-list-grid-flow__block {
@@ -212,7 +243,8 @@ const nestedRuntimeCrudPropsResolver = computed(() => {
 
 .runtime-list-grid-flow__block.is-crud {
   flex: 1 1 auto;
-  min-height: 0;
+  /* 与同列展示块争高时不得被 flex 收缩到 0，否则搜索/分页被上层盖住 */
+  min-height: min(480px, 55vh);
   overflow: hidden;
   display: flex;
   flex-direction: column;

@@ -136,7 +136,7 @@ export function resolveDefaultSearchComponentType(field = {}) {
   return componentType || field.dataType || 'input'
 }
 
-/** 查询组件展示文案：与表单字段组件保持一致，不再单独配置。 */
+/** 查询组件展示文案：优先字段/覆盖的 componentType，否则回落默认推导。 */
 export function resolveSearchComponentLabel(field = {}) {
   const type = resolveDefaultSearchComponentType(field)
   const matched = searchComponentOptions.find(item => item.value === type)

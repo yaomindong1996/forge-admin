@@ -74,6 +74,20 @@ describe('specPropertyPanel (C3 两列紧凑网格)', () => {
     expect(wrapper.findAll('.spec-property-field--full')).toHaveLength(1)
   })
 
+  it('AiCrudPage 排除表单弹窗类 key 后 Spec 抽屉不再暴露无效入口', () => {
+    const excludeKeys = [
+      'formOpenMode', 'editLabelPlacement', 'editLabelWidth', 'editGridCols',
+      'editSize', 'modalWidth', 'drawerPlacement', 'maxHeight',
+    ]
+    const wrapper = mountPanel({ blockType: 'AiCrudPage', modelProps: {}, excludeKeys })
+    const labels = wrapper.findAll('.spec-property-field-label').map(n => n.text())
+    expect(labels.some(t => t.includes('弹窗方式'))).toBe(false)
+    expect(labels.some(t => t.includes('弹窗宽度'))).toBe(false)
+    expect(labels.some(t => t.includes('表单列数'))).toBe(false)
+    // 列表侧仍可配的工具栏/表格开关保留
+    expect(labels.some(t => t.includes('分页') || t.includes('斑马纹') || t.includes('隐藏新增'))).toBe(true)
+  })
+
   it('update:prop 事件签名为 { key, value }', async () => {
     const wrapper = mountPanel({ blockType: 'collapse', modelProps: {} })
     await wrapper.find('.n-switch-stub').trigger('click')

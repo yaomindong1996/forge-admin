@@ -975,7 +975,7 @@
                       />
                     </div>
                   </n-form-item>
-                  <n-form-item label="自动编号">
+                  <n-form-item v-if="supportsAutoGeneration" label="自动编号">
                     <div class="auto-code-config">
                       <div class="switch-line compact">
                         <span>新增时自动生成</span>

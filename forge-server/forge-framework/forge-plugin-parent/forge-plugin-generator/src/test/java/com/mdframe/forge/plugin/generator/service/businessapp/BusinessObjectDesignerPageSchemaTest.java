@@ -402,6 +402,48 @@ class BusinessObjectDesignerPageSchemaTest {
     }
 
     @Test
+    @DisplayName("preserves custom search labels when projecting viewSchema onto AiCrudPage")
+    void preservesSearchLabelsWhenApplyingViewSchema() throws Exception {
+        LowcodeModelSchema modelSchema = modelSchema();
+        LowcodePageSchema pageSchema = new LowcodePageSchema();
+        Map<String, Object> crud = new LinkedHashMap<>();
+        crud.put("id", "block_crud");
+        crud.put("blockType", "AiCrudPage");
+        crud.put("fieldRefs", new ArrayList<>(List.of("name")));
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("searchFieldRefs", new ArrayList<>(List.of("name")));
+        props.put("searchFieldSettings", new LinkedHashMap<>(Map.of(
+                "name", new LinkedHashMap<>(Map.of("queryType", "like", "componentType", "input"))
+        )));
+        crud.put("props", props);
+        Map<String, Object> grid = new LinkedHashMap<>();
+        grid.put("items", new ArrayList<>(List.of(crud)));
+        pageSchema.setListGridLayout(grid);
+        pageSchema.setZones(new ArrayList<>(List.of(zone("search", List.of("name")))));
+
+        ViewSchemaDTO viewSchema = new ViewSchemaDTO();
+        viewSchema.getSearch().put("fields", List.of(
+                Map.of("fieldCode", "name", "label", "主键ID_测", "componentKey", "input",
+                        "visible", true, "order", 0, "matchMode", "eq")
+        ));
+
+        BusinessObjectViewSchemaProjector projector = new BusinessObjectViewSchemaProjector(
+                new ObjectMapper(), field -> "input");
+        projector.applyViewSchemaToPageZones(pageSchema, modelSchema, viewSchema);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> items = (List<Map<String, Object>>) pageSchema.getListGridLayout().get("items");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> nextProps = (Map<String, Object>) items.get(0).get("props");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> settings = (Map<String, Object>) nextProps.get("searchFieldSettings");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> nameSetting = (Map<String, Object>) settings.get("name");
+        assertEquals("主键ID_测", nameSetting.get("label"));
+        assertEquals("eq", nameSetting.get("queryType"));
+    }
+
+    @Test
     @DisplayName("keeps child list fields while compiling the view schema into page zones")
     void keepsChildListFieldsWhenApplyingViewSchema() throws Exception {
         LowcodeModelSchema modelSchema = modelSchema();

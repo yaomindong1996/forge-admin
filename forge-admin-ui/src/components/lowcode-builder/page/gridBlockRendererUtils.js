@@ -77,10 +77,51 @@ export function normalizeCssSize(value, fallback = '') {
   return /^\d+(?:\.\d+)?$/.test(text) ? `${text}px` : text
 }
 
+/** 出厂默认富文本；若 title/subtitle 已定制而 content 仍是该值，运行态应回退拼装。 */
+export const DEFAULT_PAGE_TITLE_CONTENT = '<h1>页面标题</h1><p>页面说明或当前业务对象摘要</p>'
+
 export function createLegacyPageTitleContent(title, subtitle) {
   const safeTitle = escapeRichText(String(title || '页面标题'))
   const safeSubtitle = escapeRichText(String(subtitle || ''))
   return `<h1>${safeTitle}</h1>${safeSubtitle ? `<p>${safeSubtitle}</p>` : ''}`
+}
+
+/**
+ * page-title 展示内容：富文本 content 优先；
+ * content 为空或仍为出厂默认且 title/subtitle 已改时，按 title/subtitle 拼装，避免属性改了界面不变。
+ */
+export function resolvePageTitleRichContent(blockProps = {}, blockLabel = '') {
+  const content = String(blockProps?.content || '').trim()
+  const title = blockProps?.title || blockLabel || '页面标题'
+  const subtitle = blockProps?.subtitle || ''
+  const titleCustomized = String(title) !== '页面标题'
+  const subtitleCustomized = Boolean(String(subtitle).trim())
+    && String(subtitle) !== '页面说明或当前业务对象摘要'
+  if (!content)
+    return createLegacyPageTitleContent(title, subtitle)
+  if (content === DEFAULT_PAGE_TITLE_CONTENT && (titleCustomized || subtitleCustomized))
+    return createLegacyPageTitleContent(title, subtitle)
+  return content
+}
+
+/** 将 style.css 对象与顶层 color/fontSize 合并进运行态外壳样式（customStyle 之后覆盖）。 */
+export function mergeBlockTypographyStyle(resolvedStyle = {}, style = {}) {
+  const next = { ...resolvedStyle }
+  const cssObject = style?.css && typeof style.css === 'object' && !Array.isArray(style.css)
+    ? style.css
+    : {}
+  Object.entries(cssObject).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '')
+      return
+    if (typeof value === 'object')
+      return
+    next[key] = value
+  })
+  if (style?.color)
+    next.color = style.color
+  if (style?.fontSize !== undefined && style?.fontSize !== null && style?.fontSize !== '')
+    next.fontSize = toCssSize(style.fontSize, undefined)
+  return next
 }
 
 export function escapeRichText(value) {
@@ -169,8 +210,10 @@ export function toAiFormField(field, mode = 'form') {
     && field.props?.includeChildren !== false
   return {
     field: field.field,
+    sourceField: field.sourceField || field.field,
     label: field.label || field.field,
     type,
+    componentType: type,
     queryType,
     placeholder: field.placeholder || `${placeholderPrefix}${field.label || field.field}`,
     span: field.span || 1,

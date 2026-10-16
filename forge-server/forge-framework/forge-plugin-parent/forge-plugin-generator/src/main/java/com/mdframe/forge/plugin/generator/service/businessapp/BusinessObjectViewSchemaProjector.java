@@ -246,8 +246,12 @@ final class BusinessObjectViewSchemaProjector {
             }
             Map<String, Object> setting = new LinkedHashMap<>();
             setting.put("align", normalizeAlign(text(item.get("align"))));
+            // 保留查询区自定义标签，避免 saveDesigner 投影回 pageSchema 时冲掉
+            putIfNotBlank(setting, "label", text(item.get("label")));
             putIfNotBlank(setting, "componentType", text(item.get("componentKey")));
             putIfNotBlank(setting, "queryType", StringUtils.defaultIfBlank(text(item.get("matchMode")), text(item.get("queryType"))));
+            putIfNotBlank(setting, "dictType", text(item.get("dictType")));
+            putIfNotBlank(setting, "queryField", text(item.get("queryField")));
             if (item.containsKey("defaultValue")) {
                 setting.put("defaultValue", item.get("defaultValue"));
             }
@@ -309,7 +313,9 @@ final class BusinessObjectViewSchemaProjector {
                     : new LinkedHashMap<>();
             props.put("searchFieldRefs", new ArrayList<>(fieldRefs == null ? List.of() : fieldRefs));
             if (fieldSettings != null && !fieldSettings.isEmpty()) {
-                props.put("searchFieldSettings", new LinkedHashMap<>(fieldSettings));
+                // 与已有 searchFieldSettings 合并，避免投影漏字段冲掉 dictType 等扩展项
+                props.put("searchFieldSettings", mergeFieldSettings(
+                        mapValue(props.get("searchFieldSettings")), fieldSettings));
             }
             item.put("props", props);
             nextItems.add(item);
@@ -318,6 +324,92 @@ final class BusinessObjectViewSchemaProjector {
         if (changed) {
             gridLayout.put("items", nextItems);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void syncListGridTableFieldSettings(LowcodePageSchema pageSchema,
+                                                List<String> fieldRefs,
+                                                Map<String, Object> fieldSettings) {
+        if (pageSchema == null) {
+            return;
+        }
+        syncGridTableFieldSettings(pageSchema.getListGridLayout(), fieldRefs, fieldSettings);
+        if (pageSchema.getPages() == null) {
+            return;
+        }
+        for (Map<String, Object> page : pageSchema.getPages()) {
+            if (page == null || !"list".equals(text(page.get("pageKey")))) {
+                continue;
+            }
+            Object grid = page.get("gridLayout");
+            if (grid instanceof Map<?, ?> gridMap) {
+                Map<String, Object> mutable = new LinkedHashMap<>((Map<String, Object>) gridMap);
+                syncGridTableFieldSettings(mutable, fieldRefs, fieldSettings);
+                page.put("gridLayout", mutable);
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void syncGridTableFieldSettings(Map<String, Object> gridLayout,
+                                            List<String> fieldRefs,
+                                            Map<String, Object> fieldSettings) {
+        if (gridLayout == null || gridLayout.isEmpty() || fieldSettings == null || fieldSettings.isEmpty()) {
+            return;
+        }
+        Object itemsValue = gridLayout.get("items");
+        if (!(itemsValue instanceof List<?> items)) {
+            return;
+        }
+        List<Object> nextItems = new ArrayList<>(items.size());
+        boolean changed = false;
+        for (Object itemValue : items) {
+            if (!(itemValue instanceof Map<?, ?> rawItem)
+                    || !"AiCrudPage".equals(text(rawItem.get("blockType")))) {
+                nextItems.add(itemValue);
+                continue;
+            }
+            Map<String, Object> item = new LinkedHashMap<>((Map<String, Object>) rawItem);
+            Map<String, Object> props = item.get("props") instanceof Map<?, ?> propsMap
+                    ? new LinkedHashMap<>((Map<String, Object>) propsMap)
+                    : new LinkedHashMap<>();
+            if (fieldRefs != null) {
+                item.put("fieldRefs", new ArrayList<>(fieldRefs));
+            }
+            props.put("fieldSettings", mergeFieldSettings(mapValue(props.get("fieldSettings")), fieldSettings));
+            item.put("props", props);
+            nextItems.add(item);
+            changed = true;
+        }
+        if (changed) {
+            gridLayout.put("items", nextItems);
+        }
+    }
+
+    /**
+     * 按字段合并设置：compiled 覆盖同名字段的已知键，保留 existing 中未投影的扩展键。
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> mergeFieldSettings(Map<String, Object> existing,
+                                                   Map<String, Object> compiled) {
+        Map<String, Object> merged = new LinkedHashMap<>(existing == null ? Map.of() : existing);
+        if (compiled == null || compiled.isEmpty()) {
+            return merged;
+        }
+        for (Map.Entry<String, Object> entry : compiled.entrySet()) {
+            String fieldCode = entry.getKey();
+            if (StringUtils.isBlank(fieldCode)) {
+                continue;
+            }
+            Map<String, Object> prev = mapValue(merged.get(fieldCode));
+            Map<String, Object> next = new LinkedHashMap<>(prev);
+            Map<String, Object> patch = entry.getValue() instanceof Map<?, ?> patchMap
+                    ? (Map<String, Object>) patchMap
+                    : Map.of();
+            next.putAll(patch);
+            merged.put(fieldCode, next);
+        }
+        return merged;
     }
 
     private void applyListViewZone(LowcodePageSchema pageSchema, Set<String> modelFields,
@@ -339,6 +431,9 @@ final class BusinessObjectViewSchemaProjector {
             }
             Map<String, Object> setting = new LinkedHashMap<>();
             setting.put("align", normalizeAlign(text(item.get("align"))));
+            // 列标题：viewSchema.columns.label → fieldSettings.title（画布/运行态读取 title|label）
+            putIfNotBlank(setting, "title", text(item.get("label")));
+            putIfNotBlank(setting, "label", text(item.get("label")));
             putIfPresent(setting, "width", item.get("width"));
             putIfPresent(setting, "minWidth", item.get("minWidth"));
             putIfNotBlank(setting, "fixed", normalizeFixed(text(item.get("fixed"))));
@@ -348,6 +443,8 @@ final class BusinessObjectViewSchemaProjector {
         }
         replaceModelFieldSettings(props, modelFields, settings);
         zone.setProps(props);
+        // 同步到 AiCrudPage.fieldSettings，避免仅 table zone 有标题、网格块丢标题
+        syncListGridTableFieldSettings(pageSchema, zone.getFieldRefs(), settings);
     }
 
     private void applyDetailViewZone(LowcodePageSchema pageSchema, Set<String> modelFields,

@@ -78,6 +78,21 @@ export function useBuilderHistory({ builder, scheduleNavigationSave, isHistoryAc
       undoBuilder()
   }
 
+  /**
+   * 系统自动回写（如自由布局实测高度同步）不得污染撤销栈：
+   * 暂停记录期间只推进 latest 快照，不 push undo；结束后恢复原 historyReady。
+   */
+  function runWithoutHistory(fn) {
+    const wasReady = historyReady.value
+    historyReady.value = false
+    try {
+      return typeof fn === 'function' ? fn() : undefined
+    }
+    finally {
+      historyReady.value = wasReady
+    }
+  }
+
   watch(builder, (nextBuilder) => {
     if (!nextBuilder) {
       latestBuilderSnapshot = null
@@ -104,6 +119,7 @@ export function useBuilderHistory({ builder, scheduleNavigationSave, isHistoryAc
     canRedo,
     cloneBuilderSchema,
     resetBuilderHistory,
+    runWithoutHistory,
     undoBuilder,
     redoBuilder,
     handleBuilderShortcut,

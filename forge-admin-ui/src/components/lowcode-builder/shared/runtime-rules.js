@@ -271,9 +271,43 @@ function compareRuntimeValues(actual, expected, operator = 'eq') {
       return actualNumber < expectedNumber
     return actualNumber <= expectedNumber
   }
+  // 开关/布尔常见存 true/false、1/0、'true'/'false'，eq/ne 需统一语义否则 showHide 永不命中
+  if (isBooleanLikeRuntimeValue(actual) || isBooleanLikeRuntimeValue(expected)) {
+    const actualBool = toBooleanRuntimeValue(actual)
+    const expectedBool = toBooleanRuntimeValue(expected)
+    if (actualBool !== null && expectedBool !== null)
+      return op === 'ne' ? actualBool !== expectedBool : actualBool === expectedBool
+  }
   const actualText = String(actual ?? '')
   const expectedText = String(expected ?? '')
   return op === 'ne' ? actualText !== expectedText : actualText === expectedText
+}
+
+function isBooleanLikeRuntimeValue(value) {
+  if (typeof value === 'boolean')
+    return true
+  if (typeof value === 'number')
+    return value === 0 || value === 1
+  const text = String(value ?? '').trim().toLowerCase()
+  return ['true', 'false', '1', '0', 'yes', 'no', 'y', 'n'].includes(text)
+}
+
+function toBooleanRuntimeValue(value) {
+  if (typeof value === 'boolean')
+    return value
+  if (typeof value === 'number') {
+    if (value === 1)
+      return true
+    if (value === 0)
+      return false
+    return null
+  }
+  const text = String(value ?? '').trim().toLowerCase()
+  if (['true', '1', 'yes', 'y'].includes(text))
+    return true
+  if (['false', '0', 'no', 'n'].includes(text))
+    return false
+  return null
 }
 
 function normalizeExpressionOperator(operator = 'eq') {

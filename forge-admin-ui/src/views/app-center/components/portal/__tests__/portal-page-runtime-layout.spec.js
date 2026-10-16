@@ -64,6 +64,16 @@ describe('portal-page-runtime-layout', () => {
     ], { fillHost: true })).toBe(false)
   })
 
+  it('keeps free-layout absolute even when fillHost and runtimePreview are set', () => {
+    const free = [
+      { blockType: 'AiCrudPage', props: { style: { widthMode: 'fixed', pageFlowWidth: '360px', pageFlowX: 80, pageFlowY: 40 } } },
+      { blockType: 'page-title', props: { style: { widthMode: 'full', pageFlowY: 648 } } },
+      { blockType: 'custom-html', props: { style: { widthMode: 'fixed', pageFlowWidth: '280px', pageFlowY: 736 } } },
+    ]
+    expect(shouldUsePageFlowStack(free)).toBe(false)
+    expect(shouldUseContentSizedFlow(free, { fillHost: true, runtimePreview: true })).toBe(false)
+  })
+
   it('stacks full-width workbench blocks in document flow so resize cannot overlap', () => {
     const workbench = [
       { id: 'm', blockType: 'workspace-summary-metrics', props: { style: { widthMode: 'full', pageFlowY: 20 } } },
@@ -82,7 +92,8 @@ describe('portal-page-runtime-layout', () => {
     ]
     expect(shouldUsePageFlowStack(mixed)).toBe(false)
     expect(shouldUsePageFlowStack(mixed, { pageId: 'system:workbench' })).toBe(true)
-    expect(shouldUseContentSizedFlow(mixed, { runtimePreview: true })).toBe(true)
+    // 工作台 pageId 仍走文档流；普通运行预览不再因 runtimePreview 强行堆叠自由布局
+    expect(shouldUseContentSizedFlow(mixed, { pageId: 'system:workbench', runtimePreview: true })).toBe(true)
   })
 
   it('keeps absolute free layout when any block is not full width', () => {
@@ -91,6 +102,7 @@ describe('portal-page-runtime-layout', () => {
       { blockType: 'card', props: { style: { widthMode: 'fixed' } } },
     ]
     expect(shouldUsePageFlowStack(free)).toBe(false)
+    expect(shouldUseContentSizedFlow(free, { runtimePreview: true })).toBe(false)
   })
 
   it('hides untouched info-panel and empty-state placeholders on object pages', () => {

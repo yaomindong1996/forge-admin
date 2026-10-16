@@ -50,6 +50,26 @@ describe('runtime-list-grid', () => {
     expect(blocks.map(item => item.id)).toEqual(['a', 'b'])
   })
 
+  it('sorts by canvas style.y (designer order), not raw gridY', () => {
+    const blocks = buildRuntimeListFlowBlocks({
+      rowHeight: 32,
+      gap: 8,
+      items: [
+        { id: 'block_crud', blockType: 'AiCrudPage', gridY: 0, props: { style: { y: 704 }, text: 'E2E_AiCrudPage' } },
+        { id: 'announcement_x', blockType: 'announcement', gridY: 132, props: { style: { y: 44 }, text: 'E2E_announcement' } },
+        { id: 'audio_x', blockType: 'audio-player', gridY: 170, props: { style: { y: 176 }, text: 'E2E_audio-player' } },
+        { id: 'action-button_x', blockType: 'action-button', gridY: 62, props: { style: { y: '' }, text: 'E2E_action-button' } },
+      ],
+    })
+    // announcement(44) → audio(176) → crud(704) → action 空 y 回落 gridY*40=2480
+    expect(blocks.map(item => item.id)).toEqual([
+      'announcement_x',
+      'audio_x',
+      'block_crud',
+      'action-button_x',
+    ])
+  })
+
   it('renders grid for list only when rich', () => {
     const pageSchema = {
       listGridLayout: {
@@ -72,5 +92,30 @@ describe('runtime-list-grid', () => {
       listGridLayout: { items: [{ id: 'y', blockType: 'AiCrudPage' }] },
     }, { pageKey: 'list' })
     expect(layout.items[0].id).toBe('x')
+  })
+
+  it('keeps empty non-list pages on RuntimeListGrid shell instead of bare CRUD', () => {
+    const pageSchema = {
+      pages: [
+        { pageKey: 'list', gridLayout: { items: [{ id: 'c', blockType: 'AiCrudPage' }] } },
+        { pageKey: 'e2e_dialog', title: '弹窗页', gridLayout: { items: [] } },
+        { pageKey: 'detail_page', title: '详情页' },
+      ],
+    }
+    expect(shouldRenderRuntimeListGrid({ pageSchema, pageKey: 'e2e_dialog' })).toBe(true)
+    expect(shouldRenderRuntimeListGrid({ pageSchema, pageKey: 'detail_page' })).toBe(true)
+    expect(shouldRenderRuntimeListGrid({ pageSchema, pageKey: 'missing_page' })).toBe(false)
+    expect(normalizeRuntimeListGridLayout(
+      resolveListGridLayoutFromPageSchema(pageSchema, { pageKey: 'e2e_dialog' }),
+      pageSchema,
+      'simple-crud',
+      { allowEmpty: true },
+    )?.items).toEqual([])
+    expect(normalizeRuntimeListGridLayout(
+      resolveListGridLayoutFromPageSchema(pageSchema, { pageKey: 'detail_page' }),
+      pageSchema,
+      'simple-crud',
+      { allowEmpty: true },
+    )?.items).toEqual([])
   })
 })

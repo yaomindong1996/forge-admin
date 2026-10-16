@@ -380,3 +380,78 @@ describe('aiFormItem switch field', () => {
     expect(wrapper.find('.ai-form-item--switch').exists()).toBe(true)
   })
 })
+
+describe('aiFormItem transfer placeholder', () => {
+  it('maps placeholder to Naive Transfer filter placeholders', () => {
+    const NTransferStub = {
+      name: 'NTransfer',
+      props: ['sourceFilterPlaceholder', 'targetFilterPlaceholder', 'options', 'value'],
+      template: '<div class="n-transfer-stub" />',
+    }
+    const wrapper = mount(AiFormItem, {
+      props: {
+        field: {
+          field: 'roles',
+          label: '角色',
+          type: 'transfer',
+          placeholder: 'PH_transfer_47',
+          props: {
+            placeholder: 'PH_transfer_47',
+            options: [
+              { label: 'A', value: 'a' },
+              { label: 'B', value: 'b' },
+            ],
+          },
+        },
+        value: [],
+      },
+      global: {
+        stubs: {
+          ...naiveStubs,
+          NFormItem: NFormItemStub,
+          NTransfer: NTransferStub,
+          AiRecordSelectorModal: true,
+        },
+      },
+    })
+
+    const transfer = wrapper.findComponent({ name: 'NTransfer' })
+    expect(transfer.exists()).toBe(true)
+    expect(transfer.props('sourceFilterPlaceholder')).toBe('PH_transfer_47')
+    expect(transfer.props('targetFilterPlaceholder')).toBe('PH_transfer_47')
+  })
+})
+
+describe('aiFormItem detail readonly', () => {
+  it('disables input when context.isDetail is true', () => {
+    const wrapper = mount(AiFormItem, {
+      props: {
+        field: {
+          field: 'title',
+          label: '标题',
+          type: 'input',
+        },
+        value: 'demo',
+        context: {
+          isDetail: true,
+          modalStatus: 'detail',
+        },
+      },
+      global: {
+        stubs: {
+          ...naiveStubs,
+          NFormItem: NFormItemStub,
+          NInput: {
+            name: 'NInput',
+            props: ['value', 'disabled', 'readonly'],
+            template: '<input class="n-input-stub" :disabled="disabled" />',
+          },
+          AiRecordSelectorModal: true,
+        },
+      },
+    })
+
+    expect(wrapper.find('.ai-form-item--readonly').exists()).toBe(true)
+    expect(wrapper.find('.n-input-stub').attributes('disabled')).toBeDefined()
+  })
+})

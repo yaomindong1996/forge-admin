@@ -347,9 +347,10 @@ const panelDescription = computed(() => selectedComponent.value ? componentTypeL
 const crudApiConfig = computed(() => selectedComponent.value?.props?.apiConfig || {})
 const crudOptions = computed(() => selectedComponent.value?.props?.crudOptions || {})
 const selectedDesignerStyle = computed(() => selectedComponent.value?.props?.__designerStyle || {})
-const formStyle = computed(() => props.schema.layout?.formStyle || {})
+// 表单级样式/治理配置也必须以 store 为准，避免连续 patch 读到尚未回传的 props.schema
+const formStyle = computed(() => designerStore.schema?.layout?.formStyle || {})
 const formAssets = computed(() => designerStore.formAssets)
-const formGovernanceSettings = computed(() => props.schema.settings?.governance || {})
+const formGovernanceSettings = computed(() => designerStore.formGovernanceSettings || {})
 const formPermissionConfig = computed(() => formGovernanceSettings.value.permission || {})
 const formFieldRuleRows = computed(() => Array.isArray(formGovernanceSettings.value.fieldRules) ? formGovernanceSettings.value.fieldRules : [])
 const formEventRows = computed(() => Array.isArray(formGovernanceSettings.value.events) ? formGovernanceSettings.value.events : [])
@@ -707,7 +708,7 @@ const propertySearchIndex = [
   { keys: ['操作', '提交', '重置', '取消', '提交文案'], label: '表单属性 / 操作按钮', formTab: 'basic', formExpand: ['actions'] },
   { keys: ['位置', '尺寸', '最大宽度', '最小高度', '左', '上', 'x', 'y', '坐标', '填充', '适应内容'], label: '样式 / 位置与尺寸', selectedTab: 'style', formTab: 'style', selectedExpand: ['position'], formExpand: ['position'] },
   { keys: ['排版', '文字', '字号', '行高', '文字颜色', 'font', 'lineHeight'], label: '样式 / 文字排版', selectedTab: 'style', formTab: 'style', selectedExpand: ['typography'], formExpand: ['typography'] },
-  { keys: ['外观', '透明度', '边框', '背景色', '圆角', '阴影', 'border', 'shadow', 'opacity'], label: '样式 / 外观与装饰', selectedTab: 'style', formTab: 'style', selectedExpand: ['appearance'], formExpand: ['appearance'] },
+  { keys: ['外观', '透明度', '边框', '边框粗细', '粗细', '背景色', '圆角', '阴影', 'border', 'borderWidth', 'shadow', 'opacity'], label: '样式 / 外观与装饰', selectedTab: 'style', formTab: 'style', selectedExpand: ['appearance'], formExpand: ['appearance'] },
   { keys: ['自定义', 'class', 'css', 'style', '自定义样式'], label: '样式配置 / 自定义样式', selectedTab: 'style', formTab: 'style', formExpand: ['custom-style'] },
   { keys: ['源码', 'json', 'schema'], label: '源码入口在画布中间工具栏', selectedTab: 'basic', formTab: 'basic' },
 ]
@@ -1283,6 +1284,14 @@ const defaultValueSelectOptions = computed(() => {
 })
 const selectedGenerationConfig = computed(() => selectedComponent.value?.props?.generation || {})
 const selectedGenerationEnabled = computed(() => selectedGenerationConfig.value.enabled === true)
+// 自动编号只适用于可存字符串单据号的文本类控件；已启用配置的组件仍展示，避免历史配置被藏住
+const AUTO_GENERATION_COMPONENT_KEYS = new Set([
+  'input', 'textarea', 'password', 'phone', 'email', 'idCard', 'url', 'barcodeScanner', 'text',
+])
+const supportsAutoGeneration = computed(() => {
+  const key = selectedComponent.value?.componentKey || ''
+  return AUTO_GENERATION_COMPONENT_KEYS.has(key) || selectedGenerationEnabled.value
+})
 const selectedGenerationRuleCode = computed(() => selectedGenerationConfig.value.ruleCode || '')
 const codeRuleOptions = computed(() => codeRules.value.map(rule => ({
   label: `${rule.ruleName || rule.ruleCode}（${rule.ruleCode}）`,
@@ -1688,6 +1697,7 @@ function collectRuntimeRuleFieldOptions(components = []) {
     defaultValueSelectOptions,
     selectedGenerationConfig,
     selectedGenerationEnabled,
+    supportsAutoGeneration,
     selectedGenerationRuleCode,
     codeRuleOptions,
     selectedGenerationRule,

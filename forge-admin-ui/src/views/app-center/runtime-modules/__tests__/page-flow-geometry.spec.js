@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
+  applyMeasuredPageBlockHeights,
   migratePageFlowToContentCoords,
   normalizePagePadding,
   resolveDefaultPageBlockHeight,
+  resolvePageBlockFlowGeometry,
   resolvePageBlockShellStyle,
   resolvePagePaddingCss,
+  resolveRootPageBlockCollisions,
 } from '../page-flow-geometry'
 
 describe('page-flow-geometry', () => {
@@ -141,10 +144,92 @@ describe('page-flow-geometry', () => {
     expect(layout.items[0].props.style.pageFlowY).toBe(24)
   })
 
+  it('floors free-layout list CRUD shell width and height so preview is usable', () => {
+    const block = {
+      id: 'crud',
+      blockType: 'AiCrudPage',
+      props: {
+        style: {
+          widthMode: 'fixed',
+          heightMode: 'fixed',
+          width: 360,
+          height: 200,
+          pageFlowWidth: '360px',
+          pageFlowHeight: 200,
+          pageFlowX: 0,
+          pageFlowY: 0,
+        },
+      },
+    }
+    const style = resolvePageBlockShellStyle(block, [block], {
+      pagePadding: { top: 8, right: 8, bottom: 8, left: 8 },
+      pageFlowCoordSpace: 'content',
+    })
+    expect(style.width).toMatch(/^min\(640px/)
+    expect(style.height).toBe('420px')
+    expect(style.minHeight).toBe('420px')
+  })
+
   it('normalizes page padding defaults and css', () => {
     expect(normalizePagePadding(null)).toEqual({ top: 8, right: 8, bottom: 8, left: 8 })
     expect(normalizePagePadding(12)).toEqual({ top: 12, right: 12, bottom: 12, left: 12 })
     expect(normalizePagePadding({ top: 8, left: 16 })).toEqual({ top: 8, right: 8, bottom: 8, left: 16 })
     expect(resolvePagePaddingCss({ top: 8, right: 12, bottom: 16, left: 20 })).toBe('8px 12px 16px 20px')
+  })
+
+  it('collision geometry prefers the larger of pageFlowHeight and height for grow blocks', () => {
+    const tabs = {
+      id: 'tabs_1',
+      blockType: 'tabs',
+      props: {
+        style: {
+          widthMode: 'full',
+          heightMode: 'auto',
+          pageFlowX: 0,
+          pageFlowY: 100,
+          pageFlowHeight: 180,
+          height: 252,
+        },
+      },
+    }
+    const geo = resolvePageBlockFlowGeometry(tabs, 0, [tabs])
+    expect(geo.height).toBe(252)
+    expect(geo.bottom).toBe(352)
+  })
+
+  it('measured heights sync then collision pushes the lower block down', () => {
+    const tabs = {
+      id: 'tabs_1',
+      blockType: 'tabs',
+      props: {
+        style: {
+          widthMode: 'full',
+          heightMode: 'auto',
+          pageFlowX: 0,
+          pageFlowY: 100,
+          pageFlowHeight: 180,
+          height: 180,
+        },
+      },
+    }
+    const grid = {
+      id: 'grid_1',
+      blockType: 'grid-layout',
+      props: {
+        style: {
+          widthMode: 'full',
+          heightMode: 'auto',
+          pageFlowX: 0,
+          pageFlowY: 296,
+          pageFlowHeight: 180,
+          height: 180,
+        },
+      },
+    }
+    const measured = applyMeasuredPageBlockHeights([tabs, grid], new Map([['tabs_1', 250]]))
+    expect(measured.changed).toBe(true)
+    expect(measured.items[0].props.style.pageFlowHeight).toBe(250)
+    const resolved = resolveRootPageBlockCollisions(measured.items, 'tabs_1')
+    expect(resolved[1].props.style.pageFlowY).toBe(366) // 100 + 250 + 16
   })
 })

@@ -73,7 +73,7 @@ import {
 } from '../in-app-builder/workbench-page'
 import { inAppPageTemplateCatalog, resolveInAppPageTemplate } from '../in-app-builder/page-template-catalog'
 import { findPageBlockInTree, mapPageBlocksInTree, removePageBlockFromTree, visitPageBlocksInTree } from './page-block-tree'
-import { resolvePageBlockShellStyle as computePageBlockShellStyle, readPageBlockLength, resolveDefaultPageBlockHeight, resolveDefaultPageBlockYFromItems, resolvePageBlockFlowGeometry, resolveRootPageBlockCollisions, shouldUsePageFlowStack, normalizePagePadding, resolvePagePaddingCss, migratePageFlowToContentCoords, canvasToContentFlowPoint, contentToCanvasFlowPoint, DEFAULT_PAGE_PADDING } from './page-flow-geometry'
+import { resolvePageBlockShellStyle as computePageBlockShellStyle, readPageBlockLength, resolveDefaultPageBlockHeight, resolveDefaultPageBlockYFromItems, resolvePageBlockFlowGeometry, resolveRootPageBlockCollisions, applyMeasuredPageBlockHeights, shouldUsePageFlowStack, normalizePagePadding, resolvePagePaddingCss, migratePageFlowToContentCoords, canvasToContentFlowPoint, contentToCanvasFlowPoint, DEFAULT_PAGE_PADDING } from './page-flow-geometry'
 import { flattenNodes, hasPermission, isNavigationVisible } from './runtime-navigation-utils'
 import { useBuilderHistory } from './use-builder-history'
 import { useRuntimeCrudConfig } from './use-runtime-crud-config'
@@ -113,7 +113,7 @@ export function applyApplicationRuntimePart4(deps = {}) {
     formDesignerFromPageManagement, activeFormAssetId, activePageShapeDesign, pageTypeSelectorVisible, pageTypeSelectorParentId, pageTypeSelectorDefaultType, sidebarCollapsed, renamingApplication,
     renameApplicationValue, renameSaving, renameInputRef, collapsedGroupIds, copyBlockVisible, copyBlockId, copyBlockTargetPageId, blockBackgroundPickerVisible,
     backgroundPickerBlockId, formAssetSelectorOpen, formAssetSelectorKeyword, formDataProvisioningByAssetId, objectSetupVisible, selectedDesignerResourceKey, workspaceExtensions, workspaceEntries,
-    portalCrudConfigRevision, portalCrudSeed, isDraftMode, activeFlowContext, embeddedDesignerRef, embeddedDesignerDirty, embeddedDesignerSaving, embeddedProcessDesignerVisible,
+    portalCrudConfigRevision, portalCrudSeed, isDraftMode, activeFlowContext, embeddedDesignerRef, embeddedDesignerDirty, embeddedDesignerSaving, suppressHeavyEmbeddedSaveSideEffects, listDesignerSessionActive, formDesignerSessionActive, embeddedProcessDesignerVisible,
     embeddedProcessDesignerId, applicationRuntimeLoadCoordinator, componentPickerGroupOptions, runtimeHeaderMoreOptions, pageManagementSystemPages, systemPageIconMap, currentSystemPage, workbenchPage,
     systemPageNavigationRoutes, designerResourceGroups, activeDesignerResource, designerSection, pageBuilderResourceActive, canEditApplication, usePortalDesignPreview, activeDesignerObject,
     activeResourceConfigKey, previewableResourceActive, legacyBlockTypeMap, pageBlockResizeAnchors, pageBlockRecommendedColors, groupOptions, navigationActionNode, iconPickerNode,
@@ -125,7 +125,7 @@ export function applyApplicationRuntimePart4(deps = {}) {
     selectedPageBlockRuntimeObjectId, selectedPageBlockObjectDesignerPanel, selectedPageBlockFormDataState, runtimeObjectFormOptions, pageTemplateOptions, selectedPageBlockFields, selectedPageBlockFormDesignerSchema, applicationGridModelSchema,
     dragPreviewBlock, nestedMovingPageBlockId, copyBlockPageOptions, dirty, canSaveActiveFormDesigner, loadErrorTitle, filteredComponents, componentPickerGroups,
     recommendedComponents,
-    runtimeCrudPropsByObjectId, runtimeCrudLoadingObjectIds, runtimeCrudUnavailableObjectIds, loadRuntimeCrudProps, resetRuntimeCrudConfig, historyReady, canUndo, canRedo, resetBuilderHistory,
+    runtimeCrudPropsByObjectId, runtimeCrudLoadingObjectIds, runtimeCrudUnavailableObjectIds, loadRuntimeCrudProps, resetRuntimeCrudConfig, historyReady, canUndo, canRedo, resetBuilderHistory, runWithoutHistory,
     undoBuilder, redoBuilder, handleBuilderShortcut,
   
   } = deps
@@ -777,7 +777,8 @@ export function applyApplicationRuntimePart4(deps = {}) {
   }
   __impl.createLegacyBlock = createLegacyBlock
 
-  async function saveActiveFormDesigner(returnAfter = true) {
+  async function saveActiveFormDesigner(returnAfter = true, options = {}) {
+    const forPreview = options.forPreview === true
     const context = activePageShapeDesign.value
     if (!context)
       return saveDraft()
@@ -835,8 +836,13 @@ export function applyApplicationRuntimePart4(deps = {}) {
           createMode: '',
         }
       }
-      await refreshWorkspaceMetadata({ syncBuilder: true, markClean: true })
       embeddedDesignerDirty.value = false
+      if (forPreview) {
+        // 预览落盘：不拉 workspace，只刷门户 CRUD，设计器保活不重挂
+        bumpPortalCrudConfigAfterDesignerSave()
+        return true
+      }
+      await refreshWorkspaceMetadata({ syncBuilder: true, markClean: true })
       // refreshWorkspaceMetadata 已 reset + bump portalCrudConfigRevision；
       // 编辑画布若仍打开再补一次预加载（返回页面管理时 preload 会因 !editing 直接跳过）
       preloadCurrentPageCrudRuntimeProps()
@@ -1158,12 +1164,13 @@ export function applyApplicationRuntimePart4(deps = {}) {
   }
   __impl.currentDesignerDirty = currentDesignerDirty
 
-  async function saveCurrentDesignerSection() {
+  async function saveCurrentDesignerSection(options = {}) {
+    const forPreview = options.forPreview === true
     // 非编辑模式下（页面管理视图等），导航树操作只修改了 builder，直接保存草稿
     if (!editing.value && canEditApplication.value && dirty.value)
       return await saveDraft()
     if (editing.value && activePageDesignTab.value === 'form') {
-      const formSaved = await saveActiveFormDesigner(false)
+      const formSaved = await saveActiveFormDesigner(false, { forPreview })
       if (!formSaved)
         return false
       // 表单保存后若本地归一化仍留下差异，静默落盘，避免连弹两次“保存成功”
@@ -1179,8 +1186,14 @@ export function applyApplicationRuntimePart4(deps = {}) {
       if (!pageDesignObject.value)
         return false
       embeddedDesignerSaving.value = true
+      // 预览落盘：跳过 saved 回调里的 workspace 全量刷新，只刷门户 CRUD 缓存
+      if (forPreview)
+        suppressHeavyEmbeddedSaveSideEffects.value = true
       try {
-        const saved = await embeddedDesignerRef.value?.save?.()
+        const saved = await embeddedDesignerRef.value?.save?.({
+          reload: !forPreview,
+          quiet: forPreview,
+        })
         if (saved !== false)
           embeddedDesignerDirty.value = false
         if (dirty.value) {
@@ -1192,6 +1205,7 @@ export function applyApplicationRuntimePart4(deps = {}) {
         return saved !== false
       }
       finally {
+        suppressHeavyEmbeddedSaveSideEffects.value = false
         embeddedDesignerSaving.value = false
       }
     }
@@ -1342,6 +1356,13 @@ export function applyApplicationRuntimePart4(deps = {}) {
     embeddedDesignerDirty.value = false
     if (activePageDesignTab.value === 'list')
       promoteCurrentPageToListShape(savedSchema)
+    // 预览前轻量落盘：只同步页面形态 + 刷门户 CRUD，避免 workspace 全量拉取把设计器打回重载
+    if (suppressHeavyEmbeddedSaveSideEffects.value) {
+      if (dirty.value)
+        await persistApplicationDraft()
+      bumpPortalCrudConfigAfterDesignerSave()
+      return
+    }
     // 列表设计回写页面区块后可能弄脏 builder，这里一并落盘并清脏，避免退出仍提示未保存。
     if (dirty.value)
       await persistApplicationDraft()
@@ -1586,6 +1607,143 @@ export function applyApplicationRuntimePart4(deps = {}) {
   const showListDesignTab = computed(() => readRouteDesignTab() !== 'page' && LIST_DESIGN_SHAPES.has(currentPageShape.value))
   const isPageDesignTabActive = computed(() => showPageDesignTab.value && (activePageDesignTab.value === 'page' || showFreeLayoutCanvas.value))
 
+  // —— 自由布局：容器 height:auto 撑开后，把实测高度写回 pageFlowHeight 并碰撞下推 ——
+  function collectMeasuredPageBlockHeights() {
+    if (typeof document === 'undefined')
+      return new Map()
+    const flow = document.querySelector('.application-page-flow')
+    if (!flow)
+      return new Map()
+    const measured = new Map()
+    flow.querySelectorAll(':scope > .application-page-block[data-page-block-id]').forEach((node) => {
+      const id = node.getAttribute('data-page-block-id')
+      const height = Math.round(node.getBoundingClientRect().height)
+      if (id && height > 0)
+        measured.set(id, height)
+    })
+    return measured
+  }
+
+  function syncFreeLayoutMeasuredHeights() {
+    if (mut.syncingFreeLayoutHeights)
+      return false
+    // 拖拽/缩放过程中的瞬时尺寸不要回写，避免与手势抢历史
+    if (mut.pageBlockMoveCtx || mut.pageBlockResizeCtx || draggingPageBlockId.value)
+      return false
+    if (!editing.value || pageFlowStackMode.value || !showFreeLayoutCanvas.value)
+      return false
+    const { items, changed } = applyMeasuredPageBlockHeights(
+      pageBlocks.value,
+      collectMeasuredPageBlockHeights(),
+    )
+    if (!changed)
+      return false
+    mut.syncingFreeLayoutHeights = true
+    try {
+      // 实测高度是系统对齐，不能进撤销栈，否则「移入布局/复制」后 ⌘Z 会先撤高度而不是业务操作
+      runWithoutHistory(() => {
+        updatePageBlocks(items, { resolveCollisions: true })
+      })
+    }
+    finally {
+      nextTick(() => {
+        mut.syncingFreeLayoutHeights = false
+      })
+    }
+    return true
+  }
+  __impl.syncFreeLayoutMeasuredHeights = syncFreeLayoutMeasuredHeights
+
+  function scheduleFreeLayoutHeightSync() {
+    if (mut.freeLayoutHeightSyncTimer)
+      clearTimeout(mut.freeLayoutHeightSyncTimer)
+    mut.freeLayoutHeightSyncTimer = setTimeout(() => {
+      mut.freeLayoutHeightSyncTimer = null
+      syncFreeLayoutMeasuredHeights()
+    }, 80)
+  }
+
+  function bindFreeLayoutHeightObserver() {
+    if (typeof ResizeObserver === 'undefined' || typeof document === 'undefined')
+      return
+    const flow = document.querySelector('.application-page-flow')
+    if (!flow)
+      return
+    if (mut.freeLayoutHeightObserverFlow !== flow) {
+      mut.freeLayoutHeightObserver?.disconnect?.()
+      mut.freeLayoutHeightObserverFlow = flow
+      mut.freeLayoutHeightObserver = new ResizeObserver(() => scheduleFreeLayoutHeightSync())
+      mut.freeLayoutHeightObserver.observe(flow)
+    }
+    // 新增根级块后补 observe；同一节点重复 observe 无害
+    flow.querySelectorAll(':scope > .application-page-block').forEach((node) => {
+      mut.freeLayoutHeightObserver.observe(node)
+    })
+    scheduleFreeLayoutHeightSync()
+  }
+
+  function unbindFreeLayoutHeightObserver() {
+    if (mut.freeLayoutHeightSyncTimer) {
+      clearTimeout(mut.freeLayoutHeightSyncTimer)
+      mut.freeLayoutHeightSyncTimer = null
+    }
+    mut.freeLayoutHeightObserver?.disconnect?.()
+    mut.freeLayoutHeightObserver = null
+    mut.freeLayoutHeightObserverFlow = null
+  }
+
+  watch(
+    [
+      editing,
+      showFreeLayoutCanvas,
+      pageFlowStackMode,
+      editCanvasBootstrapping,
+      () => pageBlocks.value.map(item => item.id).join('|'),
+    ],
+    async ([isEditing, showCanvas, stackMode, bootstrapping]) => {
+      if (!isEditing || !showCanvas || stackMode) {
+        unbindFreeLayoutHeightObserver()
+        return
+      }
+      // 画布 skeleton 期间节点 display:none，高度为 0；等 bootstrap 结束后再量
+      if (bootstrapping)
+        return
+      await nextTick()
+      bindFreeLayoutHeightObserver()
+      // 布局稳定后再补一次，避免首屏 ResizeObserver 漏触发
+      scheduleFreeLayoutHeightSync()
+      setTimeout(() => scheduleFreeLayoutHeightSync(), 200)
+    },
+    { immediate: true },
+  )
+  onBeforeUnmount(() => unbindFreeLayoutHeightObserver())
+
+  // 进过列表/表单设计后，草稿预览期间保活实例，返回编辑不再整页重挂
+  watch(
+    [editing, activePageDesignTab],
+    ([isEditing, tab]) => {
+      if (!isEditing)
+        return
+      if (tab === 'list')
+        listDesignerSessionActive.value = true
+      if (tab === 'form' || formDesignerMode.value)
+        formDesignerSessionActive.value = true
+    },
+    { immediate: true },
+  )
+  const keepListDesignerAlive = computed(() => (
+    Boolean(pageDesignObject.value)
+    && listDesignerSessionActive.value
+    && (editing.value || isDraftPreviewMode())
+  ))
+  const keepFormDesignerAlive = computed(() => (
+    formDesignerSessionActive.value
+    && showFormDesignTab.value
+    && (editing.value || isDraftPreviewMode() || formDesignerMode.value)
+  ))
+  const showListDesignerSurface = computed(() => editing.value && activePageDesignTab.value === 'list')
+  const showFormDesignerSurface = computed(() => showFormDesignWorkbench.value)
+
   __impl.startPageBlockResize = startPageBlockResize
   __impl.onPageBlockResize = onPageBlockResize
   __impl.updateResizeCollisionHighlights = updateResizeCollisionHighlights
@@ -1650,5 +1808,7 @@ export function applyApplicationRuntimePart4(deps = {}) {
     ...deps,
     PAGE_DESIGN_TABS, FORM_DESIGN_SHAPES, LIST_DESIGN_SHAPES, activePageDesignTab, currentPageShape, isObjectBoundPage, isFreeLayoutPage, showFreeLayoutCanvas,
     showFormDesignWorkbench, showPageDesignTab, showFormDesignTab, showListDesignTab, isPageDesignTabActive,
+    keepListDesignerAlive, keepFormDesignerAlive, showListDesignerSurface, showFormDesignerSurface,
+    syncFreeLayoutMeasuredHeights,
   }
 }

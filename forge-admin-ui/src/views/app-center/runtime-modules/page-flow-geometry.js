@@ -150,6 +150,14 @@ export function resolveDefaultPageBlockYFromItems(items = [], index = 0) {
     .reduce((top, item) => top + Number(item.props?.style?.pageFlowHeight || resolveDefaultPageBlockHeight(item)) + 16, 20)
 }
 
+/** 会 height:auto 撑开的容器：碰撞盒必须跟实测/较大记录高度走，否则会压到下一块 */
+export function isPageFlowGrowBlock(block = {}) {
+  const heightMode = block?.props?.style?.heightMode || 'fixed'
+  if (heightMode === 'auto' || heightMode === 'full')
+    return true
+  return ['grid-layout', 'card', 'box-layout', 'tabs'].includes(block?.blockType)
+}
+
 export function resolvePageBlockFlowGeometry(block = {}, index = 0, items = []) {
   const style = block.props?.style || {}
   const meta = resolveListPageBlockMeta(block.blockType) || {}
@@ -162,7 +170,11 @@ export function resolvePageBlockFlowGeometry(block = {}, index = 0, items = []) 
   const widthMode = style.widthMode || 'full'
   const heightMode = style.heightMode || 'fixed'
   const explicitWidth = readPageBlockLength(style.pageFlowWidth) || readPageBlockLength(style.width)
-  const explicitHeight = readPageBlockLength(style.pageFlowHeight) || readPageBlockLength(style.height)
+  // pageFlowHeight 与 height 可能短暂不一致：碰撞取较大值，避免容器已撑开仍按下限叠在一起
+  const explicitHeight = Math.max(
+    readPageBlockLength(style.pageFlowHeight),
+    readPageBlockLength(style.height),
+  )
   const width = widthMode === 'full'
     ? 100000
     : explicitWidth || Math.round((Math.min(12, Math.max(3, Number(meta.defaultW) || 6)) / 12) * 1200)
@@ -173,6 +185,43 @@ export function resolvePageBlockFlowGeometry(block = {}, index = 0, items = []) 
       ? Math.max(explicitHeight || defaultHeight, 180)
       : explicitHeight || defaultHeight
   return { x, y, width, height, right: x + width, bottom: y + height }
+}
+
+/**
+ * 把 DOM 实测高度写回可撑开块的 pageFlowHeight，供碰撞下推使用。
+ * @returns {{ items: any[], changed: boolean }}
+ */
+export function applyMeasuredPageBlockHeights(items = [], measuredById = new Map(), threshold = 2) {
+  let changed = false
+  const next = items.map((block) => {
+    if (!isPageFlowGrowBlock(block))
+      return block
+    const measured = Number(measuredById instanceof Map
+      ? measuredById.get(block.id)
+      : measuredById?.[block.id])
+    if (!(measured > 0))
+      return block
+    const style = block.props?.style || {}
+    const stored = Math.max(
+      readPageBlockLength(style.pageFlowHeight),
+      readPageBlockLength(style.height),
+    )
+    if (Math.abs(measured - stored) < threshold)
+      return block
+    changed = true
+    return {
+      ...block,
+      props: {
+        ...(block.props || {}),
+        style: {
+          ...style,
+          pageFlowHeight: Math.round(measured),
+          height: Math.round(measured),
+        },
+      },
+    }
+  })
+  return { items: next, changed }
 }
 
 /**
@@ -216,6 +265,7 @@ export function resolveRootPageBlockCollisions(items = [], changedBlockId = '') 
 }
 
 function isContainerGrowBlock(block = {}) {
+  // 壳样式：仅按组件类型判定「内容撑开」；heightMode=auto 另有分支
   return ['grid-layout', 'card', 'box-layout', 'tabs'].includes(block?.blockType)
 }
 
@@ -258,7 +308,11 @@ export function resolvePageBlockShellStyle(block = {}, items = [], options = {})
     ? '100%'
     : `calc(100% - ${pagePadding.left + pagePadding.right}px)`
   const defaultHeight = resolveDefaultPageBlockHeight(block)
-  const resolvedHeight = Math.max(40, customHeight > 0 ? customHeight : frameHeight || defaultHeight)
+  const isListCrud = ['AiCrudPage', 'AiTable', 'data-table'].includes(block.blockType)
+  // 自由布局绝对定位：列表过窄/过矮会压扁搜索区与表格，给可用下限（通栏文档流不受影响）
+  const FREE_LAYOUT_CRUD_MIN_WIDTH = 640
+  const FREE_LAYOUT_CRUD_MIN_HEIGHT = 420
+  let resolvedHeight = Math.max(40, customHeight > 0 ? customHeight : frameHeight || defaultHeight)
 
   // heightMode=fixed：非容器仍锁死壳高；栅格/卡片等容器始终跟内容撑开（minHeight 保留拖拽下限）
   // heightMode=auto：跟内容走
@@ -303,6 +357,9 @@ export function resolvePageBlockShellStyle(block = {}, items = [], options = {})
     return shell
   }
 
+  if (isListCrud)
+    resolvedHeight = Math.max(resolvedHeight, FREE_LAYOUT_CRUD_MIN_HEIGHT)
+
   const position = {
     ...shared,
     position: 'absolute',
@@ -315,8 +372,15 @@ export function resolvePageBlockShellStyle(block = {}, items = [], options = {})
     position.bottom = `${pagePadding.bottom}px`
   }
   else if (useAutoHeight) {
-    position.height = 'auto'
-    position.minHeight = `${resolvedHeight}px`
+    // 列表 CRUD 禁止 height:auto（子块 100% 会塌成空框），锁成可用像素高
+    if (isListCrud) {
+      position.height = `${resolvedHeight}px`
+      position.minHeight = `${resolvedHeight}px`
+    }
+    else {
+      position.height = 'auto'
+      position.minHeight = `${resolvedHeight}px`
+    }
   }
   else {
     position.height = `${resolvedHeight}px`
@@ -332,8 +396,14 @@ export function resolvePageBlockShellStyle(block = {}, items = [], options = {})
   }
   if (widthMode === 'auto')
     return { ...position, width: customWidth || `min(${Math.max(280, Math.min(560, frameWidth || 520))}px, ${remainingSafeWidth})` }
-  if (widthMode === 'fixed' && frameWidth > 0)
-    return { ...position, width: customWidth || `min(${frameWidth}px, ${remainingSafeWidth})` }
+  if (widthMode === 'fixed') {
+    const rawWidth = readPageBlockLength(customWidth) || frameWidth || 0
+    const floored = isListCrud
+      ? Math.max(rawWidth, FREE_LAYOUT_CRUD_MIN_WIDTH)
+      : rawWidth
+    if (floored > 0)
+      return { ...position, width: `min(${floored}px, ${remainingSafeWidth})` }
+  }
   const columns = Math.min(12, Math.max(3, Number(meta.defaultW) || 6))
   return {
     ...position,

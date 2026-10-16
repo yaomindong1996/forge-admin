@@ -154,6 +154,9 @@ export function createFieldFromComponent(component = {}, index = 0) {
     basicProps,
     advancedProps: {
       ...(component.advancedProps || {}),
+      ...(props.generation && typeof props.generation === 'object'
+        ? { generation: props.generation }
+        : {}),
     },
   }
 }
@@ -252,6 +255,7 @@ function syncExistingFieldFromComponent(field = {}, component = {}) {
     'filterable',
     'placeholder',
     'defaultValue',
+    'generation',
   ]
   for (const key of syncKeys) {
     if (props[key] !== undefined)
@@ -261,6 +265,13 @@ function syncExistingFieldFromComponent(field = {}, component = {}) {
     field.advancedProps = {
       ...(field.advancedProps || {}),
       ...component.advancedProps,
+    }
+  }
+  // 自动编号写在组件 props.generation；同步进 advancedProps 供后端写入策略识别
+  if (props.generation && typeof props.generation === 'object') {
+    field.advancedProps = {
+      ...(field.advancedProps || {}),
+      generation: props.generation,
     }
   }
   if (defaults?.componentType)

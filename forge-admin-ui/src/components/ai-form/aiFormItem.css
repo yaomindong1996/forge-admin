@@ -3,6 +3,28 @@
   min-width: 0;
 }
 
+/* 设计器字号/颜色写在 form-item 上；Naive 控件内联 --n-font-size/--n-text-color，需跟节点走 */
+.ai-form-item :deep(.n-form-item-label),
+.ai-form-item :deep(.n-input),
+.ai-form-item :deep(.n-input__input-el),
+.ai-form-item :deep(.n-input__textarea-el),
+.ai-form-item :deep(.n-base-selection),
+.ai-form-item :deep(.n-base-selection-label),
+.ai-form-item :deep(.n-input-number),
+.ai-form-item :deep(.n-date-picker),
+.ai-form-item :deep(.n-time-picker),
+.ai-form-item :deep(.n-cascader),
+.ai-form-item :deep(.n-tree-select),
+.ai-form-item :deep(.n-auto-complete),
+.ai-form-item :deep(.n-mention),
+.ai-form-item :deep(.n-select),
+.ai-form-item :deep(textarea) {
+  font-size: inherit !important;
+  color: inherit !important;
+  --n-font-size: inherit !important;
+  --n-text-color: inherit !important;
+}
+
 .ai-form-item-body {
   display: grid;
   width: 100%;

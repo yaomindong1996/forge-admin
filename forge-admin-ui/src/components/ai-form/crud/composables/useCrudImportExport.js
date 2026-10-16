@@ -31,8 +31,13 @@ export function useCrudImportExport({ props, searchParams, parseApiConfig, extra
     }
     const exportApi = props.apiConfig?.export || props.exportApi || ''
     const exportUrl = extractApiUrl(exportApi)
-    const match = exportUrl.match(/\/ai\/crud\/([^/]+)\/export(?:$|\?)/)
-    return match?.[1] || ''
+    const exportMatch = exportUrl.match(/\/ai\/crud\/([^/]+)\/export(?:$|\?)/)
+    if (exportMatch?.[1])
+      return exportMatch[1]
+    // 与自定义查询一致：列表接口也能反推对象编码，避免缺 export 地址时「导出任务」开关无效
+    const listApi = props.apiConfig?.list || props.listApi || props.api || ''
+    const listMatch = String(listApi).match(/\/ai\/crud\/([^/]+)\/page/)
+    return listMatch?.[1] || ''
   })
 
   const hasExportTaskApi = computed(() => {

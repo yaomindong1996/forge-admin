@@ -356,17 +356,25 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
 
   /**
    * 搜索
+   * AiSearch 按钮会 emit 表单载荷；无参调用时回退读 searchRef，避免空条件冲掉已填筛选。
    */
   async function handleSearch(params) {
+    const hasExplicitParams = params != null && typeof params === 'object'
+    const sourceParams = hasExplicitParams
+      ? params
+      : (searchRef.value?.getFormData?.() || searchParams.value || {})
+
     // 调用 beforeSearch 钩子
-    const processedParams = await callHook('beforeSearch', params, data => data)
+    const processedParams = await callHook('beforeSearch', sourceParams, data => data)
 
     // 如果钩子返回 false，中断搜索
     if (processedParams === false) {
       return
     }
 
-    searchParams.value = { ...processedParams }
+    searchParams.value = { ...(processedParams || {}) }
+    // filterBlock/search API 写入后同步到 AiSearch，保证重置能清掉外部条件
+    searchRef.value?.setFormData?.(searchParams.value)
     pagination.value.page = 1
     loadList()
   }
@@ -376,6 +384,7 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
    */
   function handleReset() {
     searchParams.value = {}
+    searchRef.value?.setFormData?.({})
     pagination.value.page = 1
     loadList()
   }
@@ -1446,9 +1455,11 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
     catch (error) {
       console.error('提交失败:', error)
 
-      // 前端表单校验失败时 AiForm 已完成滚动和高亮定位，这里不再弹出重复提示
+      // 校验失败时 AiForm 会滚动高亮；长表单场景再给一条提示，避免「确定无响应」错觉
       if (Array.isArray(error) && error.length > 0) {
         console.error('验证错误详情:', error)
+        const first = Array.isArray(error[0]) ? error[0][0] : error[0]
+        window.$message.warning(first?.message || '请完善表单必填项后再提交')
       }
       else {
         window.$message.error(error?.message || '提交失败')
@@ -1748,14 +1759,18 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
      * 设置搜索参数
      */
     setSearchParams: (params) => {
-      searchParams.value = params
+      searchParams.value = { ...(params || {}) }
+      // 同步搜索表单内部态，避免 filterBlock 写入后 UI/重置脱节
+      searchRef.value?.setFormData?.(searchParams.value)
     },
 
     /**
      * 重置搜索
      */
     resetSearch: () => {
-      searchRef.value?.handleReset()
+      // 直接走列表重置：同时清空 searchParams 与 AiSearch 内部表单
+      handleReset()
+      searchRef.value?.setFormData?.({})
     },
   }
 

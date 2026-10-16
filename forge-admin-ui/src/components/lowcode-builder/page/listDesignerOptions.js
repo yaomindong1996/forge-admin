@@ -370,6 +370,7 @@ export const blockEventActionOptions = [
   { label: '打开弹窗表单', value: 'openModal' },
   { label: '打开抽屉表单', value: 'openDrawer' },
   { label: '请求后端接口', value: 'request' },
+  { label: '提示消息', value: 'message' },
   { label: '执行自定义脚本', value: 'customScript' },
 ]
 export const backButtonActionOptions = [

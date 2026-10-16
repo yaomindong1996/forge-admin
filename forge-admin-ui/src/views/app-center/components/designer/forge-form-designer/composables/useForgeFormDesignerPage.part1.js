@@ -15,9 +15,12 @@ import {
   applyGridColumnsToFormDesignerSchema,
   createComponentFromField,
   createDefaultFormDesignerSchema,
+  insertDesignerComponent,
   normalizeFormDesignerSchema,
   normalizeFormDesignerSchemaForSave,
+  resolveAppendShelfTarget,
 } from '../../form-first/formDesignerSchema'
+import { createForgeFieldTemplateComponent, createForgeLayoutComponent } from '../designerLayoutFactory'
 import BottomBarEditor from '../BottomBarEditor.vue'
 import ForgeFieldShelf from '../ForgeFieldShelf.vue'
 import ForgeFormCanvas from '../ForgeFormCanvas.vue'
@@ -32,6 +35,8 @@ export function applyForgeFormDesignerPagePart1(props, emit, expose) {
 
   const selectedId = ref('')
   const leftCollapsed = ref(false)
+  // 首屏先出画布，组件架 idle 后再挂，避免 59 个物料同步拖慢进页
+  const shelfHydrated = ref(false)
   const rightOpen = ref(true)
   const canvasFocusMode = ref(false)
   const formTabsMenuVisible = ref(false)
@@ -212,6 +217,20 @@ export function applyForgeFormDesignerPagePart1(props, emit, expose) {
     selectedId.value = component.id
     rightOpen.value = true
     updateSchema(applyGridColumnsToFormDesignerSchema(schema, schema.layout?.gridColumns || 2))
+  }
+
+  /** 左侧组件库点击添加：优先落入当前选中容器，否则追加到画布根部 */
+  function appendShelfItem(item = {}) {
+    const componentKey = item.componentKey || 'input'
+    const schema = normalizeFormDesignerSchema(normalizedSchema.value)
+    const component = item.kind === 'layout'
+      ? createForgeLayoutComponent(componentKey, schema)
+      : createForgeFieldTemplateComponent({ componentKey, label: item.label }, schema)
+    const target = resolveAppendShelfTarget(schema, selectedId.value, component)
+    const nextSchema = insertDesignerComponent(schema, target, component)
+    selectedId.value = component.id
+    rightOpen.value = true
+    updateSchema(applyGridColumnsToFormDesignerSchema(nextSchema, nextSchema.layout?.gridColumns || 2))
   }
 
   function resetFromFields() {
@@ -492,6 +511,7 @@ export function applyForgeFormDesignerPagePart1(props, emit, expose) {
     resetFromFields,
     repairRefs,
     appendField,
+    appendShelfItem,
     selectComponent: openPropertyPanel,
   })
   const renameDialogVisible = ref(false)
@@ -963,6 +983,13 @@ export function applyForgeFormDesignerPagePart1(props, emit, expose) {
   onMounted(() => {
     window.addEventListener('keydown', handleDesignerShortcut)
     window.addEventListener('forge-form-designer:canvas-drag-start', handleCanvasDragStart)
+    const hydrateShelf = () => {
+      shelfHydrated.value = true
+    }
+    if (typeof window.requestIdleCallback === 'function')
+      window.requestIdleCallback(hydrateShelf, { timeout: 400 })
+    else
+      window.setTimeout(hydrateShelf, 0)
   })
 
   onBeforeUnmount(() => {
@@ -977,6 +1004,7 @@ export function applyForgeFormDesignerPagePart1(props, emit, expose) {
   __impl.cloneDesignerSchema = cloneDesignerSchema
   __impl.isSameDesignerSchema = isSameDesignerSchema
   __impl.appendField = appendField
+  __impl.appendShelfItem = appendShelfItem
   __impl.resetFromFields = resetFromFields
   __impl.openClearCanvasDialog = openClearCanvasDialog
   __impl.updatePageSectionProtocol = updatePageSectionProtocol
@@ -1020,13 +1048,13 @@ export function applyForgeFormDesignerPagePart1(props, emit, expose) {
   __impl.confirmRenameCurrentForm = confirmRenameCurrentForm
 
   return {
-    props, emit, __impl, mut, appendField, buildRuntimeFormSchema, buildRuntimeFormValue, cloneDesignerSchema,
+    props, emit, __impl, mut, appendField, appendShelfItem, buildRuntimeFormSchema, buildRuntimeFormValue, cloneDesignerSchema,
     confirmClearCanvas, confirmRenameCurrentForm, containsLockedField, countComponents, createBlankFormAsset, duplicateCurrentFormAsset, findFieldAsset, firstText,
     flushDesigner, getDefaultRuntimeValue, getMockRuntimeValue, getRuntimeFieldCode, handleCanvasDragStart, handleCanvasSelectedIdChange, handleDesignerMoreSelect, handleDesignerShortcut,
     handleFormTabsMenuSelect, hasDynamicPreviewOptionSource, isCrudRuntimeComponent, isFormDividerRuntimeComponent, isGroupTitleRuntimeComponent, isSameDesignerSchema, mergeRelationRuntimeProps, normalizeRuntimeComponent,
     openClearCanvasDialog, openFormTabsMenu, openPageSections, openPrintPreview, openPropertyPanel, openRenameCurrentForm, openSourcePanel, preparePreviewNode,
     pushHistorySnapshot, redoSchema, repairRefs, resetFromFields, resolveRuntimeFieldProps, resolveRuntimeNodeType, resolveRuntimeProps, switchFormAsset,
-    toggleCanvasFocus, undoSchema, updateBottomBarFromDialog, updatePageSectionProtocol, updateSchema, slots, selectedId, leftCollapsed,
+    toggleCanvasFocus, undoSchema, updateBottomBarFromDialog, updatePageSectionProtocol, updateSchema, slots, selectedId, leftCollapsed, shelfHydrated,
     rightOpen, canvasFocusMode, formTabsMenuVisible, formTabsMenuX, formTabsMenuY, undoStack, redoStack, HISTORY_LIMIT,
     previewMode, clearDialogVisible, clearScope, bottomBarDialogVisible, canvasView, previewModeOptions, previewRuntimeContext, baseDesignerMoreOptions,
     normalizedSchema, previewLayout, previewGridCols, previewSchema, previewValue, previewFormValue, usedFieldSet, formAssets,

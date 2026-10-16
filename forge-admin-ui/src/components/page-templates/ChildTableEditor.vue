@@ -371,6 +371,8 @@ onBeforeUnmount(() => {
 })
 
 function resolveChildKey(child) {
+  if (!child || typeof child !== 'object')
+    return 'children'
   return child.modelCode || child.relationKey || child.key || child.tableName || 'children'
 }
 
@@ -561,6 +563,8 @@ function visibleRowsFor(child) {
 }
 
 function addRow(child) {
+  if (!child || typeof child !== 'object')
+    return
   const key = resolveChildKey(child)
   localValue.value = {
     ...localValue.value,

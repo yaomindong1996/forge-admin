@@ -271,6 +271,11 @@ const onlineExecutable = computed(() => {
 })
 
 watch(() => props.objectId, loadMapping)
+// 展开「数据结构」时刷新映射，避免设计版本在保存草稿后过期导致预览/同步失败
+watch(() => props.expanded, (expanded) => {
+  if (expanded)
+    loadMapping()
+})
 onMounted(loadMapping)
 
 async function loadMapping() {
@@ -288,10 +293,14 @@ async function loadMapping() {
 }
 
 async function previewDiff() {
-  if (!props.objectId || mapping.value?.designVersion === undefined)
+  if (!props.objectId)
     return
   previewing.value = true
   try {
+    // 预览前强制刷新，防止本地 mapping.designVersion 与服务端不一致
+    await loadMapping()
+    if (mapping.value?.designVersion === undefined)
+      return
     const response = await previewBusinessObjectDatabaseDiff(props.objectId, mapping.value.designVersion)
     preview.value = response.data || null
     previewVisible.value = true

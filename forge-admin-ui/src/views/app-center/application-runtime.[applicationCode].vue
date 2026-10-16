@@ -124,7 +124,7 @@
               <div class="application-form-assets-popover-head">
                 <div>
                   <strong>页面表单资产</strong>
-                  <small>可设为列表「新增 / 编辑」使用的表单</small>
+                  <small>多数据列表时先点选目标，再「设为新增编辑表单」；点引用可定位组件</small>
                 </div>
                 <n-button size="tiny" type="primary" @click="createStandaloneFormAsset">
                   新建表单
@@ -141,19 +141,44 @@
                     <strong>{{ asset.name || asset.formKey || asset.id }}</strong>
                     <small>
                       {{ resolveFormAssetFields(asset).length }} 个字段
-                      <template v-if="isFormAssetBoundToListCrud(asset.id || asset.formKey)"> · 当前新增/编辑表单</template>
+                      <template v-if="isFormAssetBoundToListCrud(asset.id || asset.formKey)"> · 本页新增/编辑表单</template>
                     </small>
                   </span>
                 </button>
+                <!-- 引用与「打开设计器」拆开，避免点「本页·数据列表」误进空白表单页 -->
+                <div class="application-form-asset-usage">
+                  <template v-if="collectFormAssetUsages(asset.id || asset.formKey).length">
+                    <button
+                      v-for="usage in collectFormAssetUsages(asset.id || asset.formKey)"
+                      :key="`${usage.pageId}:${usage.blockId}`"
+                      type="button"
+                      class="application-form-asset-usage-chip"
+                      :title="usage.isCurrentPage ? '定位到该组件' : `绑定在页面「${usage.pageTitle}」`"
+                      @click.stop="focusFormAssetUsage(usage)"
+                    >
+                      {{ usage.isCurrentPage ? '本页' : `页面「${usage.pageTitle}」` }} · {{ usage.blockLabel }}
+                    </button>
+                  </template>
+                  <small v-else>尚未绑定到任何组件</small>
+                </div>
                 <div class="application-form-asset-ops">
                   <n-button
+                    v-if="isFormAssetBoundToListCrud(asset.id || asset.formKey)"
+                    size="tiny"
+                    quaternary
+                    type="warning"
+                    @click.stop="clearFormAssetListCrudBinding(asset.id || asset.formKey)"
+                  >
+                    取消绑定
+                  </n-button>
+                  <n-button
+                    v-else
                     size="tiny"
                     quaternary
                     type="primary"
-                    :disabled="isFormAssetBoundToListCrud(asset.id || asset.formKey)"
                     @click.stop="setFormAssetAsListCrudForm(asset.id || asset.formKey)"
                   >
-                    {{ isFormAssetBoundToListCrud(asset.id || asset.formKey) ? '已设为新增编辑' : '设为新增编辑表单' }}
+                    设为新增编辑表单
                   </n-button>
                   <n-button size="tiny" quaternary @click.stop="openFormAssetDesigner(asset.id || asset.formKey)">
                     编辑
@@ -202,7 +227,12 @@
         @node-action="handleResourceNodeAction"
       />
 
-      <section v-if="showFormDesignWorkbench" class="application-form-asset-workbench">
+      <!-- 表单设计：预览期间 v-show 保活，避免返回编辑整页重挂 -->
+      <section
+        v-if="keepFormDesignerAlive"
+        v-show="showFormDesignerSurface"
+        class="application-form-asset-workbench"
+      >
         <DesignerAsyncLoader
           v-if="designerTransitionLoading"
           title="正在准备页面设计"
@@ -248,7 +278,7 @@
           </div>
           <div v-if="activeFormAsset" class="application-form-asset-designer">
             <ForgeFormDesigner
-              :key="activeFormAsset.id"
+              :key="activeFormAsset.id || activeFormAsset.formKey"
               :model-value="activeFormDesignerSchema"
               :fields="activeFormFields"
               :object-code="activePageShapeDesign?.objectCode || activeFormDesignerContext?.objectCode || application.applicationCode"
@@ -270,7 +300,12 @@
         </template>
       </section>
 
-      <section v-else-if="editing && activePageDesignTab === 'list'" class="application-design-section">
+      <!-- 列表设计：预览期间保活，返回编辑不重新 loadDesigner -->
+      <section
+        v-if="keepListDesignerAlive"
+        v-show="showListDesignerSurface"
+        class="application-design-section"
+      >
         <BusinessObjectDesignerPage
           v-if="pageDesignObject"
           :key="`page-list:${pageDesignObject.objectId || pageDesignObject.objectCode}`"
@@ -295,7 +330,7 @@
       </section>
 
       <!-- 编辑/草稿预览：页面设置（须排在自由布局画布之前，避免兜底抢占） -->
-      <section v-else-if="(editing || isDraftPreviewMode()) && activePageDesignTab === 'settings'" class="runtime-inline-panel">
+      <section v-if="(editing || isDraftPreviewMode()) && activePageDesignTab === 'settings'" class="runtime-inline-panel">
         <PageDesignSettingsPanel
           v-if="currentNode"
           :node="currentNode"
@@ -310,7 +345,7 @@
       </section>
 
       <!-- 编辑/草稿预览：发布（预览页可直接改挂载并跳转应用发布，避免来回跳） -->
-      <section v-else-if="(editing || isDraftPreviewMode()) && activePageDesignTab === 'publish'" class="runtime-inline-panel">
+      <section v-if="(editing || isDraftPreviewMode()) && activePageDesignTab === 'publish'" class="runtime-inline-panel">
         <PageDesignPublishPanel
           v-if="currentNode"
           :application="application"
@@ -329,7 +364,7 @@
       </section>
 
       <div
-        v-else-if="(!editing && runtimeViewMode === 'pages') || showFreeLayoutCanvas"
+        v-if="((!editing && runtimeViewMode === 'pages') || showFreeLayoutCanvas) && !showListDesignerSurface && !showFormDesignerSurface"
         class="runtime-body"
         :class="{
           'configuring': editing && configPanelVisible,
@@ -572,7 +607,12 @@
             </section>
             <span v-else class="application-empty-readonly">页面尚未配置</span>
           </section>
-          <section v-else-if="!editing" class="page-surface is-fill">
+          <!-- 自由布局多块绝对定位：不要 is-fill/overflow:hidden，否则中间区域没有滚动条、底部组件看不到 -->
+          <section
+            v-else-if="!editing"
+            class="page-surface"
+            :class="{ 'is-fill': !isFreeLayoutPage }"
+          >
             <n-alert
               v-if="currentPageLayoutPolluted"
               type="warning"
@@ -603,7 +643,7 @@
               :crud-config-revision="portalCrudConfigRevision"
               :seed-runtime-crud-props="portalCrudSeed"
               :form-fields-resolver="resolvePortalFormFields"
-              fill-host
+              :fill-host="!isFreeLayoutPage"
             />
           </section>
           <section v-else class="page-surface">
@@ -728,9 +768,15 @@
                     :data-grid-cell-key="isSimpleBodyContainer(block) ? '__body__' : undefined"
                     :data-page-container-id="isSimpleBodyContainer(block) ? block.id : undefined"
                     :data-page-container-type="isSimpleBodyContainer(block) ? block.blockType : undefined"
-                    @click.stop="selectPageBlock(block.id); openPageBlockConfiguration(block)"
+                    @pointerenter="hoveredPageBlockId = block.id"
+                    @pointerleave="hoveredPageBlockId = hoveredPageBlockId === block.id ? '' : hoveredPageBlockId"
+                    @click.stop="openPageBlockConfiguration(block)"
                   >
-                    <div v-if="editing" class="page-block-node-overlay">
+                    <!-- 仅悬停/选中挂载操作条，避免每块都解析「更多操作」菜单 -->
+                    <div
+                      v-if="editing && (selectedPageBlockId === block.id || hoveredPageBlockId === block.id)"
+                      class="page-block-node-overlay"
+                    >
                       <span
                         class="page-block-drag-handle"
                         title="拖动区块"
@@ -810,6 +856,7 @@
                       :runtime-crud-loading-resolver="isPageBlockRuntimeCrudLoading"
                       :data-source-configured-resolver="isPageBlockDataSourceConfigured"
                       show-data-source-guide
+                      :suppress-runtime-list-grid="isFreeLayoutPage"
                       :selected="false"
                       :selected-block-id="selectedPageBlockId"
                       :inline-text-editing="editing"
@@ -1056,12 +1103,25 @@
               size="small"
               description="该组件没有可绑定的数据表单"
             />
-            <p
+            <div
               v-else-if="supportsFormAsset(selectedPageBlock)"
               class="form-asset-default-hint"
+              :class="{ 'is-warning': selectedPageBlockIsCrud && !selectedPageBlockBoundFormAsset }"
             >
-              新增/编辑表单请在顶部「页面资源」里点「设为新增编辑表单」。
-            </p>
+              <template v-if="selectedPageBlockBoundFormAsset">
+                <p>
+                  当前新增/编辑表单：<strong>{{ selectedPageBlockBoundFormAsset.name || selectedPageBlockBoundFormAsset.formKey || selectedPageBlockBoundFormAsset.id }}</strong>
+                </p>
+                <p>在顶部「页面资源」可更换或取消绑定；点「新建 / 编辑」弹窗会使用该表单。</p>
+              </template>
+              <template v-else-if="selectedPageBlockIsCrud">
+                <p>数据列表需要绑定新增/编辑表单，否则运行态打开的是对象默认表单。</p>
+                <p>请在顶部「页面资源」里点「设为新增编辑表单」。</p>
+              </template>
+              <template v-else>
+                <p>新增/编辑表单请在顶部「页面资源」里点「设为新增编辑表单」。</p>
+              </template>
+            </div>
           </div>
           <ListPageGridDesigner
             v-if="inspectorTab === 'properties' && selectedPageBlock"
@@ -1076,37 +1136,6 @@
           />
         </aside>
       </div>
-
-      <!-- 编辑/草稿预览：页面设置（与上方主分支条件一致，避免嵌套分支漏接） -->
-      <section v-else-if="(editing || isDraftPreviewMode()) && activePageDesignTab === 'settings'" class="runtime-inline-panel">
-        <PageDesignSettingsPanel
-          v-if="currentNode"
-          :node="currentNode"
-          :application="application"
-          :objects="objects"
-          @update="patchCurrentPageNode"
-        />
-        <n-empty v-else description="请先选择要设置的页面" />
-      </section>
-
-      <!-- 编辑/草稿预览：发布 -->
-      <section v-else-if="(editing || isDraftPreviewMode()) && activePageDesignTab === 'publish'" class="runtime-inline-panel">
-        <PageDesignPublishPanel
-          v-if="currentNode"
-          :application="application"
-          :node="currentNode"
-          :page-id="currentNode.id"
-          :page-title="currentNode.title"
-          :dirty="dirty"
-          :saving="saving"
-          :config-key="pageDesignObject?.configKey || currentNode.objectRef?.configKey || ''"
-          :objects="objects"
-          @save="saveCurrentDesignerSection"
-          @preview="openDraftPreview"
-          @update="patchCurrentPageNode"
-        />
-        <n-empty v-else description="请先选择要发布的页面" />
-      </section>
 
       <section
         v-show="!editing && (runtimeViewMode === 'process' || runtimeViewMode === 'enhance' || runtimeViewMode === 'settings')"

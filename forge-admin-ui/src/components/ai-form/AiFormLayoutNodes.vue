@@ -261,17 +261,46 @@
       <AiCrudPage
         v-else-if="isCrudNode(node)"
         class="af-layout-crud"
-        v-bind="buildCrudProps(node)"
+        v-bind="resolveEmbeddedCrudBind(node)"
       />
 
-      <PageWidgetRenderer
+      <!-- 关联子表：按设计器布局位置内联渲染，未配置列时保留占位 -->
+      <div
+        v-else-if="isSubTableNode(node)"
+        class="af-layout-sub-table"
+        :style="resolveLayoutStyle(node)"
+        :class="resolveLayoutClass(node, 'af-layout-sub-table')"
+        :data-e2e="node.props?.e2eMarker || node.label || undefined"
+      >
+        <div class="af-layout-sub-table__header">
+          {{ resolveSubTableTitle(node) }}
+        </div>
+        <ChildTableEditor
+          v-if="buildSubTableChildrenConfig(node).length"
+          :value="resolveSubTableValue(node)"
+          :children-config="buildSubTableChildrenConfig(node)"
+          :parent-form-data="formValue"
+          :readonly="resolveNodeDisabled(node)"
+          @update:value="handleSubTableUpdate(node, $event)"
+        />
+        <div v-else class="af-layout-empty-placeholder">
+          请配置关联子表目标对象和可见字段
+        </div>
+      </div>
+
+      <div
         v-else-if="isWidgetNode(node)"
-        :component-key="resolveWidgetKey(node)"
-        :props-data="node.props || {}"
-        :data-context="formValue || {}"
-        :readonly="resolveNodeDisabled(node)"
-        @update:props-data="handleWidgetUpdate(node, $event)"
-      />
+        class="af-layout-widget"
+        :style="resolveLayoutStyle(node)"
+      >
+        <PageWidgetRenderer
+          :component-key="resolveWidgetKey(node)"
+          :props-data="node.props || {}"
+          :data-context="formValue || {}"
+          :readonly="formReadonly || resolveNodeDisabled(node)"
+          @update:props-data="handleWidgetUpdate(node, $event)"
+        />
+      </div>
 
       <AiFormLayoutNodes
         v-else
@@ -306,12 +335,15 @@
 </template>
 
 <script setup>
-import { computed, defineAsyncComponent, useSlots } from 'vue'
+import { computed, defineAsyncComponent, provide, reactive, useSlots } from 'vue'
 import { useRoute } from 'vue-router'
+import { crudConfigRender } from '@/api/ai/lowcode'
 import IconRenderer from '@/components/IconRenderer.vue'
 import { isPageWidgetComponentKey } from '@/components/lowcode-builder/shared/page-widget-schema'
 import PageWidgetRenderer from '@/components/lowcode-builder/shared/PageWidgetRenderer.vue'
+import { buildRuntimeCrudProps } from '@/components/lowcode-builder/shared/runtime-crud-props'
 import { applyRuntimeControl, resolveRuntimeControl } from '@/components/lowcode-builder/shared/runtime-rules'
+import ChildTableEditor from '@/components/page-templates/ChildTableEditor.vue'
 import AiFormGroupTitle from './AiFormGroupTitle.vue'
 import AiFormItem from './AiFormItem.vue'
 import AiFormSectionTitle from './AiFormSectionTitle.vue'
@@ -360,8 +392,17 @@ const emit = defineEmits(['fieldChange', 'nodeAction'])
 const slots = useSlots()
 const route = useRoute()
 const AiCrudPage = defineAsyncComponent(() => import('./AiCrudPage.vue'))
+/** 表单内嵌 CRUD：按 configKey 懒加载动态 CRUD 配置（editSchema/columns） */
+const embeddedCrudRuntimeByKey = reactive({})
+const embeddedCrudLoadingKeys = new Set()
 
 const forwardedSlotNames = computed(() => Object.keys(slots).filter(name => name !== 'gridAppend'))
+/** 显式 computed + provide：n-grid 可能不重跑槽位，挂件通过 inject 仍能跟上只读态 */
+const formReadonly = computed(() => {
+  const ctx = props.itemContext || {}
+  return ctx.formReadonly === true || ctx.isDetail === true || ctx.modalStatus === 'detail'
+})
+provide('aiFormReadonly', formReadonly)
 const visibleNodes = computed(() => (Array.isArray(props.nodes) ? props.nodes : [])
   .map(node => applyRuntimeControl(node, buildNodeRuleContext()))
   .filter(Boolean))
@@ -393,7 +434,7 @@ function isFieldNode(node = {}) {
 
 function resolveNodeSpan(node = {}) {
   const cols = Math.max(1, Number(props.gridCols) || 1)
-  if (isRowNode(node) || isCardNode(node) || isTabsNode(node) || isCollapseNode(node) || isCrudNode(node) || isSectionTitleNode(node) || isGroupTitleNode(node))
+  if (isRowNode(node) || isCardNode(node) || isTabsNode(node) || isCollapseNode(node) || isCrudNode(node) || isSubTableNode(node) || isSectionTitleNode(node) || isGroupTitleNode(node))
     return cols
   const raw = Number(node.layout?.span || node.props?.span || node.span)
   if (isTableNode(node))
@@ -477,6 +518,7 @@ function isKnownLayoutNode(node = {}) {
     || isTableNode(node)
     || isTableGridNode(node)
     || isCrudNode(node)
+    || isSubTableNode(node)
     || isSectionTitleNode(node)
     || isGroupTitleNode(node)
     || isWidgetNode(node)
@@ -487,7 +529,17 @@ function resolveWidgetKey(node = {}) {
 }
 
 function isWidgetNode(node = {}) {
-  return node.nodeType === 'widget' || isPageWidgetComponentKey(resolveWidgetKey(node))
+  // nodeType=widget：虚拟挂件，仍走布局槽位里的 PageWidgetRenderer
+  if (node.nodeType === 'widget')
+    return true
+  if (!isPageWidgetComponentKey(resolveWidgetKey(node)))
+    return false
+  // 已绑定业务字段的 transfer 等：必须走 AiFormItem（标签/校验/样式/字段事件），
+  // 不能因 componentKey 命中挂件目录就被布局层直接吃掉。
+  const mode = node.fieldBinding?.mode
+  if (mode === 'field' || (node.field && mode !== 'virtual'))
+    return false
+  return true
 }
 
 function isRowNode(node = {}) {
@@ -526,6 +578,72 @@ function isCrudNode(node = {}) {
   return ['AiCrudPage', 'aiCrudPage', 'crud', 'crudBlock'].includes(resolveNodeType(node))
 }
 
+function isSubTableNode(node = {}) {
+  return ['subTable', 'forgeSubTable', 'childTable'].includes(resolveNodeType(node))
+}
+
+function resolveSubTableTitle(node = {}) {
+  return String(node.props?.header || node.props?.title || node.label || '关联子表').trim() || '关联子表'
+}
+
+function resolveSubTableRelationKey(node = {}) {
+  return String(node.props?.relationKey || node.props?.modelCode || node.key || node.id || 'subTable').trim() || 'subTable'
+}
+
+function buildSubTableChildrenConfig(node = {}) {
+  const nodeProps = node.props || {}
+  const relationKey = resolveSubTableRelationKey(node)
+  const columns = Array.isArray(nodeProps.columns) ? nodeProps.columns : []
+  const fields = columns
+    .map((column) => {
+      const field = String(column?.fieldCode || column?.field || column?.key || column?.value || '').trim()
+      if (!field)
+        return null
+      return {
+        field,
+        fieldCode: field,
+        label: column.label || column.title || field,
+        type: column.type || column.componentKey || column.componentType || 'input',
+        required: !!column.required,
+        ...(column.props && typeof column.props === 'object' ? { props: column.props } : {}),
+        ...(column.optionSource ? { optionSource: column.optionSource } : {}),
+      }
+    })
+    .filter(Boolean)
+  if (!fields.length)
+    return []
+  return [{
+    key: relationKey,
+    relationKey,
+    modelCode: nodeProps.modelCode || relationKey,
+    title: resolveSubTableTitle(node),
+    tabTitle: resolveSubTableTitle(node),
+    header: resolveSubTableTitle(node),
+    allowCreate: nodeProps.allowCreate !== false,
+    displayMode: nodeProps.displayMode || 'inline_grid',
+    fields,
+  }]
+}
+
+function resolveSubTableValue(node = {}) {
+  const relationKey = resolveSubTableRelationKey(node)
+  const raw = props.formValue?.[relationKey]
+  if (raw && typeof raw === 'object' && !Array.isArray(raw))
+    return raw
+  if (Array.isArray(raw))
+    return { [relationKey]: raw }
+  return { [relationKey]: [] }
+}
+
+function handleSubTableUpdate(node, value) {
+  const relationKey = resolveSubTableRelationKey(node)
+  const next = value && typeof value === 'object' ? value : {}
+  const rows = Array.isArray(next[relationKey])
+    ? next[relationKey]
+    : (Array.isArray(next[Object.keys(next)[0]]) ? next[Object.keys(next)[0]] : [])
+  emit('fieldChange', relationKey, rows)
+}
+
 function resolveAlign(node = {}) {
   return ['left', 'center', 'right'].includes(node.layout?.align || node.align)
     ? node.layout?.align || node.align
@@ -547,7 +665,11 @@ function resolveButtonSize(node = {}) {
 function handleButtonClick(node = {}) {
   if (resolveNodeDisabled(node))
     return
-  const events = Array.isArray(node.props?.__events) ? node.props.__events : []
+  const events = Array.isArray(node.props?.__events)
+    ? node.props.__events
+    : (node.props?.__events && typeof node.props.__events === 'object'
+        ? Object.values(node.props.__events)
+        : [])
   const clickEvents = events.filter(event => !event?.trigger || event.trigger === 'click')
   if (!clickEvents.length) {
     emit('nodeAction', { node, event: null, action: 'click' })
@@ -561,6 +683,8 @@ function handleWidgetUpdate(node, value) {
 }
 
 function resolveNodeDisabled(node = {}) {
+  if (formReadonly.value)
+    return true
   const control = node.__runtimeControl || resolveRuntimeControl(node, buildNodeRuleContext())
   return control.disabled === true || control.readonly === true || node.props?.disabled === true
 }
@@ -583,20 +707,199 @@ function resolveTableCells(node = {}) {
   }))
 }
 
+function extractEmbeddedCrudConfigKey(apiBase = '') {
+  return String(apiBase || '')
+    .trim()
+    .replace(/^\/ai\/crud\//i, '')
+    .split('?')[0]
+    .replace(/\/$/, '')
+    .trim()
+}
+
+function isDesignPreviewRequest() {
+  const q = route.query || {}
+  return q.draft === '1' || q.preview === '1' || q.designPreview === '1' || q.edit === '1'
+}
+
+function ensureEmbeddedCrudConfigLoaded(configKey = '') {
+  const key = String(configKey || '').trim()
+  if (!key || embeddedCrudRuntimeByKey[key] || embeddedCrudLoadingKeys.has(key))
+    return
+  embeddedCrudLoadingKeys.add(key)
+  const designPreview = isDesignPreviewRequest()
+  crudConfigRender(key, designPreview)
+    .then((response) => {
+      const config = response?.data && typeof response.data === 'object' ? response.data : null
+      if (!config)
+        return
+      embeddedCrudRuntimeByKey[key] = buildRuntimeCrudProps(config, { designPreview })
+    })
+    .catch(() => {
+      // 配置不存在时保留占位；勿打断主表单
+    })
+    .finally(() => {
+      embeddedCrudLoadingKeys.delete(key)
+    })
+}
+
+function resolveEmbeddedCrudBind(node = {}) {
+  const base = buildCrudProps(node)
+  const configKey = extractEmbeddedCrudConfigKey(base.apiBase || base.api)
+  ensureEmbeddedCrudConfigLoaded(configKey)
+  const loaded = configKey ? embeddedCrudRuntimeByKey[configKey] : null
+  if (!loaded) {
+    return {
+      ...base,
+      configKey,
+    }
+  }
+  // 节点显式 apiBase/标题优先；schema/列/搜索来自动态 CRUD 配置
+  return {
+    ...loaded,
+    ...base,
+    configKey: loaded.configKey || configKey,
+    api: base.api || loaded.api,
+    apiBase: base.apiBase || loaded.api,
+    apiConfig: Object.keys(base.apiConfig || {}).length ? base.apiConfig : loaded.apiConfig,
+    columns: Array.isArray(loaded.columns) && loaded.columns.length ? loaded.columns : base.columns,
+    schema: Array.isArray(loaded.columns) && loaded.columns.length ? loaded.columns : base.schema,
+    editSchema: loaded.editSchema,
+    searchSchema: Array.isArray(loaded.searchSchema) && loaded.searchSchema.length
+      ? loaded.searchSchema
+      : base.searchSchema,
+    uiDocument: loaded.uiDocument,
+    formAssets: loaded.formAssets,
+    options: loaded.options,
+  }
+}
+
 function buildCrudProps(node = {}) {
   const nodeProps = node.props || {}
   const crudOptions = nodeProps.crudOptions || {}
   const runtimeColumns = resolveCrudColumns(node)
+  const apiBase = normalizeEmbeddedCrudApiBase(
+    nodeProps.configKey || nodeProps.apiBase || crudOptions.apiBase,
+    resolveEmbeddedCrudApiHints(),
+  )
+  const apiConfig = resolveEmbeddedCrudApiConfig(nodeProps.apiConfig || nodeProps.api, apiBase)
   return {
     ...crudOptions,
     ...nodeProps,
     title: nodeProps.title || node.label || 'CRUD',
-    apiConfig: nodeProps.apiConfig || nodeProps.api || {},
+    apiBase,
+    api: apiBase,
+    apiConfig,
     rowKey: nodeProps.rowKey || 'id',
     columns: runtimeColumns,
     schema: runtimeColumns,
     searchSchema: nodeProps.searchSchema || nodeProps.querySchema || resolveCrudSearchSchema(node),
   }
+}
+
+/** 从表单运行上下文推断领域 configKey 前缀（如 hr_） */
+function resolveEmbeddedCrudApiHints() {
+  const ctx = props.itemContext || {}
+  const objectRef = ctx.objectRef || ctx.pageObjectRef || {}
+  const configKey = String(
+    ctx.configKey
+    || objectRef.configKey
+    || '',
+  ).trim()
+  const objectCode = String(
+    ctx.objectCode
+    || objectRef.objectCode
+    || '',
+  ).trim()
+  let configKeyPrefix = String(ctx.configKeyPrefix || ctx.domainCode || '').trim()
+  if (!configKeyPrefix && configKey && objectCode && configKey.endsWith(objectCode))
+    configKeyPrefix = configKey.slice(0, -objectCode.length)
+  return { configKey, objectCode, configKeyPrefix }
+}
+
+/**
+ * 表单内嵌 CRUD：纠正历史 kebab / *_default_form apiBase。
+ * 动态 CRUD 的真实 configKey 是领域前缀 + objectCode（如 hr_business_object_bkhu），
+ * 不是 formKey（business_object_bkhu_default_form）。
+ */
+function normalizeEmbeddedCrudApiBase(apiBase = '', hints = {}) {
+  const text = String(apiBase || '').trim().replace(/\/+/g, '/')
+  if (!text)
+    return ''
+  const withSlash = text.startsWith('/') ? text : `/${text}`
+  const rawKey = withSlash
+    .replace(/^\/ai\/crud\//i, '')
+    .replace(/^\//, '')
+    .replace(/-/g, '_')
+    .replace(/[^a-z0-9_]/gi, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    // formKey → 对象 CRUD configKey
+    .replace(/_default_form$/i, '')
+  if (!rawKey)
+    return ''
+
+  const preferred = String(hints.configKey || '').trim()
+    .replace(/-/g, '_')
+    .replace(/[^a-z0-9_]/gi, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+  if (preferred && (preferred === rawKey || preferred.endsWith(`_${rawKey}`) || preferred.endsWith(rawKey)))
+    return `/ai/crud/${preferred}`
+
+  let key = rawKey
+  const prefix = String(hints.configKeyPrefix || '').replace(/_$/g, '').trim()
+  if (prefix && key && !key.startsWith(`${prefix}_`) && key !== prefix)
+    key = `${prefix}_${key}`
+  return `/ai/crud/${key}`
+}
+
+function resolveEmbeddedCrudApiConfig(apiConfig, apiBase = '') {
+  const source = apiConfig && typeof apiConfig === 'object' && !Array.isArray(apiConfig)
+    ? { ...apiConfig }
+    : {}
+  const list = String(source.list || '').trim()
+  if (list)
+    return rewriteLegacyEmbeddedCrudApiConfig(source)
+  if (!apiBase)
+    return source
+  return {
+    list: `get@${apiBase}/page`,
+    detail: `get@${apiBase}/:id`,
+    create: `post@${apiBase}`,
+    update: `put@${apiBase}`,
+    delete: `delete@${apiBase}/:id`,
+    ...source,
+  }
+}
+
+function rewriteLegacyEmbeddedCrudApiConfig(apiConfig = {}) {
+  const next = { ...apiConfig }
+  for (const [key, value] of Object.entries(next)) {
+    const text = String(value || '').trim()
+    if (!text || text.includes('/ai/crud/'))
+      continue
+    // get@/business-object-xxx-default-form/page → get@/ai/crud/business_object_xxx_default_form/page
+    const match = text.match(/^([a-zA-Z]+)@(\/[^?\s]+)/)
+    if (!match)
+      continue
+    const method = match[1]
+    const path = match[2]
+    if (path.startsWith('/ai/crud/'))
+      continue
+    const normalized = normalizeEmbeddedCrudApiBase(
+      path.replace(/\/page$/i, '').replace(/\/:id$/i, ''),
+      resolveEmbeddedCrudApiHints(),
+    )
+    if (!normalized)
+      continue
+    if (/\/page$/i.test(path))
+      next[key] = `${method}@${normalized}/page`
+    else if (/\/:id$/i.test(path))
+      next[key] = `${method}@${normalized}/:id`
+    else
+      next[key] = `${method}@${normalized}`
+  }
+  return next
 }
 
 function resolveCrudSearchSchema(node = {}) {
@@ -651,6 +954,7 @@ function resolveLayoutStyle(node = {}) {
     'backgroundColor',
     'borderColor',
     'borderStyle',
+    'borderWidth',
     'borderRadius',
     'boxShadow',
     'opacity',
@@ -788,6 +1092,20 @@ function isLegacyGroupTitleNode(node = {}) {
 .af-layout-table-cell.is-borderless {
   border-right-color: transparent !important;
   border-bottom-color: transparent !important;
+}
+
+.af-layout-sub-table {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.af-layout-sub-table__header {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #18181b);
 }
 
 .af-layout-crud {

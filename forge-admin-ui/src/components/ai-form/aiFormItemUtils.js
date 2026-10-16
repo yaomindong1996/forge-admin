@@ -17,13 +17,55 @@ export function resolveSwitchUncheckedValue(field = {}) {
   return resolveSwitchValuePair(field).uncheckedValue
 }
 
-export function getPlaceholder(field) {
-  if (field.placeholder) {
-    return field.placeholder
+/**
+ * 将设计器 __designerStyle 展平为可挂到 DOM 的 inline style。
+ * 编辑态画布与预览/发布态必须共用此映射，否则字号/颜色/边距只在设计器可见。
+ */
+export function resolveDesignerInlineStyle(source = {}) {
+  const designerStyle = source?.props?.__designerStyle
+    || source?.__designerStyle
+    || (source?.customStyle ? source : null)
+  if (!designerStyle || typeof designerStyle !== 'object')
+    return {}
+  const style = {
+    ...(designerStyle.customStyle && typeof designerStyle.customStyle === 'object'
+      ? designerStyle.customStyle
+      : {}),
   }
+  ;[
+    'width',
+    'height',
+    'minHeight',
+    'backgroundColor',
+    'borderColor',
+    'borderStyle',
+    'borderWidth',
+    'borderRadius',
+    'boxShadow',
+    'opacity',
+  ].forEach((key) => {
+    if (designerStyle[key] !== undefined && designerStyle[key] !== null && designerStyle[key] !== '')
+      style[key] = designerStyle[key]
+  })
+  return style
+}
+
+export function getPlaceholder(field = {}) {
+  // 设计器/运行态常把文案放在 props.placeholder；仅看顶层会回退成「请输入xxx」
+  const explicit = String(field.placeholder || field.props?.placeholder || '').trim()
+  if (explicit)
+    return explicit
+
+  const generation = field.props?.generation || field.generation
+  const generationEnabled = generation && typeof generation === 'object'
+    && generation.enabled !== false
+    && Boolean(generation.ruleCode || generation.codeRuleCode)
+  // 自动编号新增态为空；勿用「请输入」误导为坏了
+  if (generationEnabled)
+    return '保存后自动生成'
 
   const prefix = (isInputLikeFieldType(field.type) || isNumberLikeField(field)) ? '请输入' : '请选择'
-  return `${prefix}${field.label}`
+  return `${prefix}${field.label || ''}`
 }
 
 export function cacheAsyncOptions(field, promise) {

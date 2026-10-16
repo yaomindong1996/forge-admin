@@ -23,7 +23,11 @@ import {
   UI_DOCUMENT_PROTOCOL_VERSION,
   UI_DOCUMENT_UI_TYPES,
 } from '@/protocols/ui-document'
-import { normalizeMultiFormDesignerSchema } from '@/views/app-center/components/designer/form-first/formDesignerSchema'
+import {
+  isFieldComponent,
+  LAYOUT_COMPONENT_KEYS,
+  normalizeMultiFormDesignerSchema,
+} from '@/views/app-center/components/designer/form-first/formDesignerSchema'
 import { shouldRenderRuntimeListGrid } from '@/components/lowcode-builder/shared/runtime-list-grid'
 export function applyCrudPageViewPart1(props, emit) {
   const __impl = {}
@@ -813,11 +817,42 @@ export function applyCrudPageViewPart1(props, emit) {
     if (visibility.hidden === true && !hasVisibilityRules)
       return null
     const validation = component.validation || {}
-    const readonly = visibility.readonly === true || base.readonly === true
+    const generation = props.generation
+    const generationEnabled = generation && typeof generation === 'object'
+      && generation.enabled !== false
+      && Boolean(generation.ruleCode || generation.codeRuleCode)
+    const readonly = visibility.readonly === true || base.readonly === true || generationEnabled
     if (readonly) {
       props.readonly = true
       props.disabled = true
     }
+    // 自动编号新增态为空；仍显示「请输入」会让客户误以为坏了
+    if (generationEnabled) {
+      const ph = String(props.placeholder || base.placeholder || '').trim()
+      if (!ph || ph.startsWith('请填写') || ph.startsWith('请输入') || ph.startsWith('占位'))
+        props.placeholder = '保存后自动生成'
+    }
+    const designerStyle = props.__designerStyle && typeof props.__designerStyle === 'object'
+      ? props.__designerStyle
+      : null
+    const inlineStyle = designerStyle
+      ? {
+          ...(designerStyle.customStyle && typeof designerStyle.customStyle === 'object'
+            ? designerStyle.customStyle
+            : {}),
+          ...(designerStyle.width ? { width: designerStyle.width } : {}),
+          ...(designerStyle.height ? { height: designerStyle.height } : {}),
+          ...(designerStyle.minHeight ? { minHeight: designerStyle.minHeight } : {}),
+          ...(designerStyle.backgroundColor ? { backgroundColor: designerStyle.backgroundColor } : {}),
+          ...(designerStyle.borderColor ? { borderColor: designerStyle.borderColor } : {}),
+          ...(designerStyle.borderStyle ? { borderStyle: designerStyle.borderStyle } : {}),
+          ...(designerStyle.borderRadius ? { borderRadius: designerStyle.borderRadius } : {}),
+          ...(designerStyle.boxShadow ? { boxShadow: designerStyle.boxShadow } : {}),
+          ...(designerStyle.opacity != null && designerStyle.opacity !== ''
+            ? { opacity: designerStyle.opacity }
+            : {}),
+        }
+      : {}
     return {
       ...base,
       field: fieldCode,
@@ -834,6 +869,12 @@ export function applyCrudPageViewPart1(props, emit) {
       defaultValue: props.defaultValue ?? base.defaultValue,
       dictType: props.dictType || base.dictType,
       validation,
+      placeholder: props.placeholder ?? base.placeholder,
+      // 设计态样式贯通到运行态，避免预览/发布丢字号颜色边距
+      style: Object.keys(inlineStyle).length ? { ...(base.style || {}), ...inlineStyle } : base.style,
+      formItemStyle: Object.keys(inlineStyle).length
+        ? { ...(base.formItemStyle || {}), ...inlineStyle }
+        : base.formItemStyle,
       props,
     }
   }
@@ -873,22 +914,61 @@ export function applyCrudPageViewPart1(props, emit) {
         field: fieldCode,
         span: component.layout?.span,
         gridStyle: component.layout?.gridStyle,
+        // 保留设计器样式/事件/运行时规则，hydrate 时合并进字段节点
+        props: {
+          __designerStyle: component.props?.__designerStyle,
+          __events: component.props?.__events,
+          runtimeRules: component.props?.runtimeRules,
+        },
+        style: component.style,
       }
     }
     const children = buildRuntimeFormLayoutFromDesignerComponents(component.children || [])
+    const componentKey = component.componentKey || component.nodeType || ''
+    const isWidget = isPageWidgetComponentKey(componentKey)
+    // 未绑定业务字段的表单控件：合成 field，避免预览/发布静默丢失
+    if (isFieldComponent(component) && !isWidget) {
+      return {
+        nodeType: 'field',
+        key: component.id || componentKey,
+        field: component.id || `field_${componentKey}`,
+        span: component.layout?.span,
+        gridStyle: component.layout?.gridStyle,
+        label: component.label,
+        type: componentKey,
+        componentKey,
+        props: {
+          ...(component.props || {}),
+          __designerStyle: component.props?.__designerStyle,
+          __events: component.props?.__events,
+        },
+        style: component.style,
+      }
+    }
     const node = {
-      nodeType: component.componentKey || component.nodeType || 'groupTitle',
-      componentKey: component.componentKey,
+      nodeType: isWidget ? 'widget' : (componentKey || 'groupTitle'),
+      componentKey,
       key: component.id,
       label: component.label,
-      props: component.props || {},
+      field: isWidget ? (component.id || `widget_${componentKey}`) : undefined,
+      props: {
+        ...(component.props || {}),
+        __designerStyle: component.props?.__designerStyle,
+        __events: component.props?.__events,
+      },
       span: component.layout?.span,
       align: component.layout?.align,
       style: component.style,
       children,
+      fieldBinding: isWidget ? { mode: 'virtual' } : component.fieldBinding,
+      showLabel: isWidget ? false : undefined,
     }
-    if (!children.length && !isStandaloneRuntimeLayoutNode(node))
+    if (!children.length && !isStandaloneRuntimeLayoutNode(node)) {
+      // 空布局容器丢弃；布局键本身仍保留空壳无意义
+      if (LAYOUT_COMPONENT_KEYS.has(componentKey))
+        return null
       return null
+    }
     return node
   }
 
@@ -938,8 +1018,19 @@ export function applyCrudPageViewPart1(props, emit) {
     const nodeType = resolveRuntimeLayoutNodeType(node)
     if (node.nodeType === 'field') {
       const field = fieldMap.get(node.field)
-      if (!field)
-        return null
+      // 布局里有字段节点但 fields[] 尚未收录（未绑定合成 field）时仍渲染，避免预览丢控件
+      if (!field) {
+        if (!node.field && !node.type && !node.componentKey)
+          return null
+        usedFields.add(node.field || node.key)
+        return {
+          ...node,
+          nodeType: 'field',
+          field: node.field || node.key,
+          type: node.type || node.componentKey || 'input',
+          label: node.label || node.field || node.key,
+        }
+      }
       usedFields.add(node.field)
       return {
         ...field,
@@ -947,6 +1038,11 @@ export function applyCrudPageViewPart1(props, emit) {
         key: node.key || field.field,
         span: node.span || field.span,
         gridStyle: node.gridStyle || field.gridStyle,
+        style: node.style || field.style,
+        props: {
+          ...(field.props || {}),
+          ...(node.props || {}),
+        },
       }
     }
 
@@ -993,15 +1089,22 @@ export function applyCrudPageViewPart1(props, emit) {
   }
 
   function isStandaloneRuntimeLayoutNode(node = {}) {
+    const key = node.componentKey || node.type || node.nodeType
+    // 空 card/tabs/collapse/row/col 等也要保留空壳，运行态渲染占位，避免设计态可见、预览丢失
+    if (['card', 'elCard', 'tabs', 'elTabs', 'tabPane', 'elTabPane', 'collapse', 'elCollapse', 'collapseItem', 'elCollapseItem', 'row', 'fcRow', 'col', 'split'].includes(key))
+      return true
+    // 关联子表无 children，但仍须保留布局节点，由 AiFormLayoutNodes 渲染 ChildTableEditor / 未配置占位
+    if (['subTable', 'forgeSubTable', 'childTable'].includes(key))
+      return true
     return isSectionTitleRuntimeLayoutNode(node)
       || isGroupTitleRuntimeLayoutNode(node)
       || isActionRuntimeLayoutNode(node)
       || node.nodeType === 'widget'
-      || isPageWidgetComponentKey(node.componentKey || node.type || node.nodeType)
+      || isPageWidgetComponentKey(key)
   }
 
   function isActionRuntimeLayoutNode(node = {}) {
-    return ['button', 'table', 'tableGrid', 'AiCrudPage', 'aiCrudPage', 'crud', 'crudBlock']
+    return ['button', 'table', 'tableGrid', 'AiCrudPage', 'aiCrudPage', 'crud', 'crudBlock', 'subTable', 'forgeSubTable', 'childTable']
       .includes(node.componentKey || node.type || node.nodeType)
   }
 

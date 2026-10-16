@@ -146,9 +146,8 @@ final class DynamicCrudGeneratedFieldPolicy {
             Map<String, Object> props = mapFrom(editField.get("props"));
             Map<String, Object> advancedProps = mapFrom(editField.get("advancedProps"));
             AutoGenerationField autoField = buildAutoGenerationField(
-                    text(editField.get("field")),
-                    StringUtils.firstNonBlank(
-                            text(editField.get("columnName")), text(editField.get("fieldCode"))),
+                    resolveEditFieldName(editField),
+                    resolveEditColumnName(editField),
                     StringUtils.firstNonBlank(text(editField.get("label")), text(editField.get("title"))),
                     firstMap(props.get("generation"), editField.get("generation"),
                             advancedProps.get("generation")));
@@ -245,9 +244,8 @@ final class DynamicCrudGeneratedFieldPolicy {
             Map<String, AutoGenerationField> fields,
             Set<String> generationConfiguredAliases) {
         for (Map<String, Object> editField : readEditSchemaFields(config)) {
-            String fieldName = text(editField.get("field"));
-            String columnName = StringUtils.firstNonBlank(
-                    text(editField.get("columnName")), text(editField.get("fieldCode")));
+            String fieldName = resolveEditFieldName(editField);
+            String columnName = resolveEditColumnName(editField);
             Map<String, Object> props = mapFrom(editField.get("props"));
             Map<String, Object> advancedProps = mapFrom(editField.get("advancedProps"));
             if (!firstMap(props.get("generation"), editField.get("generation"),
@@ -436,12 +434,43 @@ final class DynamicCrudGeneratedFieldPolicy {
             return;
         }
         Map<String, Object> map = (Map<String, Object>) rawMap;
-        if (StringUtils.isNotBlank(text(map.get("field")))) {
+        // 表单设计器节点常只有 fieldBinding.fieldCode，没有顶层 field；漏识别会导致自动编号静默失效
+        if (StringUtils.isNotBlank(resolveEditFieldName(map))) {
             result.add(map);
         }
         collectEditSchemaFields(map.get("children"), result);
         collectEditSchemaFields(map.get("items"), result);
         collectEditSchemaFields(map.get("components"), result);
+        collectEditSchemaFields(map.get("columns"), result);
+        Map<String, Object> props = mapFrom(map.get("props"));
+        collectEditSchemaFields(props.get("columns"), result);
+        collectEditSchemaFields(props.get("tabs"), result);
+        collectEditSchemaFields(props.get("items"), result);
+    }
+
+    /** 兼容 field / fieldCode / fieldBinding.fieldCode */
+    private String resolveEditFieldName(Map<String, Object> editField) {
+        if (editField == null || editField.isEmpty()) {
+            return null;
+        }
+        Map<String, Object> binding = mapFrom(editField.get("fieldBinding"));
+        return StringUtils.firstNonBlank(
+                text(editField.get("field")),
+                text(editField.get("fieldCode")),
+                text(binding.get("fieldCode")),
+                text(binding.get("field")));
+    }
+
+    private String resolveEditColumnName(Map<String, Object> editField) {
+        if (editField == null || editField.isEmpty()) {
+            return null;
+        }
+        Map<String, Object> binding = mapFrom(editField.get("fieldBinding"));
+        return StringUtils.firstNonBlank(
+                text(editField.get("columnName")),
+                text(binding.get("columnName")),
+                text(editField.get("fieldCode")),
+                text(binding.get("fieldCode")));
     }
 
     private LowcodeModelSchema parseModelSchema(AiCrudConfig config) {

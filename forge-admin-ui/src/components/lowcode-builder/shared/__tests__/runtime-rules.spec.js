@@ -72,4 +72,20 @@ describe('lowcode runtime visibility rules', () => {
     expect(resolveRuntimeControl({ readonly: true }, {}).disabled).toBe(true)
     expect(resolveRuntimeControl({ props: { disabled: true } }, {}).disabled).toBe(true)
   })
+
+  it('matches switch-like boolean values for showHide conditions', () => {
+    const target = {
+      field: 'fieldRate',
+      runtimeRules: [{
+        conditions: [{ source: 'formData', field: 'fieldSwitch', operator: 'eq', value: true }],
+        effect: { visible: true, whenUnmatched: 'hidden' },
+      }],
+    }
+
+    expect(resolveRuntimeControl(target, { formData: { fieldSwitch: false } }).visible).toBe(false)
+    expect(resolveRuntimeControl(target, { formData: { fieldSwitch: 0 } }).visible).toBe(false)
+    expect(resolveRuntimeControl(target, { formData: { fieldSwitch: true } }).visible).toBe(true)
+    expect(resolveRuntimeControl(target, { formData: { fieldSwitch: 1 } }).visible).toBe(true)
+    expect(resolveRuntimeControl(target, { formData: { fieldSwitch: 'true' } }).visible).toBe(true)
+  })
 })

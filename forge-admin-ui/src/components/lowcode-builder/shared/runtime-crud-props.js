@@ -12,6 +12,7 @@ import {
   UI_DOCUMENT_PROTOCOL_VERSION,
 } from '@/protocols/ui-document'
 import { applyEmbeddedTreeTableRuntimeProps } from './runtime-tree-table'
+import { buildFormGovernanceHookProps } from './form-governance-runtime'
 
 export function buildRuntimeCrudProps(config = {}, { designPreview = false } = {}) {
   const options = config.options || {}
@@ -76,6 +77,8 @@ export function buildRuntimeCrudProps(config = {}, { designPreview = false } = {
     // 与 views/ai/crud-page.vue 的 buildRuntimeFormProfile 产出保持同构。
     fieldEvents: Array.isArray(governance.fieldEvents) ? governance.fieldEvents : [],
     formInit: governance.formInit && typeof governance.formInit === 'object' ? governance.formInit : {},
+    // governance.events（afterLoad setFieldValue 等）→ beforeRenderForm / beforeSubmit / afterSubmit
+    ...buildFormGovernanceHookProps(governance.events),
     editXGap: numberOption(designerLayout.columnGap ?? options.editXGap ?? config.editXGap, 12),
     editYGap: numberOption(designerLayout.rowGap ?? options.editYGap ?? config.editYGap, 8),
     tableRowGap: normalizeTableRowGap(options.tableRowGap ?? config.tableRowGap, 8),
@@ -177,6 +180,8 @@ export function overlayFormDesignerOnRuntimeCrudProps(runtimeProps = null, formD
     formInit: governance.formInit && typeof governance.formInit === 'object'
       ? governance.formInit
       : (runtimeProps.formInit || {}),
+    // 页面资源表单覆盖时同步治理事件钩子，避免仍用旧 form 的 beforeRenderForm
+    ...buildFormGovernanceHookProps(governance.events),
     options: {
       ...(runtimeProps.options || {}),
       formDesignerSchema,
@@ -219,6 +224,8 @@ function ensureRuntimeApiConfig(apiConfig = {}, configKey = '', designPreview = 
     create: `post@${prefix}`,
     update: `put@${prefix}`,
     delete: `delete@${prefix}/:id`,
+    import: `post@${prefix}/import`,
+    export: `get@${prefix}/export`,
   }
   const next = { ...apiConfig }
   Object.entries(defaults).forEach(([key, value]) => {
@@ -311,19 +318,43 @@ export function applyTableColumnLayout(columns = [], blockProps = {}) {
   return (Array.isArray(columns) ? columns : [])
     .filter((column) => {
       const key = canonicalFlowStatusCode(
-        String(column?.prop || column?.key || column?.dataIndex || '').trim(),
+        String(column?.prop || column?.field || column?.key || column?.dataIndex || '').trim(),
         column,
       )
       // 列表设计器眼睛隐藏写入 fieldSettings.visible=false，运行态必须尊重
       return key ? !isFieldExplicitlyHidden(settings, key) : true
     })
     .map((column) => {
-      const key = column?.prop || column?.key || column?.dataIndex || ''
-      const fieldAlign = normalizeAlign(settings[key]?.align)
+      const key = canonicalFlowStatusCode(
+        String(column?.prop || column?.field || column?.key || column?.dataIndex || '').trim(),
+        column,
+      )
+      const setting = key ? (settings[key] || {}) : {}
+      const fieldAlign = normalizeAlign(setting.align)
       const align = fieldAlign || globalAlign
-      return align
-        ? { ...column, align, titleAlign: align }
-        : { ...column }
+      const next = { ...column }
+      const title = String(setting.title || setting.label || '').trim()
+      if (title)
+        next.title = title
+      if (setting.width !== undefined && setting.width !== null && setting.width !== '')
+        next.width = setting.width
+      if (setting.minWidth !== undefined && setting.minWidth !== null && setting.minWidth !== '')
+        next.minWidth = setting.minWidth
+      if (setting.fixed)
+        next.fixed = setting.fixed
+      else if (setting.fixed === '')
+        delete next.fixed
+      if (setting.renderType)
+        next.renderType = setting.renderType
+      if (setting.ellipsis === false)
+        next.ellipsis = false
+      else if (setting.ellipsis === true)
+        next.ellipsis = { tooltip: true }
+      if (align) {
+        next.align = align
+        next.titleAlign = align
+      }
+      return next
     })
 }
 
@@ -553,8 +584,10 @@ export function resolveCrudSearchFieldCatalog(fields = [], block = {}) {
       const requestedQueryField = String(setting.queryField || '').trim()
       const queryField = fieldMap.get(requestedQueryField) || sourceField
       const queryFieldCode = queryField.field
-      // 查询组件类型始终跟表单字段走，忽略历史 searchFieldSettings.componentType
-      const resolvedComponentType = queryField.componentType
+      // 设计器可显式覆盖查询组件类型（如改成 dictSelect）；未配置时跟表单字段走
+      const resolvedComponentType = setting.componentType
+        || setting.type
+        || queryField.componentType
         || sourceField.componentType
         || ''
       const optionSource = setting.optionSource
@@ -858,11 +891,60 @@ function buildRuntimeFieldFromDesignerComponent(component = {}, baseFieldMap = n
   if (visibility.hidden === true && !hasVisibilityRules)
     return null
   const validation = component.validation || {}
-  const readonly = visibility.readonly === true || base.readonly === true
+  const generation = props.generation
+  const generationEnabled = generation && typeof generation === 'object'
+    && generation.enabled !== false
+    && Boolean(generation.ruleCode || generation.codeRuleCode)
+  // 设计器显式 visibility.readonly 优先于发布态 fields 基座只读；
+  // 取消「只读」后必须能录入，不能被 base.readonly / 旧 props 残值钉死。
+  const hasExplicitReadonly = Object.prototype.hasOwnProperty.call(visibility, 'readonly')
+  const readonly = generationEnabled || (
+    hasExplicitReadonly
+      ? visibility.readonly === true
+      : base.readonly === true
+  )
   if (readonly) {
     props.readonly = true
     props.disabled = true
   }
+  else {
+    // 设计器已取消只读/禁用时，清掉基座与历史 props 残值
+    if (hasExplicitReadonly && visibility.readonly === false)
+      props.readonly = false
+    if (component.props?.readonly === false)
+      props.readonly = false
+    if (component.props?.disabled === false)
+      props.disabled = false
+    else if (hasExplicitReadonly && visibility.readonly === false && component.props?.disabled !== true)
+      props.disabled = false
+  }
+  // 自动编号新增态为空；仍显示「请输入」会让客户误以为坏了
+  if (generationEnabled) {
+    const ph = String(props.placeholder || base.placeholder || '').trim()
+    if (!ph || ph.startsWith('请填写') || ph.startsWith('请输入') || ph.startsWith('占位'))
+      props.placeholder = '保存后自动生成'
+  }
+  const designerStyle = props.__designerStyle && typeof props.__designerStyle === 'object'
+    ? props.__designerStyle
+    : null
+  const inlineStyle = designerStyle
+    ? {
+        ...(designerStyle.customStyle && typeof designerStyle.customStyle === 'object'
+          ? designerStyle.customStyle
+          : {}),
+        ...(designerStyle.width ? { width: designerStyle.width } : {}),
+        ...(designerStyle.height ? { height: designerStyle.height } : {}),
+        ...(designerStyle.minHeight ? { minHeight: designerStyle.minHeight } : {}),
+        ...(designerStyle.backgroundColor ? { backgroundColor: designerStyle.backgroundColor } : {}),
+        ...(designerStyle.borderColor ? { borderColor: designerStyle.borderColor } : {}),
+        ...(designerStyle.borderStyle ? { borderStyle: designerStyle.borderStyle } : {}),
+        ...(designerStyle.borderRadius ? { borderRadius: designerStyle.borderRadius } : {}),
+        ...(designerStyle.boxShadow ? { boxShadow: designerStyle.boxShadow } : {}),
+        ...(designerStyle.opacity != null && designerStyle.opacity !== ''
+          ? { opacity: designerStyle.opacity }
+          : {}),
+      }
+    : {}
   return {
     ...base,
     field: fieldCode,
@@ -870,7 +952,8 @@ function buildRuntimeFieldFromDesignerComponent(component = {}, baseFieldMap = n
     type: normalizeDesignerRuntimeFieldType(component.componentKey || base.type),
     required: validation.required ?? base.required,
     readonly,
-    disabled: readonly || base.disabled === true,
+    // props 已合并 component over base；显式可编辑时不要再被 base.disabled 钉回
+    disabled: readonly || props.disabled === true,
     hidden: visibility.hidden === true,
     visibility: {
       ...(base.visibility || {}),
@@ -879,6 +962,13 @@ function buildRuntimeFieldFromDesignerComponent(component = {}, baseFieldMap = n
     defaultValue: props.defaultValue ?? base.defaultValue,
     dictType: props.dictType || base.dictType,
     validation,
+    // AiFormItem.getPlaceholder 优先读顶层 placeholder
+    placeholder: props.placeholder ?? base.placeholder,
+    // 设计态样式贯通到运行态，避免预览/发布丢字号颜色边距
+    style: Object.keys(inlineStyle).length ? { ...(base.style || {}), ...inlineStyle } : base.style,
+    formItemStyle: Object.keys(inlineStyle).length
+      ? { ...(base.formItemStyle || {}), ...inlineStyle }
+      : base.formItemStyle,
     props,
   }
 }

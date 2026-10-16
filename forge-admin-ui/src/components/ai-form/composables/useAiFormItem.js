@@ -49,6 +49,7 @@ import {
   resolveSwitchCheckedValue,
   resolveSwitchUncheckedValue,
   getPlaceholder,
+  resolveDesignerInlineStyle,
   cacheAsyncOptions,
   hasEffectiveOptionSource,
   buildCurrentChildrenOptions,
@@ -185,10 +186,21 @@ export function useAiFormItem(props, emit) {
    * 获取占位符文本
    */
 
+  /** 详情态 / 表单只读：整表不可编辑（与 ChildTableEditor :readonly 对齐） */
+  function isFormDetailReadonly() {
+    const ctx = props.context || {}
+    return ctx.formReadonly === true
+      || ctx.readonly === true
+      || ctx.isDetail === true
+      || ctx.modalStatus === 'detail'
+  }
+
   /**
    * 处理禁用状态
    */
   function disabledHandler(field) {
+    if (isFormDetailReadonly())
+      return true
     if (isCascadeDisabledByEmptyParent())
       return true
     if (fieldRuntimeControl.value.readonly || fieldRuntimeControl.value.disabled)
@@ -210,16 +222,28 @@ export function useAiFormItem(props, emit) {
   const fieldAlignClass = computed(() => fieldAlign.value === 'left' ? '' : `ai-form-item-align-${fieldAlign.value}`)
   const formItemClass = computed(() => [
     `ai-form-item--${props.field?.type || 'input'}`,
-    (props.field?.readonly || props.field?.props?.readonly) ? 'ai-form-item--readonly' : '',
+    (isFormDetailReadonly() || props.field?.readonly || props.field?.props?.readonly) ? 'ai-form-item--readonly' : '',
     fieldAlignClass.value,
     props.field?.field ? `ai-form-item-field-${props.field.field}` : '',
     props.field?.formItemClass,
   ].filter(Boolean))
+  const designerInlineStyle = computed(() => resolveDesignerInlineStyle(props.field || {}))
+  const resolvedFormItemStyle = computed(() => {
+    const merged = {
+      ...designerInlineStyle.value,
+      ...(props.field?.formItemStyle || {}),
+      ...(props.field?.style || {}),
+    }
+    return Object.keys(merged).length ? merged : undefined
+  })
   const componentControlStyle = computed(() => {
     const runtimeStyle = fieldRuntimeControl.value.style || {}
-    return Object.keys(runtimeStyle).length
-      ? { ...(props.field?.componentStyle || props.field?.style || {}), ...runtimeStyle }
-      : props.field?.componentStyle || props.field?.style || undefined
+    const merged = {
+      ...designerInlineStyle.value,
+      ...(props.field?.componentStyle || props.field?.style || {}),
+      ...runtimeStyle,
+    }
+    return Object.keys(merged).length ? merged : undefined
   })
   const componentControlClass = computed(() => [
     `ai-form-control--${props.field?.type || 'input'}`,
@@ -263,7 +287,8 @@ export function useAiFormItem(props, emit) {
   const fieldLabelTip = computed(() => props.field?.props?.labelTip || props.field?.labelTip || '')
   const fieldBadge = computed(() => props.field?.props?.badge || props.field?.badge || '')
   const manualFieldEventEnabled = computed(() => props.context?.hasFieldEvent?.('MANUAL', props.field?.field) === true)
-  const blurFieldEventEnabled = computed(() => props.context?.hasFieldEvent?.('BLUR', props.field?.field) === true)
+  const blurFieldEventEnabled = computed(() => props.context?.hasFieldEvent?.('BLUR', props.field?.field) === true
+    || props.context?.hasComponentInteractionEvent?.('blur', props.field?.field) === true)
   const scanFieldEventEnabled = computed(() => props.context?.hasFieldEvent?.('SCAN_COMPLETE', props.field?.field) === true)
   const fieldEventState = computed(() => props.context?.getFieldEventState?.(props.field?.field) || {
     status: 'idle',
@@ -1638,6 +1663,8 @@ export function useAiFormItem(props, emit) {
       return
     if (event?.currentTarget?.contains?.(event.relatedTarget))
       return
+    // 先跑设计器交互（setValue 等），再跑 fieldEvents 查询回填
+    props.context?.runComponentInteractionEvents?.('blur', props.field?.field, props.value)
     props.context?.dispatchFieldEvent?.('BLUR', props.field?.field)
   }
 
@@ -1825,7 +1852,7 @@ export function useAiFormItem(props, emit) {
     route, remoteOptions, remoteLoading, dictOptions, sourceDictOptions, recordSelectorVisible, scanLoading, scanFeedback,
     pickerDefaultTimestamp, remoteRequestSeq, ORG_TREE_SELECT_TYPES, USER_SELECT_TYPES, controlProps, numberFieldValue, switchControlProps, fieldRuntimeControl,
     fieldRuntimeVisible, formItemRef, arrayFieldRef, restoreFixedLabelWidth, registerArrayValidator, disabledHandler, fieldAlign, fieldAlignClass,
-    formItemClass, componentControlStyle, componentControlClass, recordSelectorConfig, fieldMultiple, recordSelectorRuntimeContext, relationLabelValueField, recordSelectorDisplayText,
+    formItemClass, resolvedFormItemStyle, componentControlStyle, componentControlClass, recordSelectorConfig, fieldMultiple, recordSelectorRuntimeContext, relationLabelValueField, recordSelectorDisplayText,
     fieldDescription, fieldLabelTip, fieldBadge, manualFieldEventEnabled, blurFieldEventEnabled, scanFieldEventEnabled, fieldEventState, showFieldEventFeedback,
     isSectionTitleField, isGroupTitleField, isFieldRequired, fieldDictType, cascadeConfig, dictCascadeConfig, remoteOptionSource, remoteOptionSourceKey,
     treeSelectLazyLoadHandler, runtimePageWidgetKey, isRuntimePageWidgetField, runtimePageWidgetProps, isLegacyGroupTitleField, cascadeSourceValue, sourceFieldConfig, sourceDictType,

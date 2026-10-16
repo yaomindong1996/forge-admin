@@ -7,7 +7,6 @@ import { resolveStorageTypeFromOptionValueMeta } from '@/components/ai-form/opti
 import IconRenderer from '@/components/IconRenderer.vue'
 import { getValidationPreset } from '@/utils/validation-presets'
 import { FIELD_COMPONENT_DEFAULTS as componentFieldDefaults } from '../../form-first/fieldComponentCatalog'
-import { updateDesignerComponent } from '../../form-first/formDesignerSchema'
 import { camelToSnake } from '../../form-first/namingUtils'
 import { resolveChildRelationTargetObjectCode } from '../option-source-picker'
 
@@ -182,9 +181,12 @@ const updateSelectedCodeDraft = (...args) => __impl.updateSelectedCodeDraft(...a
 const updateWidthMode = (...args) => __impl.updateWidthMode(...args)
 const valueToPx = (...args) => __impl.valueToPx(...args)
 function updateComponent(patch) {
-  if (!props.selectedId)
+  // 必须基于 store 最新 schema 合并。若仍用尚未回传的 props.schema 连续 emit，
+  // 后一次写入会覆盖前一次（样式字号/颜色/边距连改会丢 customStyle）。
+  const componentId = designerStore.selectedId || props.selectedId
+  if (!componentId)
     return
-  emit('update:schema', updateDesignerComponent(props.schema, props.selectedId, patch))
+  designerStore.updateComponent(componentId, patch)
 }
 __impl.updateComponent = updateComponent
 
@@ -1168,10 +1170,17 @@ async function handleGenerationEnabled(value) {
       ruleCode: selectedGenerationRuleCode.value || codeRules.value[0]?.ruleCode || '',
       readonly: true,
     })
+    const currentPlaceholder = String(selectedComponent.value?.props?.placeholder || '').trim()
+    const placeholderLooksManual = !currentPlaceholder
+      || currentPlaceholder.startsWith('请填写')
+      || currentPlaceholder.startsWith('请输入')
+      || currentPlaceholder.startsWith('占位')
     updateComponent({
       props: {
         generation: next,
         defaultValue: undefined,
+        // 运行态只读空值时，避免仍显示「请输入xxx」让客户误以为坏了
+        ...(placeholderLooksManual ? { placeholder: '保存后自动生成' } : {}),
       },
       validation: {
         required: false,

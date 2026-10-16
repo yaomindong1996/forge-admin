@@ -43,7 +43,22 @@ export function resolveControlProps(props = {}) {
     cascadeConfig: _cascadeConfig,
     visibility: _visibility,
     validation: _validation,
+    // 设计器私有字段：交互事件 / 样式戳 / E2E 标记，禁止渗入 Naive 组件
+    __events: _events,
+    __designerStyle: _designerStyle,
+    e2eMarker: _e2eMarker,
+    // 选项源元数据（已由 currentOptions / AiCustomSelect 专用 props 接管）
+    dataSourceType: _dataSourceType,
+    labelName: _labelName,
+    valueName: _valueName,
     ...rest
   } = source
-  return rest
+  // 兜底去掉其它 __ 前缀元数据，避免落到 DOM / 控件未知 props
+  const cleaned = {}
+  for (const [key, value] of Object.entries(rest)) {
+    if (key.startsWith('__'))
+      continue
+    cleaned[key] = value
+  }
+  return cleaned
 }

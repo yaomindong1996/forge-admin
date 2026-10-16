@@ -61,4 +61,31 @@ describe('resolveControlProps', () => {
       clearable: true,
     })
   })
+
+  it('strips designer meta (__events / __designerStyle / e2eMarker / __*) from control props', () => {
+    expect(resolveControlProps({
+      placeholder: '请选择',
+      clearable: true,
+      __events: [{ action: 'message' }],
+      __designerStyle: { borderWidth: '3px' },
+      e2eMarker: 'E2E_select',
+      __customMeta: { x: 1 },
+    })).toEqual({
+      placeholder: '请选择',
+      clearable: true,
+    })
+  })
+
+  it('strips dataSourceType / labelName / valueName leftover option-source meta', () => {
+    expect(resolveControlProps({
+      placeholder: '请选择',
+      clearable: true,
+      dataSourceType: 'static',
+      labelName: 'label',
+      valueName: 'value',
+    })).toEqual({
+      placeholder: '请选择',
+      clearable: true,
+    })
+  })
 })

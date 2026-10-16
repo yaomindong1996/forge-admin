@@ -1,14 +1,15 @@
 /** Auto-split part 2 of ListPageGridDesigner setup. */
 import { computed, nextTick } from 'vue'
 import { businessObjectList } from '@/api/business-app'
+import { colorToHexInput, hexInputToColor } from '@/utils/designer-color'
 import { mapBlocksInTree } from '../blockTree'
+import { expandPanelTypeOptions } from '../listDesignerOptions'
 import {
   LIST_PAGE_GRID_COLS,
   buildGridSyncModelSchema,
   resolveListPageBlockMeta,
   syncGridLayoutWithModel,
 } from '../page-schema'
-import { expandPanelTypeOptions } from '../listDesignerOptions'
 export function useListPageGridDesignerPart2(props, emit, deps = {}) {
   const {
     __impl,
@@ -229,11 +230,32 @@ function resolveBlockFrame(block = {}) {
   const fallbackY = Number(block.gridY || 0) * (rowHeight + gap)
   const fallbackWidth = gridWidthToPixels(block.gridW || 1)
   const fallbackHeight = gridHeightToPixels(block.gridH || 1)
-  let x = resolveCssNumber(componentStyle.x ?? componentStyle.left, fallbackX)
-  const y = resolveCssNumber(componentStyle.y ?? componentStyle.top, fallbackY)
+  // 自由布局画布以 pageFlow* 为准；属性面板必须同源读取，否则改 X/宽高看起来「没生效」
+  const flowX = Number(componentStyle.pageFlowX)
+  const flowY = Number(componentStyle.pageFlowY)
+  const flowH = Number(componentStyle.pageFlowHeight)
+  let x = props.panelOnly && Number.isFinite(flowX) && flowX >= 0
+    ? flowX
+    : resolveCssNumber(componentStyle.x ?? componentStyle.left, fallbackX)
+  let y = props.panelOnly && Number.isFinite(flowY) && flowY >= 0
+    ? flowY
+    : resolveCssNumber(componentStyle.y ?? componentStyle.top, fallbackY)
   const widthMode = resolveBlockWidthMode(block)
-  let width = Math.max(24, resolveFrameWidth(componentStyle.width, widthMode, x, fallbackWidth))
-  const height = Math.max(24, resolveCssNumber(componentStyle.height, fallbackHeight))
+  const flowWidth = props.panelOnly
+    ? resolveCssNumber(componentStyle.pageFlowWidth, NaN)
+    : NaN
+  let width = Math.max(
+    24,
+    Number.isFinite(flowWidth)
+      ? flowWidth
+      : resolveFrameWidth(componentStyle.width, widthMode, x, fallbackWidth),
+  )
+  const height = Math.max(
+    24,
+    props.panelOnly && Number.isFinite(flowH) && flowH > 0
+      ? flowH
+      : resolveCssNumber(componentStyle.height, fallbackHeight),
+  )
   // 组件不允许超出画布：存量数据、属性面板输入过大宽度/偏移时统一兜底（嵌套子块走独立样式不受影响）
   const canvasWidth = canvasGridWidth.value
   x = Math.max(0, Math.min(x, Math.max(0, canvasWidth - 24)))
@@ -363,30 +385,32 @@ function normalizeSpacingValue(value) {
     .join(' ')
 }
 
-function colorToHexInput(value, fallback = '') {
-  const text = String(value || '').trim()
-  const match = text.match(/^#?([0-9a-f]{3}(?:[0-9a-f]{3})?)/i)
-  if (!match)
-    return fallback
-  const hex = match[1]
-  if (hex.length === 3)
-    return hex.split('').map(item => `${item}${item}`).join('').toUpperCase()
-  return hex.toUpperCase()
-}
 __impl.colorToHexInput = colorToHexInput
-
-function hexInputToColor(value, fallback = '#ffffff') {
-  const text = String(value || '').trim().replace(/^#/, '')
-  if (!/^[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(text))
-    return fallback
-  return `#${text}`
-}
 __impl.hexInputToColor = hexInputToColor
 
 function updateSelectedBlockBackground(value) {
   if (!selectedBlock.value)
     return
   patchBlockStyle(selectedBlock.value.id, { backgroundColor: hexInputToColor(value, 'transparent') })
+}
+
+function updateSelectedBlockTextColor(value) {
+  if (!selectedBlock.value)
+    return
+  const text = String(value || '').trim()
+  if (!text)
+    return patchBlockStyle(selectedBlock.value.id, { color: '' })
+  patchBlockStyle(selectedBlock.value.id, { color: hexInputToColor(value, '#111827') })
+}
+
+function updateSelectedBlockOpacity(value) {
+  if (!selectedBlock.value)
+    return
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed))
+    return
+  const pct = Math.max(20, Math.min(100, Math.round(parsed)))
+  patchBlockStyle(selectedBlock.value.id, { opacity: pct >= 100 ? '' : Number((pct / 100).toFixed(2)) })
 }
 
 function updateSelectedBlockBorderStyle(value) {
@@ -414,6 +438,30 @@ function updateSelectedBlockBorderColor(value) {
     borderWidth: selectedBlockStyle.value.borderWidth || 1,
   })
 }
+
+function updateSelectedBlockBorderWidth(value) {
+  if (!selectedBlock.value)
+    return
+  const parsed = Number(value)
+  const width = Number.isFinite(parsed) ? Math.max(0, Math.min(32, parsed)) : 1
+  if (width <= 0) {
+    patchBlockStyle(selectedBlock.value.id, {
+      borderWidth: 0,
+      borderStyle: 'none',
+      borderColor: 'transparent',
+    })
+    return
+  }
+  patchBlockStyle(selectedBlock.value.id, {
+    borderWidth: width,
+    borderStyle: selectedBlockStyle.value.borderStyle === 'none'
+      ? 'solid'
+      : selectedBlockStyle.value.borderStyle || 'solid',
+  })
+}
+__impl.updateSelectedBlockBorderWidth = updateSelectedBlockBorderWidth
+__impl.updateSelectedBlockTextColor = updateSelectedBlockTextColor
+__impl.updateSelectedBlockOpacity = updateSelectedBlockOpacity
 
 function selectBlock(blockId) {
   if (props.readonly)
@@ -1252,8 +1300,11 @@ async function resolveTreeSourceObject(sourceValue = '') {
     colorToHexInput,
     hexInputToColor,
     updateSelectedBlockBackground,
+    updateSelectedBlockTextColor,
+    updateSelectedBlockOpacity,
     updateSelectedBlockBorderStyle,
     updateSelectedBlockBorderColor,
+    updateSelectedBlockBorderWidth,
     selectBlock,
     handleBlockClick,
     handleTreePanelCollapseChange,

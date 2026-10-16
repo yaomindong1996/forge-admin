@@ -143,7 +143,9 @@
   /* 固定宽度的组件（__designerStyle.width）拖入更窄的容器（如栅格格子）时，
      视觉宽度不超过所在格位，避免组件横向溢出栅格 */
   max-width: 100%;
-  border: 1px solid transparent;
+  border-width: var(--forge-node-border-width, 1px);
+  border-style: solid;
+  border-color: transparent;
   border-radius: var(--forge-node-radius, 6px);
   background: transparent;
   padding: 32px 8px 8px;
@@ -151,6 +153,25 @@
     border-color 180ms ease,
     background 180ms ease,
     box-shadow 180ms ease;
+}
+
+/* 样式面板字号写在节点上；Naive 控件用内联 --n-font-size，需 !important 才能跟节点字号走 */
+.canvas-node :deep(.n-form-item-label),
+.canvas-node :deep(.n-input),
+.canvas-node :deep(.n-input__input-el),
+.canvas-node :deep(.n-input__textarea-el),
+.canvas-node :deep(.n-base-selection),
+.canvas-node :deep(.n-base-selection-label),
+.canvas-node :deep(.n-input-number),
+.canvas-node :deep(.n-date-picker),
+.canvas-node :deep(.n-time-picker),
+.canvas-node :deep(.n-cascader),
+.canvas-node :deep(.n-tree-select),
+.canvas-node :deep(.n-auto-complete),
+.canvas-node :deep(.n-mention),
+.canvas-node :deep(.n-select),
+.canvas-node :deep(textarea) {
+  font-size: inherit !important;
 }
 
 .canvas-node:hover,

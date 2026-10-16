@@ -13,12 +13,20 @@
       >
         <n-icon><ChevronForwardOutline /></n-icon>
       </button>
+      <!-- shelfHydrated：首屏先出画布，组件架 idle 后再挂，避免 59 物料拖慢进页 -->
+      <div v-if="!leftCollapsed && !shelfHydrated" class="forge-shelf-boot-skeleton" aria-busy="true" aria-label="组件库加载中">
+        <div class="forge-shelf-boot-skeleton__bar" />
+        <div class="forge-shelf-boot-skeleton__bar is-short" />
+        <div class="forge-shelf-boot-skeleton__bar" />
+        <div class="forge-shelf-boot-skeleton__bar is-short" />
+      </div>
       <ForgeFieldShelf
-        v-if="!leftCollapsed"
+        v-else-if="!leftCollapsed"
         :fields="fields"
         :used-field-set="usedFieldSet"
         :relations="relations"
         @append-field="appendField"
+        @append-shelf-item="appendShelfItem"
       >
         <template #actions>
           <n-button
@@ -296,6 +304,7 @@
         :y-gap="previewLayout.yGap || previewLayout.rowGap || 0"
         :show-actions="false"
         :show-feedback="previewLayout.showFeedback !== false"
+        :readonly="previewMode === 'detail'"
         :context="previewRuntimeContext"
         :form-assets="formAssets"
         :keep-empty-layout-nodes="true"

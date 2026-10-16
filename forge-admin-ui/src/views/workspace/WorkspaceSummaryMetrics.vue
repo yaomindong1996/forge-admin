@@ -209,7 +209,14 @@ async function loadSummary() {
     emit('loaded', { ...summary.value })
   }
   catch (error) {
-    loadError.value = error?.message || '工作台统计加载失败'
+    const code = error?.code ?? error?.response?.data?.code
+    const rawMessage = error?.message ?? error?.response?.data?.message
+    const message = typeof rawMessage === 'string' && rawMessage.trim() ? rawMessage.trim() : ''
+    // 本地未起 flow / 代理指错环境时常见 401；避免把布尔 false 等脏值当成文案
+    if (code === 401 || code === '401')
+      loadError.value = '流程服务未接通或登录态不一致，工作台统计暂不可用（请确认本地 forge-flow 已启动且与 admin 同库）'
+    else
+      loadError.value = message || '工作台统计加载失败'
     summary.value = {
       todoCount: 0,
       doneWeekCount: 0,

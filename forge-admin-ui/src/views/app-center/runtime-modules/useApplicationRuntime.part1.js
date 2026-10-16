@@ -319,6 +319,10 @@ export function applyApplicationRuntimePart1() {
   const updateSelectedBlockFormAsset = (...args) => __impl.updateSelectedBlockFormAsset(...args)
   const setFormAssetAsListCrudForm = (...args) => __impl.setFormAssetAsListCrudForm(...args)
   const isFormAssetBoundToListCrud = (...args) => __impl.isFormAssetBoundToListCrud(...args)
+  const collectFormAssetUsages = (...args) => __impl.collectFormAssetUsages(...args)
+  const formatFormAssetUsageSummary = (...args) => __impl.formatFormAssetUsageSummary(...args)
+  const focusFormAssetUsage = (...args) => __impl.focusFormAssetUsage(...args)
+  const clearFormAssetListCrudBinding = (...args) => __impl.clearFormAssetListCrudBinding(...args)
   const updateSelectedPageBlockRuntimeObject = (...args) => __impl.updateSelectedPageBlockRuntimeObject(...args)
   const route = useRoute()
   const router = useRouter()
@@ -470,6 +474,10 @@ export function applyApplicationRuntimePart1() {
   const componentKeyword = ref('')
   const savedSignature = ref('')
   const selectedPageBlockId = ref('')
+  /** 仅悬停/选中时挂载块操作条，避免每块都算「更多操作」菜单拖垮选中流畅度 */
+  const hoveredPageBlockId = ref('')
+  /** 画布点选的容器 id；货架连续添加时仅落入该目标，避免「刚加的 Tabs」吞掉后续组件 */
+  const nestHostPinnedId = ref('')
   const draggingPageBlockId = ref('')
   const dragPreview = ref(null)
   const pageAlignGuides = ref({ visible: false, cross: null, x: [], y: [] })
@@ -542,6 +550,11 @@ export function applyApplicationRuntimePart1() {
   const embeddedDesignerRef = ref(null)
   const embeddedDesignerDirty = ref(false)
   const embeddedDesignerSaving = ref(false)
+  /** 预览落盘时跳过 workspace 全量刷新，避免设计器被重挂 */
+  const suppressHeavyEmbeddedSaveSideEffects = ref(false)
+  /** 本会话进过列表/表单设计后，预览期间用 v-show 保活，回来不重载 */
+  const listDesignerSessionActive = ref(false)
+  const formDesignerSessionActive = ref(false)
   const embeddedProcessDesignerVisible = ref(false)
   const embeddedProcessDesignerId = ref('')
   const applicationRuntimeLoadCoordinator = createApplicationRuntimeLoadCoordinator(load)
@@ -848,7 +861,14 @@ export function applyApplicationRuntimePart1() {
       }
     })
     .filter(Boolean))
-  const activeFormAsset = computed(() => formAssets.value.find(asset => asset.id === activeFormAssetId.value) || null)
+  // 兼容 id / formKey，避免页面资源点开后 activeFormAsset 对不上导致白屏
+  const activeFormAsset = computed(() => {
+    const key = String(activeFormAssetId.value || '').trim()
+    if (!key)
+      return null
+    return formAssets.value.find(asset => String(asset?.id || '').trim() === key
+      || String(asset?.formKey || '').trim() === key) || null
+  })
   // activeFormDesignerSchema：从 computed 改为 ref + watch 签名去重。
   // 原因：normalizeFormDesignerSchema 每次做深拷贝（JSON.parse/JSON.stringify），
   // computed 每次求值都产生新对象引用 → 子组件反复重新渲染 → watch 链回环 →
@@ -869,14 +889,22 @@ export function applyApplicationRuntimePart1() {
   )
   // 表单资产被区块引用后，设计器按该区块绑定的业务对象补齐关系/动作上下文。
   const activeFormAssetBlock = computed(() => {
-    const assetId = activeFormAssetId.value
-    if (!assetId)
+    const asset = activeFormAsset.value
+    if (!asset && !activeFormAssetId.value)
+      return null
+    const keys = new Set([
+      String(asset?.id || '').trim(),
+      String(asset?.formKey || '').trim(),
+      String(activeFormAssetId.value || '').trim(),
+    ].filter(Boolean))
+    if (!keys.size)
       return null
     let matched = null
     visitPageBlocksInTree(pageBlocks.value, (block) => {
       if (matched || !isDataFieldBlockType(block.blockType))
         return
-      if (String(block.props?.formAssetId || '') === String(assetId))
+      const bound = String(block.props?.formAssetId || '').trim()
+      if (bound && keys.has(bound))
         matched = block
     })
     return matched
@@ -932,8 +960,16 @@ export function applyApplicationRuntimePart1() {
       return ''
     return String(formAssets.value[0]?.id || formAssets.value[0]?.formKey || '').trim()
   })
+  /** 仅认组件上显式绑定的 formAssetId（不含「全页只有一个表单」的隐式兜底） */
+  const selectedPageBlockBoundFormAssetId = computed(() => String(selectedPageBlock.value?.props?.formAssetId || '').trim())
   const selectedPageBlockFormAsset = computed(() => {
     const key = selectedPageBlockFormAssetId.value
+    if (!key)
+      return null
+    return formAssets.value.find(asset => String(asset?.id || asset?.formKey || '').trim() === key) || null
+  })
+  const selectedPageBlockBoundFormAsset = computed(() => {
+    const key = selectedPageBlockBoundFormAssetId.value
     if (!key)
       return null
     return formAssets.value.find(asset => String(asset?.id || asset?.formKey || '').trim() === key) || null
@@ -1053,6 +1089,7 @@ export function applyApplicationRuntimePart1() {
     canUndo,
     canRedo,
     resetBuilderHistory,
+    runWithoutHistory,
     undoBuilder,
     redoBuilder,
     handleBuilderShortcut,
@@ -1293,6 +1330,66 @@ export function applyApplicationRuntimePart1() {
     window.removeEventListener('keydown', handleBuilderShortcut)
   })
 
+  function pageHasCrudLikeBlocks(pageId = '') {
+    const page = builder.value?.pages?.[String(pageId || '').trim()]
+    const items = page?.layout?.gridLayout?.items || page?.layout?.items || []
+    let found = false
+    visitPageBlocksInTree(items, (block) => {
+      if (found)
+        return
+      if (['AiCrudPage', 'AiForm', 'AiTable', 'data-table'].includes(block?.blockType))
+        found = true
+    })
+    return found
+  }
+
+  /**
+   * 按即将展示的设计入口预热 JS chunk，避免表单设计页去等自由布局/CRUD 大包。
+   */
+  function buildRuntimeWarmChunks({ editing: isEditing = false, entryTab = '', pageId = '' } = {}) {
+    const safe = loader => loader().catch(() => {})
+    if (!isEditing) {
+      return [
+        safe(() => import('@/components/lowcode-builder/page/GridBlockRenderer.vue')),
+        safe(() => import('@/components/ai-form/AiCrudPage.vue')),
+        safe(() => import('@/components/lowcode-builder/shared/PageWidgetRenderer.vue')),
+        safe(() => import('@/components/lowcode-builder/page/RuntimeListGridFlow.vue')),
+      ]
+    }
+    const tab = String(entryTab || '').trim()
+    if (tab === 'form') {
+      return [
+        safe(() => import('@/views/app-center/components/designer/forge-form-designer/ForgeFormDesigner.vue')),
+      ]
+    }
+    if (tab === 'list') {
+      return [
+        safe(() => import('@/components/lowcode-builder/page/ListPageGridDesigner.vue')),
+        safe(() => import('@/views/app-center/components/designer/BusinessListDesigner.vue')),
+      ]
+    }
+    // 自由布局 / 页面设计：画布优先；仅有 CRUD 块时才预拉 AiCrudPage
+    const chunks = [
+      safe(() => import('@/components/lowcode-builder/page/GridBlockRenderer.vue')),
+      safe(() => import('@/components/lowcode-builder/shared/PageWidgetRenderer.vue')),
+    ]
+    if (pageHasCrudLikeBlocks(pageId)) {
+      chunks.push(safe(() => import('@/components/ai-form/AiCrudPage.vue')))
+      chunks.push(safe(() => import('@/components/lowcode-builder/page/RuntimeListGridFlow.vue')))
+    }
+    // 设置面板不挡首屏，空闲再拉
+    if (typeof window !== 'undefined') {
+      const prefetchSettings = () => {
+        void import('@/views/app-center/components/designer/PageDesignSettingsPanel.vue').catch(() => {})
+      }
+      if (typeof window.requestIdleCallback === 'function')
+        window.requestIdleCallback(prefetchSettings, { timeout: 2500 })
+      else
+        window.setTimeout(prefetchSettings, 800)
+    }
+    return chunks
+  }
+
   async function load() {
     const code = String(route.params.applicationCode || '')
     if (!code)
@@ -1305,19 +1402,8 @@ export function applyApplicationRuntimePart1() {
     runtimeTreeFilter.value = {}
     runtimeTreeFilterByBlockId.value = {}
     runtimeTreeActiveKeyByBlockId.value = {}
-    // 与 workspace API 并行预拉页面渲染器 / CRUD / 设计器，缩短骨架结束后的二次白屏
-    const warmChunks = [
-      import('@/components/lowcode-builder/page/GridBlockRenderer.vue').catch(() => {}),
-      import('@/components/ai-form/AiCrudPage.vue').catch(() => {}),
-      // 列表伴生块运行态走 RuntimeListGridFlow，首屏一并预拉避免壳出后再白一截
-      import('@/components/lowcode-builder/page/RuntimeListGridFlow.vue').catch(() => {}),
-    ]
-    if (editing.value) {
-      warmChunks.push(
-        import('@/views/app-center/components/designer/PageDesignSettingsPanel.vue').catch(() => {}),
-      )
-    }
-    const warmChunksPromise = Promise.all(warmChunks)
+    // 首轮只起一个空 Promise；builder 就绪后再按入口 Tab 定向预热，避免表单设计页去等自由布局 chunk。
+    let warmChunksPromise = Promise.resolve()
     try {
       const response = shouldUseApplicationWorkspaceLoad(route, canEditApplication.value)
         ? await businessApplicationWorkspaceByCode(code)
@@ -1362,15 +1448,31 @@ export function applyApplicationRuntimePart1() {
       if (editing.value)
         syncActiveFormAssetForPage(selectedNodeId.value)
       await nextTick()
+
+      // 按即将展示的入口定向预热：表单页拉 ForgeFormDesigner，自由布局拉画布，列表页拉列表设计器
+      const entryPageId = String(selectedNodeId.value || '').trim()
+      const entryTab = editing.value
+        ? (designTab || resolveEntryDesignTab(entryPageId))
+        : ''
+      warmChunksPromise = Promise.all(buildRuntimeWarmChunks({
+        editing: editing.value,
+        entryTab,
+        pageId: entryPageId,
+      }))
+
       // 非编辑态：CRUD 预热与整页骨架并行收束；超时后先出壳，Portal 内部继续用 seed/自拉
       const portalWarmPromise = (!editing.value && !isPageManagementSystemPageId(selectedNodeId.value))
         ? warmCurrentPortalPageCrud()
         : Promise.resolve({})
       if (canEditApplication.value)
         prefetchRuntimeWorkspacePanels()
-      // 编辑态：等设计器 chunk 就绪再撤骨架，避免「壳出来了但画布白屏」
-      if (editing.value)
-        await warmChunksPromise
+      // 编辑态：等对口 chunk，但最多卡 900ms，超时先出壳（慢包后台继续）
+      if (editing.value) {
+        await Promise.race([
+          warmChunksPromise,
+          new Promise(resolve => setTimeout(resolve, 900)),
+        ])
+      }
       const seeded = await portalWarmPromise
       if (seeded && typeof seeded === 'object')
         portalCrudSeed.value = seeded
@@ -1391,7 +1493,10 @@ export function applyApplicationRuntimePart1() {
       )
     }
     finally {
-      await warmChunksPromise
+      await Promise.race([
+        warmChunksPromise,
+        new Promise(resolve => setTimeout(resolve, 200)),
+      ])
       // page-custom 只是设计资源 key，不代表自由布局；按真实页面形态判断是否盖画布骨架
       const pageId = String(selectedNodeId.value || route.query.pageId || '').trim()
       const freeLayoutEdit = editing.value && resolveEntryDesignTab(pageId) === 'page'
@@ -1404,7 +1509,7 @@ export function applyApplicationRuntimePart1() {
         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
         // 给区块异步子组件一次挂载窗口；超时也撤，避免一直挡操作
         await Promise.race([
-          new Promise(resolve => setTimeout(resolve, 280)),
+          new Promise(resolve => setTimeout(resolve, 80)),
           nextTick(),
         ])
         editCanvasBootstrapping.value = false
@@ -1434,8 +1539,8 @@ export function applyApplicationRuntimePart1() {
       designPreview: usePortalDesignPreview.value,
       applicationId: application.value?.id,
       pageId,
-      // 页面管理预览：超时尽快出壳，避免整页白屏卡死；Portal 内会继续拉
-      timeoutMs: editing.value || isDraftMode.value ? 6500 : 3200,
+      // 草稿/编辑预热不宜久等：超时先出壳，Portal 内继续拉（超时过长会被当成「加载资源卡死」）
+      timeoutMs: editing.value || isDraftMode.value ? 2400 : 3200,
     })
   }
   __impl.warmCurrentPortalPageCrud = warmCurrentPortalPageCrud
@@ -1756,33 +1861,33 @@ export function applyApplicationRuntimePart1() {
     startCatalogPointerDrag, startComponentButtonMove, startPageBlockMove, startPageBlockResize, startRenameApplication, supportsFormAsset, switchPageDesignTab, switchRuntimeView,
     syncActiveFormAssetForPage, syncActivePageShapeObject, syncCatalogDropActiveClass, toggleGroupExpanded, toggleNavigationVisible, unmountSystemMenu, updateActiveFormDesignerSchema, updateCurrentGridLayout,
     updatePageAlignGuides, updatePageBlockBackgroundColor, updatePageBlockSize, updatePageBlocks, updatePageCanvasPadding, updateResizeCollisionHighlights, updateSelectedBlockAppearance, updateSelectedBlockFormAsset,
-    setFormAssetAsListCrudForm, isFormAssetBoundToListCrud,
+    setFormAssetAsListCrudForm, isFormAssetBoundToListCrud, collectFormAssetUsages, formatFormAssetUsageSummary, focusFormAssetUsage, clearFormAssetListCrudBinding,
     updateSelectedPageBlockRuntimeObject, warmCurrentPortalPageCrud, route, router, message, tenantStore, defaultLogo, WORKBENCH_PAGE_ID, isNavigationVisible, DEFAULT_PAGE_PADDING, formComponentIconModules, formComponentIconCache,
     formComponentIconFileByBlockType, userStore, asyncPanelLoader, ApplicationObjectsPanel, ApplicationExtensionsPanel, ApplicationProcessPanel, ApplicationSettingsPanel, runtimeWorkspacePanelImporters,
     BusinessObjectDesignerPage, BusinessProcessPage, ForgeFormDesigner, ListPageGridDesigner, IconSelector, PageTypeSelector, PageDesignSettingsPanel, PageDesignPublishPanel,
     PageManagementSystemView, GridBlockRenderer, application, objects, builder, processSelectableObjects, loadError, loading,
     editCanvasBootstrapping, saving, previewTabLoading, restoringObjectPageLayout, editing, activePageDesignTab, runtimeViewMode, exitEditingVisible, selectedNodeId, enhanceContextPageId,
     newNodePopoverVisible, selectedPageTemplateKey, iconPickerVisible, iconPickerNodeId, navigationActionVisible, navigationActionMode, navigationActionNodeId, navigationActionForm,
-    systemMenuMountVisible, systemMenuMountNodeId, systemMenuMountNode, componentPopoverVisible, componentKeyword, savedSignature, selectedPageBlockId, draggingPageBlockId,
+    systemMenuMountVisible, systemMenuMountNodeId, systemMenuMountNode, componentPopoverVisible, componentKeyword, savedSignature, selectedPageBlockId, hoveredPageBlockId, nestHostPinnedId, draggingPageBlockId,
     dragPreview, pageAlignGuides, PAGE_ALIGN_SNAP_PX, configPanelVisible, inspectorTab, componentButtonPosition, componentButtonMoveCtx, catalogDragBlockType,
     suppressCatalogClick, activePageFlowTabTarget, activePageFlowGridTarget, activePageFlowContainerTarget, resizeCollisionBlockIds, formDesignerObjectContextByObjectId, formDesignerObjectContextLoadingIds, formDesignerMode,
     designerTransitionLoading, runtimeTreeFilter, runtimeTreeFilterByBlockId, runtimeTreeActiveKeyByBlockId, formDesignerFromPageManagement, activeFormAssetId, activePageShapeDesign, pageTypeSelectorVisible,
     pageTypeSelectorParentId, pageTypeSelectorDefaultType, sidebarCollapsed, renamingApplication, renameApplicationValue, renameSaving, renameInputRef, collapsedGroupIds,
     copyBlockVisible, copyBlockId, copyBlockTargetPageId, blockBackgroundPickerVisible, backgroundPickerBlockId, formAssetSelectorOpen, formAssetSelectorKeyword, formDataProvisioningByAssetId,
     objectSetupVisible, selectedDesignerResourceKey, workspaceExtensions, workspaceEntries, portalCrudConfigRevision, portalCrudSeed, isDraftMode, activeFlowContext,
-    embeddedDesignerRef, embeddedDesignerDirty, embeddedDesignerSaving, embeddedProcessDesignerVisible, embeddedProcessDesignerId, applicationRuntimeLoadCoordinator, componentPickerGroupOptions, runtimeHeaderMoreOptions,
+    embeddedDesignerRef, embeddedDesignerDirty, embeddedDesignerSaving, suppressHeavyEmbeddedSaveSideEffects, listDesignerSessionActive, formDesignerSessionActive, embeddedProcessDesignerVisible, embeddedProcessDesignerId, applicationRuntimeLoadCoordinator, componentPickerGroupOptions, runtimeHeaderMoreOptions,
     pageManagementSystemPages, systemPageIconMap, currentSystemPage, workbenchPage, systemPageNavigationRoutes, designerResourceGroups, activeDesignerResource, designerSection,
     pageBuilderResourceActive, canEditApplication, usePortalDesignPreview, activeDesignerObject, activeResourceConfigKey, previewableResourceActive, legacyBlockTypeMap, pageBlockResizeAnchors,
     pageBlockRecommendedColors, groupOptions, navigationActionNode, iconPickerNode, navigationIconValue, navigationActionTitle, navigationActionHasChildren, navigationDeleteImpact,
     navigationDeleteTip, moveGroupOptions, navigationNodes, currentNode, currentPage, currentPageLayoutPolluted, currentPageManagementTitle, pageDesignObject,
     currentGridLayout, pageBlocks, pageFlowStackMode, pageCanvasPadding, pageCanvasPaddingCss, designerGridLayout, appPageTargetOptions, pageFlowHeight, hasCustomComponentButtonPosition,
     componentButtonStyle, selectedPageBlock, formAssets, filteredFormAssets, pageFormAssetOptions, activeFormAsset, activeFormDesignerSchema, activeFormAssetBlock,
-    activeFormDesignerObjectRef, activeFormDesignerContext, activeFormDesignerRelations, activeFormDesignerActions, activeFormFields, activeFormDataState, selectedPageBlockFormAssetId, selectedPageBlockFormAsset,
+    activeFormDesignerObjectRef, activeFormDesignerContext, activeFormDesignerRelations, activeFormDesignerActions, activeFormFields, activeFormDataState, selectedPageBlockFormAssetId, selectedPageBlockBoundFormAssetId, selectedPageBlockFormAsset, selectedPageBlockBoundFormAsset,
     selectedPageBlockRuntimeObjectRef, selectedPageBlockIsCrud, selectedPageBlockSupportsDataSource, selectedPageBlockUsesObjectRuntime, selectedPageBlockRuntimeObjectId, selectedPageBlockObjectDesignerPanel, selectedPageBlockFormDataState, runtimeObjectFormOptions,
     pageTemplateOptions, selectedPageBlockFields, selectedPageBlockFormDesignerSchema, applicationGridModelSchema, dragPreviewBlock, nestedMovingPageBlockId, copyBlockPageOptions, dirty,
     canSaveActiveFormDesigner, loadErrorTitle, filteredComponents, componentPickerGroups, recommendedComponents,
     runtimeCrudPropsByObjectId, runtimeCrudLoadingObjectIds, runtimeCrudUnavailableObjectIds, loadRuntimeCrudProps, resetRuntimeCrudConfig,
-    historyReady, canUndo, canRedo, resetBuilderHistory,
+    historyReady, canUndo, canRedo, resetBuilderHistory, runWithoutHistory,
     undoBuilder, redoBuilder, handleBuilderShortcut,
   }
 }

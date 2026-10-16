@@ -1,6 +1,14 @@
 /** GridBlockRenderer setup. */
-import { computed, h, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useMessage } from 'naive-ui'
 import { useRoute, useRouter } from 'vue-router'
+import { createRuntimeBlockApi, findNestedAiCrudApi, registerRuntimeBlock } from '../runtime-block-registry'
+import {
+  applyPageNavigationQuery,
+  handleRuntimeEventSuccess as runRuntimeEventSuccess,
+  navigateRuntimeEvent as runNavigateRuntimeEvent,
+  runBlockClickEvent,
+} from '../runtime-block-events'
 import { isPageWidgetComponentKey, pageWidgetComponentKeys } from '@/components/lowcode-builder/shared/page-widget-schema'
 import { isComposeDisplayEnabled, resolveComposeDisplayValue } from '@/components/lowcode-builder/shared/widget-field-catalog'
 import {
@@ -24,7 +32,7 @@ import { useUserStore } from '@/store'
 import { postEncrypt, request } from '@/utils'
 import { applyCrudHookRules, CRUD_HOOK_RULE_TARGETS, normalizeCrudHookRules } from '../crud-hook-rules'
 import FieldValueRenderer from '@/components/lowcode-builder/shared/FieldValueRenderer.vue'
-import { isDataFieldBlockType } from '../page-schema'
+import { isDataFieldBlockType, resolveListFieldTitle } from '../page-schema'
 import { buildRuntimeCrudBlockProps, resolveEffectiveFormOpenMode, resolveEffectiveModalType } from '../runtime-crud-block-props'
 import {
   resolvePreviewChildHeight,
@@ -35,6 +43,8 @@ import {
   nestedChildShellStyle,
   normalizeCssSize,
   createLegacyPageTitleContent,
+  resolvePageTitleRichContent,
+  mergeBlockTypographyStyle,
   escapeRichText,
   loadBarcodeModule,
   componentType,
@@ -63,6 +73,7 @@ import {
   toCssSize,
   parseInlineStyle,
 } from '../gridBlockRendererUtils.js'
+import { stripAccidentalSelectionChrome } from '../block-style-chrome.js'
 export function useGridBlockRenderer(props, emit) {
 const localDataBindableBlockTypes = new Set([
   'stats-strip',
@@ -84,6 +95,7 @@ const localDataBindableBlockTypes = new Set([
 
 const route = useRoute()
 const router = useRouter()
+const runtimeMessage = useMessage()
 const userStore = useUserStore()
 const fieldMap = computed(() => new Map(props.fields.map(f => [f.field, f])))
 const isDataFieldBlock = computed(() => isDataFieldBlockType(props.block.blockType))
@@ -310,6 +322,21 @@ const nestedBlockMenuOptions = [
   { label: '复制', key: 'duplicate' },
   { label: '删除', key: 'delete' },
 ]
+/** 嵌套子块操作条：仅悬停/选中挂载，减少容器内大量「更多操作」DOM */
+const hoveredNestedBlockId = ref('')
+function showNestedChrome(childId = '') {
+  const id = String(childId || '')
+  if (!id || props.readonly)
+    return false
+  return id === props.selectedBlockId || id === hoveredNestedBlockId.value
+}
+function onNestedPointerEnter(childId = '') {
+  hoveredNestedBlockId.value = String(childId || '')
+}
+function onNestedPointerLeave(childId = '') {
+  if (hoveredNestedBlockId.value === String(childId || ''))
+    hoveredNestedBlockId.value = ''
+}
 const containerMenu = ref({
   visible: false,
   x: 0,
@@ -611,6 +638,10 @@ const blockStyle = computed(() => {
     heightMode,
     ...visualStyle
   } = raw
+  // 运行/预览剥离误写入的选中态蓝边，避免样式面板看不见却看得见框
+  const safeVisual = props.readonly
+    ? stripAccidentalSelectionChrome(visualStyle)
+    : visualStyle
   const style = {
     width: '100%',
     height: '100%',
@@ -626,7 +657,7 @@ const blockStyle = computed(() => {
     maxWidth: '',
     minHeight: '',
     maxHeight: '',
-    ...visualStyle,
+    ...safeVisual,
   }
   const resolvedWidthMode = widthMode || 'full'
   const resolvedHeightMode = heightMode || 'fixed'
@@ -651,8 +682,14 @@ const blockStyle = computed(() => {
     maxHeight: toCssSize(style.maxHeight, undefined),
     margin: toCssSize(style.margin, '0px'),
     padding: toCssSize(style.padding, '0px'),
-    ...parseInlineStyle(style.customStyle),
   }
+  if (style.opacity != null && style.opacity !== '')
+    resolvedStyle.opacity = style.opacity
+  if (style.lineHeight != null && style.lineHeight !== '')
+    resolvedStyle.lineHeight = style.lineHeight
+  // css/顶层字色字号进外壳；customStyle 最后覆盖
+  Object.assign(resolvedStyle, mergeBlockTypographyStyle({}, style))
+  Object.assign(resolvedStyle, parseInlineStyle(style.customStyle))
   if (forceFluidWidth) {
     resolvedStyle.width = resolvedWidthMode === 'auto' ? 'auto' : '100%'
     resolvedStyle.maxWidth = '100%'
@@ -706,15 +743,21 @@ const aiActionColumn = computed(() => {
     }, action.label || action.key))),
   }
 })
-const aiTableColumns = computed(() => visibleResolvedFields.value.slice(0, 8).map(field => ({
-  key: field.field,
-  field: field.field,
-  title: field.label || field.field,
-  minWidth: 110,
-  align: fieldAlign(field.field),
-  ellipsis: { tooltip: true },
-  render: row => renderTableCell(field, row),
-})).concat(aiActionColumn.value ? [aiActionColumn.value] : []))
+const aiTableColumns = computed(() => visibleResolvedFields.value.slice(0, 8).map((field) => {
+  const setting = props.block.props?.fieldSettings?.[field.field] || {}
+  return {
+    key: field.field,
+    field: field.field,
+    title: resolveListFieldTitle(field, setting, field.field),
+    minWidth: setting.minWidth || 110,
+    width: setting.width,
+    fixed: setting.fixed || undefined,
+    renderType: setting.renderType || undefined,
+    align: fieldAlign(field.field),
+    ellipsis: setting.ellipsis === false ? false : { tooltip: true },
+    render: row => renderTableCell(field, row),
+  }
+}).concat(aiActionColumn.value ? [aiActionColumn.value] : []))
 const hasExplicitSearchFieldRefs = computed(() => Object.prototype.hasOwnProperty.call(
   props.block.props || {},
   'searchFieldRefs',
@@ -779,7 +822,17 @@ const effectiveRuntimeCrudProps = computed(() => {
     designerCrudPublicParams: designerCrudPublicParams.value,
     preventStaticCrudSubmit,
     extensionRuntimeApi,
+    // 自由布局抑制列表伴生壳后，属性面板改的 formOpenMode/modalWidth 必须盖过对象 runtime
+    preferBlockFormChrome: props.suppressRuntimeListGrid === true,
   })
+})
+
+/** 与对象多画布 pageKey 对齐（应用路由保留 pageId，用 query.pageKey 切 list/dialog/自定义页） */
+const runtimeObjectPageKey = computed(() => {
+  const fromQuery = String(route.query?.pageKey || '').trim()
+  if (fromQuery)
+    return fromQuery
+  return 'list'
 })
 
 /** 列表设计器有伴生块时，门户/画布内 AiCrudPage 改走完整自由布局只读渲染 */
@@ -794,7 +847,7 @@ const shouldRenderRuntimeListGridShell = computed(() => {
     modelSchema: crud.modelSchema,
     layoutType: crud.layoutType,
     formOnly: crud.formOnly === true,
-    pageKey: 'list',
+    pageKey: runtimeObjectPageKey.value,
   })
 })
 
@@ -805,8 +858,17 @@ const runtimeListGridModel = computed(() => {
   return resolveRuntimeListGridModel(crud.pageSchema, {
     modelSchema: crud.modelSchema,
     layoutType: crud.layoutType,
-    pageKey: 'list',
+    pageKey: runtimeObjectPageKey.value,
   })
+})
+
+/**
+ * 任意非 list 的 pageKey：禁止回退裸 AiCrudPage。
+ * 已登记空页走 RuntimeListGridFlow；未登记/解析失败时由空壳占位，避免误显示列表 CRUD。
+ */
+const shouldSuppressBareCrudFallback = computed(() => {
+  const key = runtimeObjectPageKey.value
+  return Boolean(key && key !== 'list')
 })
 
 /** 对象页通常只有 AiCrudPage；tree-crud 时用模板壳出左树。设计器已有 tree-panel 时抑制，避免双树。 */
@@ -918,10 +980,7 @@ const pageTitleStyle = computed(() => ({
   textAlign: resolvedTextAlign.value,
   paddingInlineStart: Number(props.block.props?.indent || 0) > 0 ? `${Number(props.block.props.indent) * 16}px` : undefined,
 }))
-const pageTitleRichContent = computed(() => props.block.props?.content || createLegacyPageTitleContent(
-  props.block.props?.title || props.block.label || '页面标题',
-  props.block.props?.subtitle || '',
-))
+const pageTitleRichContent = computed(() => resolvePageTitleRichContent(props.block.props, props.block.label))
 const textTitleStyle = computed(() => ({
   color: props.block.props?.color || '#0f172a',
   fontSize: `${resolvedTextFontSize.value || resolveTitleFontSize(props.block.props?.level || 2)}px`,
@@ -1571,13 +1630,49 @@ async function applyCrudPreviewMode(list = []) {
   })
 }
 
-function handleBackClick() {
+function buildRuntimeEventContext() {
+  return {
+    route,
+    router,
+    // 组件树内 useMessage 比离散 window.$message 更稳定（预览/门户可弹出）
+    message: runtimeMessage,
+    selfBlockId: props.block?.id || '',
+    resolveRuntimeText,
+    resolveRuntimeParamValue,
+    appendRuntimeEventParams,
+    isApplicationRuntimeRoute,
+  }
+}
+
+/** 设计态拦截链接；预览/发布态优先执行配置的 click 事件，否则放行 href */
+async function handleLinkClick(event) {
+  if (!props.readonly) {
+    event?.preventDefault?.()
+    return
+  }
+  const eventItem = resolvePrimaryClickEvent()
+  if (!eventItem || eventItem.action === 'none')
+    return
+  event?.preventDefault?.()
+  await runBlockClickEvent(eventItem, buildRuntimeEventContext())
+}
+
+/**
+ * 返回按钮：优先执行设计器配置的 click 事件（与 action-button/link 同协议）；
+ * 未配置事件时再走 props.action=navigate 或 history.back 兜底。
+ */
+async function handleBackClick(event) {
   if (!props.readonly)
     return
+  const eventItem = resolvePrimaryClickEvent()
+  if (eventItem && eventItem.action !== 'none') {
+    event?.preventDefault?.()
+    await runBlockClickEvent(eventItem, buildRuntimeEventContext())
+    return
+  }
   if (props.block.props?.action === 'navigate' && props.block.props?.targetPageKey) {
     const target = props.block.props.targetPageKey
-    const query = { ...route.query }
-    applyPageNavigationQuery(query, target)
+    const query = applyPageNavigationQuery({ ...route.query }, target, isApplicationRuntimeRoute)
     ;['mode', 'id', 'recordId'].forEach(key => delete query[key])
     if (props.block.props.targetFormKey)
       query.formKey = props.block.props.targetFormKey
@@ -1609,34 +1704,53 @@ async function handleActionButtonClick() {
   const eventItem = resolvePrimaryClickEvent()
   if (!eventItem || eventItem.action === 'none')
     return
-  if (eventItem.confirmText && !(await confirmRuntimeAction(resolveRuntimeText(eventItem.confirmText))))
+  await runBlockClickEvent(eventItem, buildRuntimeEventContext())
+}
+
+/** 按钮组运行态点击：复用区块级 click 事件（与 action-button 同协议） */
+async function handleButtonGroupClick(button = {}) {
+  if (!props.readonly)
     return
-  if (eventItem.action === 'navigate') {
-    navigateRuntimeEvent(eventItem)
+  if (button?.disabled === true)
     return
-  }
-  if (eventItem.action === 'request') {
-    await requestRuntimeEvent(eventItem)
-    handleRuntimeEventSuccess(eventItem)
-  }
+  const eventItem = resolvePrimaryClickEvent()
+  if (!eventItem || eventItem.action === 'none')
+    return
+  await runBlockClickEvent(eventItem, {
+    ...buildRuntimeEventContext(),
+    clickedButton: button,
+  })
+}
+
+/**
+ * 运行态区块外壳点击：让 info-panel 等「内容型」区块配置的 click 事件真正生效。
+ * 自带点击控件的区块（按钮/链接/返回）自行处理，避免重复触发。
+ */
+async function handleRuntimeBlockShellClick(event) {
+  if (!props.readonly)
+    return
+  const selfHandled = ['action-button', 'button-group', 'link', 'back-button']
+  if (selfHandled.includes(props.block?.blockType))
+    return
+  const target = event?.target
+  if (target?.closest?.('button, a, input, textarea, select, .n-button, .n-input, .n-base-selection, .n-checkbox, .n-radio, .n-switch'))
+    return
+  const eventItem = resolvePrimaryClickEvent()
+  if (!eventItem || eventItem.action === 'none')
+    return
+  await runBlockClickEvent(eventItem, buildRuntimeEventContext())
 }
 
 function resolvePrimaryClickEvent() {
-  const events = Array.isArray(props.block.props?.events) ? props.block.props.events : []
-  return events.find(item => (item.trigger || 'click') === 'click') || null
+  const raw = props.block.props?.events
+  const events = Array.isArray(raw)
+    ? raw
+    : (raw && typeof raw === 'object' ? Object.values(raw) : [])
+  return events.find(item => item && (item.trigger || 'click') === 'click' && item.action && item.action !== 'none') || null
 }
 
 function navigateRuntimeEvent(eventItem = {}) {
-  if (!eventItem.targetPageKey)
-    return
-  const query = { ...route.query }
-  applyPageNavigationQuery(query, eventItem.targetPageKey)
-  if (eventItem.targetFormKey)
-    query.formKey = eventItem.targetFormKey
-  else
-    delete query.formKey
-  appendRuntimeEventParams(query, eventItem.params || [])
-  router.push({ path: route.path, query, hash: route.hash })
+  return runNavigateRuntimeEvent(eventItem, buildRuntimeEventContext())
 }
 
 /** 应用运行态用 pageId 切页；对象多页 CRUD 用 pageKey。 */
@@ -1645,20 +1759,6 @@ function isApplicationRuntimeRoute() {
     || String(route.name || '').includes('Application')
     || String(route.path || '').includes('/app-center/application/')
     || String(route.path || '').startsWith('/app/')
-}
-
-function applyPageNavigationQuery(query = {}, target = '') {
-  const next = String(target || '').trim()
-  if (!next)
-    return query
-  if (isApplicationRuntimeRoute()) {
-    query.pageId = next
-    delete query.pageKey
-  }
-  else {
-    query.pageKey = next
-  }
-  return query
 }
 
 
@@ -1804,21 +1904,8 @@ async function handleStandaloneAiFormValueUpdate(value = {}) {
 
 
 function handleRuntimeEventSuccess(eventItem = {}) {
-  if (eventItem.successBehavior === 'goBack') {
-    router.back()
-  }
-  else if (eventItem.successBehavior === 'refreshList') {
-    router.replace({
-      path: route.path,
-      query: { ...route.query, _refresh: Date.now() },
-      hash: route.hash,
-    })
-  }
+  runRuntimeEventSuccess(eventItem, buildRuntimeEventContext())
 }
-
-
-
-
 
 function boundRowField(row = {}, fieldKey = 'valueField', defaultField = 'value', fallback = '') {
   if (row === undefined || row === null)
@@ -1826,19 +1913,6 @@ function boundRowField(row = {}, fieldKey = 'valueField', defaultField = 'value'
   if (typeof row !== 'object')
     return fieldKey === 'valueField' || fieldKey === 'contentField' ? row : fallback
   return readBoundField(row, fieldKey, defaultField, fallback)
-}
-
-async function requestRuntimeEvent(eventItem = {}) {
-  const apiConfig = parseRuntimeApiConfig(eventItem.requestUrl)
-  if (!apiConfig.url)
-    return
-  const payload = {}
-  appendRuntimeEventParams(payload, eventItem.params || [])
-  await request({
-    method: apiConfig.method,
-    url: apiConfig.url,
-    ...(apiConfig.method === 'get' ? { params: payload } : { data: payload }),
-  })
 }
 
 function appendRuntimeEventParams(target = {}, params = []) {
@@ -1857,11 +1931,37 @@ const gridBlockExposeApi = {
   getRuntimeCrudRef: () => runtimeCrudRef.value,
 }
 
+function resolveRuntimeCrudApi(instance = runtimeCrudRef.value) {
+  return findNestedAiCrudApi(instance)
+}
+
+let unregisterRuntimeBlock = null
+function syncRuntimeBlockRegistry() {
+  unregisterRuntimeBlock?.()
+  unregisterRuntimeBlock = null
+  const blockId = props.block?.id
+  if (!blockId)
+    return
+  // 流式壳 / 普通 AiCrudPage 都注册到 block.id；壳场景通过子树查找真实 AiCrudPage。
+  unregisterRuntimeBlock = registerRuntimeBlock(blockId, createRuntimeBlockApi(resolveRuntimeCrudApi))
+}
+
+watch(
+  [() => props.block?.id, runtimeCrudRef, shouldRenderRuntimeListGridShell],
+  () => syncRuntimeBlockRegistry(),
+  { immediate: true },
+)
+
 onMounted(() => {
   loadRuntimeTree()
   loadDetailInfoRecord()
   loadBlockBindingData()
   renderBarcode()
+})
+
+onBeforeUnmount(() => {
+  unregisterRuntimeBlock?.()
+  unregisterRuntimeBlock = null
 })
 
 watch([
@@ -1964,13 +2064,13 @@ function handleContainerDragEnter(event) {
     boundInfoType, boundCustomTitle, boundCustomContent, boundTags, boundSteps, boundTimelineTitle, boundTimelineItems, boundEmptyTitle,
     boundEmptyDescription, boundEmptyActionText, boundTextTitle, boundTextSubtitle, boundParagraphContent, boundStatisticTitle, boundStatisticValue, boundStatisticDescription,
     boundStatisticTrend, boundLinkText, boundLinkHref, boundTextTipTitle, boundTextTipContent, boundTextTipType, boundMediaTitle, boundMediaSrc,
-    boundVideoPoster, boundAvatarName, boundAvatarDescription, boundAvatarSrc, resizeAnchors, nestedBlockMenuOptions, containerMenu, openContainerMenu,
+    boundVideoPoster, boundAvatarName, boundAvatarDescription, boundAvatarSrc, resizeAnchors, nestedBlockMenuOptions, hoveredNestedBlockId, showNestedChrome, onNestedPointerEnter, onNestedPointerLeave, containerMenu, openContainerMenu,
     closeContainerMenu, handleGridCellContextMenu, handleContainerSlotContextMenu, handleChildContextMenu, handleContainerMenuInsert, handleContainerMenuAction, crudPreviewMode, crudPreviewReloadKey,
     gridLayoutCells, resolveGridCellPreviewMinHeight, isActiveDropCell, isActiveDropContainer, shouldShowGridCellEmpty, isCatalogDragEvent, handleGridCellDragOver, handleGridCellDrop,
     handleContainerDragOver, handleContainerDrop, handleTabPaneDragOver, handleTabPaneDragEnter, resolveActiveTabKey, handleTabsValueChange, handleTabPaneDrop, clampGridSpan,
     actionButtonVisible, blockStyle, tableColumns, aiActionColumn, aiTableColumns, hasExplicitSearchFieldRefs, aiSearchSchema, crudSearchTypeRequestParams,
     designerCrudPublicParams, runtimeExtensionHandlers, aiFormSchema, aiFormCreateApi, blockApiConfig, crudPagePresentation, effectiveRuntimeCrudProps, shouldRenderTreeCrudShell,
-    shouldRenderRuntimeListGridShell, runtimeListGridModel,
+    shouldRenderRuntimeListGridShell, runtimeListGridModel, shouldSuppressBareCrudFallback,
     extensionRuntimeApi, designerCrudHookHandlers, livePreviewRecord, blockTableRowHeight, detailInfoGridStyle, resolvedApiConfig, hasConfiguredCrudRequest, shouldRequestCrudPreviewApi,
     isStaticCrudPreview, staticCrudPreviewMessage, preventStaticCrudSubmit, resolvedDesignerCrudHookHandlers, previewPagination, toolbarCustomActions, transferOptions, transferValue,
     transferSelectedOptions, resolvedTextAlign, resolvedTextFontSize, resolvedTextFontWeight, textContentStyle, pageTitleStyle, pageTitleRichContent, textTitleStyle,
@@ -1980,12 +2080,12 @@ function handleContainerDragEnter(event) {
     renderTableCell, resolveSearchOptionSource, resolveNestedBlockFields, resolveNestedBlockRuntimeCrudProps, resolveNestedBlockRuntimeCrudLoading, resolveNestedBlockDataSourceConfigured, detailValue, normalizeBlockBoundRows,
     boundContentValue, readBoundField, loadBlockBindingData, normalizeBlockBindingParams, loadDetailInfoRecord, normalizeDetailInfoParams, resolveRuntimeTreeApi, loadRuntimeTree,
     loadRuntimeTreeChildren, normalizeRuntimeTreeNodes, expandTree, collapseTree, toggleTreePanel, clearRuntimeTreeSelection, handleRuntimeTreeSelected, emitCrudPreviewState,
-    handleCrudPreviewSuccess, handleCrudPreviewError, applyCrudPreviewMode, handleBackClick, handleActionButtonClick, resolvePrimaryClickEvent, navigateRuntimeEvent, resolveRuntimeParamValue,
+    handleCrudPreviewSuccess, handleCrudPreviewError, applyCrudPreviewMode, handleBackClick, handleLinkClick, handleActionButtonClick, handleButtonGroupClick, handleRuntimeBlockShellClick, resolvePrimaryClickEvent, navigateRuntimeEvent, resolveRuntimeParamValue,
     resolveRuntimeText, resolveSystemRuntimeParam, hasRuntimePermission, handleAiFormSubmit, handleStandaloneAiFormValueUpdate, handleRuntimeEventSuccess,
     resolvePreviewChildHeight, hasGridCellChildren, shouldShowGridCellDropPreview, handleGridCellDragEnter, handleContainerDragEnter, resolveFormLayoutBlockType, nestedChildShellStyle, createLegacyPageTitleContent,
     loadBarcodeModule, componentType, resolveTitleFontSize, sanitizeIframeSrc, toOptionalNumber, isDefaultAiFormField, toAiFormField, trendClass,
     sampleValue, extractBlockBoundRows, normalizeBlockRow, boundRowField, interpolateText, getNestedRecordValue, parseApiConfigValue, extractRuntimeTreeRows,
-    countTreeNodes, collectTreeKeys, normalizeRuntimeTreeConfig, requestRuntimeEvent, appendRuntimeEventParams, resolveTemplatePlaceholder, matchDisplayCondition, parseRuntimeApiConfig,
+    countTreeNodes, collectTreeKeys, normalizeRuntimeTreeConfig, appendRuntimeEventParams, resolveTemplatePlaceholder, matchDisplayCondition, parseRuntimeApiConfig,
     resolveEffectiveFormOpenMode, resolveEffectiveModalType, buildRuntimeCrudBlockProps, normalizeTableRowGap, pageWidgetComponentKeys, confirmRuntimeAction, toCssSize, parseInlineStyle, gridBlockExposeApi,
   }
 }

@@ -1704,6 +1704,24 @@
   font-size: 11px;
 }
 
+.appearance-clear-btn {
+  flex: 0 0 auto;
+  margin-right: 4px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.appearance-clear-btn:hover {
+  color: var(--text-secondary);
+  background: rgba(24, 24, 27, 0.04);
+}
+
 .appearance-select {
   flex: 0 0 auto;
   max-width: 70px;

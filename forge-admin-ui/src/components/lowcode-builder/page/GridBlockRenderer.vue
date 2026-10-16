@@ -5,6 +5,7 @@
     :class="[`block-${block.blockType}`, { selected: selected && !readonly, 'is-form-only': crudPagePresentation.formOnly, 'is-readonly': readonly }]"
     :style="blockStyle"
     :data-block-id="block.id"
+    @click="handleRuntimeBlockShellClick"
   >
     <template v-if="isDataFieldBlock && runtimeCrudLoading">
       <div class="runtime-crud-loading">
@@ -125,7 +126,7 @@
           <span class="back-icon">
             <n-icon><ChevronBackOutline /></n-icon>
           </span>
-          <span>{{ block.props?.text || block.label || '返回' }}</span>
+          <span>{{ block.props?.text || block.props?.title || block.label || '返回' }}</span>
         </button>
       </div>
     </template>
@@ -242,10 +243,12 @@
                 }"
                 :style="nestedChildShellStyle(child)"
                 :data-grid-child-id="child.id"
+                @pointerenter="onNestedPointerEnter(child.id)"
+                @pointerleave="onNestedPointerLeave(child.id)"
                 @click.stop="emit('childBlockSelect', child.id)"
                 @contextmenu.prevent.stop="!readonly && handleChildContextMenu($event, child, { cellKey: cell.key, title: '栅格内组件' })"
               >
-                <div v-if="!readonly" class="nested-block-node-overlay">
+                <div v-if="showNestedChrome(child.id)" class="nested-block-node-overlay">
                   <span
                     class="nested-block-drag-handle"
                     title="拖动组件"
@@ -362,6 +365,13 @@
           ref="runtimeCrudRef"
           :crud-props="effectiveRuntimeCrudProps"
         />
+        <div
+          v-else-if="effectiveRuntimeCrudProps && shouldSuppressBareCrudFallback"
+          class="runtime-object-page-empty"
+          data-runtime-empty-page="1"
+        >
+          当前页面暂无组件
+        </div>
         <AiCrudPage
           v-else-if="effectiveRuntimeCrudProps"
           ref="runtimeCrudRef"
@@ -421,6 +431,9 @@
           :table-row-gap="normalizeTableRowGap(block.props?.rowGap, 8)"
           :bordered="!!block.props?.bordered"
           :striped="!!block.props?.striped"
+          :empty-title="block.props?.emptyTitle || ''"
+          :empty-description="block.props?.emptyDescription || block.props?.emptyText || ''"
+          :empty-text="block.props?.emptyText || block.props?.emptyDescription || ''"
           :hide-selection="block.props?.hideSelection === true"
           :max-height="block.props?.maxHeight || undefined"
           :scroll-x="block.props?.scrollX || undefined"
@@ -665,7 +678,7 @@
           <template v-if="block.props?.icon" #icon>
             <IconRenderer :icon="block.props.icon" :size="14" />
           </template>
-          {{ block.props?.text || '操作' }}
+          {{ block.props?.text || block.props?.title || block.label || '操作' }}
         </n-button>
       </div>
       <div v-else class="block-empty">
@@ -673,7 +686,7 @@
       </div>
     </template>
 
-    <!-- 按钮组 -->
+    <!-- 按钮组：设计态禁用避免误点；运行态可点并走区块 click 事件 -->
     <template v-else-if="block.blockType === 'button-group'">
       <div class="button-group-preview">
         <n-button
@@ -681,9 +694,10 @@
           :key="button.key || button.text"
           :type="button.type === 'default' ? undefined : button.type"
           size="small"
-          disabled
+          :disabled="!readonly || button.disabled === true"
+          @click.stop="handleButtonGroupClick(button)"
         >
-          {{ button.text || '按钮' }}
+          {{ button.text || button.label || '按钮' }}
         </n-button>
       </div>
     </template>
@@ -856,9 +870,15 @@
       </div>
     </template>
 
-    <!-- 链接 -->
+    <!-- 链接：设计态拦截点击避免跳离画布；预览/发布态按 href/target 正常跳转 -->
     <template v-else-if="block.blockType === 'link'">
-      <a class="link-preview" :class="`type-${block.props?.type || 'primary'}`" :href="boundLinkHref || '#'" :target="block.props?.target || '_self'" @click.prevent>
+      <a
+        class="link-preview"
+        :class="`type-${block.props?.type || 'primary'}`"
+        :href="boundLinkHref || '#'"
+        :target="block.props?.target || '_self'"
+        @click="handleLinkClick"
+      >
         {{ boundLinkText || '链接文本' }}
       </a>
     </template>
@@ -993,10 +1013,12 @@
           }"
           :style="nestedChildShellStyle(child)"
           :data-grid-child-id="child.id"
+          @pointerenter="onNestedPointerEnter(child.id)"
+          @pointerleave="onNestedPointerLeave(child.id)"
           @click.stop="emit('childBlockSelect', child.id)"
           @contextmenu.prevent.stop="!readonly && handleChildContextMenu($event, child, { title: '盒子内组件' })"
         >
-          <div v-if="!readonly" class="nested-block-node-overlay">
+          <div v-if="showNestedChrome(child.id)" class="nested-block-node-overlay">
             <span
               class="nested-block-drag-handle"
               title="拖动组件"
@@ -1184,10 +1206,12 @@
               }"
               :style="nestedChildShellStyle(child)"
               :data-grid-child-id="child.id"
+              @pointerenter="onNestedPointerEnter(child.id)"
+              @pointerleave="onNestedPointerLeave(child.id)"
               @click.stop="emit('childBlockSelect', child.id)"
               @contextmenu.prevent.stop="!readonly && handleChildContextMenu($event, child, { title: '卡片内组件' })"
             >
-              <div v-if="!readonly" class="nested-block-node-overlay">
+              <div v-if="showNestedChrome(child.id)" class="nested-block-node-overlay">
                 <span
                   class="nested-block-drag-handle"
                   title="拖动组件"
@@ -1312,10 +1336,12 @@
                 :class="{ selected: !readonly && child.id === selectedBlockId }"
                 :style="nestedChildShellStyle(child)"
                 :data-grid-child-id="child.id"
+                @pointerenter="onNestedPointerEnter(child.id)"
+                @pointerleave="onNestedPointerLeave(child.id)"
                 @click.stop="emit('childBlockSelect', child.id)"
                 @contextmenu.prevent.stop="!readonly && handleChildContextMenu($event, child, { tabKey: tab.key, title: '标签页内组件' })"
               >
-                <div v-if="!readonly" class="nested-block-node-overlay">
+                <div v-if="showNestedChrome(child.id)" class="nested-block-node-overlay">
                   <span
                     class="nested-block-drag-handle"
                     title="拖动组件"

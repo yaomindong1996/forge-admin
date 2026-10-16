@@ -34,6 +34,49 @@ describe('resolveAiFormSchemaFromUiDocument', () => {
     expect(result.map(f => f.field)).toEqual(['title', 'amount', 'extra'])
   })
 
+  it('空布局容器（card/tabs/collapse）仍保留，避免预览静默丢壳', () => {
+    const result = mapUiDocumentComponentsToAiFormSchema([
+      { type: 'elCard', label: 'E2E_elCard', props: { title: 'E2E_elCard' }, children: [] },
+      { type: 'tabs', label: 'E2E_tabs', children: [{ type: 'tabPane', label: 'E2E_tabPane', children: [] }] },
+      { type: 'collapse', label: 'E2E_collapse', children: [{ type: 'collapseItem', label: 'E2E_collapseItem', children: [] }] },
+      { type: 'row', label: 'E2E_row', children: [{ type: 'col', label: 'E2E_col', children: [] }] },
+    ], [])
+    expect(result.map(n => n.nodeType)).toEqual(['card', 'tabs', 'collapse', 'row'])
+    expect(result[0]).toMatchObject({ label: 'E2E_elCard', children: [] })
+    expect(result[1].children[0]).toMatchObject({ nodeType: 'tabPane', label: 'E2E_tabPane' })
+    expect(result[2].children[0]).toMatchObject({ nodeType: 'collapseItem', label: 'E2E_collapseItem' })
+    expect(result[3].children[0]).toMatchObject({ nodeType: 'col', label: 'E2E_col' })
+  })
+
+  it('未配置列的关联子表仍保留，避免设计态可见、预览/发布静默丢失', () => {
+    const result = mapUiDocumentComponentsToAiFormSchema([
+      {
+        type: 'subTable',
+        id: 'cmp_subTable_1',
+        label: 'E2E_subTable',
+        props: {
+          header: 'E2E_subTable',
+          relationKey: 'e2e_items',
+          e2eMarker: 'E2E_subTable',
+          columns: [
+            { fieldCode: 'itemName', label: '明细名称', type: 'input' },
+          ],
+        },
+        children: [],
+      },
+    ], [])
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({
+      nodeType: 'subTable',
+      type: 'subTable',
+      label: 'E2E_subTable',
+      props: {
+        relationKey: 'e2e_items',
+        e2eMarker: 'E2E_subTable',
+      },
+    })
+  })
+
   it('优先 components 布局树，字段定义仍取自 fields', () => {
     const fields = [
       { field: 'amount', writable: false, type: 'number' },
@@ -232,11 +275,13 @@ describe('resolveAiFormSchemaFromUiDocument', () => {
 })
 
 describe('mapUiDocumentComponentsToAiFormSchema', () => {
-  it('无命中字段且无组件字段时返回空数组', () => {
+  it('无业务字段的空布局容器仍保留为空壳', () => {
     expect(mapUiDocumentComponentsToAiFormSchema(
       [{ type: 'row', children: [] }],
       [{ field: 'a' }],
-    )).toEqual([])
+    )).toEqual([
+      expect.objectContaining({ type: 'row', nodeType: 'row', children: [] }),
+    ])
   })
 
   it('fields 缺失时从 uiDocument 节点合成字段定义', () => {
@@ -245,5 +290,19 @@ describe('mapUiDocumentComponentsToAiFormSchema', () => {
       [],
     )
     expect(result).toMatchObject([{ field: 'fieldSwitch', type: 'switch', label: '开关' }])
+  })
+
+  it('未绑定字段的控件与页面挂件仍映射进 schema', () => {
+    const result = mapUiDocumentComponentsToAiFormSchema(
+      [
+        { type: 'textarea', id: 'cmp_ta', label: 'E2E_textarea' },
+        { type: 'qrcode', id: 'cmp_qr', label: 'E2E_qrcode', props: { content: 'hello' } },
+      ],
+      [],
+    )
+    expect(result).toEqual(expect.arrayContaining([
+      expect.objectContaining({ field: 'cmp_ta', type: 'textarea', label: 'E2E_textarea' }),
+      expect.objectContaining({ field: 'cmp_qr', nodeType: 'widget', componentKey: 'qrcode', label: 'E2E_qrcode' }),
+    ]))
   })
 })

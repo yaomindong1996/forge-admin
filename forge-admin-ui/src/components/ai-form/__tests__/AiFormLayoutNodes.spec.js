@@ -13,6 +13,21 @@ vi.mock('vue-router', () => ({
     fullPath: '/',
     name: 'ai-form-layout-nodes-test',
   }),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  createRouter: vi.fn(() => ({ beforeEach: vi.fn(), afterEach: vi.fn() })),
+  createWebHistory: vi.fn(),
+  createWebHashHistory: vi.fn(),
+  routes: [],
+}))
+
+vi.mock('@/api/business-app', () => ({}))
+
+vi.mock('@/api/ai/lowcode', () => ({
+  crudConfigRender: vi.fn(async () => ({ data: null })),
+}))
+
+vi.mock('@/components/lowcode-builder/shared/runtime-crud-props', () => ({
+  buildRuntimeCrudProps: vi.fn(() => ({})),
 }))
 
 const NGridStub = {

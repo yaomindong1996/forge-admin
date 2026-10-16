@@ -34,8 +34,95 @@ function resolveEnableTreeAddChild(blockProps = {}, runtimeProps = {}) {
 }
 
 /**
- * 查询条件：显式 searchFieldRefs 时优先用运行配置 searchSchema（草稿/发布）按 refs 过滤排序；
- * 只有运行配置为空时才回落画布本地 aiSearchSchema。空 refs 表示明确不展示查询项。
+ * 把列表设计器 searchFieldSettings（查询标签/方式/组件类型等）叠到运行 schema 上。
+ * 运行配置 searchSchema 只提供字段目录与默认值；页面块覆盖必须优先生效，否则抽屉改完看起来「没保存」。
+ */
+export function applySearchFieldSettingsOverlay(schema = [], blockProps = {}) {
+  const settings = blockProps?.searchFieldSettings && typeof blockProps.searchFieldSettings === 'object'
+    ? blockProps.searchFieldSettings
+    : {}
+  if (!Object.keys(settings).length)
+    return Array.isArray(schema) ? schema : []
+  return (Array.isArray(schema) ? schema : []).map((item) => {
+    const field = String(item?.field || item?.prop || item?.key || '').trim()
+    const sourceField = String(item?.sourceField || '').trim()
+    const setting = (sourceField && settings[sourceField])
+      || (field && settings[field])
+      || {}
+    if (!Object.keys(setting).length)
+      return item
+    const componentType = String(setting.componentType || setting.type || '').trim()
+    const next = { ...item }
+    // 显式写过 label（含清空）才覆盖，避免空字符串被 || 吃掉后看起来「改了没生效」
+    if (Object.prototype.hasOwnProperty.call(setting, 'label')) {
+      const label = String(setting.label || '').trim()
+      if (label)
+        next.label = label
+    }
+    if (setting.queryType)
+      next.queryType = setting.queryType
+    if (Object.prototype.hasOwnProperty.call(setting, 'placeholder')) {
+      const placeholder = String(setting.placeholder || '').trim()
+      if (placeholder)
+        next.placeholder = placeholder
+    }
+    if (componentType) {
+      next.type = componentType
+      next.componentType = componentType
+    }
+    if (setting.dictType)
+      next.dictType = setting.dictType
+    if (setting.optionSource || setting.props?.optionSource) {
+      const optionSource = setting.optionSource || setting.props?.optionSource
+      next.optionSource = optionSource
+      next.props = {
+        ...(item.props || {}),
+        ...(setting.props || {}),
+        optionSource,
+      }
+    }
+    return next
+  })
+}
+
+function indexCrudItemsByFieldKey(items = []) {
+  const byKey = new Map()
+  ;(Array.isArray(items) ? items : []).forEach((item) => {
+    const key = String(item?.prop || item?.field || item?.key || item?.dataIndex || '').trim()
+    if (key && !byKey.has(key))
+      byKey.set(key, item)
+    const sourceField = String(item?.sourceField || '').trim()
+    if (sourceField && !byKey.has(sourceField))
+      byKey.set(sourceField, item)
+  })
+  return byKey
+}
+
+/**
+ * 按 searchFieldRefs 合并运行配置与画布本地 schema：
+ * 每个 ref 优先用 runtime，缺列时用 aiSearchSchema 补齐，避免设计器勾了 ID、预览却被运行配置吃掉。
+ */
+export function mergeSearchSchemaByFieldRefs(primary = [], fallback = [], fieldRefs = []) {
+  const refs = (Array.isArray(fieldRefs) ? fieldRefs : []).map(ref => String(ref || '').trim()).filter(Boolean)
+  if (!refs.length)
+    return []
+  const primaryMap = indexCrudItemsByFieldKey(primary)
+  const fallbackMap = indexCrudItemsByFieldKey(fallback)
+  return refs.map((ref) => {
+    const item = primaryMap.get(ref) || fallbackMap.get(ref)
+    if (!item)
+      return null
+    return {
+      ...item,
+      field: item.field || item.prop || ref,
+      sourceField: item.sourceField || ref,
+    }
+  }).filter(Boolean)
+}
+
+/**
+ * 查询条件：显式 searchFieldRefs 时按 refs 排序合并 runtime + 画布 schema；
+ * 空 refs 表示明确不展示查询项。最后叠 searchFieldSettings，保证设计器覆盖生效。
  */
 export function resolveRuntimeSearchSchema({
   hasExplicitSearchFieldRefs = false,
@@ -48,41 +135,20 @@ export function resolveRuntimeSearchSchema({
     const refs = Array.isArray(blockProps.searchFieldRefs) ? blockProps.searchFieldRefs.filter(Boolean) : []
     if (!refs.length)
       return []
-    const source = Array.isArray(runtimeSearchSchema) && runtimeSearchSchema.length
-      ? runtimeSearchSchema
-      : (Array.isArray(aiSearchSchema) ? aiSearchSchema : [])
-    return orderCrudItemsByFieldRefs(filterCrudItemsByFieldRefs(source, refs), refs)
+    return applySearchFieldSettingsOverlay(
+      mergeSearchSchemaByFieldRefs(runtimeSearchSchema, aiSearchSchema, refs),
+      blockProps,
+    )
   }
-  return filterCrudItemsByFieldRefs(
-    Array.isArray(runtimeSearchSchema) && runtimeSearchSchema.length
-      ? runtimeSearchSchema
-      : (Array.isArray(aiSearchSchema) ? aiSearchSchema : []),
-    configuredFieldRefs,
+  return applySearchFieldSettingsOverlay(
+    filterCrudItemsByFieldRefs(
+      Array.isArray(runtimeSearchSchema) && runtimeSearchSchema.length
+        ? runtimeSearchSchema
+        : (Array.isArray(aiSearchSchema) ? aiSearchSchema : []),
+      configuredFieldRefs,
+    ),
+    blockProps,
   )
-}
-
-function orderCrudItemsByFieldRefs(items = [], fieldRefs = []) {
-  if (!Array.isArray(items) || !items.length || !Array.isArray(fieldRefs) || !fieldRefs.length)
-    return Array.isArray(items) ? items : []
-  const byKey = new Map()
-  items.forEach((item) => {
-    const key = String(item?.prop || item?.field || item?.key || item?.dataIndex || '').trim()
-    if (key && !byKey.has(key))
-      byKey.set(key, item)
-  })
-  const ordered = fieldRefs
-    .map(ref => byKey.get(String(ref)))
-    .filter(Boolean)
-  // 保留非字段项（如操作列），一般查询 schema 不会有
-  const used = new Set(ordered.map(item => String(item?.prop || item?.field || item?.key || item?.dataIndex || '').trim()))
-  items.forEach((item) => {
-    const key = String(item?.prop || item?.field || item?.key || item?.dataIndex || '').trim()
-    if (!key || used.has(key))
-      return
-    if (item?.type === 'action' || item?.fixed === 'right' || key === 'action')
-      ordered.push(item)
-  })
-  return ordered
 }
 
 /** 合并对象运行配置与当前区块配置；不修改任一输入或共享缓存。 */
@@ -100,10 +166,13 @@ export function buildRuntimeCrudBlockProps({
   designerCrudPublicParams = {},
   preventStaticCrudSubmit,
   extensionRuntimeApi,
+  // 自由布局裸 CRUD：区块属性面板是表单 chrome 的编辑入口，优先于对象 runtime
+  preferBlockFormChrome = false,
 }) {
   if (!runtimeProps) {
     return null
   }
+  const formChromeOpts = { preferBlockFormChrome: preferBlockFormChrome === true }
   const designPreview = isDesignPreviewCrudProps(runtimeProps)
   // 运行页 runtimeInteractive 为 true 时必须允许提交。designPreview 只表示读草稿配置，
   // 不能再和“未开真实数据预览”一起当成静态画布，否则有编辑权限的运行页无法新增。
@@ -204,6 +273,11 @@ export function buildRuntimeCrudBlockProps({
     api: runtimeBlockApi || runtimeProps.api || '',
     rowKey: blockProps.rowKey || runtimeProps.rowKey || 'id',
     title: blockProps.title || runtimeProps.title,
+    emptyTitle: blockProps.emptyTitle || runtimeProps.emptyTitle,
+    emptyDescription: blockProps.emptyDescription || blockProps.emptyText || runtimeProps.emptyDescription || runtimeProps.emptyText,
+    emptyText: blockProps.emptyText || blockProps.emptyDescription || runtimeProps.emptyText || runtimeProps.emptyDescription,
+    emptyFilterTitle: blockProps.emptyFilterTitle || runtimeProps.emptyFilterTitle,
+    emptyFilterDescription: blockProps.emptyFilterDescription || runtimeProps.emptyFilterDescription,
     // 列表列：设计预览跟 tableZone columns；运行态跟修理后的 fieldRefs，缺列从字段目录合成
     columns: ensureManagedFlowStatusColumns(
       applyTableColumnLayout(
@@ -273,21 +347,37 @@ export function buildRuntimeCrudBlockProps({
     editXGap: runtimeProps.editXGap ?? blockProps.editXGap,
     editYGap: runtimeProps.editYGap ?? blockProps.editYGap,
     tableRowGap: normalizeTableRowGap(runtimeProps.tableRowGap ?? blockProps.rowGap, 8),
-    modalWidth: runtimeProps.modalWidth || blockProps.modalWidth,
-    detailModalWidth: runtimeProps.detailModalWidth || blockProps.detailModalWidth,
-    formOpenMode: resolveEffectiveFormOpenMode(blockProps, runtimeProps),
+    modalWidth: preferBlockFormChrome
+      ? (blockProps.modalWidth || runtimeProps.modalWidth)
+      : (runtimeProps.modalWidth || blockProps.modalWidth),
+    detailModalWidth: preferBlockFormChrome
+      ? (blockProps.detailModalWidth || runtimeProps.detailModalWidth)
+      : (runtimeProps.detailModalWidth || blockProps.detailModalWidth),
+    formOpenMode: resolveEffectiveFormOpenMode(blockProps, runtimeProps, formChromeOpts),
     tabWorkspace: runtimeProps.tabWorkspace?.maxTabs ? runtimeProps.tabWorkspace : (blockProps.tabWorkspace || runtimeProps.tabWorkspace),
-    modalType: resolveEffectiveModalType(blockProps, runtimeProps),
-    drawerPlacement: runtimeProps.drawerPlacement || blockProps.drawerPlacement,
+    modalType: resolveEffectiveModalType(blockProps, runtimeProps, formChromeOpts),
+    drawerPlacement: preferBlockFormChrome
+      ? (blockProps.drawerPlacement || runtimeProps.drawerPlacement)
+      : (runtimeProps.drawerPlacement || blockProps.drawerPlacement),
     hideModalFooter: blockProps.hideModalFooter ?? runtimeProps.hideModalFooter,
     hideDefaultDetailContent: blockProps.hideDefaultDetailContent ?? runtimeProps.hideDefaultDetailContent,
     hideToolbar: blockProps.hideToolbar ?? runtimeProps.hideToolbar,
     hideAdd: blockProps.hideAdd ?? runtimeProps.hideAdd,
     hideBatchDelete: blockProps.hideBatchDelete ?? runtimeProps.hideBatchDelete,
-    showImport: staticDesignPreview ? false : (blockProps.showImport ?? runtimeProps.showImport ?? true),
-    showExport: staticDesignPreview ? false : (blockProps.showExport ?? runtimeProps.showExport ?? true),
-    showExportTasks: staticDesignPreview ? false : (blockProps.showExportTasks ?? runtimeProps.showExportTasks),
-    enableCustomQuery: staticDesignPreview ? false : (blockProps.enableCustomQuery ?? runtimeProps.enableCustomQuery ?? true),
+    // 设计态也要跟开关一致，否则属性面板打开了画布却看不到「更多/导入导出/自定义查询」
+    showImport: blockProps.showImport ?? runtimeProps.showImport ?? true,
+    showExport: blockProps.showExport ?? runtimeProps.showExport ?? true,
+    // 与属性面板 isAiCrudToolbarSwitchOn（!== false）默认亮起对齐
+    showExportTasks: blockProps.showExportTasks ?? runtimeProps.showExportTasks ?? true,
+    enableCustomQuery: blockProps.enableCustomQuery ?? runtimeProps.enableCustomQuery ?? true,
+    customQueryConfigKey: blockProps.customQueryConfigKey
+      || runtimeProps.customQueryConfigKey
+      || runtimeConfigKey
+      || '',
+    exportTaskConfigKey: blockProps.exportTaskConfigKey
+      || runtimeProps.exportTaskConfigKey
+      || runtimeConfigKey
+      || '',
     addButtonText: blockProps.addButtonText || runtimeProps.addButtonText,
     exportButtonText: blockProps.exportButtonText || runtimeProps.exportButtonText,
     exportFileName: blockProps.exportFileName || runtimeProps.exportFileName,
@@ -328,23 +418,36 @@ export function buildRuntimeCrudBlockProps({
   }
 }
 
-export function resolveEffectiveFormOpenMode(blockProps = {}, runtimeProps = {}) {
+export function resolveEffectiveFormOpenMode(blockProps = {}, runtimeProps = {}, options = {}) {
   const blockMode = normalizeFormOpenMode(blockProps.formOpenMode)
   const runtimeMode = normalizeFormOpenMode(runtimeProps.formOpenMode)
-  // 表单设计器 layout 是单一事实来源：runtimeMode 有值时直接生效，仅在未配置时才看区块覆盖
-  if (runtimeMode) {
+  const preferBlock = options.preferBlockFormChrome === true
+  // 默认：表单设计器 layout 是单一事实来源；自由布局裸 CRUD 则区块优先
+  if (preferBlock) {
+    if (blockMode)
+      return blockMode
+    if (runtimeMode)
+      return runtimeMode
+  }
+  else if (runtimeMode) {
     return runtimeMode
   }
-  if (blockMode) {
+  else if (blockMode) {
     return blockMode
+  }
+  if (preferBlock) {
+    return normalizeModalType(blockProps.modalType) || normalizeModalType(runtimeProps.modalType) || 'modal'
   }
   return normalizeModalType(runtimeProps.modalType) || normalizeModalType(blockProps.modalType) || 'modal'
 }
 
-export function resolveEffectiveModalType(blockProps = {}, runtimeProps = {}) {
-  const formOpenMode = resolveEffectiveFormOpenMode(blockProps, runtimeProps)
+export function resolveEffectiveModalType(blockProps = {}, runtimeProps = {}, options = {}) {
+  const formOpenMode = resolveEffectiveFormOpenMode(blockProps, runtimeProps, options)
   if (['modal', 'drawer'].includes(formOpenMode)) {
     return formOpenMode
+  }
+  if (options.preferBlockFormChrome === true) {
+    return normalizeModalType(blockProps.modalType) || normalizeModalType(runtimeProps.modalType) || 'modal'
   }
   return normalizeModalType(runtimeProps.modalType) || normalizeModalType(blockProps.modalType) || 'modal'
 }

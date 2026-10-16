@@ -502,7 +502,10 @@ function createContainerChildBlock(blockType) {
         y: 0,
         widthMode: 'full',
         width: '100%',
-        height: child.props?.style?.height || childHeight,
+        // 顶层默认 height 是 100%；嵌套进 auto 容器后百分比无参照，会表现为错误固定高。
+        // 一律落成像素高（resolveNestedChildHeight 已忽略 100%）。
+        heightMode: 'fixed',
+        height: childHeight,
       },
     },
   }
@@ -613,14 +616,28 @@ function moveExistingBlockToGridCell(blockId, containerId, cellKey, stylePatch =
   if (!source || container?.blockType !== 'grid-layout')
     return
   const cleanedItems = removeBlockFromTree(blocks.value, blockId)
+  const prevStyle = source.props?.style || {}
   const movedSource = {
     ...source,
     props: {
       ...(source.props || {}),
       style: {
         ...createDefaultBlockStyle(),
-        ...(source.props?.style || {}),
+        ...prevStyle,
         ...stylePatch,
+        widthMode: stylePatch.widthMode || 'full',
+        width: stylePatch.width || '100%',
+        heightMode: stylePatch.heightMode || 'fixed',
+        height: stylePatch.height ?? resolveNestedChildHeight({
+          ...source,
+          props: {
+            ...(source.props || {}),
+            style: {
+              ...prevStyle,
+              height: prevStyle.height === '100%' ? '' : prevStyle.height,
+            },
+          },
+        }),
       },
     },
   }
@@ -669,6 +686,18 @@ function moveExistingBlockToContainer(blockId, containerId, tabKey = '') {
         y: 0,
         widthMode: 'full',
         width: '100%',
+        // 拖入容器时剥掉顶层 100% 高，避免嵌套后被误当成固定撑满
+        heightMode: 'fixed',
+        height: resolveNestedChildHeight({
+          ...source,
+          props: {
+            ...(source.props || {}),
+            style: {
+              ...(source.props?.style || {}),
+              height: source.props?.style?.height === '100%' ? '' : source.props?.style?.height,
+            },
+          },
+        }),
       },
     },
   }

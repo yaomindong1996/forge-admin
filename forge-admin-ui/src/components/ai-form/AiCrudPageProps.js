@@ -25,6 +25,51 @@ export const aiCrudPageProps = {
   },
 
   /**
+   * 空态标题（无筛选时）
+   * @type {string}
+   */
+  emptyTitle: {
+    type: String,
+    default: '',
+  },
+
+  /**
+   * 空态描述（无筛选时）
+   * @type {string}
+   */
+  emptyDescription: {
+    type: String,
+    default: '',
+  },
+
+  /**
+   * 空态描述别名（兼容列表区块 props.emptyText）
+   * @type {string}
+   */
+  emptyText: {
+    type: String,
+    default: '',
+  },
+
+  /**
+   * 有筛选条件但无结果时的空态标题
+   * @type {string}
+   */
+  emptyFilterTitle: {
+    type: String,
+    default: '',
+  },
+
+  /**
+   * 有筛选条件但无结果时的空态描述
+   * @type {string}
+   */
+  emptyFilterDescription: {
+    type: String,
+    default: '',
+  },
+
+  /**
    * 搜索表单栅格列数
    * @type {number}
    */

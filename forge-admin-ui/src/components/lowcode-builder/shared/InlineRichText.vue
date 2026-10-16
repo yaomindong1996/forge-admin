@@ -5,7 +5,7 @@
     :class="{ 'is-editing': editable, 'is-focused': focused }"
     @pointerdown.capture="handleEditorPointerDown"
     @keyup.capture="queueSelectionRefresh"
-    @click.stop
+    @click="handleRootClick"
   >
     <WangEditor
       :key="editorModeKey"
@@ -124,6 +124,12 @@ function handleFocus() {
     return
   focused.value = true
   emit('activate')
+}
+
+/** 设计态编辑时阻止冒泡以免选中父区块；运行态只读须放行，供 page-title 等 shell click 事件 */
+function handleRootClick(event) {
+  if (props.editable)
+    event.stopPropagation()
 }
 
 function handleEditorPointerDown() {

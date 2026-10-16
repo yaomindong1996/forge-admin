@@ -1,7 +1,7 @@
 <template>
   <div class="page-widget-renderer" :class="[`widget-${componentKey}`]">
     <template v-if="componentKey === 'rich-text'">
-      <div class="rich-editor-shell" :class="{ readonly: propsData.readonly }">
+      <div class="rich-editor-shell" :class="{ readonly: isWidgetReadonly }">
         <div class="rich-editor-head">
           <strong>{{ propsData.title || '富文本' }}</strong>
           <span>{{ propsData.editorMode === 'source' ? '源码模式' : 'WangEditor' }}</span>
@@ -13,6 +13,7 @@
           :style="richContentStyle"
         >
           <WangToolbar
+            v-if="!isWidgetReadonly"
             class="wang-toolbar"
             :editor="wangEditorRef"
             :default-config="wangToolbarConfig"
@@ -44,7 +45,7 @@
           :filterable="propsData.filterable !== false"
           :virtual-scroll="propsData.virtualScroll === true"
           :loading="transferLoading"
-          :disabled="readonly || propsData.disabled === true"
+          :disabled="isWidgetReadonly || propsData.disabled === true"
           size="small"
           @update:value="handleTransferUpdate"
         />
@@ -96,13 +97,14 @@
         <div v-if="propsData.showTitle !== false" class="widget-title">
           {{ markdownTitle || 'Markdown' }}
         </div>
-        <VMdEditor
+          <VMdEditor
+          :key="`md-${isWidgetReadonly ? 'ro' : 'rw'}`"
           class="markdown-editor"
           :model-value="markdownContent"
           :mode="markdownMode"
           :height="`${Number(propsData.height || 320)}px`"
           :disabled-menus="markdownDisabledMenus"
-          :disabled="propsData.readonly === true"
+          :disabled="isWidgetReadonly"
           @update:model-value="handleMarkdownUpdate"
         />
       </div>
@@ -165,11 +167,12 @@
     <template v-else-if="componentKey === 'countdown'">
       <div class="naive-widget-shell countdown-widget">
         <span>{{ propsData.title || '倒计时' }}</span>
+        <!-- n-countdown 无 separator prop（根节点是文本），自定义分隔符走 render -->
         <n-countdown
           :duration="countdownDuration"
           :active="propsData.active !== false"
           :precision="Number(propsData.precision || 0)"
-          :separator="propsData.separator || ':'"
+          :render="renderCountdownDisplay"
         />
       </div>
     </template>
@@ -442,7 +445,7 @@
 </template>
 
 <script setup>
-import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { computed, defineAsyncComponent, inject, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { request } from '@/utils'
 import { buildTemplateRefSignature, interpolateTemplate, safeHtml, safeJsonParseObject } from './page-widget-schema'
 import { isComposeDisplayEnabled, resolveComposeDisplayValue } from './widget-field-catalog'
@@ -513,6 +516,13 @@ const wangEditorRef = shallowRef(null)
 const barcodeSvgRef = ref(null)
 const barcodeValid = ref(true)
 
+// inject 兜底：n-grid 槽位可能不随只读态重跑，挂件仍需跟上详情态
+const injectedFormReadonly = inject('aiFormReadonly', ref(false))
+/** AiFormItem/布局会传 readonly；inject 与 propsData.readonly 兜底 */
+const isWidgetReadonly = computed(() => {
+  const injected = injectedFormReadonly?.value === true
+  return props.readonly === true || props.propsData?.readonly === true || injected
+})
 const richContentStyle = computed(() => ({
   minHeight: `${Number(props.propsData.minHeight || 180)}px`,
   backgroundColor: props.propsData.backgroundColor || 'transparent',
@@ -525,11 +535,13 @@ const wangToolbarConfig = computed(() => ({
 }))
 const wangEditorConfig = computed(() => ({
   placeholder: props.propsData.placeholder || '请输入富文本内容',
-  readOnly: props.propsData.readonly === true,
+  readOnly: isWidgetReadonly.value,
   maxLength: Number(props.propsData.maxLength || 0) || undefined,
   MENU_CONF: safeJsonParseObject(props.propsData.menuConfigText, {}),
 }))
 const markdownMode = computed(() => {
+  if (isWidgetReadonly.value)
+    return 'preview'
   const mode = props.propsData.previewMode || 'split'
   if (mode === 'preview')
     return 'preview'
@@ -545,7 +557,15 @@ const barcodeValue = computed(() => String(resolveBoundValue(props.propsData.val
 const qrcodeTitle = computed(() => String(resolveBoundContent(props.propsData.title || '', 'title') || ''))
 const qrcodeValue = computed(() => String(resolveBoundValue(props.propsData.value || 'https://forge.local', 'value') || 'https://forge.local'))
 const htmlTextContent = computed(() => String(resolveBoundContent(props.propsData.textContent || '', 'title') || ''))
-const htmlContent = computed(() => String(resolveBoundContent(props.propsData.htmlContent || props.propsData.textContent || '', 'content') || ''))
+// 设计器属性栏主字段为 htmlContent；content/html 为兼容别名（仅 htmlContent 为空时生效）
+const htmlContent = computed(() => {
+  const raw = props.propsData.htmlContent
+    || props.propsData.content
+    || props.propsData.html
+    || props.propsData.textContent
+    || ''
+  return String(resolveBoundContent(raw, 'content') || '')
+})
 const boundWatermarkText = computed(() => String(resolveBoundContent(props.propsData.content || '内部资料', 'content') || '内部资料'))
 const watermarkContent = computed(() => {
   if (Array.isArray(props.propsData.content))
@@ -589,6 +609,25 @@ const boundData = computed(() => resolveBoundData())
 const calendarValue = computed(() => Number(resolveBoundValue(props.propsData.value || Date.now(), 'value') || Date.now()))
 const codeContent = computed(() => String(resolveBoundContent(props.propsData.code || '', 'code') || ''))
 const countdownDuration = computed(() => Number(resolveBoundValue(props.propsData.duration || 3600000, 'duration') || 3600000))
+const countdownSeparator = computed(() => {
+  const raw = props.propsData?.separator
+  return raw == null || raw === '' ? ':' : String(raw)
+})
+
+/** Naive Countdown 只认 duration/active/precision/render；分隔符只能在 render 里拼 */
+function renderCountdownDisplay({ hours, minutes, seconds, milliseconds } = {}) {
+  const sep = countdownSeparator.value
+  const precision = Math.min(3, Math.max(0, Number(props.propsData?.precision || 0)))
+  const h = String(hours ?? 0).padStart(2, '0')
+  const m = String(minutes ?? 0).padStart(2, '0')
+  const s = String(seconds ?? 0).padStart(2, '0')
+  if (!precision)
+    return `${h}${sep}${m}${sep}${s}`
+  const step = precision === 1 ? 100 : precision === 2 ? 10 : 1
+  const ms = String(Math.floor((milliseconds ?? 0) / step)).padStart(precision, '0')
+  return `${h}${sep}${m}${sep}${s}.${ms}`
+}
+
 const announcementTitle = computed(() => String(resolveBoundContent(props.propsData.title || '公示标题', 'title') || '公示标题'))
 const announcementContent = computed(() => String(resolveBoundContent(props.propsData.content || '这里展示公告、公示、提示或业务说明内容。', 'content') || ''))
 const logContent = computed(() => String(resolveBoundContent(props.propsData.log || '', 'log') || ''))
@@ -697,14 +736,20 @@ function handleWangEditorCreated(editor) {
 }
 
 function handleWangEditorUpdate(value) {
+  if (isWidgetReadonly.value)
+    return
   emitPropsPatch({ content: value || '' })
 }
 
 function handleMarkdownUpdate(value) {
+  if (isWidgetReadonly.value)
+    return
   emitPropsPatch({ content: value || '' })
 }
 
 function handleTransferUpdate(value) {
+  if (isWidgetReadonly.value)
+    return
   emitPropsPatch({ value: Array.isArray(value) ? value : [] })
 }
 

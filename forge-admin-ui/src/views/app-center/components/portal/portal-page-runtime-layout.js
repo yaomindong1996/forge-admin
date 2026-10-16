@@ -41,13 +41,16 @@ export function shouldUseContentSizedFlow(blocks = [], options = {}) {
   const items = Array.isArray(blocks) ? blocks.filter(Boolean) : []
   if (!items.length)
     return false
-  // fillHost：单块继续 100% 填满宿主；多块必须文档流堆叠。
+  // 自由布局（存在非通栏块）保留绝对定位；fillHost / runtimePreview 不得压成文档流，
+  // 否则预览里 fixed 宽 CRUD 变成左上角窄框、其它块纵向堆叠。
+  const freeLayout = !shouldUsePageFlowStack(items, options)
+    && !items.every(isRuntimeAutoHeightBlock)
+  if (freeLayout)
+    return false
+  // fillHost：单块继续 100% 填满宿主；多块通栏必须文档流堆叠。
   // 若仍走绝对定位，外层 overflow:hidden 会把列表底（分页/末行）裁掉，和列表设计预览不一致。
   if (options.fillHost)
     return items.length > 1
-  // 运行态预览：用文档流（绝对定位只留给设计态自由摆放）
-  if (options.runtimePreview)
-    return true
   if (shouldUsePageFlowStack(items, options))
     return true
   return items.every(isRuntimeAutoHeightBlock)

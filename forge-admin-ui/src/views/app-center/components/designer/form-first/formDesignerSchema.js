@@ -526,7 +526,8 @@ function migrateLegacyInteractionRules(components = []) {
   })
 
   sources.forEach((source) => {
-    const sourceField = source.fieldBinding?.fieldCode
+    // 未绑定业务字段时运行态用 component.id 合成 formData key（见 resolve-ai-form），迁移条件字段必须对齐
+    const sourceField = String(source.fieldBinding?.fieldCode || source.id || source.key || '').trim()
     if (!sourceField)
       return
     const events = Array.isArray(source.props?.__events) ? source.props.__events : []
@@ -981,6 +982,62 @@ export function canAcceptDesignerChild(parentComponent = null, childComponent = 
   if (['tabPane', 'elTabPane', 'collapseItem', 'elCollapseItem', 'card', 'elCard', 'crudBlock', 'row', 'fcRow', 'col', 'tableGrid', 'fcTableGrid'].includes(parentKey))
     return true
   return false
+}
+
+/**
+ * 组件库点击追加时解析落点：优先嵌进当前选中容器（卡片/标签页/折叠项/栅格列等），
+ * 字段选中则插到同级后方；无法承接时回退画布根部。
+ */
+export function resolveAppendShelfTarget(source = {}, selectedId = '', childComponent = {}) {
+  const schema = normalizeFormDesignerSchema(source)
+  const rootTarget = { parentId: '', index: schema.components.length }
+  if (!selectedId)
+    return rootTarget
+
+  const selected = getDesignerComponent(schema, selectedId)
+  if (!selected)
+    return rootTarget
+
+  const selectedKey = selected.componentKey || ''
+  const slotParent = resolveAppendSlotParent(selected, selectedKey)
+  if (slotParent && canAcceptDesignerChild(slotParent, childComponent)) {
+    return {
+      parentId: slotParent.id,
+      index: (slotParent.children || []).length,
+    }
+  }
+
+  if (canAcceptDesignerChild(selected, childComponent)) {
+    return {
+      parentId: selected.id,
+      index: (selected.children || []).length,
+    }
+  }
+
+  const path = findDesignerComponentPath(schema, selectedId)
+  if (!path?.length)
+    return rootTarget
+  const parentPath = path.slice(0, -1)
+  const parent = parentPath.length ? getComponentAtPath(schema.components, parentPath) : null
+  if (parent && !canAcceptDesignerChild(parent, childComponent))
+    return rootTarget
+  return {
+    parentId: parent?.id || '',
+    index: path[path.length - 1] + 1,
+  }
+}
+
+function resolveAppendSlotParent(selected = {}, selectedKey = '') {
+  const children = Array.isArray(selected.children) ? selected.children : []
+  if (['tabs', 'elTabs'].includes(selectedKey))
+    return children.find(item => ['tabPane', 'elTabPane'].includes(item?.componentKey)) || children[0] || null
+  if (['collapse', 'elCollapse'].includes(selectedKey))
+    return children.find(item => ['collapseItem', 'elCollapseItem'].includes(item?.componentKey)) || children[0] || null
+  if (['row', 'fcRow'].includes(selectedKey))
+    return children.find(item => ['col', 'fcCol'].includes(item?.componentKey)) || children[0] || null
+  if (['table', 'fcTable'].includes(selectedKey))
+    return children.find(item => ['tableGrid', 'fcTableGrid'].includes(item?.componentKey)) || children[0] || null
+  return null
 }
 
 export function cloneValue(value) {

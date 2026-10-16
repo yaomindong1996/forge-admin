@@ -608,19 +608,15 @@ body.is-catalog-pointer-dragging .n-popover {
   right: 6px;
   left: 6px;
   height: 24px;
-  opacity: 0;
+  /* 操作条仅在悬停/选中时挂载，挂载即可见 */
+  opacity: 1;
   /* 透明的整条覆盖层不能抢走标题/富文本的第一次点击。 */
   pointer-events: none;
-  transition: opacity 160ms ease;
 }
 .page-block-node-overlay .page-block-drag-handle,
 .page-block-node-overlay .page-block-menu-trigger,
 .page-block-node-overlay .page-block-color-picker {
   pointer-events: auto;
-}
-.application-page-block.editing:hover .page-block-node-overlay,
-.application-page-block.selected .page-block-node-overlay {
-  opacity: 1;
 }
 .page-block-drag-handle,
 .page-block-menu-trigger {
@@ -1255,8 +1251,8 @@ body.is-catalog-pointer-dragging .n-popover {
 }
 .application-form-assets-popover {
   display: grid;
-  width: 360px;
-  max-height: min(420px, calc(100vh - 100px));
+  width: 420px;
+  max-height: min(480px, calc(100vh - 100px));
   gap: 6px;
   overflow: auto;
 }
@@ -1321,6 +1317,37 @@ body.is-catalog-pointer-dragging .n-popover {
 .application-form-asset-row small {
   color: #8f959e;
 }
+.application-form-asset-usage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  grid-column: 1 / -1;
+  margin-top: -2px;
+  color: #646a73;
+  font-size: 11px;
+  line-height: 16px;
+  white-space: normal;
+}
+.application-form-asset-usage-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 1px 8px;
+  border: 1px solid #d6e2ff;
+  border-radius: 999px;
+  background: #f3f7ff;
+  color: #3b6de0;
+  font-size: 11px;
+  line-height: 18px;
+  cursor: pointer;
+}
+.application-form-asset-usage-chip:hover {
+  border-color: #3b6de0;
+  background: #e8f0ff;
+}
+.application-form-asset-row.is-bound .application-form-asset-usage {
+  color: #3b6de0;
+}
 .application-form-asset-ops {
   display: flex;
   flex-wrap: wrap;
@@ -1332,12 +1359,24 @@ body.is-catalog-pointer-dragging .n-popover {
   margin: -4px 0 10px;
 }
 .form-asset-default-hint {
+  display: grid;
+  gap: 2px;
   margin: -2px 0 0;
   color: var(--text-tertiary);
   font-size: 12px;
   line-height: 18px;
 }
+.form-asset-default-hint p {
+  margin: 0;
+}
+.form-asset-default-hint strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
 .form-asset-default-hint.is-warning {
+  color: #b45309;
+}
+.form-asset-default-hint.is-warning strong {
   color: #b45309;
 }
 .form-asset-help {

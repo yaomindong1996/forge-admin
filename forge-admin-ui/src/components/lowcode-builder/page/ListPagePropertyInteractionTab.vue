@@ -76,6 +76,16 @@
                         @update:value="updateBlockEvent(eventIdx, { targetFormKey: $event || '' })"
                       />
                     </label>
+                    <!-- 提示消息：专用文案，运行态优先于备注/参数 -->
+                    <label v-if="eventItem.action === 'message' || eventItem.action === 'toast' || eventItem.action === 'notify'" class="event-setting-field">
+                      <span>消息内容</span>
+                      <n-input
+                        :value="eventItem.message || eventItem.content || ''"
+                        size="small"
+                        placeholder="例如：操作成功"
+                        @update:value="updateBlockEvent(eventIdx, { message: $event || '', content: $event || '' })"
+                      />
+                    </label>
                     <label class="event-setting-field">
                       <span>备注说明</span>
                       <n-input

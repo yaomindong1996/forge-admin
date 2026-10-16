@@ -64,7 +64,7 @@
 
 <script setup>
 import { RefreshOutline, SearchOutline } from '@vicons/ionicons5'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import AiForm from './AiForm.vue'
 
 const props = defineProps({
@@ -146,6 +146,21 @@ const formData = ref({ ...props.modelValue })
 const searchLoading = ref(false)
 const resetLoading = ref(false)
 
+// 外部 setSearchParams / filterBlock 会改 v-model，需同步到内部表单，否则重置清不掉
+watch(
+  () => props.modelValue,
+  (value) => {
+    const next = { ...(value || {}) }
+    const current = formData.value || {}
+    const nextKeys = Object.keys(next)
+    const currKeys = Object.keys(current)
+    if (nextKeys.length === currKeys.length && nextKeys.every(key => next[key] === current[key]))
+      return
+    formData.value = next
+  },
+  { deep: true },
+)
+
 // 兼容 options 和 schema 两种命名
 const schema = computed(() => props.schema.length > 0 ? props.schema : props.options)
 const formContext = computed(() => ({
@@ -153,11 +168,30 @@ const formContext = computed(() => ({
   isSearch: true,
 }))
 
+/** 只保留查询 schema 内字段及树筛选附属键，避免交互 setValue 污染搜索参数 */
+function pickSearchSchemaData(data = {}) {
+  const allowed = new Set()
+  for (const field of schema.value || []) {
+    const name = String(field?.field || field?.prop || '').trim()
+    if (!name)
+      continue
+    allowed.add(name)
+    allowed.add(`${name}_includeChildren`)
+    allowed.add(`${name}__treeExpanded`)
+  }
+  const next = {}
+  Object.entries(data || {}).forEach(([key, value]) => {
+    if (allowed.has(key) || key === '_searchTypes')
+      next[key] = value
+  })
+  return next
+}
+
 /**
  * 与左树筛选一致：补齐 includeChildren；展开值存在 __treeExpanded，提交时由列表请求改写。
  */
 function withSearchTreeIncludeChildren(data = {}) {
-  const next = { ...(data || {}) }
+  const next = pickSearchSchemaData(data)
   for (const field of schema.value || []) {
     const type = String(field?.type || field?.componentType || '').trim()
     if (!['treeSelect', 'orgTreeSelect', 'regionTreeSelect'].includes(type))
@@ -263,14 +297,14 @@ function updateField(name, value) {
  * 获取表单数据
  */
 function getFormData() {
-  return { ...formData.value }
+  return pickSearchSchemaData(formData.value)
 }
 
 /**
  * 设置表单数据
  */
 function setFormData(data) {
-  formData.value = { ...data }
+  formData.value = pickSearchSchemaData(data)
 }
 
 // 暴露方法
