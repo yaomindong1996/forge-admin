@@ -51,7 +51,7 @@ class AiImageGeneratingDictMigrationTest {
     }
 
     private static String migration() throws Exception {
-        return Files.readString(Path.of("../../../db/migration/V1.0.218__complete_ai_image_generating_dict.sql"));
+        return Files.readString(Path.of("../../../db/migration/V1.0.224__complete_ai_image_generating_dict.sql"));
     }
 
     private static void schema(Statement statement) throws Exception {

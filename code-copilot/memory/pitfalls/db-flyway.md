@@ -319,3 +319,39 @@ Admin 本地启动正常，生产同一项目打包后出现大量 checksum mism
   IDE 需刷新 Maven 并构建资源；示例见 `forge-server/scripts/deployment/`。
 - 修改前比较全部迁移与历史，确认 pending；保留 JAR、历史表和外部 SQL，不 repair、不关闭校验。
 - 服务器存在未激活的 profile 文件，不代表其配置正在生效；不要误改其数据源或历史表。
+
+## 分支合并 / 上游同步后 Flyway 同号双文件
+
+**发现日期**: 2026-10-16
+
+**问题描述**:
+`codex/spring-boot4-t0-compatibility` 合入 `main` 后，目录同时存在：
+
+- `V1.0.218__harden_message_center_security.sql`（主线已落地）
+- `V1.0.218__complete_ai_image_generating_dict.sql`（兼容分支新增）
+
+同一版本号两个脚本，Flyway 无法启动。改名工程 `forge:upstream` 同步社区时也会把这类冲突带进产品库。
+
+**根本原因**:
+并行分支各自按当时「最大版本 + 1」取号，互不知情；Git 按文件名合并不会检测「版本号」唯一约束。
+
+**解决方案**:
+
+1. 合并 / `forge:upstream apply` 后、提交前查重：
+   ```bash
+   ls forge-server/db/migration/V*.sql | sed 's/__.*//' | sort | uniq -d
+   # ForgePro 等改名工程：ls <prefix>-server/db/migration/V*.sql | …
+   ```
+2. 对照库表决定保留谁：
+   ```sql
+   SELECT version, description, script FROM forge_schema_history
+   WHERE version = '1.0.218';  -- 示例
+   ```
+   已执行的那份 **文件名与内容都不动**。
+3. 另一方 `git mv` 到当前目录最大版本号 + 1（本例改为 `V1.0.224__complete_ai_image_generating_dict.sql`）。
+4. 更新写死旧路径的契约测试 / 文档；再跑查重为空才提交。
+5. 禁止：删已执行脚本、改已执行脚本内容、或把两个脚本压成一个同号文件。
+
+**影响范围**:
+- `forge-server/db/migration`（社区）与改名工程 `<prefix>-server/db/migration`
+- 所有依赖 Admin 启动时 Flyway 的环境；`forge:upstream` 升级提交清单

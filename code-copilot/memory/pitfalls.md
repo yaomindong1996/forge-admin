@@ -362,10 +362,11 @@
 - 系统管理员保护不能只挡「用户删除」接口
 - 初始化 SQL 不能从开发库直接导出存储凭据
 
-### [数据库 / Flyway / 索引](pitfalls/db-flyway.md)（19）
+### [数据库 / Flyway / 索引](pitfalls/db-flyway.md)（20）
 
 - 独立 JAR 正确但 filesystem 仍读取服务器残留旧迁移
 - 初始化安全契约不能继续读取已移除的 SQL 副本
+- 分支合并 / 上游同步后 Flyway 同号双文件
 
 - 完整租户主题 JSON 不能继续存入 varchar(1000)
 - 15. Flyway 已执行版本脚本不能二次修改

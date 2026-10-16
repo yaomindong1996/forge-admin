@@ -45,12 +45,17 @@ pnpm forge:upstream apply
 # 解决冲突并 git add 对应文件后，先验证
 pnpm forge:upstream verify
 pnpm version:check
+# Flyway：排除同号迁移（并行分支/同步常见坑）
+ls <artifactPrefix>-server/db/migration/V*.sql | sed 's/__.*//' | sort | uniq -d
+# 有输出则按 AGENTS.md §5.13「分支合并 / 社区同步后必须查重版本号」改名后再继续
 # 按本次差异运行后端编译、前端构建和相关测试
 git commit -m "升级社区底座并完成兼容验证"
 ```
 
 取消整个合并：`git merge --abort`。提交前不执行真实数据库迁移、不推送、不部署。
 合并完成后仍需按产品发布规范审查、合并主分支和交付。
+
+社区 `main` 合并特性分支时同样先做上述 `uniq -d` 查重；已写入 `forge_schema_history` 的版本文件禁止改内容，冲突方升到最大版本 + 1。
 
 ## 保护边界
 

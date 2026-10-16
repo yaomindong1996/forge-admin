@@ -449,6 +449,25 @@ forge-admin-ui/src/
 - 版本号必须单调递增；同一版本号只能有一个脚本
 - 已经执行到数据库并进入 `forge_schema_history` 的脚本禁止修改；需要修正时新增下一个版本脚本
 
+#### 分支合并 / 社区同步后必须查重版本号
+
+并行分支或 `forge:upstream` 同步后，两边可能各自新增同号迁移（例如两个 `V1.0.218__*.sql`），Flyway 启动会直接失败。
+
+合并或同步**提交前**执行：
+
+```bash
+# 社区模板
+ls forge-server/db/migration/V*.sql | sed 's/__.*//' | sort | uniq -d
+# 改名工程（如 ForgePro）把路径换成 <prefix>-server/db/migration/
+```
+
+有输出即冲突，按下列顺序处理（细则见 `code-copilot/memory/pitfalls/db-flyway.md`）：
+
+1. 查 `forge_schema_history`：已落地的版本与 description **保留文件名不动**
+2. 冲突的另一方改名为当前目录**最大版本号 + 1**（如 `V1.0.224__…`），禁止改已执行脚本内容
+3. 同步更新契约测试 / 文档里写死的旧文件名
+4. 再跑一遍查重为空后才允许提交；同步 ForgePro 时同样检查产品侧 `db/migration`
+
 #### SQL 编写规则
 
 - 脚本必须可重复执行或具备防重复保护：`CREATE TABLE IF NOT EXISTS`、`INSERT ... SELECT ... WHERE NOT EXISTS`、新增列/索引前查 `information_schema`

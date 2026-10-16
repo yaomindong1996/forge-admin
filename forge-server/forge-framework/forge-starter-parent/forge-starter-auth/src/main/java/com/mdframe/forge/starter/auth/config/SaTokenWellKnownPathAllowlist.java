@@ -1,34 +1,37 @@
 package com.mdframe.forge.starter.auth.config;
 
-import cn.dev33.satoken.fun.strategy.SaCheckRequestPathFunction;
-import cn.dev33.satoken.strategy.SaStrategy;
+import cn.dev33.satoken.strategy.hooks.SaFirewallCheckHookForWhitePath;
 import jakarta.annotation.PostConstruct;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Sa-Token 1.38 默认路径防火墙会拦截包含 {@code /.} 的 URI（防目录穿越），
- * 导致 RFC 合规的 {@code /.well-known/oauth-*} 元数据接口被写成「非法请求」。
- * 这里仅放行能力开放 OAuth 元数据路径，其它路径仍走原校验。
+ * Sa-Token 1.38 曾用 {@code SaStrategy.checkRequestPath} 拦截含 {@code /.} 的 URI，
+ * 导致 RFC 合规的 {@code /.well-known/oauth-*} 被写成「非法请求」。
+ * 1.45+ 改为 {@code SaFirewallStrategy} 钩子链；这里把能力开放 OAuth 元数据路径
+ * 写入官方 {@link SaFirewallCheckHookForWhitePath}（默认链首），命中后跳过后续校验。
  */
 @Configuration
 public class SaTokenWellKnownPathAllowlist {
 
+    private static final String[] OAUTH_WELL_KNOWN_PATHS = {
+            "/.well-known/oauth-protected-resource",
+            "/.well-known/oauth-authorization-server"
+    };
+
     @PostConstruct
     void allowOauthWellKnownMetadataPaths() {
-        SaCheckRequestPathFunction original = SaStrategy.instance.checkRequestPath;
-        SaStrategy.instance.checkRequestPath = (requestPath, request, response) -> {
-            if (isOauthWellKnownMetadata(requestPath)) {
-                return;
-            }
-            original.run(requestPath, request, response);
-        };
+        SaFirewallCheckHookForWhitePath.instance.resetConfig(OAUTH_WELL_KNOWN_PATHS);
     }
 
     static boolean isOauthWellKnownMetadata(String requestPath) {
         if (requestPath == null || requestPath.isBlank()) {
             return false;
         }
-        return "/.well-known/oauth-protected-resource".equals(requestPath)
-                || "/.well-known/oauth-authorization-server".equals(requestPath);
+        for (String path : OAUTH_WELL_KNOWN_PATHS) {
+            if (path.equals(requestPath)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
