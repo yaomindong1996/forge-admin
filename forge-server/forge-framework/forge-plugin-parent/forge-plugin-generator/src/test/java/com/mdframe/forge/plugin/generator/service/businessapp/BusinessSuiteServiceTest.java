@@ -1,6 +1,6 @@
 package com.mdframe.forge.plugin.generator.service.businessapp;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessApp;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessSuite;
 import com.mdframe.forge.plugin.generator.mapper.BusinessAppMapper;
@@ -342,7 +342,7 @@ class BusinessSuiteServiceTest {
     }
 
     private static void setBaseMapper(Object service, Object mapper) throws Exception {
-        Field field = ServiceImpl.class.getDeclaredField("baseMapper");
+        Field field = org.springframework.util.ReflectionUtils.findField(ServiceImpl.class, "baseMapper");
         field.setAccessible(true);
         field.set(service, mapper);
     }

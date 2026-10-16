@@ -1,7 +1,7 @@
 package com.mdframe.forge.plugin.system.listener;
 
 import cn.dev33.satoken.listener.SaTokenListener;
-import cn.dev33.satoken.stp.SaLoginModel;
+import cn.dev33.satoken.stp.parameter.SaLoginParameter;
 import com.mdframe.forge.plugin.system.constant.SystemConstants;
 import com.mdframe.forge.plugin.system.entity.SysUser;
 import com.mdframe.forge.plugin.system.service.ISysOnlineUserService;
@@ -31,7 +31,7 @@ public class SystemSaTokenListener implements SaTokenListener {
     private ISysOnlineUserService onlineUserService;
     
     @Override
-    public void doLogin(String loginType, Object loginId, String tokenValue, SaLoginModel loginModel) {
+    public void doLogin(String loginType, Object loginId, String tokenValue, SaLoginParameter loginModel) {
         // 流程委托临时会话（60s）不是用户登录行为，不计入登录日志，避免误导排障
         if (loginModel != null && loginModel.getDevice() != null
                 && loginModel.getDevice().startsWith(FlowDelegationConstants.FLOW_DELEGATION_DEVICE_PREFIX)) {
@@ -128,7 +128,7 @@ public class SystemSaTokenListener implements SaTokenListener {
     }
     
     @Override
-    public void doRenewTimeout(String tokenValue, Object loginId, long timeout) {
+    public void doRenewTimeout(String loginType, Object loginId, String tokenValue, long timeout) {
         log.debug("Token续期 - loginId: {}, timeout: {}", loginId, timeout);
         
         try {

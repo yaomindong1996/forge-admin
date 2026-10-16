@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import {
@@ -12,7 +12,7 @@ function readApplicationRuntimeSource() {
   const vuePath = resolve('src/views/app-center/application-runtime.[applicationCode].vue')
   const modulesDir = resolve('src/views/app-center/runtime-modules')
   const partFiles = readdirSync(modulesDir)
-    .filter(name => /^useApplicationRuntime(\.part\d+)?\.js$/.test(name))
+    .filter(name => /^useApplicationRuntime(?:\.part\d+)?\.js$/.test(name))
     .sort()
     .map(name => readFileSync(resolve(modulesDir, name), 'utf8'))
   return [readFileSync(vuePath, 'utf8'), ...partFiles].join('\n')
@@ -141,14 +141,14 @@ describe('application runtime route loading', () => {
     expect(runtimeSource).not.toContain(':design-preview="editing || isDraftMode || canEditApplication"')
     expect(runtimeSource).toContain(':configurable="false"')
     expect(runtimeSource).toContain(':crud-config-revision="portalCrudConfigRevision"')
-    expect(runtimeSource).toContain("import.meta.glob('/src/assets/images/form/*.png', { import: 'default' })")
+    expect(runtimeSource).toContain('import.meta.glob(\'/src/assets/images/form/*.png\', { import: \'default\' })')
     expect(runtimeSource).not.toContain('eager: true')
   })
 
   it('exposes form/list design tabs for tree-list and tree-table page shapes', () => {
     const runtimeSource = readApplicationRuntimeSource()
-    expect(runtimeSource).toContain("const FORM_DESIGN_SHAPES = new Set(['form', 'list-form', 'tree-list', 'tree-table'])")
-    expect(runtimeSource).toContain("const LIST_DESIGN_SHAPES = new Set(['list', 'list-form', 'tree-list', 'tree-table'])")
+    expect(runtimeSource).toContain('const FORM_DESIGN_SHAPES = new Set([\'form\', \'list-form\', \'tree-list\', \'tree-table\'])')
+    expect(runtimeSource).toContain('const LIST_DESIGN_SHAPES = new Set([\'list\', \'list-form\', \'tree-list\', \'tree-table\'])')
   })
 
   it('includes editor workspace access in the load key', () => {
@@ -184,7 +184,7 @@ describe('application runtime route loading', () => {
     expect(runtimeSource).toContain('if (markClean)')
     expect(runtimeSource).toContain('savedSignature.value = JSON.stringify(builder.value || {})')
     // 换页不强制 remount Portal，靠 revision 与内部缓存失效；同对象跨页复用 render
-    expect(runtimeSource).toContain(':key="`portal:${portalCrudConfigRevision}`"')
+    expect(runtimeSource).toContain(`:key="\`portal:\${portalCrudConfigRevision}\`"`)
     expect(portalSource).toContain('crudConfigRevision')
     expect(portalSource).toContain('configRev')
     expect(portalSource).toContain('invalidateAll')
@@ -228,7 +228,7 @@ describe('application runtime route loading', () => {
     expect(rendererSource).not.toContain('ListPageGridDesigner')
     expect(rendererSource).toContain('v-else-if="effectiveRuntimeCrudProps"')
     // GridBlock 拆分后改为同步注册 AiCrudPage，避免 async wrapper 导致单测 props 为空
-    expect(rendererSource).toContain("import AiCrudPage from '@/components/ai-form/AiCrudPage.vue'")
+    expect(rendererSource).toContain('import AiCrudPage from \'@/components/ai-form/AiCrudPage.vue\'')
   })
 
   it('keeps list design tab after refresh when nodes are not loaded yet', () => {
@@ -236,7 +236,7 @@ describe('application runtime route loading', () => {
     expect(runtimeSource).toContain('// 刷新时 nodes 尚未加载：先信任 URL designTab，避免 list 被误判成 page 落到空白对象卡')
     expect(runtimeSource).toContain('if (!node && PAGE_DESIGN_TABS.has(normalized))')
     expect(runtimeSource).toContain('// 应用节点加载完成后，按 URL designTab 重新对齐')
-    expect(runtimeSource).toContain("|| (requestedPageId && ['list', 'form', 'settings', 'publish'].includes(designTab))")
+    expect(runtimeSource).toContain('|| (requestedPageId && [\'list\', \'form\', \'settings\', \'publish\'].includes(designTab))')
     expect(runtimeSource).toContain('// 编辑态 URL 已明确指向某页时，不要静默落到首页对象页')
   })
 
@@ -255,7 +255,7 @@ describe('application runtime route loading', () => {
     expect(runtimeSource).toContain('const runtimeTreeFilter = ref({})')
     expect(runtimeSource).toContain('runtimeTreeFilterByBlockId')
     expect(runtimeSource).toContain('publicParams: {')
-    expect(runtimeSource).toContain("block.blockType !== 'tree-panel'")
+    expect(runtimeSource).toContain('block.blockType !== \'tree-panel\'')
     expect(rendererSource).toContain('blockId: props.block.id')
     expect(rendererSource).toContain('@runtime-tree-select="emit(\'runtimeTreeSelect\', $event)"')
     expect(portalSource).toContain('@runtime-tree-select="handleRuntimeTreeSelect"')
@@ -277,7 +277,8 @@ describe('application runtime route loading', () => {
     expect(rendererSource).toContain('emit(\'childBlockSelect\', child.id)')
     expect(rendererSource).toContain('class="nested-block-menu-trigger"')
     expect(rendererSource).toContain('v-for="anchor in resizeAnchors"')
-    expect(designerSource).toContain('if (blockId && findBlockInTree(blocks.value, blockId))')
+    expect(designerSource).toContain('findBlockInTree(blocks.value, blockId)')
+    expect(designerSource).toContain('blockId !== previousId || !selectedBlockId.value')
     expect(designerSource).not.toContain('if (blockId && blocks.value.some(block => block.id === blockId))')
   })
 })

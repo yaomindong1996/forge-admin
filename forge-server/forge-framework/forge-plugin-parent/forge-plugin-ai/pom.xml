@@ -38,6 +38,12 @@
             <artifactId>forge-starter-tenant</artifactId>
         </dependency>
 
+        <!-- Agent HTTP 工具复用已存在的安全出站能力，不再使用无限等待的裸 WebClient。 -->
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-outbound</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-plugin-system</artifactId>
@@ -66,11 +72,7 @@
             <artifactId>spring-ai-client-chat</artifactId>
         </dependency>
 
-        <!-- DashScope 核心模型（非 starter，供应商配置来自租户数据库） -->
-        <dependency>
-            <groupId>com.alibaba.cloud.ai</groupId>
-            <artifactId>spring-ai-alibaba-dashscope</artifactId>
-        </dependency>
+        <!-- 通义原生模型由 Forge 协议桥适配，供应商仍来自租户配置，不加载 Alibaba milestone。 -->
 
         <!-- 文件服务（文件上传/下载） -->
         <dependency>
@@ -128,6 +130,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- 复用 Boot BOM 中的 H2，仅用于实际 Agent 审计 Mapper 的隔离契约测试。 -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
 

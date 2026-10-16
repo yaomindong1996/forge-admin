@@ -1,172 +1,141 @@
 package com.mdframe.forge.starter.idempotent.service;
 
 import com.mdframe.forge.starter.idempotent.properties.TokenProperties;
+import com.mdframe.forge.starter.idempotent.exception.TokenInvalidException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.redis.core.HashOperations;
-import org.springframework.data.redis.core.StringRedisTemplate;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.clearInvocations;
 
 @Tag("dev")
-@ExtendWith(MockitoExtension.class)
-@DisplayName("Token服务单元测试")
+@DisplayName("Token服务单元测试：原子状态和 TTL")
 class RedisTokenServiceTest {
-    
-    @Mock
-    private StringRedisTemplate redisTemplate;
-    
-    @Mock
-    private HashOperations<String, Object, Object> hashOperations;
-    
-    private TokenProperties tokenProperties;
-    private RedisTokenService tokenService;
-    
+    private TokenRedisFixture fixture;
+    private TokenProperties properties;
+    private RedisTokenService service;
+
     @BeforeEach
     void setUp() {
-        tokenProperties = new TokenProperties();
-        tokenProperties.setExpire(300);
-        tokenProperties.setHeader("X-Idempotent-Token");
-        
-        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
-        
-        tokenService = new RedisTokenService(redisTemplate, tokenProperties);
+        fixture = new TokenRedisFixture();
+        properties = new TokenProperties();
+        service = new RedisTokenService(fixture.redis, properties);
     }
-    
+
     @Test
     @DisplayName("生成Token - 成功")
     void testGenerateToken_Success() {
-        when(redisTemplate.expire(anyString(), anyLong(), any(TimeUnit.class))).thenReturn(true);
-        
-        String token = tokenService.generateToken("test");
-        
+        String token = service.generateToken("test");
         assertNotNull(token);
-        assertFalse(token.isEmpty());
         assertEquals(32, token.length());
-        
-        verify(hashOperations).putAll(anyString(), any(Map.class));
-        verify(redisTemplate).expire(anyString(), eq(300L), eq(TimeUnit.SECONDS));
+        assertEquals(300000, fixture.ttl(token, "test"));
+        assertTrue(service.validateToken(token, "test"));
+        assertFalse(service.isTokenConsumed(token, "test"));
     }
-    
+
     @Test
     @DisplayName("验证Token - Token有效")
     void testValidateToken_Valid() {
-        String token = "test-token";
-        String prefix = "test";
-        
-        when(redisTemplate.hasKey(anyString())).thenReturn(true);
-        
-        Map<Object, Object> tokenData = new HashMap<>();
-        tokenData.put("status", "UNUSED");
-        when(hashOperations.entries(anyString())).thenReturn(tokenData);
-        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
-        
-        boolean isValid = tokenService.validateToken(token, prefix);
-        
-        assertTrue(isValid);
-        verify(redisTemplate).hasKey(anyString());
+        fixture.put("test-token", "test", "UNUSED", 1000);
+        assertTrue(service.validateToken("test-token", "test"));
+        assertEquals(1000, fixture.ttl("test-token", "test"));
     }
-    
+
     @Test
     @DisplayName("验证Token - Token不存在")
     void testValidateToken_NotExists() {
-        String token = "test-token";
-        String prefix = "test";
-        
-        when(redisTemplate.hasKey(anyString())).thenReturn(false);
-        
-        boolean isValid = tokenService.validateToken(token, prefix);
-        
-        assertFalse(isValid);
+        assertFalse(service.validateToken("test-token", "test"));
+        assertEquals(-2, fixture.ttl("test-token", "test"));
     }
-    
+
     @Test
     @DisplayName("验证Token - Token已消费")
     void testValidateToken_AlreadyConsumed() {
-        String token = "test-token";
-        String prefix = "test";
-        
-        when(redisTemplate.hasKey(anyString())).thenReturn(true);
-        
-        Map<Object, Object> tokenData = new HashMap<>();
-        tokenData.put("status", "CONSUMED");
-        when(hashOperations.entries(anyString())).thenReturn(tokenData);
-        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
-        
-        boolean isValid = tokenService.validateToken(token, prefix);
-        
-        assertFalse(isValid);
+        fixture.put("test-token", "test", "CONSUMED", 1000);
+        assertFalse(service.validateToken("test-token", "test"));
     }
-    
+
     @Test
     @DisplayName("验证Token - Token为空")
     void testValidateToken_EmptyToken() {
-        boolean isValid = tokenService.validateToken("", "test");
-        assertFalse(isValid);
-        
-        isValid = tokenService.validateToken(null, "test");
-        assertFalse(isValid);
+        clearInvocations(fixture.redis);
+        for (String value : new String[] {null, "", " ", "a:b", "x".repeat(129)}) {
+            assertFalse(service.validateToken(value, "test"));
+            assertFalse(service.tryConsumeToken(value, "test"));
+            assertFalse(service.isTokenConsumed(value, "test"));
+        }
+        verifyNoMoreInteractions(fixture.redis);
     }
-    
+
     @Test
-    @DisplayName("消费Token - 成功")
+    @DisplayName("消费Token - 成功并拒绝第二次消费")
     void testConsumeToken_Success() {
-        String token = "test-token";
-        String prefix = "test";
-        
-        tokenService.consumeToken(token, prefix);
-        
-        verify(hashOperations).put(anyString(), eq("status"), eq("CONSUMED"));
-        verify(redisTemplate).expire(anyString(), eq(60L), eq(TimeUnit.SECONDS));
+        fixture.put("test-token", "test", "UNUSED", 1000);
+        service.consumeToken("test-token", "test");
+        assertTrue(service.isTokenConsumed("test-token", "test"));
+        assertEquals(60000, fixture.ttl("test-token", "test"));
+        assertFalse(service.tryConsumeToken("test-token", "test"));
+        assertThrows(TokenInvalidException.class, () -> service.consumeToken("test-token", "test"));
     }
-    
+
     @Test
     @DisplayName("检查Token是否已消费 - 已消费")
     void testIsTokenConsumed_Consumed() {
-        String token = "test-token";
-        String prefix = "test";
-        
-        when(hashOperations.get(anyString(), eq("status"))).thenReturn("CONSUMED");
-        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
-        
-        boolean consumed = tokenService.isTokenConsumed(token, prefix);
-        
-        assertTrue(consumed);
+        fixture.put("test-token", "test", "CONSUMED", 1000);
+        assertTrue(service.isTokenConsumed("test-token", "test"));
     }
-    
+
     @Test
     @DisplayName("检查Token是否已消费 - 未消费")
     void testIsTokenConsumed_NotConsumed() {
-        String token = "test-token";
-        String prefix = "test";
-        
-        when(hashOperations.get(anyString(), eq("status"))).thenReturn("UNUSED");
-        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
-        
-        boolean consumed = tokenService.isTokenConsumed(token, prefix);
-        
-        assertFalse(consumed);
+        fixture.put("test-token", "test", "UNUSED", 1000);
+        assertFalse(service.isTokenConsumed("test-token", "test"));
     }
-    
+
     @Test
     @DisplayName("生成Token - 默认前缀")
     void testGenerateToken_DefaultPrefix() {
-        when(redisTemplate.expire(anyString(), anyLong(), any(TimeUnit.class))).thenReturn(true);
-        
-        String token = tokenService.generateToken(null);
-        
-        assertNotNull(token);
-        verify(hashOperations).putAll(contains("global"), any(Map.class));
+        String token = service.generateToken(null);
+        assertTrue(service.validateToken(token, ""));
+        assertTrue(service.validateToken(token, "idempotent:"));
+        assertEquals(300000, fixture.ttl(token, "global"));
+        assertFalse(service.tryConsumeToken(token, "foreign-prefix"));
+        assertTrue(service.tryConsumeToken(token, "global"));
+    }
+
+    @Test
+    @DisplayName("Token 状态缺失或未知必须失败关闭")
+    void missingOrUnknownStatusCannotValidate() {
+        for (String status : new String[] {null, "UNKNOWN", "CONSUMED"}) {
+            fixture.put("fixture-token", "test", status, 1000);
+            assertFalse(service.validateToken("fixture-token", "test"));
+            assertFalse(service.tryConsumeToken("fixture-token", "test"));
+            assertEquals(1000, fixture.ttl("fixture-token", "test"));
+        }
+    }
+
+    @Test
+    void should_notCreateGhostToken_when_missingOrExpired() {
+        assertFalse(service.tryConsumeToken("missing", "test"));
+        assertEquals(-2, fixture.ttl("missing", "test"));
+        fixture.put("expired", "test", "UNUSED", 1000);
+        fixture.advance(1000);
+        assertFalse(service.validateToken("expired", "test"));
+        assertFalse(service.tryConsumeToken("expired", "test"));
+        assertEquals(-2, fixture.ttl("expired", "test"));
+    }
+
+    @Test
+    void should_failClosed_when_redisOrConfigurationIsInvalid() {
+        properties.setExpire(0);
+        assertThrows(com.mdframe.forge.starter.core.exception.BusinessException.class,
+                () -> service.generateToken(null));
+        properties.setExpire(300);
+        fixture.available = false;
+        assertThrows(org.springframework.dao.DataAccessResourceFailureException.class,
+                () -> service.tryConsumeToken("fixture-token", "test"));
     }
 }

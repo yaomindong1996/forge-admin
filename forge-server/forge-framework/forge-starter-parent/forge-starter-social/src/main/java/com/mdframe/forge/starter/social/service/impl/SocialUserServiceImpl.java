@@ -1,7 +1,7 @@
 package com.mdframe.forge.starter.social.service.impl;
 
 import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.mdframe.forge.starter.collaboration.model.VerifiedSocialIdentity;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.social.domain.entity.SysUserSocial;

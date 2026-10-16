@@ -8,12 +8,12 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.jackson2.autoconfigure.Jackson2AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.servlet.DispatcherServlet;
 
 /** 非 Servlet 宿主不注册 HTTP 拦截器；不让 MVC 配置进入业务包扫描。 */
-@AutoConfiguration(after = {PluginAutoConfiguration.class, JacksonAutoConfiguration.class})
+@AutoConfiguration(after = {PluginAutoConfiguration.class, Jackson2AutoConfiguration.class})
 @ConditionalOnClass(DispatcherServlet.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class PluginWebAutoConfiguration {

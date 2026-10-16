@@ -10,9 +10,8 @@ import org.redisson.api.RSet;
 import org.redisson.api.RList;
 import org.redisson.api.RType;
 import org.redisson.api.RedissonClient;
-import org.redisson.api.NodeType;
-import org.redisson.api.NodesGroup;
-import org.redisson.api.Node;
+import org.redisson.api.redisnode.RedisNode;
+import org.redisson.api.redisnode.RedisNodes;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -392,29 +391,42 @@ public class RedissonCacheServiceImpl implements ICacheService {
      * 执行Redis INFO命令
      */
     private String executeInfoCommand(String section) {
-        // 使用 Redisson 的 NodesGroup API 执行 INFO 命令
-        NodesGroup<?> nodesGroup = redissonClient.getNodesGroup();
-        Node.InfoSection infoSection;
+        // Redisson 4 删除旧 NodesGroup API；按拓扑从新的 RedisNodes 读取主节点信息。
+        RedisNode.InfoSection infoSection;
         switch (section.toLowerCase()) {
             case "server":
-                infoSection = Node.InfoSection.SERVER;
+                infoSection = RedisNode.InfoSection.SERVER;
                 break;
             case "memory":
-                infoSection = Node.InfoSection.MEMORY;
+                infoSection = RedisNode.InfoSection.MEMORY;
                 break;
             case "stats":
-                infoSection = Node.InfoSection.STATS;
+                infoSection = RedisNode.InfoSection.STATS;
                 break;
             default:
-                infoSection = Node.InfoSection.ALL;
+                infoSection = RedisNode.InfoSection.ALL;
         }
-        Map<String, String> infoMap = nodesGroup.getNodes(NodeType.MASTER).iterator().next().info(infoSection);
+        Map<String, String> infoMap = redisInfoNode().info(infoSection);
         // 将 Map 转换为字符串格式
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> entry : infoMap.entrySet()) {
             sb.append(entry.getKey()).append(":").append(entry.getValue()).append("\n");
         }
         return sb.toString();
+    }
+
+    private RedisNode redisInfoNode() {
+        var config = redissonClient.getConfig();
+        if (config.isClusterConfig()) {
+            return redissonClient.getRedisNodes(RedisNodes.CLUSTER).getMasters().iterator().next();
+        }
+        if (config.isSentinelConfig()) {
+            return redissonClient.getRedisNodes(RedisNodes.SENTINEL_MASTER_SLAVE).getMaster();
+        }
+        if (config.isSingleConfig()) {
+            return redissonClient.getRedisNodes(RedisNodes.SINGLE).getInstance();
+        }
+        return redissonClient.getRedisNodes(RedisNodes.MASTER_SLAVE).getMaster();
     }
     
     /**

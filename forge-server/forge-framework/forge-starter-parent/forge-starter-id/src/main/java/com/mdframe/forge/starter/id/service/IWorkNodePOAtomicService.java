@@ -1,6 +1,6 @@
 package com.mdframe.forge.starter.id.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.mdframe.forge.starter.id.entity.WorkerNodePO;
 
 public interface IWorkNodePOAtomicService extends IService<WorkerNodePO> {

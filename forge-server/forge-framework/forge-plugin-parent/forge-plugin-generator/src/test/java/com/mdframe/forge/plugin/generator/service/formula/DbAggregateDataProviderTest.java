@@ -33,7 +33,7 @@ class DbAggregateDataProviderTest {
         lowcodeModelMapper = Mockito.mock(AiLowcodeModelMapper.class);
         detailRecordFetcher = Mockito.mock(DetailRecordFetcher.class);
         provider = new DbAggregateDataProvider(relationMapper, businessObjectMapper,
-            lowcodeModelMapper, detailRecordFetcher);
+            lowcodeModelMapper, detailRecordFetcher, new com.fasterxml.jackson.databind.ObjectMapper());
     }
 
     // ---- helpers ----

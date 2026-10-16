@@ -1,7 +1,7 @@
 package com.mdframe.forge.report.project.template.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.mdframe.forge.report.project.directory.domain.ReportDirectory;
 import com.mdframe.forge.report.project.directory.service.ReportDirectoryService;
 import com.mdframe.forge.report.project.domain.ReportProject;

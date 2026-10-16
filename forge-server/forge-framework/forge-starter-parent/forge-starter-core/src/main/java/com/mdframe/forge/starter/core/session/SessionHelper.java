@@ -2,6 +2,7 @@ package com.mdframe.forge.starter.core.session;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.mdframe.forge.starter.core.context.ExecutionIdentityContextHolder;
+import com.mdframe.forge.starter.core.context.LoginUserContextHolder;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 
 import java.util.List;
@@ -32,6 +33,11 @@ public class SessionHelper {
                 .orElse(null);
         if (explicitUser != null) {
             return explicitUser;
+        }
+        // 机器身份优先；普通受信后台任务不伪造 MCP clientId，也不持有 Servlet 请求。
+        LoginUser taskUser = LoginUserContextHolder.current();
+        if (taskUser != null) {
+            return taskUser;
         }
         try {
             if (!StpUtil.isLogin()) {

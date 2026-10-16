@@ -19,12 +19,16 @@ class FlowUserGroupRuntimeResolutionContractTest {
                 "src/main/java/com/mdframe/forge/starter/flow/service/impl/FlowTaskReceiverResolverImpl.java"));
         String guard = Files.readString(Path.of(
                 "src/main/java/com/mdframe/forge/starter/flow/security/FlowAccessGuard.java"));
+        String membershipResolver = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/starter/flow/security/FlowCandidateMembershipResolver.java"));
 
         assertThat(contract).contains("getUserIdsByGroupCode", "getUserGroupCodes");
         assertThat(implementation).contains("flowUserGroupService.resolveUserIdsByCode(groupCode.trim())",
                 "flowUserGroupService.resolveGroupCodesByUserId(uid)");
         assertThat(resolver).contains("getUserIdsByGroupCode(group)");
-        assertThat(guard).contains("resolveGroupCodesByUserId(userId)");
+        // 成员资格已经提取成独立解析器，仍须验证访问守卫经该链路检查自定义组。
+        assertThat(guard).contains("candidateMembershipResolver.resolveCurrentSessionGroups()");
+        assertThat(membershipResolver).contains("flowUserGroupService.resolveGroupCodesByUserId(userId)");
     }
 
     @Test

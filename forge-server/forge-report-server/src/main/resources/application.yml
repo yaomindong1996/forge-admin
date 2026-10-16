@@ -8,13 +8,13 @@ server:
   port: 8581
   servlet:
     context-path: /
-  undertow:
-    max-http-post-size: ${FORGE_MAX_HTTP_POST_SIZE:20MB}
-    buffer-size: 512
-    direct-buffers: true
+  # Boot 4 不再支持 Undertow；沿用请求体限制，改用 Tomcat 的有界工作线程。
+  tomcat:
+    max-http-form-post-size: ${FORGE_MAX_HTTP_POST_SIZE:20MB}
+    max-swallow-size: ${FORGE_MAX_HTTP_POST_SIZE:20MB}
     threads:
-      io: 8
-      worker: 256
+      max: ${FORGE_HTTP_MAX_THREADS:256}
+      min-spare: 10
 
 # 日志配置
 logging:
@@ -36,7 +36,11 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 20MB
-  jackson:
+  http:
+    converters:
+      # 必须显式选择 Jackson 2，否则 Boot 4 默认 Jackson 3 会绕过 Forge 的字段序列化。
+      preferred-json-mapper: jackson2
+  jackson2:
     date-format: yyyy-MM-dd HH:mm:ss
     serialization:
       indent_output: false

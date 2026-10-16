@@ -1,6 +1,6 @@
 package com.mdframe.forge.starter.flow.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.mdframe.forge.starter.flow.entity.FlowNodeConfig;
 import com.mdframe.forge.starter.flow.entity.FlowApprovalLevel;
 import com.mdframe.forge.starter.flow.entity.FlowNodeOperation;

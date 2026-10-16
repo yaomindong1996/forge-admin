@@ -1,7 +1,7 @@
 package com.mdframe.forge.plugin.ai.provider.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.ai.constant.AiConstants;
 import com.mdframe.forge.plugin.ai.model.constant.AiModelType;
 import com.mdframe.forge.plugin.ai.model.dto.AiModelSaveDTO;

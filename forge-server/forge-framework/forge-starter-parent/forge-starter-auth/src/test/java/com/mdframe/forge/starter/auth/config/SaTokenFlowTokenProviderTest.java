@@ -1,7 +1,7 @@
 package com.mdframe.forge.starter.auth.config;
 
 import cn.dev33.satoken.session.SaSession;
-import cn.dev33.satoken.stp.SaLoginModel;
+import cn.dev33.satoken.stp.parameter.SaLoginParameter;
 import cn.dev33.satoken.stp.StpLogic;
 import com.mdframe.forge.flow.client.FlowTokenAcquisitionException;
 import com.mdframe.forge.starter.core.context.ExecutionIdentity;
@@ -35,7 +35,7 @@ class SaTokenFlowTokenProviderTest {
     void shouldIssueShortLivedSaTokenForTrustedMcpUser() {
         StpLogic stpLogic = mock(StpLogic.class);
         SaSession tokenSession = mock(SaSession.class);
-        when(stpLogic.createLoginSession(eq(101L), any(SaLoginModel.class)))
+        when(stpLogic.createLoginSession(eq(101L), any(SaLoginParameter.class)))
                 .thenReturn("delegated-flow-token");
         when(stpLogic.getTokenSessionByToken("delegated-flow-token", true))
                 .thenReturn(tokenSession);
@@ -46,7 +46,7 @@ class SaTokenFlowTokenProviderTest {
             assertThat(provider.getToken()).isEqualTo("delegated-flow-token");
         }
 
-        ArgumentCaptor<SaLoginModel> loginModel = ArgumentCaptor.forClass(SaLoginModel.class);
+        ArgumentCaptor<SaLoginParameter> loginModel = ArgumentCaptor.forClass(SaLoginParameter.class);
         verify(stpLogic).createLoginSession(eq(101L), loginModel.capture());
         assertThat(loginModel.getValue().getTimeout()).isEqualTo(60L);
         assertThat(loginModel.getValue().getActiveTimeout()).isEqualTo(60L);
@@ -71,13 +71,13 @@ class SaTokenFlowTokenProviderTest {
                     .hasMessage("MCP_FLOW_DELEGATION_TOKEN_UNAVAILABLE");
         }
 
-        verify(stpLogic, never()).createLoginSession(any(), any(SaLoginModel.class));
+        verify(stpLogic, never()).createLoginSession(any(), any(SaLoginParameter.class));
     }
 
     @Test
     void shouldFailClosedWhenSaTokenCreationReturnsBlankToken() {
         StpLogic stpLogic = mock(StpLogic.class);
-        when(stpLogic.createLoginSession(eq(101L), any(SaLoginModel.class))).thenReturn(" ");
+        when(stpLogic.createLoginSession(eq(101L), any(SaLoginParameter.class))).thenReturn(" ");
         SaTokenFlowTokenProvider provider = new SaTokenFlowTokenProvider(() -> stpLogic);
 
         try (var ignored = ExecutionIdentityContextHolder.open(identity("USER", 101L))) {
@@ -100,7 +100,7 @@ class SaTokenFlowTokenProviderTest {
         SaTokenFlowTokenProvider provider = new SaTokenFlowTokenProvider(() -> stpLogic);
 
         assertThat(provider.getToken()).isEqualTo("interactive-token");
-        verify(stpLogic, never()).createLoginSession(any(), any(SaLoginModel.class));
+        verify(stpLogic, never()).createLoginSession(any(), any(SaLoginParameter.class));
     }
 
     @Test
@@ -110,7 +110,7 @@ class SaTokenFlowTokenProviderTest {
         SaTokenFlowTokenProvider provider = new SaTokenFlowTokenProvider(() -> stpLogic);
 
         assertThat(provider.getToken()).isNull();
-        verify(stpLogic, never()).createLoginSession(any(), any(SaLoginModel.class));
+        verify(stpLogic, never()).createLoginSession(any(), any(SaLoginParameter.class));
     }
 
     @Test
@@ -119,7 +119,7 @@ class SaTokenFlowTokenProviderTest {
         // 触发 logoutByMaxLoginCount 把浏览器会话挤下线）；临近过期才换发新 Token
         StpLogic stpLogic = mock(StpLogic.class);
         SaSession tokenSession = mock(SaSession.class);
-        when(stpLogic.createLoginSession(eq(101L), any(SaLoginModel.class)))
+        when(stpLogic.createLoginSession(eq(101L), any(SaLoginParameter.class)))
                 .thenReturn("delegated-token-1", "delegated-token-2");
         when(stpLogic.getTokenSessionByToken(any(), eq(true))).thenReturn(tokenSession);
         AtomicLong clock = new AtomicLong();
@@ -134,15 +134,15 @@ class SaTokenFlowTokenProviderTest {
             assertThat(provider.getToken()).isEqualTo("delegated-token-2");
         }
 
-        verify(stpLogic, times(2)).createLoginSession(eq(101L), any(SaLoginModel.class));
+        verify(stpLogic, times(2)).createLoginSession(eq(101L), any(SaLoginParameter.class));
     }
 
     @Test
     void shouldIssueSeparateDelegatedTokensForDifferentIdentityScopes() {
         StpLogic stpLogic = mock(StpLogic.class);
         SaSession tokenSession = mock(SaSession.class);
-        when(stpLogic.createLoginSession(eq(101L), any(SaLoginModel.class))).thenReturn("delegated-token-101");
-        when(stpLogic.createLoginSession(eq(202L), any(SaLoginModel.class))).thenReturn("delegated-token-202");
+        when(stpLogic.createLoginSession(eq(101L), any(SaLoginParameter.class))).thenReturn("delegated-token-101");
+        when(stpLogic.createLoginSession(eq(202L), any(SaLoginParameter.class))).thenReturn("delegated-token-202");
         when(stpLogic.getTokenSessionByToken(any(), eq(true))).thenReturn(tokenSession);
         SaTokenFlowTokenProvider provider = new SaTokenFlowTokenProvider(() -> stpLogic);
 
@@ -153,8 +153,8 @@ class SaTokenFlowTokenProviderTest {
             assertThat(provider.getToken()).isEqualTo("delegated-token-202");
         }
 
-        verify(stpLogic, times(1)).createLoginSession(eq(101L), any(SaLoginModel.class));
-        verify(stpLogic, times(1)).createLoginSession(eq(202L), any(SaLoginModel.class));
+        verify(stpLogic, times(1)).createLoginSession(eq(101L), any(SaLoginParameter.class));
+        verify(stpLogic, times(1)).createLoginSession(eq(202L), any(SaLoginParameter.class));
     }
 
     private ExecutionIdentity identity(String actorType, Long userId) {

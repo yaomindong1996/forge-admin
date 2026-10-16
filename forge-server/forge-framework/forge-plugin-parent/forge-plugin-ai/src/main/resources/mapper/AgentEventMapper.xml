@@ -4,6 +4,17 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.mdframe.forge.plugin.ai.agent.engine.event.mapper.AgentEventMapper">
 
+    <!-- 同一可信执行的有界批次，使用单语句确保发布顺序与批次原子性。 -->
+    <insert id="insertBatch">
+        INSERT INTO ai_agent_event
+            (id, tenant_id, session_id, turn_index, event_type, event_data, parent_id, create_time)
+        VALUES
+        <foreach collection="events" item="event" separator=",">
+            (#{event.id}, #{event.tenantId}, #{event.sessionId}, #{event.turnIndex},
+             #{event.eventType}, #{event.eventData}, #{event.parentId}, #{event.createTime})
+        </foreach>
+    </insert>
+
     <delete id="deleteBefore">
         DELETE FROM ai_agent_event
         WHERE create_time &lt; #{beforeTime}

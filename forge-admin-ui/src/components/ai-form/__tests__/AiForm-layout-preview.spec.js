@@ -2,6 +2,9 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import AiForm from '../AiForm.vue'
 
+// 组件测试不启动完整应用路由或自动生成路由，避免测试依赖开发服务器插件。
+vi.mock('@/router', () => ({ default: { currentRoute: { value: { query: {} } } } }))
+
 vi.mock('vue-router', () => ({
   useRoute: () => ({
     query: {},
@@ -110,11 +113,12 @@ describe('ai-form 栅格布局（设计器 row/col）渲染', () => {
     expect(wrapper.text()).toContain('空容器')
   })
 
-  it('运行态默认行为：空栅格（列内无字段）仍被整棵删除，不受预览开关影响', () => {
+  it('运行态保留布局列结构，但不显示设计器专用空容器提示', () => {
     const wrapper = mountForm(buildRowSchema(false))
-    // filterVisibleNodes 对空 children 的非 standalone 布局节点返回 null：
-    // 4 个空 col 被删 → row children=[] → row 也被删（发布后的表单里空容器不渲染）
-    expect(wrapper.findAll('.n-gi-stub').length).toBe(0)
+    // 布局容器属于独立协议节点，不能改变已发布画布的对齐；设计器占位提示仍禁止展示。
+    expect(wrapper.findAll('.n-gi-stub').length).toBe(5)
+    expect(wrapper.findAll('.af-empty-layout-placeholder')).toHaveLength(0)
+    expect(wrapper.text()).not.toContain('空容器')
   })
 
   it('有字段的栅格：字段所在列应正常渲染', () => {

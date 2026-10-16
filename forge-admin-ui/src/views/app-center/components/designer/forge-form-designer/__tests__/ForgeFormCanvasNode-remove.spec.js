@@ -2,6 +2,8 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import ForgeFormCanvasNode from '../ForgeFormCanvasNode.vue'
 
+vi.mock('@/router', () => ({ default: { currentRoute: { value: { query: {} } } } }))
+
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: {}, params: {}, path: '/', fullPath: '/', name: 'canvas-node-remove-test' }),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -93,20 +95,20 @@ describe('forge form canvas node removal in grid', () => {
     const colNodes = wrapper.findAllComponents(ForgeFormCanvasNode).filter(w => w.props('component')?.componentKey === 'col')
     expect(colNodes.length).toBe(4)
     const emptyColNode = colNodes.find(w => w.props('component')?.id === 'cmp_row_1_col_2')
-    expect(emptyColNode.find('.node-overlay.column-overlay').exists()).toBe(true)
-    expect(emptyColNode.find('.node-overlay .menu-trigger').exists()).toBe(false)
-    expect(emptyColNode.find('.node-overlay .drag-handle').exists()).toBe(false)
+    expect(emptyColNode.find('.designer-node-overlay.mode-column').exists()).toBe(true)
+    expect(emptyColNode.find('.designer-node-overlay .overlay-menu-trigger').exists()).toBe(false)
+    expect(emptyColNode.find('.designer-node-overlay .overlay-drag-handle').exists()).toBe(false)
     // 4 列栅格删除中间列不受限
-    const colDeleteBtn = emptyColNode.find('.column-overlay button.icon-action.danger')
+    const colDeleteBtn = emptyColNode.find('.mode-column button.overlay-icon-action.danger')
     expect(colDeleteBtn.exists()).toBe(true)
     expect(colDeleteBtn.attributes('disabled')).toBeUndefined()
 
     // col 内字段节点：完整操作浮层（含复制/菜单/把手）
     const fieldNode = wrapper.findAllComponents(ForgeFormCanvasNode).find(w => w.props('component')?.componentKey === 'input')
     expect(fieldNode).toBeTruthy()
-    expect(fieldNode.find('.node-overlay').exists()).toBe(true)
-    expect(fieldNode.find('.node-overlay.column-overlay').exists()).toBe(false)
-    const deleteBtn = fieldNode.find('button.icon-action.danger')
+    expect(fieldNode.find('.designer-node-overlay').exists()).toBe(true)
+    expect(fieldNode.find('.designer-node-overlay.mode-column').exists()).toBe(false)
+    const deleteBtn = fieldNode.find('button.overlay-icon-action.danger')
     expect(deleteBtn.exists()).toBe(true)
     expect(deleteBtn.attributes('disabled')).toBeUndefined()
   })
@@ -117,7 +119,7 @@ describe('forge form canvas node removal in grid', () => {
     const wrapper = mountNode(schema, row)
 
     const fieldNode = wrapper.findAllComponents(ForgeFormCanvasNode).find(w => w.props('component')?.componentKey === 'input')
-    const deleteBtn = fieldNode.find('button.icon-action.danger')
+    const deleteBtn = fieldNode.find('button.overlay-icon-action.danger')
     expect(deleteBtn.exists()).toBe(true)
 
     // 嵌套节点 update:schema 逐层转发到顶层 wrapper
@@ -149,7 +151,7 @@ describe('forge form canvas node removal in grid', () => {
     const wrapper = mountNode(schema, row)
 
     const fieldNode = wrapper.findAllComponents(ForgeFormCanvasNode).find(w => w.props('component')?.componentKey === 'input')
-    const deleteBtn = fieldNode.find('button.icon-action.danger')
+    const deleteBtn = fieldNode.find('button.overlay-icon-action.danger')
     // locked 只限制改组件/存储类型，画布删除不再被禁用
     expect(deleteBtn.attributes('disabled')).toBeUndefined()
 
@@ -178,7 +180,7 @@ describe('forge form canvas node removal in grid', () => {
 
     const colNodes = wrapper.findAllComponents(ForgeFormCanvasNode).filter(w => w.props('component')?.componentKey === 'col')
     const secondColNode = colNodes.find(w => w.props('component')?.id === 'cmp_row_1_col_2')
-    const colDeleteBtn = secondColNode.find('.column-overlay button.icon-action.danger')
+    const colDeleteBtn = secondColNode.find('.mode-column button.overlay-icon-action.danger')
     expect(colDeleteBtn.exists()).toBe(true)
     // 带内容的格子删除按钮提示「一并删除」
     expect(colDeleteBtn.attributes('title')).toContain('一并删除')
@@ -211,7 +213,7 @@ describe('forge form canvas node removal in grid', () => {
 
     const colNodes = wrapper.findAllComponents(ForgeFormCanvasNode).filter(w => w.props('component')?.componentKey === 'col')
     const onlyColNode = colNodes.find(w => w.props('component')?.id === 'cmp_row_1_col_1')
-    const colDeleteBtn = onlyColNode.find('.column-overlay button.icon-action.danger')
+    const colDeleteBtn = onlyColNode.find('.mode-column button.overlay-icon-action.danger')
     expect(colDeleteBtn.exists()).toBe(true)
     expect(colDeleteBtn.attributes('disabled')).toBeDefined()
 

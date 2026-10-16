@@ -1,7 +1,7 @@
 package com.mdframe.forge.plugin.ai.agenttool.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.ai.agenttool.domain.AiAgentToolConfig;
 import com.mdframe.forge.plugin.ai.agenttool.domain.AiAgentToolPermission;
 import com.mdframe.forge.plugin.ai.agenttool.mapper.AiAgentToolConfigMapper;

@@ -390,6 +390,7 @@
     >
       <n-drawer-content :title="`${selectedBlock?.label || selectedBlock?.blockType || '组件'} 组件属性`" closable>
         <SpecPropertyPanel
+          v-if="selectedBlock"
           :block-type="selectedBlock.blockType"
           :model-props="selectedBlock.props || {}"
           :exclude-keys="specPanelExcludeKeys"

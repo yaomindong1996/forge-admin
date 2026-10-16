@@ -1,6 +1,6 @@
 package com.mdframe.forge.starter.flow.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.starter.flow.dto.FormFieldCatalogItemDTO;
 import com.mdframe.forge.starter.flow.entity.FlowForm;

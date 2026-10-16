@@ -65,6 +65,7 @@ public class AgentEngineController {
      * 订阅事件流（SSE）
      */
     @GetMapping(value = "/events/{sessionId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @SaCheckPermission("ai:engine:stream")
     public Flux<ServerSentEvent<String>> subscribeEvents(@PathVariable String sessionId, HttpServletResponse response) {
         prepareSse(response);
         return stream.subscribe(sessionId);

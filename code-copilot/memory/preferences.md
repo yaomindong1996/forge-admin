@@ -224,3 +224,13 @@ Forge AI 中枢的真实 Flyway、Admin/Flow 服务启动、MCP Streamable HTTP 
 
 用户确认写接口字段级校验应优先 Jakarta Validation（DTO 注解 + Controller `@Valid`/`@Validated`），不要主要靠 Service 手写 `isBlank`；Service 只留业务规则。已固化到 `AGENTS.md` §5.8 与 `code-copilot/rules/coding-style.md` §10.3，存量按触及即改。
 
+## 31. Spring Boot 升级只做现有功能兼容，不扩展新能力
+
+**记录日期**：2026-10-12
+
+用户明确本轮 Spring Boot 4 升级的目标是原有功能正常，不新增功能。
+后续只进行兼容审查、回归与有证据的最小修复，不把跨节点 SSE、持久化任务恢复、
+新授权体系等增强不断追加为必做阶段。已完成工作保留，已知边界如实记录。
+真实环境验证需有明确授权后再执行，不能将本地测试通过等同于生产全部功能已验收。
+当前范围记录见 spring-boot4-t6 Spec/Tasks/Report。
+

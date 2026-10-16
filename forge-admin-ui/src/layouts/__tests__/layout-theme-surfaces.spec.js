@@ -209,8 +209,6 @@ describe('布局主题覆盖与工具接入契约', () => {
   })
 
   it.each([
-    ['.mega-section-nav > button:hover', 'hover'],
-    ['.mega-section-nav > button:focus-visible', 'hover'],
     ['.mega-section-nav > button.is-active', 'active'],
     ['.workbench-menu-link:hover', 'hover'],
     ['.workbench-menu-link:focus-visible', 'hover'],
@@ -220,6 +218,16 @@ describe('布局主题覆盖与工具接入契约', () => {
     expect(rule).toContain(`color: var(--side-menu-text-color-${state},`)
     expect(rule).toContain(`background: var(--side-menu-bg-color-${state},`)
     expect(rule).not.toContain('color-mix')
+  })
+
+  it.each([
+    '.mega-section-nav > button:hover',
+    '.mega-section-nav > button:focus-visible',
+  ])('%s 保持可读前景，不把白色选中文字套在浅悬停表面', (selector) => {
+    const rule = styleRule(source('layouts/business-workbench/workbench.css'), selector)
+    expect(rule).toContain('color: var(--text-primary, var(--text-secondary))')
+    expect(rule).toContain('var(--side-menu-bg-color-hover, var(--bg-secondary))')
+    expect(rule).not.toContain('--side-menu-text-color-active')
   })
 
   it('选中状态后置以覆盖悬停/聚焦，箭头随父按钮状态而非品牌色', () => {

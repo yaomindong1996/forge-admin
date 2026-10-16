@@ -431,11 +431,12 @@ describe('application business process panel', () => {
     await wrapper.find('[data-process-section="runs"]').trigger('click')
     await flushPromises()
 
-    expect(processApiMocks.businessProcessRunPage).toHaveBeenCalledWith(expect.objectContaining({
+    // 运行面板已按需动态导入；等待真实子组件挂载，不只等待当前一轮微任务。
+    await vi.waitFor(() => expect(processApiMocks.businessProcessRunPage).toHaveBeenCalledWith(expect.objectContaining({
       applicationId: application.id,
       pageNum: 1,
       pageSize: 10,
-    }))
+    })))
     expect(wrapper.text()).toContain('提交审批')
     expect(wrapper.text()).toContain('order')
   })
@@ -463,7 +464,8 @@ describe('application business process panel', () => {
     await wrapper.find('[data-menu-key="runs"]').trigger('click')
     await flushPromises()
     await nextTick()
-    expect(processApiMocks.businessProcessRunPage).toHaveBeenLastCalledWith(expect.objectContaining({ processId: processRecord.id }))
+    await vi.waitFor(() => expect(processApiMocks.businessProcessRunPage)
+      .toHaveBeenLastCalledWith(expect.objectContaining({ processId: processRecord.id })))
     expect(processApiMocks.businessProcessPage).toHaveBeenLastCalledWith(expect.objectContaining({ pageSize: 50, keyword: undefined }))
     expect(wrapper.findComponent({ name: 'AiSearch' }).props('modelValue')).toEqual({ processId: processRecord.id })
     wrapper.findComponent({ name: 'AiSearch' }).vm.$emit('reset')

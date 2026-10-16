@@ -226,7 +226,7 @@ public class FlowClient {
     }
 
     public FlowResult<Map<String, Object>> getTodoTasks(String userId, int pageNum, int pageSize, Integer status) {
-        String url = UriComponentsBuilder.fromHttpUrl(flowServiceUrl + "/api/flow/task/todo")
+        String url = UriComponentsBuilder.fromUriString(flowServiceUrl + "/api/flow/task/todo")
                 .queryParam("userId", userId)
                 .queryParam("pageNum", pageNum)
                 .queryParam("pageSize", pageSize)
@@ -243,7 +243,7 @@ public class FlowClient {
     }
 
     public FlowResult<Map<String, Object>> getDoneTasks(String userId, int pageNum, int pageSize, Integer status) {
-        String url = UriComponentsBuilder.fromHttpUrl(flowServiceUrl + "/api/flow/task/done")
+        String url = UriComponentsBuilder.fromUriString(flowServiceUrl + "/api/flow/task/done")
                 .queryParam("userId", userId)
                 .queryParam("pageNum", pageNum)
                 .queryParam("pageSize", pageSize)
@@ -260,7 +260,7 @@ public class FlowClient {
     }
 
     public FlowResult<Map<String, Object>> getStartedTasks(String userId, int pageNum, int pageSize, Integer status) {
-        String url = UriComponentsBuilder.fromHttpUrl(flowServiceUrl + "/api/flow/task/started")
+        String url = UriComponentsBuilder.fromUriString(flowServiceUrl + "/api/flow/task/started")
                 .queryParam("userId", userId)
                 .queryParam("pageNum", pageNum)
                 .queryParam("pageSize", pageSize)
@@ -280,7 +280,7 @@ public class FlowClient {
             return FlowResult.success(List.of());
         }
         UriComponentsBuilder builder = UriComponentsBuilder
-                .fromHttpUrl(flowServiceUrl + "/api/flow/task/active-by-process")
+                .fromUriString(flowServiceUrl + "/api/flow/task/active-by-process")
                 .queryParam("processInstanceIds", String.join(",", processInstanceIds));
         addQueryParamIfText(builder, "userId", userId);
         return get(builder.toUriString(), new TypeReference<FlowResult<List<Map<String, Object>>>>() {});
@@ -310,7 +310,7 @@ public class FlowClient {
                                                               String processDefKey,
                                                               String taskId,
                                                               String taskDefKey) {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(flowServiceUrl + "/api/flow/task/form");
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(flowServiceUrl + "/api/flow/task/form");
         addQueryParamIfText(builder, "processInstanceId", processInstanceId);
         addQueryParamIfText(builder, "businessKey", businessKey);
         addQueryParamIfText(builder, "processDefKey", processDefKey);
@@ -323,7 +323,7 @@ public class FlowClient {
      * 签收任务
      */
     public FlowResult<Void> claimTask(String taskId, String userId) {
-        String url = UriComponentsBuilder.fromHttpUrl(flowServiceUrl + "/api/flow/task/claim")
+        String url = UriComponentsBuilder.fromUriString(flowServiceUrl + "/api/flow/task/claim")
                 .queryParam("taskId", taskId)
                 .queryParam("userId", userId)
                 .toUriString();
@@ -450,7 +450,7 @@ public class FlowClient {
      * @param taskId 任务 ID
      */
     public FlowResult<Void> remind(String taskId) {
-        String url = UriComponentsBuilder.fromHttpUrl(flowServiceUrl + "/api/flow/task/remind")
+        String url = UriComponentsBuilder.fromUriString(flowServiceUrl + "/api/flow/task/remind")
                 .queryParam("taskId", taskId)
                 .toUriString();
         return post(url, null, new TypeReference<FlowResult<Void>>() {});
@@ -474,7 +474,7 @@ public class FlowClient {
     public FlowResult<Map<String, Object>> getProcessHistoryPage(String processInstanceId,
                                                                  int pageNum,
                                                                  int pageSize) {
-        String url = UriComponentsBuilder.fromHttpUrl(
+        String url = UriComponentsBuilder.fromUriString(
                         flowServiceUrl + "/api/flow/task/history/" + processInstanceId + "/page")
                 .queryParam("pageNum", pageNum)
                 .queryParam("pageSize", pageSize)
@@ -503,7 +503,7 @@ public class FlowClient {
      * @param status   状态（可为 null，1=已部署）
      */
     public FlowResult<List<Map<String, Object>>> getModelList(String category, Integer status) {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(flowServiceUrl + "/api/flow/model/list");
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(flowServiceUrl + "/api/flow/model/list");
         Optional.ofNullable(category).ifPresent(v -> builder.queryParam("category", v));
         if (status == null) {
             builder.queryParam("includeDraft", true);

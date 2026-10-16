@@ -1,7 +1,7 @@
 package com.mdframe.forge.starter.config.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.mdframe.forge.starter.config.entity.SysConfigGroup;
 import com.mdframe.forge.starter.config.mapper.SysConfigGroupMapper;
 import com.mdframe.forge.starter.config.service.ISysConfigGroupService;

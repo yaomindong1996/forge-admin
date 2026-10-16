@@ -2,7 +2,7 @@ package com.mdframe.forge.starter.id.service.impl;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.mdframe.forge.starter.id.entity.WorkerNodePO;
 import com.mdframe.forge.starter.id.mapper.WorkerNodePOMapper;
 import com.mdframe.forge.starter.id.service.IWorkNodePOAtomicService;

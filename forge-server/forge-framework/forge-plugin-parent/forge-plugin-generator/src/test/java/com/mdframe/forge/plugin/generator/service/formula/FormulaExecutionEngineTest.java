@@ -33,7 +33,7 @@ class FormulaExecutionEngineTest {
     @DisplayName("basic execution")
     class BasicExecution {
         @Test
-        @DisplayName("empty formula map �?success")
+        @DisplayName("empty formula map succeeds")
         void empty() {
             ExecutionResult r = engine.execute(Collections.emptyMap(), Map.of());
             assertTrue(r.isSuccess());
@@ -54,7 +54,7 @@ class FormulaExecutionEngineTest {
         }
 
         @Test
-        @DisplayName("chain: C闂傚倷鐒﹂崜姘跺磻閸涱喗娅犳い蹇撶墛閻撳啯銇勯幇鍓佸埌闁?in topological order")
+        @DisplayName("chain: C then B then A in topological order")
         void chainExecution() {
             Map<String, FormulaConfig> formulas = fm(
                 "A", calc("B + 1", List.of("B")),
@@ -113,9 +113,9 @@ class FormulaExecutionEngineTest {
     @DisplayName("3-level nesting")
     class ThreeLevelNesting {
         @Test
-        @DisplayName("D闂傚倷鐒﹂崜姘跺磻閸涱喗娅犳い鎰堕檮閻撳啯銇勯幇鍓佸埌闁愁亜缍婂娲箛娴ｉ晲绨兼繝? depth 4 rejected at analyze, depth 3 OK at execute")
+        @DisplayName("depth 3 executes; depth 4 is rejected by dependency analysis")
         void depth3Ok() {
-            // C闂傚倷鐒﹂崜姘跺磻閸涱喗娅犳い蹇撶墛閻撳啯銇勯幇鍓佸埌闁? depths C=1, B=2, A=3 (within limit)
+            // C -> B -> A: depths C=1, B=2, A=3 (within limit).
             Map<String, FormulaConfig> formulas = fm(
                 "A", calc("B + 1", List.of("B")),
                 "B", calc("C + 1", List.of("C")),
@@ -168,7 +168,7 @@ class FormulaExecutionEngineTest {
         }
 
         @Test
-        @DisplayName("missing variable �?degraded, remaining continue")
+        @DisplayName("missing variable degrades while remaining formulas continue")
         void missingVariable() {
             Map<String, FormulaConfig> formulas = fm(
                 "A", calc("x + 1", List.of("x")),
@@ -187,7 +187,7 @@ class FormulaExecutionEngineTest {
     @DisplayName("cycle detection")
     class CycleDetection {
         @Test
-        @DisplayName("A闂傚倷鐒﹂崜姘跺磻閸涙潙�?cycle �?immediate failure")
+        @DisplayName("A-B dependency cycle fails immediately")
         void cycle() {
             Map<String, FormulaConfig> formulas = fm(
                 "A", calc("B + 1", List.of("B")),
@@ -256,7 +256,7 @@ class FormulaExecutionEngineTest {
 
             ExecutionResult r = engine.execute(formulas, Map.of());
 
-            // Default AggregateEngine has no-op data provider �?SUM returns 0L
+            // Default AggregateEngine has an empty data provider, so SUM returns 0L.
             assertFalse(r.hasError("totalAmount"),
                 "AGGREGATE should execute without error: " + r.getErrors());
             assertEquals(0L, r.getResult("totalAmount"));

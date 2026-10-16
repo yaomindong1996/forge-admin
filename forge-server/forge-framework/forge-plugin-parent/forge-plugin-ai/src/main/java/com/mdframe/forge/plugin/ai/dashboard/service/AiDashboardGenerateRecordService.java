@@ -2,7 +2,7 @@ package com.mdframe.forge.plugin.ai.dashboard.service;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.ai.dashboard.domain.AiDashboardComponentLineage;
 import com.mdframe.forge.plugin.ai.dashboard.domain.AiDashboardGenerateRecord;
 import com.mdframe.forge.plugin.ai.dashboard.dto.AiDashboardComponentLineageDTO;

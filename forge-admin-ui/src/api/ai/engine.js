@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/store/modules/auth'
 import { consumeSSE, generateUUID, request } from '@/utils'
+import { agentStreamLifecycle } from './agent-stream-lifecycle'
 
 const BASE_URL = import.meta.env.VITE_REQUEST_PREFIX || ''
 
@@ -11,14 +12,12 @@ function streamEngine(url, data, onEvent, onComplete, onError) {
   const authStore = useAuthStore()
   return consumeSSE(`${BASE_URL}${url}`, {
     headers: {
-      Authorization: authStore.accessToken ? `Bearer ${authStore.accessToken}` : '',
+      'Authorization': authStore.accessToken ? `Bearer ${authStore.accessToken}` : '',
       'X-Timestamp': Date.now().toString(),
       'X-Nonce': generateUUID(),
     },
     body: data,
-    onEvent,
-    onComplete,
-    onError,
+    ...agentStreamLifecycle({ onEvent, onComplete, onError }),
   })
 }
 

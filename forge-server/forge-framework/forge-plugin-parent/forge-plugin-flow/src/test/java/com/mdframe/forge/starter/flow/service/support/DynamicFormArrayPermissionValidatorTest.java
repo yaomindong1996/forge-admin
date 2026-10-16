@@ -94,6 +94,7 @@ class DynamicFormArrayPermissionValidatorTest {
 
     @Test
     void rejectsCreatedRowsMissingRequiredFields() {
+        // v3 节点权限覆盖设计态 schema，必填场景必须显式携带节点 required=true。
         String permissions = permissions(true, true, false);
         Map<String, Object> current = Map.of("expenseItems", List.of(row("差旅", 100)));
         Map<String, Object> invalidRow = Map.of("amount", 200);
@@ -101,6 +102,23 @@ class DynamicFormArrayPermissionValidatorTest {
         assertThrows(IllegalArgumentException.class, () -> DynamicFormArrayPermissionValidator.validate(
                 OBJECT_MAPPER, SCHEMA, permissions, current,
                 Map.of("expenseItems", List.of(row("差旅", 100), invalidRow))));
+    }
+
+    @Test
+    void preservesSchemaRequiredValidationWithoutNodePermissions() {
+        Map<String, Object> current = Map.of("expenseItems", List.of(row("差旅", 100)));
+        assertThrows(IllegalArgumentException.class, () -> DynamicFormArrayPermissionValidator.validate(
+                OBJECT_MAPPER, SCHEMA, "{}", current,
+                Map.of("expenseItems", List.of(row("差旅", 100), Map.of("amount", 200)))));
+    }
+
+    @Test
+    void honorsNodePermissionThatExplicitlyMakesSchemaRequiredFieldOptional() {
+        String permissions = permissions(true, true, false).replace("\"required\":true", "\"required\":false");
+        Map<String, Object> current = Map.of("expenseItems", List.of(row("差旅", 100)));
+        assertDoesNotThrow(() -> DynamicFormArrayPermissionValidator.validate(
+                OBJECT_MAPPER, SCHEMA, permissions, current,
+                Map.of("expenseItems", List.of(row("差旅", 100), Map.of("amount", 200)))));
     }
 
     @Test
@@ -155,7 +173,8 @@ class DynamicFormArrayPermissionValidatorTest {
         return """
                 {"version":3,"fields":[
                   {"scope":"main","field":"expenseItems","readable":true,"writable":true},
-                  {"scope":"array","arrayKey":"expenseItems","itemField":"name","field":"name","readable":true,"writable":true},
+                  {"scope":"array","arrayKey":"expenseItems","itemField":"name","field":"name",
+                   "readable":true,"writable":true,"required":true},
                   {"scope":"array","arrayKey":"expenseItems","itemField":"amount","field":"amount","readable":true,"writable":true}
                 ],"arrays":[{"arrayKey":"expenseItems","allowCreate":%s,"allowUpdate":%s,"allowDelete":%s}]}
                 """.formatted(allowCreate, allowUpdate, allowDelete);

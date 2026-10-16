@@ -16,15 +16,15 @@ import com.mdframe.forge.plugin.capability.spi.CapabilitySource;
 import com.mdframe.forge.plugin.mcp.config.ForgeMcpServerAutoConfiguration;
 import com.mdframe.forge.plugin.mcp.security.McpCallerContextResolver;
 import io.modelcontextprotocol.server.McpServerFeatures;
-import io.modelcontextprotocol.server.transport.WebMvcSseServerTransportProvider;
-import io.modelcontextprotocol.server.transport.WebMvcStreamableServerTransportProvider;
+import org.springframework.ai.mcp.server.webmvc.transport.WebMvcSseServerTransportProvider;
+import org.springframework.ai.mcp.server.webmvc.transport.WebMvcStreamableServerTransportProvider;
 import org.junit.jupiter.api.Test;
-import org.springframework.ai.mcp.server.autoconfigure.McpServerSseWebMvcAutoConfiguration;
-import org.springframework.ai.mcp.server.autoconfigure.McpServerStreamableHttpWebMvcAutoConfiguration;
+import org.springframework.ai.mcp.server.webmvc.autoconfigure.McpServerSseWebMvcAutoConfiguration;
+import org.springframework.ai.mcp.server.webmvc.autoconfigure.McpServerStreamableHttpWebMvcAutoConfiguration;
 import org.springframework.ai.mcp.server.common.autoconfigure.McpServerAutoConfiguration;
-import org.springframework.ai.mcp.server.common.autoconfigure.McpServerObjectMapperAutoConfiguration;
+import org.springframework.ai.mcp.server.common.autoconfigure.McpServerJsonMapperAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.jackson2.autoconfigure.Jackson2AutoConfiguration;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 
 import java.util.List;
@@ -36,7 +36,7 @@ class McpStreamableTransportCompatibilityTest {
 
     private final WebApplicationContextRunner contextRunner = new WebApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(
-                    McpServerObjectMapperAutoConfiguration.class,
+                    McpServerJsonMapperAutoConfiguration.class,
                     McpServerSseWebMvcAutoConfiguration.class,
                     McpServerStreamableHttpWebMvcAutoConfiguration.class,
                     McpServerAutoConfiguration.class))
@@ -53,9 +53,9 @@ class McpStreamableTransportCompatibilityTest {
     void shouldRemainDisabledWhenAdminDefaultIsApplied() {
         new WebApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
-                        JacksonAutoConfiguration.class,
+                        Jackson2AutoConfiguration.class,
                         CapabilityAutoConfiguration.class,
-                        McpServerObjectMapperAutoConfiguration.class,
+                        McpServerJsonMapperAutoConfiguration.class,
                         ForgeMcpServerAutoConfiguration.class,
                         McpServerSseWebMvcAutoConfiguration.class,
                         McpServerStreamableHttpWebMvcAutoConfiguration.class,
@@ -82,9 +82,9 @@ class McpStreamableTransportCompatibilityTest {
     void shouldFailClosedWhenEnabledWithoutTrustedCallerResolver() {
         new WebApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
-                        JacksonAutoConfiguration.class,
+                        Jackson2AutoConfiguration.class,
                         CapabilityAutoConfiguration.class,
-                        McpServerObjectMapperAutoConfiguration.class,
+                        McpServerJsonMapperAutoConfiguration.class,
                         ForgeMcpServerAutoConfiguration.class,
                         McpServerSseWebMvcAutoConfiguration.class,
                         McpServerStreamableHttpWebMvcAutoConfiguration.class,
@@ -159,9 +159,9 @@ class McpStreamableTransportCompatibilityTest {
     private WebApplicationContextRunner forgeContextRunner(String protocol) {
         return new WebApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
-                        JacksonAutoConfiguration.class,
+                        Jackson2AutoConfiguration.class,
                         CapabilityAutoConfiguration.class,
-                        McpServerObjectMapperAutoConfiguration.class,
+                        McpServerJsonMapperAutoConfiguration.class,
                         ForgeMcpServerAutoConfiguration.class,
                         McpServerSseWebMvcAutoConfiguration.class,
                         McpServerStreamableHttpWebMvcAutoConfiguration.class,

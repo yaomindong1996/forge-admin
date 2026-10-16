@@ -4,7 +4,7 @@ import cn.dev33.satoken.SaManager;
 import cn.dev33.satoken.config.SaTokenConfig;
 import cn.dev33.satoken.context.SaTokenContext;
 import cn.dev33.satoken.context.SaTokenContextForThreadLocal;
-import cn.dev33.satoken.context.SaTokenContextForThreadLocalStorage;
+import cn.dev33.satoken.context.SaTokenContextForThreadLocalStaff;
 import cn.dev33.satoken.dao.SaTokenDao;
 import cn.dev33.satoken.dao.SaTokenDaoDefaultImpl;
 import cn.dev33.satoken.exception.NotLoginException;
@@ -52,7 +52,7 @@ class SystemVersionControllerTest {
         SaManager.setConfig(new SaTokenConfig().setIsPrint(false).setDataRefreshPeriod(-1).setIsReadCookie(false));
         SaManager.setSaTokenDao(new SaTokenDaoDefaultImpl());
         SaManager.setSaTokenContext(new SaTokenContextForThreadLocal());
-        SaTokenContextForThreadLocalStorage.setBox(new SaRequestForServlet(request),
+        SaTokenContextForThreadLocalStaff.setModelBox(new SaRequestForServlet(request),
                 new SaResponseForServlet(response), new SaStorageForServlet(request));
         handler = new HandlerMethod(controller, SystemVersionController.class.getMethod(
                 "current", jakarta.servlet.http.HttpServletResponse.class));
@@ -60,7 +60,7 @@ class SystemVersionControllerTest {
 
     @AfterEach
     void cleanup() {
-        SaTokenContextForThreadLocalStorage.clearBox();
+        SaTokenContextForThreadLocalStaff.clearModelBox();
         SaManager.setConfig(previousConfig);
         SaManager.setSaTokenContext(previousContext);
         SaManager.setSaTokenDao(previousDao);

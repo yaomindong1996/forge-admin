@@ -5,6 +5,7 @@ import com.mdframe.forge.plugin.ai.provider.support.AiSecretCrypto;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.embedding.EmbeddingModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -82,11 +83,21 @@ class AiProviderAdapterRegistryTest {
         return provider;
     }
 
+    @Test
+    void createEmbeddingModelDelegatesToTheRegisteredProtocol() {
+        List<String> events = new ArrayList<>();
+        var adapter = new RecordingAdapter("dashscope_native", events, null);
+        var registry = new AiProviderAdapterRegistry(List.of(adapter), secretCrypto());
+        assertSame(adapter.embedding, registry.createEmbeddingModel(provider("dashscope_native"), "t1-embedding"));
+        assertEquals(List.of("create_embedding"), events);
+    }
+
     private static class RecordingAdapter implements AiProviderAdapter {
 
         private final String code;
         private final List<String> events;
         private final ChatModel model;
+        private final EmbeddingModel embedding = mock(EmbeddingModel.class);
 
         private RecordingAdapter(String code, List<String> events, ChatModel model) {
             this.code = code;
@@ -108,6 +119,12 @@ class AiProviderAdapterRegistryTest {
         public ChatModel createChatModel(AiProvider provider, AiModelRuntimeOptions options) {
             events.add("create");
             return model;
+        }
+
+        @Override
+        public EmbeddingModel createEmbeddingModel(AiProvider provider, String model) {
+            events.add("create_embedding");
+            return embedding;
         }
     }
 }

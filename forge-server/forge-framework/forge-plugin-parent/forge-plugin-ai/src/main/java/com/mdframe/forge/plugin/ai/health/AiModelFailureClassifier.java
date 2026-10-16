@@ -1,11 +1,13 @@
 package com.mdframe.forge.plugin.ai.health;
 
 import com.mdframe.forge.plugin.ai.provider.support.AiProviderFailureDiagnostics;
+import com.mdframe.forge.plugin.ai.provider.support.AiProviderRequestException;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
+import java.net.http.HttpTimeoutException;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
@@ -26,9 +28,12 @@ public class AiModelFailureClassifier {
         int depth = 0;
         while (current != null && depth++ < MAX_CAUSE_DEPTH) {
             if (current instanceof CancellationException) return AiModelFailureCategory.CANCELLED;
-            if (current instanceof SocketTimeoutException || current instanceof TimeoutException) return AiModelFailureCategory.TIMEOUT;
+            if (current instanceof SocketTimeoutException || current instanceof TimeoutException
+                    || current instanceof HttpTimeoutException) return AiModelFailureCategory.TIMEOUT;
             if (current instanceof IOException) return AiModelFailureCategory.NETWORK;
-            if (current instanceof BusinessException) return AiModelFailureCategory.VALIDATION;
+            if (current instanceof BusinessException && !(current instanceof AiProviderRequestException)) {
+                return AiModelFailureCategory.VALIDATION;
+            }
             current = current.getCause();
         }
         AiProviderFailureDiagnostics diagnostics = AiProviderFailureDiagnostics.from(failure);
@@ -37,6 +42,8 @@ public class AiModelFailureClassifier {
         if (status != null && status >= 500) return AiModelFailureCategory.PROVIDER_5XX;
         if (status != null && (status == 401 || status == 403)) return AiModelFailureCategory.AUTHENTICATION;
         String code = diagnostics.errorCode();
+        if ("timeout".equals(code)) return AiModelFailureCategory.TIMEOUT;
+        if ("connection_error".equals(code)) return AiModelFailureCategory.NETWORK;
         if (code != null && CONTENT_POLICY_CODES.contains(code.toLowerCase(Locale.ROOT))) return AiModelFailureCategory.CONTENT_POLICY;
         if ("model_not_found".equalsIgnoreCase(code) || "invalid_model".equalsIgnoreCase(code)) return AiModelFailureCategory.MODEL_UNAVAILABLE;
         return AiModelFailureCategory.UNKNOWN;

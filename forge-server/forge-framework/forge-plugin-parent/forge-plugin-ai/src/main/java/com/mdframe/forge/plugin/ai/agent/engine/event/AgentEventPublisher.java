@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * Agent 事件发布器。
- * publish 后：1) 异步持久化到 ai_agent_event；2) 同步转发 WebFlux SSE；3) 同步回调事件监听器。
+ * publish 后：1) 有界批量持久化到 ai_agent_event；2) 同步转发 WebFlux SSE；3) 同步回调事件监听器。
  * 三条路径均在 loop 线程上执行，与 HTTP 客户端连接生命周期无关。
  */
 @Slf4j
@@ -27,11 +27,12 @@ public class AgentEventPublisher {
      * 发布事件
      */
     public void publish(AgentEvent event) {
-        // 异步持久化
+        // 在可信 loop 线程缓冲，确认/结束及 finally 刷新，不能再分派到通用异步池。
         try {
             persistence.persist(event);
         } catch (Exception e) {
-            log.warn("[AgentEvent] 持久化失败: sessionId={}, type={}", event.getSessionId(), event.getEventType(), e);
+            log.warn("[AgentEvent] 持久化失败: type={}, exceptionType={}",
+                    event.getEventType(), e.getClass().getSimpleName());
         }
         // 同步转发 SSE
         try {
@@ -47,6 +48,15 @@ public class AgentEventPublisher {
                 log.warn("[AgentEvent] 监听器处理失败: listener={}, sessionId={}, type={}",
                         listener.getClass().getSimpleName(), event.getSessionId(), event.getEventType(), e);
             }
+        }
+    }
+
+    /** 审计尾批次失败不能妨碍直接流完成或 lease 释放。 */
+    public void flush() {
+        try {
+            persistence.flush();
+        } catch (RuntimeException ex) {
+            log.warn("[AgentEvent] 尾批次刷新失败, exceptionType={}", ex.getClass().getSimpleName());
         }
     }
 }

@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { getCurrentInstance } from 'vue'
 import AiFormLayoutNodes from '../AiFormLayoutNodes.vue'
 
+vi.mock('@/router', () => ({ default: { currentRoute: { value: { query: {} } } } }))
+
 vi.mock('vue-router', () => ({
   useRoute: () => ({
     query: {},

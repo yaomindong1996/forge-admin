@@ -14,24 +14,24 @@
         <forge-framework.version>${revision}</forge-framework.version>
         <!-- 发布构建可用 -Dforge.build.commit=<Git SHA> 写入；未知时不伪造提交标识。 -->
         <forge.build.commit>unknown</forge.build.commit>
-        <spring-boot.version>3.5.13</spring-boot.version>
+        <spring-boot.version>4.1.1</spring-boot.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>17</java.version>
-        <mybatis.version>3.5.16</mybatis.version>
-        <springdoc.version>2.6.0</springdoc.version>
+        <mybatis.version>3.5.19</mybatis.version>
+        <springdoc.version>3.1.1</springdoc.version>
         <therapi-javadoc.version>0.15.0</therapi-javadoc.version>
         <easyexcel.version>4.0.2</easyexcel.version>
         <velocity.version>2.3</velocity.version>
-        <satoken.version>1.38.0</satoken.version>
-        <mybatis-plus.version>3.5.7</mybatis-plus.version>
+        <satoken.version>1.45.0</satoken.version>
+        <mybatis-plus.version>3.5.17</mybatis-plus.version>
         <p6spy.version>3.9.1</p6spy.version>
         <hutool.version>5.8.31</hutool.version>
         <okhttp.version>4.10.0</okhttp.version>
         <spring-boot-admin.version>3.2.3</spring-boot-admin.version>
-        <redisson.version>3.50.0</redisson.version>
+        <redisson.version>4.8.0</redisson.version>
         <lock4j.version>2.2.7</lock4j.version>
-        <dynamic-ds.version>4.3.1</dynamic-ds.version>
+        <dynamic-ds.version>4.5.0</dynamic-ds.version>
         <oracle.jdbc.version>21.9.0.0</oracle.jdbc.version>
         <snailjob.version>1.1.2</snailjob.version>
         <mapstruct-plus.version>1.4.4</mapstruct-plus.version>
@@ -41,7 +41,6 @@
         <justauth.version>1.16.6</justauth.version>
         <!-- 离线IP地址定位库 -->
         <ip2region.version>2.7.0</ip2region.version>
-        <undertow.version>2.3.15.Final</undertow.version>
         
         <!-- OSS 配置 -->
         <aws.sdk.version>2.25.15</aws.sdk.version>
@@ -54,13 +53,11 @@
         <!-- 面向运行时的D-ORM依赖 -->
         <anyline.version>8.7.2-20240808</anyline.version>
         <!--工作流配置-->
-        <flowable.version>7.0.1</flowable.version>
+        <flowable.version>8.0.0</flowable.version>
         <flyway.version>10.20.1</flyway.version>
 
-        <!-- Spring AI / Spring AI Alibaba -->
-        <spring-ai.version>1.1.8</spring-ai.version>
-        <spring-ai-alibaba.version>1.1.2.3</spring-ai-alibaba.version>
-        <spring-ai-alibaba-extensions.version>1.1.2.3</spring-ai-alibaba-extensions.version>
+        <!-- Spring AI GA；通义使用独立原生适配，不混入 Alibaba 里程碑 BOM。 -->
+        <spring-ai.version>2.0.1</spring-ai.version>
         
         <!-- 插件版本 -->
         <maven-jar-plugin.version>3.2.2</maven-jar-plugin.version>
@@ -112,23 +109,6 @@
                 <maven.test.skip>false</maven.test.skip>
                 <forge.test.groups></forge.test.groups>
             </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <configuration>
-                            <testExcludes>
-                                <testExclude>**/DataScopeInterceptorTest.java</testExclude>
-                                <testExclude>**/FormulaExecutionEngineTest.java</testExclude>
-                                <testExclude>**/DynamicCrudRepositoryTest.java</testExclude>
-                                <testExclude>**/DbAggregateDataProviderTest.java</testExclude>
-                                <testExclude>**/BusinessObjectPublishServiceFormulaTest.java</testExclude>
-                            </testExcludes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
         </profile>
     </profiles>
     
@@ -154,20 +134,6 @@
                 <groupId>org.springframework.ai</groupId>
                 <artifactId>spring-ai-bom</artifactId>
                 <version>${spring-ai.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba.cloud.ai</groupId>
-                <artifactId>spring-ai-alibaba-extensions-bom</artifactId>
-                <version>${spring-ai-alibaba-extensions.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba.cloud.ai</groupId>
-                <artifactId>spring-ai-alibaba-bom</artifactId>
-                <version>${spring-ai-alibaba.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -345,22 +311,7 @@
     </build>
     
     <repositories>
-        <!-- Spring里程碑仓库，存放Spring AI Alibaba 1.1.x正式版 -->
-        <repository>
-            <id>spring-milestones</id>
-            <url>https://repo.spring.io/milestone</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <!-- Spring快照仓库（如需SNAPSHOT版） -->
-        <repository>
-            <id>spring-snapshots</id>
-            <url>https://repo.spring.io/snapshot</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-        </repository>
+        <!-- 本轮只使用正式依赖，不从里程碑/快照仓库混入框架组件。 -->
         <!-- Maven 中央仓库 -->
         <repository>
             <id>central</id>

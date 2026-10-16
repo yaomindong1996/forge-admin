@@ -12,6 +12,8 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface AiImageGenerateRecordMapper extends BaseMapper<AiImageGenerateRecord> {
 
+    int transition(@Param("record") AiImageGenerateRecord record, @Param("expectedStatus") String expectedStatus);
+
     Page<AiImageGenerateRecord> selectRecordPage(
             Page<AiImageGenerateRecord> page,
             @Param("tenantId") Long tenantId,

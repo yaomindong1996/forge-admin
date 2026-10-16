@@ -1,6 +1,6 @@
 package com.mdframe.forge.plugin.generator.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.mdframe.forge.plugin.generator.domain.entity.GenTableColumn;
 
 import java.util.List;

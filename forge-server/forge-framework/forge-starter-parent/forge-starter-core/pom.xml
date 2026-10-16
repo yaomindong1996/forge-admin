@@ -32,7 +32,7 @@
         
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
         </dependency>
         
         <!--常用工具类 -->
@@ -90,6 +90,11 @@
             <artifactId>ip2region</artifactId>
         </dependency>
         
+        <!-- 保留 PC/H5 的 JSON 2 协议；后续阶段再迁移序列化器到 Jackson 3。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-jackson2</artifactId>
+        </dependency>
         <!-- JSON工具类 -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -108,6 +113,11 @@
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-extension</artifactId>
+        </dependency>
+        <!-- 新 MP 将 IService/ServiceImpl 等 Spring 集成从 extension 拆出。 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>

@@ -1,7 +1,7 @@
 package com.mdframe.forge.plugin.ai.context.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.ai.context.domain.AiContextConfig;
 import com.mdframe.forge.plugin.ai.context.mapper.AiContextConfigMapper;
 import lombok.extern.slf4j.Slf4j;

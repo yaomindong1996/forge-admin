@@ -866,3 +866,20 @@ Vue 调用指令钩子不绑定该指令对象，导致页面报错。静态源�
 
 **解决方案**：使用 `.dark .forge-symbol--multicolor`，编译为带组件作用域的完整后代选择器。
 新增 compileStyle 断言，并在浏览器读取 SVG path 的实际 computed stroke，确认使用深色调色板。
+
+## HTTP EOF 不是 Agent 成功终态，SSE JSON 也不走 Long 策略
+
+**发现日期**：2026-10-12
+
+**问题描述**：Boot 4 回归收敛时发现，Agent 的连接完成回调会把模型错误、未完成 EOF、
+恢复后的再次确认覆盖成 done；工具失败也在 AGENT_END 被补成成功。
+PERSIST_META 由 FastJSON 直接生成内嵌 JSON，绕过业务 Jackson 的 Long 字符串化策略，
+雪花 ID 到浏览器后可能丢精度。图像页还误传 AuthImage.file-id，而公共组件只接收 src。
+
+**解决方案**：引擎封装要求合法协议终态，保留错误/停止/再次确认；工具结果按实际 success 收口。
+直接序列化的 SSE ID 显式转字符串，客户端不转 Number。图像以真实 resultFileId 传 AuthImage.src，
+查询与生成分离，串行轮询，并对卸载、KeepAlive 和账号/权限变化取消旧查询。
+本地合成浏览器还测到 320px 下自动 Grid 轨道被历史表格撑到 694px；改 minmax(0,1fr)，
+让表格内部滚动，最终 documentWidth=320。不能仅靠根节点 min-width:0 判断无溢出。
+
+证据见 code-copilot/changes/spring-boot4-t5；合成数据验证不代表真实模型或部署验收。

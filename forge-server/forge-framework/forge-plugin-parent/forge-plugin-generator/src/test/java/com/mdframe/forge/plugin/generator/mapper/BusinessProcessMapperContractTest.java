@@ -59,8 +59,8 @@ class BusinessProcessMapperContractTest {
         assertTrue(query.contains("p.tenant_id = #{tenantId}"));
         assertTrue(query.contains("p.subject_object_code = #{objectCode}"));
         assertTrue(query.contains("p.del_flag = 0"));
-        assertTrue(query.contains("JSON_TABLE"));
-        assertTrue(query.contains("LEFT(node.node_type, 6) = 'START_'"));
+        // 起点投影已迁至服务端规范化器，Mapper 仅提供受租户约束的草稿输入。
+        assertTrue(query.contains("p.draft_schema_json AS draftSchemaJson"));
         assertTrue(query.contains("Active_Application_And_Subject"));
     }
 

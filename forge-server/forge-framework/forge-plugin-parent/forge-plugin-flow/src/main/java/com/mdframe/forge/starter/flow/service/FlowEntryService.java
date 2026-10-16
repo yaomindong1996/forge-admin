@@ -1,7 +1,7 @@
 package com.mdframe.forge.starter.flow.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.mdframe.forge.starter.flow.dto.FlowEntryDTO;
 import com.mdframe.forge.starter.flow.dto.FlowEntryQueryDTO;
 import com.mdframe.forge.starter.flow.entity.FlowEntry;

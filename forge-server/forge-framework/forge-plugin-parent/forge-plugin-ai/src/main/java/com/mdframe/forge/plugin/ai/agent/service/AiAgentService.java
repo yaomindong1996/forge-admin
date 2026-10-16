@@ -1,7 +1,7 @@
 package com.mdframe.forge.plugin.ai.agent.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.ai.agent.domain.AiAgent;
 import com.mdframe.forge.plugin.ai.agent.mapper.AiAgentMapper;
 import com.mdframe.forge.plugin.ai.routing.constant.AiModelSelectionMode;

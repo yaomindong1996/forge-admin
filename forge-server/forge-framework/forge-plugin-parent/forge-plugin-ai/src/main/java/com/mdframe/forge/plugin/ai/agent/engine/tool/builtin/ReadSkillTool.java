@@ -8,6 +8,7 @@ import com.mdframe.forge.plugin.ai.skill.domain.AiSkillFile;
 import com.mdframe.forge.plugin.ai.skill.mapper.AiSkillFileMapper;
 import com.mdframe.forge.plugin.ai.skill.mapper.AiSkillMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.Map;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class ReadSkillTool implements AgentTool {
 
     private final AiSkillMapper skillMapper;
@@ -107,7 +109,8 @@ public class ReadSkillTool implements AgentTool {
             }
             return ToolResult.text(sb.toString());
         } catch (Exception e) {
-            return ToolResult.error("读取技能文件失败: " + e.getMessage());
+            log.warn("[AgentSkill] 读取失败: exceptionType={}", e.getClass().getSimpleName());
+            return ToolResult.error("读取技能文件失败，请稍后重试");
         }
     }
 }

@@ -4,11 +4,14 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.mdframe.forge.plugin.system.constant.SystemConstants;
 import com.mdframe.forge.plugin.system.dto.SysRoleQuery;
 import com.mdframe.forge.plugin.system.entity.SysRole;
+import com.mdframe.forge.plugin.system.entity.SysOrg;
+import com.mdframe.forge.plugin.system.entity.SysTenant;
 import com.mdframe.forge.plugin.system.mapper.SysOrgMapper;
 import com.mdframe.forge.plugin.system.mapper.SysRoleMapper;
 import com.mdframe.forge.plugin.system.mapper.SysTenantMapper;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.session.SessionHelper;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -23,6 +26,12 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 class SysRoleAccessPolicyTest {
+
+    @BeforeAll
+    static void initializeMybatisMetadata() {
+        // Mock Mapper 不启动真实 ORM；新版本解析 Lambda 列时仍需内存表元数据。
+        ResourceFeatureTestSupport.initializeMetadata(SysOrg.class, SysTenant.class);
+    }
 
     private final SysRoleMapper roleMapper = mock(SysRoleMapper.class);
     private final SysTenantMapper tenantMapper = mock(SysTenantMapper.class);

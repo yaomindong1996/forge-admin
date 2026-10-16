@@ -3,10 +3,13 @@ package com.mdframe.forge.plugin.ai.session.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.ai.chat.domain.AiChatRecord;
 import com.mdframe.forge.plugin.ai.chat.service.AiChatRecordService;
 import com.mdframe.forge.plugin.ai.session.domain.AiChatSession;
+import com.mdframe.forge.plugin.ai.session.enums.AiChatSessionStatus;
+import com.mdframe.forge.starter.core.exception.BusinessException;
+import org.springframework.dao.DuplicateKeyException;
 import com.mdframe.forge.plugin.ai.session.dto.AiSessionPageQuery;
 import com.mdframe.forge.plugin.ai.session.mapper.AiChatSessionMapper;
 import com.mdframe.forge.plugin.ai.session.vo.AiExperienceMetricsVO;
@@ -57,13 +60,25 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionMapper, AiCha
                     .userId(userId)
                     .agentCode(agentCode)
                     .sessionName(name)
-                    .status("0")
+                    .status(AiChatSessionStatus.ACTIVE.getCode())
                     .pinned(0)
                     .createTime(LocalDateTime.now())
                     .updateTime(LocalDateTime.now())
                     .build();
-            save(session);
+            try {
+                if (!save(session)) {
+                    throw new BusinessException("会话创建失败");
+                }
+            } catch (DuplicateKeyException ex) {
+                // 不尝试读取其它租户的行，也不把同一主键重新归属当前用户。
+                throw new BusinessException(409, "会话标识已被占用，请创建新会话");
+            }
         } else {
+            if (!java.util.Objects.equals(session.getUserId(), userId)
+                    || !java.util.Objects.equals(session.getTenantId(), tenantId)
+                    || !AiChatSessionStatus.ACTIVE.matches(session.getStatus())) {
+                throw new BusinessException(403, "无权访问该会话或会话已删除");
+            }
             update(new LambdaUpdateWrapper<AiChatSession>()
                     .set(AiChatSession::getUpdateTime, LocalDateTime.now())
                     .eq(AiChatSession::getId, sessionId));

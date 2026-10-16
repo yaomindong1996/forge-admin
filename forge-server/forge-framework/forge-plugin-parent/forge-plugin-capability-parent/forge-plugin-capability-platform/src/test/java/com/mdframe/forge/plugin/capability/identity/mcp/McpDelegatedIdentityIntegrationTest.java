@@ -27,7 +27,7 @@ import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import cn.dev33.satoken.spring.SaTokenContextRegister;
 import cn.dev33.satoken.SaManager;
 import cn.dev33.satoken.context.SaTokenContext;
-import cn.dev33.satoken.spring.SaTokenContextForSpringInJakartaServlet;
+import cn.dev33.satoken.context.SaTokenContextForThreadLocal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -35,18 +35,20 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.MDC;
-import org.springframework.ai.mcp.server.autoconfigure.McpServerStreamableHttpWebMvcAutoConfiguration;
+import org.springframework.ai.mcp.server.webmvc.autoconfigure.McpServerStreamableHttpWebMvcAutoConfiguration;
 import org.springframework.ai.mcp.server.common.autoconfigure.McpServerAutoConfiguration;
-import org.springframework.ai.mcp.server.common.autoconfigure.McpServerObjectMapperAutoConfiguration;
+import org.springframework.ai.mcp.server.common.autoconfigure.McpServerJsonMapperAutoConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.http.converter.autoconfigure.HttpMessageConvertersAutoConfiguration;
+import org.springframework.boot.jackson2.autoconfigure.Jackson2AutoConfiguration;
 import org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration;
-import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
+import org.springframework.boot.webmvc.autoconfigure.WebMvcAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import com.mdframe.forge.starter.auth.interceptor.ApiRateLimitInterceptor;
+import com.mdframe.forge.starter.apiconfig.service.IApiConfigManager;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -105,7 +107,8 @@ class McpDelegatedIdentityIntegrationTest {
     @BeforeAll
     static void installSaTokenServletContext() {
         previousSaTokenContext = SaManager.getSaTokenContext();
-        SaManager.setSaTokenContext(new SaTokenContextForSpringInJakartaServlet());
+        // 1.45 的 Servlet Filter 使用 ThreadLocal ModelBox，不能再强行换成旧 Spring 上下文实现。
+        SaManager.setSaTokenContext(new SaTokenContextForThreadLocal());
     }
 
     @AfterAll
@@ -269,12 +272,12 @@ class McpDelegatedIdentityIntegrationTest {
 
     @SpringBootConfiguration
     @ImportAutoConfiguration({
-            JacksonAutoConfiguration.class,
+            Jackson2AutoConfiguration.class,
             HttpMessageConvertersAutoConfiguration.class,
             WebMvcAutoConfiguration.class,
             TaskExecutionAutoConfiguration.class,
             CapabilityAutoConfiguration.class,
-            McpServerObjectMapperAutoConfiguration.class,
+            McpServerJsonMapperAutoConfiguration.class,
             ForgeMcpServerAutoConfiguration.class,
             McpServerStreamableHttpWebMvcAutoConfiguration.class,
             McpServerAutoConfiguration.class
@@ -285,6 +288,7 @@ class McpDelegatedIdentityIntegrationTest {
             McpExecutionContextLifecycle.class,
             CapabilityInvocationAuditObserver.class,
             SaTokenConfig.class,
+            ApiRateLimitInterceptor.class,
             SaTokenContextRegister.class
     })
     static class TestApplication {
@@ -311,6 +315,12 @@ class McpDelegatedIdentityIntegrationTest {
         @Bean
         ApiPermissionInterceptor apiPermissionInterceptor() {
             return mock(ApiPermissionInterceptor.class);
+        }
+
+        @Bean
+        IApiConfigManager apiConfigManager() {
+            // 保留真实限流拦截器；本测试只模拟数据库配置，不连接外部缓存。
+            return mock(IApiConfigManager.class);
         }
 
         @Bean

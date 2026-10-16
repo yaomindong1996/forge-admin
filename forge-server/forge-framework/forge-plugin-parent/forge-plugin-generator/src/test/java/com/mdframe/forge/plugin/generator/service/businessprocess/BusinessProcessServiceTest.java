@@ -147,6 +147,22 @@ class BusinessProcessServiceTest {
     }
 
     @Test
+    @DisplayName("summary extracts the actual draft start node and never exposes draft JSON")
+    void listByObjectCodeExtractsStartAndHidesDraft() {
+        BusinessObjectProcessVO summary = new BusinessObjectProcessVO();
+        summary.setId("1001");
+        summary.setDraftSchemaJson("""
+                {"nodes":[{"id":"end","type":"END"},
+                  {"id":"start","type":"START_EVENT"}],"edges":[]}
+                """);
+        when(processMapper.selectBySubjectObjectCode(1L, "order")).thenReturn(List.of(summary));
+        var result = service.listByObjectCode("order");
+        assertEquals("START_EVENT", result.get(0).getStartNodeType());
+        assertNull(result.get(0).getDraftSchemaJson());
+        verify(processMapper).selectBySubjectObjectCode(1L, "order");
+    }
+
+    @Test
     @DisplayName("process code is immutable after creation")
     void processCodeIsImmutable() {
         when(processMapper.selectActiveById(1L, 1001L)).thenReturn(process());

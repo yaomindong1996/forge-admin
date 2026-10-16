@@ -9,6 +9,7 @@ import com.mdframe.forge.starter.auth.session.LoginSessionRenewal;
 import com.mdframe.forge.starter.core.context.AuthProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -17,6 +18,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * Sa-Token 配置类
  */
 @Configuration
+@Import(SaTokenServletContextConfiguration.class)
 @EnableScheduling
 @RequiredArgsConstructor
 public class SaTokenConfig implements WebMvcConfigurer {

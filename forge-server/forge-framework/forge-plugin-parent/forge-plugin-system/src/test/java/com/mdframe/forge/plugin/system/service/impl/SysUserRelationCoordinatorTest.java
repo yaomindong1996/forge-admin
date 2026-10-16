@@ -4,6 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mdframe.forge.plugin.system.constant.SystemConstants;
 import com.mdframe.forge.plugin.system.entity.SysUser;
 import com.mdframe.forge.plugin.system.entity.SysUserPost;
+import com.mdframe.forge.plugin.system.entity.SysUserRole;
+import com.mdframe.forge.plugin.system.entity.SysUserOrgRole;
+import com.mdframe.forge.plugin.system.entity.SysUserOrg;
+import com.mdframe.forge.plugin.system.entity.SysUserTenant;
 import com.mdframe.forge.plugin.system.mapper.SysOrgMapper;
 import com.mdframe.forge.plugin.system.mapper.SysRoleMapper;
 import com.mdframe.forge.plugin.system.mapper.SysUserMapper;
@@ -13,6 +17,7 @@ import com.mdframe.forge.plugin.system.mapper.SysUserPostMapper;
 import com.mdframe.forge.plugin.system.mapper.SysUserRoleMapper;
 import com.mdframe.forge.plugin.system.mapper.SysUserTenantMapper;
 import com.mdframe.forge.starter.core.session.LoginUser;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -27,6 +32,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class SysUserRelationCoordinatorTest {
+
+    @BeforeAll
+    static void initializeMybatisMetadata() {
+        // 只初始化 Mock Mapper 的列缓存，不连接数据库，保留真实 Wrapper/权限断言。
+        ResourceFeatureTestSupport.initializeMetadata(SysUserPost.class, SysUserRole.class,
+                SysUserOrgRole.class, SysUserOrg.class, SysUserTenant.class);
+    }
 
     private final SysUserMapper userMapper = mock(SysUserMapper.class);
     private final SysUserRoleMapper userRoleMapper = mock(SysUserRoleMapper.class);

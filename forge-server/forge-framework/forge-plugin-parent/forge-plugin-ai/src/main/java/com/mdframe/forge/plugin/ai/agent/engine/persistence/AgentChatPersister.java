@@ -106,10 +106,10 @@ public class AgentChatPersister implements AgentEventListener {
      * HITL 恢复：请求线程调用。
      * <ul>
      *   <li>拒绝（confirmed=false）：无后续 loop，直接把原 assistant 行与其等待中的工具行收口为 aborted。</li>
-     *   <li>确认（confirmed=true）：loop 会以完整历史重跑并重放全部输出，故清掉旧工具行、正文重置，
-     *       把行转回 streaming 并注册状态，交由事件回调重新落库。</li>
+     *   <li>确认（confirmed=true）：只续跑未完成的工具；保留旧工具行与正文，
+     *       接回等待确认的行并继续追加，不能按旧方式清空并重放。</li>
      * </ul>
-     * 必须在 reactAgent.resume 之前调用。
+     * 由 reactAgent.resume 验证身份并消费确认后、loop 启动前回调，越权/重复确认不得修改消息。
      */
     public void openForResume(String interruptId, boolean confirmed) {
         if (!StringUtils.hasText(interruptId)) {
@@ -127,7 +127,8 @@ public class AgentChatPersister implements AgentEventListener {
             if (!confirmed) {
                 // 用户拒绝：等待中的工具行 → aborted，assistant 行 → aborted
                 for (AiChatMessageToolCall tc : prior) {
-                    if (AiChatMessageStatus.WAITING_CONFIRM.matches(tc.getStatus()) || AiChatMessageStatus.RUNNING.matches(tc.getStatus())) {
+                    if (AiChatMessageStatus.WAITING_CONFIRM.matches(tc.getStatus())
+                            || AiChatMessageStatus.RUNNING.matches(tc.getStatus())) {
                         tc.setStatus(AiChatMessageStatus.ABORTED.getCode());
                         tc.setErrorMsg("用户拒绝执行工具");
                         tc.setUpdateTime(LocalDateTime.now());
@@ -143,19 +144,26 @@ public class AgentChatPersister implements AgentEventListener {
                 return;
             }
 
-            // 确认恢复：清掉旧工具行（重跑会重放），正文/思考重置
-            if (!prior.isEmpty()) {
-                toolCallService.removeByIds(prior.stream().map(AiChatMessageToolCall::getId).toList());
-            }
+            // 只续跑待处理调用，保留前半轮已完成的工具与输出。
             assistant.setStatus(AiChatMessageStatus.STREAMING.getCode());
             assistant.setInterruptId(null);
-            assistant.setContent("");
-            assistant.setReasoning(null);
             assistant.setErrorMsg(null);
             assistant.setUpdateTime(LocalDateTime.now());
             recordService.updateById(assistant);
 
             StreamState state = new StreamState(sessionId, assistant.getUserId(), assistant.getTenantId(), assistant);
+            state.content.append(assistant.getContent() == null ? "" : assistant.getContent());
+            state.reasoning.append(assistant.getReasoning() == null ? "" : assistant.getReasoning());
+            state.toolSeq = prior.stream().map(AiChatMessageToolCall::getSeq)
+                    .filter(java.util.Objects::nonNull).max(Integer::compareTo).orElse(-1) + 1;
+            state.openToolCall = prior.stream()
+                    .filter(call -> AiChatMessageStatus.WAITING_CONFIRM.matches(call.getStatus()))
+                    .reduce((previous, next) -> next).orElse(null);
+            if (state.openToolCall != null) {
+                state.openToolCall.setStatus(AiChatMessageStatus.RUNNING.getCode());
+                state.openToolCall.setUpdateTime(LocalDateTime.now());
+                toolCallService.updateById(state.openToolCall);
+            }
             stateBySession.put(sessionId, state);
         } catch (Exception e) {
             log.warn("[AgentChatPersister] 恢复接回失败, interruptId={}", interruptId, e);
@@ -196,7 +204,15 @@ public class AgentChatPersister implements AgentEventListener {
 
             case TOOL_CALL_START -> openToolCall(state, data);
             case TOOL_RESULT_TEXT_DELTA, TOOL_RESULT_DATA_DELTA -> appendIfPresent(state.toolResult, data, "content");
-            case TOOL_RESULT_END -> closeToolCall(state, AiChatMessageStatus.SUCCESS.getCode(), null);
+            case TOOL_RESULT_END -> {
+                // 缺结果/非法 JSON 不等于成功，不能因结束事件名称就美化历史记录。
+                boolean success = data != null && Boolean.TRUE.equals(data.get("success"));
+                String error = data != null && Boolean.FALSE.equals(data.get("success"))
+                        ? "工具执行失败" : "工具未返回有效成功结果";
+                closeToolCall(state, success
+                                ? AiChatMessageStatus.SUCCESS.getCode() : AiChatMessageStatus.ERROR.getCode(),
+                        success ? null : error);
+            }
             case ALL_TOOLS_DENIED -> closeToolCall(state, AiChatMessageStatus.ABORTED.getCode(), "工具被拒绝执行");
 
             case REQUIRE_USER_CONFIRM -> markWaitingConfirm(state, data);
@@ -239,7 +255,7 @@ public class AgentChatPersister implements AgentEventListener {
     private void openToolCall(StreamState state, JSONObject data) {
         // 防御：上一个工具调用未正常收尾时先收口
         if (state.openToolCall != null) {
-            closeToolCall(state, AiChatMessageStatus.SUCCESS.getCode(), null);
+            closeToolCall(state, AiChatMessageStatus.ERROR.getCode(), "工具调用未正常结束");
         }
         state.toolResult.setLength(0);
         String toolName = data != null ? data.getString("tool") : null;
@@ -367,7 +383,8 @@ public class AgentChatPersister implements AgentEventListener {
         }
     }
 
-    private OpenResult prepareRetryResend(ReactRequest request, String agentCode, Long userId, Long tenantId, LocalDateTime now) {
+    private OpenResult prepareRetryResend(ReactRequest request, String agentCode,
+                                         Long userId, Long tenantId, LocalDateTime now) {
         AiChatRecord latestAssistant = recordService.findLatestAssistantBySession(request.getSessionId());
         if (latestAssistant == null || !userId.equals(latestAssistant.getUserId())) {
             throw new IllegalStateException("仅允许对会话内最新 assistant 消息重试");
@@ -380,11 +397,13 @@ public class AgentChatPersister implements AgentEventListener {
                 .status(AiChatMessageStatus.STREAMING.getCode()).createTime(now).updateTime(now)
                 .build();
         recordService.save(assistantRow);
-        stateBySession.put(request.getSessionId(), new StreamState(request.getSessionId(), userId, tenantId, assistantRow));
+        stateBySession.put(request.getSessionId(),
+                new StreamState(request.getSessionId(), userId, tenantId, assistantRow));
         return new OpenResult(null, assistantRow.getId());
     }
 
-    private OpenResult prepareEditResend(ReactRequest request, String agentCode, Long userId, Long tenantId, LocalDateTime now) {
+    private OpenResult prepareEditResend(ReactRequest request, String agentCode,
+                                        Long userId, Long tenantId, LocalDateTime now) {
         AiChatRecord latestUser = recordService.findLatestUserBySession(request.getSessionId());
         if (latestUser == null || !userId.equals(latestUser.getUserId())) {
             throw new IllegalStateException("仅允许对会话内最新 user 消息重发");
@@ -405,7 +424,8 @@ public class AgentChatPersister implements AgentEventListener {
                 .status(AiChatMessageStatus.STREAMING.getCode()).createTime(now).updateTime(now)
                 .build();
         recordService.save(assistantRow);
-        stateBySession.put(request.getSessionId(), new StreamState(request.getSessionId(), userId, tenantId, assistantRow));
+        stateBySession.put(request.getSessionId(),
+                new StreamState(request.getSessionId(), userId, tenantId, assistantRow));
         return new OpenResult(userRow.getId(), assistantRow.getId());
     }
 

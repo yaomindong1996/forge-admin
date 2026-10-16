@@ -23,6 +23,34 @@ import {
   toPageZoneCatalog,
 } from '../index'
 
+// 当前契约为 18 个注册挂件 + 6 个媒体挂件；键名逐项锁定，不能只调整总数掩盖丢失。
+const EXPECTED_WIDGET_KEYS = [
+  'rich-text',
+  'transfer',
+  'watermark',
+  'vue-component',
+  'html-tag',
+  'markdown',
+  'calendar',
+  'code',
+  'countdown',
+  'descriptions',
+  'announcement',
+  'list',
+  'log',
+  'number-animation',
+  'breadcrumb',
+  'menu',
+  'pagination',
+  'split',
+  'barcode',
+  'qrcode',
+  'audio-player',
+  'video-player',
+  'avatar',
+  'iframe',
+]
+
 describe('bridge Compatibility', () => {
   // ─── 表单设计器桥接 ──────────────────────────────────────
 
@@ -78,10 +106,10 @@ describe('bridge Compatibility', () => {
 
   // ─── 页面挂件桥接 ──────────────────────────────────────
 
-  it('toPageWidgetCatalog should return 20 items (18 widgets + barcode + qrcode)', () => {
+  it('toPageWidgetCatalog contains every registered widget and supported media widget', () => {
     const catalog = toPageWidgetCatalog()
     expect(Array.isArray(catalog)).toBe(true)
-    expect(catalog.length).toBe(20)
+    expect(catalog.map(item => item.componentKey).sort()).toEqual([...EXPECTED_WIDGET_KEYS].sort())
     catalog.forEach((item) => {
       expect(item.componentKey).toBeDefined()
       expect(item.blockType).toBeDefined()
@@ -108,10 +136,11 @@ describe('bridge Compatibility', () => {
     expect(keys).toContain('qrcode')
   })
 
-  it('toPageWidgetComponentKeys should return 26 strings', () => {
+  it('toPageWidgetComponentKeys matches the complete catalog without duplicate keys', () => {
     const keys = toPageWidgetComponentKeys()
     expect(Array.isArray(keys)).toBe(true)
-    expect(keys.length).toBe(26)
+    expect([...keys].sort()).toEqual([...EXPECTED_WIDGET_KEYS].sort())
+    expect(new Set(keys).size).toBe(keys.length)
     keys.forEach((key) => {
       expect(typeof key).toBe('string')
     })
@@ -332,7 +361,7 @@ describe('bridge Form Palette Compatibility (表单统一面板回归红线)', (
     // 挂件改 F+L 后，列表目录仍应精确 59 项（L/F+L 匹配语义不变）
     expect(toListPageBlockCatalog()).toHaveLength(59)
     const widgetKeys = toPageWidgetComponentKeys()
-    expect(widgetKeys).toHaveLength(26)
+    expect([...widgetKeys].sort()).toEqual([...EXPECTED_WIDGET_KEYS].sort())
     expect(widgetKeys).toContain('transfer')
     expect(widgetKeys).toContain('barcode')
     expect(widgetKeys).toContain('audio-player')

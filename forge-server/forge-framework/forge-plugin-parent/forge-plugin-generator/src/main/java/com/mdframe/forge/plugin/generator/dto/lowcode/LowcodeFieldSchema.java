@@ -105,6 +105,7 @@ public class LowcodeFieldSchema {
      * 是否引用类字段（对象引用/记录选择器）：选中记录 ID 存主列，
      * 显示名称冗余写入伴随列（{@link #referenceDisplayColumnName()}），回显零关联查询。
      */
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isReferenceField() {
         return (columnName != null && !columnName.isBlank())
                 && ((referenceObjectCode != null && !referenceObjectCode.isBlank())
@@ -151,6 +152,7 @@ public class LowcodeFieldSchema {
      * 需要把显示名称冗余写入伴随列的选择类字段：引用/记录选择器，人员/部门，
      * 以及配置了非静态 optionSource 的下拉等（值存主列，label 存 fieldName，回显零关联查询）。
      */
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isSelectionLabelField() {
         if (isReferenceField()) {
             return true;
@@ -190,6 +192,7 @@ public class LowcodeFieldSchema {
         return !"STATIC".equals(normalized);
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isMultipleSelection() {
         if (booleanProp(basicProps, "multiple")) {
             return true;

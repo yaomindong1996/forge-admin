@@ -1,7 +1,7 @@
 package com.mdframe.forge.starter.log.listener;
 
 import cn.dev33.satoken.listener.SaTokenListener;
-import cn.dev33.satoken.stp.SaLoginModel;
+import cn.dev33.satoken.stp.parameter.SaLoginParameter;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.useragent.UserAgent;
 import cn.hutool.http.useragent.UserAgentUtil;
@@ -47,7 +47,7 @@ public class LoginLogListener implements SaTokenListener {
      * 每次登录时触发
      */
     @Override
-    public void doLogin(String loginType, Object loginId, String tokenValue, SaLoginModel loginModel) {
+    public void doLogin(String loginType, Object loginId, String tokenValue, SaLoginParameter loginModel) {
         // 流程委托临时会话（mcp-flow 设备）不是用户登录行为，不写登录日志，
         // 否则高频流程调用会刷满登录日志表并干扰真实登录审计
         if (loginModel != null && loginModel.getDevice() != null
@@ -216,7 +216,7 @@ public class LoginLogListener implements SaTokenListener {
      * 每次Token续期时触发
      */
     @Override
-    public void doRenewTimeout(String tokenValue, Object loginId, long timeout) {
+    public void doRenewTimeout(String loginType, Object loginId, String tokenValue, long timeout) {
         // 不记录日志
     }
 

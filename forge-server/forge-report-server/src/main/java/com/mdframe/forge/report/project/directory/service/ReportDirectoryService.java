@@ -1,6 +1,6 @@
 package com.mdframe.forge.report.project.directory.service;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.mdframe.forge.report.project.directory.domain.ReportDirectory;
 import com.mdframe.forge.report.project.directory.dto.ReportDirectoryMoveDTO;
 import com.mdframe.forge.report.project.directory.mapper.ReportDirectoryMapper;

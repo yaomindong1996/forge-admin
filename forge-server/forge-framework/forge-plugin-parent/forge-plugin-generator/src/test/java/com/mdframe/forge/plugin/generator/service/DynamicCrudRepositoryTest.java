@@ -78,7 +78,8 @@ class DynamicCrudRepositoryTest {
         data.put("update_by", 999L);
 
         doReturn(true).when(repository).tableExists("demo_table");
-        doReturn(Set.of("name", "update_by", "update_time"))
+        // 真实业务表含租户列；缺列的 fixture 会被识别为不带租户的第三方表。
+        doReturn(Set.of("id", "tenant_id", "name", "update_by", "update_time"))
                 .when(repository).getTableColumns("demo_table");
         when(namedJdbcTemplate.update(eq("UPDATE demo_table SET name = :name, update_by = :update_by, update_time = :update_time WHERE id = :id AND tenant_id = :tenantId"), any(MapSqlParameterSource.class)))
                 .thenReturn(1);

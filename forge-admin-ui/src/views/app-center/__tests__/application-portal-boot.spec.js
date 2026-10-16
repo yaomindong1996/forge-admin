@@ -21,7 +21,8 @@ describe('application portal first paint', () => {
 
     expect(guardSource).toContain('route?.meta?.layout === \'app-portal\'')
     expect(appSource).toContain('isApplicationPortalPath(route.path)')
-    expect(appSource).toContain('<ApplicationPortalSkeleton />')
+    expect(appSource).toContain('<ApplicationRuntimeSkeleton v-if="isApplicationRuntimeRoute(curRoute)" />')
+    expect(appSource).toContain('<ApplicationPortalSkeleton v-else />')
     expect(portalSource).toContain('const loading = ref(true)')
     expect(portalSource).toContain('<ApplicationPortalSkeleton v-if="loading" />')
     expect(portalSource).not.toContain('n-spin :show="loading"')

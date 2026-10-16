@@ -14,6 +14,8 @@ import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
+import java.time.Duration;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -95,13 +97,13 @@ class FlowTaskRemindCoordinatorTest {
         assertThatThrownBy(() -> coordinator(redisTemplate).remind(TASK_ID))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("任务尚未被签收，暂时无法催办");
-        verify(valueOperations, never()).setIfAbsent(anyString(), anyString(), any());
+        verify(valueOperations, never()).setIfAbsent(anyString(), anyString(), any(Duration.class));
         verify(messageService, never()).send(any());
     }
 
     @Test
     void redisFailureDoesNotBlockRemind() {
-        when(valueOperations.setIfAbsent(eq(EXPECTED_KEY), eq("1"), any()))
+        when(valueOperations.setIfAbsent(eq(EXPECTED_KEY), eq("1"), any(Duration.class)))
                 .thenThrow(new RedisConnectionFailureException("down"));
 
         coordinator(redisTemplate).remind(TASK_ID);

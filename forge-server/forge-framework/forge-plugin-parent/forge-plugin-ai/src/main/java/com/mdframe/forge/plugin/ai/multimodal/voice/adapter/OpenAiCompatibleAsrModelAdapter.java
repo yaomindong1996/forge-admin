@@ -1,13 +1,14 @@
 package com.mdframe.forge.plugin.ai.multimodal.voice.adapter;
 
 import com.mdframe.forge.starter.core.exception.BusinessException;
+import com.mdframe.forge.plugin.ai.provider.adapter.OpenAiSdkSupport;
+import com.openai.models.audio.AudioResponseFormat;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.audio.transcription.AudioTranscription;
 import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;
 import org.springframework.ai.audio.transcription.AudioTranscriptionResponse;
 import org.springframework.ai.openai.OpenAiAudioTranscriptionModel;
 import org.springframework.ai.openai.OpenAiAudioTranscriptionOptions;
-import org.springframework.ai.openai.api.OpenAiAudioApi;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Component;
 
@@ -39,19 +40,22 @@ public class OpenAiCompatibleAsrModelAdapter implements AiAsrModelAdapter {
     @Override
     public String transcribe(String baseUrl, String apiKey, String model, byte[] audio, String mimeType) {
         try {
-            OpenAiAudioApi audioApi = OpenAiAudioApi.builder()
-                    .baseUrl(baseUrl)
-                    .apiKey(apiKey)
-                    .build();
-
             OpenAiAudioTranscriptionOptions options = OpenAiAudioTranscriptionOptions.builder()
-                    .model(model)
+                    .baseUrl(OpenAiSdkSupport.baseUrl(baseUrl)).apiKey(apiKey).model(model)
+                    .timeout(OpenAiSdkSupport.REQUEST_TIMEOUT).maxRetries(0)
+                    .responseFormat(AudioResponseFormat.TEXT)
                     .build();
 
             OpenAiAudioTranscriptionModel transcriptionModel =
-                    new OpenAiAudioTranscriptionModel(audioApi, options);
+                    OpenAiAudioTranscriptionModel.builder().options(options).build();
 
-            ByteArrayResource audioResource = new ByteArrayResource(audio);
+            // 新 SDK 的 multipart 上传要求文件名；默认值只用于协议，不落盘。
+            ByteArrayResource audioResource = new ByteArrayResource(audio) {
+                @Override
+                public String getFilename() {
+                    return "audio.wav";
+                }
+            };
             AudioTranscriptionPrompt prompt = new AudioTranscriptionPrompt(audioResource, options);
             AudioTranscriptionResponse response = transcriptionModel.call(prompt);
 
@@ -64,8 +68,8 @@ public class OpenAiCompatibleAsrModelAdapter implements AiAsrModelAdapter {
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("[AI ASR] 语音识别失败, baseUrl={}, model={}, error={}", baseUrl, model, e.getMessage());
-            throw new BusinessException("语音识别失败: " + e.getMessage());
+            log.warn("[AI ASR] 语音识别失败, model={}, type={}", model, e.getClass().getSimpleName());
+            throw new BusinessException("语音识别失败，请稍后重试");
         }
     }
 }

@@ -1,14 +1,13 @@
 package com.mdframe.forge.plugin.ai.multimodal.image.adapter;
 
 import com.mdframe.forge.starter.core.exception.BusinessException;
+import com.mdframe.forge.plugin.ai.provider.adapter.OpenAiSdkSupport;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.image.ImageGeneration;
 import org.springframework.ai.image.ImagePrompt;
 import org.springframework.ai.image.ImageResponse;
 import org.springframework.ai.openai.OpenAiImageModel;
 import org.springframework.ai.openai.OpenAiImageOptions;
-import org.springframework.ai.openai.api.OpenAiImageApi;
-import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -44,13 +43,9 @@ public class OpenAiCompatibleImageModelAdapter implements AiImageModelAdapter {
     public String generate(String baseUrl, String apiKey, String model, String prompt,
                            String negativePrompt, String size) {
         try {
-            OpenAiImageApi imageApi = OpenAiImageApi.builder()
-                    .baseUrl(baseUrl)
-                    .apiKey(apiKey)
-                    .build();
-
             OpenAiImageOptions.Builder optionsBuilder = OpenAiImageOptions.builder()
-                    .model(model);
+                    .baseUrl(OpenAiSdkSupport.baseUrl(baseUrl)).apiKey(apiKey).model(model)
+                    .timeout(OpenAiSdkSupport.REQUEST_TIMEOUT).maxRetries(0);
 
             // 解析 size（如 "1024x1024"）为 width + height
             if (size != null && !size.isBlank() && size.contains("x")) {
@@ -66,8 +61,7 @@ public class OpenAiCompatibleImageModelAdapter implements AiImageModelAdapter {
             }
 
             OpenAiImageOptions options = optionsBuilder.build();
-            OpenAiImageModel imageModel = new OpenAiImageModel(imageApi, options,
-                    RetryTemplate.builder().build());
+            OpenAiImageModel imageModel = OpenAiImageModel.builder().options(options).build();
 
             ImagePrompt imagePrompt = new ImagePrompt(prompt);
             ImageResponse response = imageModel.call(imagePrompt);
@@ -91,8 +85,8 @@ public class OpenAiCompatibleImageModelAdapter implements AiImageModelAdapter {
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("[AI Image] 图片生成失败, baseUrl={}, model={}, error={}", baseUrl, model, e.getMessage());
-            throw new BusinessException("图片生成失败: " + e.getMessage());
+            log.warn("[AI Image] 图片生成失败, model={}, type={}", model, e.getClass().getSimpleName());
+            throw new BusinessException("图片生成失败，请稍后重试");
         }
     }
 }

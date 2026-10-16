@@ -2,10 +2,9 @@ package com.mdframe.forge.plugin.ai.model.adapter;
 
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.document.MetadataMode;
+import com.mdframe.forge.plugin.ai.provider.adapter.OpenAiSdkSupport;
 import org.springframework.ai.openai.OpenAiEmbeddingModel;
 import org.springframework.ai.openai.OpenAiEmbeddingOptions;
-import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -46,14 +45,11 @@ public class OpenAiCompatibleEmbeddingModelAdapter implements AiEmbeddingModelAd
     public List<List<Float>> embed(String baseUrl, String apiKey, String model, List<String> texts) {
         String effectiveBaseUrl = normalizeDashScopeBaseUrl(baseUrl);
         try {
-            OpenAiApi api = OpenAiApi.builder()
-                    .baseUrl(effectiveBaseUrl)
-                    .apiKey(apiKey)
-                    .build();
             OpenAiEmbeddingOptions options = OpenAiEmbeddingOptions.builder()
-                    .model(model)
+                    .baseUrl(OpenAiSdkSupport.baseUrl(effectiveBaseUrl)).apiKey(apiKey).model(model)
+                    .timeout(OpenAiSdkSupport.REQUEST_TIMEOUT).maxRetries(0)
                     .build();
-            OpenAiEmbeddingModel embeddingModel = new OpenAiEmbeddingModel(api, MetadataMode.EMBED, options);
+            OpenAiEmbeddingModel embeddingModel = OpenAiEmbeddingModel.builder().options(options).build();
 
             // 分批调用 embed(List<String>)，每批 BATCH_SIZE 条，返回顺序与输入一致
             List<List<Float>> result = new ArrayList<>(texts.size());
@@ -78,8 +74,8 @@ public class OpenAiCompatibleEmbeddingModelAdapter implements AiEmbeddingModelAd
     /**
      * DashScope 的 OpenAI 兼容 Embedding 端点是 {host}/compatible-mode/v1/embeddings，
      * 而供应商配置的 baseUrl 通常是原生域名（https://dashscope.aliyuncs.com）。
-     * 命中 DashScope 域名且路径未带 /compatible-mode 时，补上该前缀，避免 Spring AI OpenAiApi
-     * 按 baseUrl + /v1/embeddings 拼出不存在的原生路径导致 404。
+     * 命中 DashScope 域名且路径未带 /compatible-mode 时，先补前缀，再由 SDK 地址策略追加 /v1，
+     * 避免将兼容嵌入请求发往原生路径导致 404。
      */
     private String normalizeDashScopeBaseUrl(String baseUrl) {
         if (baseUrl == null || baseUrl.isBlank()) {
@@ -94,7 +90,7 @@ public class OpenAiCompatibleEmbeddingModelAdapter implements AiEmbeddingModelAd
                 return "https://" + host + "/compatible-mode";
             }
         } catch (Exception ignored) {
-            // 非法 URL 保持原样，交由 OpenAiApi 校验处理
+            // 非法 URL 保持原样，交由 SDK 地址校验处理。
         }
         return baseUrl;
     }

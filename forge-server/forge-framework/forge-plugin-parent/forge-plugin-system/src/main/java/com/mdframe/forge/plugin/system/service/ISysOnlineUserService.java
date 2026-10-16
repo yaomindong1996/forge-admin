@@ -3,7 +3,7 @@ package com.mdframe.forge.plugin.system.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.mdframe.forge.plugin.system.entity.SysOnlineUser;
 
 import java.util.List;
