@@ -25,6 +25,7 @@ import com.mdframe.forge.starter.social.domain.vo.SocialConnectionSummaryVO;
 import com.mdframe.forge.starter.social.service.ISocialAppConfigService;
 import com.mdframe.forge.starter.social.service.ISocialConfigService;
 import com.mdframe.forge.plugin.collaboration.support.CollaborationTenantHelper;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.bind.annotation.*;
@@ -94,7 +95,7 @@ public class CollaborationConnectionController {
     @PostMapping
     @SaCheckPermission("system:collaboration:connection:create")
     @OperationLog(module = "企业协同连接", type = OperationType.ADD, desc = "新增连接")
-    public RespInfo<Void> create(@RequestBody CollaborationConnectionSaveRequest request) {
+    public RespInfo<Void> create(@Valid @RequestBody CollaborationConnectionSaveRequest request) {
         SysSocialConfig entity = request.toEntity();
         // 超管请求处于租户忽略态，MP 租户插件不会自动注入 tenant_id，需显式兜底
         if (entity.getTenantId() == null) {
@@ -113,7 +114,7 @@ public class CollaborationConnectionController {
     @PutMapping
     @SaCheckPermission("system:collaboration:connection:update")
     @OperationLog(module = "企业协同连接", type = OperationType.UPDATE, desc = "修改连接")
-    public RespInfo<Void> update(@RequestBody CollaborationConnectionSaveRequest request) {
+    public RespInfo<Void> update(@Valid @RequestBody CollaborationConnectionSaveRequest request) {
         requireConnection(request.getId());
         SysSocialConfig entity = request.toEntity();
         boolean result = socialConfigService.updateConfig(entity);

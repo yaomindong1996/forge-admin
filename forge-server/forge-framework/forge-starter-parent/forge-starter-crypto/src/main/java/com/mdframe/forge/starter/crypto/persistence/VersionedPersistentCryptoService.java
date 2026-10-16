@@ -1,6 +1,7 @@
 package com.mdframe.forge.starter.crypto.persistence;
 
 import com.mdframe.forge.starter.core.context.CryptoProperties;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.crypto.crypto.CryptoAlgorithm;
 import com.mdframe.forge.starter.crypto.crypto.Encryptor;
 import com.mdframe.forge.starter.crypto.crypto.EncryptorFactory;
@@ -166,7 +167,8 @@ public class VersionedPersistentCryptoService implements PersistentCryptoService
         return keyIds;
     }
 
-    private IllegalStateException failure(String message) {
-        return new IllegalStateException(message);
+    private BusinessException failure(String message) {
+        // 密钥/密文配置类错误对调用方是可预期的业务失败，避免冒泡成 HTTP 500
+        return new BusinessException(message);
     }
 }

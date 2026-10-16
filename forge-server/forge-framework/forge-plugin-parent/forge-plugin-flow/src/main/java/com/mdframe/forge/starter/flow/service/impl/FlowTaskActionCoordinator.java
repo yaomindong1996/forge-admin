@@ -1,5 +1,6 @@
 package com.mdframe.forge.starter.flow.service.impl;
 
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.flow.dto.FlowApprovalPointResultDTO;
 import com.mdframe.forge.starter.flow.entity.FlowBusiness;
@@ -234,7 +235,7 @@ final class FlowTaskActionCoordinator {
         try {
             String targetActivityId = nodePolicy.resolveReturnTarget(task, requestedTargetActivityId);
             if (isBlank(targetActivityId)) {
-                throw new RuntimeException("当前任务没有可退回的上一审批节点");
+                throw new BusinessException("当前任务没有可退回的上一审批节点");
             }
             if (comment != null && !comment.isEmpty()) {
                 taskService.addComment(taskId, task.getProcessInstanceId(), "退回：" + comment);
@@ -375,7 +376,7 @@ final class FlowTaskActionCoordinator {
 
     private void validateFlowableAssignee(Task task, String userId) {
         if (!userId.equals(task.getAssignee())) {
-            throw new RuntimeException("FLOW_TASK_ASSIGNEE_MISMATCH");
+            throw new BusinessException("当前用户不是任务办理人");
         }
     }
 

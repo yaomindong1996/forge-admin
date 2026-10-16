@@ -11,6 +11,7 @@ import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.session.LoginUser;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -93,7 +94,7 @@ public class SysOrgController {
      * 新增组织
      */
     @PostMapping("/add")
-    public RespInfo<Void> add(@RequestBody SysOrgDTO dto) {
+    public RespInfo<Void> add(@Valid @RequestBody SysOrgDTO dto) {
         boolean result = orgService.insertOrg(dto);
         return result ? RespInfo.success() : RespInfo.error("新增失败");
     }
@@ -102,7 +103,7 @@ public class SysOrgController {
      * 修改组织
      */
     @PostMapping("/edit")
-    public RespInfo<Void> edit(@RequestBody SysOrgDTO dto) {
+    public RespInfo<Void> edit(@Valid @RequestBody SysOrgDTO dto) {
         boolean result = orgService.updateOrg(dto);
         return result ? RespInfo.success() : RespInfo.error("修改失败");
     }

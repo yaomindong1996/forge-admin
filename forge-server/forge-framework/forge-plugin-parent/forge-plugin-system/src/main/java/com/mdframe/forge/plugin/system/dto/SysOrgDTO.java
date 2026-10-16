@@ -1,5 +1,6 @@
 package com.mdframe.forge.plugin.system.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -25,6 +26,7 @@ public class SysOrgDTO implements Serializable {
     /**
      * 组织名称
      */
+    @NotBlank(message = "组织名称不能为空")
     private String orgName;
 
     /**

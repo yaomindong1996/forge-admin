@@ -18,6 +18,10 @@
         <result column="example_value" property="exampleValue"/>
         <result column="validation_rule" property="validationRule"/>
         <result column="validation_message" property="validationMessage"/>
+        <result column="column_type" property="columnType"/>
+        <result column="image_width" property="imageWidth"/>
+        <result column="image_height" property="imageHeight"/>
+        <result column="image_max_count" property="imageMaxCount"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
         <result column="create_dept" property="createDept"/>
@@ -41,6 +45,10 @@
         example_value,
         validation_rule,
         validation_message,
+        column_type,
+        image_width,
+        image_height,
+        image_max_count,
         create_by,
         create_time,
         create_dept,

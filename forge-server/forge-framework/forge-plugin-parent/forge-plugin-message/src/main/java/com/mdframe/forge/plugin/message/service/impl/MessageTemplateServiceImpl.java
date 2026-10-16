@@ -28,6 +28,10 @@ public class MessageTemplateServiceImpl implements MessageTemplateService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void create(SysMessageTemplate template) {
+        // 字段非空由 Controller @Valid + 实体注解保证；type 缺省补 SYSTEM
+        if (StrUtil.isBlank(template.getType())) {
+            template.setType("SYSTEM");
+        }
         // 检查模板编码是否已存在
         Long count = templateMapper.selectCount(
             new LambdaQueryWrapper<SysMessageTemplate>()

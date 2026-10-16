@@ -8,20 +8,22 @@ import com.mdframe.forge.flow.client.FlowResult;
 import com.mdframe.forge.flow.client.annotation.FlowBind;
 import com.mdframe.forge.flow.client.annotation.FlowCallback;
 import com.mdframe.forge.flow.client.annotation.FlowEventContext;
-import com.mdframe.forge.flow.client.annotation.FlowStart;
 import com.mdframe.forge.leave.dto.LeaveRequestDTO;
 import com.mdframe.forge.leave.entity.LeaveRequest;
 import com.mdframe.forge.leave.enums.LeaveRequestStatus;
 import com.mdframe.forge.leave.mapper.LeaveRequestMapper;
 import com.mdframe.forge.leave.service.LeaveRequestService;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.UUID;
 
 /**
@@ -49,14 +51,6 @@ public class LeaveRequestServiceImpl extends ServiceImpl<LeaveRequestMapper, Lea
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @FlowStart(
-        businessKeySpEl = "#result",
-        titleSpEl       = "(#dto.applyUserName != null ? #dto.applyUserName : '申请人') + ' 的请假申请'",
-        userIdSpEl      = "#dto.applyUserId",
-        userNameSpEl    = "#dto.applyUserName",
-        deptIdSpEl      = "#dto.applyDeptId",
-        deptNameSpEl    = "#dto.applyDeptName"
-    )
     public String submitLeave(LeaveRequestDTO dto) {
         // 1. 生成业务Key
         String businessKey = generateBusinessKey();
@@ -76,7 +70,29 @@ public class LeaveRequestServiceImpl extends ServiceImpl<LeaveRequestMapper, Lea
 
         save(leave);
 
-        log.info("请假申请已保存，businessKey: {}，流程将由 @FlowStart 切面自动发起", businessKey);
+        // 显式发起流程并回写 processInstanceId（@FlowStart 切面无法回写业务表字段）
+        String title = (StringUtils.hasText(leave.getApplyUserName()) ? leave.getApplyUserName() : "申请人")
+                + " 的请假申请";
+        FlowResult<String> startResult = flowClient.startProcess(
+                PROCESS_KEY,
+                businessKey,
+                BUSINESS_TYPE,
+                title,
+                Collections.emptyMap(),
+                leave.getApplyUserId(),
+                leave.getApplyUserName(),
+                leave.getApplyDeptId(),
+                leave.getApplyDeptName());
+        if (!startResult.isSuccess() || !StringUtils.hasText(startResult.getData())) {
+            throw new BusinessException(StringUtils.hasText(startResult.getMsg())
+                    ? startResult.getMsg()
+                    : "请假流程发起失败");
+        }
+        leave.setProcessInstanceId(startResult.getData());
+        leave.setUpdateTime(LocalDateTime.now());
+        updateById(leave);
+
+        log.info("请假申请已提交，businessKey: {}，processInstanceId: {}", businessKey, leave.getProcessInstanceId());
         return businessKey;
     }
 
@@ -147,6 +163,7 @@ public class LeaveRequestServiceImpl extends ServiceImpl<LeaveRequestMapper, Lea
             leave.setApproveComment(ctx.getLastComment());
             leave.setApproveTime(LocalDateTime.now());
             leave.setUpdateTime(LocalDateTime.now());
+            fillProcessInstanceIdIfAbsent(leave, ctx);
             updateById(leave);
             log.info("请假审批通过，businessKey: {}", ctx.getBusinessKey());
         }
@@ -163,6 +180,7 @@ public class LeaveRequestServiceImpl extends ServiceImpl<LeaveRequestMapper, Lea
             leave.setApproveComment(ctx.getLastComment());
             leave.setApproveTime(LocalDateTime.now());
             leave.setUpdateTime(LocalDateTime.now());
+            fillProcessInstanceIdIfAbsent(leave, ctx);
             updateById(leave);
             log.info("请假申请被驳回，businessKey: {}", ctx.getBusinessKey());
         }
@@ -177,8 +195,17 @@ public class LeaveRequestServiceImpl extends ServiceImpl<LeaveRequestMapper, Lea
         if (leave != null && !LeaveRequestStatus.CANCELED.matches(leave.getStatus())) {
             leave.setStatus(LeaveRequestStatus.CANCELED.getCode());
             leave.setUpdateTime(LocalDateTime.now());
+            fillProcessInstanceIdIfAbsent(leave, ctx);
             updateById(leave);
             log.info("请假申请已取消，businessKey: {}", ctx.getBusinessKey());
+        }
+    }
+
+    private void fillProcessInstanceIdIfAbsent(LeaveRequest leave, FlowEventContext ctx) {
+        if (!StringUtils.hasText(leave.getProcessInstanceId())
+                && ctx != null
+                && StringUtils.hasText(ctx.getProcessInstanceId())) {
+            leave.setProcessInstanceId(ctx.getProcessInstanceId());
         }
     }
 

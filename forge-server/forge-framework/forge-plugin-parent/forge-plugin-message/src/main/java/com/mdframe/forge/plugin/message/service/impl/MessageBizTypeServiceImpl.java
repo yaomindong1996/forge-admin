@@ -17,6 +17,13 @@ public class MessageBizTypeServiceImpl extends ServiceImpl<SysMessageBizTypeMapp
         implements MessageBizTypeService {
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean save(SysMessageBizType entity) {
+        // 字段非空由 Controller @Valid + 实体注解保证
+        return super.save(entity);
+    }
+
+    @Override
     public Page<SysMessageBizType> selectBizTypePage(Integer pageNum, Integer pageSize,
         String bizType, String bizName, Integer enabled) {
         return baseMapper.selectBizTypePage(

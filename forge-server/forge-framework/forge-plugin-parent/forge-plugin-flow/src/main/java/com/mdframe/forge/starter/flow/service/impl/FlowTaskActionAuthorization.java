@@ -1,5 +1,6 @@
 package com.mdframe.forge.starter.flow.service.impl;
 
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.flow.entity.FlowTask;
 import com.mdframe.forge.starter.flow.enums.FlowTaskStatus;
 
@@ -18,40 +19,40 @@ final class FlowTaskActionAuthorization {
                              String actionType, String idempotencyKey,
                              String requestDigest, FlowTaskStatus completedStatus) {
         if (tenantId == null || tenantId <= 0) {
-            throw new IllegalStateException("FLOW_TASK_TENANT_REQUIRED");
+            throw new BusinessException("租户上下文无效");
         }
         if (userId == null || userId.isBlank()) {
-            throw new IllegalStateException("FLOW_TASK_ASSIGNEE_REQUIRED");
+            throw new BusinessException("办理人不能为空");
         }
         if (task == null) {
-            throw new IllegalStateException("FLOW_TASK_NOT_FOUND");
+            throw new BusinessException("任务不存在");
         }
         if (!tenantId.equals(task.getTenantId())) {
-            throw new IllegalStateException("FLOW_TASK_TENANT_MISMATCH");
+            throw new BusinessException("任务不属于当前租户");
         }
         if (isIdempotentReplay(task, actionType, idempotencyKey, requestDigest, completedStatus)) {
             // 转办后 assignee 已经切换为目标用户，原操作者通过 owner 重试同一请求时
             // 仍应命中幂等结果；普通审批任务不会设置 owner，因此不扩大正常操作范围。
             if (!userId.equals(task.getAssignee()) && !userId.equals(task.getOwner())) {
-                throw new IllegalStateException("FLOW_TASK_ASSIGNEE_MISMATCH");
+                throw new BusinessException("当前用户不是任务办理人");
             }
             return true;
         }
         if (!userId.equals(task.getAssignee())) {
-            throw new IllegalStateException("FLOW_TASK_ASSIGNEE_MISMATCH");
+            throw new BusinessException("当前用户不是任务办理人");
         }
         boolean governedAction = idempotencyKey != null || requestDigest != null;
         boolean actionableStatus = governedAction
                 ? FlowTaskStatus.CLAIMED.matches(task.getStatus())
                 : FlowTaskStatus.isActionable(task.getStatus());
         if (!actionableStatus) {
-            throw new IllegalStateException("FLOW_TASK_NOT_ACTIONABLE");
+            throw new BusinessException("任务当前状态不可办理");
         }
         if (task.getActionIdempotencyKey() != null) {
-            throw new IllegalStateException("FLOW_TASK_IDEMPOTENCY_CONFLICT");
+            throw new BusinessException("任务动作幂等冲突，请刷新后重试");
         }
         if ((idempotencyKey == null) != (requestDigest == null)) {
-            throw new IllegalStateException("FLOW_TASK_IDEMPOTENCY_INVALID");
+            throw new BusinessException("幂等键与请求摘要必须成对传入");
         }
         return false;
     }
@@ -69,7 +70,7 @@ final class FlowTaskActionAuthorization {
             return true;
         }
         if (task.getActionIdempotencyKey() != null) {
-            throw new IllegalStateException("FLOW_TASK_IDEMPOTENCY_CONFLICT");
+            throw new BusinessException("任务动作幂等冲突，请刷新后重试");
         }
         return false;
     }

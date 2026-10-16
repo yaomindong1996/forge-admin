@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mdframe.forge.starter.tenant.core.TenantEntity;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -27,11 +28,13 @@ public class SysMessageBizType extends TenantEntity {
     /**
      * 业务类型编码
      */
+    @NotBlank(message = "业务类型编码不能为空")
     private String bizType;
     
     /**
      * 业务类型名称
      */
+    @NotBlank(message = "业务类型名称不能为空")
     private String bizName;
     
     /**

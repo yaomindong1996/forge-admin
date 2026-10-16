@@ -280,7 +280,13 @@ alwaysApply: true
 
 ### 10.3 输入校验与反序列化（A08）
 
-- 写接口 DTO 使用 Jakarta Validation 注解（`@NotNull`、`@Size`、`@Pattern` 等），Controller 参数加 `@Validated`。
+- **写接口入参校验以 DTO 注解 + Controller `@Valid`/`@Validated` 为主**（与 `AGENTS.md` §5.8 一致，违反即打回）。
+  - DTO 使用 Jakarta Validation：`@NotBlank`、`@NotNull`、`@Size`、`@Pattern`、`@AssertTrue`、分组等；`message` 写中文业务文案。
+  - `@RequestBody` 写接口必须加 `@Valid`（或 `@Validated`）；查询对象可用 `@Validated`。只写注解不加 `@Valid` 等于未校验。
+  - 由 `GlobalExceptionHandler` 的 `MethodArgumentNotValidException` / `ConstraintViolationException` 统一返回 HTTP 400，禁止为同样规则再在 Service 手写一遍 `isBlank` → `BusinessException`。
+  - Service 只做业务规则（跨字段、状态机、租户/权限、唯一性、敏感策略、内置数据保护）。非 HTTP 入口复用 Service 时须显式 `Validator.validate` 或走已 `@Valid` 的 Facade。
+  - 正确示例：`public RespInfo<Void> add(@Valid @RequestBody SysConfigDTO dto)`，DTO 上 `@NotBlank(message = "参数键名不能为空") private String configKey;`
+  - 错误示例：Controller 无 `@Valid`，仅在 `insertConfig` 里 `if (StringUtils.isBlank(dto.getConfigKey())) throw new BusinessException(...)`。
 - 文件上传必须校验扩展名白名单、大小上限和内容类型，存储文件名由服务端生成，禁止使用原始文件名拼路径（防路径穿越）。
 - 禁止 Java 原生反序列化不可信数据；Jackson 禁止开启全局 default typing。
 

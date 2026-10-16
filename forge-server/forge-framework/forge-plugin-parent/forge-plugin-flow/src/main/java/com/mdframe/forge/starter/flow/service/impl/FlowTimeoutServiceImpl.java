@@ -3,6 +3,7 @@ package com.mdframe.forge.starter.flow.service.impl;
 import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
 import com.mdframe.forge.starter.flow.entity.FlowNodeConfig;
 import com.mdframe.forge.starter.flow.entity.FlowTask;
+import com.mdframe.forge.starter.flow.enums.FlowTaskStatus;
 import com.mdframe.forge.starter.flow.mapper.FlowTaskMapper;
 import com.mdframe.forge.starter.flow.service.FlowNodeConfigService;
 import com.mdframe.forge.starter.flow.service.FlowTimeoutService;
@@ -337,20 +338,26 @@ public class FlowTimeoutServiceImpl implements FlowTimeoutService {
         try {
             switch (timeoutAction) {
                 case "auto_pass":
-                    // 自动通过
+                    // 自动通过：与人工审批对齐，写入 approved=true，再回写任务终态
                     Map<String, Object> variables = new HashMap<>();
+                    variables.put("approved", true);
+                    variables.put("approvalResult", "approve");
                     variables.put("timeout_auto_pass", true);
                     variables.put("timeout_action", "auto_pass");
                     taskService.complete(taskId, variables);
+                    markTimeoutTaskResult(taskId, FlowTaskStatus.APPROVED, "超时自动通过");
                     log.info("超时任务自动通过: taskId={}", taskId);
                     break;
                     
                 case "auto_reject":
-                    // 自动拒绝
+                    // 自动拒绝：approved=false，驱动网关/会签 completionCondition 走驳回分支
                     Map<String, Object> rejectVariables = new HashMap<>();
+                    rejectVariables.put("approved", false);
+                    rejectVariables.put("approvalResult", "reject");
                     rejectVariables.put("timeout_auto_reject", true);
                     rejectVariables.put("timeout_action", "auto_reject");
                     taskService.complete(taskId, rejectVariables);
+                    markTimeoutTaskResult(taskId, FlowTaskStatus.REJECTED, "超时自动拒绝");
                     log.info("超时任务自动拒绝: taskId={}", taskId);
                     break;
                     
@@ -371,6 +378,22 @@ public class FlowTimeoutServiceImpl implements FlowTimeoutService {
             log.error("处理超时任务失败: taskId={}, action={}", taskId, timeoutAction, e);
             return false;
         }
+    }
+
+    /**
+     * 超时动作在 Flowable complete 之后回写业务任务终态与意见。
+     * complete 会触发 ENTITY_DELETED；监听器已对终态做保护，这里仍显式落库避免竞态丢状态。
+     */
+    private void markTimeoutTaskResult(String taskId, FlowTaskStatus status, String comment) {
+        FlowTask flowTask = flowTaskMapper.selectByTaskId(taskId);
+        if (flowTask == null) {
+            log.warn("超时回写跳过：业务任务不存在 taskId={}", taskId);
+            return;
+        }
+        flowTask.setStatus(status.getCode());
+        flowTask.setComment(comment);
+        flowTask.setCompleteTime(LocalDateTime.now());
+        flowTaskMapper.updateById(flowTask);
     }
 
     @Override

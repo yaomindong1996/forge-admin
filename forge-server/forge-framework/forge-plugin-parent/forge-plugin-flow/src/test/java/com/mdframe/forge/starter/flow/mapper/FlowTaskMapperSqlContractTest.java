@@ -65,6 +65,18 @@ class FlowTaskMapperSqlContractTest {
     }
 
     @Test
+    void actionableListsMustRequireRuntimeEngineTask() throws IOException {
+        String xml = resource();
+        for (String statementId : List.of("selectTodoTasks", "selectCandidateTasks", "countWorkspaceTodo")) {
+            String statement = statement(xml, statementId);
+            assertTrue(statement.contains("RequireRuntimeTaskExists") || statement.contains("ACT_RU_TASK"),
+                    () -> statementId + " must ignore phantom rows missing from ACT_RU_TASK");
+        }
+        assertTrue(xml.contains("RequireRuntimeTaskExists"),
+                "runtime task existence check should stay reusable");
+    }
+
+    @Test
     void participantLookupMustNotTreatGroupIdsAsUserIds() throws IOException {
         String statement = statement(resource(), "countProcessParticipant");
         assertTrue(statement.contains("FIND_IN_SET(#{userId}, candidate_users)"));

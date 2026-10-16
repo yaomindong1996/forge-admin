@@ -313,6 +313,10 @@ public class CapabilityTokenController {
             String requestId) {
         String message = exception.getMessage();
         String error = message == null ? "invalid_request" : message.split(":", 2)[0];
+        // issue/authenticate 内部常用 invalid_token；令牌端点需映射为标准 OAuth 错误，避免被吞成 invalid_request
+        if ("invalid_token".equals(error)) {
+            error = "unauthorized_client";
+        }
         Set<String> allowedErrors = Set.of(
                 "invalid_request", "invalid_client", "invalid_grant", "invalid_scope",
                 "invalid_target", "unauthorized_client", "unsupported_grant_type",
@@ -330,7 +334,15 @@ public class CapabilityTokenController {
         if (status == HttpStatus.UNAUTHORIZED) {
             builder.header(HttpHeaders.WWW_AUTHENTICATE, "Basic realm=\"forge-mcp-oauth\"");
         }
-        return builder.body(Map.of("error", error));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", error);
+        if (message != null && message.contains(":")) {
+            String description = message.substring(message.indexOf(':') + 1).trim();
+            if (!description.isEmpty()) {
+                body.put("error_description", description);
+            }
+        }
+        return builder.body(body);
     }
 
     private ResponseEntity.BodyBuilder noStore(ResponseEntity.BodyBuilder builder) {

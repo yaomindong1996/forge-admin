@@ -121,6 +121,7 @@ public class SocialConfigServiceImpl extends ServiceImpl<SysSocialConfigMapper, 
 
     @Override
     public boolean insertConfig(SysSocialConfig config) {
+        // platform 非空由 Controller @Valid + 实体注解保证
         sanitizeSecretEcho(config, null);
         if (StrUtil.isBlank(config.getConnectionName())) {
             config.setConnectionName(StrUtil.blankToDefault(config.getPlatformName(), config.getPlatform()));

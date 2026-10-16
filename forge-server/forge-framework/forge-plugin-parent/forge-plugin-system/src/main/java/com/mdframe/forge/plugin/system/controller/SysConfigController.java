@@ -13,6 +13,7 @@ import com.mdframe.forge.starter.core.annotation.log.OperationLog;
 import com.mdframe.forge.starter.core.domain.OperationType;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.core.util.SensitiveDataUtil;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -82,7 +83,7 @@ public class SysConfigController {
      * 新增配置
      */
     @PostMapping("/add")
-    public RespInfo<Void> add(@RequestBody SysConfigDTO dto) {
+    public RespInfo<Void> add(@Valid @RequestBody SysConfigDTO dto) {
         assertPlatformAdmin();
         boolean result = configService.insertConfig(dto);
         return result ? RespInfo.success() : RespInfo.error("新增失败");
@@ -92,7 +93,7 @@ public class SysConfigController {
      * 修改配置
      */
     @PostMapping("/edit")
-    public RespInfo<Void> edit(@RequestBody SysConfigDTO dto) {
+    public RespInfo<Void> edit(@Valid @RequestBody SysConfigDTO dto) {
         assertPlatformAdmin();
         boolean result = configService.updateConfig(dto);
         return result ? RespInfo.success() : RespInfo.error("修改失败");

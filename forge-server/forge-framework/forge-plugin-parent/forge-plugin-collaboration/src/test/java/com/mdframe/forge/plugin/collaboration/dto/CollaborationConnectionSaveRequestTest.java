@@ -1,6 +1,8 @@
 package com.mdframe.forge.plugin.collaboration.dto;
 
 import com.mdframe.forge.starter.social.domain.entity.SysSocialConfig;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -9,6 +11,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 新增连接只落连接根字段，不得把应用凭据写回 sys_social_config。
  */
 class CollaborationConnectionSaveRequestTest {
+
+    private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
     @Test
     void toEntityLeavesLegacyCredentialsUnset() {
@@ -28,5 +32,14 @@ class CollaborationConnectionSaveRequestTest {
         assertThat(entity.getClientId()).isNull();
         assertThat(entity.getClientSecret()).isNull();
         assertThat(entity.getAgentId()).isNull();
+    }
+
+    @Test
+    void shouldRejectBlankPlatformAndConnectionName() {
+        CollaborationConnectionSaveRequest request = new CollaborationConnectionSaveRequest();
+
+        assertThat(validator.validate(request))
+                .extracting(violation -> violation.getPropertyPath().toString())
+                .contains("platform", "connectionName");
     }
 }

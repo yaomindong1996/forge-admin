@@ -32,9 +32,14 @@ public class BusinessException extends RuntimeException {
         this.message = "业务处理异常";
     }
 
+    /**
+     * 仅传文案时按客户端可纠正的业务错误处理（HTTP 400）。
+     * 系统内部故障请显式使用 {@link #BusinessException(Integer, String)} 传入 500，
+     * 或抛出未包装的运行时异常交由全局处理器兜底。
+     */
     public BusinessException(String message) {
         super(message);
-        this.code = 500;
+        this.code = 400;
         this.message = message;
     }
 

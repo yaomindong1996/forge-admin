@@ -458,13 +458,13 @@ public class SystemAuthServiceImpl implements IAuthService {
         // 1. 获取当前用户
         LoginUser loginUser = SessionHelper.getLoginUser();
         if (loginUser == null) {
-            throw new RuntimeException("未登录");
+            throw new BusinessException(401, "未登录");
         }
         
         // 2. 验证旧密码
         String currentPassword = userLoadService.getUserPassword(loginUser.getUserId());
         if (!matchPassword(oldPassword, currentPassword)) {
-            throw new RuntimeException("旧密码错误");
+            throw new BusinessException(400, "旧密码错误");
         }
         
         // 3. 加密新密码

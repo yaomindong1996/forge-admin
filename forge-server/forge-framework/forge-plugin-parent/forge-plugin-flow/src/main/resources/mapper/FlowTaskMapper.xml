@@ -390,6 +390,14 @@
         )
     </sql>
 
+    <!-- 仅展示引擎运行时仍存在的任务，避免 sys_flow_task 与 ACT_RU_TASK 脱节后的幽灵待办 -->
+    <sql id="RequireRuntimeTaskExists">
+        AND EXISTS (
+            SELECT 1 FROM ACT_RU_TASK art
+            WHERE art.ID_ = t.task_id
+        )
+    </sql>
+
     <!-- 待办任务列表（带分类关联查询） -->
     <select id="selectTodoTasks" resultType="com.mdframe.forge.starter.flow.entity.FlowTask">
         SELECT <include refid="TaskListColumns" />
@@ -398,6 +406,7 @@
         <where>
             AND t.tenant_id = #{tenantId}
             <include refid="TodoCandidateCondition" />
+            <include refid="RequireRuntimeTaskExists" />
             AND (t.status = 0 OR (t.assignee = #{userId} AND t.status = 1))
             <if test="title != null and title != ''">
                 AND t.title LIKE CONCAT('%', #{title}, '%')
@@ -498,6 +507,7 @@
         <include refid="TaskListUserJoins" />
         <where>
             AND t.tenant_id = #{tenantId}
+            <include refid="RequireRuntimeTaskExists" />
             AND t.status = 0
             AND (t.assignee IS NULL OR t.assignee = '')
             AND (
@@ -585,6 +595,7 @@
         FROM sys_flow_task t
         WHERE t.tenant_id = #{tenantId}
           <include refid="TodoCandidateCondition" />
+          <include refid="RequireRuntimeTaskExists" />
           AND (t.status = 0 OR (t.assignee = #{userId} AND t.status = 1))
     </select>
 

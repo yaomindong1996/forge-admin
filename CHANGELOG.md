@@ -14,12 +14,36 @@
 - 新增 OAuth2/HMAC 开放网关、限流、幂等、调用审计、调用指南和在线测试能力。
 
 ### Changed
+- 系统参数/租户/组织/岗位/消息模板与业务类型/三方登录配置写接口改为 DTO（或写实体）Jakarta Validation 注解 + Controller `@Valid`，去掉 Service 层重复非空判断；空体新增统一由全局校验返回 400。
+- 流程转办入参改为 `FlowTaskDelegateDTO` 字段注解 + Controller `@Valid`；任务动作授权失败与退回/签收拒绝改为 `BusinessException` 返回 400，不再冒成 HTTP 500。
 - 一级导航改为统一语义双色 SVG 图标，适配深色和折叠状态，子菜单及主题交互保持不变。
 - 统一插件中心模块卡片、一级导航矢量图标与“关于系统”视觉，增加轻量插件插画并适配深浅主题。
 - 重构 APP 模块，优化低代码应用创建、设计与运行体验。
 - 优化定时任务管理及前端布局交互。
 
 ### Fixed
+- 修复流程超时 `auto_pass`/`auto_reject` 仅调用引擎 `complete`、未写入 `approved` 与业务任务终态的问题；同步避免任务完成后的 `ENTITY_DELETED` 事件把已通过/已驳回覆盖为已取消。
+- 修复流程任务签收拒绝、办理人校验失败、节点不允许退回/无可退回节点等场景抛未包装运行时异常导致 HTTP 500 的问题，改为业务码 400。
+- 修复租户/组织/岗位/三方登录配置空体新增直接落库触发 SQL 500 的问题，改为业务校验返回 400。
+- 修复 `@IgnoreTenant` 切面将 `ResponseStatusException` 等业务异常包装为 `RuntimeException` 导致登录页租户品牌图缺失返回 500 的问题；全局异常处理同步解包保留原状态码。
+- 修复持久化加解密密钥/密文配置错误抛 `IllegalStateException` 导致社交授权等接口 HTTP 500 的问题，改为业务码 400。
+- 修复系统参数空体新增可写入空 `config_key`/`config_name` 的问题，改为业务校验返回 400。
+- 修复消息模板缺少 `contentTemplate` 时直接落库触发 SQL 500 的问题，改为业务校验返回 400。
+- 修复打印 catalog 请求同时传 `source` 与 `record` 时校验失败提示为「只能为 true」的问题，改为明确提示二者只能传其一。
+- 修复用户 Excel 导入未回写 `avatar` 字段，以及头像列名双重 UTF-8 乱码导致 IMAGE 列无法匹配表头、图片导入不生效的问题；补充 `sys_user_import`/`sys_user_export` 头像 IMAGE 列种子与修复迁移（V1.0.223）。
+- 修复 Excel 列配置 Mapper 未映射 `column_type`/`image_*` 字段，导致 IMAGE 图片列配置永不生效、导出无法嵌入图片的问题。
+- 修复开放网关 REST 能力（`system.rest.invoke`）将 `requiredActorType=BOTH` 仍强制要求 USER 委托的问题，SERVICE 服务账号可按绑定用户/组织与 RBAC 正常调用。
+- 修复请假示例流程：提交后回写 `processInstanceId`；`leave_process` 事件通知改为 Redis Pub/Sub，审批完成可经 `@FlowCallback` 更新业务状态（原 webhook 指向失效的 `8080/leave/test` 导致状态一直停留 pending）。
+- 修复流程待办/候选任务列表在 `sys_flow_task` 与 `ACT_RU_TASK` 脱节时仍返回幽灵任务、审批时报「任务不存在或已处理」的问题，列表与工作台待办数改为要求引擎运行时任务仍存在。
+- 修复登录用户名或密码错误时抛出未包装运行时异常导致 HTTP 500 的问题，改为业务码 401。
+- 修复修改密码在旧密码错误或未登录时抛出未包装运行时异常导致 HTTP 500 的问题，分别改为业务码 400 / 401。
+- 修复 Sa-Token 路径防火墙误拦 `/.well-known/oauth-*` 元数据接口的问题，能力开放 OAuth 发现地址可正常返回。
+- 修复企业协同新增连接缺少平台类型时直接落库触发 SQL 500 的问题，改为入参校验返回 400。
+- 修复 `BusinessException(String)` 默认业务码为 500 导致参数校验类错误被前端当成系统故障的问题，仅传文案时默认改为 400；内部故障需显式传 500。
+- 修复消息模板/业务类型、请假草稿在缺少必填字段时直接落库触发 SQL 500 的问题，改为业务校验返回 400。
+- 修复能力 OAuth `/oauth2/token` 将内部 `invalid_token`（如服务账号绑定了管理员）误映射为 `invalid_request` 的问题，改为返回 `unauthorized_client`，并附带 `error_description`。
+- 低代码表单来源列举时单项解析失败降级为不可用，不再拖垮整表 `/ai/capability/system-service/registration-source`。
+- 修复流程任务表单查询在业务表可见但引擎运行时任务已不存在时抛出未包装 `RuntimeException` 导致 HTTP 500 的问题，改为业务码 404。
 - 修复低代码应用发布与数据库预览口径不一致：过期 `IN_SYNC` 不再跳过探库，发布在线 DDL 与「确认同步」同门禁，实时无差异时回写 `PARTIAL` 等旧标记，避免界面已一致却在发布业务对象步骤失败。
 - 修复生成工程包名包含 `forge` 前缀时被重复替换的问题，独立保留 Maven 坐标和 Java 包名。
 - 加固验证码、开放接口认证、租户隔离和敏感凭据处理，提升系统安全性与稳定性。

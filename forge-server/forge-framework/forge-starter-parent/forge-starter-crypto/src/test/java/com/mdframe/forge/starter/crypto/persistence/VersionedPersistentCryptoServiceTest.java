@@ -1,6 +1,7 @@
 package com.mdframe.forge.starter.crypto.persistence;
 
 import com.mdframe.forge.starter.core.context.CryptoProperties;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.crypto.crypto.EncryptorFactory;
 import com.mdframe.forge.starter.crypto.crypto.impl.AESEncryptor;
 import com.mdframe.forge.starter.crypto.crypto.impl.SM4Encryptor;
@@ -75,7 +76,7 @@ class VersionedPersistentCryptoServiceTest {
         String ciphertext = service.encrypt("secret-value", "SM4")
                 .replace("FPC1:SM4:v2:", "FPC1:SM4:missing:");
 
-        assertThrows(IllegalStateException.class, () -> service.decrypt(ciphertext, "SM4"));
+        assertThrows(BusinessException.class, () -> service.decrypt(ciphertext, "SM4"));
         assertEquals(PersistentCiphertext.Format.UNKNOWN_KEY, service.inspect(ciphertext, "SM4").format());
     }
 
@@ -83,7 +84,7 @@ class VersionedPersistentCryptoServiceTest {
     void shouldFailClosedForMalformedHeader() {
         VersionedPersistentCryptoService service = service(versionedProperties());
 
-        assertThrows(IllegalStateException.class, () -> service.decrypt("FPC1:SM4:v2", "SM4"));
+        assertThrows(BusinessException.class, () -> service.decrypt("FPC1:SM4:v2", "SM4"));
         assertEquals(PersistentCiphertext.Format.UNKNOWN, service.inspect("FPC1:SM4:v2", "SM4").format());
     }
 
@@ -96,7 +97,7 @@ class VersionedPersistentCryptoServiceTest {
 
         VersionedPersistentCryptoService service = service(properties);
 
-        assertThrows(IllegalStateException.class, () -> service.decrypt(legacyCiphertext, "SM4"));
+        assertThrows(BusinessException.class, () -> service.decrypt(legacyCiphertext, "SM4"));
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.mdframe.forge.starter.flow.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.flow.dto.FlowApprovalPointDTO;
 import com.mdframe.forge.starter.flow.dto.FlowApprovalPointResultDTO;
 import com.mdframe.forge.starter.flow.dto.TaskFormInfo;
@@ -107,7 +108,7 @@ final class FlowTaskNodePolicy {
                 ? (policy.allowReject || policy.allowReturn || policy.allowMultiReturn)
                 : (policy.allowReturn || policy.allowMultiReturn);
         if (!allowed) {
-            throw new RuntimeException(specifiedNode ? "当前节点不允许驳回" : "当前节点不允许退回");
+            throw new BusinessException(specifiedNode ? "当前节点不允许驳回" : "当前节点不允许退回");
         }
         validateCommentAndSignature(policy, comment, signature);
     }

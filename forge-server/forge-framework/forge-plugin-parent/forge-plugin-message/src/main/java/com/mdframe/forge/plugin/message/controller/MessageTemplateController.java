@@ -5,6 +5,7 @@ import com.mdframe.forge.plugin.message.service.MessageTemplateService;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,7 +29,7 @@ public class MessageTemplateController {
      * 创建模板
      */
     @PostMapping
-    public RespInfo<?> create(@RequestBody SysMessageTemplate template) {
+    public RespInfo<?> create(@Valid @RequestBody SysMessageTemplate template) {
         templateService.create(template);
         return RespInfo.success();
     }
@@ -37,7 +38,7 @@ public class MessageTemplateController {
      * 更新模板
      */
     @PutMapping
-    public RespInfo<?> update(@RequestBody SysMessageTemplate template) {
+    public RespInfo<?> update(@Valid @RequestBody SysMessageTemplate template) {
         templateService.update(template);
         return RespInfo.success();
     }

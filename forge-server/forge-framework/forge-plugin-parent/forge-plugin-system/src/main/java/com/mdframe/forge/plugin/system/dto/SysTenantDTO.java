@@ -1,5 +1,6 @@
 package com.mdframe.forge.plugin.system.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -21,6 +22,7 @@ public class SysTenantDTO implements Serializable {
     /**
      * 租户名称
      */
+    @NotBlank(message = "租户名称不能为空")
     private String tenantName;
 
     /**

@@ -108,6 +108,9 @@ public class LowcodeFormSystemService implements SystemServiceCapabilityDefiniti
                     .put("label", field.getLabel()).put("required", Boolean.TRUE.equals(field.getRequired())));
         } catch (BusinessException exception) {
             item.put("available", false).put("unavailableReason", exception.getMessage());
+        } catch (RuntimeException exception) {
+            // 单项表单发布快照解析失败时不能拖垮整个 registration-source 列表
+            item.put("available", false).put("unavailableReason", "表单发布版本不可用");
         }
     }
 

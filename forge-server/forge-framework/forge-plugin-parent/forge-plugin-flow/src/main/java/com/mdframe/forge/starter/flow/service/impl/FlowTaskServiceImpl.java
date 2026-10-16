@@ -28,6 +28,7 @@ import com.mdframe.forge.starter.flow.security.FlowCandidateMembershipResolver;
 import com.mdframe.forge.starter.flow.vo.FlowHistoryItemVO;
 import com.mdframe.forge.starter.flow.vo.FlowHistoryPageVO;
 import com.mdframe.forge.starter.flow.vo.FlowTaskSignRelationVO;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.bpmn.model.BpmnModel;
@@ -245,18 +246,18 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     @Transactional(rollbackFor = Exception.class)
     public void claimTask(String taskId, String userId) {
         if (isBlank(taskId) || isBlank(userId)) {
-            throw new IllegalArgumentException("FLOW_TASK_CLAIM_CONTEXT_INVALID");
+            throw new BusinessException("签收参数无效");
         }
         Long tenantId = SessionHelper.getTenantId();
         if (tenantId == null || tenantId <= 0) {
-            throw new IllegalStateException("FLOW_TASK_TENANT_REQUIRED");
+            throw new BusinessException("租户上下文无效，无法签收任务");
         }
         FlowTask localTask = baseMapper.selectByTaskIdForUpdateAndTenant(taskId, tenantId);
         Task runtimeTask = taskService.createTaskQuery().taskId(taskId).singleResult();
         if (localTask == null || runtimeTask == null || !tenantId.equals(localTask.getTenantId())
                 || !FlowTaskStatus.PENDING.matches(localTask.getStatus())
                 || !isClaimCandidate(localTask, runtimeTask, userId.trim())) {
-            throw new IllegalStateException("FLOW_TASK_CLAIM_NOT_ALLOWED");
+            throw new BusinessException("当前任务不可签收（非候选人或已签收）");
         }
         taskService.claim(taskId, userId);
         

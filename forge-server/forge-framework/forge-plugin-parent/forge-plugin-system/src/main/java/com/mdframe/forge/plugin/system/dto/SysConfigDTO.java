@@ -1,5 +1,6 @@
 package com.mdframe.forge.plugin.system.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -25,11 +26,13 @@ public class SysConfigDTO implements Serializable {
     /**
      * 参数名称
      */
+    @NotBlank(message = "参数名称不能为空")
     private String configName;
 
     /**
      * 参数键名
      */
+    @NotBlank(message = "参数键名不能为空")
     private String configKey;
 
     /**

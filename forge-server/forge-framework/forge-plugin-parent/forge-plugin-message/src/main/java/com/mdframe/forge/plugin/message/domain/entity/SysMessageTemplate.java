@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mdframe.forge.starter.core.domain.BaseEntity;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -32,11 +33,13 @@ public class SysMessageTemplate extends BaseEntity {
     /**
      * 模板编码（唯一）
      */
+    @NotBlank(message = "模板编码不能为空")
     private String templateCode;
     
     /**
      * 模板名称
      */
+    @NotBlank(message = "模板名称不能为空")
     private String templateName;
     
     /**
@@ -52,6 +55,7 @@ public class SysMessageTemplate extends BaseEntity {
     /**
      * 内容模板（支持${}变量占位符）
      */
+    @NotBlank(message = "内容模板不能为空")
     private String contentTemplate;
     
     /**

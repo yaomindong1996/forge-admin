@@ -1,6 +1,8 @@
 package com.mdframe.forge.leave.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -49,19 +51,22 @@ public class LeaveRequestDTO {
     // ========== 请假信息 ==========
 
     /**
-     * 请假类型
+     * 请假类型（库表 NOT NULL，缺省会落到 SQL 500）
      */
+    @NotBlank(message = "请假类型不能为空")
     private String leaveType;
 
     /**
      * 开始时间
      */
+    @NotNull(message = "开始时间不能为空")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime startTime;
 
     /**
      * 结束时间
      */
+    @NotNull(message = "结束时间不能为空")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime endTime;
 

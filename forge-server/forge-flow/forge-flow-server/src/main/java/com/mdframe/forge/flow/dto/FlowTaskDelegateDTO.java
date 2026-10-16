@@ -1,5 +1,6 @@
 package com.mdframe.forge.flow.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -10,5 +11,6 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class FlowTaskDelegateDTO extends FlowTaskActionDTO {
 
+    @NotBlank(message = "转办人ID不能为空")
     private String targetUserId;
 }

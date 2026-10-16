@@ -77,20 +77,20 @@ public class UserLoadServiceImpl implements IUserLoadService {
         List<SysUser> candidates = TenantContextHolder.executeIgnore(() ->
                 userMapper.selectUsersByUsernameForLogin(username));
         if (CollUtil.isEmpty(candidates)) {
-            throw new RuntimeException("用户名或密码错误");
+            throw invalidCredentials();
         }
 
         List<SysUser> matched = candidates.stream()
                 .filter(user -> matchPassword(rawPassword, user.getPassword()))
                 .toList();
         if (matched.isEmpty()) {
-            throw new RuntimeException("用户名或密码错误");
+            throw invalidCredentials();
         }
 
         if (requestedTenantId != null) {
             SysUser matchedUser = findUserForTenant(matched, requestedTenantId);
             if (matchedUser == null) {
-                throw new RuntimeException("用户名或密码错误");
+                throw invalidCredentials();
             }
             return loadUserByUserId(matchedUser.getId(), requestedTenantId);
         }
@@ -100,11 +100,15 @@ public class UserLoadServiceImpl implements IUserLoadService {
             LoginTenantOption only = options.get(0);
             SysUser matchedUser = findUserForTenant(matched, only.getTenantId());
             if (matchedUser == null) {
-                throw new RuntimeException("用户名或密码错误");
+                throw invalidCredentials();
             }
             return loadUserByUserId(matchedUser.getId(), only.getTenantId());
         }
         throw new BusinessException(AuthResultCodes.TENANT_SELECTION_REQUIRED, "请选择要进入的工作区", options);
+    }
+
+    private static BusinessException invalidCredentials() {
+        return new BusinessException(AuthResultCodes.INVALID_CREDENTIALS, "用户名或密码错误");
     }
 
     @Override

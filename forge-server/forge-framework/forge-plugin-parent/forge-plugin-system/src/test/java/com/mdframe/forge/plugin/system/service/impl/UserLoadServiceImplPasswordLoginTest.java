@@ -30,8 +30,12 @@ class UserLoadServiceImplPasswordLoginTest {
         when(userMapper.selectUsersByUsernameForLogin("alice")).thenReturn(List.of());
 
         assertThatThrownBy(() -> service.authenticateByUsernamePassword("alice", "secret", null))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("用户名或密码错误");
+                .isInstanceOf(BusinessException.class)
+                .satisfies(error -> {
+                    BusinessException exception = (BusinessException) error;
+                    assertThat(exception.getCode()).isEqualTo(AuthResultCodes.INVALID_CREDENTIALS);
+                    assertThat(exception.getMessage()).isEqualTo("用户名或密码错误");
+                });
     }
 
     @Test

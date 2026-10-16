@@ -8,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 public record PrintCatalogQueryDTO(@Valid PrintSourceRequest source, @Valid PrintRecordRequest record) {
 
     @JsonIgnore
-    @AssertTrue
+    @AssertTrue(message = "catalog 请求只能传 source 或 record 其一")
     public boolean isExclusive() {
         return (source == null) != (record == null);
     }

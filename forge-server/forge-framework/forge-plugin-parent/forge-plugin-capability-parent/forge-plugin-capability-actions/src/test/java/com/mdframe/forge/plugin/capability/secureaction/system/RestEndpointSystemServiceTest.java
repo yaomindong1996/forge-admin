@@ -61,6 +61,22 @@ class RestEndpointSystemServiceTest {
     }
 
     @Test
+    void executesWithServiceActorIdentity() {
+        var descriptor = descriptor();
+        LoginUser user = new LoginUser();
+        user.setUserId(7L);
+        user.setTenantId(1L);
+        user.setActiveOrgId(2L);
+        user.setPermissions(Set.of("test:write"));
+        var serviceIdentity = new ExecutionIdentity(user, "SERVICE", 7L, 7L, 3L, "svc", "svc-token", Set.of());
+        try (var ignored = ExecutionIdentityContextHolder.open(serviceIdentity)) {
+            var result = service.execute(descriptor,
+                    Map.of("id", "42", "body", Map.of("title", "svc")), "request-svc");
+            assertThat(((Map<?, ?>) result.get("result")).get("code")).isEqualTo(200);
+        }
+    }
+
+    @Test
     void refusesMissingIdentityBusinessPermissionAndNestedUnknownFields() {
         var descriptor = descriptor();
         var valid = Map.<String, Object>of("id", "1", "body", Map.of("title", "example"));

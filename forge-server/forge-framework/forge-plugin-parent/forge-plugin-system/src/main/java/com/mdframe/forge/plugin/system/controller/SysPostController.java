@@ -9,6 +9,7 @@ import com.mdframe.forge.starter.core.annotation.api.ApiPermissionIgnore;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -58,7 +59,7 @@ public class SysPostController {
      * 新增岗位
      */
     @PostMapping("/add")
-    public RespInfo<Void> add(@RequestBody SysPostDTO dto) {
+    public RespInfo<Void> add(@Valid @RequestBody SysPostDTO dto) {
         boolean result = postService.insertPost(dto);
         return result ? RespInfo.success() : RespInfo.error("新增失败");
     }
@@ -67,7 +68,7 @@ public class SysPostController {
      * 修改岗位
      */
     @PostMapping("/edit")
-    public RespInfo<Void> edit(@RequestBody SysPostDTO dto) {
+    public RespInfo<Void> edit(@Valid @RequestBody SysPostDTO dto) {
         boolean result = postService.updatePost(dto);
         return result ? RespInfo.success() : RespInfo.error("修改失败");
     }

@@ -2,6 +2,16 @@
 
 > 从 `code-copilot/memory/pitfalls.md` 按主题拆出。新条目追加到本文件。共 57 条。
 
+## 超时 auto_pass/auto_reject 不能只 complete，且 DELETED 会覆盖终态
+
+**发现日期**: 2026-10-16
+
+**问题描述**:
+超时扫描触发后 `sys_flow_task.status` 变成 5（已取消），`auto_reject` 与 `auto_pass` 行为几乎相同，会签/网关读不到 `approved=false`。
+
+**解决方案**:
+`FlowTimeoutServiceImpl` 必须写入 `approved`/`approvalResult`，并回写 `APPROVED`/`REJECTED`；`FlowTaskEventListener.handleTaskDeleted` 对已终态任务禁止覆盖为 `CANCELED`（Flowable complete 后会发 ENTITY_DELETED）。
+
 ## 审批/主从子表下拉人员部门开关失效与窄列
 
 **发现日期**：2026-09-25

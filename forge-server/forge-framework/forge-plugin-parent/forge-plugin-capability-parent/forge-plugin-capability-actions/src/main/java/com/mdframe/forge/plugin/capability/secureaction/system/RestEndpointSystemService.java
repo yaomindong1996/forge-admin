@@ -68,8 +68,9 @@ public class RestEndpointSystemService implements SystemServiceCapabilityDefinit
         ObjectNode parameters = object();
         parameters.putObject("properties").putObject("endpointId").put("type", "string");
         parameters.putArray("required").add("endpointId");
+        // BOTH：USER 委托与 SERVICE 服务账号均可调用；仍走真实 LoginUser RBAC，禁止匿名身份。
         return new SystemServiceRegistrationSource(CODE, "系统 REST 接口", "选择声明为可开放的系统接口，保留业务权限和参数校验。",
-                definitionVersion(), CapabilityActorType.USER.name(), CapabilityRiskLevel.MEDIUM.name(), parameters, options);
+                definitionVersion(), "BOTH", CapabilityRiskLevel.MEDIUM.name(), parameters, options);
     }
 
     @Override
@@ -85,7 +86,7 @@ public class RestEndpointSystemService implements SystemServiceCapabilityDefinit
                 .put("permission", endpoint.metadata().permission());
         policy.putObject("registrationParameters").put("endpointId", endpoint.id());
         policy.putObject("documentation").putArray("businessRules")
-                .add("执行身份来自客户端授权的真实用户，原业务权限和 DTO 校验继续生效。")
+                .add("执行身份来自 USER 委托或 SERVICE 绑定服务账号，原业务权限和 DTO 校验继续生效。")
                 .add("接口实现升级时应修改 OpenRestCapability.version；签名或契约漂移后旧能力拒绝执行。")
                 .add("仅调用服务器代码显式声明的接口，不接收 URL、Header、租户或执行用户覆盖。");
         ObjectNode output = object().put("$schema", CapabilitySchemaValidator.DRAFT_2020_12);
@@ -107,7 +108,11 @@ public class RestEndpointSystemService implements SystemServiceCapabilityDefinit
     public void validate(SecureActionDescriptor descriptor, Map<String, Object> input) {
         var identity = ExecutionIdentityContextHolder.current()
                 .orElseThrow(() -> new BusinessException(401, "缺少可信能力执行身份"));
-        if (!CapabilityActorType.USER.name().equals(identity.actorType()) || identity.actorUserId() == null || identity.loginUser().getTenantId() == null
+        // USER 委托与 SERVICE 服务账号（绑定真实用户/组织）均可；与开放网关 requiredActorType=BOTH 对齐。
+        boolean trustedActor = CapabilityActorType.USER.name().equals(identity.actorType())
+                || CapabilityActorType.SERVICE.name().equals(identity.actorType());
+        if (!trustedActor || identity.actorUserId() == null || identity.loginUser() == null
+                || identity.loginUser().getTenantId() == null
                 || identity.loginUser().getActiveOrgId() == null) {
             throw new BusinessException(403, "USER_DELEGATION_REQUIRED");
         }

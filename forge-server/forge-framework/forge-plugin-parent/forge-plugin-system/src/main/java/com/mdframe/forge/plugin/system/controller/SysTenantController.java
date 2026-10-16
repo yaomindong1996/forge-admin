@@ -13,6 +13,7 @@ import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.session.LoginUser;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -105,7 +106,7 @@ public class SysTenantController {
      * 新增租户
      */
     @PostMapping("/add")
-    public RespInfo<Void> add(@RequestBody SysTenantDTO dto) {
+    public RespInfo<Void> add(@Valid @RequestBody SysTenantDTO dto) {
         boolean result = tenantService.insertTenant(dto);
         return result ? RespInfo.success() : RespInfo.error("新增失败");
     }
@@ -114,7 +115,7 @@ public class SysTenantController {
      * 修改租户
      */
     @PostMapping("/edit")
-    public RespInfo<Void> edit(@RequestBody SysTenantDTO dto) {
+    public RespInfo<Void> edit(@Valid @RequestBody SysTenantDTO dto) {
         boolean result = tenantService.updateTenant(dto);
         return result ? RespInfo.success() : RespInfo.error("修改失败");
     }

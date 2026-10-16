@@ -218,3 +218,9 @@ Forge AI 中枢的真实 Flyway、Admin/Flow 服务启动、MCP Streamable HTTP 
 环境基线和操作入口见 `forge-server/scripts/deployment/production-runbook.md`；
 发版仍遵循第 28 项所指权威规范，具体目标模块以当次请求为准。
 
+## 30. 写接口校验用 DTO 注解 + Controller `@Valid`
+
+**记录日期**：2026-10-16
+
+用户确认写接口字段级校验应优先 Jakarta Validation（DTO 注解 + Controller `@Valid`/`@Validated`），不要主要靠 Service 手写 `isBlank`；Service 只留业务规则。已固化到 `AGENTS.md` §5.8 与 `code-copilot/rules/coding-style.md` §10.3，存量按触及即改。
+

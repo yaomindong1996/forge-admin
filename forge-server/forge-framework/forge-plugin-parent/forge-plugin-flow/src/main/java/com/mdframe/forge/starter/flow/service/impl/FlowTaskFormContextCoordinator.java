@@ -1,5 +1,6 @@
 package com.mdframe.forge.starter.flow.service.impl;
 
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.flow.dto.TaskFormInfo;
 import com.mdframe.forge.starter.flow.entity.FlowBusiness;
@@ -95,7 +96,8 @@ final class FlowTaskFormContextCoordinator {
         FlowTask visibleTask = flowAccessGuard.requireTaskVisible(taskId);
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
         if (task == null) {
-            throw new RuntimeException("任务不存在：" + taskId);
+            // forge_flow_task 可见但引擎运行时任务已不存在（脏数据/已办结）时按业务 404，避免冒泡成 500
+            throw new BusinessException(404, "任务不存在：" + taskId);
         }
 
         TaskFormInfo formInfo = new TaskFormInfo();

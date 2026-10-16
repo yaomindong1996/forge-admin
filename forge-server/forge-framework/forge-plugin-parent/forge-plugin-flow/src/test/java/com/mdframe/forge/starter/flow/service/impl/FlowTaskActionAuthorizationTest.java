@@ -28,7 +28,7 @@ class FlowTaskActionAuthorizationTest {
         assertThatThrownBy(() -> FlowTaskActionAuthorization.authorize(
                 task(2L, "101", FlowTaskStatus.CLAIMED), "101", 1L,
                 "APPROVE", "key-1", "sha256:digest", FlowTaskStatus.APPROVED))
-                .hasMessage("FLOW_TASK_TENANT_MISMATCH");
+                .hasMessage("任务不属于当前租户");
     }
 
     @Test
@@ -36,7 +36,7 @@ class FlowTaskActionAuthorizationTest {
         assertThatThrownBy(() -> FlowTaskActionAuthorization.authorize(
                 task(1L, "202", FlowTaskStatus.CLAIMED), "101", 1L,
                 "APPROVE", "key-1", "sha256:digest", FlowTaskStatus.APPROVED))
-                .hasMessage("FLOW_TASK_ASSIGNEE_MISMATCH");
+                .hasMessage("当前用户不是任务办理人");
     }
 
     @Test
@@ -48,7 +48,7 @@ class FlowTaskActionAuthorizationTest {
 
         assertThatThrownBy(() -> FlowTaskActionAuthorization.authorize(
                 task, "101", 1L, "APPROVE", "key-new", "sha256:new", FlowTaskStatus.APPROVED))
-                .hasMessage("FLOW_TASK_IDEMPOTENCY_CONFLICT");
+                .hasMessage("任务动作幂等冲突，请刷新后重试");
     }
 
     @Test
@@ -71,7 +71,7 @@ class FlowTaskActionAuthorizationTest {
 
         assertThatThrownBy(() -> FlowTaskActionAuthorization.authorize(
                 task, "202", 1L, "APPROVE", "key-1", "sha256:digest", FlowTaskStatus.APPROVED))
-                .hasMessage("FLOW_TASK_ASSIGNEE_MISMATCH");
+                .hasMessage("当前用户不是任务办理人");
     }
 
     private FlowTask task(Long tenantId, String assignee, FlowTaskStatus status) {

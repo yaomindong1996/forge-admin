@@ -26,6 +26,7 @@ import com.mdframe.forge.plugin.system.mapper.SysUserTenantMapper;
 import com.mdframe.forge.plugin.system.service.ISysTenantService;
 import com.mdframe.forge.plugin.system.service.IUserLoadService;
 import com.mdframe.forge.plugin.system.vo.SysUserTenantVO;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.tenant.context.TenantContextHolder;

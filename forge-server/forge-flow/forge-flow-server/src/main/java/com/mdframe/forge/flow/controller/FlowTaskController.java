@@ -24,6 +24,7 @@ import com.mdframe.forge.starter.flow.vo.FlowHistoryPageVO;
 import com.mdframe.forge.starter.flow.vo.FlowTaskSignRelationVO;
 import com.mdframe.forge.starter.flow.service.FlowOverdueReminderService;
 import com.mdframe.forge.starter.flow.service.FlowTaskService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -210,14 +211,7 @@ public class FlowTaskController {
      */
     @PostMapping("/delegate")
     @ApiPermissionIgnore
-    public RespInfo<Void> delegate(@RequestBody FlowTaskDelegateDTO dto) {
-        if (isBlankId(dto.getTaskId())) {
-            return RespInfo.error("任务ID不能为空");
-        }
-        if (isBlankId(dto.getTargetUserId())) {
-            return RespInfo.error("转办人ID不能为空");
-        }
-
+    public RespInfo<Void> delegate(@Valid @RequestBody FlowTaskDelegateDTO dto) {
         String userId = FlowSessionIdentity.requireUserId(dto.getUserId());
         Long tenantId = resolveTrustedTenant(null);
         flowTaskService.delegate(dto.getTaskId(), userId, dto.getTargetUserId(),

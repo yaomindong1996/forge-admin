@@ -12,6 +12,7 @@ import com.mdframe.forge.starter.social.domain.dto.SocialPlatformInfo;
 import com.mdframe.forge.starter.social.domain.entity.SysSocialConfig;
 import com.mdframe.forge.starter.social.domain.vo.SocialConnectionSummaryVO;
 import com.mdframe.forge.starter.social.service.ISocialConfigService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -71,7 +72,7 @@ public class SocialConfigController {
     @PostMapping("/add")
     @SaCheckPermission("system:collaboration:connection:create")
     @OperationLog(module = "三方登录配置", type = OperationType.ADD, desc = "新增配置", saveRequestParams = false)
-    public RespInfo<Void> add(@RequestBody SysSocialConfig config) {
+    public RespInfo<Void> add(@Valid @RequestBody SysSocialConfig config) {
         boolean result = socialConfigService.insertConfig(config);
         return result ? RespInfo.success() : RespInfo.error("新增失败");
     }
@@ -82,7 +83,7 @@ public class SocialConfigController {
     @PostMapping("/edit")
     @SaCheckPermission("system:collaboration:connection:update")
     @OperationLog(module = "三方登录配置", type = OperationType.UPDATE, desc = "修改配置", saveRequestParams = false)
-    public RespInfo<Void> edit(@RequestBody SysSocialConfig config) {
+    public RespInfo<Void> edit(@Valid @RequestBody SysSocialConfig config) {
         boolean result = socialConfigService.updateConfig(config);
         return result ? RespInfo.success() : RespInfo.error("修改失败");
     }

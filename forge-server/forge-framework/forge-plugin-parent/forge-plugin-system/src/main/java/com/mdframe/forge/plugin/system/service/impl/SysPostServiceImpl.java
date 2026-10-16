@@ -16,6 +16,7 @@ import com.mdframe.forge.plugin.system.mapper.SysPostMapper;
 import com.mdframe.forge.plugin.system.mapper.SysTenantMapper;
 import com.mdframe.forge.plugin.system.mapper.SysUserPostMapper;
 import com.mdframe.forge.plugin.system.service.ISysPostService;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
@@ -129,12 +130,10 @@ public class SysPostServiceImpl extends ServiceImpl<SysPostMapper, SysPost> impl
     }
 
     private void validateOrgTenant(Long orgId, Long tenantId) {
-        if (orgId == null) {
-            return;
-        }
+        // orgId 非空由 DTO @NotNull 保证；此处只校验租户归属
         SysOrg org = TenantContextHolder.executeIgnore(() -> orgMapper.selectById(orgId));
         if (org == null || !Objects.equals(org.getTenantId(), tenantId)) {
-            throw new RuntimeException("所属组织不属于当前操作租户");
+            throw new BusinessException("所属组织不属于当前操作租户");
         }
     }
 

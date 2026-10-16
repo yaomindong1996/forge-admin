@@ -96,4 +96,28 @@ class FlowTimeoutServiceQueryContractTest {
         assertFalse(statement.contains("del_flag"));
         assertTrue(statement.contains("due_date IS NOT NULL"));
     }
+
+    @Test
+    void timeoutActionsMustWriteApprovedFlagAndBusinessTaskStatus() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/starter/flow/service/impl/FlowTimeoutServiceImpl.java"));
+        assertTrue(source.contains("case \"auto_pass\":"));
+        assertTrue(source.contains("case \"auto_reject\":"));
+        assertTrue(source.contains("variables.put(\"approved\", true)"));
+        assertTrue(source.contains("rejectVariables.put(\"approved\", false)"));
+        assertTrue(source.contains("markTimeoutTaskResult(taskId, FlowTaskStatus.APPROVED"));
+        assertTrue(source.contains("markTimeoutTaskResult(taskId, FlowTaskStatus.REJECTED"));
+    }
+
+    @Test
+    void taskDeletedListenerMustNotOverwriteTerminalStatus() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/starter/flow/listener/FlowTaskEventListener.java"));
+        int start = source.indexOf("private void handleTaskDeleted");
+        int end = source.indexOf("private void handleProcessCompleted", start);
+        assertTrue(start >= 0 && end > start);
+        String method = source.substring(start, end);
+        assertTrue(method.contains("FlowTaskStatus.isActionable(flowTask.getStatus())"));
+        assertTrue(method.contains("FlowTaskStatus.CANCELED.getCode()"));
+    }
 }

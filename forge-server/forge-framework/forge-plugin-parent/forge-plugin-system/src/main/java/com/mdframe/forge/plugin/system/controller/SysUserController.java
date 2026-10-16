@@ -607,6 +607,12 @@ public class SysUserController {
         dto.setPassword(getStringField(row, "password"));
         dto.setEmail(getStringField(row, "email"));
         dto.setRemark(getStringField(row, "remark"));
+        // IMAGE 列解析后写入 fileId（可多图逗号分隔，头像取首个）
+        String avatar = getStringField(row, "avatar");
+        if (avatar != null) {
+            int comma = avatar.indexOf(',');
+            dto.setAvatar(comma > 0 ? avatar.substring(0, comma) : avatar);
+        }
         Integer gender = getIntegerField(row, "gender");
         if (gender != null) {
             dto.setGender(gender);

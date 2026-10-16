@@ -5,6 +5,7 @@ import com.mdframe.forge.plugin.message.service.MessageBizTypeService;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.domain.RespInfo;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -58,7 +59,7 @@ public class MessageBizTypeController {
      * 新增
      */
     @PostMapping
-    public RespInfo<?> save(@RequestBody SysMessageBizType entity) {
+    public RespInfo<?> save(@Valid @RequestBody SysMessageBizType entity) {
         messageBizTypeService.save(entity);
         return RespInfo.success();
     }
@@ -67,7 +68,7 @@ public class MessageBizTypeController {
      * 修改
      */
     @PutMapping
-    public RespInfo<?> update(@RequestBody SysMessageBizType entity) {
+    public RespInfo<?> update(@Valid @RequestBody SysMessageBizType entity) {
         messageBizTypeService.updateById(entity);
         return RespInfo.success();
     }

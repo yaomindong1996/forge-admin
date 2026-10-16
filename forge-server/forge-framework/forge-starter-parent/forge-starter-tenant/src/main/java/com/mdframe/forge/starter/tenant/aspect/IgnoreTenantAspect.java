@@ -46,8 +46,13 @@ public class IgnoreTenantAspect {
             return TenantContextHolder.executeIgnore(() -> {
                 try {
                     return joinPoint.proceed();
+                } catch (RuntimeException | Error e) {
+                    // 保留原异常类型（如 ResponseStatusException/BusinessException），避免被包装成 500
+                    throw e;
                 } catch (Throwable e) {
-                    log.error("处理异常:",e);
+                    log.error("忽略租户切面捕获受检异常: {}.{}",
+                            joinPoint.getTarget().getClass().getSimpleName(),
+                            method.getName(), e);
                     throw new RuntimeException(e);
                 }
             });

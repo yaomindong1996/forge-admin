@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.mdframe.forge.starter.trans.annotation.DictTrans;
 import com.mdframe.forge.starter.trans.annotation.TransField;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -32,6 +33,7 @@ public class SysSocialConfig {
     /**
      * 平台类型
      */
+    @NotBlank(message = "平台类型不能为空")
     private String platform;
 
     /**

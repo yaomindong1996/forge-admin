@@ -1,6 +1,7 @@
 package com.mdframe.forge.flow.dto;
 
 import com.mdframe.forge.starter.flow.dto.FlowApprovalPointResultDTO;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.List;
 @Data
 public class FlowTaskActionDTO {
 
+    @NotBlank(message = "任务ID不能为空")
     private String taskId;
 
     private String userId;

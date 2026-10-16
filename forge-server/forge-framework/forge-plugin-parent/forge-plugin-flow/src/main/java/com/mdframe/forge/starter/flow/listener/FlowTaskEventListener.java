@@ -453,13 +453,18 @@ public class FlowTaskEventListener implements FlowableEventListener {
                 TaskEntity task = (TaskEntity) entity;
                 log.info("任务删除事件：taskId={}, name={}", task.getId(), task.getName());
                 
-                // 更新任务状态为已取消
+                // Flowable 在任务 complete 后也会发 ENTITY_DELETED；已终态（通过/驳回等）禁止覆盖成取消
                 FlowTask flowTask = flowTaskMapper.selectByTaskId(task.getId());
                 if (flowTask != null) {
-                    flowTask.setStatus(FlowTaskStatus.CANCELED.getCode());
-                    flowTask.setCompleteTime(LocalDateTime.now());
-                    flowTaskMapper.updateById(flowTask);
-                    log.info("更新任务状态为已取消：taskId={}", task.getId());
+                    if (!FlowTaskStatus.isActionable(flowTask.getStatus())) {
+                        log.debug("任务删除事件忽略：已是终态 status={} taskId={}",
+                                flowTask.getStatus(), task.getId());
+                    } else {
+                        flowTask.setStatus(FlowTaskStatus.CANCELED.getCode());
+                        flowTask.setCompleteTime(LocalDateTime.now());
+                        flowTaskMapper.updateById(flowTask);
+                        log.info("更新任务状态为已取消：taskId={}", task.getId());
+                    }
                 }
                 eventPublisher.publishEvent(
                         FlowTaskNotifyEvent.todoRead(task.getId(), getFlowBusiness(task.getProcessInstanceId())));

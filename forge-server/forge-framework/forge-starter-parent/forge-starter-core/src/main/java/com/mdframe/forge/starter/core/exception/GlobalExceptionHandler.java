@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.nio.file.AccessDeniedException;
@@ -255,6 +256,19 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 处理显式 HTTP 状态异常（如公开资源 404），保留原状态码，避免被通用 Runtime 处理成 500。
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    public RespInfo<?> handleResponseStatusException(ResponseStatusException e, HttpServletRequest request,
+                                                     HttpServletResponse response) {
+        int status = e.getStatusCode().value();
+        String reason = e.getReason() != null ? e.getReason() : e.getStatusCode().toString();
+        log.warn("显式状态异常: URI={}, Status={}, Message={}", request.getRequestURI(), status, reason);
+        setHttpStatus(response, status);
+        return RespInfo.error(status, sanitizeClientMessage(reason));
+    }
+
+    /**
      * 处理运行时异常
      */
     @ExceptionHandler(RuntimeException.class)
@@ -275,6 +289,10 @@ public class GlobalExceptionHandler {
                 return RespInfo.build(businessCause.getCode(), sanitizeClientMessage(businessCause.getMessage()), businessCause.getData());
             }
             return RespInfo.error(businessCause.getCode(), sanitizeClientMessage(businessCause.getMessage()));
+        }
+        ResponseStatusException statusCause = findCause(e, ResponseStatusException.class);
+        if (statusCause != null) {
+            return handleResponseStatusException(statusCause, request, response);
         }
         log.error("系统运行时错误: URI={}", request.getRequestURI(), e);
         setHttpStatus(response, 500);

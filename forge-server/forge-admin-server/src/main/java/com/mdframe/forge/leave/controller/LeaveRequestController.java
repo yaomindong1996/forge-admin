@@ -10,6 +10,7 @@ import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
 import com.mdframe.forge.starter.core.domain.RespInfo;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -34,7 +35,7 @@ public class LeaveRequestController {
      * 提交请假申请
      */
     @PostMapping("/submit")
-    public RespInfo<String> submit(@RequestBody LeaveRequestDTO dto) {
+    public RespInfo<String> submit(@Valid @RequestBody LeaveRequestDTO dto) {
         String businessKey = leaveRequestService.submitLeave(dto);
         return RespInfo.success("提交成功", businessKey);
     }
@@ -43,7 +44,7 @@ public class LeaveRequestController {
      * 保存草稿
      */
     @PostMapping("/draft")
-    public RespInfo<String> saveDraft(@RequestBody LeaveRequestDTO dto) {
+    public RespInfo<String> saveDraft(@Valid @RequestBody LeaveRequestDTO dto) {
         String businessKey = leaveRequestService.saveDraft(dto);
         return RespInfo.success("保存成功", businessKey);
     }
@@ -52,7 +53,7 @@ public class LeaveRequestController {
      * 更新草稿
      */
     @PutMapping("/draft")
-    public RespInfo<String> updateDraft(@RequestBody LeaveRequestDTO dto) {
+    public RespInfo<String> updateDraft(@Valid @RequestBody LeaveRequestDTO dto) {
         String businessKey = leaveRequestService.updateDraft(dto);
         return RespInfo.success("更新成功", businessKey);
     }

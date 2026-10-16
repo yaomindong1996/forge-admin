@@ -1,5 +1,7 @@
 package com.mdframe.forge.plugin.system.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -25,16 +27,19 @@ public class SysPostDTO implements Serializable {
     /**
      * 岗位编码（租户内唯一）
      */
+    @NotBlank(message = "岗位编码不能为空")
     private String postCode;
 
     /**
      * 所属组织ID
      */
+    @NotNull(message = "所属组织不能为空")
     private Long orgId;
 
     /**
      * 岗位名称
      */
+    @NotBlank(message = "岗位名称不能为空")
     private String postName;
 
     /**

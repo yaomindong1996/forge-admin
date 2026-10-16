@@ -355,6 +355,13 @@ forge-admin-ui/src/
 - 错误：`public RespInfo<?> approve(@RequestBody Map<String, Object> params)`
 - 允许的例外只有：低代码动态记录体、流程变量字段 `variables`、真正动态键值的元数据；`taskId`、`comment`、`userId`、`action` 等固定字段必须是 DTO 属性，不能整份请求都用 Map
 - 新增或修改写接口时，先建 DTO/VO，再写 Controller；禁止先用 Map 占位再回头补类型
+- **写接口入参校验以 DTO 注解 + Controller `@Valid`/`@Validated` 为主**（Jakarta Validation：`@NotBlank`、`@NotNull`、`@Size`、`@Pattern`、分组等）
+  - 正确：DTO 字段加 `@NotBlank(message = "…")`，Controller 写 `add(@Valid @RequestBody XxxDTO dto)`；由 `GlobalExceptionHandler` 统一转 400
+  - 禁止：仅靠 Service 里手写 `if (StrUtil.isBlank(...)) throw new BusinessException` 做「字段非空/格式」类校验（易漏、与 HTTP 校验重复）
+  - Service 只保留**业务规则**：跨字段约束、状态机、权限/租户、唯一性、敏感配置策略、内置数据不可改等
+  - 非 HTTP 入口（定时任务、内部调用、消息消费）若复用同一 Service：要么走带 `@Valid` 的 Facade，要么在入口显式 `Validator.validate`，禁止假设「注解已生效」
+  - 新增/编辑校验差异用 Validation Group（如 `Create`/`Update`），不要拆两套几乎相同的 DTO 只为必填不同
+  - 存量模块按触及即改：本轮改到的写接口必须补齐注解与 `@Valid`，并删除与之重复的 Service 非空判断
 
 ### 5.9 业务状态必须用枚举
 

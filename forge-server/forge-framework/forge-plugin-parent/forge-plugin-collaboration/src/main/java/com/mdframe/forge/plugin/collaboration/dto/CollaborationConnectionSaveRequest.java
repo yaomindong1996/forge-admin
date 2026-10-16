@@ -1,6 +1,8 @@
 package com.mdframe.forge.plugin.collaboration.dto;
 
 import com.mdframe.forge.starter.social.domain.entity.SysSocialConfig;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
@@ -15,19 +17,25 @@ public class CollaborationConnectionSaveRequest {
     /** 连接ID（修改时必填） */
     private Long id;
 
-    /** 平台类型：WECHAT_ENTERPRISE 等 */
+    /** 平台类型：WECHAT_ENTERPRISE 等（库表 NOT NULL，缺省会落到 SQL 500） */
+    @NotBlank(message = "平台类型不能为空")
+    @Size(max = 50, message = "平台类型长度不能超过50")
     private String platform;
 
     /** 平台显示名称 */
+    @Size(max = 100, message = "平台名称长度不能超过100")
     private String platformName;
 
     /** 平台Logo */
     private String platformLogo;
 
     /** 连接编码（全局唯一） */
+    @Size(max = 64, message = "连接编码长度不能超过64")
     private String connectionCode;
 
     /** 连接名称 */
+    @NotBlank(message = "连接名称不能为空")
+    @Size(max = 100, message = "连接名称长度不能超过100")
     private String connectionName;
 
     /** 外部企业ID（企微CorpId） */
