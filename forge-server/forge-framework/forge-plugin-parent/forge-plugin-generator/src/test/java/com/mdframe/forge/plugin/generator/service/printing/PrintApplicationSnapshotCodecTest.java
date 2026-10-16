@@ -1,5 +1,7 @@
 package com.mdframe.forge.plugin.generator.service.printing;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mdframe.forge.starter.core.exception.BusinessException;
@@ -8,6 +10,7 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import java.util.List;
+import java.util.Map;
 import static com.mdframe.forge.plugin.generator.service.printing.PrintApplicationTestData.*;
 import static org.assertj.core.api.Assertions.*;
 
@@ -65,6 +68,17 @@ class PrintApplicationSnapshotCodecTest {
         var bindings = new PrintApplicationSnapshotCodec.Binding[101];
         for (int i = 0; i < bindings.length; i++) { bindings[i] = binding(i + 1, false); }
         assertThatThrownBy(() -> codec.read(snapshot(bindings), 2L)).isInstanceOf(BusinessException.class);
+    }
+
+    @Test void springLikeMapperMustNotLeakDerivedSourceKeyIntoSnapshot() throws Exception {
+        // 模拟 Spring Boot ObjectMapper：会把无参 public 方法当成 getter。
+        var springLike = new ObjectMapper()
+                .setVisibility(PropertyAccessor.GETTER, JsonAutoDetect.Visibility.PUBLIC_ONLY)
+                .setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+        String json = springLike.writeValueAsString(Map.of("printing",
+                Map.of("schemaVersion", 1, "bindings", List.of(binding(10L, true)))));
+        assertThat(json).doesNotContain("\"key\"");
+        assertThat(codec.read(json, 2L)).containsExactly(binding(10L, true));
     }
     private ObjectNode root() throws Exception {
         return (ObjectNode) new ObjectMapper().readTree(snapshot(binding(10, true)));
