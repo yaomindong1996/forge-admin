@@ -66,6 +66,11 @@ public record PrintSourceRequest(
                 : sourceType == PrintSourceType.CODE && pageId == null && formKey != null;
     }
 
+    /**
+     * 派生摘要，不是协议字段。Spring Boot 的 ObjectMapper 会把无参 public 方法当成 getter，
+     * 若写入发布快照会被 PrintApplicationSnapshotCodec 当成非法字段拒绝。
+     */
+    @JsonIgnore
     public String key() {
         // 旧应用来源必须保持历史摘要完全稳定，否则已发布绑定会整体失效。
         String raw = sourceType.isStandalone()
