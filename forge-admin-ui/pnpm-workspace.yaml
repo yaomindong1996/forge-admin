@@ -2,7 +2,14 @@ packages:
   - '.'
 
 allowBuilds:
+  '@carbon/icons': set this to true or false
+  '@parcel/watcher': set this to true or false
+  core-js: set this to true or false
+  core-js-pure: set this to true or false
+  cpu-features: set this to true or false
+  es5-ext: set this to true or false
   esbuild: true
+  ssh2: set this to true or false
   vue-demi: true
 
 ignoreBuilds:

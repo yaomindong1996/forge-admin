@@ -182,7 +182,7 @@ alwaysApply: true
 
 ## 9. Java 代码形态与编程范式（强制）
 
-> 与 AGENTS.md 5.16 同源。整合自阿里巴巴 Java 开发手册（黄山版）、Google Java Style、SonarQube 默认规则，已按本项目 Java 17 + Spring Boot 3.5 + MyBatis-Plus + Lombok 技术栈裁剪。单类行数以 §8.0（1000 行）为准，本节不另设类行数上限。
+> 与 AGENTS.md 5.16 同源。整合自阿里巴巴 Java 开发手册（黄山版）、Google Java Style、SonarQube 默认规则，已按本项目 Java 17 + Spring Boot 4.1 + MyBatis-Plus + Lombok 技术栈裁剪。单类行数以 §8.0（1000 行）为准，本节不另设类行数上限。
 
 ### 9.1 代码形态上限
 

@@ -3,14 +3,14 @@
 <center><img src="images/banner.png" width="800"></center>
 
 <p align="center">
-  🚀 基于 Vue 3 + Spring Boot 3 的企业级中后台管理框架<br>
+  🚀 基于 Vue 3 + Spring Boot 4 的企业级中后台管理框架<br>
   ✨ 插件化架构、AI 代码生成、Flowable 工作流与 AI 数据可视化大屏一体化开箱
 </p>
 
 <p align="center">
   <a href="https://gitee.com/ForgeLab/forge-admin/stargazers"><img src="https://gitee.com/ForgeLab/forge-admin/badge/star.svg?theme=gvp" alt="Gitee stars"></a>
   <img src="https://img.shields.io/badge/license-Apache-blue.svg" alt="License">
-  <img src="https://img.shields.io/badge/Spring%20Boot-3.x-green.svg" alt="Spring Boot">
+  <img src="https://img.shields.io/badge/Spring%20Boot-4.x-green.svg" alt="Spring Boot">
   <img src="https://img.shields.io/badge/Vue-3.x-brightgreen.svg" alt="Vue3">
   <img src="https://img.shields.io/badge/Report-AI%20Enhanced-orange.svg" alt="AI Dashboard">
 </p>
@@ -215,10 +215,10 @@ Forge Admin 的代码生成能力面向真实后台研发流程：可以通过 A
 | 技术 | 用途 |
 |------|------|
 | Java 17 | 后端运行环境 |
-| Spring Boot 3.5.13 | 应用开发框架 |
+| Spring Boot 4.1.1 | 应用开发框架 |
 | MyBatis-Plus 3.5 | ORM 与分页能力 |
-| Sa-Token 1.38 | 登录认证、权限校验、Token 管理 |
-| Flowable 7.0 | 工作流建模与执行 |
+| Sa-Token 1.45 | 登录认证、权限校验、Token 管理 |
+| Flowable 8.0 | 工作流建模与执行 |
 | Redis / Redisson | 缓存、分布式锁、会话能力 |
 | Quartz / SnailJob | 任务调度 |
 | Maven | 后端多模块构建 |
@@ -625,10 +625,10 @@ H5 的“我的 → 关于系统”查看前后端版本和构建信息。
 
 ### 后端核心框架
 
-- **Spring Boot 3.5.13** - 核心框架支撑，简化企业级应用开发
+- **Spring Boot 4.1.1** - 核心框架支撑，简化企业级应用开发
 - **MyBatis-Plus 3.5** - ORM 框架增强，高效数据持久化
-- **Sa-Token 1.38** - 轻量级权限认证，JWT 会话管理
-- **Flowable 7.0** - BPMN 工作流引擎，业务流程自动化
+- **Sa-Token 1.45** - 轻量级权限认证，JWT 会话管理
+- **Flowable 8.0** - BPMN 工作流引擎，业务流程自动化
 - **Undertow** - 高性能 Web 服务器，替代传统 Tomcat
 
 ### 后端基础设施

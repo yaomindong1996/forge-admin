@@ -5,8 +5,8 @@
 
 ## 1. 项目概述
 
-**Forge Admin** — 基于 Vue3 + Spring Boot 3 的企业级中后台管理框架，微内核插件化架构。
-- **后端**: Java 17 + Spring Boot 3.5.13 + MyBatis-Plus 3.5 + Sa-Token 1.38 + Flowable 7.0
+**Forge Admin** — 基于 Vue3 + Spring Boot 4 的企业级中后台管理框架，微内核插件化架构。
+- **后端**: Java 17 + Spring Boot 4.1.1 + MyBatis-Plus 3.5 + Sa-Token 1.45 + Flowable 8.0
 - **前端**: Vue 3.5 + Naive UI 2.42 + Vite 7 + Pinia 3 + UnoCSS 66
 - **数据库**: MySQL 8.0+ / Redis 6.0+
 - **构建**: Maven (后端) + pnpm (前端)

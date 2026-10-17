@@ -7,7 +7,7 @@ alwaysApply: true
 ## 1. 应用概况
 - **应用名**: Forge Admin
 - **简介**: 基于Vue3 + Spring Boot的企业级中后台管理框架，微内核插件化架构
-- **技术栈**: Java 17 / Spring Boot 3.5.13 / Vue 3.5 / Naive UI 2.42 / Vite 7
+- **技术栈**: Java 17 / Spring Boot 4.1.1 / Vue 3.5 / Naive UI 2.42 / Vite 7
 - **构建工具**: Maven (后端) + pnpm (前端)
 - **数据库**: MySQL 8.0+ / Redis 6.0+
 - **版本**: 1.0.0
@@ -17,12 +17,12 @@ alwaysApply: true
 ### 2.1 后端技术栈
 | 技术/框架 | 版本 | 用途 |
 |----------|------|------|
-| Spring Boot | 3.5.13 | 基础框架 |
-| MyBatis-Plus | 3.5.7 | ORM框架 |
-| Sa-Token | 1.38.0 | 认证授权 |
-| Redisson | 3.34.1 | 分布式锁 |
+| Spring Boot | 4.1.1 | 基础框架 |
+| MyBatis-Plus | 3.5.17 | ORM框架 |
+| Sa-Token | 1.45.0 | 认证授权 |
+| Redisson | 4.8.0 | 分布式锁 |
 | Hutool | 5.8.31 | Java工具库 |
-| Flowable | 7.0.1 | 工作流引擎 |
+| Flowable | 8.0.0 | 工作流引擎 |
 | MapStruct-Plus | 1.4.4 | 对象映射 |
 | EasyExcel | 4.0.2 | Excel处理 |
 | Velocity | 2.3 | 模板引擎 |
