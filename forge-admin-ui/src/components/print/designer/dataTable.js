@@ -21,14 +21,14 @@ export function createDataTableElement(doc, collection, fields, position = {}) {
   const contentWidth = paperGeometry(doc).contentWidthMm
   // Detail tables always span the full editable width (sv-print style).
   const widthMm = contentWidth
-  const heightMm = Math.max(28, Number(position.heightMm) || 36)
+  const heightMm = Math.max(28, Number.isFinite(position.heightMm) ? Number(position.heightMm) : 36)
   const columns = buildDetailTableColumns(doc, collection, fields)
   normalizeTableColumnWidths(columns, widthMm)
   return {
     id: newPrintId(),
     type: 'DATA_TABLE',
     xMm: 0,
-    yMm: Math.max(0, Number(position.yMm) || 3),
+    yMm: Math.max(0, Number.isFinite(position.yMm) ? Number(position.yMm) : 3),
     widthMm,
     heightMm,
     collectionPath: collection.path,

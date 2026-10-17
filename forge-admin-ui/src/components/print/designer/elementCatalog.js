@@ -3,6 +3,7 @@ import { clampElementToContent, findSurface, newPrintId } from './commands'
 import { createDataTableElement, normalizeTableColumnWidths } from './dataTable'
 import { createDescriptionsConfig, descriptionBlockHeightMm } from './descriptions'
 import { defaultFieldFormat } from './designerSample'
+import { ensureSurfaceFits, resolvePlacement } from './placement'
 import { createStaticTable, staticTableSize } from './staticTable'
 
 // These options describe the fixed print protocol, not configurable business enums.
@@ -70,20 +71,22 @@ export function addElement(store, type, binding, position, preset, preferredSurf
                       : type === 'TEXT' || type === 'PAGE_NUMBER'
                         ? { widthMm: 45, heightMm: 10 }
                         : { widthMm: 45, heightMm: 18 }
-    const widthMm = Math.min(presetSize.widthMm, paperGeometry(doc).contentWidthMm)
-    const heightMm = presetSize.heightMm
-    const maxX = Math.max(0, paperGeometry(doc).contentWidthMm - widthMm)
+    const contentWidthMm = paperGeometry(doc).contentWidthMm
+    let widthMm = Math.min(presetSize.widthMm, contentWidthMm)
+    let heightMm = presetSize.heightMm
     const e = {
       id,
       type,
-      xMm: Math.max(0, Math.min(position?.xMm ?? 3, maxX)),
-      yMm: Math.max(0, position?.yMm ?? 3),
+      xMm: 0,
+      yMm: 0,
       widthMm,
       heightMm,
     }
     if (type === 'STATIC_TABLE') {
       e.table = createStaticTable(tableCols, tableRows, widthMm, heightMm / tableRows)
       Object.assign(e, staticTableSize(e.table))
+      widthMm = e.widthMm
+      heightMm = e.heightMm
     }
     if (['TEXT', 'IMAGE', 'BARCODE', 'QRCODE', 'HTML'].includes(type)) {
       if (preset === 'FIELD') {
@@ -119,16 +122,18 @@ export function addElement(store, type, binding, position, preset, preferredSurf
     }
     if (type === 'DESCRIPTIONS') {
       e.descriptions = createDescriptionsConfig(store.catalog)
-      e.widthMm = paperGeometry(doc).contentWidthMm
-      e.xMm = 0
-      e.heightMm = descriptionBlockHeightMm(e.descriptions)
-      if (Number.isFinite(surface.heightMm))
-        surface.heightMm = Math.max(surface.heightMm, Number((e.yMm + e.heightMm).toFixed(3)))
+      widthMm = contentWidthMm
+      heightMm = descriptionBlockHeightMm(e.descriptions)
+      e.widthMm = widthMm
+      e.heightMm = heightMm
     }
+    // Size is final → pack below existing content on palette click; keep drop coords on canvas.
+    const placed = resolvePlacement(surface, widthMm, heightMm, contentWidthMm, position)
+    e.xMm = type === 'DESCRIPTIONS' ? 0 : placed.xMm
+    e.yMm = placed.yMm
     clampElementToContent(doc, e)
     surface.elements.push(e)
-    if (Number.isFinite(surface.heightMm))
-      surface.heightMm = Math.max(surface.heightMm, Number((e.yMm + e.heightMm).toFixed(3)))
+    ensureSurfaceFits(surface, e.yMm + e.heightMm)
   })
   if (ok) {
     store.selectSurface(targetId)
@@ -208,11 +213,19 @@ export function addDetailTable(store, field, position) {
     targetId = resolved.targetId
     if (!surface?.elements)
       throw new Error('请先选中自由画布再添加明细表格')
-    const element = createDataTableElement(doc, collection, fields, position)
+    const contentWidthMm = paperGeometry(doc).contentWidthMm
+    const heightMm = Math.max(28, Number(position?.heightMm) || 36)
+    const placed = resolvePlacement(surface, contentWidthMm, heightMm, contentWidthMm, position)
+    const element = createDataTableElement(doc, collection, fields, {
+      ...position,
+      // Full-width table: only Y is free; resolvePlacement still advances below prior content.
+      yMm: placed.yMm,
+      heightMm,
+    })
     element.id = id
+    element.xMm = 0
     surface.elements.push(element)
-    if (Number.isFinite(surface.heightMm))
-      surface.heightMm = Math.max(surface.heightMm, Number((element.yMm + element.heightMm).toFixed(3)))
+    ensureSurfaceFits(surface, element.yMm + element.heightMm)
   })
   if (ok) {
     store.selectSurface(targetId)

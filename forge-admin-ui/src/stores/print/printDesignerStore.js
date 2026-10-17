@@ -243,6 +243,10 @@ export const usePrintDesignerStore = defineStore('printDesigner', {
       this.generation++
     },
     ensureFreeCanvas() {
+      // Stay on the active FIXED band when already editing one (avoid jumping to an empty first band).
+      const current = findSurface(this.document, this.surfaceId)
+      if (current?.kind === 'FIXED')
+        return current
       const existing = this.document.body.find(section => section.kind === 'FIXED')
       if (existing) {
         this.selectSurface(existing.id)

@@ -1,6 +1,7 @@
 import { paperGeometry } from '../protocol/units'
 import { findSurface, newPrintId } from './commands'
 import { cloneDocument } from './history'
+import { ensureSurfaceFits, resolvePlacement } from './placement'
 import { renewStaticTableIds } from './staticTable'
 
 const DEFINITION_KEYS = ['key', 'label', 'icon', 'factory']
@@ -71,8 +72,11 @@ function placeElements(surface, elements, position, contentWidthMm) {
     return []
   const originX = Math.min(...elements.map(item => item.xMm))
   const originY = Math.min(...elements.map(item => item.yMm))
-  const baseX = position?.xMm ?? originX
-  const baseY = position?.yMm ?? originY
+  const groupWidth = Math.max(...elements.map(item => item.xMm + (item.widthMm || 10))) - originX
+  const groupHeight = Math.max(...elements.map(item => item.yMm + (item.heightMm || 10))) - originY
+  const placed = resolvePlacement(surface, groupWidth, groupHeight, contentWidthMm, position)
+  const baseX = placed.xMm
+  const baseY = placed.yMm
   const ids = []
   for (const raw of elements) {
     const element = renewElementIds(raw)
@@ -81,7 +85,7 @@ function placeElements(surface, elements, position, contentWidthMm) {
     element.xMm = Math.max(0, Math.min(baseX + (raw.xMm - originX), contentWidthMm - widthMm))
     element.yMm = Math.max(0, baseY + (raw.yMm - originY))
     surface.elements.push(element)
-    surface.heightMm = Math.max(surface.heightMm || 0, element.yMm + heightMm)
+    ensureSurfaceFits(surface, element.yMm + heightMm)
     ids.push(element.id)
   }
   return ids
@@ -175,12 +179,13 @@ export function insertRegisteredPrintComponent(store, key, position, registry = 
     const element = renewElementIds(fragment.element)
     const resolved = resolveFreeSurface(document, store.surfaceId)
     surfaceId = resolved.surfaceId
-    if (position) {
-      element.xMm = Math.max(0, Math.min(position.xMm, geometry.contentWidthMm - element.widthMm))
-      element.yMm = Math.max(0, position.yMm)
-    }
-    resolved.surface.heightMm = Math.max(resolved.surface.heightMm || 0, element.yMm + element.heightMm)
+    const widthMm = element.widthMm || 10
+    const heightMm = element.heightMm || 10
+    const placed = resolvePlacement(resolved.surface, widthMm, heightMm, geometry.contentWidthMm, position)
+    element.xMm = Math.max(0, Math.min(placed.xMm, geometry.contentWidthMm - widthMm))
+    element.yMm = Math.max(0, placed.yMm)
     resolved.surface.elements.push(element)
+    ensureSurfaceFits(resolved.surface, element.yMm + heightMm)
     elementIds = [element.id]
   })
   if (!ok)
