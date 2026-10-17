@@ -7,7 +7,7 @@ import org.springframework.messaging.MessageDeliveryException;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
-import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.util.AntPathMatcher;
 
 import java.security.Principal;
@@ -31,14 +31,19 @@ public class AuthenticatedWebSocketChannelInterceptor implements ChannelIntercep
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
+        // 必须复用消息上已有的 accessor：StompSubProtocolHandler 会在 CONNECT 时注册
+        // setUserChangeCallback，wrap() 再重建消息会丢掉回调，导致后续 SUBSCRIBE 无 Principal。
+        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+        if (accessor == null) {
+            accessor = StompHeaderAccessor.wrap(message);
+        }
         StompCommand command = accessor.getCommand();
         if (command == null || command == StompCommand.DISCONNECT) {
             return message;
         }
         if (command == StompCommand.CONNECT || command == StompCommand.STOMP) {
             authenticate(message, accessor);
-            return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
+            return message;
         }
 
         requireAuthenticated(message, accessor);
