@@ -3,8 +3,10 @@
  */
 
 import { managedFetch } from '@/composables/useGlobalLoading'
-import { useAuthStore } from '@/store'
+import { useAuthStore, useUserStore } from '@/store'
+import { downloadScope } from '@/stores/system/recentDownloadsUtils'
 import { generateUUID } from './common'
+import { createDownloadObserver, receiveDownloadBlob } from './download-events'
 import { request } from './http'
 import { getLocalStorage, setLocalStorage } from './storage'
 
@@ -323,7 +325,7 @@ function getDownloadFilename(response, fallbackName) {
 }
 
 function resolveDownloadFileId(fileData) {
-  if (!fileData || typeof fileData !== 'string' && typeof fileData !== 'object')
+  if (!fileData || (typeof fileData !== 'string' && typeof fileData !== 'object'))
     return ''
   if (typeof fileData === 'object')
     return fileData.fileId ? String(fileData.fileId) : ''
@@ -344,7 +346,7 @@ async function reportExternalDownload(fileId, fileName) {
     await request.post('/system/file/download-log', {
       fileId,
       fileName: fileName || '未命名文件',
-    }, { needTip: false })
+    }, { needTip: false, skipGlobalLoading: true })
     notifyDownloadRecorded()
   }
   catch {
@@ -352,7 +354,7 @@ async function reportExternalDownload(fileId, fileName) {
   }
 }
 
-async function saveAuthenticatedDownload(url, filename) {
+async function saveAuthenticatedDownload(url, filename, observer) {
   const response = await fetch(url, {
     headers: {
       ...getAuthHeaders(),
@@ -361,10 +363,20 @@ async function saveAuthenticatedDownload(url, filename) {
   })
   if (!response.ok) {
     const errorText = await response.text().catch(() => '')
-    throw new Error(errorText || '下载失败')
+    const error = new Error(errorText || '下载失败')
+    error.allowDirectFallback = response.status >= 500
+    throw error
+  }
+  const contentType = response.headers.get('Content-Type') || ''
+  if (contentType.toLowerCase().includes('application/json') && !response.headers.get('Content-Disposition')) {
+    // 统一异常可能以 HTTP 200 返回 JSON，不能把鉴权/业务错误保存成文件。
+    const error = new Error('文件下载失败，请重试或检查文件权限')
+    error.allowDirectFallback = false
+    throw error
   }
 
-  const blob = await response.blob()
+  const blob = await receiveDownloadBlob(response, observer?.progress)
+  assertDownloadContext(observer)
   const blobUrl = URL.createObjectURL(blob)
   triggerDownloadLink(blobUrl, getDownloadFilename(response, filename))
   notifyDownloadRecorded()
@@ -377,16 +389,61 @@ async function saveAuthenticatedDownload(url, filename) {
  */
 export async function downloadFile(fileData, filename, expires = FILE_URL_CACHE_EXPIRE, forceRefresh = false) {
   const fileId = resolveDownloadFileId(fileData)
+  const observer = fileId ? observeFileDownload(fileId, filename) : null
+  try {
+    const result = await downloadFileContent(fileData, filename, expires, forceRefresh, observer)
+    observer?.saved()
+    return result
+  }
+  catch (error) {
+    observer?.failed()
+    throw error
+  }
+}
+
+function observeFileDownload(fileId, fileName) {
+  try {
+    const auth = useAuthStore()
+    const user = useUserStore()
+    const token = auth.accessToken
+    const scope = downloadScope(user.tenantId, user.userId)
+    return createDownloadObserver({
+      scope,
+      fileId,
+      fileName,
+      // 捕获会话而非把凭据写入事件；旧会话结束后的响应不能进入新账号面板。
+      isCurrent: () => auth.accessToken === token && downloadScope(user.tenantId, user.userId) === scope,
+    })
+  }
+  catch {
+    // 进度是附加能力，未挂载 Pinia 的公共文件工具调用仍保持原有行为。
+    return null
+  }
+}
+
+function assertDownloadContext(observer) {
+  if (observer && !observer.isCurrent())
+    throw new Error('登录身份已改变，请重新下载')
+}
+
+async function downloadFileContent(fileData, filename, expires, forceRefresh, observer) {
+  const fileId = resolveDownloadFileId(fileData)
   if (fileId) {
     try {
-      return await saveAuthenticatedDownload(getFileDownloadUrl(fileId), filename)
+      return await saveAuthenticatedDownload(getFileDownloadUrl(fileId), filename, observer)
     }
     catch (error) {
+      assertDownloadContext(observer)
+      // 不能在权限拒绝后借缓存的旧签名地址绕过服务端下载校验。
+      if (error.allowDirectFallback === false)
+        throw error
       const fallbackUrl = await resolveFileAccessUrl(fileData, expires, forceRefresh)
+      assertDownloadContext(observer)
       if (!fallbackUrl || isInternalFileUrl(fallbackUrl))
         throw error
       triggerDownloadLink(fallbackUrl, filename)
-      await reportExternalDownload(fileId, filename)
+      // 已交给浏览器保存；审计补记慢/失败不能把前端一直留在“接收中”。
+      void reportExternalDownload(fileId, filename)
       return fallbackUrl
     }
   }
@@ -400,7 +457,7 @@ export async function downloadFile(fileData, filename, expires = FILE_URL_CACHE_
     return url
   }
 
-  return saveAuthenticatedDownload(url, filename)
+  return saveAuthenticatedDownload(url, filename, observer)
 }
 
 /**

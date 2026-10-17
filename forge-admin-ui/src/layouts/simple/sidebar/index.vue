@@ -2,6 +2,7 @@
   <div class="sidebar-simple-wrapper">
     <SideLogo />
     <SideMenu class="sidebar-simple-menu" />
+    <RecentDownloads docked :compact="appStore.collapsed" />
     <div class="sidebar-simple-footer">
       <MessageNotification />
       <CompactLayoutTools />
@@ -14,6 +15,10 @@
 import { MenuCollapse, SideLogo, SideMenu } from '@/layouts/components'
 import CompactLayoutTools from '@/layouts/components/CompactLayoutTools.vue'
 import MessageNotification from '@/layouts/components/MessageNotification.vue'
+import RecentDownloads from '@/layouts/components/RecentDownloads.vue'
+import { useAppStore } from '@/store'
+
+const appStore = useAppStore()
 </script>
 
 <style scoped>

@@ -34,6 +34,7 @@
 
     <!-- 底部工具栏 -->
     <div class="bento-tools">
+      <RecentDownloads docked compact />
       <MessageNotification />
       <CompactLayoutTools />
     </div>
@@ -51,6 +52,7 @@ import IconRenderer from '@/components/IconRenderer.vue'
 import { useMenu } from '@/composables'
 import { MessageNotification } from '@/layouts/components'
 import CompactLayoutTools from '@/layouts/components/CompactLayoutTools.vue'
+import RecentDownloads from '@/layouts/components/RecentDownloads.vue'
 import { usePermissionStore } from '@/store'
 import DrawerMenu from '../../immersive/components/DrawerMenu.vue'
 

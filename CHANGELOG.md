@@ -16,6 +16,8 @@
 - 新增 OAuth2/HMAC 开放网关、限流、幂等、调用审计、调用指南和在线测试能力。
 
 ### Changed
+- 最近下载改为统一侧栏入口与轻面板，按日期展示真实下载记录，支持分页、失败重试和实际字节进度；
+  清空仅隐藏本浏览器已加载的记录，不删除后台审计或本地文件，切换账号/租户自动隔离。
 - 系统参数/租户/组织/岗位/消息模板与业务类型/三方登录配置写接口改为 DTO（或写实体）Jakarta Validation 注解 + Controller `@Valid`，去掉 Service 层重复非空判断；空体新增统一由全局校验返回 400。
 - 流程转办入参改为 `FlowTaskDelegateDTO` 字段注解 + Controller `@Valid`；任务动作授权失败与退回/签收拒绝改为 `BusinessException` 返回 400，不再冒成 HTTP 500。
 - Spring Boot 4 T5 图片页与 Agent 工具卡共享受现有权限约束的异步结果查询，

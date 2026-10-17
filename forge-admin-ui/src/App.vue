@@ -45,7 +45,7 @@
         <!-- 全局水印 -->
         <div v-if="watermarkConfig.enable" class="watermark-layer" :style="watermarkStyle" />
         <GlobalLoadingOverlay />
-        <RecentDownloads v-if="showRecentDownloads" />
+        <RecentDownloads v-if="showRecentDownloads && !downloadsDockAvailable" :compact="downloadsNarrow" />
         <NoticeDetailModal />
         <SystemAboutModal v-if="versionStore.visible" />
       </n-message-provider>
@@ -54,6 +54,7 @@
 </template>
 
 <script setup>
+import { useMediaQuery } from '@vueuse/core'
 import { darkTheme, dateZhCN, zhCN } from 'naive-ui'
 import { computed, defineAsyncComponent, markRaw, onMounted, shallowRef, watch, watchEffect } from 'vue'
 // 初始化响应式字体功能
@@ -63,14 +64,17 @@ import GlobalLoadingOverlay from '@/components/common/GlobalLoadingOverlay.vue'
 import SystemPageLayout from '@/components/common/SystemPageLayout.vue'
 import NoticeDetailModal from '@/components/notice/NoticeDetailModal.vue'
 import { useWatermark } from '@/composables/useWatermark'
+import { useSidebarVisibility } from '@/layouts/composables/useSidebarVisibility'
 import { isApplicationPortalPath } from '@/router/guards/permission-guard'
 import { useAppStore, useAuthStore, usePermissionStore, useTabStore, useUserStore } from '@/store'
+import { useRecentDownloadsStore } from '@/stores/system/recentDownloadsStore'
+import { hasDownloadDock } from '@/stores/system/recentDownloadsUtils'
 import { useSystemVersionStore } from '@/stores/system/versionStore'
 import { initResponsiveFont } from '@/utils/responsive-font'
 import ApplicationPortalSkeleton from '@/views/app-center/components/portal/ApplicationPortalSkeleton.vue'
 import ApplicationRuntimeSkeleton from '@/views/app-center/components/portal/ApplicationRuntimeSkeleton.vue'
-import RecentDownloads from './layouts/components/RecentDownloads.vue'
 import AppPortalLayout from './layouts/app-portal/index.vue'
+import RecentDownloads from './layouts/components/RecentDownloads.vue'
 import EmptyLayout from './layouts/empty/index.vue'
 import { canConfigureLayout } from './layouts/layout-settings-visibility'
 import { defaultLayout, layoutSettingVisible, normalizeLayout } from './settings'
@@ -134,6 +138,18 @@ const route = useRoute()
 const appStore = useAppStore()
 const permissionStore = usePermissionStore()
 const userStore = useUserStore()
+const downloadsStore = useRecentDownloadsStore()
+const downloadsNarrow = useMediaQuery('(max-width: 768px)')
+const { showSidebar: downloadsSidebarVisible } = useSidebarVisibility()
+const downloadsLayout = computed(() => normalizeLayoutName(route.meta?.layout || appStore.layout))
+const downloadsDockAvailable = computed(() => hasDownloadDock(downloadsLayout.value, {
+  narrow: downloadsNarrow.value,
+  collapsed: appStore.collapsed,
+  showSidebar: downloadsSidebarVisible.value,
+}))
+watch([() => route.fullPath, downloadsLayout, () => appStore.collapsed, downloadsNarrow], () => {
+  downloadsStore.open = false
+})
 const isSystemRoute = computed(() => route.path.startsWith('/system/'))
 const showRecentDownloads = computed(() => {
   return !!versionAuth.accessToken && route.meta?.layout !== 'empty' && route.path !== '/login'

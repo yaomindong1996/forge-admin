@@ -2,11 +2,16 @@
   <div class="modern-sidebar">
     <SideLogo />
     <SideMenu class="sidebar-menu" />
+    <RecentDownloads docked :compact="appStore.collapsed" />
   </div>
 </template>
 
 <script setup>
 import { SideLogo, SideMenu } from '@/layouts/components'
+import RecentDownloads from '@/layouts/components/RecentDownloads.vue'
+import { useAppStore } from '@/store'
+
+const appStore = useAppStore()
 </script>
 
 <style scoped>

@@ -4,11 +4,13 @@
     <SideLogo />
     <!-- 真实菜单与统一主题，支持任意层级 -->
     <SideMenu class="nexus-navigation" />
+    <RecentDownloads docked />
   </div>
 </template>
 
 <script setup>
 import { SideLogo, SideMenu } from '@/layouts/components'
+import RecentDownloads from '@/layouts/components/RecentDownloads.vue'
 </script>
 
 <style scoped>

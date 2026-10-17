@@ -33,6 +33,7 @@
       </span>
     </nav>
     <div class="side-flyout-dock">
+      <RecentDownloads v-if="!appStore.collapsed" docked compact />
       <MenuCollapse />
     </div>
     <WorkbenchMegaPanel variant="rail" />
@@ -46,10 +47,13 @@ import IconRenderer from '@/components/IconRenderer.vue'
 import WorkbenchMegaPanel from '@/layouts/business-workbench/components/WorkbenchMegaPanel.vue'
 import { useWorkbenchNavigation } from '@/layouts/business-workbench/useWorkbenchNavigation'
 import { MenuCollapse } from '@/layouts/components'
+import RecentDownloads from '@/layouts/components/RecentDownloads.vue'
 import { usePermissionStore } from '@/store'
+import { useAppStore } from '@/store/modules/app'
 import { useBusinessWorkbenchStore } from '@/stores/layout/businessWorkbenchStore'
 
 const store = useBusinessWorkbenchStore()
+const appStore = useAppStore()
 const permissionStore = usePermissionStore()
 const { menus, activeRootKey, highlightedRootKey, activateMenu } = useWorkbenchNavigation()
 const rail = ref(null)

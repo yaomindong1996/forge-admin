@@ -1,8 +1,8 @@
 <template>
   <div class="nexus-layout">
-    <!-- 左侧浮岛侧边栏 -->
+    <!-- 窄屏卸载侧栏，避免隐藏工具与兜底入口同时挂载 Teleport 浮层。 -->
     <Transition name="sidebar-slide">
-      <aside v-if="!appStore.collapsed" class="nexus-sidebar-wrapper">
+      <aside v-if="!appStore.collapsed && !isNarrow" class="nexus-sidebar-wrapper">
         <div class="nexus-sidebar-inner">
           <Sidebar />
         </div>
@@ -33,6 +33,7 @@
 </template>
 
 <script setup>
+import { useMediaQuery } from '@vueuse/core'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import DemoBanner from '@/components/DemoBanner.vue'
@@ -43,6 +44,7 @@ import Header from './header/index.vue'
 import Sidebar from './sidebar/index.vue'
 
 const appStore = useAppStore()
+const isNarrow = useMediaQuery('(max-width: 768px)')
 const route = useRoute()
 const isFlowTaskListPage = computed(() => isFlowTaskListPath(route.path))
 </script>

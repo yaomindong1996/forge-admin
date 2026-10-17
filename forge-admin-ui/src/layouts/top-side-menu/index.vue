@@ -27,6 +27,7 @@
         :class="{ collapsed: appStore.collapsed }"
       >
         <SideMenu />
+        <RecentDownloads docked :compact="appStore.collapsed" />
         <div class="side-collapse-dock">
           <MenuCollapse class="side-collapse-action" />
         </div>
@@ -58,6 +59,7 @@ import {
   PageRefresh,
 } from '@/layouts/components'
 import HeaderTools from '@/layouts/components/HeaderTools.vue'
+import RecentDownloads from '@/layouts/components/RecentDownloads.vue'
 import ResponsiveMenuToggle from '@/layouts/components/ResponsiveMenuToggle.vue'
 import { useSidebarVisibility } from '@/layouts/composables/useSidebarVisibility'
 import { useAppStore } from '@/store'
