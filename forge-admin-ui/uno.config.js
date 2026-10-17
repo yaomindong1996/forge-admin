@@ -44,6 +44,9 @@ export default defineConfig({
         'material-symbols': loadIconifyCollection('material-symbols'),
         'material-symbols-light': loadIconifyCollection('material-symbols-light'),
         'lucide': loadIconifyCollection('lucide'),
+        // 侧栏折叠按钮 MenuCollapse / SideFlyoutHeader 使用 i-line-md-menu-*-left；
+        // 未挂本地集合时生产构建无法生成该类，按钮只剩空壳。
+        'line-md': loadIconifyCollection('line-md'),
         'mdi': loadIconifyCollection('mdi'),
         'fa': loadIconifyCollection('fa'),
         'fa6-solid': loadIconifyCollection('fa6-solid'),
@@ -54,7 +57,14 @@ export default defineConfig({
     }),
     presetRemToPx({ baseFontSize: 4 }),
   ],
-  safelist: icons.map(icon => `${icon} ${icon}?mask`.split(' ')).flat(),
+  // 折叠态切换用动态 class，额外 safelist 避免只扫到其中一个分支
+  safelist: [
+    ...icons.map(icon => `${icon} ${icon}?mask`.split(' ')).flat(),
+    'i-line-md-menu-fold-left',
+    'i-line-md-menu-unfold-left',
+    'i-line-md:menu-fold-left',
+    'i-line-md:menu-unfold-left',
+  ],
   shortcuts: [
     ['wh-full', 'w-full h-full'],
     ['f-c-c', 'flex justify-center items-center'],
