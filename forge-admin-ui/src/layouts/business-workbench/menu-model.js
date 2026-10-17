@@ -33,6 +33,8 @@ export function buildMegaSections(menu) {
     entry: child,
     items: child.children,
     hasChildren: Boolean(child.children.length),
+    badgeText: child.badgeText || '',
+    badgeTone: child.badgeTone || '',
   }))
 }
 

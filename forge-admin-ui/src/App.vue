@@ -45,6 +45,7 @@
         <!-- 全局水印 -->
         <div v-if="watermarkConfig.enable" class="watermark-layer" :style="watermarkStyle" />
         <GlobalLoadingOverlay />
+        <RecentDownloads v-if="showRecentDownloads" />
         <NoticeDetailModal />
         <SystemAboutModal v-if="versionStore.visible" />
       </n-message-provider>
@@ -68,6 +69,7 @@ import { useSystemVersionStore } from '@/stores/system/versionStore'
 import { initResponsiveFont } from '@/utils/responsive-font'
 import ApplicationPortalSkeleton from '@/views/app-center/components/portal/ApplicationPortalSkeleton.vue'
 import ApplicationRuntimeSkeleton from '@/views/app-center/components/portal/ApplicationRuntimeSkeleton.vue'
+import RecentDownloads from './layouts/components/RecentDownloads.vue'
 import AppPortalLayout from './layouts/app-portal/index.vue'
 import EmptyLayout from './layouts/empty/index.vue'
 import { canConfigureLayout } from './layouts/layout-settings-visibility'
@@ -133,6 +135,9 @@ const appStore = useAppStore()
 const permissionStore = usePermissionStore()
 const userStore = useUserStore()
 const isSystemRoute = computed(() => route.path.startsWith('/system/'))
+const showRecentDownloads = computed(() => {
+  return !!versionAuth.accessToken && route.meta?.layout !== 'empty' && route.path !== '/login'
+})
 const showLayoutSetting = computed(() => {
   return layoutSettingVisible && canConfigureLayout({
     routeLayout: route.meta?.layout,

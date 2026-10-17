@@ -42,6 +42,11 @@
               <component :is="item.icon" v-else />
             </span>
             <span class="forge-top-menu-label">{{ item.label }}</span>
+            <span
+              v-if="item.badgeText"
+              class="forge-top-menu-badge"
+              :class="`tone-${item.badgeTone || 'muted'}`"
+            >{{ item.badgeText }}</span>
             <span v-if="dropdown && hasChildren(item)" class="forge-top-menu-caret">
               <i class="i-material-symbols:keyboard-arrow-down-rounded" />
             </span>
@@ -348,6 +353,27 @@ watch(() => props.activeKey, () => {
   height: 16px;
   opacity: 0.8;
   transition: transform var(--transition-fast);
+}
+
+.forge-top-menu-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: #fff;
+  background: var(--error-color, #d03050);
+}
+
+.forge-top-menu-badge.tone-muted {
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--text-secondary) 16%, transparent);
 }
 
 .forge-top-menu-node:hover .forge-top-menu-caret,

@@ -38,6 +38,7 @@
           <IconRenderer v-if="typeof item.icon === 'string' && item.icon" :icon="item.icon" :size="16" />
           <component :is="item.icon" v-else-if="item.icon" />
           <span>{{ item.label }}</span>
+          <em v-if="item.badgeText" class="menu-count" :class="`tone-${item.badgeTone || 'muted'}`">{{ item.badgeText }}</em>
         </button>
         <span v-if="!menus.length" class="menu-empty">{{ permissionStore.menuDataLoaded ? '暂无可访问菜单' : '菜单加载中…' }}</span>
       </div>

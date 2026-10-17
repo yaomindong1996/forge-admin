@@ -26,15 +26,25 @@
         <button
           class="forge-side-menu-item"
           type="button"
-          :title="item.label"
+          :title="collapsedTitle"
           :style="itemStyle"
           :aria-current="isSelfActive ? 'page' : undefined"
           aria-haspopup="menu"
         >
           <span class="forge-side-menu-icon">
             <component :is="item.icon" v-if="item.icon" />
+            <span
+              v-if="badgeText && collapsed"
+              class="forge-side-menu-badge is-corner"
+              :class="`tone-${badgeTone}`"
+            >{{ badgeText }}</span>
           </span>
           <span class="forge-side-menu-label">{{ item.label }}</span>
+          <span
+            v-if="badgeText && !collapsed"
+            class="forge-side-menu-badge"
+            :class="`tone-${badgeTone}`"
+          >{{ badgeText }}</span>
           <span class="forge-side-menu-arrow">
             <i class="i-material-symbols:keyboard-arrow-down-rounded" />
           </span>
@@ -58,6 +68,11 @@
             <component :is="child.icon" />
           </span>
           <span class="forge-side-menu-flyout-label">{{ child.flyoutLabel || child.label }}</span>
+          <span
+            v-if="child.badgeText"
+            class="forge-side-menu-badge"
+            :class="`tone-${child.badgeTone || 'muted'}`"
+          >{{ child.badgeText }}</span>
         </button>
       </div>
     </NPopover>
@@ -66,7 +81,7 @@
       v-else
       class="forge-side-menu-item"
       type="button"
-      :title="collapsed ? item.label : undefined"
+      :title="collapsedTitle"
       :style="itemStyle"
       :aria-current="isSelfActive ? 'page' : undefined"
       :aria-expanded="hasChildItems ? String(isExpanded) : undefined"
@@ -74,8 +89,18 @@
     >
       <span class="forge-side-menu-icon">
         <component :is="item.icon" v-if="item.icon" />
+        <span
+          v-if="badgeText && collapsed"
+          class="forge-side-menu-badge is-corner"
+          :class="`tone-${badgeTone}`"
+        >{{ badgeText }}</span>
       </span>
       <span class="forge-side-menu-label">{{ item.label }}</span>
+      <span
+        v-if="badgeText && !collapsed"
+        class="forge-side-menu-badge"
+        :class="`tone-${badgeTone}`"
+      >{{ badgeText }}</span>
       <span v-if="hasChildItems" class="forge-side-menu-arrow">
         <i class="i-material-symbols:keyboard-arrow-down-rounded" />
       </span>
@@ -135,6 +160,13 @@ const itemKey = computed(() => normalizeKey(props.item.key))
 const hasChildItems = computed(() => children.value.length > 0)
 const isExpanded = computed(() => props.expandedKeys.includes(itemKey.value))
 const isSelfActive = computed(() => itemKey.value === normalizeKey(props.activeKey))
+const badgeText = computed(() => props.item.badgeText || '')
+const badgeTone = computed(() => props.item.badgeTone || 'muted')
+const collapsedTitle = computed(() => {
+  if (!props.collapsed)
+    return undefined
+  return badgeText.value ? `${props.item.label}（${badgeText.value}）` : props.item.label
+})
 const itemStyle = computed(() => ({
   '--menu-level': props.level,
 }))

@@ -13,23 +13,29 @@ import { useRoute } from 'vue-router'
 import { findFirstMenuWithPath, findTopMenuByPath, useMenu } from '@/composables'
 import TopMenuBar from '@/layouts/components/TopMenuBar.vue'
 import { useAppStore, usePermissionStore } from '@/store'
+import { useWorkspaceBadgeStore } from '@/stores/flow/workspaceBadgeStore'
 import { processTopMenus } from '@/utils/menu-utils'
 
 const route = useRoute()
 const permissionStore = usePermissionStore()
 const appStore = useAppStore()
+const workspaceBadgeStore = useWorkspaceBadgeStore()
 
 const { handleMenuSelect: baseHandleMenuSelect } = useMenu()
 
-// Extract first-level menu items
+// Extract first-level menu items（先按完整子树挂徽标再摘掉 children，父级能显示汇总）
 const topMenuOptions = computed(() => {
+  void workspaceBadgeStore.counts
   const menus = permissionStore.menus || []
   const topMenus = processTopMenus(menus)
-
-  return topMenus.map(item => ({
+  const withBadges = workspaceBadgeStore.attachBadges(topMenus.map(item => ({
     ...item,
     key: item.id,
     label: item.label || item.name,
+  })))
+
+  return withBadges.map(item => ({
+    ...item,
     children: null,
   }))
 })

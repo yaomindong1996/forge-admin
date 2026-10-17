@@ -286,17 +286,19 @@ public class FileManager {
             throw new RuntimeException("存储策略不存在: " + metadata.getStorageType());
         }
         
+        response.setContentType(metadata.getMimeType());
+        response.setHeader("Content-Disposition",
+            "attachment;filename=" + java.net.URLEncoder.encode(metadata.getOriginalName(), StandardCharsets.UTF_8));
+        if (metadata.getFileSize() != null && metadata.getFileSize() > 0) {
+            response.setContentLengthLong(metadata.getFileSize());
+        }
+        if (Boolean.TRUE.equals(metadata.getIsPrivate())) {
+            response.setHeader("Cache-Control", "private, no-store");
+            response.setHeader("Pragma", "no-cache");
+        }
+
         try (InputStream inputStream = storage.download(fileId);
              OutputStream outputStream = response.getOutputStream()) {
-            
-            response.setContentType(metadata.getMimeType());
-            response.setHeader("Content-Disposition",
-                "attachment;filename=" + java.net.URLEncoder.encode(metadata.getOriginalName(), StandardCharsets.UTF_8));
-            if (Boolean.TRUE.equals(metadata.getIsPrivate())) {
-                response.setHeader("Cache-Control", "private, no-store");
-                response.setHeader("Pragma", "no-cache");
-            }
-            
             inputStream.transferTo(outputStream);
             
             // 更新下载次数

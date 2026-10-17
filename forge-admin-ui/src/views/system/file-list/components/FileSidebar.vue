@@ -78,6 +78,7 @@ const categories = computed(() => [
 }
 .category {
   display: flex;
+  text-decoration: none;
   align-items: center;
   gap: 10px;
   width: 100%;

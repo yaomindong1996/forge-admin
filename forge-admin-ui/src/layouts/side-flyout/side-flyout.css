@@ -78,7 +78,11 @@
   font-size: 20px;
 }
 
-.side-flyout-item span {
+.side-flyout-icon {
+  position: relative;
+  display: inline-flex;
+}
+.side-flyout-item > span:not(.side-flyout-icon) {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;

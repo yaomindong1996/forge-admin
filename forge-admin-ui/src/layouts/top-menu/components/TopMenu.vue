@@ -9,18 +9,29 @@
 </template>
 
 <script setup>
-import { computed, h } from 'vue'
+import { computed, h, onBeforeUnmount, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import IconRenderer from '@/components/IconRenderer.vue'
 import { useMenu } from '@/composables'
 import TopMenuBar from '@/layouts/components/TopMenuBar.vue'
 import { usePermissionStore } from '@/store'
+import { useWorkspaceBadgeStore } from '@/stores/flow/workspaceBadgeStore'
 import { findMenuIdByPath, processTopMenus } from '@/utils/menu-utils'
 
 const route = useRoute()
 const permissionStore = usePermissionStore()
+const workspaceBadgeStore = useWorkspaceBadgeStore()
 
 const { handleMenuSelect: baseHandleMenuSelect } = useMenu()
+
+let unsubscribeBadges = null
+onMounted(() => {
+  unsubscribeBadges = workspaceBadgeStore.subscribe()
+})
+onBeforeUnmount(() => {
+  unsubscribeBadges?.()
+  unsubscribeBadges = null
+})
 
 function renderMenuIcon(icon) {
   if (!icon)
@@ -35,10 +46,11 @@ function renderMenuIcon(icon) {
 
 // Process menu data for top menu with dropdown
 const menuOptions = computed(() => {
+  void workspaceBadgeStore.counts
   const menus = permissionStore.menus || []
   const topMenus = processTopMenus(menus)
 
-  return topMenus.map((item) => {
+  const mapped = topMenus.map((item) => {
     const children = item.children ? processDropdownMenuData(item.children) : []
     return {
       ...item,
@@ -47,6 +59,7 @@ const menuOptions = computed(() => {
       children: children.length ? children : null,
     }
   })
+  return workspaceBadgeStore.attachBadges(mapped)
 })
 
 function processDropdownMenuData(menuItems) {

@@ -20,9 +20,11 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useMenu } from '@/composables'
 import { useAppStore } from '@/store'
+import { useWorkspaceBadgeStore } from '@/stores/flow/workspaceBadgeStore'
 import SideMenuNode from './SideMenuNode.vue'
 
 const props = defineProps({
@@ -40,12 +42,37 @@ const props = defineProps({
 const emit = defineEmits(['select'])
 
 const appStore = useAppStore()
+const route = useRoute()
+const workspaceBadgeStore = useWorkspaceBadgeStore()
 const collapsed = computed(() => props.collapsedOverride ?? appStore.collapsed)
 
 const { processedMenus, activeKey, handleMenuSelect } = useMenu()
 const expandedKeys = ref([])
-const menuOptions = computed(() => Array.isArray(props.options) ? props.options : processedMenus.value)
+const baseMenuOptions = computed(() => Array.isArray(props.options) ? props.options : processedMenus.value)
+// 显式依赖 counts，审批/抄送后数字能刷新
+const menuOptions = computed(() => {
+  void workspaceBadgeStore.counts
+  return workspaceBadgeStore.attachBadges(baseMenuOptions.value)
+})
 const currentActiveKey = computed(() => props.activeKeyOverride || activeKey.value)
+
+let unsubscribeBadges = null
+
+onMounted(() => {
+  unsubscribeBadges = workspaceBadgeStore.subscribe()
+})
+
+onBeforeUnmount(() => {
+  unsubscribeBadges?.()
+  unsubscribeBadges = null
+})
+
+// 进出流程任务页时刷新，避免只靠轮询
+watch(() => route.path, (path, prev) => {
+  const hit = p => /^\/(flow|workspace)\/(todo|done|started|cc)/.test(String(p || ''))
+  if (hit(path) || hit(prev))
+    workspaceBadgeStore.refresh()
+})
 
 function normalizeKey(key) {
   return key === undefined || key === null ? '' : String(key)
@@ -230,12 +257,51 @@ function handleSelect(item) {
   align-items: center;
   justify-content: center;
   flex: 0 0 22px;
+  position: relative;
   color: var(--side-menu-icon-color);
   font-size: 18px;
   transform: scale(1);
   transition:
     color var(--transition-fast),
     transform var(--transition-fast);
+}
+
+.forge-side-menu-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: #fff;
+  background: var(--error-color, #d03050);
+}
+
+.forge-side-menu-badge.tone-muted {
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--text-secondary) 16%, transparent);
+}
+
+.forge-side-menu-badge.tone-emphasis {
+  color: #fff;
+  background: var(--error-color, #d03050);
+}
+
+.forge-side-menu-badge.is-corner {
+  position: absolute;
+  top: -7px;
+  right: -10px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 10px;
+  z-index: 1;
+  box-shadow: 0 0 0 1px var(--side-menu-bg-color, var(--bg-primary));
 }
 
 .forge-side-menu-item:hover .forge-side-menu-icon,
@@ -312,6 +378,11 @@ function handleSelect(item) {
   justify-content: center;
   margin: 2px auto;
   padding: 0;
+  overflow: visible;
+}
+
+.forge-side-menu--collapsed .forge-side-menu-badge:not(.is-corner) {
+  display: none;
 }
 
 .forge-side-menu--collapsed .forge-side-menu-item:hover,
@@ -417,8 +488,13 @@ function handleSelect(item) {
 
 .forge-side-menu-flyout-label {
   min-width: 0;
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.forge-side-menu-flyout-item .forge-side-menu-badge {
+  margin-left: auto;
 }
 </style>

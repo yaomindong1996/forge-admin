@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.system.mapper.SysFileDownloadLogMapper">
+
+    <select id="selectDownloadLogPage" resultType="com.mdframe.forge.plugin.system.entity.SysFileDownloadLog">
+        SELECT log.id, log.tenant_id, log.user_id, log.username, log.file_id, log.file_name,
+               CASE
+                   WHEN log.file_size IS NOT NULL AND log.file_size &gt; 0 THEN log.file_size
+                   ELSE (
+                       SELECT meta.file_size
+                       FROM sys_file_metadata meta
+                       WHERE meta.file_id = log.file_id
+                         AND meta.status = 1
+                         AND meta.file_size &gt; 0
+                       ORDER BY meta.id DESC
+                       LIMIT 1
+                   )
+               END AS file_size,
+               log.source, log.request_path, log.client_ip, log.create_time
+        FROM sys_file_download_log log
+        WHERE log.del_flag = 0
+        <if test="userId != null">
+            AND log.user_id = #{userId}
+        </if>
+        <if test="query != null and query.fileName != null and query.fileName != ''">
+            AND log.file_name LIKE CONCAT('%', #{query.fileName}, '%')
+        </if>
+        <if test="query != null and query.source != null and query.source != ''">
+            AND log.source = #{query.source}
+        </if>
+        <if test="query != null and query.username != null and query.username != ''">
+            AND log.username LIKE CONCAT('%', #{query.username}, '%')
+        </if>
+        <if test="query != null and query.startTime != null and query.startTime != ''">
+            AND log.create_time &gt;= #{query.startTime}
+        </if>
+        <if test="query != null and query.endTime != null and query.endTime != ''">
+            AND log.create_time &lt;= #{query.endTime}
+        </if>
+        ORDER BY log.create_time DESC, log.id DESC
+    </select>
+
+    <select id="selectMetadataFileSize" resultType="java.lang.Long">
+        SELECT file_size
+        FROM sys_file_metadata
+        WHERE file_id = #{fileId}
+          AND status = 1
+          AND file_size &gt; 0
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+</mapper>

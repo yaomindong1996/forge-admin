@@ -52,6 +52,7 @@
                 <i v-else class="i-lucide:folder" />
               </span>
               <span class="mega-section-nav__label">{{ section.title }}</span>
+              <em v-if="section.badgeText" class="menu-count" :class="`tone-${section.badgeTone || 'muted'}`">{{ section.badgeText }}</em>
               <i v-if="section.hasChildren" class="mega-section-nav__arrow i-lucide:chevron-right" aria-hidden="true" />
             </button>
           </nav>

@@ -20,6 +20,7 @@ import SignaturePad from '@/components/flow/SignaturePad.vue'
 import ChildTableEditor from '@/components/page-templates/ChildTableEditor.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
+import { useWorkspaceBadgeStore } from '@/stores/flow/workspaceBadgeStore'
 import { normalizeFieldPermissions, pickFirstNonEmptyFieldPermissions, pickFirstNonEmptyPermissionSource } from '@/utils/field-permissions'
 import { createFlowActionCredentials } from '@/utils/flow-action-idempotency'
 import { applyChildTableFieldPermissions, childTableKeysAlias } from '@/utils/flow-field-permissions'
@@ -280,6 +281,8 @@ export function applyFlowTodoPart2(deps = {}) {
     }
     finally {
       loading.value = false
+      // 列表刷新后同步侧栏待办徽标
+      useWorkspaceBadgeStore().refresh()
     }
   }
 

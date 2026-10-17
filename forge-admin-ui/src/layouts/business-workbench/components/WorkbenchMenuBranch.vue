@@ -12,6 +12,7 @@
         <IconRenderer v-if="depth === 0 && typeof item.icon === 'string' && item.icon" :icon="item.icon" :size="16" />
         <component :is="item.icon" v-else-if="depth === 0 && item.icon" />
         <span>{{ item.label }}</span>
+        <em v-if="item.badgeText" class="menu-count" :class="`tone-${item.badgeTone || 'muted'}`">{{ item.badgeText }}</em>
       </button>
     </li>
   </ul>

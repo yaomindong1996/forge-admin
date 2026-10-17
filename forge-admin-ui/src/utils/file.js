@@ -322,22 +322,42 @@ function getDownloadFilename(response, fallbackName) {
   return fallbackName
 }
 
-/**
- * 下载文件
- */
-export async function downloadFile(fileData, filename, expires = FILE_URL_CACHE_EXPIRE, forceRefresh = false) {
-  const url = await resolveFileAccessUrl(fileData, expires, forceRefresh)
-  if (!url) {
-    throw new Error('文件地址不存在')
-  }
+function resolveDownloadFileId(fileData) {
+  if (!fileData || typeof fileData !== 'string' && typeof fileData !== 'object')
+    return ''
+  if (typeof fileData === 'object')
+    return fileData.fileId ? String(fileData.fileId) : ''
+  if (isDirectFilePath(fileData))
+    return ''
+  return String(fileData)
+}
 
-  if (url.startsWith('data:') || url.startsWith('blob:') || !isInternalFileUrl(url)) {
-    triggerDownloadLink(url, filename)
-    return url
-  }
+function notifyDownloadRecorded() {
+  window.dispatchEvent(new CustomEvent('forge-download-recorded'))
+}
 
+/** 对象存储直链不经过下载接口，补记一笔；失败不影响文件本身。 */
+async function reportExternalDownload(fileId, fileName) {
+  if (!fileId)
+    return
+  try {
+    await request.post('/system/file/download-log', {
+      fileId,
+      fileName: fileName || '未命名文件',
+    }, { needTip: false })
+    notifyDownloadRecorded()
+  }
+  catch {
+    // 记录接口未就绪时不打断直链下载
+  }
+}
+
+async function saveAuthenticatedDownload(url, filename) {
   const response = await fetch(url, {
-    headers: getAuthHeaders(),
+    headers: {
+      ...getAuthHeaders(),
+      'X-Forge-Download-Intent': '1',
+    },
   })
   if (!response.ok) {
     const errorText = await response.text().catch(() => '')
@@ -347,8 +367,40 @@ export async function downloadFile(fileData, filename, expires = FILE_URL_CACHE_
   const blob = await response.blob()
   const blobUrl = URL.createObjectURL(blob)
   triggerDownloadLink(blobUrl, getDownloadFilename(response, filename))
+  notifyDownloadRecorded()
   setTimeout(() => URL.revokeObjectURL(blobUrl), 100)
   return blobUrl
+}
+
+/**
+ * 下载文件。有 fileId 时走系统下载接口，避免对象存储直链绕过下载记录。
+ */
+export async function downloadFile(fileData, filename, expires = FILE_URL_CACHE_EXPIRE, forceRefresh = false) {
+  const fileId = resolveDownloadFileId(fileData)
+  if (fileId) {
+    try {
+      return await saveAuthenticatedDownload(getFileDownloadUrl(fileId), filename)
+    }
+    catch (error) {
+      const fallbackUrl = await resolveFileAccessUrl(fileData, expires, forceRefresh)
+      if (!fallbackUrl || isInternalFileUrl(fallbackUrl))
+        throw error
+      triggerDownloadLink(fallbackUrl, filename)
+      await reportExternalDownload(fileId, filename)
+      return fallbackUrl
+    }
+  }
+
+  const url = await resolveFileAccessUrl(fileData, expires, forceRefresh)
+  if (!url)
+    throw new Error('文件地址不存在')
+
+  if (url.startsWith('data:') || url.startsWith('blob:') || !isInternalFileUrl(url)) {
+    triggerDownloadLink(url, filename)
+    return url
+  }
+
+  return saveAuthenticatedDownload(url, filename)
 }
 
 /**

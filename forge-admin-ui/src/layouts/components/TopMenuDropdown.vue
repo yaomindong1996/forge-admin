@@ -20,6 +20,11 @@
           <component :is="item.icon" v-else />
         </span>
         <span class="forge-top-menu-dropdown-label">{{ item.label }}</span>
+        <span
+          v-if="item.badgeText"
+          class="forge-top-menu-badge"
+          :class="`tone-${item.badgeTone || 'muted'}`"
+        >{{ item.badgeText }}</span>
         <i class="forge-top-menu-dropdown-arrow i-material-symbols:chevron-right-rounded" aria-hidden="true" />
       </button>
 
@@ -36,6 +41,11 @@
           <component :is="item.icon" v-else />
         </span>
         <span class="forge-top-menu-dropdown-label">{{ item.label }}</span>
+        <span
+          v-if="item.badgeText"
+          class="forge-top-menu-badge"
+          :class="`tone-${item.badgeTone || 'muted'}`"
+        >{{ item.badgeText }}</span>
       </button>
 
       <div v-if="hasChildren(item)" class="forge-top-menu-submenu" role="menu">
@@ -170,9 +180,36 @@ function selectItem(item) {
 
 .forge-top-menu-dropdown-label {
   min-width: 0;
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.forge-top-menu-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  margin-left: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: #fff;
+  background: var(--error-color, #d03050);
+}
+
+.forge-top-menu-badge.tone-muted {
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--text-secondary) 16%, transparent);
+}
+
+.forge-top-menu-dropdown-group .forge-top-menu-badge {
+  margin-right: 2px;
 }
 
 .forge-top-menu-submenu {

@@ -233,6 +233,7 @@ import FlowTaskCardList from '@/components/flow/FlowTaskCardList.vue'
 import WorkspaceSummaryMetrics from '@/views/workspace/WorkspaceSummaryMetrics.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
+import { useWorkspaceBadgeStore } from '@/stores/flow/workspaceBadgeStore'
 import { getRowDisplayTitle } from './utils/processDisplay'
 
 const userStore = useUserStore()
@@ -316,6 +317,9 @@ async function refreshUnreadCount() {
   }
   catch (error) {
     console.error('加载未读抄送数量失败:', error)
+  }
+  finally {
+    useWorkspaceBadgeStore().refresh()
   }
 }
 

@@ -20,9 +20,12 @@
         @keydown.down.prevent="moveFocus($event, 1)"
         @keydown.up.prevent="moveFocus($event, -1)"
       >
-        <IconRenderer v-if="typeof item.icon === 'string' && item.icon" :icon="item.icon" :size="20" />
-        <component :is="item.icon" v-else-if="item.icon" />
-        <i v-else class="i-lucide:layout-grid" />
+        <span class="side-flyout-icon">
+          <IconRenderer v-if="typeof item.icon === 'string' && item.icon" :icon="item.icon" :size="20" />
+          <component :is="item.icon" v-else-if="item.icon" />
+          <i v-else class="i-lucide:layout-grid" />
+          <em v-if="item.badgeText" class="menu-count is-corner" :class="`tone-${item.badgeTone || 'muted'}`">{{ item.badgeText }}</em>
+        </span>
         <span>{{ item.label }}</span>
       </button>
       <span v-if="!menus.length" class="side-flyout-empty">

@@ -84,6 +84,9 @@
 .business-mega-triggers::-webkit-scrollbar {
   display: none;
 }
+.business-mega-triggers > button .menu-count {
+  margin-left: 6px;
+}
 .business-mega-triggers > button {
   position: relative;
   display: flex;
@@ -435,6 +438,35 @@
   color: currentColor;
   font-size: 15px;
 }
+.menu-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--text-secondary) 16%, transparent);
+}
+.menu-count.tone-emphasis {
+  color: #fff;
+  background: var(--error-color, #d03050);
+}
+.menu-count.is-corner {
+  position: absolute;
+  top: -6px;
+  right: -10px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 10px;
+}
 .mega-section-nav__label {
   min-width: 0;
   flex: 1;
@@ -616,7 +648,10 @@
   margin-top: 2px;
 }
 /* 只拉长文案 span；IconRenderer 根节点也是 span，不能一起 flex:1 */
-.workbench-menu-link > span:not(.icon-renderer) {
+.workbench-menu-link > .menu-count {
+  margin-top: 1px;
+}
+.workbench-menu-link > span:not(.icon-renderer):not(.menu-count) {
   flex: 0 1 auto;
   min-width: 0;
   overflow: visible;
