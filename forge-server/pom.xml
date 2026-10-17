@@ -10,7 +10,7 @@
     
     
     <properties>
-        <revision>1.2.0</revision>
+        <revision>1.2.1</revision>
         <forge-framework.version>${revision}</forge-framework.version>
         <!-- 发布构建可用 -Dforge.build.commit=<Git SHA> 写入；未知时不伪造提交标识。 -->
         <forge.build.commit>unknown</forge.build.commit>

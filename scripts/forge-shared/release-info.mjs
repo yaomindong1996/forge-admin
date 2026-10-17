@@ -40,6 +40,21 @@ export async function frontendVersionChanges(root) {
   return changes
 }
 
+// 独立 BOM 无法继承根 POM（根本身需要导入它），镜像版本必须随发行源同步。
+export async function releaseVersionChanges(root) {
+  const changes = await frontendVersionChanges(root)
+  const { version, artifactPrefix } = await readReleaseProject(root)
+  const file = path.join(root, `${artifactPrefix}-server`, `${artifactPrefix}-framework`,
+    `${artifactPrefix}-dependencies/pom.xml`)
+  const source = await optionalText(file)
+  if (source === null || await readPomVersion(file) === version) return changes
+  // 跳过注释中的版本示例，只同步宿主 BOM 的 revision，不重写第三方依赖版本。
+  const content = source.replace(/<!--[\s\S]*?-->|(<revision>)[^<]*(<\/revision>)/g,
+    (match, open, close) => open ? `${open}${version}${close}` : match)
+  changes.push({ file, content, expected: version })
+  return changes
+}
+
 export function releaseNotes(markdown, version) {
   if (!markdown) return null
   const lines = markdown.split(/\r?\n/)
@@ -76,9 +91,9 @@ export function pluginReleaseInfo(root, client) {
   return {
     name: 'forge-release-info',
     async config() {
-      const changes = await frontendVersionChanges(root)
+      const changes = await releaseVersionChanges(root)
       if (changes.length) {
-        throw new Error('前端版本不一致，请在根目录运行版本同步命令：'
+        throw new Error('发行版本不一致，请在根目录运行版本同步命令：'
           + 'node scripts/forge-shared/version-cli.mjs --sync（或 pnpm version:sync）')
       }
       info = await createReleaseInfo(root, client)

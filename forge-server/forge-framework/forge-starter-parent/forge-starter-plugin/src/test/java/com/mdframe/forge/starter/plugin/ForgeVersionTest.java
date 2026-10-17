@@ -16,7 +16,7 @@ class ForgeVersionTest {
 
     @Test
     void should_read_filtered_resource_matching_current_core_version() {
-        assertThat(ForgeVersion.CURRENT).isEqualTo("1.2.0");
+        assertThat(ForgeVersion.CURRENT).isEqualTo("1.2.1");
         assertThat(ForgeVersion.satisfies(">=1.2.0 <2.0.0")).isTrue();
     }
 

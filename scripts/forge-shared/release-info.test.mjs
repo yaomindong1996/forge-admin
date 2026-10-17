@@ -3,9 +3,11 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
 import {
   createReleaseInfo, frontendVersionChanges, pluginReleaseInfo, readReleaseProject, releaseNotes,
+  releaseVersionChanges,
 } from './release-info.mjs'
 import { buildTime, localBuildInfo, versionDiagnostics, versionResponse, versionWarning } from './version-view.mjs'
 
@@ -50,6 +52,11 @@ test('从根 revision 读取版本，检测漂移；改名工程和缺省可选�
 
 test('CLI 校验失败后可显式同步，保留其它 package 属性', async (t) => {
   const root = await fixture(t)
+  const bom = path.join(root, 'forge-server/forge-framework/forge-dependencies/pom.xml')
+  await fs.mkdir(path.dirname(bom), { recursive: true })
+  await fs.writeFile(bom, '<project><version>${revision}</version><properties>\n'
+    + '<!-- <revision>0.0.1</revision> -->\n<revision>1.1.0</revision>\n'
+    + '<spring-boot.version>4.1.1</spring-boot.version></properties></project>')
   const shared = path.join(root, 'scripts/forge-shared')
   await fs.mkdir(shared, { recursive: true })
   for (const file of ['version-cli.mjs', 'version.mjs', 'release-info.mjs']) {
@@ -61,6 +68,39 @@ test('CLI 校验失败后可显式同步，保留其它 package 属性', async (
   execFileSync(process.execPath, [cli, '--check'])
   const manifest = JSON.parse(await fs.readFile(path.join(root, 'forge-admin-ui/package.json')))
   assert.deepEqual(manifest, { name: 'test-ui', version: '1.2.0' })
+  const source = await fs.readFile(bom, 'utf8')
+  assert.match(source, /<revision>1\.2\.0<\/revision>/)
+  assert.match(source, /<!-- <revision>0\.0\.1<\/revision> -->/)
+  assert.match(source, /<spring-boot.version>4\.1\.1<\/spring-boot.version>/)
+  assert.deepEqual(await releaseVersionChanges(root), [])
+})
+
+test('改名工程的独立 BOM 漂移也阻止构建，不创建缺失 BOM', async (t) => {
+  const root = await fixture(t, true)
+  const [frontend] = await frontendVersionChanges(root)
+  await fs.writeFile(frontend.file, JSON.stringify({ ...frontend.manifest, version: frontend.expected }))
+  assert.deepEqual(await releaseVersionChanges(root), [])
+  const bom = path.join(root, 'demo-core-server/demo-core-framework/demo-core-dependencies/pom.xml')
+  await fs.mkdir(path.dirname(bom), { recursive: true })
+  await fs.writeFile(bom, '<project><properties><revision>1.1.0</revision></properties></project>')
+  const changes = await releaseVersionChanges(root)
+  assert.equal(changes.length, 1)
+  assert.equal(changes[0].file, bom)
+  await assert.rejects(() => pluginReleaseInfo(root, 'admin-ui').config(), /version:sync/)
+  await fs.writeFile(bom, changes[0].content)
+  assert.deepEqual(await releaseVersionChanges(root), [])
+  await fs.writeFile(bom, '<project><properties><revision>invalid</revision></properties></project>')
+  await assert.rejects(() => releaseVersionChanges(root), /合法/)
+})
+
+test('当前仓库三端与独立 BOM 跟随发行源，随包说明精确匹配当前版本', async () => {
+  const root = fileURLToPath(new URL('../..', import.meta.url))
+  const { version } = await readReleaseProject(root)
+  assert.deepEqual(await releaseVersionChanges(root), [])
+  const info = await createReleaseInfo(root, 'admin-ui')
+  assert.equal(info.version, version)
+  assert.ok(info.notes?.startsWith(`## [${version}]`))
+  assert.doesNotMatch(info.notes, /^## \[Unreleased\]/m)
 })
 
 test('非法目录前缀与非法 revision 明确报错', async (t) => {

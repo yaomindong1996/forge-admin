@@ -55,6 +55,7 @@
 | 框架核心版本 | 核心插件随包的 `META-INF/forge/forge-version.properties` |
 | 前端发行版本 | Vite 构建读取根 POM，写入静态 JS；不是从后端接口复制 |
 | 前端 package.json | Admin、H5、Report 私有包版本同步根 revision，不再分别手改 |
+| 独立依赖 BOM | `forge-dependencies/pom.xml` 的 revision 是发行源的镜像，由同一工具同步和检查 |
 | 数据库迁移版本 | `forge_schema_history` 中的 SQL 版本，**不是系统发行版本** |
 | 业务应用 / 插件版本 | 各自协议与发布记录，**不随宿主版本命令重写** |
 
@@ -75,10 +76,11 @@ H5 的原生 App `manifest.json` 发布版本与应用商店 build number 不在
    pnpm version:check
    ```
 
-   同步命令只更新已存在的 Admin / H5 / Report package.json 的 version，不创建缺失端。
+   同步命令更新已存在的 Admin / H5 / Report package.json 的 version，以及独立依赖 BOM 的镜像 revision，
+   不创建缺失端或 BOM。根 POM 为唯一发行源，独立 BOM 不反向继承根 POM，避免导入/继承循环。
    改名工程按 `forge.config.json` 的 projectName、artifactPrefix 查找目录。
    没有快捷命令的生成工程可执行 `node scripts/forge-shared/version-cli.mjs --sync` / `--check`。
-   前端启动和构建也会检查版本漂移，发现不一致立即报错。
+   前端启动和构建也会检查前端与 BOM 的版本漂移，发现不一致立即报错。
 
 3. 将本次实际交付的 Unreleased 条目归入精确版本段，例如 `## [1.2.1] - YYYY-MM-DD`，
    保留不在交付范围内的待发布条目。记录新增、修复、兼容性/迁移说明和已知限制，不把承诺中的功能写成已交付。

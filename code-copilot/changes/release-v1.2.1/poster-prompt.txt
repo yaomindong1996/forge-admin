@@ -1,0 +1,19 @@
+Use case: ads-marketing.
+Asset type: portrait 3:4 Chinese community software release poster, crisp print-quality approximately 1536x2048.
+Primary request: Design a polished, restrained, memorable release-preparation poster for the open-source enterprise low-code framework Forge Admin. It must be readable when shared in a WeChat community, not a dashboard screenshot and not a generic tech advertisement.
+Composition: generous safe margins, strong editorial typography, a huge V1.2.1 in the upper third, small FORGE ADMIN wordmark above, a compact elegant abstract illustration of interconnected blue software modules and a download tray near the version, four sharply typeset feature groups in the middle, clear small preparation notice at bottom. Use off-white paper, deep navy typography, Forge blue #1677FF, pale blue accents. Subtle precise architectural linework and softly dimensional modules only as secondary decoration. No neon, no heavy shadows, no rainbow cards, no stock photo, no fake UI screenshot.
+Exact visible text only, rendered verbatim in readable simplified Chinese:
+"FORGE ADMIN"
+"V1.2.1"
+"让业务搭建与日常使用更顺手"
+"低代码搭建"
+"自由布局 · 表单设计 · 发布体验"
+"流程与打印"
+"审批状态修复 · 打印组件自动避让"
+"最近下载"
+"真实记录 · 进度展示 · 失败重试"
+"底座与体验"
+"Boot 4 / Flowable 8 / Spring AI 2"
+"本周更新 2026.10.12 — 10.17"
+"发布准备 · 升级前请备份并验证兼容性"
+Constraints: accurate V1.2.1, clear legible Chinese without garbling or extra characters, careful alignment and spacing, tasteful asymmetric visual balance. The poster is release preparation, so NEVER add 已发布, 正式发布, 上线, available now, a download URL, QR code, imaginary metrics, seals or watermark. Do not invent a logo. Solid opaque background.
