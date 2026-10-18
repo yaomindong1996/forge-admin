@@ -56,6 +56,50 @@ class SysRoleAccessPolicyTest {
     }
 
     @Test
+    void tenantAdminListsEveryRoleInTheLoginTenant() {
+        LoginUser user = user(SystemConstants.UserType.TENANT_ADMIN, 1L);
+        user.setRoleIds(List.of(7L));
+        when(tenantMapper.selectCount(any(Wrapper.class))).thenReturn(1L);
+        SysRoleQuery query = new SysRoleQuery();
+
+        try (MockedStatic<SessionHelper> session = mockStatic(SessionHelper.class)) {
+            session.when(SessionHelper::getLoginUser).thenReturn(user);
+            policy.normalizeRoleQueryTenant(query);
+        }
+
+        assertThat(query.getTenantId()).isEqualTo(1L);
+        assertThat(query.getAccessibleRoleIds()).isNull();
+    }
+
+    @Test
+    void tenantAdminCanOpenARoleTheyCreatedButDoNotHold() {
+        LoginUser user = user(SystemConstants.UserType.TENANT_ADMIN, 1L);
+        user.setRoleIds(List.of(7L));
+        SysRole created = role(21L, 1L);
+        when(roleMapper.selectById(21L)).thenReturn(created);
+
+        try (MockedStatic<SessionHelper> session = mockStatic(SessionHelper.class)) {
+            session.when(SessionHelper::getLoginUser).thenReturn(user);
+            assertThat(policy.loadRoleForAccess(21L).getId()).isEqualTo(21L);
+            policy.assertCanMaintainRole(created);
+        }
+    }
+
+    @Test
+    void tenantAdminStillCannotMaintainTheRoleCurrentlyBoundToThem() {
+        LoginUser user = user(SystemConstants.UserType.TENANT_ADMIN, 1L);
+        user.setRoleIds(List.of(7L));
+        SysRole bound = role(7L, 1L);
+
+        try (MockedStatic<SessionHelper> session = mockStatic(SessionHelper.class)) {
+            session.when(SessionHelper::getLoginUser).thenReturn(user);
+            assertThatThrownBy(() -> policy.assertCanMaintainRole(bound))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("不能维护自己当前绑定的角色");
+        }
+    }
+
+    @Test
     void rejectsRoleOutsideTheLoginTenantEvenWhenPermissionIsGranted() {
         LoginUser user = user(SystemConstants.UserType.NORMAL_USER, 1L);
         user.setPermissions(Set.of("system:role:query"));

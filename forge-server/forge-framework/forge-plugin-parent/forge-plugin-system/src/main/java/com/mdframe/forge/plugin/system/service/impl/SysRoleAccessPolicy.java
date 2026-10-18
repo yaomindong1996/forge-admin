@@ -40,7 +40,8 @@ class SysRoleAccessPolicy {
     void normalizeRoleQueryTenant(SysRoleQuery query) {
         LoginUser loginUser = requireLoginUser();
         query.setTenantId(resolveWriteTenantId(null));
-        if (!loginUser.isAdmin()) {
+        // 租户管理员维护本租户全部角色；普通授权用户只能看到已委派给自己的角色。
+        if (!loginUser.isAdmin() && !loginUser.isTenantAdmin()) {
             query.setAccessibleRoleIds(loginUser.getRoleIds() == null
                     ? Collections.emptyList()
                     : loginUser.getRoleIds());
@@ -85,7 +86,7 @@ class SysRoleAccessPolicy {
         if (!loginUser.isAdmin() && !Objects.equals(role.getTenantId(), loginUser.getTenantId())) {
             throw new RuntimeException("无权操作非本租户角色");
         }
-        if (!loginUser.isAdmin()
+        if (!loginUser.isAdmin() && !loginUser.isTenantAdmin()
                 && (loginUser.getRoleIds() == null || !loginUser.getRoleIds().contains(roleId))) {
             throw new RuntimeException("无权操作未委派给自己的角色");
         }
