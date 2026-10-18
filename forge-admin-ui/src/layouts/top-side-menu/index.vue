@@ -27,8 +27,9 @@
         :class="{ collapsed: appStore.collapsed }"
       >
         <SideMenu />
-        <RecentDownloads docked :compact="appStore.collapsed" />
-        <div class="side-collapse-dock">
+        <RecentDownloads v-if="!appStore.collapsed" docked />
+        <div class="side-collapse-dock" :class="{ 'is-collapsed': appStore.collapsed }">
+          <RecentDownloads v-if="appStore.collapsed" docked compact />
           <MenuCollapse class="side-collapse-action" />
         </div>
       </aside>
@@ -166,7 +167,7 @@ const { showSidebar } = useSidebarVisibility()
   align-items: center;
   justify-content: flex-start;
   flex-shrink: 0;
-  height: 40px;
+  min-height: 40px;
   padding: 0 12px;
   border-top: 1px solid var(--side-menu-border-color, var(--border-light));
   background: color-mix(in srgb, var(--side-menu-bg-color, var(--bg-primary)) 94%, var(--text-primary) 6%);
@@ -181,14 +182,23 @@ const { showSidebar } = useSidebarVisibility()
   font-size: 18px;
 }
 
-.side-menu-wrapper.collapsed .side-collapse-dock {
+.side-collapse-dock.is-collapsed {
+  flex-direction: column;
   justify-content: center;
-  padding: 0;
+  gap: 2px;
+  padding: 6px 0;
 }
 
-.side-menu-wrapper.collapsed .side-collapse-dock :deep(.menu-collapse-button) {
+.side-collapse-dock.is-collapsed :deep(.menu-collapse-button),
+.side-collapse-dock.is-collapsed :deep(.download-entry) {
   width: 32px;
+  height: 32px;
+  min-height: 32px;
   justify-content: center;
+}
+
+.side-collapse-dock.is-collapsed :deep(.recent-downloads-entry) {
+  padding: 0;
 }
 
 @media (max-width: 640px) {

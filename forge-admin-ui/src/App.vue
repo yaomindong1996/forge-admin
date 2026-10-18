@@ -45,7 +45,8 @@
         <!-- 全局水印 -->
         <div v-if="watermarkConfig.enable" class="watermark-layer" :style="watermarkStyle" />
         <GlobalLoadingOverlay />
-        <RecentDownloads v-if="showRecentDownloads && !downloadsDockAvailable" :compact="downloadsNarrow" />
+        <!-- 无侧栏停靠点时左下角兜底：始终图标态，避免白底长按钮挡内容 -->
+        <RecentDownloads v-if="showRecentDownloads && !downloadsDockAvailable" compact />
         <NoticeDetailModal />
         <SystemAboutModal v-if="versionStore.visible" />
       </n-message-provider>

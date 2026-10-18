@@ -1,35 +1,55 @@
-/* 入口使用侧栏主题；浮层使用正文主题，不能继承深色导航的白色文字。 */
+/* 无侧栏时：左下角兜底入口（仅图标）。 */
 .recent-downloads-entry {
   position: fixed;
   z-index: 120;
   left: 12px;
   bottom: 12px;
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  background: var(--bg-primary);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 .recent-downloads-entry.is-docked {
   position: static;
   flex-shrink: 0;
-  margin: 8px;
-  padding-top: 6px;
+  margin: 0;
+  padding: 2px 8px 6px;
   border: 0;
-  border-top: 1px solid var(--side-menu-border-color, var(--border-light));
-  border-radius: 0;
   background: transparent;
+  box-shadow: none;
 }
-.recent-downloads-entry .download-entry {
+
+.download-entry {
   position: relative;
-  min-height: 38px;
-  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  width: auto;
+  min-height: 36px;
+  margin: 0;
+  padding: 0 10px;
+  border: 0;
   border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
   color: var(--text-secondary);
   font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
 }
-.recent-downloads-entry.is-docked .download-entry { color: var(--side-menu-text-color, var(--text-secondary)); }
-.recent-downloads-entry .download-entry .n-button__content { width: 100%; gap: 10px; }
-.recent-downloads-entry .download-entry i { flex-shrink: 0; font-size: 19px; }
-.recent-downloads-entry .download-entry.is-open {
+.recent-downloads-entry.is-docked .download-entry {
+  width: 100%;
+  color: var(--side-menu-text-color, var(--text-secondary));
+}
+.download-entry:hover {
+  background: rgba(128, 128, 128, 0.1);
+}
+.download-entry i {
+  flex-shrink: 0;
+  font-size: 18px;
+}
+.download-entry.is-open {
   background: color-mix(in srgb, var(--primary-color) 9%, transparent);
   color: var(--primary-color);
 }
@@ -37,7 +57,12 @@
   background: var(--side-menu-bg-color-active);
   color: var(--side-menu-text-color-active);
 }
-.recent-downloads-entry .download-entry-count {
+.download-entry-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.download-entry-count {
   min-width: 18px;
   margin-left: auto;
   padding: 0 4px;
@@ -48,24 +73,40 @@
   line-height: 18px;
   font-variant-numeric: tabular-nums;
 }
-.recent-downloads-entry.is-compact .download-entry { width: 44px; min-height: 44px; padding: 0; }
-.recent-downloads-entry.is-compact .download-entry .n-button__content { justify-content: center; }
+
+/* 收起侧栏：与折叠按钮同尺寸的透明图标，不再单独铺白块。 */
+.recent-downloads-entry.is-compact {
+  display: flex;
+  justify-content: center;
+  padding: 0;
+}
+.recent-downloads-entry.is-compact .download-entry {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  justify-content: center;
+}
 .recent-downloads-entry.is-compact .download-entry-count {
   position: absolute;
-  top: -3px;
-  right: -4px;
+  top: -2px;
+  right: -2px;
   min-width: 13px;
+  margin: 0;
   font-size: 9px;
   line-height: 14px;
 }
-.recent-downloads-entry.is-compact.is-docked { display: flex; justify-content: center; margin: 4px; }
+
 .recent-downloads-entry button:focus-visible,
-.recent-downloads-panel button:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+.recent-downloads-panel button:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
 .recent-downloads-panel {
   --downloads-accent: color-mix(in srgb, var(--primary-color) 80%, var(--text-primary) 20%);
   display: flex;
   width: min(404px, calc(100vw - 24px));
-  /* 右下对齐时给账号/折叠工具留空间，任务变多也不能把标题顶出视口。 */
   max-height: min(600px, calc(100dvh - 180px));
   flex-direction: column;
   overflow: hidden;
@@ -83,11 +124,31 @@
   gap: 12px;
   padding: 14px 12px 12px 18px;
 }
-.recent-downloads-panel h2 { margin: 0; font-size: 16px; font-weight: 500; line-height: 24px; }
-.recent-downloads-panel .downloads-panel-tools { display: flex; align-items: center; gap: 4px; }
-.recent-downloads-panel .downloads-icon-button { width: 28px; height: 28px; padding: 0; color: var(--text-tertiary); }
-.recent-downloads-panel .downloads-icon-button i { font-size: 16px; }
-.recent-downloads-panel .downloads-clear { margin-right: 8px; color: var(--text-tertiary); font-size: 11px; }
+.recent-downloads-panel h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+}
+.recent-downloads-panel .downloads-panel-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.recent-downloads-panel .downloads-icon-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--text-tertiary);
+}
+.recent-downloads-panel .downloads-icon-button i {
+  font-size: 16px;
+}
+.recent-downloads-panel .downloads-clear {
+  margin-right: 8px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
 .recent-downloads-panel .downloads-summary,
 .recent-downloads-panel .downloads-scope {
   display: flex;
@@ -128,9 +189,18 @@
   font-size: 11px;
   font-weight: 400;
 }
-.recent-downloads-panel .downloads-file-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 18px; }
-.recent-downloads-panel .downloads-file-row + .downloads-file-row { border-top: 1px solid var(--border-light); }
-.recent-downloads-panel .downloads-file-row:hover { background: var(--bg-secondary); }
+.recent-downloads-panel .downloads-file-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 18px;
+}
+.recent-downloads-panel .downloads-file-row + .downloads-file-row {
+  border-top: 1px solid var(--border-light);
+}
+.recent-downloads-panel .downloads-file-row:hover {
+  background: var(--bg-secondary);
+}
 .recent-downloads-panel .downloads-file-icon {
   position: relative;
   display: flex;
@@ -165,7 +235,7 @@
   left: 7px;
   height: 5px;
   border-block: 1px solid currentColor;
-  opacity: .35;
+  opacity: 0.35;
   content: '';
 }
 .recent-downloads-panel .downloads-file-icon span {
@@ -220,7 +290,12 @@
 .recent-downloads-panel .downloads-file-action { flex-shrink: 0; }
 .recent-downloads-panel .downloads-load-more { padding: 8px; text-align: center; }
 .recent-downloads-panel .downloads-skeleton { padding: 18px; }
-.recent-downloads-panel .downloads-skeleton-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
+.recent-downloads-panel .downloads-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+}
 .recent-downloads-panel .downloads-skeleton-row > div:last-child { flex: 1; }
 .recent-downloads-panel .downloads-empty {
   display: flex;
@@ -268,8 +343,16 @@
   color: var(--text-tertiary);
   font-size: 11px;
 }
-.downloads-clear-hint { max-width: min(300px, calc(100vw - 48px)); font-size: 12px; line-height: 1.8; }
-.recent-downloads-panel .downloads-history-limit { color: var(--text-tertiary); font-size: 11px; text-align: center; }
+.downloads-clear-hint {
+  max-width: min(300px, calc(100vw - 48px));
+  font-size: 12px;
+  line-height: 1.8;
+}
+.recent-downloads-panel .downloads-history-limit {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  text-align: center;
+}
 @media (max-width: 480px) {
   .recent-downloads-panel .downloads-summary-note { display: none; }
   .recent-downloads-panel .downloads-file-row { gap: 9px; padding-inline: 14px; }

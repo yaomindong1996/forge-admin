@@ -2,8 +2,9 @@
   <div class="sidebar-simple-wrapper">
     <SideLogo />
     <SideMenu class="sidebar-simple-menu" />
-    <RecentDownloads docked :compact="appStore.collapsed" />
-    <div class="sidebar-simple-footer">
+    <RecentDownloads v-if="!appStore.collapsed" docked />
+    <div class="sidebar-simple-footer" :class="{ 'is-collapsed': appStore.collapsed }">
+      <RecentDownloads v-if="appStore.collapsed" docked compact />
       <MessageNotification />
       <CompactLayoutTools />
       <MenuCollapse />
@@ -49,6 +50,14 @@ const appStore = useAppStore()
   border-top: 1px solid var(--side-menu-border-color, #f1f5f9);
   background: var(--side-menu-bg-color, #ffffff);
   gap: 8px;
+}
+
+.sidebar-simple-footer.is-collapsed {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 4px;
 }
 
 /* 滚动条 */
