@@ -114,4 +114,10 @@ public interface ISysResourceService extends IService<SysResource> {
      * @return 资源ID列表
      */
     List<Long> selectCurrentUserResourceIds();
+
+    /**
+     * 按授权目标客户端查询当前用户可分配的资源。
+     * 未传客户端时与 {@link #selectCurrentUserResourceIds()} 相同。
+     */
+    List<Long> selectCurrentUserResourceIds(String clientCode);
 }

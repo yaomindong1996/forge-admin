@@ -95,14 +95,27 @@ public class SysResourceServiceImpl extends ServiceImpl<SysResourceMapper, SysRe
             throw new RuntimeException("用户未登录");
         }
 
-        LambdaQueryWrapper<SysResource> wrapper = buildQueryWrapper(query);
+        String clientCode = query == null ? null : query.getClientCode();
+        if (query != null) {
+            query.setClientCode(null);
+        }
+        LambdaQueryWrapper<SysResource> wrapper;
+        try {
+            wrapper = buildQueryWrapper(query);
+        } finally {
+            if (query != null) {
+                query.setClientCode(clientCode);
+            }
+        }
+        // 授权树按目标客户端精确匹配。空 client_code 只归 PC，避免移动端授权带出全部历史菜单。
+        applyClientScope(wrapper, clientCode, true);
         // 授权树剔除「彻底停用」的资源（visible=0 且 menu_status=0，如废弃目录、demo 菜单）；
         // 仅 visible=0 的隐藏功能页（menu_status=1，如应用工作台/运行页/详情跳转页）必须保留，
         // 否则角色无法勾选其入口权限，授权后访问会被拦 403（visible 不得一刀切进权限链路）。
         wrapper.and(w -> w.ne(SysResource::getVisible, 0).or().ne(SysResource::getMenuStatus, 0));
         applyUserTypeScope(wrapper, loginUser);
         if (!loginUser.isAdmin()) {
-            List<Long> resourceIds = selectCurrentUserResourceIds();
+            List<Long> resourceIds = selectCurrentUserResourceIds(clientCode);
             if (CollUtil.isEmpty(resourceIds)) {
                 return new ArrayList<>();
             }
@@ -445,12 +458,37 @@ public class SysResourceServiceImpl extends ServiceImpl<SysResourceMapper, SysRe
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<Long> selectCurrentUserResourceIds(String clientCode) {
+        if (StringUtils.isBlank(clientCode)) {
+            return selectCurrentUserResourceIds();
+        }
+        LoginUser loginUser = SessionHelper.getLoginUser();
+        if (loginUser == null) {
+            return new ArrayList<>();
+        }
+        if (loginUser.isAdmin()) {
+            LambdaQueryWrapper<SysResource> wrapper = new LambdaQueryWrapper<SysResource>()
+                    .select(SysResource::getId);
+            applyClientScope(wrapper, clientCode, true);
+            return resourceMapper.selectList(wrapper).stream()
+                    .map(SysResource::getId)
+                    .collect(Collectors.toList());
+        }
+        return loadGrantedResources(loginUser, clientCode, true).stream()
+                .map(SysResource::getId)
+                .collect(Collectors.toList());
+    }
+
     private List<SysResource> getUserResources(LoginUser loginUser) {
         String clientCode = loginUser.getUserClient() != null ? loginUser.getUserClient() : "pc";
-        
+        return loadGrantedResources(loginUser, clientCode, false);
+    }
+
+    private List<SysResource> loadGrantedResources(LoginUser loginUser, String clientCode, boolean authorizationScope) {
         if (loginUser.isAdmin()) {
             LambdaQueryWrapper<SysResource> wrapper = new LambdaQueryWrapper<>();
-            applyClientScope(wrapper, clientCode)
+            applyClientScope(wrapper, clientCode, authorizationScope)
                     .orderByAsc(SysResource::getSort)
                     .orderByDesc(SysResource::getCreateTime);
             // 超管菜单也受功能使用权限制；通配权限仍由接口 RequiresFeature 单独把关。
@@ -484,7 +522,7 @@ public class SysResourceServiceImpl extends ServiceImpl<SysResourceMapper, SysRe
         resourceWrapper.in(SysResource::getId, resourceIds)
                 .orderByAsc(SysResource::getSort)
                 .orderByDesc(SysResource::getCreateTime);
-        applyClientScope(resourceWrapper, clientCode);
+        applyClientScope(resourceWrapper, clientCode, authorizationScope);
         applyUserTypeScope(resourceWrapper, loginUser);
         return filterEnabledResources(resourceMapper.selectList(resourceWrapper));
     }
@@ -634,8 +672,20 @@ public class SysResourceServiceImpl extends ServiceImpl<SysResourceMapper, SysRe
     }
 
     private LambdaQueryWrapper<SysResource> applyClientScope(LambdaQueryWrapper<SysResource> wrapper, String clientCode) {
+        return applyClientScope(wrapper, clientCode, false);
+    }
+
+    /**
+     * @param authorizationScope 授权树只把空 client_code 归到 PC；导航加载仍兼容各端历史空客户端资源
+     */
+    private LambdaQueryWrapper<SysResource> applyClientScope(LambdaQueryWrapper<SysResource> wrapper,
+                                                              String clientCode,
+                                                              boolean authorizationScope) {
         if (StringUtils.isBlank(clientCode)) {
             return wrapper;
+        }
+        if (authorizationScope && !"pc".equals(clientCode)) {
+            return wrapper.eq(SysResource::getClientCode, clientCode);
         }
         return wrapper.and(item -> item
                 .eq(SysResource::getClientCode, clientCode)

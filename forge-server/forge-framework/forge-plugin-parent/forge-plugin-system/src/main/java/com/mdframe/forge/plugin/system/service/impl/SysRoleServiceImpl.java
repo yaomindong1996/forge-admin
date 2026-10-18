@@ -187,12 +187,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         Set<Long> resourceIdSet = resourceIds != null ? new HashSet<>(Arrays.asList(resourceIds)) : Collections.emptySet();
         if (StringUtils.isNotBlank(clientCode)) {
             assignableResources = new ArrayList<>(resourceService.lambdaQuery()
-                    .and(wrapper -> wrapper
-                            .eq(SysResource::getClientCode, clientCode)
-                            .or()
-                            .isNull(SysResource::getClientCode)
-                            .or()
-                            .eq(SysResource::getClientCode, ""))
+                    .and(wrapper -> applyAuthorizationClientScope(wrapper, clientCode))
                     .list());
             if (!resourceIdSet.isEmpty()) {
                 Set<Long> existingIds = assignableResources.stream()
@@ -236,7 +231,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         LoginUser loginUser = SessionHelper.getLoginUser();
         Set<Long> currentUserResourceIdSet = Collections.emptySet();
         if (loginUser != null && !loginUser.isAdmin()) {
-            List<Long> currentUserResourceIds = resourceService.selectCurrentUserResourceIds();
+            List<Long> currentUserResourceIds = resourceService.selectCurrentUserResourceIds(clientCode);
             currentUserResourceIdSet = new HashSet<>(currentUserResourceIds);
             if (resourceIds != null) {
                 for (Long resourceId : resourceIds) {
@@ -303,6 +298,9 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             deleteWrapper.in(SysRoleResource::getResourceId, clientAssignableResourceIdSet);
         }
         roleResourceMapper.delete(deleteWrapper);
+        if (StringUtils.isNotBlank(clientCode)) {
+            finalResourceIdSet.removeAll(stillBoundResourceIds(role, finalResourceIdSet));
+        }
 
         // 2. 如果没有新的资源ID，直接返回（表示清空所有权限）
         if (finalResourceIdSet.isEmpty()) {
@@ -352,7 +350,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
         Set<Long> finalSelectedResourceIds = withResourceAncestors(
                 selectedResourceIds, resourceMap, settings.getClientCode());
-        validateCurrentUserCanAssign(finalSelectedResourceIds);
+        validateCurrentUserCanAssign(finalSelectedResourceIds, settings.getClientCode());
 
         Set<String> scopeModuleCodes = normalizeModuleCodes(settings.getScopeModuleCodes());
         Map<String, Integer> moduleScopes = normalizeScopedModuleDataScopes(
@@ -398,6 +396,30 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
     private boolean isClientCompatibleParent(SysResource resource, String clientCode) {
         return isClientCompatibleResource(resource, clientCode);
+    }
+
+    private void applyAuthorizationClientScope(LambdaQueryWrapper<SysResource> wrapper, String clientCode) {
+        if ("pc".equals(clientCode)) {
+            wrapper.and(scope -> scope
+                    .eq(SysResource::getClientCode, clientCode)
+                    .or()
+                    .isNull(SysResource::getClientCode)
+                    .or()
+                    .eq(SysResource::getClientCode, ""));
+            return;
+        }
+        wrapper.eq(SysResource::getClientCode, clientCode);
+    }
+
+    private Set<Long> stillBoundResourceIds(SysRole role, Set<Long> resourceIds) {
+        if (resourceIds == null || resourceIds.isEmpty()) {
+            return Collections.emptySet();
+        }
+        List<Long> remaining = roleResourceMapper.selectResourceIdsByRole(role.getTenantId(), role.getId());
+        if (remaining == null || remaining.isEmpty()) {
+            return Collections.emptySet();
+        }
+        return remaining.stream().filter(resourceIds::contains).collect(Collectors.toSet());
     }
 
     private boolean isClientCompatibleResource(SysResource resource, String clientCode) {
@@ -470,12 +492,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
         if (StringUtils.isNotBlank(clientCode) && CollUtil.isNotEmpty(resourceIds)) {
             Set<Long> clientResourceIdSet = resourceService.lambdaQuery()
-                    .and(clientScope -> clientScope
-                            .eq(SysResource::getClientCode, clientCode)
-                            .or()
-                            .isNull(SysResource::getClientCode)
-                            .or()
-                            .eq(SysResource::getClientCode, ""))
+                    .and(clientScope -> applyAuthorizationClientScope(clientScope, clientCode))
                     .select(SysResource::getId)
                     .list()
                     .stream()
@@ -488,7 +505,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
         LoginUser loginUser = SessionHelper.getLoginUser();
         if (loginUser != null && !loginUser.isAdmin() && CollUtil.isNotEmpty(resourceIds)) {
-            Set<Long> currentUserResourceIdSet = new HashSet<>(resourceService.selectCurrentUserResourceIds());
+            Set<Long> currentUserResourceIdSet = new HashSet<>(resourceService.selectCurrentUserResourceIds(clientCode));
             resourceIds = resourceIds.stream()
                     .filter(currentUserResourceIdSet::contains)
                     .collect(Collectors.toList());
@@ -740,15 +757,15 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
                 throw new RuntimeException("权限溢出：授权范围包含其他客户端资源");
             }
         }
-        validateCurrentUserCanAssign(scopeResourceIds);
+        validateCurrentUserCanAssign(scopeResourceIds, clientCode);
     }
 
-    private void validateCurrentUserCanAssign(Set<Long> resourceIds) {
+    private void validateCurrentUserCanAssign(Set<Long> resourceIds, String clientCode) {
         LoginUser loginUser = accessPolicy().requireLoginUser();
         if (loginUser.isAdmin() || resourceIds.isEmpty()) {
             return;
         }
-        Set<Long> currentUserResourceIds = new HashSet<>(resourceService.selectCurrentUserResourceIds());
+        Set<Long> currentUserResourceIds = new HashSet<>(resourceService.selectCurrentUserResourceIds(clientCode));
         if (!currentUserResourceIds.containsAll(resourceIds)) {
             throw new RuntimeException("权限溢出：不能分配自己没有的资源权限");
         }
