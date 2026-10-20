@@ -121,7 +121,7 @@ public class LoginConfig {
     private String groupQrcodeHint = "扫码加入用户群，获取验证码并完成登录";
 
     /**
-     * 官网微信交流群看板地址（如 https://xxx/api/community/wechat-groups）。
+     * 官网微信交流群看板地址（须含网关前缀，如 https://xxx/forge-official-api/api/community/wechat-groups）。
      * 配置后登录页优先展示看板中的「当前开放群」与历史满员群；未配置则回退本地群二维码图片字段。
      */
     private String groupQrcodeBoardUrl;

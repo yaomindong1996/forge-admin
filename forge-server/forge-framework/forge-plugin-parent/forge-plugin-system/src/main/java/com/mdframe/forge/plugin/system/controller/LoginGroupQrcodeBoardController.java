@@ -166,14 +166,46 @@ public class LoginGroupQrcodeBoardController {
         try {
             URI base = URI.create(boardUrl);
             URI origin = new URI(base.getScheme(), base.getAuthority(), null, null, null);
+            String boardPath = StringUtils.defaultString(base.getPath());
             if (value.startsWith("/")) {
-                return origin + value;
+                // 官网应用内路径常是 /api/...；生产 Nginx 可能挂在 /forge-official-api 下。
+                // boardUrl 已含该前缀时，绝对化必须保留 /api 之前的网关前缀，否则二维码 404。
+                return origin + gatewayPrefix(boardPath) + value;
             }
-            return origin + "/" + value;
+            String dir = boardPath;
+            if (!dir.endsWith("/")) {
+                int slash = dir.lastIndexOf('/');
+                dir = slash >= 0 ? dir.substring(0, slash + 1) : "/";
+            }
+            if (StringUtils.isBlank(dir)) {
+                dir = "/";
+            }
+            return origin + dir + value;
         }
         catch (Exception ex) {
             return value;
         }
+    }
+
+    /**
+     * 从看板 URL 路径提取网关前缀（/api 之前的一段，如 /forge-official-api）。
+     */
+    private String gatewayPrefix(String boardPath) {
+        if (StringUtils.isBlank(boardPath)) {
+            return "";
+        }
+        int apiIdx = boardPath.indexOf("/api/");
+        if (apiIdx > 0) {
+            return boardPath.substring(0, apiIdx);
+        }
+        if ("/api".equals(boardPath) || boardPath.startsWith("/api?")) {
+            return "";
+        }
+        // boardUrl 只配到网关根（无 /api）时，整段 path 视为前缀
+        if (apiIdx < 0 && boardPath.length() > 1) {
+            return boardPath.endsWith("/") ? boardPath.substring(0, boardPath.length() - 1) : boardPath;
+        }
+        return "";
     }
 
     private String firstNonBlank(String a, String b) {

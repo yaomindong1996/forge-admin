@@ -187,12 +187,12 @@
                       官网交流群看板地址
                     </div>
                     <div class="config-help">
-                      填 website 公开接口，例如 https://你的官网/api/community/wechat-groups。配置后登录页优先展示官网「当前开放群」与历史满员群；拉取失败再回退下方本地二维码。
+                      填 website 公开接口（须含生产网关前缀）。示例：https://你的域名/forge-official-api/api/community/wechat-groups。配置后登录页优先展示官网「当前开放群」与历史满员群；拉取失败再回退下方本地二维码。
                     </div>
                   </div>
                   <n-input
                     v-model:value="configForms.login.groupQrcodeBoardUrl"
-                    placeholder="https://example.com/api/community/wechat-groups"
+                    placeholder="https://example.com/forge-official-api/api/community/wechat-groups"
                     clearable
                     class="config-input-full"
                   />
