@@ -8,6 +8,15 @@ export interface LoginRequest {
   authType?: string
   userClient?: string
   appId?: string
+  /** 多工作区账号二次登录时必传 */
+  tenantId?: number | string
+}
+
+export interface LoginTenantOption {
+  tenantId: number | string
+  tenantName?: string
+  systemName?: string
+  browserTitle?: string
 }
 
 export interface LoginResult {
@@ -55,6 +64,7 @@ export const loginApi = async (data: LoginRequest): Promise<LoginResponse> => {
     authType: data.authType || 'password',
     userClient,
     appId: data.appId || 'forge_report',
+    ...(data.tenantId != null && data.tenantId !== '' ? { tenantId: data.tenantId } : {}),
   }) as unknown as Promise<LoginResponse>
 }
 
@@ -66,9 +76,10 @@ export const logoutApi = (): Promise<any> => {
 }
 
 /**
- * SSO 票据交换
+ * SSO 票据交换。必须先跟随后端 /crypto/config，避免加密开关不一致导致 ticket 读空。
  */
-export const ssoExchangeApi = (data: SsoExchangeRequest): Promise<LoginResponse> => {
+export const ssoExchangeApi = async (data: SsoExchangeRequest): Promise<LoginResponse> => {
+  await loadRuntimeCryptoConfig()
   return post('/forge-report-api/auth/sso/exchange', data) as unknown as Promise<LoginResponse>
 }
 

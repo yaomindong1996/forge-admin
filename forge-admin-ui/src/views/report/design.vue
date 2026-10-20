@@ -125,12 +125,24 @@ async function loadFrame() {
 }
 
 async function openInNewTab() {
-  if (!frameSrc.value) {
-    await loadFrame()
+  // SSO 票据一次性消费：iframe 已换票后不可再复用同一 URL，新窗口必须重新出票。
+  try {
+    if (!targetBaseUrl.value) {
+      throw new Error(`未配置目标子系统地址：${targetClient.value}`)
+    }
+    const res = await createSsoTicket({
+      targetClient: targetClient.value,
+      redirectPath: redirectPath.value,
+    })
+    const ticket = res?.data?.ticket
+    if (!ticket) {
+      throw new Error(res?.message || '未获取到 SSO 票据')
+    }
+    const url = buildSsoUrl(ticket)
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
-
-  if (frameSrc.value) {
-    window.open(frameSrc.value, '_blank', 'noopener,noreferrer')
+  catch (error) {
+    errorMessage.value = error?.message || '获取单点登录地址失败'
   }
 }
 

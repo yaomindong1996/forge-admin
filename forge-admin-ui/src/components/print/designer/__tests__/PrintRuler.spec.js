@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { usePrintDesignerStore } from '@/stores/print/printDesignerStore'
 import { createPrintDocument } from '../../protocol/types'
+import { addElement } from '../elementCatalog'
 import PrintCanvas from '../PrintCanvas.vue'
 import PrintDesignerToolbar from '../PrintDesignerToolbar.vue'
 import PrintRuler from '../PrintRuler.vue'
@@ -24,6 +25,36 @@ describe('print designer paper workspace', () => {
     expect(wrapper.findAll('.ruler-mark')).toHaveLength(5)
     expect(wrapper.findAll('.ruler-mark.major')).toHaveLength(3)
     expect(wrapper.findAll('.ruler-mark small').map(item => item.text())).toEqual(['0', '10', '20'])
+  })
+
+  it('highlights the selection range on the ruler track', () => {
+    const wrapper = mount(PrintRuler, {
+      props: {
+        lengthMm: 210,
+        orientation: 'horizontal',
+        highlightStartMm: 40,
+        highlightEndMm: 130,
+      },
+    })
+    const range = wrapper.find('.ruler-selection-range')
+    expect(range.exists()).toBe(true)
+    expect(range.attributes('style')).toContain('left: 40mm')
+    expect(range.attributes('style')).toContain('width: 90mm')
+  })
+
+  it('highlights selected element bounds on horizontal and vertical rulers', async () => {
+    expect(addElement(store, 'TEXT', undefined, { xMm: 30, yMm: 12 }, 'TITLE')).toBe(true)
+    const wrapper = mount(PrintCanvas, { global: { plugins: [pinia] } })
+    await wrapper.vm.$nextTick()
+    const horizontal = wrapper.find('.print-ruler.horizontal .ruler-selection-range')
+    const vertical = wrapper.find('.print-ruler.vertical .ruler-selection-range')
+    expect(horizontal.exists()).toBe(true)
+    expect(vertical.exists()).toBe(true)
+    // margin left/top default 10mm → paper-absolute x=40, y=22
+    expect(horizontal.attributes('style')).toContain('left: 40mm')
+    expect(horizontal.attributes('style')).toContain('width: 90mm')
+    expect(vertical.attributes('style')).toContain('top: 22mm')
+    expect(vertical.attributes('style')).toContain('height: 14mm')
   })
 
   it('shows both rulers, grid and physical paper guides', () => {

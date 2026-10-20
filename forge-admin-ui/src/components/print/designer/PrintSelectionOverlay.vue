@@ -53,6 +53,24 @@ const sizeLabel = computed(() => {
     return ''
   return `${bounds.value.widthMm.toFixed(1)}mm × ${bounds.value.heightMm.toFixed(1)}mm`
 })
+/** 与顶部标尺同源：纸张左缘为 0，内容区再加左边距。 */
+const paperOriginXMm = computed(() => Number(store.document?.paper?.marginMm?.left) || 0)
+const measureEdges = computed(() => {
+  if (!bounds.value)
+    return null
+  const left = Number(bounds.value.xMm) || 0
+  const top = Number(bounds.value.yMm) || 0
+  const right = left + (Number(bounds.value.widthMm) || 0)
+  const bottom = top + (Number(bounds.value.heightMm) || 0)
+  return {
+    left,
+    top,
+    right,
+    bottom,
+    leftLabel: `${(paperOriginXMm.value + left).toFixed(1)} mm`,
+    rightLabel: `${(paperOriginXMm.value + right).toFixed(1)} mm`,
+  }
+})
 
 const handleMeta = {
   nw: { label: '左上角', cursor: 'nwse-resize' },
@@ -206,6 +224,19 @@ watch(() => [bounds.value, handleBounds.value, store.zoom, store.selectedIds.joi
 </script>
 
 <template>
+  <!-- 选中时贯穿辅助线 + 毫米坐标，对齐标尺读数 -->
+  <div v-if="measureEdges && store.selectedIds.length && !store.previewOpen" class="selection-measure-layer" aria-hidden="true">
+    <div class="measure-guide vertical" :style="{ left: `${measureEdges.left}mm` }" />
+    <div class="measure-guide vertical" :style="{ left: `${measureEdges.right}mm` }" />
+    <div class="measure-guide horizontal" :style="{ top: `${measureEdges.top}mm` }" />
+    <div class="measure-guide horizontal" :style="{ top: `${measureEdges.bottom}mm` }" />
+    <span class="measure-label" :style="{ left: `${measureEdges.left}mm`, top: `${measureEdges.top}mm` }">
+      {{ measureEdges.leftLabel }}
+    </span>
+    <span class="measure-label is-end" :style="{ left: `${measureEdges.right}mm`, top: `${measureEdges.top}mm` }">
+      {{ measureEdges.rightLabel }}
+    </span>
+  </div>
   <div
     v-if="bounds && store.selectedIds.length"
     ref="frameRef"
@@ -345,6 +376,45 @@ watch(() => [bounds.value, handleBounds.value, store.zoom, store.selectedIds.joi
 </template>
 
 <style scoped>
+.selection-measure-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: visible;
+}
+.measure-guide {
+  position: absolute;
+  pointer-events: none;
+}
+.measure-guide.vertical {
+  top: -200%;
+  bottom: -200%;
+  width: 0;
+  border-left: 1px dashed color-mix(in srgb, var(--primary-color, #356cde) 85%, #fff);
+}
+.measure-guide.horizontal {
+  right: -200%;
+  left: -200%;
+  height: 0;
+  border-top: 1px dashed color-mix(in srgb, var(--primary-color, #356cde) 85%, #fff);
+}
+.measure-label {
+  position: absolute;
+  z-index: 6;
+  padding: 1px 5px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--primary-color, #356cde) 92%, #0f172a);
+  color: #fff;
+  font: 700 10px/16px ui-sans-serif, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transform: translate(-50%, calc(-100% - 6px));
+  box-shadow: 0 1px 3px rgb(15 23 42 / 18%);
+}
+.measure-label.is-end {
+  transform: translate(-50%, calc(-100% - 6px));
+}
 .selection-chrome {
   position: absolute;
   z-index: 4;

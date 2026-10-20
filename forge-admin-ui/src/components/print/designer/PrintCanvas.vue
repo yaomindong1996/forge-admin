@@ -17,7 +17,7 @@ import { usePrintDesignerStore } from '@/stores/print/printDesignerStore'
 import { getFileUrl } from '@/utils/file'
 import { paperGeometry, screenDeltaToMm } from '../protocol/units'
 import { printStyle, tableCellStyle as printTableCellStyle, tableFrameStyle } from '../renderers/style'
-import { findSurface } from './commands'
+import { findSurface, selectionBounds } from './commands'
 import { estimateDesignerSectionHeight, paginateDesignerBody } from './designerPagination'
 import { designerBindingText, designerTablePreview } from './designerSample'
 import { addDetailTable, addElement, addField, addSection, PRINT_DRAG_TYPE, readDragItem } from './elementCatalog'
@@ -120,6 +120,36 @@ const paperName = computed(() => {
   if (widthMm === 176 && heightMm === 250)
     return 'B5'
   return '自定义'
+})
+/** 选中区间映射到纸张坐标系，驱动顶部/左侧标尺高亮。 */
+const selectionRulerHighlight = computed(() => {
+  if (!store.selectedIds.length || store.previewOpen)
+    return null
+  const bounds = selectionBounds(store.selectedElements)
+  if (!bounds)
+    return null
+  const margin = store.document?.paper?.marginMm || { left: 0, top: 0 }
+  const xStart = Number(margin.left || 0) + Number(bounds.xMm || 0)
+  const xEnd = xStart + Number(bounds.widthMm || 0)
+  let yBase = Number(margin.top || 0)
+  let found = false
+  for (const page of designerPages.value.pages) {
+    yBase = Number(margin.top || 0)
+    for (const surface of page.surfaces) {
+      if (surface.id === store.surfaceId) {
+        found = true
+        break
+      }
+      yBase += Number(surface.designHeightMm) || 0
+    }
+    if (found)
+      break
+  }
+  if (!found)
+    yBase = Number(margin.top || 0)
+  const yStart = yBase + Number(bounds.yMm || 0)
+  const yEnd = yStart + Number(bounds.heightMm || 0)
+  return { xStart, xEnd, yStart, yEnd }
 })
 const marquee = ref(null)
 const contextMenu = ref({ show: false, x: 0, y: 0 })
@@ -741,6 +771,8 @@ onBeforeUnmount(() => clearMarquee())
             orientation="horizontal"
             :zoom="store.zoom"
             :preview-mm="store.guidePreview?.axis === 'x' ? store.guidePreview.positionMm : null"
+            :highlight-start-mm="selectionRulerHighlight?.xStart ?? null"
+            :highlight-end-mm="selectionRulerHighlight?.xEnd ?? null"
             @preview="onRulerPreview"
             @place="onRulerPlace"
             @leave="onRulerLeave"
@@ -750,6 +782,8 @@ onBeforeUnmount(() => clearMarquee())
             orientation="vertical"
             :zoom="store.zoom"
             :preview-mm="store.guidePreview?.axis === 'y' ? store.guidePreview.positionMm : null"
+            :highlight-start-mm="selectionRulerHighlight?.yStart ?? null"
+            :highlight-end-mm="selectionRulerHighlight?.yEnd ?? null"
             @preview="onRulerPreview"
             @place="onRulerPlace"
             @leave="onRulerLeave"

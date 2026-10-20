@@ -12,6 +12,9 @@ const props = defineProps({
   /** Kept for callers; position uses element ratio so CSS zoom cannot drift. */
   zoom: { type: Number, default: 1 },
   previewMm: { type: Number, default: null },
+  /** 选中区间高亮（纸张坐标系 mm）。 */
+  highlightStartMm: { type: Number, default: null },
+  highlightEndMm: { type: Number, default: null },
 })
 
 const emit = defineEmits(['preview', 'place', 'leave'])
@@ -25,6 +28,20 @@ const marks = computed(() => {
 })
 
 const axis = computed(() => (props.orientation === 'horizontal' ? 'x' : 'y'))
+
+const highlightStyle = computed(() => {
+  const start = Number(props.highlightStartMm)
+  const end = Number(props.highlightEndMm)
+  if (!Number.isFinite(start) || !Number.isFinite(end))
+    return null
+  const from = Math.max(0, Math.min(start, end))
+  const to = Math.min(props.lengthMm, Math.max(start, end))
+  if (to - from < 0.05)
+    return null
+  if (props.orientation === 'horizontal')
+    return { left: `${from}mm`, width: `${to - from}mm` }
+  return { top: `${from}mm`, height: `${to - from}mm` }
+})
 
 /** Map pointer to mm via rect ratio — stays aligned with CSS `left/top: Nmm` under zoom. */
 function positionFromEvent(event) {
@@ -64,6 +81,11 @@ function onLeave() {
     @pointerleave="onLeave"
     @pointerdown.stop="onClick"
   >
+    <span
+      v-if="highlightStyle"
+      class="ruler-selection-range"
+      :style="highlightStyle"
+    />
     <span
       v-for="mark in marks"
       :key="mark.value"
@@ -158,6 +180,21 @@ function onLeave() {
   color: #0f172a;
   transform: rotate(-90deg);
   transform-origin: right top;
+}
+.ruler-selection-range {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--primary-color, #356cde) 38%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary-color, #356cde) 65%, transparent);
+}
+.horizontal .ruler-selection-range {
+  top: 0;
+  bottom: 0;
+}
+.vertical .ruler-selection-range {
+  right: 0;
+  left: 0;
 }
 .ruler-preview-tick {
   position: absolute;

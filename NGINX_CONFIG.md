@@ -23,6 +23,13 @@ server {
         try_files $uri $uri/ /forge-h5/index.html;
     }
 
+    # 大屏前端（Vite base=/forge-report，hash 路由）
+    location /forge-report/ {
+        alias   /www/wwwroot/html/report-dist/;
+        index  index.html index.htm;
+        try_files $uri $uri/ /forge-report/index.html;
+    }
+
     # 误链兜底：有人把 uni 路由当站点根路径打开（/pages/login/...）会 404
     # 纠正到 H5 子路径 + hash 路由
     location ^~ /pages/ {
@@ -62,6 +69,17 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
+    # 大屏后端 API（forge-report-server）
+    location /forge-report-api/ {
+        proxy_send_timeout 3000;
+        proxy_read_timeout 3000;
+        proxy_connect_timeout 3000;
+        proxy_pass http://127.0.0.1:8581/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
     # 文件上传大小限制
     client_max_body_size 20m;
 
@@ -82,7 +100,7 @@ server {
 
 ### 2. alias 配置要点
 
-- `location /forge/` 和 `alias /xxx/dist/;` 结尾都要加斜杠
+- `location /forge/`、`/forge-h5/`、`/forge-report/` 和对应 `alias` 结尾都要加斜杠
 - 不加斜杠会导致路径拼接错误（如 `/xxx/distassets/`）
 
 ### 3. 前端构建配置
@@ -103,10 +121,18 @@ VITE_BASE_URL=/forge-h5
 VITE_REQUEST_PREFIX=/forge-h5-api
 ```
 
+大屏（`forge-report-ui`，Vite `base=/forge-report`）：
+
+```env
+# 构建产物部署到 /www/wwwroot/html/report-dist/
+# 浏览器访问 /forge-report/ ，接口走 /forge-report-api/
+```
+
 正确登录地址示例：
 
 ```text
 http://your-domain/forge-h5/#/pages/login/index?redirect=%2Fpages%2Ftodo
+http://your-domain/forge-report/#/login
 ```
 
 不要使用站点根路径 `/pages/login/index`（会 404）。
@@ -117,16 +143,20 @@ http://your-domain/forge-h5/#/pages/login/index?redirect=%2Fpages%2Ftodo
 |------|------|------|
 | forge-admin | 8580 | 主服务 |
 | forge-flow | 8081 | 流程服务（可选） |
+| forge-report | 8581 | 大屏服务（可选） |
 
 ### 5. 部署目录结构
 
 ```
 /www/wwwroot/html/
-├── dist/              # PC 前端构建产物
+├── dist/              # PC 前端构建产物（对应 /forge/）
 │   ├── index.html
 │   └── assets/
-└── forge-h5/          # H5 前端构建产物（对应 /forge-h5/）
+├── forge-h5/          # H5 前端构建产物（对应 /forge-h5/）
+│   ├── index.html
+│   ├── assets/
+│   └── static/
+└── report-dist/       # 大屏前端构建产物（对应 /forge-report/）
     ├── index.html
-    ├── assets/
-    └── static/
+    └── assets/
 ```

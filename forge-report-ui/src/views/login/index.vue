@@ -147,6 +147,36 @@
       </div>
     </div>
 
+    <!-- 多工作区：后端 4091 后补传 tenantId 再登录 -->
+    <div
+      v-if="showWorkspaceModal"
+      class="workspace-modal-overlay"
+      @click.self="closeWorkspaceModal"
+    >
+      <div class="workspace-modal" role="dialog" aria-modal="true" aria-labelledby="workspace-modal-title">
+        <button type="button" class="workspace-modal-close" aria-label="关闭" @click="closeWorkspaceModal">
+          ×
+        </button>
+        <div class="workspace-modal-header">
+          <h3 id="workspace-modal-title">选择工作区</h3>
+          <p>该账号可进入多个工作区，请选择后继续登录</p>
+        </div>
+        <div class="workspace-modal-list">
+          <button
+            v-for="item in tenantOptions"
+            :key="String(item.tenantId)"
+            type="button"
+            class="workspace-option"
+            :disabled="loading"
+            @click="confirmWorkspace(item)"
+          >
+            <strong>{{ item.tenantName || item.systemName || item.browserTitle || item.tenantId }}</strong>
+            <small v-if="item.systemName && item.systemName !== item.tenantName">{{ item.systemName }}</small>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="login-footer-bar">
       <layout-footer></layout-footer>
     </div>
@@ -154,22 +184,26 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref } from 'vue'
 import { LayoutFooter } from '@/layout/components/LayoutFooter'
 import { PageEnum } from '@/enums/pageEnum'
 import { icon } from '@/plugins'
 import { StorageEnum } from '@/enums/storageEnum'
 import { routerTurnByName, setLocalStorage } from '@/utils'
-import { loginApi } from '@/api/auth'
+import { loginApi, type LoginTenantOption } from '@/api/auth'
 import { loadUserData } from '@/utils/auth'
 
 const { GO_ACCESS_TOKEN_STORE } = StorageEnum
+const LOGIN_TENANT_SELECTION_REQUIRED = 4091
 
 const { PersonOutlineIcon, LockClosedOutlineIcon, RocketIcon, BarChartIcon, SparklesIcon } = icon.ionicons5
 
 const formRef = ref()
 const loading = ref(false)
 const autoLogin = ref(true)
+const showWorkspaceModal = ref(false)
+const tenantOptions = ref<LoginTenantOption[]>([])
+const selectedTenantId = ref<number | string | null>(null)
 
 const t = window['$t']
 
@@ -210,29 +244,74 @@ const particleStyle = (n: number) => {
   }
 }
 
+function applyWorkspaceChallenge(error: any) {
+  const code = error?.code ?? error?.response?.data?.code
+  const rawOptions = error?.data ?? error?.response?.data?.data
+  if (code !== LOGIN_TENANT_SELECTION_REQUIRED || !Array.isArray(rawOptions) || rawOptions.length <= 1) {
+    return false
+  }
+  tenantOptions.value = rawOptions
+    .map((item: LoginTenantOption) => ({
+      ...item,
+      tenantId: item?.tenantId,
+    }))
+    .filter((item: LoginTenantOption) => item.tenantId != null && item.tenantId !== '')
+  selectedTenantId.value = null
+  showWorkspaceModal.value = true
+  return true
+}
+
+function closeWorkspaceModal() {
+  showWorkspaceModal.value = false
+}
+
+async function doLogin(tenantId?: number | string | null) {
+  const { username, password } = formInline
+  loading.value = true
+  try {
+    const res = await loginApi({
+      username,
+      password,
+      ...(tenantId != null && tenantId !== '' ? { tenantId } : {}),
+    })
+    if (res && res.code === 200 && res.data?.accessToken) {
+      setLocalStorage(GO_ACCESS_TOKEN_STORE, res.data.accessToken)
+      await loadUserData()
+      window['$message'].success(`${t('login.login_success')}!`)
+      routerTurnByName(PageEnum.BASE_HOME_NAME, true)
+      return
+    }
+    window['$message'].error(res?.msg || `${t('login.login_message')}!`)
+  }
+  catch (error: any) {
+    if (applyWorkspaceChallenge(error)) {
+      return
+    }
+    const msg = error?.response?.data?.msg || error?.message || `${t('login.login_message')}!`
+    window['$message'].error(msg)
+  }
+  finally {
+    loading.value = false
+  }
+}
+
+async function confirmWorkspace(option: LoginTenantOption) {
+  if (option?.tenantId == null || loading.value) {
+    return
+  }
+  selectedTenantId.value = option.tenantId
+  showWorkspaceModal.value = false
+  await doLogin(option.tenantId)
+}
+
 const handleSubmit = (e: Event) => {
   e.preventDefault()
   formRef.value.validate(async (errors: any) => {
     if (!errors) {
-      const { username, password } = formInline
-      loading.value = true
-      try {
-        const res = await loginApi({ username, password })
-        if (res && res.code === 200 && res.data?.accessToken) {
-          setLocalStorage(GO_ACCESS_TOKEN_STORE, res.data.accessToken)
-          await loadUserData()
-          window['$message'].success(`${t('login.login_success')}!`)
-          routerTurnByName(PageEnum.BASE_HOME_NAME, true)
-        } else {
-          window['$message'].error(res?.msg || `${t('login.login_message')}!`)
-        }
-      } catch (error: any) {
-        const msg = error?.response?.data?.msg || error?.message || `${t('login.login_message')}!`
-        window['$message'].error(msg)
-      } finally {
-        loading.value = false
-      }
-    } else {
+      selectedTenantId.value = null
+      await doLogin()
+    }
+    else {
       window['$message'].error(`${t('login.login_message')}!`)
     }
   })
@@ -790,5 +869,99 @@ const handleSubmit = (e: Event) => {
       }
     }
   }
+}
+
+.workspace-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(5, 8, 14, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.workspace-modal {
+  position: relative;
+  width: min(420px, 100%);
+  padding: 28px 24px 20px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.96);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+  color: #e2e8f0;
+}
+
+.workspace-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.workspace-modal-header h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.workspace-modal-header p {
+  margin: 0 0 18px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.workspace-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: min(360px, 50vh);
+  overflow: auto;
+}
+
+.workspace-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.72);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.workspace-option:hover:not(:disabled) {
+  border-color: rgba(var(--app-theme-rgb), 0.55);
+  background: rgba(var(--app-theme-rgb), 0.12);
+}
+
+.workspace-option:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.workspace-option strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.workspace-option small {
+  color: #94a3b8;
+  font-size: 12px;
 }
 </style>

@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "new": "plop --plopfile ./plop/plopfile.js",
-    "postinstall": "husky install",
+    "postinstall": "node ./scripts/safe-husky-install.mjs",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx,.vue src",
     "lint:fix": "eslint --ext .js,.jsx,.ts,.tsx,.vue src --fix",
     "build:stage": "vite build && npm run deploy:stage",
