@@ -46,6 +46,7 @@ import { useFlowActionFeedback } from './useFlowActionFeedback'
 import { useRecordFormLoader } from './useRecordFormLoader'
 import { resolveFormInitRecordId } from '../../data-source-binding-runtime'
 import { normalizeExpandConfig, shouldExpandRow } from '../../expand-utils'
+import { stripChildrenCoveredSubTables } from '../../strip-children-covered-subtables'
 import { isNumberFieldType } from '../../field-type-utils'
 import { resolveRuntimeDefaultValue } from '@/views/app-center/components/designer/forge-form-designer/field-default-value'
 import { isImageFileName, resolveFileRenderItems } from '../../file-render-utils'
@@ -1088,10 +1089,15 @@ export function applyAiCrudPagePart1(props, emit, deps = {}) {
   })
 
   const modalFormSchema = computed(() => {
-    if (!isDetailMode.value)
-      return props.editSchema
-    const schema = props.editSchema.map(toReadonlyField)
-    return schema.length > 0 ? schema : buildDetailFallbackSchema(props.columns)
+    // 布局 subTable 与底部 childrenConfig 会各画一块；childrenConfig 已覆盖时去掉布局节点，避免主子表明细重复。
+    const children = visibleChildrenConfig.value
+    const baseSchema = (() => {
+      if (!isDetailMode.value)
+        return props.editSchema || []
+      const schema = (props.editSchema || []).map(toReadonlyField)
+      return schema.length > 0 ? schema : buildDetailFallbackSchema(props.columns)
+    })()
+    return stripChildrenCoveredSubTables(baseSchema, children)
   })
 
   const {
