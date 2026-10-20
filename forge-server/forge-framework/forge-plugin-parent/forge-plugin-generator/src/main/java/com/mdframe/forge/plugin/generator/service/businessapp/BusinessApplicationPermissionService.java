@@ -247,6 +247,18 @@ public class BusinessApplicationPermissionService {
             page.setResourceId(resource == null ? null : resource.resourceId());
             page.setRegistered(resource != null);
             page.setPendingLabel("待发布");
+            Map<String, Object> objectRef = map(node.get("objectRef"));
+            String objectCode = StringUtils.trimToNull(string(objectRef.get("objectCode")));
+            page.setObjectCode(objectCode);
+            page.setObjectName(StringUtils.trimToNull(string(objectRef.get("objectName"))));
+            String objectIdText = StringUtils.trimToNull(string(objectRef.get("objectId")));
+            if (objectIdText != null) {
+                try {
+                    page.setObjectId(Long.parseLong(objectIdText));
+                } catch (NumberFormatException ignored) {
+                    page.setObjectId(null);
+                }
+            }
             workspace.getPages().add(page);
             if (resource != null) {
                 resourceIds.add(resource.resourceId());

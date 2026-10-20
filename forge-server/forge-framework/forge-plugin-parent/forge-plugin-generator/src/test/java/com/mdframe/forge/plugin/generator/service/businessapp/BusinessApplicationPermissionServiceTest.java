@@ -61,7 +61,8 @@ class BusinessApplicationPermissionServiceTest {
         application.setOptions("""
                 {"inAppBuilder":{"nodes":[
                   {"id":"sales","type":"group","title":"销售","systemMenuVisible":true,"sort":1},
-                  {"id":"orders","type":"page","title":"订单","parentId":"sales","systemMenuVisible":true,"sort":2},
+                  {"id":"orders","type":"page","title":"订单","parentId":"sales","systemMenuVisible":true,"sort":2,
+                   "objectRef":{"objectId":"11","objectCode":"ORDER","objectName":"订单"}},
                   {"id":"portal_only","type":"page","title":"门户页","systemMenuVisible":false,"sort":3}
                 ]}}
                 """);
@@ -121,6 +122,20 @@ class BusinessApplicationPermissionServiceTest {
         assertTrue(portalPage.isRegistered());
         assertEquals("ai:business:application:ORDER_APP:page:portal_only", portalPage.getPermissionCode());
         assertEquals(103L, portalPage.getResourceId());
+    }
+
+    @Test
+    @DisplayName("page catalog exposes bound objectRef for page-level authorization UI")
+    void exposesBoundObjectOnPagePermission() {
+        BusinessApplicationPermissionWorkspaceVO.PagePermission orders = service.workspace(APPLICATION_CODE)
+                .getPages().stream()
+                .filter(page -> "orders".equals(page.getPageId()))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals("ORDER", orders.getObjectCode());
+        assertEquals(11L, orders.getObjectId());
+        assertEquals("订单", orders.getObjectName());
     }
 
     @Test

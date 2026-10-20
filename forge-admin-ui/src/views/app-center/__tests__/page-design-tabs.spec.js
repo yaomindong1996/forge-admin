@@ -10,6 +10,7 @@ function readSource(relativePath) {
 describe('page design tabs', () => {
   it('switches among form, list, settings and publish in page design mode', () => {
     const source = readSource('src/views/app-center/application-runtime.[applicationCode].vue')
+    const part4 = readSource('src/views/app-center/runtime-modules/useApplicationRuntime.part4.js')
     expect(source).toContain('switchPageDesignTab(\'form\')')
     expect(source).toContain('switchPageDesignTab(\'list\')')
     expect(source).toContain('switchPageDesignTab(\'settings\')')
@@ -19,7 +20,8 @@ describe('page design tabs', () => {
     expect(source).toContain('PageDesignPublishPanel')
     expect(source).toContain('(editing || isDraftPreviewMode()) && activePageDesignTab === \'settings\'')
     expect(source).toContain('(editing || isDraftPreviewMode()) && activePageDesignTab === \'publish\'')
-    expect(source).toContain('v-if="((!editing && runtimeViewMode === \'pages\') || showFreeLayoutCanvas) && !showListDesignerSurface && !showFormDesignerSurface"')
+    expect(source).toContain('v-if="showRuntimePageSurface"')
+    expect(part4).toContain('showRuntimePageSurface')
   })
 
   it('draft preview can open settings/publish without returning to page management first', () => {
@@ -28,7 +30,8 @@ describe('page design tabs', () => {
     const part4 = readSource('src/views/app-center/runtime-modules/useApplicationRuntime.part4.js')
     const publishPanel = readSource('src/views/app-center/components/designer/PageDesignPublishPanel.vue')
     expect(source).toContain('switchPageDesignTab(\'preview\')')
-    expect(source).toContain('预览始终保留')
+    expect(source).toContain('设置/发布时隐藏页面预览')
+    expect(part4).toContain('isDraftPreviewMode() && [\'settings\', \'publish\'].includes(activePageDesignTab.value)')
     expect(part5).toContain('if (isDraftPreviewMode())')
     expect(part5).toContain('requested === \'preview\'')
     expect(part5).toContain('openDraftPreviewInPlace')

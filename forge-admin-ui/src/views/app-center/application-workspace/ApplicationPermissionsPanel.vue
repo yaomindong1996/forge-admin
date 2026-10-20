@@ -3,7 +3,7 @@
     <header class="panel-heading">
       <div class="heading-copy">
         <h2>应用角色授权</h2>
-        <p>选择角色，在一个工作台内配置页面入口、对象数据范围和功能权限。</p>
+        <p>选择角色，按页面配置访问权限、功能权限与数据范围。</p>
       </div>
 
       <div class="heading-actions">
@@ -56,15 +56,15 @@
             {{ dataScopeLabel(selectedRole.defaultDataScope) }}
           </n-tag>
           <span class="role-overview-divider" />
-          <span>{{ currentSummary.pages }} 个页面入口</span>
+          <span>{{ currentSummary.pages }} 个页面</span>
           <span>{{ currentSummary.actions }} 个功能权限</span>
-          <span>{{ currentSummary.dataScopes }} 个对象范围覆盖</span>
+          <span>{{ currentSummary.dataScopes }} 个数据范围覆盖</span>
         </div>
       </template>
     </section>
 
     <n-alert type="info" :bordered="false" class="scope-note">
-      页面入口决定角色能否在应用门户看到该页，与「系统菜单挂载」无关（不必挂系统菜单也能授权）。对象数据范围和功能权限需单独勾选，不会互相隐式授权。
+      按页面授权：勾选页面即可在应用门户看到该页（与是否挂载系统菜单无关）。页面绑定的功能权限会随勾选联动；数据范围仍需在页面卡片内单独配置。
     </n-alert>
 
     <n-alert v-if="loadError" type="error" :bordered="false" class="load-alert">
@@ -103,7 +103,7 @@
         :data-scope-loading="roleGrantLoading"
         :data-scope-options="manageableDataScopeOptions"
         :default-scope-editable="false"
-        :link-page-and-actions="false"
+        :link-page-and-actions="true"
         @aux-action="handleAuxAction"
       />
     </div>

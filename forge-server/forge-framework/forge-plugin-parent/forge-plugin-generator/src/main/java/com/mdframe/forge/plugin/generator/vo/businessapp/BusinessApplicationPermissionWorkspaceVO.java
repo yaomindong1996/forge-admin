@@ -68,6 +68,13 @@ public class BusinessApplicationPermissionWorkspaceVO implements Serializable {
         private boolean registered;
 
         private String pendingLabel;
+
+        /** 页面绑定的业务对象编码（来自节点 objectRef，用于页面级授权挂载功能权限） */
+        private String objectCode;
+
+        private Long objectId;
+
+        private String objectName;
     }
 
     @Data

@@ -42,7 +42,7 @@
               应用发布
             </button>
           </template>
-          <!-- 编辑 / 草稿预览：页面级 Tab（预览始终保留，避免切设置/发布/列表后丢失） -->
+          <!-- 编辑 / 草稿预览：页面级 Tab（设置/发布时隐藏页面预览，避免叠层串样式） -->
           <template v-else>
             <button
               type="button"
@@ -364,7 +364,7 @@
       </section>
 
       <div
-        v-if="((!editing && runtimeViewMode === 'pages') || showFreeLayoutCanvas) && !showListDesignerSurface && !showFormDesignerSurface"
+        v-if="showRuntimePageSurface"
         class="runtime-body"
         :class="{
           'configuring': editing && configPanelVisible,

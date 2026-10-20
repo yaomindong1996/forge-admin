@@ -1743,6 +1743,18 @@ export function applyApplicationRuntimePart4(deps = {}) {
   ))
   const showListDesignerSurface = computed(() => editing.value && activePageDesignTab.value === 'list')
   const showFormDesignerSurface = computed(() => showFormDesignWorkbench.value)
+  // 草稿预览下切设置/发布时只显示对应面板，避免与页面预览叠层串样式
+  const showRuntimePageSurface = computed(() => {
+    if (showListDesignerSurface.value || showFormDesignerSurface.value)
+      return false
+    if (showFreeLayoutCanvas.value)
+      return true
+    if (editing.value || runtimeViewMode.value !== 'pages')
+      return false
+    if (isDraftPreviewMode() && ['settings', 'publish'].includes(activePageDesignTab.value))
+      return false
+    return true
+  })
 
   __impl.startPageBlockResize = startPageBlockResize
   __impl.onPageBlockResize = onPageBlockResize
@@ -1809,6 +1821,6 @@ export function applyApplicationRuntimePart4(deps = {}) {
     PAGE_DESIGN_TABS, FORM_DESIGN_SHAPES, LIST_DESIGN_SHAPES, activePageDesignTab, currentPageShape, isObjectBoundPage, isFreeLayoutPage, showFreeLayoutCanvas,
     showFormDesignWorkbench, showPageDesignTab, showFormDesignTab, showListDesignTab, isPageDesignTabActive,
     keepListDesignerAlive, keepFormDesignerAlive, showListDesignerSurface, showFormDesignerSurface,
-    syncFreeLayoutMeasuredHeights,
+    showRuntimePageSurface, syncFreeLayoutMeasuredHeights,
   }
 }

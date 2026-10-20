@@ -215,7 +215,7 @@
                 <span v-else class="page-name">{{ page.name }}</span>
 
                 <span
-                  v-if="page.accessItem"
+                  v-if="page.accessItem && !page.hideAccessTag"
                   class="page-entry-tag"
                   :class="{ 'is-hidden': page.navigationHidden }"
                   :title="page.navigationHidden ? '该菜单不会显示在用户导航中，但权限资源仍可单独授权' : '该资源会作为用户导航中的页面入口'"
@@ -229,7 +229,7 @@
                   {{ page.accessUnavailableLabel }}
                 </span>
 
-                <span v-else-if="page.objectPermission" class="page-entry-tag is-object">
+                <span v-else-if="page.objectPermission && !page.hideAccessTag" class="page-entry-tag is-object">
                   <i class="i-material-symbols:database" />
                   对象权限
                 </span>
@@ -240,7 +240,7 @@
                   已选功能 <strong>{{ selectedActionCountInPage(page) }}</strong> / {{ configurableActions(page).length }}
                 </span>
                 <n-button
-                  v-if="page.accessItem"
+                  v-if="page.accessItem && page.actionItems.length"
                   size="tiny"
                   :disabled="!page.accessItem || !hasAnyActionChecked(page)"
                   @click="selectPageAccessOnly(page)"
@@ -248,7 +248,7 @@
                   <template #icon>
                     <i class="i-material-symbols:widgets" />
                   </template>
-                  仅菜单
+                  {{ page.hideAccessTag ? '仅页面' : '仅菜单' }}
                 </n-button>
                 <n-button
                   v-if="page.actionItems.length"

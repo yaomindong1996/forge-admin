@@ -55,10 +55,17 @@ describe('application permission utilities', () => {
     expect(guard.isCurrent(second)).toBe(true)
   })
 
-  it('builds page entry and object permission modules for the shared role workbench', () => {
+  it('builds a single page-level module with bound object capabilities nested under pages', () => {
     const modules = buildApplicationPermissionModules({
       pages: [
-        { pageId: 'home', pageName: '应用首页', permissionCode: 'app:page:home', resourceId: '11', registered: true },
+        {
+          pageId: 'home',
+          pageName: '应用首页',
+          permissionCode: 'app:page:home',
+          resourceId: '11',
+          registered: true,
+          objectCode: 'ORDER',
+        },
         { pageId: 'draft', pageName: '待发布页', permissionCode: 'app:page:draft', registered: false, pendingLabel: '待发布' },
       ],
       objects: [{
@@ -74,14 +81,15 @@ describe('application permission utilities', () => {
       }],
     })
 
-    expect(modules).toHaveLength(2)
-    expect(modules[0].name).toBe('页面入口')
-    expect(modules[0].pages[0].accessItem.resourceIds).toEqual(['11'])
-    expect(modules[0].pages[1]).toMatchObject({ accessItem: null, accessUnavailableLabel: '待发布' })
-    expect(modules[1].pages[0]).toMatchObject({
+    expect(modules).toHaveLength(1)
+    expect(modules[0].name).toBe('页面')
+    expect(modules[0].pages).toHaveLength(2)
+    expect(modules[0].pages[0]).toMatchObject({
+      name: '应用首页',
+      hideAccessTag: true,
       moduleCode: 'ai:business:ORDER',
-      objectPermission: true,
       showDataScopePanel: true,
+      showFunctionPanel: true,
       auxActionLabel: '配置适配',
       auxActionPayload: {
         type: 'DATA_SCOPE_ADAPTER',
@@ -89,10 +97,40 @@ describe('application permission utilities', () => {
         objectCode: 'ORDER',
       },
     })
-    expect(modules[1].pages[0].actionItems).toEqual([
+    expect(modules[0].pages[0].accessItem.resourceIds).toEqual(['11'])
+    expect(modules[0].pages[0].accessItem.label).toBe('可访问')
+    expect(modules[0].pages[0].actionItems).toEqual([
       expect.objectContaining({ label: '查看列表', resourceIds: ['21'], disabled: false }),
       expect.objectContaining({ label: '编辑', resourceIds: [], disabled: true }),
     ])
+    expect(modules[0].pages[1]).toMatchObject({ accessItem: null, accessUnavailableLabel: '待发布' })
+  })
+
+  it('keeps unbound objects inside the page module without a separate object column', () => {
+    const modules = buildApplicationPermissionModules({
+      pages: [
+        { pageId: 'home', pageName: '首页', resourceId: '11', registered: true },
+      ],
+      objects: [{
+        objectId: '91',
+        objectCode: 'ORDER',
+        objectName: '订单',
+        moduleCode: 'ai:business:ORDER',
+        dataScopeReady: true,
+        actions: [
+          { actionCode: 'list', actionName: '查看列表', permissionCode: 'ai:business:ORDER:list', resourceId: '21', registered: true },
+        ],
+      }],
+    })
+
+    expect(modules).toHaveLength(1)
+    expect(modules[0].pages.map(page => page.name)).toEqual(['首页', '订单'])
+    expect(modules[0].pages[1]).toMatchObject({
+      objectPermission: true,
+      hideAccessTag: true,
+      moduleCode: 'ai:business:ORDER',
+      showFunctionPanel: true,
+    })
   })
 
   it('keeps inherited object scopes out of the save payload', () => {
