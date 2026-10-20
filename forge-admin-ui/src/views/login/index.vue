@@ -247,10 +247,21 @@
                     <div class="qrcode-info">
                       <h4 class="qrcode-title">
                         {{ groupQrcodeName }}
+                        <span v-if="groupQrcodeMemberCount != null" class="qrcode-count">约 {{ groupQrcodeMemberCount }} 人</span>
                       </h4>
                       <p class="qrcode-hint">
                         {{ groupQrcodeHint }}
                       </p>
+                      <p v-if="groupQrcodeBoardLoading" class="qrcode-history-tip">
+                        正在同步官网开放群…
+                      </p>
+                      <ul v-if="groupQrcodeHistory.length" class="qrcode-history">
+                        <li v-for="item in groupQrcodeHistory" :key="item.id || item.groupName">
+                          <span class="qrcode-history-badge">已满</span>
+                          <strong>{{ item.groupName }}</strong>
+                          <em v-if="item.memberCount != null">约 {{ item.memberCount }} 人</em>
+                        </li>
+                      </ul>
                     </div>
                   </div>
                 </Transition>

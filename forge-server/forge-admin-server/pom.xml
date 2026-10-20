@@ -186,15 +186,38 @@
                 </includes>
                 <filtering>true</filtering>
             </resource>
-            <!-- IDE/Maven/JAR 默认共用 classpath 迁移，SQL 原样复制，禁止资源占位符过滤。 -->
-            <resource>
-                <directory>${project.basedir}/../db/migration</directory>
-                <targetPath>db/migration</targetPath>
-                <filtering>false</filtering>
-                <includes><include>*.sql</include></includes>
-            </resource>
+            <!-- Flyway SQL 不在本模块目录内：不能写进 <resources>（maven-resources-plugin 3.3+
+                 会拒绝访问 project base 之外的路径）。见下方 copy-resources。 -->
         </resources>
         <plugins>
+            <!-- 将 forge-server/db/migration 原样拷到 classpath:db/migration（JAR/IDE 共用）。 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-flyway-sql</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}/../db/migration</directory>
+                                    <targetPath>db/migration</targetPath>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>*.sql</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

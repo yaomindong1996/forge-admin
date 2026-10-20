@@ -189,4 +189,9 @@ public class LoginConfigResult implements Serializable {
      * 引导文案
      */
     private String groupQrcodeHint;
+
+    /**
+     * 官网微信交流群看板地址；非空时登录页通过 /auth/groupQrcodeBoard 拉取开放群。
+     */
+    private String groupQrcodeBoardUrl;
 }

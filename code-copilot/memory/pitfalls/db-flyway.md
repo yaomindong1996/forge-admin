@@ -302,6 +302,25 @@ forge-admin-server/sql/初始化脚本.sql；副本已在 d2c4f0ee 移除，当�
 - 迁移限定当前数据库与目标列，保留字符集/排序规则；重复执行和已有更大文本/JSON 列时不缩列。
 - 仅提交代码不会修复已部署数据库；确认迁移成功后再验证真实保存。应用回滚不要求缩列。
 
+## maven-resources-plugin 拒绝拷贝项目外的 db/migration
+
+**发现日期**: 2026-10-20
+
+**问题描述**:
+Windows / 较新 Maven 构建 `forge-admin-server` 时报：
+`Access ".../forge-admin-server/../db/migration" directory outside of project base directory`
+（`maven-resources-plugin:3.3.1:resources`）。
+
+**根本原因**:
+把 `forge-server/db/migration` 写进子模块 `<build><resources>` 的 `<directory>`，
+默认 `resources` 目标不允许访问 `${project.basedir}` 之外的路径。
+
+**解决方案**:
+- SQL 仍统一放在 `forge-server/db/migration/`（不要整目录搬进 admin-server）。
+- Admin POM 用 `maven-resources-plugin` 的 `copy-resources`（`copy-flyway-sql`）
+  在 `process-resources` 拷到 `classpath:db/migration`。
+- 不要把跨模块路径继续写回默认 `<resources>`。
+
 ## 独立 JAR 正确但 filesystem 仍读取服务器残留旧迁移
 
 **发现日期**: 2026-10-10

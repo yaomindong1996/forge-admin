@@ -47,6 +47,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
                 "/auth/logout",
                 "/auth/loginConfig",
                 "/auth/loginQrcode",
+                "/auth/groupQrcodeBoard",
                 "/auth/tenant/options",
                 "/auth/tenant/assets/**",
                 "/auth/register",
@@ -95,7 +96,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
         registry.addInterceptor(apiPermissionInterceptor)
                 .addPathPatterns("/**")
                 // 排除登录相关接口
-                .excludePathPatterns("/auth/login", "/auth/logout", "/auth/loginConfig", "/auth/loginQrcode", "/auth/tenant/options", "/auth/tenant/assets/**", "/auth/register", "/auth/resetPassword",
+                .excludePathPatterns("/auth/login", "/auth/logout", "/auth/loginConfig", "/auth/loginQrcode", "/auth/groupQrcodeBoard", "/auth/tenant/options", "/auth/tenant/assets/**", "/auth/register", "/auth/resetPassword",
                         "/auth/resetPassword/code",
                         "/auth/captcha", "/auth/captcha/slider", "/auth/captcha/sms", "/auth/sso/exchange")
                 .excludePathPatterns("/crypto/config", "/crypto/public-key", "/crypto/exchange")

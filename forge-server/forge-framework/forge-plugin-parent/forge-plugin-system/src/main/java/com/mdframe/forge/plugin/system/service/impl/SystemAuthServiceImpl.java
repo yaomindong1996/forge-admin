@@ -620,6 +620,7 @@ public class SystemAuthServiceImpl implements IAuthService {
                 .groupQrcodeImage(config.getGroupQrcodeImage())
                 .groupQrcodeName(config.getGroupQrcodeName())
                 .groupQrcodeHint(config.getGroupQrcodeHint())
+                .groupQrcodeBoardUrl(config.getGroupQrcodeBoardUrl())
                 .build();
     }
 

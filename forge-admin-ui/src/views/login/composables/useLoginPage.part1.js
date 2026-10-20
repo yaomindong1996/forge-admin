@@ -63,11 +63,14 @@ export function applyLoginPagePart1() {
   const captchaType = ref('graphical')
   const captchaEnabled = computed(() => loginConfig.value?.enableCaptcha !== false)
 
-  // 群二维码引流验证码：独立于验证码总开关生效，未配置图片时回退占位符
+  // 群二维码引流验证码：独立于验证码总开关生效；优先官网看板开放群，再回退本地配置
   const groupQrcodeEnabled = computed(() => loginConfig.value?.groupQrcodeEnabled === true)
   const activeCaptchaTab = ref('default') // 'default' 或 'group'
-  const groupQrcodeImage = computed(() => {
-    const value = String(loginConfig.value?.groupQrcodeImage || '').trim()
+  const groupQrcodeBoard = ref({ openGroup: null, historyGroups: [] })
+  const groupQrcodeBoardLoading = ref(false)
+
+  function resolveLocalGroupQrcodeImage(raw) {
+    const value = String(raw || '').trim()
     if (!value)
       return ''
     const lowerValue = value.toLowerCase()
@@ -75,15 +78,70 @@ export function applyLoginPagePart1() {
       || lowerValue.startsWith('data:') || lowerValue.startsWith('blob:')) {
       return value
     }
-    // fileId 走登录页专用匿名图片接口，带 cache buster 避免换图后读到旧缓存
     const prefix = import.meta.env.VITE_REQUEST_PREFIX || ''
     return `${prefix}/auth/loginQrcode?v=${encodeURIComponent(value)}`
+  }
+
+  function resolveBoardQrcodeImage(url) {
+    const value = String(url || '').trim()
+    if (!value)
+      return ''
+    if (value.startsWith('/auth/loginQrcode')) {
+      const prefix = import.meta.env.VITE_REQUEST_PREFIX || ''
+      return `${prefix}${value}`
+    }
+    return value
+  }
+
+  const groupQrcodeImage = computed(() => {
+    const remoteUrl = groupQrcodeBoard.value?.openGroup?.qrcodeUrl
+    if (remoteUrl)
+      return resolveBoardQrcodeImage(remoteUrl)
+    return resolveLocalGroupQrcodeImage(loginConfig.value?.groupQrcodeImage)
   })
-  const groupQrcodeName = computed(() => loginConfig.value?.groupQrcodeName || '用户交流群')
-  const groupQrcodeHint = computed(() => loginConfig.value?.groupQrcodeHint || '扫码加入用户群，获取验证码并完成登录')
+  const groupQrcodeName = computed(() =>
+    groupQrcodeBoard.value?.openGroup?.groupName
+    || loginConfig.value?.groupQrcodeName
+    || '用户交流群')
+  const groupQrcodeHint = computed(() =>
+    groupQrcodeBoard.value?.openGroup?.hint
+    || loginConfig.value?.groupQrcodeHint
+    || '扫码加入用户群，获取验证码并完成登录')
+  const groupQrcodeMemberCount = computed(() => {
+    const count = groupQrcodeBoard.value?.openGroup?.memberCount
+    return Number.isFinite(Number(count)) ? Number(count) : null
+  })
+  const groupQrcodeHistory = computed(() => groupQrcodeBoard.value?.historyGroups || [])
   // 群二维码浮层交互：点“获取验证码”展开浮动二维码，点二维码可放大
   const qrcodePopoverVisible = ref(false)
   const qrcodePreviewVisible = ref(false)
+
+  async function loadGroupQrcodeBoard() {
+    if (!groupQrcodeEnabled.value) {
+      groupQrcodeBoard.value = { openGroup: null, historyGroups: [] }
+      return
+    }
+    groupQrcodeBoardLoading.value = true
+    try {
+      const res = await api.getGroupQrcodeBoard()
+      if (res?.code === 200 && res.data) {
+        groupQrcodeBoard.value = {
+          openGroup: res.data.openGroup || null,
+          historyGroups: Array.isArray(res.data.historyGroups) ? res.data.historyGroups : [],
+        }
+      }
+      else {
+        groupQrcodeBoard.value = { openGroup: null, historyGroups: [] }
+      }
+    }
+    catch (error) {
+      console.warn('加载交流群看板失败，回退本地配置:', error)
+      groupQrcodeBoard.value = { openGroup: null, historyGroups: [] }
+    }
+    finally {
+      groupQrcodeBoardLoading.value = false
+    }
+  }
 
   function toggleQrcodePopover() {
     qrcodePopoverVisible.value = !qrcodePopoverVisible.value
@@ -240,6 +298,7 @@ export function applyLoginPagePart1() {
     loginConfig.value = config || null
     await applyTenantConfig(config, appStore)
     applyBrandLogo(config)
+    await loadGroupQrcodeBoard()
   }
 
   function applyWorkspaceChallenge(payload) {
@@ -911,6 +970,7 @@ export function applyLoginPagePart1() {
     }
   }
   __impl.toggleQrcodePopover = toggleQrcodePopover
+  __impl.loadGroupQrcodeBoard = loadGroupQrcodeBoard
   __impl.normalizeTenantId = normalizeTenantId
   __impl.syncSelectedTenantToStorage = syncSelectedTenantToStorage
   __impl.getSelectedTenantFromStorage = getSelectedTenantFromStorage
@@ -959,7 +1019,7 @@ export function applyLoginPagePart1() {
     LOGIN_TENANT_SELECTION_REQUIRED, tenantOptions, selectedTenantId, showWorkspaceModal, lastUsedTenantId, skipTenantContextRefresh, tenantConfigApplying, brandLogoUrl,
     loginConfig, selectedTenantOption, tenantSelectOptions, showTenantSelect, brandSystemName, loginSubtitle, copyrightInfo, loginInfo,
     captchaImage, captchaExpires, captchaType, captchaEnabled, groupQrcodeEnabled, activeCaptchaTab, groupQrcodeImage, groupQrcodeName,
-    groupQrcodeHint, qrcodePopoverVisible, qrcodePreviewVisible, resetPasswordChannels, canResetPassword, showResetForm, resetSending, resetSubmitting,
+    groupQrcodeHint, groupQrcodeMemberCount, groupQrcodeHistory, groupQrcodeBoardLoading, qrcodePopoverVisible, qrcodePreviewVisible, resetPasswordChannels, canResetPassword, showResetForm, resetSending, resetSubmitting,
     resetCountdown, resetTimer, resetForm, resetSubtitle, resetAccountLabel, resetAccountPlaceholder, resetAccountValid, slideVerifyRef,
     slideImages, sliderSuccess, sliderFail, showSliderModal, smsCountdown, smsTimer, localLoginInfo, isRemember,
     loading, socialPlatforms, socialLoading, giteeCommunity, nonGiteePlatforms, displaySocialPlatforms, isValidPhone,

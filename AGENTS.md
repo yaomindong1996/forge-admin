@@ -480,7 +480,7 @@ ls forge-server/db/migration/V*.sql | sed 's/__.*//' | sort | uniq -d
 #### 启动与验证
 
 - `forge-admin-server` 启动时由 Flyway 执行 `forge-server/db/migration` 脚本；`forge-report-server` 单独启动不会执行这些迁移
-- 默认读取 `classpath:db/migration`，由 Admin POM 将源 SQL 原样复制到 classes/JAR，不依赖启动目录
+- 默认读取 `classpath:db/migration`；Admin POM 用 `maven-resources-plugin` 的 `copy-resources`（勿写进默认 `<resources>`，否则 3.3+ 会拒绝对 `../db/migration` 的跨模块路径）把源 SQL 原样拷到 classes/JAR，不依赖启动目录
 - `fail-on-missing-locations=true`；IDE 启动前刷新 Maven 并构建资源，禁止回退扫描服务器残留 SQL
 - 若设置了 `FORGE_FLYWAY_LOCATIONS` 或 `FORGE_FLYWAY_ENABLED`，会覆盖默认配置；迁移未执行时优先检查这两个环境变量
 - 验证迁移结果：

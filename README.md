@@ -335,7 +335,7 @@ bash forge-server/scripts/db/init-db.sh \
 Flyway 启动说明：
 
 - 主后台服务 `forge-admin-server` 启动时执行 `forge-server/db/migration`；单独启动 `forge-report-server` 不会执行这些迁移。
-- 默认扫描 `classpath:db/migration`，Admin POM 会将源 SQL 原样复制到 classes/JAR；本地和部署使用同一套资源，不依赖启动目录。
+- 默认扫描 `classpath:db/migration`；Admin POM 通过 `copy-resources`（`copy-flyway-sql`）将 `forge-server/db/migration` 原样拷到 classes/JAR（不要写进默认 `<resources>`，maven-resources-plugin 3.3+ 会拒绝跨模块路径）；本地和部署使用同一套资源，不依赖启动目录。
 - 找不到迁移目录时启动失败。IDE 首次启动或新增 SQL 后需刷新 Maven 并构建资源；Maven 启动/打包自动处理资源。
 - 如果设置了 `FORGE_FLYWAY_LOCATIONS` 或 `FORGE_FLYWAY_ENABLED`，环境变量会覆盖默认配置；迁移未执行时先检查这两个变量。
 - 从旧版本升级时，检查外置配置、JVM 参数和环境变量是否仍显式设置 `filesystem:`；通常应移除覆盖项或改为 `classpath:db/migration`，不要混扫旧目录。

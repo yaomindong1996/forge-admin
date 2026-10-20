@@ -640,6 +640,55 @@ button:focus-visible,
   line-height: 1.5;
 }
 
+.qrcode-count {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.qrcode-history-tip {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-tertiary, #94a3b8);
+}
+
+.qrcode-history {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  text-align: left;
+}
+
+.qrcode-history li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 8px;
+  background: var(--bg-secondary, #f8fafc);
+  font-size: 12px;
+}
+
+.qrcode-history-badge {
+  display: inline-flex;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: #b54708;
+  background: #fffaeb;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.qrcode-history em {
+  font-style: normal;
+  color: var(--text-secondary);
+}
+
 .group-qrcode-verify .form-label {
   align-self: flex-start;
   width: 100%;

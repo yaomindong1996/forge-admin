@@ -183,11 +183,28 @@
                 <div v-if="configForms.login.groupQrcodeEnabled" class="config-item full-width">
                   <div class="config-copy">
                     <div class="config-label">
-                      <i class="i-material-symbols:image-outline" />
-                      群二维码图片
+                      <i class="i-material-symbols:link" />
+                      官网交流群看板地址
                     </div>
                     <div class="config-help">
-                      上传二维码或直接填外部图片地址，登录页会自动展示。
+                      填 website 公开接口，例如 https://你的官网/api/community/wechat-groups。配置后登录页优先展示官网「当前开放群」与历史满员群；拉取失败再回退下方本地二维码。
+                    </div>
+                  </div>
+                  <n-input
+                    v-model:value="configForms.login.groupQrcodeBoardUrl"
+                    placeholder="https://example.com/api/community/wechat-groups"
+                    clearable
+                    class="config-input-full"
+                  />
+                </div>
+                <div v-if="configForms.login.groupQrcodeEnabled" class="config-item full-width">
+                  <div class="config-copy">
+                    <div class="config-label">
+                      <i class="i-material-symbols:image-outline" />
+                      本地群二维码图片（回退）
+                    </div>
+                    <div class="config-help">
+                      未配置看板地址，或官网看板拉取失败时使用。上传二维码或直接填外部图片地址。
                     </div>
                   </div>
                   <div class="qrcode-source-row">
@@ -1009,6 +1026,7 @@ const configForms = ref({
     giteeCommunityRepoUrl: 'https://gitee.com/ForgeLab/forge-admin',
     giteeCommunityTenantId: 9001,
     groupQrcodeEnabled: false,
+    groupQrcodeBoardUrl: '',
     groupQrcodeImage: '',
     groupQrcodeName: '',
     groupCaptchaCode: '',

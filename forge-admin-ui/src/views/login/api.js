@@ -35,6 +35,9 @@ export default {
     },
   }),
 
+  // 登录页交流群看板（服务端代理官网看板，失败时回退本地配置）
+  getGroupQrcodeBoard: () => request.get('/auth/groupQrcodeBoard', { needToken: false, needTip: false }),
+
   // 获取登录页可选租户
   getLoginTenantOptions: () => request.get('/auth/tenant/options', { needToken: false }),
 
