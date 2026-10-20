@@ -400,6 +400,13 @@ public class BusinessApplicationRuntimeService {
         if (Boolean.TRUE.equals(node.get("legacyObjectPage"))) {
             return true;
         }
+        // 页面组只承担导航结构，入口授权落在子页面上（与权限工作台「结构组隐式」一致）。
+        String type = StringUtils.defaultString(string(node.get("type"))).trim().toLowerCase();
+        if ("group".equals(type) || "page-group".equals(type) || "page_group".equals(type)
+                || "pagegroup".equals(type) || "menu-group".equals(type)
+                || "menu_group".equals(type) || "directory".equals(type) || "folder".equals(type)) {
+            return true;
+        }
         String nodeId = StringUtils.trimToNull(string(node.get("id")));
         String normalizedApplicationCode = StringUtils.trimToNull(applicationCode);
         if (nodeId == null || normalizedApplicationCode == null) {

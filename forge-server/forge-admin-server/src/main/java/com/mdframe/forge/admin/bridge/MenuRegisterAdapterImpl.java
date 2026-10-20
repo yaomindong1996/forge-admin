@@ -456,7 +456,9 @@ public class MenuRegisterAdapterImpl implements MenuRegisterAdapter {
         resource.setComponent(item.isDirectory() ? null : item.getComponent());
         resource.setIsExternal(0);
         resource.setIsPublic(0);
-        resource.setMenuStatus(item.isVisible() ? EnableStatus.ENABLED.getCode() : EnableStatus.DISABLED.getCode());
+        // 同步清单内的资源始终保持 menu_status=启用，便于角色授权；
+        // visible 只控制是否进入系统侧栏（门户入口常用 visible=0 的隐藏资源）。
+        resource.setMenuStatus(EnableStatus.ENABLED.getCode());
         resource.setVisible(item.isVisible() ? EnableStatus.ENABLED.getCode() : EnableStatus.DISABLED.getCode());
         resource.setPerms(item.getPerms());
         resource.setIcon(StringUtils.defaultIfBlank(item.getIcon(), item.isDirectory()

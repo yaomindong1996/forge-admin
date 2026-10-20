@@ -159,9 +159,17 @@ public class BusinessApplicationPermissionService {
         entryQuery.setApplicationId(application.getId());
         List<BusinessAppVO> entries = businessAppService.list(entryQuery);
         Map<String, Object> builder = inAppBuilder(application.getOptions());
+        // 应用内页面入口授权不依赖「挂载系统菜单」；未发布时仍展示为待发布，发布后即可勾选。
         List<Map<String, Object>> visibleNodes = maps(builder.get("nodes")).stream()
-                .filter(this::systemMenuVisible)
                 .filter(node -> StringUtils.isNotBlank(string(node.get("id"))))
+                .filter(node -> {
+                    String type = StringUtils.defaultString(string(node.get("type"))).trim().toLowerCase();
+                    return "page".equals(type) || "group".equals(type)
+                            || "page-group".equals(type) || "page_group".equals(type)
+                            || "pagegroup".equals(type) || "menu-group".equals(type)
+                            || "menu_group".equals(type) || "directory".equals(type)
+                            || "folder".equals(type);
+                })
                 .toList();
         List<Map<String, Object>> pageNodes = visibleNodes.stream()
                 .filter(node -> "page".equalsIgnoreCase(string(node.get("type"))))
@@ -459,14 +467,6 @@ public class BusinessApplicationPermissionService {
 
     private String objectModuleCode(String objectCode) {
         return "ai:business:" + objectCode;
-    }
-
-    private boolean systemMenuVisible(Map<String, Object> node) {
-        Object value = node.get("systemMenuVisible");
-        if (value == null) {
-            value = map(node.get("settings")).get("systemMenuVisible");
-        }
-        return Boolean.TRUE.equals(value);
     }
 
     @SuppressWarnings("unchecked")

@@ -250,9 +250,9 @@ class BusinessApplicationRuntimeServiceTest {
                 "page_sales", Map.of("title", "销售页"),
                 "page_hidden", Map.of("title", "隐藏页")));
 
+        // 页面组为结构节点，不要求单独授权；只要有子页面权限即可进入。
         Map<String, Object> filtered = service.filterBuilder(builder, "crm_test",
-                Set.of("ai:business:application:crm_test:page:page_sales",
-                        "ai:business:application:crm_test:page:group_sales"));
+                Set.of("ai:business:application:crm_test:page:page_sales"));
         List<Map<String, Object>> nodes = (List<Map<String, Object>>) filtered.get("nodes");
         Map<String, Object> pages = (Map<String, Object>) filtered.get("pages");
 

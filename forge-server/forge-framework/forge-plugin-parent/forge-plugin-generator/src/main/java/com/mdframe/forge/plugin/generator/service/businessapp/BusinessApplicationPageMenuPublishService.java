@@ -33,36 +33,62 @@ public class BusinessApplicationPageMenuPublishService {
         }
         List<Map<String, Object>> publishedObjects = maps(snapshot.get("objects"));
         String portalIdentifier = resolvePortalIdentifier(application, applicationCode);
+        String applicationName = StringUtils.defaultIfBlank(
+                string(application.get("applicationName")), applicationCode);
         List<BusinessApplicationPageMenuDTO> menus = new ArrayList<>();
-        // 系统菜单必须显式选择管理端/移动端父级；禁止回落到 /ai（AI应用）或通用业务域目录。
-        // 仅开启开关但未选父级：视为未挂载并跳过，避免误触开关导致整次发布失败。
+        // 门户 RBAC：每个页面/页面组都注册可授权资源（默认隐藏，不进系统侧栏）。
+        // 仅「挂载系统菜单 + 已选父级」时才写成可见系统菜单；未选父级的假挂载降级为隐藏入口，避免发布失败。
+        java.util.LinkedHashSet<String> clients = new java.util.LinkedHashSet<>();
         for (Map<String, Object> node : nodes) {
-            if (isGroupNode(node) || !systemMenuVisible(node)) {
-                continue;
-            }
             String nodeId = StringUtils.trimToNull(string(node.get("id")));
             if (nodeId == null) {
                 continue;
             }
-            boolean directory = false;
+            boolean directory = isGroupNode(node);
+            if (!directory && !"page".equalsIgnoreCase(StringUtils.defaultString(string(node.get("type"))).trim())) {
+                continue;
+            }
             String title = resolveMenuTitle(node, directory);
             Integer sort = resolveMenuSort(node);
             for (String clientCode : resolveClientCodes(node)) {
+                clients.add(clientCode);
                 String externalMenuParentId = resolveExternalMenuParentId(node, clientCode);
-                if (externalMenuParentId == null) {
-                    continue;
-                }
+                boolean mounted = !directory && systemMenuVisible(node) && externalMenuParentId != null;
                 String menuPath = resolveMenuPath(application, portalIdentifier,
                         node, nodeId, directory, clientCode, publishedObjects);
                 String menuComponent = "h5".equalsIgnoreCase(clientCode)
                         ? menuPath
                         : resolveDesktopMenuComponent(menuPath);
-                BusinessApplicationPageMenuDTO item = menu(nodeId, externalMenuParentId, title,
-                        menuPath, menuComponent, permission(applicationCode, nodeId),
-                        string(node.get("icon")), sort, directory, true, clientCode);
-                item.setExternalParent(true);
+                BusinessApplicationPageMenuDTO item = menu(
+                        nodeId,
+                        mounted ? externalMenuParentId : null,
+                        title,
+                        menuPath,
+                        menuComponent,
+                        permission(applicationCode, nodeId),
+                        string(node.get("icon")),
+                        sort,
+                        directory,
+                        mounted,
+                        clientCode);
+                item.setExternalParent(mounted);
                 menus.add(item);
             }
+        }
+        for (String clientCode : clients) {
+            BusinessApplicationPageMenuDTO root = menu(
+                    "root",
+                    null,
+                    applicationName + "门户",
+                    "/app/" + portalIdentifier,
+                    PORTAL_COMPONENT,
+                    permission(applicationCode, "root"),
+                    null,
+                    0,
+                    true,
+                    false,
+                    clientCode);
+            menus.add(0, root);
         }
         Map<String, Long> bindings = menuRegisterAdapter.syncApplicationPageMenus(applicationCode, menus);
         snapshot.put("pageMenu", bindings);

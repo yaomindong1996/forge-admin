@@ -61,7 +61,8 @@ class BusinessApplicationPermissionServiceTest {
         application.setOptions("""
                 {"inAppBuilder":{"nodes":[
                   {"id":"sales","type":"group","title":"销售","systemMenuVisible":true,"sort":1},
-                  {"id":"orders","type":"page","title":"订单","parentId":"sales","systemMenuVisible":true,"sort":2}
+                  {"id":"orders","type":"page","title":"订单","parentId":"sales","systemMenuVisible":true,"sort":2},
+                  {"id":"portal_only","type":"page","title":"门户页","systemMenuVisible":false,"sort":3}
                 ]}}
                 """);
         when(applicationService.detailByCode(APPLICATION_CODE)).thenReturn(application);
@@ -106,6 +107,20 @@ class BusinessApplicationPermissionServiceTest {
 
         assertTrue(entry.isRegistered());
         assertEquals("ai:businessApp:open:order_entry", entry.getPermissionCode());
+    }
+
+    @Test
+    @DisplayName("portal pages without system-menu mount remain grantable in the catalog")
+    void includesPortalPagesWithoutSystemMenuMount() {
+        BusinessApplicationPermissionWorkspaceVO.PagePermission portalPage = service.workspace(APPLICATION_CODE)
+                .getPages().stream()
+                .filter(page -> "portal_only".equals(page.getPageId()))
+                .findFirst()
+                .orElseThrow();
+
+        assertTrue(portalPage.isRegistered());
+        assertEquals("ai:business:application:ORDER_APP:page:portal_only", portalPage.getPermissionCode());
+        assertEquals(103L, portalPage.getResourceId());
     }
 
     @Test
@@ -251,6 +266,7 @@ class BusinessApplicationPermissionServiceTest {
         resources.put("ai:business:application:ORDER_APP:page:root", resource(100L, 9L, "root"));
         resources.put("ai:business:application:ORDER_APP:page:sales", resource(101L, 100L, "sales"));
         resources.put("ai:business:application:ORDER_APP:page:orders", resource(102L, 101L, "orders"));
+        resources.put("ai:business:application:ORDER_APP:page:portal_only", resource(103L, 100L, "portal-only"));
         resources.put("ai:businessApp:open:order_entry", resource(301L, 30L, "order-entry"));
         resources.put("ai:business:ORDER:list", resource(201L, 20L, "list"));
         return resources;
