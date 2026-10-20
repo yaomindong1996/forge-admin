@@ -64,7 +64,7 @@
     </section>
 
     <n-alert type="info" :bordered="false" class="scope-note">
-      页面入口只决定该角色能否进入页面；对象数据范围和功能权限在对应对象模块中独立配置，不会互相隐式授权。
+      页面入口决定角色能否在应用门户看到该页，与「系统菜单挂载」无关（不必挂系统菜单也能授权）。对象数据范围和功能权限需单独勾选，不会互相隐式授权。
     </n-alert>
 
     <n-alert v-if="loadError" type="error" :bordered="false" class="load-alert">

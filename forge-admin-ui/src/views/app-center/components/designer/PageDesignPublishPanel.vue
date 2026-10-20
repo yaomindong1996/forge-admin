@@ -38,12 +38,14 @@
       </dl>
     </section>
 
-    <!-- 系统菜单挂载：默认关闭，需显式打开并选择父级 -->
+    <!-- 系统菜单挂载：可选。与「应用权限 → 页面入口」无关；门户内能否看到页面只看角色授权。 -->
     <section class="page-design-publish-card">
       <header>
         <div>
-          <h2>系统菜单挂载</h2>
-          <p>默认不挂载。打开后须选择父级菜单目录，应用发布后才会出现在系统菜单中。</p>
+          <h2>系统菜单挂载（可选）</h2>
+          <p>
+            只影响是否出现在<strong>系统左侧菜单</strong>。应用门户内的页面入口由「应用权限」授权，发布后即可勾选，不必挂载系统菜单。
+          </p>
         </div>
         <n-switch
           :value="mountDraft.systemMenuVisible === true"
@@ -52,7 +54,9 @@
       </header>
       <div v-if="mountDraft.systemMenuVisible" class="mount-config">
         <n-tag size="small" :type="mountReady ? 'success' : 'warning'" :bordered="false" class="mount-status-tag">
-          {{ mountReady ? '已配置父级，发布后生效' : '已开启挂载，请选择父级菜单' }}
+          {{ mountReady
+            ? '已配置父级，发布后出现在系统菜单'
+            : '未选父级：不会进系统菜单，但应用门户入口仍可按角色授权' }}
         </n-tag>
         <PageSystemMenuMountForm
           :model-value="mountDraft"
@@ -61,7 +65,7 @@
         />
       </div>
       <p v-else class="mount-off-hint">
-        当前未挂载到系统菜单。需要出现在管理端/移动端菜单时，打开右侧开关并选择父级。
+        未挂载系统菜单。普通用户进应用门户看页面：发布应用 → 应用权限勾选「页面入口」→ 用户重新登录即可。
       </p>
     </section>
 
