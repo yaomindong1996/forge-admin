@@ -1,9 +1,12 @@
 <script setup>
 import { NDropdown } from 'naive-ui'
+import { computed } from 'vue'
 import WorkspaceIllustration from '@/components/common/WorkspaceIllustration.vue'
+import DictTag from '@/components/DictTag.vue'
+import { getModelSecondaryAction, publishedVersionLabel } from '../utils/modelCatalog'
 
 // 标签、分类和权限继续由页面的真实字典与流程状态提供。
-defineProps({
+const props = defineProps({
   item: { type: Object, required: true },
   statusLabel: { type: String, default: '' },
   statusClass: { type: String, default: '' },
@@ -13,11 +16,14 @@ defineProps({
   bindingLabel: { type: String, default: '' },
   updateLabel: { type: String, default: '' },
   actionOptions: { type: Array, default: () => [] },
+  publicationOptions: { type: Array, default: () => [] },
   sortMode: Boolean,
   deployDisabled: Boolean,
   busy: Boolean,
 })
 const emit = defineEmits(['design', 'deploy', 'instances', 'action', 'dragStart', 'drop'])
+const secondaryAction = computed(() => getModelSecondaryAction(props.item))
+const hasPublicationLabel = computed(() => props.publicationOptions.some(option => option.value === props.item.publicationState))
 </script>
 
 <template>
@@ -37,13 +43,13 @@ const emit = defineEmits(['design', 'deploy', 'instances', 'action', 'dragStart'
             <WorkspaceIllustration artwork="workflow" size="card" />
           </div>
           <div class="card-title-main">
-            <div class="card-title">
+            <div class="card-title" :title="item.modelName">
               {{ item.modelName }}
             </div>
             <div v-if="sortMode" class="card-sort-hint">
               拖动调整顺序
             </div>
-            <div class="card-key">
+            <div class="card-key" :title="item.modelKey">
               {{ item.modelKey }}
             </div>
           </div>
@@ -62,12 +68,21 @@ const emit = defineEmits(['design', 'deploy', 'instances', 'action', 'dragStart'
           {{ categoryLabel }}
         </span>
       </div>
-      <div class="card-binding" :class="{ empty: !item.businessBindings?.length }">
+      <div class="card-binding" :class="{ empty: !item.businessBindings?.length, failed: item.bindingLoadError }" :title="bindingLabel">
         <i class="i-lucide:link-2" />
         <span>{{ bindingLabel }}</span>
       </div>
-      <div class="card-desc">
-        {{ item.description || '暂无描述' }}
+      <div v-if="item.description" class="card-desc" :title="item.description">
+        {{ item.description }}
+      </div>
+      <!-- 后端快照摘要与字典；未知状态不拿模型初始版本号来兜底。 -->
+      <div class="card-publication" title="根据已保存的流程图和表单与发布快照比较，包含布局或格式变更；其他未版本化设置不参与判断">
+        <span>{{ publishedVersionLabel(item) }}</span>
+        <DictTag
+          v-if="hasPublicationLabel" :options="publicationOptions" :value="item.publicationState"
+          size="small" :bordered="false"
+        />
+        <span v-else class="card-publication-unavailable">发布信息暂不可用</span>
       </div>
     </div>
     <div class="card-footer">
@@ -76,47 +91,35 @@ const emit = defineEmits(['design', 'deploy', 'instances', 'action', 'dragStart'
           <i class="i-lucide:calendar" />
           {{ updateLabel || '未更新' }}
         </div>
-        <div class="meta-item">
-          <i class="i-lucide:git-commit" />
-          v{{ item.version || 1 }}
-        </div>
       </div>
       <div class="card-actions">
         <button
           type="button"
           class="card-action-link"
+          :disabled="sortMode || busy"
           @click.stop="emit('design', item)"
         >
-          编辑
+          设计流程
         </button>
-        <template v-if="item.status === 0 || item.status === 1">
+        <template v-if="secondaryAction">
           <span class="card-action-separator" />
           <button
-            v-if="item.status === 0"
             type="button"
             class="card-action-link"
-            :disabled="deployDisabled"
-            @click.stop="emit('deploy', item)"
+            :disabled="sortMode || busy || (secondaryAction.key === 'deploy' && deployDisabled)"
+            @click.stop="emit(secondaryAction.key, item)"
           >
-            发布
-          </button>
-          <button
-            v-else
-            type="button"
-            class="card-action-link"
-            @click.stop="emit('instances', item)"
-          >
-            实例
+            {{ secondaryAction.label }}
           </button>
         </template>
         <span class="card-action-separator" />
         <NDropdown
           trigger="click"
           :options="actionOptions"
-          :disabled="busy"
+          :disabled="busy || sortMode"
           @select="key => emit('action', key, item)"
         >
-          <button type="button" class="card-more-action" aria-label="更多操作" @click.stop>
+          <button type="button" class="card-more-action" :disabled="busy || sortMode" aria-label="更多操作" @click.stop>
             <i class="i-lucide:more-horizontal" />
           </button>
         </NDropdown>

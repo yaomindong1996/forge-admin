@@ -12,6 +12,9 @@ import java.util.List;
 @Mapper
 public interface FlowModelVersionMapper extends BaseMapper<FlowModelVersion> {
 
+    List<FlowModelVersion> selectPublicationSnapshots(@Param("modelIds") List<String> modelIds,
+                                                     @Param("tenantId") Long tenantId);
+
     IPage<FlowModelVersion> pageByVersion(Page<FlowModelVersion> page, @Param("modelId") String modelId,
                                           @Param("tenantId") Long tenantId);
 

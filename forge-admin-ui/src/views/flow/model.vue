@@ -1,126 +1,86 @@
 <template>
   <div class="flow-page">
-    <!-- 工具栏：与流程分类/模板同套，状态筛选替代原统计卡 -->
-    <div class="page-header">
-      <div class="header-right">
-        <n-input
-          v-model:value="queryParams.modelName"
-          placeholder="模型名称或 Key"
-          clearable
-          class="search-input"
-          @keyup.enter="handleSearch"
-        >
-          <template #prefix>
-            <i class="i-material-symbols:search" />
-          </template>
-        </n-input>
-        <NTreeSelect
-          v-model:value="queryParams.category"
-          placeholder="流程分类"
-          clearable
-          class="category-select"
-          :options="categoryTreeOptions"
-          :default-expand-all="true"
-        />
-        <n-select
-          v-model:value="queryParams.status"
-          placeholder="状态"
-          clearable
-          class="status-select"
-          :options="statusOptions"
-          @update:value="handleStatusSelect"
-        />
-        <n-button secondary @click="handleSearch">
-          查询
-        </n-button>
-        <n-button quaternary @click="handleReset">
-          重置
-        </n-button>
-        <div class="toolbar-actions">
-          <n-button type="primary" @click="handleAdd">
-            <template #icon>
-              <i class="i-material-symbols:add" />
-            </template>
-            新增模型
-          </n-button>
-          <n-button
-            v-if="dataSource.length"
-            :type="sortMode ? 'primary' : 'default'"
-            secondary
-            :loading="sortSaving"
-            @click="sortMode ? saveModelOrder() : (sortMode = true)"
-          >
-            {{ sortMode ? '保存排序' : '调整排序' }}
-          </n-button>
-          <n-button v-if="sortMode" quaternary :disabled="sortSaving" @click="cancelModelOrder">
-            取消
-          </n-button>
-        </div>
-      </div>
-    </div>
+    <!-- 查询与操作区 -->
+    <FlowModelToolbar
+      v-model:model-name="queryParams.modelName" v-model:category="queryParams.category" v-model:status="queryParams.status"
+      :category-options="categoryTreeOptions" :status-options="statusOptions" :loading="loading"
+      :sort-mode="sortMode" :sort-saving="sortSaving" :can-sort="dataSource.length > 1"
+      @search="handleSearch" @reset="handleReset" @add="handleAdd" @sort="sortMode = true"
+      @save-sort="saveModelOrder" @cancel-sort="cancelModelOrder"
+    />
 
-    <!-- 模型卡片列表 -->
-    <section class="model-workbench">
-      <n-spin :show="loading" class="model-list-spin">
+    <!-- 卡片列表、局部反馈与固定分页 -->
+    <section class="model-workbench" :aria-busy="loading">
+      <div class="model-list-context" aria-live="polite">
+        <span v-if="hasLoaded">{{ hasAppliedFilters ? '匹配' : '共' }} {{ pagination.itemCount }} 个流程模型</span>
+        <span v-else>流程模型</span>
+        <span v-if="sortMode">正在调整本页顺序，保存后生效</span>
+      </div>
+      <div v-if="loadError && dataSource.length" class="model-list-notice">
+        <n-alert type="error" :show-icon="false">
+          {{ loadError }}
+          <n-button text type="primary" :loading="loading" @click="retryQuery">
+            重试查询
+          </n-button>
+        </n-alert>
+      </div>
+      <div v-else-if="bindingLoadError" class="model-list-notice">
+        <n-alert type="warning" :show-icon="false">
+          业务绑定加载失败，模型列表仍可查看。
+          <n-button text type="primary" :loading="loading" @click="fetchData">
+            重试关联
+          </n-button>
+        </n-alert>
+      </div>
+      <n-spin :show="loading && dataSource.length > 0" class="model-list-spin">
         <div class="model-list-body">
-          <div v-if="dataSource.length > 0" class="model-grid">
+          <div v-if="dataSource.length" class="model-grid">
             <FlowModelCard
-              v-for="item in dataSource"
-              :key="item.id"
-              :item="item"
-              :status-label="getLabel('flow_model_status', item.status)"
-              :status-class="statusClass(item.status)"
-              :designer-label="designerTypeLabel(item.designerType)"
-              :designer-class="designerTypeClass(item.designerType)"
-              :category-label="getCategoryDisplayName(item)"
-              :binding-label="formatBusinessBindings(item)"
-              :update-label="formatDate(item.updateTime)"
-              :action-options="getActionOptions(item)"
-              :sort-mode="sortMode"
-              :deploy-disabled="isModelActionLocked(item, 'deploy')"
-              :busy="isModelActionBusy(item)"
-              @design="handleDesign"
-              @deploy="handleDeploy"
-              @instances="handleViewInstances"
-              @action="handleActionSelect"
-              @drag-start="handleDragStart"
-              @drop="handleDrop"
+              v-for="item in dataSource" :key="item.id" :item="item"
+              :status-label="getLabel('flow_model_status', item.status)" :status-class="statusClass(item.status)"
+              :designer-label="designerTypeLabel(item.designerType)" :designer-class="designerTypeClass(item.designerType)"
+              :category-label="getCategoryDisplayName(item)" :binding-label="formatBusinessBindings(item)"
+              :publication-options="dict.flow_model_publication_state || []"
+              :update-label="formatDate(item.updateTime)" :action-options="getActionOptions(item)" :sort-mode="sortMode"
+              :deploy-disabled="isModelActionLocked(item, 'deploy')" :busy="isModelActionBusy(item)"
+              @design="handleDesign" @deploy="handleDeploy" @instances="handleViewInstances" @action="handleActionSelect"
+              @drag-start="handleDragStart" @drop="handleDrop"
             />
           </div>
-
-          <!-- 加载占位：首次加载无数据时撑开高度，保证 loading 可见 -->
-          <div v-else-if="loading" class="model-list-loading" />
-
-          <!-- 空状态 -->
+          <div v-else-if="loading" class="model-grid" aria-label="正在加载流程模型">
+            <div v-for="index in 6" :key="index" class="model-skeleton">
+              <n-skeleton text width="65%" />
+              <n-skeleton text width="40%" />
+              <n-skeleton text :repeat="2" />
+            </div>
+          </div>
+          <n-result v-else-if="loadError" status="error" title="模型加载失败" :description="loadError" class="empty-state">
+            <template #footer>
+              <n-button @click="retryQuery">
+                重试查询
+              </n-button>
+            </template>
+          </n-result>
           <IllustratedEmpty
-            v-else
-            artwork="workflow"
-            description="暂无流程模型，点击「新增模型」开始设计"
-            class="empty-state"
+            v-else artwork="workflow" class="empty-state"
+            :description="hasAppliedFilters ? '没有匹配的流程模型，试试调整查询条件' : '暂无流程模型，创建后即可开始设计'"
           >
             <template #extra>
-              <n-button type="primary" @click="handleAdd">
-                <template #icon>
-                  <i class="i-material-symbols:add" />
-                </template>
+              <n-button v-if="hasAppliedFilters" @click="handleReset">
+                重置筛选
+              </n-button>
+              <n-button v-else type="primary" @click="handleAdd">
                 新增模型
               </n-button>
             </template>
           </IllustratedEmpty>
         </div>
       </n-spin>
-
-      <!-- 分页 -->
       <div v-if="pagination.itemCount > 0" class="pagination-wrapper">
         <n-pagination
-          v-model:page="pagination.page"
-          v-model:page-size="pagination.pageSize"
-          :item-count="pagination.itemCount"
-          :page-sizes="[12, 24, 48]"
-          show-size-picker
-          :disabled="sortMode || sortSaving"
-          @update:page="fetchData"
-          @update:page-size="handlePageSizeChange"
+          v-model:page="pagination.page" v-model:page-size="pagination.pageSize" :item-count="pagination.itemCount"
+          :page-sizes="[12, 24, 48]" show-size-picker :disabled="sortMode || sortSaving || loading"
+          @update:page="fetchData" @update:page-size="handlePageSizeChange"
         />
       </div>
     </section>
@@ -229,7 +189,9 @@
                 {{ currentStartModel?.modelKey || '-' }}
               </div>
             </div>
-            <span class="status-tag deployed">测试发起</span>
+            <n-tag type="info" size="small" :bordered="false">
+              测试发起
+            </n-tag>
           </div>
 
           <n-alert v-if="startTestAlert" :type="startTestAlert.type" :show-icon="false" class="start-test-alert">

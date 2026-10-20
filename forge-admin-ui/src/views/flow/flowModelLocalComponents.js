@@ -14,6 +14,7 @@ import IllustratedEmpty from '@/components/common/IllustratedEmpty.vue'
 import UserSelectPicker from '@/components/common/UserSelectPicker.vue'
 import DesignerAsyncLoader from '@/views/app-center/components/designer/DesignerAsyncLoader.vue'
 import FlowModelCard from './components/FlowModelCard.vue'
+import FlowModelToolbar from './components/FlowModelToolbar.vue'
 
 function createAsyncLoader(title, description, { overlay = false } = {}) {
   return {
@@ -71,6 +72,7 @@ export const flowModelLocalComponents = {
   UserSelectPicker,
   IllustratedEmpty,
   FlowModelCard,
+  FlowModelToolbar,
   DesignerAsyncLoader,
   FlowDesignPage,
   FlowFormCreateRenderer,

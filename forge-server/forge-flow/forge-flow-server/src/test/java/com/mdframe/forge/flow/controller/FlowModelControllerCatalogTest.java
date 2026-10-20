@@ -2,6 +2,7 @@ package com.mdframe.forge.flow.controller;
 
 import com.mdframe.forge.starter.flow.entity.FlowModel;
 import com.mdframe.forge.starter.flow.service.FlowModelService;
+import com.mdframe.forge.starter.flow.service.impl.FlowModelPublicationQueryService;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -19,7 +20,7 @@ class FlowModelControllerCatalogTest {
         FlowModelService service = mock(FlowModelService.class);
         FlowModel deployed = new FlowModel();
         when(service.getEnabledModels("approval")).thenReturn(List.of(deployed));
-        FlowModelController controller = new FlowModelController(service);
+        FlowModelController controller = new FlowModelController(service, mock(FlowModelPublicationQueryService.class));
 
         var response = controller.list("approval", null, false);
 
@@ -33,7 +34,7 @@ class FlowModelControllerCatalogTest {
         FlowModelService service = mock(FlowModelService.class);
         FlowModel draft = new FlowModel();
         when(service.getModels("approval", null)).thenReturn(List.of(draft));
-        FlowModelController controller = new FlowModelController(service);
+        FlowModelController controller = new FlowModelController(service, mock(FlowModelPublicationQueryService.class));
 
         var response = controller.list("approval", null, true);
 

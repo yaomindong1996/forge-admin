@@ -26,6 +26,39 @@
         publish_time, tenant_id, create_time, del_flag
     </sql>
 
+    <!-- 优先取当前部署精确匹配的快照；否则取一条历史证据，让调用方保守展示待核对。 -->
+    <select id="selectPublicationSnapshots" resultMap="BaseResultMap">
+        SELECT v.*
+        FROM sys_flow_model m
+        INNER JOIN sys_flow_model_version v ON v.id = (
+            SELECT candidate.id
+            FROM sys_flow_model_version candidate
+            WHERE candidate.model_id = m.id
+              AND candidate.tenant_id = #{tenantId}
+              AND candidate.del_flag = 0
+            ORDER BY CASE
+                WHEN candidate.deployment_id = m.deployment_id
+                 AND candidate.process_definition_id = m.process_definition_id
+                 AND candidate.version = m.version THEN 0 ELSE 1 END,
+                candidate.version DESC, candidate.publish_time DESC, candidate.id DESC
+            LIMIT 1
+        )
+          AND v.tenant_id = #{tenantId}
+          AND v.model_id = m.id
+          AND v.del_flag = 0
+        WHERE m.tenant_id = #{tenantId}
+          AND m.del_flag = 0
+        <choose>
+            <when test="modelIds != null and modelIds.size() > 0">
+                AND m.id IN
+                <foreach collection="modelIds" item="modelId" open="(" separator="," close=")">
+                    #{modelId}
+                </foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
+
     <select id="pageByVersion" resultMap="BaseResultMap">
         SELECT
             v.id,

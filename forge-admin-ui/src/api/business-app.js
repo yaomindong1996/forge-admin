@@ -209,6 +209,13 @@ export function businessFlowModelBindings(modelKey) {
   return request.get(`/ai/business/flow/model/${modelKey}/business-bindings`)
 }
 
+export function businessFlowModelBindingsBatch(modelKeys) {
+  const query = new URLSearchParams()
+  for (const key of modelKeys)
+    query.append('modelKeys', key)
+  return request.get(`/ai/business/flow/model/business-bindings?${query}`)
+}
+
 export function createBusinessBinding(data) {
   return request.post('/ai/business/binding', data)
 }

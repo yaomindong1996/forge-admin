@@ -78,6 +78,17 @@ public class FlowModel {
      * 版本号
      */
     private Integer version;
+
+    /** 当前部署对应的真实发布快照版本；缺失/不匹配时不猜测。 */
+    @TableField(exist = false)
+    private Integer publishedVersion;
+
+    @TableField(exist = false)
+    private LocalDateTime publishedTime;
+
+    /** 只读派生状态，见 FlowModelPublicationState；不写回模型生命周期状态。 */
+    @TableField(exist = false)
+    private String publicationState;
     
     /**
      * Flowable流程定义ID

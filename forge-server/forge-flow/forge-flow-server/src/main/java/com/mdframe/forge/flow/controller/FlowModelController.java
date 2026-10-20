@@ -10,6 +10,7 @@ import com.mdframe.forge.starter.flow.entity.FlowModel;
 import com.mdframe.forge.starter.flow.dto.FlowStartConfig;
 import com.mdframe.forge.starter.flow.dto.FlowModelSortDTO;
 import com.mdframe.forge.starter.flow.service.FlowModelService;
+import com.mdframe.forge.starter.flow.service.impl.FlowModelPublicationQueryService;
 import com.mdframe.forge.starter.flow.vo.FlowModelStatisticsVO;
 import com.mdframe.forge.starter.flow.vo.FlowModelVersionSummaryVO;
 import cn.dev33.satoken.annotation.SaCheckPermission;
@@ -34,6 +35,7 @@ import java.util.Map;
 public class FlowModelController {
 
     private final FlowModelService flowModelService;
+    private final FlowModelPublicationQueryService publicationQueryService;
 
     /**
      * 分页查询流程模型
@@ -50,6 +52,7 @@ public class FlowModelController {
         int safePageSize = pageSize == null || pageSize < 1 ? 10 : Math.min(pageSize, 100);
         Page<FlowModel> page = new Page<>(safePageNum, safePageSize);
         IPage<FlowModel> result = flowModelService.pageFlowModel(page, modelName, category, status);
+        publicationQueryService.enrich(result.getRecords());
         return RespInfo.success(result);
     }
 

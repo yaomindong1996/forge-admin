@@ -138,10 +138,8 @@
         LIMIT 1
     </select>
 
-    <select id="selectFlowBindingsByModelKey" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessBindingSummaryVO">
-        SELECT
+    <sql id="FlowBindingSummaryColumns">
           b.id AS bindingId,
-          COALESCE(NULLIF(b.binding_key, ''), #{modelKey}) AS flowModelKey,
           b.binding_name AS bindingName,
           b.target_code AS objectCode,
           COALESCE(o.object_name, b.target_code) AS objectName,
@@ -199,7 +197,9 @@
               ELSE ''
             END
           ) AS entryRoute
-        FROM ai_business_binding b
+    </sql>
+
+    <sql id="FlowBindingSummaryJoins">
         LEFT JOIN ai_business_object o
           ON o.tenant_id = b.tenant_id
          AND o.object_code = b.target_code
@@ -208,6 +208,13 @@
           ON s.tenant_id = o.tenant_id
          AND s.suite_code = o.suite_code
          AND s.del_flag = '0'
+    </sql>
+
+    <select id="selectFlowBindingsByModelKey" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessBindingSummaryVO">
+        SELECT COALESCE(NULLIF(b.binding_key, ''), #{modelKey}) AS flowModelKey,
+        <include refid="FlowBindingSummaryColumns"/>
+        FROM ai_business_binding b
+        <include refid="FlowBindingSummaryJoins"/>
         WHERE b.tenant_id = #{tenantId}
           AND b.target_type = 'OBJECT'
           AND b.binding_type IN ('FLOW', 'APPROVAL')
@@ -221,6 +228,33 @@
             )
           )
         ORDER BY COALESCE(o.sort_order, 0) ASC, b.sort_order ASC, b.id ASC
+    </select>
+
+    <select id="selectFlowBindingsByModelKeys" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessBindingSummaryVO">
+        SELECT requested.model_key AS flowModelKey,
+        <include refid="FlowBindingSummaryColumns"/>
+        FROM (
+            <choose>
+                <when test="modelKeys != null and modelKeys.size() > 0">
+                    <foreach collection="modelKeys" item="modelKey" separator=" UNION ALL ">
+                        SELECT #{modelKey} AS model_key
+                    </foreach>
+                </when>
+                <otherwise>SELECT NULL AS model_key WHERE 1 = 0</otherwise>
+            </choose>
+        ) requested
+        INNER JOIN ai_business_binding b ON b.tenant_id = #{tenantId}
+          AND (b.binding_key = requested.model_key OR
+            CASE WHEN JSON_VALID(b.binding_config)
+                 THEN JSON_UNQUOTE(JSON_EXTRACT(b.binding_config, '$.flowModelKey'))
+                 ELSE NULL END = requested.model_key)
+        <include refid="FlowBindingSummaryJoins"/>
+        WHERE b.tenant_id = #{tenantId}
+          AND b.target_type = 'OBJECT'
+          AND b.binding_type IN ('FLOW', 'APPROVAL')
+          AND b.status = 1
+          AND o.id IS NOT NULL
+        ORDER BY requested.model_key ASC, COALESCE(o.sort_order, 0) ASC, b.sort_order ASC, b.id ASC
     </select>
 
     <select id="selectByApplication" resultMap="BaseResultMap">
