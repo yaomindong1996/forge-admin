@@ -20,10 +20,10 @@ const triggeredByEvent = computed({
 
 <template>
   <div class="space-y-3">
-    <n-form-item label="事件子流程" label-placement="left">
+    <n-form-item label="事件子流程" label-placement="top" :show-feedback="false">
       <n-switch v-model:value="triggeredByEvent" :disabled="readonly" />
     </n-form-item>
-    <div class="text-xs rounded bg-gray-50 px-3 py-2 text-gray-500">
+    <div class="config-hint">
       子流程内部结构暂不支持画布内编辑，请使用高级模式或 BPMN XML 编辑器。
     </div>
   </div>

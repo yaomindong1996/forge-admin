@@ -283,6 +283,7 @@ function normalizeNumber(value, fallback) {
 .duration-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
   gap: 12px;
 }
 
@@ -294,6 +295,7 @@ function normalizeNumber(value, fallback) {
 .time-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
   gap: 12px;
 }
 

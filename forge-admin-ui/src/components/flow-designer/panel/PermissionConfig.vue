@@ -41,21 +41,53 @@ const fields = FIELDS.map(({ key, label, desc, fallback }) => ({
 </script>
 
 <template>
-  <div class="space-y-2">
+  <div class="permission-config">
     <div
       v-for="f in fields"
       :key="f.key"
-      class="flex items-start justify-between gap-3 border border-gray-100 rounded p-3"
+      class="permission-row"
     >
-      <div class="flex-1">
-        <div class="text-sm text-gray-700 font-medium">
+      <div class="permission-copy">
+        <div class="permission-title">
           {{ f.label }}
         </div>
-        <div class="text-xs text-gray-400">
+        <div class="permission-description">
           {{ f.desc }}
         </div>
       </div>
-      <n-switch v-model:value="f.model.value" :disabled="readonly" />
+      <n-switch v-model:value="f.model.value" :aria-label="f.label" :disabled="readonly" />
     </div>
   </div>
 </template>
+
+<style scoped>
+.permission-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+}
+.permission-row + .permission-row {
+  border-top: 1px solid var(--border-light);
+}
+.permission-copy {
+  min-width: 0;
+  flex: 1;
+}
+.permission-title {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+}
+.permission-description {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.permission-row :deep(.n-switch) {
+  flex: none;
+  margin-top: 2px;
+}
+</style>

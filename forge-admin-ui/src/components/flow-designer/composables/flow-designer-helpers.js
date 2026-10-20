@@ -68,7 +68,8 @@ export function deleteGateway(json, gatewayId, idGen) {
     let cur = head
     while (cur && !toDelete.has(cur)) {
       // 入度 ≥ 2 视为汇合点（其他分支也共享）→ 停止下钻，记录
-      if (inDegreeOf(cur) >= 2 && cur !== head) {
+      // 两条条件边可以直接指向同一个公共审批，分支首节点也可能已经是汇合点。
+      if (inDegreeOf(cur) >= 2) {
         visitedConvergence.add(cur)
         break
       }

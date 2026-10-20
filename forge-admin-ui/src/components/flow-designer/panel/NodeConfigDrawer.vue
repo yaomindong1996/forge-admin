@@ -31,6 +31,7 @@
  */
 import { computed, ref, watch } from 'vue'
 import FlowPropertyPanelShell from '@/components/flow/FlowPropertyPanelShell.vue'
+import { getNodePresentation } from '../constants/node-presentation.js'
 import BasicConfig from '../panel/BasicConfig.vue'
 import { CONFIG_RENDERER_MAP } from '../panel/config-renderer-map.js'
 
@@ -44,6 +45,7 @@ const props = defineProps({
   focusEdgeId: { type: String, default: '' },
   readonly: { type: Boolean, default: false },
   width: { type: Number, default: 560 },
+  mountTo: { type: Object, default: null },
 })
 
 const emit = defineEmits(['update:visible', 'save', 'update:edge'])
@@ -62,8 +64,6 @@ watch(
   ([v, n]) => {
     if (v && n)
       draftNode.value = cloneDeep(n)
-    else if (!v)
-      draftNode.value = null
   },
   { immediate: true },
 )
@@ -92,24 +92,20 @@ const configExtraProps = computed(() => {
 })
 
 const useIntegratedBasicConfig = computed(() => draftNode.value?.nodeType === 'approver')
-
-const headerIcon = computed(() => {
-  const map = {
-    start: 'i-mdi-flag-variant-outline',
-    end: 'i-mdi-flag-checkered',
-    approver: 'i-lucide:user',
-    carbonCopy: 'i-lucide:copy',
-    condition: 'i-lucide:git-branch',
-    parallel: 'i-lucide:split',
-    inclusive: 'i-lucide:git-merge',
-    service: 'i-lucide:settings',
-    script: 'i-lucide:code',
-    subProcess: 'i-lucide:network',
-    callActivity: 'i-lucide:phone',
-    advanced: 'i-lucide:shield',
-  }
-  return map[draftNode.value?.nodeType] || 'i-mdi-square-outline'
+const headerTitle = computed(() => {
+  if (!draftNode.value)
+    return props.readonly ? '查看节点' : '配置节点'
+  const label = getNodePresentation(draftNode.value.nodeType).label
+  return label.endsWith('节点') ? label : `${label}节点`
 })
+
+function clearClosedDraft() {
+  // 关闭动画完成前保留显示内容，不能先闪出空配置区。
+  if (!props.visible)
+    draftNode.value = null
+}
+
+const headerIcon = computed(() => getNodePresentation(draftNode.value?.nodeType).icon)
 
 function handleClose() {
   emit('update:visible', false)
@@ -166,51 +162,67 @@ defineExpose({
 <template>
   <n-drawer
     :show="visible"
-    :width="drawerWidth"
+    :width="mountTo ? '100%' : drawerWidth"
+    :to="mountTo || undefined"
+    :show-mask="!mountTo"
+    :block-scroll="!mountTo"
+    :trap-focus="!mountTo"
+    :auto-focus="!mountTo"
     placement="right"
-    :mask-closable="!readonly"
+    :mask-closable="!mountTo && !readonly"
     @update:show="$emit('update:visible', $event)"
+    @after-leave="clearClosedDraft"
   >
     <n-drawer-content
       class="node-config-drawer"
-      :native-scrollbar="false"
+      :native-scrollbar="true"
+      body-style="height: 100%; overflow: hidden;"
+      body-content-style="height: 100%; padding: 0; overflow: hidden; box-sizing: border-box;"
       :closable="false"
     >
       <FlowPropertyPanelShell
-        :title="draftNode?.name || (readonly ? '查看节点' : '配置节点')"
-        description="节点属性配置"
+        flat
+        :icon-color="getNodePresentation(draftNode?.nodeType).color"
+        :title="headerTitle"
+        :description="draftNode?.name || (readonly ? '查看节点' : '配置节点')"
         :icon="headerIcon"
         :empty="!draftNode"
         empty-text="请先选择一个节点。"
         @close="handleClose"
       >
-        <BasicConfig
-          v-if="draftNode && !useIntegratedBasicConfig"
-          v-model:node="draftNode"
-          :readonly="readonly"
-        />
-        <component
-          :is="ConfigComponent"
-          v-if="draftNode && ConfigComponent"
-          :node="draftNode"
-          v-bind="configExtraProps"
-          :readonly="readonly"
-          @update:config="updateConfig"
-          @update:node="updateNode"
-          @update:edge="updateEdge"
-        />
-        <div v-else-if="draftNode" class="node-config-empty">
-          该节点类型暂无可配置项。
+        <!-- 普通节点只有一层留白；审批节点由 Tab pane 统一维护内边距。 -->
+        <div class="node-config-fields" :class="{ 'has-integrated-tabs': useIntegratedBasicConfig }">
+          <BasicConfig
+            v-if="draftNode && !useIntegratedBasicConfig"
+            v-model:node="draftNode"
+            :readonly="readonly"
+          />
+          <component
+            :is="ConfigComponent"
+            v-if="draftNode && ConfigComponent"
+            :node="draftNode"
+            v-bind="configExtraProps"
+            :readonly="readonly"
+            @update:config="updateConfig"
+            @update:node="updateNode"
+            @update:edge="updateEdge"
+          />
+          <div v-else-if="draftNode" class="node-config-empty">
+            该节点类型暂无可配置项。
+          </div>
         </div>
 
         <template #footer>
-          <div class="flex justify-end gap-2">
-            <n-button @click="handleClose">
-              {{ readonly ? '关闭' : '取消' }}
-            </n-button>
-            <n-button v-if="!readonly" type="primary" @click="handleSave">
-              保存
-            </n-button>
+          <div class="node-config-footer">
+            <span v-if="!readonly">确认节点后，仍需保存流程草稿</span>
+            <div class="flex gap-2">
+              <n-button @click="handleClose">
+                {{ readonly ? '关闭' : '取消' }}
+              </n-button>
+              <n-button v-if="!readonly" type="primary" @click="handleSave">
+                确定
+              </n-button>
+            </div>
           </div>
         </template>
       </FlowPropertyPanelShell>
@@ -219,9 +231,35 @@ defineExpose({
 </template>
 
 <style scoped>
-:deep(.node-config-drawer .n-drawer-body-content-wrapper) {
-  height: 100%;
-  padding: 0;
+.node-config-fields {
+  min-width: 0;
+  container-type: inline-size;
+}
+.node-config-fields:not(.has-integrated-tabs) {
+  padding: 16px;
+}
+.node-config-fields:not(.has-integrated-tabs) > :deep(.basic-config) {
+  margin-bottom: 20px;
+}
+.node-config-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.node-config-footer > span {
+  color: var(--text-tertiary, #86909c);
+  font-size: 11px;
+}
+
+@media (max-width: 680px) {
+  .node-config-footer {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .node-config-footer > span {
+    width: 100%;
+  }
 }
 
 .node-config-empty {

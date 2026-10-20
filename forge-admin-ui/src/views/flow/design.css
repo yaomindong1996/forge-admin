@@ -8,77 +8,6 @@
   background: var(--bg-secondary);
 }
 
-.top-bar {
-  height: 52px;
-  padding: 0 20px;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-light);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-}
-
-.top-bar-left,
-.top-bar-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.top-bar-left {
-  flex: 1;
-  min-width: 0;
-}
-
-.workspace-tabs {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 36px;
-  padding: 3px;
-  border: 1px solid #dbe3ee;
-  border-radius: 8px;
-  background: var(--bg-secondary);
-}
-
-.workspace-tab {
-  height: 28px;
-  min-width: 96px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background 150ms ease,
-    color 150ms ease,
-    box-shadow 150ms ease;
-}
-
-.workspace-tab i {
-  font-size: 17px;
-}
-
-.workspace-tab:hover {
-  color: var(--text-primary);
-  background: #eef2f7;
-}
-
-.workspace-tab.active {
-  color: #2563eb;
-  background: var(--bg-primary);
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.08),
-    inset 0 0 0 1px #bfdbfe;
-}
 
 .business-context-banner {
   min-height: 38px;
@@ -88,9 +17,9 @@
   justify-content: space-between;
   gap: 12px;
   flex-shrink: 0;
-  color: #0f766e;
-  background: #ecfdf5;
-  border-bottom: 1px solid #bbf7d0;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--primary-color) 4%, var(--bg-primary));
+  border-bottom: 1px solid var(--border-light);
   font-size: 13px;
 }
 
@@ -104,7 +33,7 @@
 .business-context-banner__main strong {
   min-width: 0;
   overflow: hidden;
-  color: #064e3b;
+  color: var(--text-primary);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1441,22 +1370,8 @@
 }
 
 @media (max-width: 1024px) {
-  .top-bar {
-    padding: 0 12px;
-    height: 48px;
-  }
-
-  .top-bar-left {
-    gap: 6px;
-  }
-
   .center-area {
     min-height: 0;
-  }
-
-  .workspace-tab {
-    min-width: 86px;
-    padding: 0 10px;
   }
 
   .settings-tree-nav {
@@ -1471,29 +1386,6 @@
 }
 
 @media (max-width: 768px) {
-  .top-bar {
-    align-items: stretch;
-    height: auto;
-    min-height: 52px;
-    padding: 8px 10px;
-    gap: 8px;
-  }
-
-  .top-bar-left,
-  .top-bar-right {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .workspace-tabs {
-    order: 3;
-    width: 100%;
-  }
-
-  .workspace-tab {
-    flex: 1;
-  }
-
   .settings-workspace {
     flex-direction: column-reverse;
   }

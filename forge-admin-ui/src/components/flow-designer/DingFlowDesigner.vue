@@ -10,25 +10,30 @@
  * pitfalls #7 防回环：v-model 风格父组件回写 props.xml 时，比对 lastEmittedXml 跳过。
  * pitfalls #8 BPMNPlane 修复：JSON→XML 时 convertJsonToBpmn 总写真实 process id。
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue'
 import { normalizeFlowFieldCatalog, serializeFlowFormPermissions } from '@/utils/flow-field-permissions'
+import { layoutDesignerFlow } from './canvas/designer-layout.js'
+import FlowCanvasHeader from './canvas/FlowCanvasHeader.vue'
 import {
   AddNodeButton,
   BranchAddButton,
   BranchHeader,
   EdgeLayer,
   FlowCanvas,
-  layoutFlow,
   MergeNode,
   NodeContextMenu,
   NodeRenderer,
 } from './canvas/index.js'
 import { useFlowDesigner, useFlowHistory } from './composables/index.js'
+import { useApprovalNodeMerge } from './composables/useApprovalNodeMerge.js'
+import { NODE_PRESENTATION } from './constants/node-presentation.js'
 import { convertBpmnToJson, convertJsonToBpmn } from './converter/index.js'
+import ApprovalNodeMergeModal from './panel/ApprovalNodeMergeModal.vue'
 import { NodeConfigDrawer } from './panel/index.js'
 
 const props = defineProps({
   xml: { type: String, default: '' },
+  processName: { type: String, default: '' },
   readonly: { type: Boolean, default: false },
   formAssetOptions: { type: Array, default: () => [] },
   formFieldCatalog: { type: Array, default: () => [] },
@@ -42,6 +47,7 @@ const emit = defineEmits(['change', 'ready', 'importStart', 'importEnd'])
 const designer = useFlowDesigner()
 const history = useFlowHistory(designer.flowJson, { maxStack: 50 })
 const canvasRef = ref(null)
+const panelHost = ref(null)
 const isImporting = ref(false)
 const lastEmittedXml = ref('')
 
@@ -53,10 +59,23 @@ const drawerNode = computed(() => designer.getNode(drawerNodeId.value))
 const drawerOutgoingEdges = computed(() => drawerNodeId.value ? designer.getOutgoingEdges(drawerNodeId.value) : [])
 
 const contextMenu = ref({ visible: false, position: { x: 0, y: 0 }, node: null })
+const { mergeOwnerId, openNodeMerge, confirmNodeMerge } = useApprovalNodeMerge({
+  designer,
+  history,
+  readonly: toRef(props, 'readonly'),
+  drawerVisible,
+  onMerged: handleNodeClick,
+})
 
 // layoutResult 用 computed 同步求值，避免 ref+watch 异步时序导致新增节点
 // 先用旧位置渲染（position=undefined → 节点堆叠在左上角）的问题
-const layoutResult = computed(() => layoutFlow(designer.flowJson.value))
+const layoutResult = computed(() => layoutDesignerFlow(designer.flowJson.value))
+
+// 侧栏展开后按剩余画布重算适配，不让当前节点藏到配置区背后。
+watch(drawerVisible, async () => {
+  await nextTick()
+  autoFitToScreen()
+})
 
 watch(
   () => props.xml,
@@ -385,6 +404,9 @@ function handleContextAction(actionId, node) {
     case 'edit':
       handleNodeClick(node)
       break
+    case 'merge':
+      openNodeMerge(node)
+      break
     case 'copy':
       history.snapshot()
       try {
@@ -593,9 +615,13 @@ const branchHeaders = computed(() => {
       const targetPos = layoutResult.value.nodePositions.get(edge.target)
       if (!targetPos)
         continue
-      const position = branchHeaderPosition(edge, gwPos, targetPos)
+      const cardPosition = layoutResult.value.branchCards.get(edge.id)
+      const position = cardPosition || branchHeaderPosition(edge, gwPos, targetPos)
       out.push({
         edge,
+        card: Boolean(cardPosition),
+        index: designer.getOutgoingEdges(node.id).findIndex(item => item.id === edge.id) + 1,
+        gatewayType: node.nodeType,
         position: avoidHeaderCollision(position, placed),
       })
     }
@@ -629,7 +655,8 @@ const branchAddButtons = computed(() => {
       gatewayId: node.id,
       position: {
         x: nodeCenterX(gwPos),
-        y: anchorTarget ? Math.min(branchLaneY(gwPos, anchorTarget), gatewayBottomY + 40) : gatewayBottomY + 40,
+        y: layoutResult.value.branchJunctions.get(node.id)
+          ?? (anchorTarget ? Math.min(branchLaneY(gwPos, anchorTarget), gatewayBottomY + 40) : gatewayBottomY + 40),
       },
     })
   }
@@ -718,10 +745,21 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="ding-flow-designer relative h-full w-full bg-white">
-    <FlowCanvas ref="canvasRef" :readonly="readonly">
+  <div
+    class="ding-flow-designer relative h-full w-full" :class="{ 'is-panel-open': drawerVisible }"
+    :style="{ '--flow-branch-color': NODE_PRESENTATION.condition.color }"
+  >
+    <FlowCanvas ref="canvasRef" :readonly="readonly" :content-bounds="layoutResult.canvasBounds">
+      <template #overlay>
+        <FlowCanvasHeader
+          :process-name="processName || designer.flowJson.value.processName"
+          :can-undo="history.canUndo.value" :can-redo="history.canRedo.value" :readonly="readonly"
+          @undo="undo" @redo="redo"
+        />
+      </template>
       <template #edges>
         <EdgeLayer
+          neutral
           :edges="designer.flowJson.value.edges"
           :paths="layoutResult.edgePaths"
           :canvas-bounds="layoutResult.canvasBounds"
@@ -755,6 +793,10 @@ onBeforeUnmount(() => {
           :key="`bh-${bh.edge.id}-${idx}`"
           :edge="bh.edge"
           :position="bh.position"
+          :card="bh.card"
+          :index="bh.index"
+          :gateway-type="bh.gatewayType"
+          :fields="formFieldCatalog"
           @click="handleBranchHeaderClick"
         />
 
@@ -783,6 +825,9 @@ onBeforeUnmount(() => {
       @action="handleContextAction"
     />
 
+    <!-- 配置区只占当前设计器，不遮住顶部保存/发布，也不遮罩画布 -->
+    <ApprovalNodeMergeModal :owner-id="mergeOwnerId" :flow="designer.flowJson.value" @confirm="confirmNodeMerge" />
+    <div ref="panelHost" class="ding-flow-panel-host" />
     <NodeConfigDrawer
       ref="drawerRef"
       :visible="drawerVisible"
@@ -793,9 +838,62 @@ onBeforeUnmount(() => {
       :form-field-catalog="formFieldCatalog"
       :focus-edge-id="drawerFocusEdgeId"
       :readonly="readonly"
+      :mount-to="panelHost"
       @update:visible="handleDrawerVisibleUpdate"
       @save="handleDrawerSave"
       @update:edge="handleDrawerEdgeUpdate"
     />
   </div>
 </template>
+
+<style scoped>
+.ding-flow-designer {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-secondary, #f6f8fb);
+}
+.ding-flow-designer > :deep(.flow-canvas) {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+.ding-flow-panel-host {
+  position: relative;
+  flex: none;
+  width: 0;
+  min-height: 0;
+}
+.ding-flow-designer :deep(.branch-node-shell .branch-node-diamond) {
+  border-color: var(--border-light, #dfe4ec);
+  background: var(--bg-primary, #fff);
+  box-shadow: none;
+}
+.ding-flow-designer :deep(.branch-node-icon) {
+  color: var(--flow-branch-color);
+}
+.ding-flow-designer :deep(.branch-node-shell.is-selected .branch-node-diamond) {
+  border-color: var(--primary-color, #356de0);
+}
+.ding-flow-designer :deep(.branch-add-btn) {
+  border-radius: 50%;
+  border-color: var(--primary-color, #356de0);
+  color: var(--primary-color, #356de0);
+  background: var(--bg-primary, #fff);
+  box-shadow: none;
+}
+.is-panel-open .ding-flow-panel-host {
+  width: min(480px, 44%);
+  border-left: 1px solid var(--border-light, #e5e7eb);
+}
+@media (max-width: 760px) {
+  .is-panel-open .ding-flow-panel-host {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(480px, 100%);
+    z-index: 40;
+  }
+}
+</style>

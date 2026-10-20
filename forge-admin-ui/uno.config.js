@@ -4,6 +4,7 @@ import { FileSystemIconLoader } from '@iconify/utils/lib/loader/node-loaders'
 import presetRemToPx from '@unocss/preset-rem-to-px'
 import { defineConfig, presetAttributify, presetIcons, presetWind3 } from 'unocss'
 import { getIcons } from './build/index.js'
+import { NODE_PRESENTATION } from './src/components/flow-designer/constants/node-presentation.js'
 // 统一的响应式字体插件，集成了静态和动态规则
 import { responsiveFontUnifiedPreset } from './src/plugins/responsive-font-unified.js'
 
@@ -59,6 +60,7 @@ export default defineConfig({
   ],
   // 折叠态切换用动态 class，额外 safelist 避免只扫到其中一个分支
   safelist: [
+    ...Object.values(NODE_PRESENTATION).map(item => item.icon),
     ...icons.map(icon => `${icon} ${icon}?mask`.split(' ')).flat(),
     'i-line-md-menu-fold-left',
     'i-line-md-menu-unfold-left',

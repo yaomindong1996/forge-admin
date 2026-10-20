@@ -1,63 +1,21 @@
 <template>
   <div class="model-design-page">
     <!-- 顶部工具栏 -->
-    <div class="top-bar">
-      <div class="top-bar-left">
-        <n-button text @click="handleBack">
-          <template #icon>
-            <i :class="embedded ? 'i-material-symbols:close' : 'i-material-symbols:arrow-back'" />
-          </template>
-          {{ embedded ? '关闭' : '返回' }}
-        </n-button>
-        <n-divider vertical />
-        <div class="workspace-tabs">
-          <button
-            type="button"
-            class="workspace-tab"
-            :class="{ active: workspaceMode === 'design' }"
-            @click="setWorkspaceMode('design')"
-          >
-            <i class="i-material-symbols:account-tree-outline" />
-            <span>流程设计</span>
-          </button>
-          <button
-            type="button"
-            class="workspace-tab"
-            :class="{ active: workspaceMode === 'settings' }"
-            @click="setWorkspaceMode('settings')"
-          >
-            <i class="i-material-symbols:tune" />
-            <span>更多设置</span>
-          </button>
-        </div>
-      </div>
-      <div class="top-bar-right">
-        <n-button @click="handleOpenVersionHistory">
-          <template #icon>
-            <i class="i-material-symbols:history" />
-          </template>
-          更改记录
-        </n-button>
-        <n-button :type="isAiPanelActive ? 'primary' : 'default'" @click="toggleAiPanel">
-          <template #icon>
-            <i class="i-material-symbols:auto-awesome" />
-          </template>
-          AI生成
-        </n-button>
-        <n-button :loading="saving" @click="handleSaveDraft">
-          <template #icon>
-            <i class="i-material-symbols:save" />
-          </template>
-          保存草稿
-        </n-button>
-        <n-button type="primary" :loading="deploying" @click="handleDeploy">
-          <template #icon>
-            <i class="i-material-symbols:rocket-launch" />
-          </template>
-          发布部署
-        </n-button>
-      </div>
-    </div>
+    <FlowDesignToolbar
+      :name="modelInfo.modelName"
+      :status="statusTag"
+      :mode="workspaceMode"
+      :embedded="embedded"
+      :ai-active="isAiPanelActive"
+      :saving="saving"
+      :deploying="deploying"
+      @back="handleBack"
+      @mode="setWorkspaceMode"
+      @history="handleOpenVersionHistory"
+      @ai="toggleAiPanel"
+      @save="handleSaveDraft"
+      @deploy="handleDeploy"
+    />
 
     <div v-if="businessContextActive" class="business-context-banner">
       <div class="business-context-banner__main">
@@ -78,9 +36,10 @@
         <div class="designer-container">
           <DingFlowDesigner
             v-if="isApprovalDesigner"
-            ref="modelerRef"
+            :ref="el => bindElementRef('modelerRef', el)"
             :key="designerRenderKey"
             :xml="bpmnXml"
+            :process-name="modelInfo.modelName"
             :form-asset-options="nodeFormAssetOptions"
             :form-field-catalog="formFieldCatalog"
             :auto-bind-business-form="businessContextActive"
@@ -93,7 +52,7 @@
           />
           <FlowModeler
             v-else
-            ref="modelerRef"
+            :ref="el => bindElementRef('modelerRef', el)"
             :key="designerRenderKey"
             :xml="bpmnXml"
             @change="handleBpmnChange"
@@ -115,7 +74,7 @@
             <div v-if="aiGeneratingCanvasHintVisible" class="ai-generating-mask">
               <div class="ai-generating-panel">
                 <div class="ai-generating-badge">
-                  <i class="i-material-symbols:auto-awesome ai-generating-icon" />
+                  <i class="ai-generating-icon i-material-symbols:auto-awesome" />
                 </div>
                 <div class="ai-generating-main">
                   <div class="ai-generating-title">
@@ -598,7 +557,7 @@
             <div class="ai-flow-header">
               <div class="ai-flow-header-info">
                 <div class="ai-flow-title">
-                  <i class="i-material-symbols:auto-awesome ai-flow-title-icon" />
+                  <i class="ai-flow-title-icon i-material-symbols:auto-awesome" />
                   AI流程助手
                 </div>
                 <div class="ai-flow-subtitle">
@@ -622,10 +581,10 @@
               </div>
             </div>
 
-            <div ref="aiMessageListRef" class="ai-flow-body">
+            <div :ref="el => bindElementRef('aiMessageListRef', el)" class="ai-flow-body">
               <div v-if="aiMessages.length === 0" class="ai-flow-empty">
                 <div class="ai-empty-hero">
-                  <i class="i-material-symbols:auto-awesome ai-empty-icon" />
+                  <i class="ai-empty-icon i-material-symbols:auto-awesome" />
                   <div class="ai-empty-title">
                     描述你的流程需求
                   </div>
@@ -669,12 +628,15 @@
                     <div v-if="msg.reasoning && msg.reasoning.trim()" class="reasoning-section">
                       <div class="reasoning-header" @click="toggleReasoning(index)">
                         <div class="reasoning-header-left">
-                          <i class="i-material-symbols:psychology reasoning-icon" />
+                          <i class="reasoning-icon i-material-symbols:psychology" />
                           <span class="reasoning-label">思考过程</span>
                           <span v-if="msg.reasoningTime" class="reasoning-duration">用时 {{ msg.reasoningTime }}s</span>
                           <span v-else-if="msg.isReasoning" class="reasoning-duration thinking">思考中...</span>
                         </div>
-                        <i class="i-material-symbols:expand-more reasoning-toggle" :class="{ expanded: expandedReasonings[index] }" />
+                        <i
+                          class="reasoning-toggle i-material-symbols:expand-more"
+                          :class="{ expanded: expandedReasonings[index] }"
+                        />
                       </div>
                       <div
                         v-if="expandedReasonings[index]"
@@ -721,7 +683,7 @@
                   </n-button>
                 </n-space>
               </div>
-              <div ref="aiMessageEndRef" class="ai-message-end" />
+              <div :ref="el => bindElementRef('aiMessageEndRef', el)" class="ai-message-end" />
             </div>
 
             <div class="ai-flow-input">
@@ -754,7 +716,7 @@
                         <span class="model-trigger-provider">{{ currentProviderLabel }}</span>
                         <span class="model-trigger-divider">·</span>
                         <span class="model-trigger-model">{{ currentModelLabel }}</span>
-                        <i class="i-material-symbols:expand-more model-trigger-chevron" />
+                        <i class="model-trigger-chevron i-material-symbols:expand-more" />
                       </button>
                     </template>
 
@@ -869,7 +831,7 @@
       >
         <div class="flow-form-designer-modal-body">
           <FlowFormCreateDesigner
-            ref="formDesignerRef"
+            :ref="el => bindElementRef('formDesignerRef', el)"
             v-model="formSchema"
             height="100%"
             @save="handleSaveFormSchema"
@@ -950,8 +912,8 @@
 </template>
 
 <script>
-import { flowDesignLocalComponents } from './flowDesignLocalComponents'
 import { useFlowDesign } from './composables/useFlowDesign'
+import { flowDesignLocalComponents } from './flowDesignLocalComponents'
 
 export default {
   name: 'FlowDesignPage',
@@ -959,42 +921,49 @@ export default {
     ...flowDesignLocalComponents,
   },
   props: {
-  embedded: {
-    type: Boolean,
-    default: false,
+    embedded: {
+      type: Boolean,
+      default: false,
+    },
+    modelId: {
+      type: [String, Number],
+      default: '',
+    },
+    businessObjectCode: {
+      type: String,
+      default: '',
+    },
+    businessObjectName: {
+      type: String,
+      default: '',
+    },
+    businessFormKey: {
+      type: String,
+      default: '',
+    },
+    applicationId: {
+      type: [String, Number],
+      default: '',
+    },
+    businessEntryRoute: {
+      type: String,
+      default: '',
+    },
+    codeApp: {
+      type: Boolean,
+      default: false,
+    },
   },
-  modelId: {
-    type: [String, Number],
-    default: '',
-  },
-  businessObjectCode: {
-    type: String,
-    default: '',
-  },
-  businessObjectName: {
-    type: String,
-    default: '',
-  },
-  businessFormKey: {
-    type: String,
-    default: '',
-  },
-  applicationId: {
-    type: [String, Number],
-    default: '',
-  },
-  businessEntryRoute: {
-    type: String,
-    default: '',
-  },
-  codeApp: {
-    type: Boolean,
-    default: false,
-  },
-},
   emits: ['close', 'saved', 'deployed'],
   setup(props, { emit }) {
-    return useFlowDesign(props, emit)
+    const state = useFlowDesign(props, emit)
+    return {
+      ...state,
+      // Options 薄壳显式把实例回写 composable，便于跟踪和静态检查。
+      bindElementRef(key, element) {
+        state[key].value = element
+      },
+    }
   },
 }
 </script>

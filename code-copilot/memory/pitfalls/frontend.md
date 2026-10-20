@@ -883,3 +883,37 @@ PERSIST_META 由 FastJSON 直接生成内嵌 JSON，绕过业务 Jackson 的 Lon
 让表格内部滚动，最终 documentWidth=320。不能仅靠根节点 min-width:0 判断无溢出。
 
 证据见 code-copilot/changes/spring-boot4-t5；合成数据验证不代表真实模型或部署验收。
+
+## 局部 Drawer 的默认滚动包装会撑高固定操作区
+
+**发现日期**：2026-10-20
+
+流程设计器把 NDrawer 局部挂载到右侧工作区后，NDrawerContent 的自定义滚动包装仍按内容高度增长，
+默认 padding 也没有被 Teleport 外层 scoped deep 样式可靠覆盖，导致底部取消/确定落到可视区之外。
+使用组件公开的 body-style/body-content-style 明确 100% 高度与零 padding，由属性壳正文单独滚动、footer 固定；
+面板采用自身 box-sizing，浏览器实际测量 footer 的范围，不能只看外层 height:100%。
+
+## 缩放画布中的浮层锚点不能沿用跨断点前的屏幕坐标
+
+**发现日期**：2026-10-20
+
+原本在桌面打开的添加节点浮层，切到 390px 后仍停在 x=410，documentWidth 被撑到 708。
+改为 Naive Popover 自动定位，窄屏使用上下弹出，并在 resize 或画布滚轮操作时关闭失效锚点；
+浮层内部滚动不关闭，关闭动画禁用以避免快速操作点到残留选项。
+最终展开全部高级节点时 documentWidth=390、浮层 x=52/w=286。
+原生全屏的浮层还需挂到全屏元素内部，传送到 body 会被浏览器隐藏。
+间距不能为避让邻近节点而设为 140px：会造成菜单与触发点明显脱离。使用约 10px 组件间距和箭头表达关联，
+验收应同时测量触发器与浮层边界，不只检查“菜单显示出来了”。
+证据见 `code-copilot/changes/flow-designer-soft-ui/`。
+
+## 属性栏响应式必须跟随容器宽度，双列表单不能拉伸最后一项
+
+**发现日期**：2026-10-20
+
+流程条件编辑器按浏览器 560px 断点排版，1440px 桌面上的 480px 属性栏仍使用大屏多列，
+导致删除按钮被挤出可视区。为属性内容建立 inline-size container，内部按容器断点切换布局。
+同时不应给所有递归 `.space-y-*` 加 padding，否则嵌套配置会反复缩窄。
+
+Naive FormItem 的最后一项 margin-bottom=0，其他项有 12px margin 时，Grid 默认 stretch 会把最后项正文拉高，
+内部输入框居中后比相邻控件低 6px。双列字段 Grid 使用 align-items:start，实际测量输入框 top 一致；
+不能只看标签是否同一行。

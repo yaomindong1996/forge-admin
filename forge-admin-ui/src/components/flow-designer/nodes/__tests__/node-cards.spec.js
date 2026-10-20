@@ -50,11 +50,13 @@ describe('nodeCard - 基础渲染', () => {
     expect(w.find('button[aria-label="删除节点"]').exists()).toBe(false)
   })
 
-  it('普通节点显示删除按钮', () => {
+  it('普通节点更多入口可直接打开原有操作菜单', async () => {
     const w = mount(NodeCard, {
       props: { node: { id: 'A', name: 'X', nodeType: 'approver' } },
     })
-    expect(w.find('button[aria-label="删除节点"]').exists()).toBe(true)
+    await w.find('button[aria-label="节点更多操作"]').trigger('click')
+    expect(w.emitted('contextMenu')[0][0].node.id).toBe('A')
+    expect(w.emitted('click')).toBeUndefined()
   })
 
   it('status 状态徽章显示', () => {

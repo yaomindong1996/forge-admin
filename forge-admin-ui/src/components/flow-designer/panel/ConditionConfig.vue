@@ -525,7 +525,7 @@ function parseConditionExpression(condition) {
               :aria-label="`删除${getBranchTitleByEdge(e)}条件${ruleIndex + 1}`"
               @click="removeRule(e, ruleIndex)"
             >
-              <i class="i-material-symbols:remove-circle-outline" />
+              <i class="i-lucide:circle-minus" />
             </button>
           </div>
 
@@ -539,7 +539,7 @@ function parseConditionExpression(condition) {
             :disabled="readonly"
             @click="addRule(e)"
           >
-            <i class="i-material-symbols:add-circle-outline" />
+            <i class="i-lucide:circle-plus" />
             添加条件
           </button>
 
@@ -598,7 +598,7 @@ function parseConditionExpression(condition) {
 
 <style scoped>
 .condition-config {
-  padding: 0 18px 18px;
+  min-width: 0;
 }
 
 .condition-summary {
@@ -616,7 +616,7 @@ function parseConditionExpression(condition) {
 .condition-summary-title {
   color: var(--text-primary);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .condition-summary-desc {
@@ -627,8 +627,8 @@ function parseConditionExpression(condition) {
 }
 
 .condition-empty {
-  border: 1px dashed #dbe4ef;
-  border-radius: 8px;
+  border: 1px dashed var(--border-light);
+  border-radius: 6px;
   background: var(--bg-secondary);
   color: var(--text-secondary);
   font-size: 12px;
@@ -639,8 +639,8 @@ function parseConditionExpression(condition) {
 .condition-branch {
   min-width: 0;
   margin-top: 12px;
-  border: 1px solid #e5eaf3;
-  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
   background: var(--bg-primary);
   padding: 14px;
 }
@@ -655,7 +655,7 @@ function parseConditionExpression(condition) {
 .condition-branch-title {
   color: var(--text-primary);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .condition-branch-target {
@@ -669,7 +669,7 @@ function parseConditionExpression(condition) {
 
 .condition-default-tip {
   margin-top: 12px;
-  border-radius: 7px;
+  border-radius: 6px;
   background: var(--bg-secondary);
   color: var(--text-secondary);
   font-size: 12px;
@@ -682,8 +682,8 @@ function parseConditionExpression(condition) {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   margin-top: 14px;
-  border: 1px solid #dbe4ef;
-  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
   background: var(--bg-secondary);
   padding: 3px;
 }
@@ -699,18 +699,17 @@ function parseConditionExpression(condition) {
   font-weight: 600;
   transition:
     background 160ms ease,
-    color 160ms ease,
-    box-shadow 160ms ease;
+    color 160ms ease;
 }
 
 .condition-mode-button.active {
   background: var(--bg-primary);
-  color: #2563eb;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  color: var(--primary-color);
 }
 
 .condition-mode-button:disabled {
-  color: #cbd5e1;
+  color: var(--text-tertiary);
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
@@ -722,8 +721,8 @@ function parseConditionExpression(condition) {
 
 .approval-result-card {
   min-height: 58px;
-  border: 1px solid #dbe4ef;
-  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -734,14 +733,12 @@ function parseConditionExpression(condition) {
   text-align: left;
   transition:
     border-color 160ms ease,
-    background 160ms ease,
-    box-shadow 160ms ease;
+    background 160ms ease;
 }
 
 .approval-result-card.active {
-  border-color: #2563eb;
-  background: #eff6ff;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+  border-color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 6%, var(--bg-primary));
 }
 
 .approval-result-card:disabled {
@@ -756,7 +753,7 @@ function parseConditionExpression(condition) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #2563eb;
+  color: var(--primary-color);
   font-size: 18px;
 }
 
@@ -769,7 +766,7 @@ function parseConditionExpression(condition) {
 .approval-result-title {
   color: var(--text-primary);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.3;
 }
 
@@ -781,7 +778,7 @@ function parseConditionExpression(condition) {
 }
 
 .approval-result-tip {
-  border-radius: 7px;
+  border-radius: 6px;
   background: var(--bg-secondary);
   padding: 8px 10px;
 }
@@ -809,9 +806,9 @@ function parseConditionExpression(condition) {
 .condition-rule-row {
   align-items: start;
   margin-top: 10px;
-  border: 1px solid #eef2f7;
-  border-radius: 8px;
-  background: #fbfdff;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: var(--bg-secondary);
   padding: 8px;
 }
 
@@ -847,7 +844,7 @@ function parseConditionExpression(condition) {
   min-width: 20px;
   height: 24px;
   border-radius: 999px;
-  background: #eef4ff;
+  background: var(--bg-tertiary);
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 24px;
@@ -885,8 +882,8 @@ function parseConditionExpression(condition) {
 
 .condition-rule-empty {
   margin-top: 10px;
-  border: 1px dashed #dbe4ef;
-  border-radius: 8px;
+  border: 1px dashed var(--border-light);
+  border-radius: 6px;
   background: var(--bg-secondary);
   color: var(--text-secondary);
   font-size: 12px;
@@ -902,13 +899,13 @@ function parseConditionExpression(condition) {
   align-items: center;
   gap: 6px;
   background: transparent;
-  color: #2563eb;
+  color: var(--primary-color);
   cursor: pointer;
   font-size: 13px;
 }
 
 .condition-add-rule:disabled {
-  color: #cbd5e1;
+  color: var(--text-tertiary);
   cursor: not-allowed;
 }
 
@@ -918,7 +915,7 @@ function parseConditionExpression(condition) {
   align-items: center;
   gap: 12px;
   margin-top: 12px;
-  border-top: 1px solid #eef2f7;
+  border-top: 1px solid var(--border-light);
   padding-top: 12px;
 }
 
@@ -955,7 +952,8 @@ function parseConditionExpression(condition) {
   word-break: break-word;
 }
 
-@media (max-width: 560px) {
+/* 按属性栏实际宽度切换，不按整个浏览器判断；桌面侧栏也只有约 480px。 */
+@container (max-width: 520px) {
   .condition-rule-header {
     display: none;
   }

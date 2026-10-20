@@ -1,27 +1,14 @@
 <script setup>
-/**
- * NodeCard — 节点卡片基类
- *
- * 统一布局：标题行图标 + 节点名称，下面展示摘要面板。
- * 视觉参考钉钉审批流卡片：轻阴影、浅边框、摘要灰底、选中态青绿色描边。
- *
- * Props:
- *   - node / selected / status / readonly
- *   - icon        顶部图标（i-mdi-xxx）
- *   - colorVar    配色变量：primary / success / warning / info / error / gray
- *   - subtitle    副标题（节点说明，浅灰小字）
- *   - width / height
- *   - showActions 是否显示删除按钮
- *   - deletable   是否可删除（start/end 不可）
- */
+/** 白底双行节点。配置入口与更多操作分离，避免嵌套按钮及仅悬停才可用的操作。 */
 import { computed } from 'vue'
+import { getNodePresentation } from '../constants/node-presentation.js'
 
 const props = defineProps({
   node: { type: Object, required: true },
-  selected: { type: Boolean, default: false },
+  selected: Boolean,
   status: { type: String, default: null },
-  readonly: { type: Boolean, default: false },
-  icon: { type: String, default: 'i-mdi-checkbox-blank-circle' },
+  readonly: Boolean,
+  icon: { type: String, default: '' },
   colorVar: { type: String, default: 'primary' },
   subtitle: { type: String, default: '' },
   showActions: { type: Boolean, default: true },
@@ -29,238 +16,204 @@ const props = defineProps({
   width: { type: Number, default: 224 },
   height: { type: Number, default: 82 },
 })
-
 const emit = defineEmits(['click', 'delete', 'contextMenu'])
-
-const COLOR_META = {
-  primary: { color: '#2563eb', soft: '#dbeafe', content: '#2563eb' },
-  success: { color: 'var(--text-secondary)', soft: '#e2e8f0', content: 'var(--text-secondary)' },
-  warning: { color: '#f59e0b', soft: '#fef3c7', content: '#d97706' },
-  info: { color: '#4f46e5', soft: '#e0e7ff', content: '#4f46e5' },
-  error: { color: '#dc2626', soft: '#fee2e2', content: '#dc2626' },
-  gray: { color: 'var(--text-secondary)', soft: '#e2e8f0', content: 'var(--text-secondary)' },
-  teal: { color: '#0d9488', soft: '#ccfbf1', content: '#0f766e' },
-}
-
-const STATUS_BADGE = {
-  completed: { label: '已完成', class: 'bg-green-100 text-green-700' },
-  running: { label: '审批中', class: 'bg-blue-100 text-blue-700' },
-  pending: { label: '待办', class: 'bg-gray-100 text-gray-500' },
-  rejected: { label: '已驳回', class: 'bg-red-100 text-red-700' },
-  skipped: { label: '已跳过', class: 'bg-gray-100 text-gray-400' },
-}
-
-const colorMeta = computed(() => COLOR_META[props.colorVar] || COLOR_META.primary)
+const presentation = computed(() => getNodePresentation(props.node?.nodeType))
 const cardStyle = computed(() => ({
   'width': `${props.width}px`,
   'minHeight': `${props.height}px`,
-  '--flow-node-color': colorMeta.value.color,
-  '--flow-node-soft': colorMeta.value.soft,
-  '--flow-node-content-color': colorMeta.value.content,
+  '--flow-node-color': presentation.value.color,
 }))
+// 查看器保留运行状态语义，设计态的节点类型颜色与运行状态互不替代。
+const STATUS_BADGE = {
+  completed: { label: '已完成', class: 'is-completed' },
+  running: { label: '审批中', class: 'is-running' },
+  pending: { label: '待办', class: 'is-pending' },
+  rejected: { label: '已驳回', class: 'is-rejected' },
+  skipped: { label: '已跳过', class: 'is-pending' },
+}
 const statusBadge = computed(() => STATUS_BADGE[props.status] || null)
-const canDelete = computed(() => props.deletable && props.showActions && !props.readonly)
-
-function handleClick() {
-  emit('click', props.node)
-}
-
-function handleDelete(e) {
-  e.stopPropagation()
-  if (canDelete.value)
-    emit('delete', props.node)
-}
-
-function handleContextMenu(e) {
-  e.preventDefault()
-  emit('contextMenu', { event: e, node: props.node })
+function handleContextMenu(event) {
+  event.preventDefault()
+  const rect = event.currentTarget?.getBoundingClientRect()
+  const point = event.clientX || event.clientY
+    ? event
+    : { clientX: rect?.left || 0, clientY: rect?.bottom || 0 }
+  emit('contextMenu', { event: point, node: props.node })
 }
 </script>
 
 <template>
   <div
-    class="flow-node-card flex flex-col cursor-pointer bg-white transition-all duration-200"
-    :class="[
-      selected ? 'is-selected' : '',
-      readonly ? 'is-readonly' : '',
-    ]"
+    class="flow-node-card"
+    :class="{ 'is-selected': selected, 'is-readonly': readonly }"
     :style="cardStyle"
     :data-node-id="node?.id"
     :data-node-type="node?.nodeType"
-    @click="handleClick"
+    @click="$emit('click', node)"
     @contextmenu="handleContextMenu"
   >
-    <div class="flow-node-title w-full flex items-center gap-2">
-      <span
-        class="flow-node-icon flex shrink-0 items-center justify-center"
-      >
-        <i :class="icon" />
+    <!-- 节点主信息 -->
+    <button type="button" class="flow-node-open" :aria-label="`配置${node?.name || '节点'}`">
+      <span class="flow-node-icon" aria-hidden="true">
+        <i :class="presentation.icon || icon" />
       </span>
-      <div class="flow-node-main min-w-0 flex flex-col flex-1 gap-1">
-        <div class="flow-node-heading min-w-0 flex items-center gap-1.5">
-          <span class="flow-node-name text-xs truncate text-slate-700 font-semibold">
-            {{ node?.name || '未命名节点' }}
-          </span>
+      <span class="flow-node-main">
+        <span class="flow-node-heading">
+          <span class="flow-node-name" :title="node?.name">{{ node?.name || '未命名节点' }}</span>
           <slot v-if="!readonly" name="title-extra" />
-        </div>
-        <div v-if="statusBadge" class="flow-node-meta flex items-center">
-          <span
-            class="flow-node-status shrink-0 rounded-sm px-1.5 py-0.5 text-[10px] font-medium"
-            :class="statusBadge.class"
-          >{{ statusBadge.label }}</span>
-        </div>
-      </div>
-
-      <button
-        v-if="canDelete"
-        class="flow-node-delete shrink-0 rounded-sm p-0.5 text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-600"
-        aria-label="删除节点"
-        @click.stop="handleDelete"
-      >
-        <i class="i-lucide:x text-sm" />
-      </button>
-    </div>
-
-    <div class="flow-node-body">
-      <div v-if="subtitle && !readonly" class="flow-node-summary">
-        {{ subtitle }}
-      </div>
-      <div v-if="$slots.default && !readonly" class="flow-node-extra">
-        <slot />
-      </div>
-      <i class="i-lucide:chevron-right flow-node-chevron" />
-    </div>
+        </span>
+        <span v-if="statusBadge" class="flow-node-status flow-node-meta" :class="statusBadge.class">
+          {{ statusBadge.label }}
+        </span>
+        <span v-else-if="subtitle && !readonly" class="flow-node-summary" :title="subtitle">{{ subtitle }}</span>
+        <span v-if="$slots.default && !readonly" class="flow-node-extra"><slot /></span>
+      </span>
+    </button>
+    <!-- 复用已有复制、排序、删除菜单，不更改节点业务操作 -->
+    <button
+      v-if="showActions && deletable && !readonly"
+      type="button" class="flow-node-more" aria-label="节点更多操作" title="节点更多操作"
+      @click.stop="handleContextMenu"
+    >
+      <i class="i-lucide:ellipsis" />
+    </button>
+    <i class="flow-node-chevron i-lucide:chevron-right" aria-hidden="true" />
   </div>
 </template>
 
 <style scoped>
 .flow-node-card {
-  overflow: hidden;
-  border: 1px solid var(--border-light);
-  border-left: 3px solid var(--flow-node-color);
-  border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-}
-
-.flow-node-card:not(.is-readonly):hover {
-  border-color: var(--border-light);
-  border-left-color: var(--flow-node-color);
-  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.1);
-}
-
-.flow-node-card.is-selected {
-  border-color: #3b82f6;
-  border-left-color: var(--flow-node-color);
-  box-shadow:
-    0 0 0 1px rgba(59, 130, 246, 0.9),
-    0 3px 10px rgba(15, 23, 42, 0.12);
-}
-
-.flow-node-card.is-readonly {
-  cursor: default;
-}
-
-.flow-node-icon {
-  width: 22px;
-  height: 22px;
-  border-radius: 3px;
-  background: var(--flow-node-soft);
-  color: var(--flow-node-color);
-}
-
-.flow-node-icon i {
-  width: 13px;
-  height: 13px;
-  font-size: 13px;
-}
-
-.flow-node-title {
-  min-height: 32px;
-  padding: 6px 10px;
-  border-bottom: 1px solid #f1f5f9;
-  background: rgba(248, 250, 252, 0.86);
-}
-
-.flow-node-delete {
-  opacity: 0;
-}
-
-.flow-node-card:hover .flow-node-delete,
-.flow-node-card.is-selected .flow-node-delete {
-  opacity: 1;
-}
-
-.flow-node-body {
   display: flex;
-  min-height: 44px;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 10px 12px;
-  background: var(--bg-primary);
+  gap: 4px;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid var(--border-light, #dfe4ec);
+  border-radius: 6px;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #1d2129);
+  cursor: pointer;
+  transition:
+    border-color 160ms,
+    background-color 160ms;
 }
-
-.flow-node-summary {
-  min-width: 0;
+.flow-node-card:hover {
+  border-color: color-mix(in srgb, var(--primary-color, #356de0) 50%, var(--border-light, #dfe4ec));
+}
+.flow-node-card.is-selected {
+  border-color: var(--primary-color, #356de0);
+  outline: 1px solid var(--primary-color, #356de0);
+}
+.flow-node-open {
+  display: flex;
   flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: inherit;
+}
+.flow-node-icon {
+  display: inline-flex;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--flow-node-color) 14%, var(--bg-primary, #fff));
+  color: var(--flow-node-color);
+  font-size: 22px;
+}
+.flow-node-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+.flow-node-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+.flow-node-name {
   overflow: hidden;
-  color: var(--flow-node-content-color);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
-  line-height: 1.35;
+  line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-.flow-node-extra {
-  min-width: 0;
-  color: var(--text-secondary);
+.flow-node-summary {
+  overflow: hidden;
+  color: var(--text-tertiary, #86909c);
   font-size: 12px;
-  line-height: 1.35;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
-.flow-node-chevron {
-  width: 16px;
-  height: 16px;
+.flow-node-extra {
+  color: var(--text-secondary, #4e5969);
+  font-size: 12px;
+}
+.flow-node-more {
+  display: inline-flex;
   flex: none;
-  color: #cbd5e1;
-}
-
-.flow-node-card.is-readonly {
-  justify-content: stretch;
-}
-
-.flow-node-card.is-readonly .flow-node-title {
+  width: 26px;
+  height: 28px;
   align-items: center;
-  min-height: 34px;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary, #86909c);
+  cursor: pointer;
 }
-
-.flow-node-card.is-readonly .flow-node-icon {
-  width: 24px;
-  height: 24px;
+.flow-node-more:hover {
+  background: var(--bg-secondary, #f6f8fb);
+  color: var(--text-primary, #1d2129);
+}
+.flow-node-chevron {
+  flex: none;
+  color: var(--text-tertiary, #86909c);
+  font-size: 16px;
+}
+.flow-node-open:focus-visible,
+.flow-node-more:focus-visible {
+  outline: 2px solid var(--primary-color, #356de0);
+  outline-offset: 3px;
+}
+.flow-node-status {
+  width: fit-content;
+  padding: 2px 5px;
   border-radius: 3px;
+  font-size: 11px;
 }
-
-.flow-node-card.is-readonly .flow-node-icon i {
-  font-size: 14px;
-  line-height: 1;
+.is-completed {
+  background: #e8f5ee;
+  color: #357a56;
 }
-
-.flow-node-card.is-readonly .flow-node-name {
-  line-height: 1.35;
+.is-running {
+  background: #e8f0fd;
+  color: #356de0;
 }
-
-.flow-node-card.is-readonly .flow-node-summary {
-  color: var(--text-secondary);
+.is-pending {
+  background: var(--bg-secondary, #f6f8fb);
+  color: var(--text-tertiary, #86909c);
 }
-
+.is-rejected {
+  background: #fceeed;
+  color: #c44b4b;
+}
 @media (prefers-reduced-motion: reduce) {
   .flow-node-card {
     transition: none;
-  }
-
-  .flow-node-card:not(.is-readonly):hover {
-    transform: none;
   }
 }
 </style>

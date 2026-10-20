@@ -13,10 +13,16 @@
  *   - click  点击徽章 → 父组件可打开条件配置抽屉
  */
 import { computed } from 'vue'
+import { getNodePresentation } from '../constants/node-presentation.js'
+import { summarizeCondition } from '../utils/condition-summary.js'
 
 const props = defineProps({
   edge: { type: Object, required: true },
   position: { type: Object, required: true },
+  card: Boolean,
+  index: { type: Number, default: 1 },
+  gatewayType: { type: String, default: 'condition' },
+  fields: { type: Array, default: () => [] },
 })
 
 defineEmits(['click'])
@@ -30,12 +36,15 @@ const approvalResultLabels = [
 
 const labelText = computed(() => {
   if (props.edge?.isDefault)
-    return '默认'
+    return props.card ? '其他情况' : '默认'
   const approvalLabel = getApprovalResultLabel(props.edge)
   if (approvalLabel)
     return approvalLabel
+  const summary = summarizeCondition(props.edge, props.fields)
+  if (props.card && summary)
+    return summary
   if (!props.edge?.condition)
-    return '配置条件'
+    return props.gatewayType === 'parallel' ? '并行分支' : '配置条件'
   const ruleCount = Array.isArray(props.edge?.conditionRules) ? props.edge.conditionRules.length : 0
   return ruleCount > 1 ? `${ruleCount} 条条件` : '条件已设'
 })
@@ -55,6 +64,14 @@ const colorClass = computed(() => {
   if (props.edge?.condition)
     return 'is-configured'
   return 'is-empty'
+})
+
+const subtitle = computed(() => {
+  if (props.edge?.isDefault)
+    return '默认条件'
+  if (props.gatewayType === 'parallel')
+    return `分支 ${props.index} · 同时执行`
+  return `条件 ${props.index}`
 })
 
 function getApprovalResultLabel(edge) {
@@ -78,32 +95,46 @@ function normalizeConditionExpression(value) {
 </script>
 
 <template>
-  <div
-    class="branch-header text-xs absolute z-30 flex cursor-pointer items-center px-2 py-0.5"
-    :class="colorClass"
+  <button
+    type="button" class="branch-header"
+    :class="[colorClass, { 'is-card': card }]"
     :style="{
-      left: `${position.x}px`,
-      top: `${position.y}px`,
-      transform: 'translate(-50%, -50%)',
+      'left': `${position.x}px`,
+      'top': `${position.y}px`,
+      'transform': 'translate(-50%, -50%)',
+      '--branch-color': getNodePresentation(gatewayType).color,
     }"
     :title="labelTitle"
+    :aria-label="`配置分支：${labelText}`"
     @click.stop="$emit('click', edge)"
   >
-    <span class="branch-header-text">{{ labelText }}</span>
-  </div>
+    <span v-if="card" class="branch-header-icon"><i class="i-lucide:git-branch" /></span>
+    <span class="branch-header-main">
+      <span class="branch-header-text">{{ labelText }}</span>
+      <span v-if="card" class="branch-header-subtitle">{{ subtitle }}</span>
+    </span>
+    <i v-if="card" class="branch-header-arrow i-lucide:chevron-right" />
+  </button>
 </template>
 
 <style scoped>
 .branch-header {
+  position: absolute;
+  z-index: 30;
+  display: flex;
+  align-items: center;
   max-width: 112px;
+  padding: 3px 8px;
   overflow: hidden;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--border-light, #e5e7eb);
   border-radius: 4px;
   background: color-mix(in srgb, var(--bg-primary) 95%, transparent);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  color: var(--text-secondary, #4e5969);
+  font-size: 12px;
+  cursor: pointer;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: box-shadow 160ms ease;
+  transition: border-color 160ms ease;
 }
 
 .branch-header-text {
@@ -114,19 +145,64 @@ function normalizeConditionExpression(value) {
 }
 
 .branch-header:hover {
-  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.1);
+  border-color: var(--primary-color, #356de0);
 }
 
 .branch-header.is-default {
-  border-color: rgba(245, 158, 11, 0.32);
-  background: #fff8ed;
-  color: #b45309;
+  color: var(--text-secondary, #4e5969);
 }
 
 .branch-header.is-configured {
-  border-color: rgba(53, 109, 255, 0.24);
-  background: #f2f6ff;
-  color: #245bdb;
+  color: var(--text-primary, #1d2129);
+}
+
+.branch-header-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+}
+.branch-header.is-card {
+  width: 280px;
+  max-width: none;
+  min-height: 64px;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 6px;
+  border-style: solid;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #1d2129);
+}
+.branch-header.is-card .branch-header-text {
+  font-size: 14px;
+  font-weight: 500;
+}
+.branch-header-icon {
+  display: flex;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--branch-color) 14%, var(--bg-primary, #fff));
+  color: var(--branch-color);
+  font-size: 22px;
+}
+.branch-header-subtitle {
+  color: var(--text-tertiary, #86909c);
+  font-size: 12px;
+  font-weight: 400;
+}
+.branch-header-arrow {
+  flex: none;
+  color: var(--text-tertiary, #86909c);
+}
+.branch-header:focus-visible {
+  outline: 2px solid var(--primary-color, #356de0);
+  outline-offset: 2px;
 }
 
 .branch-header.is-empty {

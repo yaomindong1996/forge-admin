@@ -182,7 +182,6 @@ const childPermissionRows = computed(() => {
     const saved = savedPermissionBundle.value.children.find(child => childTableKeysAlias(child.childKey, childKey))
     return {
       ...normalizeFlowChildPermission({
-        childKey,
         label: sample?.childLabel || sample?.relationName || saved?.label || childKey,
         ...(saved || {}),
         childKey,
@@ -198,7 +197,6 @@ const arrayPermissionRows = computed(() => {
     const saved = savedPermissionBundle.value.arrays.find(array => array.arrayKey === arrayKey)
     return {
       ...normalizeFlowArrayPermission({
-        arrayKey,
         label: sample?.arrayLabel || saved?.label || arrayKey,
         ...(saved || {}),
         arrayKey,
@@ -614,7 +612,7 @@ function emitPermissions(fields, children, arrays) {
 .form-permission-title {
   color: var(--text-primary);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .form-permission-desc {
@@ -629,7 +627,7 @@ function emitPermissions(fields, children, arrays) {
   align-items: flex-start;
   gap: 10px;
   border: 1px dashed var(--border-light);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--bg-secondary);
   padding: 14px;
   color: var(--text-secondary);
@@ -637,14 +635,14 @@ function emitPermissions(fields, children, arrays) {
 
 .form-permission-empty i {
   margin-top: 2px;
-  color: #2563eb;
+  color: var(--primary-color);
   font-size: 20px;
 }
 
 .form-permission-empty-title {
   color: var(--text-primary);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .form-permission-empty-desc {
@@ -662,12 +660,12 @@ function emitPermissions(fields, children, arrays) {
 .permission-section-title {
   color: var(--text-primary);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .form-permission-table {
   border: 1px solid var(--border-light);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
 }
 
@@ -679,14 +677,17 @@ function emitPermissions(fields, children, arrays) {
   min-height: 54px;
   padding: 8px 12px;
   background: var(--bg-primary);
-  border-top: 1px solid #eef2f7;
+  border-top: 1px solid var(--border-light);
+}
+.form-permission-row > :not(:first-child) {
+  justify-self: center;
 }
 
 .row-permission-title {
   margin-bottom: 6px;
   color: var(--text-primary);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .row-permission-card {
@@ -748,7 +749,7 @@ function emitPermissions(fields, children, arrays) {
   background: var(--bg-secondary);
   color: var(--text-secondary);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .form-permission-row:not(.is-head):hover {
@@ -756,7 +757,7 @@ function emitPermissions(fields, children, arrays) {
 }
 
 .form-permission-row.stale {
-  background: #fffbeb;
+  background: color-mix(in srgb, var(--warning-color, #d99536) 8%, var(--bg-primary));
 }
 
 .form-field-cell {
@@ -780,5 +781,14 @@ function emitPermissions(fields, children, arrays) {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   word-break: break-all;
+}
+@container (max-width: 380px) {
+  .form-permission-row {
+    grid-template-columns: minmax(0, 1fr) 44px 44px 44px;
+    gap: 6px;
+  }
+  .form-permission-head {
+    flex-wrap: wrap;
+  }
 }
 </style>

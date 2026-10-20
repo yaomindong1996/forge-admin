@@ -17,6 +17,7 @@
 import { ref, shallowRef } from 'vue'
 import { buildNode } from '../constants/default-configs.js'
 import { NODE_TYPE } from '../constants/node-types.js'
+import { mergeApprovalNodes as buildApprovalMerge } from '../utils/approval-node-merge.js'
 import { collectExistingIds, createIdGenerator } from '../utils/id-generator.js'
 import { cloneJson, deleteGateway, deletePlain, makeEdge } from './flow-designer-helpers.js'
 
@@ -343,6 +344,14 @@ export function useFlowDesigner(initialJson) {
     commit(next)
   }
 
+  function mergeApprovalNodes(sourceId, targetId, beforeCommit = () => {}) {
+    const next = buildApprovalMerge(flowJson.value, sourceId, targetId)
+    // 校验/建图全部成功之后才记录历史，失败不能产生空撤销步骤。
+    beforeCommit()
+    commit(next)
+    selectedNodeId.value = targetId
+  }
+
   function reconnect(edgeId, newSource, newTarget) {
     updateEdge(edgeId, { source: newSource, target: newTarget })
   }
@@ -372,6 +381,7 @@ export function useFlowDesigner(initialJson) {
     moveNodeUp,
     moveNodeDown,
     copyNode,
+    mergeApprovalNodes,
     updateEdge,
     reconnect,
     getNode,

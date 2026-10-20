@@ -13,20 +13,35 @@ defineEmits(['update:config'])
 
 <template>
   <div class="space-y-3">
-    <div class="border border-gray-100 rounded bg-gray-50 px-3 py-3">
-      <div class="flex items-center justify-between gap-3">
-        <span class="text-sm text-gray-600">发起人</span>
+    <div class="config-hint">
+      <div class="start-config-row">
+        <span>发起人</span>
         <n-tag size="small" type="success" :bordered="false">
           当前登录用户
         </n-tag>
       </div>
-      <div class="mt-2 flex items-center justify-between gap-3">
-        <span class="text-sm text-gray-600">变量名</span>
-        <code class="text-xs rounded bg-white px-2 py-0.5 text-gray-700">initiator</code>
+      <div class="start-config-row">
+        <span>变量名</span>
+        <code>initiator</code>
       </div>
     </div>
-    <div class="text-xs rounded bg-blue-50 px-3 py-2 text-blue-600">
-      发起人由系统自动记录，流程表单请在右侧流程信息的“表单配置”中维护。
+    <div class="config-hint">
+      发起人由系统自动记录，流程表单请在顶部“更多设置 / 表单配置”中维护。
     </div>
   </div>
 </template>
+
+<style scoped>
+.start-config-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.start-config-row + .start-config-row {
+  margin-top: 8px;
+}
+.start-config-row code {
+  color: var(--text-primary);
+}
+</style>

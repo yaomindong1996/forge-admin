@@ -25,12 +25,16 @@ const props = defineProps({
   status: { type: String, default: null },
   pathType: { type: String, default: null }, // 覆盖 path.type
   showLabel: { type: Boolean, default: null },
+  neutral: Boolean,
+  markerPrefix: { type: String, default: '' },
 })
 
 const finalType = computed(() => props.pathType || props.path?.type || 'orthogonal')
 
 const pathD = computed(() => buildPathD(props.path?.points || [], finalType.value))
-const strokeColor = computed(() => getEdgeColor(props.edge, props.status))
+const strokeColor = computed(() => props.neutral && !props.status
+  ? 'var(--text-tertiary, #86909c)'
+  : getEdgeColor(props.edge, props.status))
 const dashArray = computed(() => getEdgeDashArray(props.status))
 const midpoint = computed(() => getEdgeMidpoint(props.path?.points || []))
 
@@ -69,10 +73,10 @@ const markerId = computed(() => {
     <path
       :d="pathD"
       :stroke="strokeColor"
-      stroke-width="1.7"
+      :stroke-width="neutral ? 1.3 : 1.7"
       fill="none"
       :stroke-dasharray="dashArray || undefined"
-      :marker-end="`url(#${markerId})`"
+      :marker-end="`url(#${markerPrefix}${markerId})`"
     />
     <g v-if="labelVisible && labelText" :transform="`translate(${midpoint.x}, ${midpoint.y})`">
       <rect

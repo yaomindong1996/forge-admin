@@ -76,6 +76,8 @@ const wrapStyle = computed(() => {
       :selected="selected"
       :status="status"
       :readonly="readonly"
+      :width="position?.width"
+      :height="position?.height"
       :outgoing-count="isBranch ? outgoingCount : undefined"
       @click="$emit('click', $event)"
       @delete="$emit('delete', $event)"

@@ -11,7 +11,7 @@
  *
  * 使用 SVG <defs> 注册 5 种箭头 marker。
  */
-import { computed } from 'vue'
+import { computed, useId } from 'vue'
 import { EDGE_COLORS } from '../utils/path-builder.js'
 import EdgePath from './EdgePath.vue'
 
@@ -22,7 +22,14 @@ const props = defineProps({
   nodeStatuses: { type: Object, default: () => ({}) },
   pathType: { type: String, default: 'rounded' },
   showLabels: { type: Boolean, default: true },
+  neutral: Boolean,
 })
+
+const instanceId = useId()
+const markerPrefix = computed(() => props.neutral ? `${instanceId}-` : '')
+const colors = computed(() => props.neutral
+  ? { ...EDGE_COLORS, default: 'var(--text-tertiary, #86909c)', defaultBranch: 'var(--text-tertiary, #86909c)' }
+  : EDGE_COLORS)
 
 const svgSize = computed(() => {
   const b = props.canvasBounds
@@ -45,19 +52,34 @@ function statusOf(edge) {
     :viewBox="`0 0 ${svgSize.width} ${svgSize.height}`"
   >
     <defs>
-      <marker id="arrow-default" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
-        <path d="M 0 0 L 10 5 L 0 10 z" :fill="EDGE_COLORS.default" />
+      <marker
+        :id="`${markerPrefix}arrow-default`" viewBox="0 0 10 10" refX="10" refY="5"
+        :marker-width="neutral ? 6 : 8" :marker-height="neutral ? 6 : 8" orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" :fill="colors.default" />
       </marker>
-      <marker id="arrow-default-branch" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
-        <path d="M 0 0 L 10 5 L 0 10 z" :fill="EDGE_COLORS.defaultBranch" />
+      <marker
+        :id="`${markerPrefix}arrow-default-branch`" viewBox="0 0 10 10" refX="10" refY="5"
+        :marker-width="neutral ? 6 : 8" :marker-height="neutral ? 6 : 8" orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" :fill="colors.defaultBranch" />
       </marker>
-      <marker id="arrow-completed" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <marker
+        :id="`${markerPrefix}arrow-completed`" viewBox="0 0 10 10" refX="10" refY="5"
+        markerWidth="8" markerHeight="8" orient="auto"
+      >
         <path d="M 0 0 L 10 5 L 0 10 z" :fill="EDGE_COLORS.completed" />
       </marker>
-      <marker id="arrow-running" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <marker
+        :id="`${markerPrefix}arrow-running`" viewBox="0 0 10 10" refX="10" refY="5"
+        markerWidth="8" markerHeight="8" orient="auto"
+      >
         <path d="M 0 0 L 10 5 L 0 10 z" :fill="EDGE_COLORS.running" />
       </marker>
-      <marker id="arrow-rejected" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <marker
+        :id="`${markerPrefix}arrow-rejected`" viewBox="0 0 10 10" refX="10" refY="5"
+        markerWidth="8" markerHeight="8" orient="auto"
+      >
         <path d="M 0 0 L 10 5 L 0 10 z" :fill="EDGE_COLORS.rejected" />
       </marker>
     </defs>
@@ -68,6 +90,8 @@ function statusOf(edge) {
       :path="paths.get(edge.id) || { points: [], type: pathType }"
       :path-type="pathType"
       :status="statusOf(edge)"
+      :neutral="neutral"
+      :marker-prefix="markerPrefix"
       :show-label="showLabels"
     />
   </svg>

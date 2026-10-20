@@ -99,7 +99,7 @@ function updateIds(value) {
 
 <template>
   <div class="print-policy-config">
-    <n-form-item label="模板范围">
+    <n-form-item label="模板范围" label-placement="top" :show-feedback="false">
       <NSelect
         :value="policy"
         :options="policyOptions"
@@ -108,8 +108,8 @@ function updateIds(value) {
       />
     </n-form-item>
     <template v-if="policy === 'RESTRICT'">
-      <n-form-item label="允许的模板">
-        <NSpin :show="loading" size="small">
+      <n-form-item label="允许的模板" label-placement="top" :show-feedback="false">
+        <NSpin :show="loading" size="small" class="print-policy-options">
           <NSelect
             :value="selectedIds"
             :options="templateOptions"
@@ -149,5 +149,9 @@ function updateIds(value) {
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 18px;
+}
+.print-policy-options {
+  width: 100%;
+  min-width: 0;
 }
 </style>

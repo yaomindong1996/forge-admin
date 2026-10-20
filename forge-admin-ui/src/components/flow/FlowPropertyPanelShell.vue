@@ -1,18 +1,30 @@
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   title: { type: String, default: '属性设置' },
   description: { type: String, default: '' },
   icon: { type: String, default: 'i-material-symbols:tune' },
   empty: { type: Boolean, default: false },
   emptyText: { type: String, default: '请先选择一个节点。' },
   bodyScrollable: { type: Boolean, default: true },
+  flat: Boolean,
+  iconColor: { type: String, default: '' },
 })
 
 defineEmits(['close'])
+
+const panelStyle = computed(() => ({
+  '--flow-panel-surface': props.flat ? 'var(--bg-primary)' : 'var(--bg-secondary)',
+  '--flow-panel-icon-color': props.iconColor || 'var(--text-secondary)',
+  '--flow-panel-icon-bg': props.iconColor
+    ? `color-mix(in srgb, ${props.iconColor} 14%, var(--bg-primary))`
+    : 'var(--bg-tertiary)',
+}))
 </script>
 
 <template>
-  <div class="flow-property-panel-shell">
+  <div class="flow-property-panel-shell" :style="panelStyle">
     <div class="flow-property-panel-shell__header">
       <div class="flow-property-panel-shell__heading">
         <span class="flow-property-panel-shell__icon">
@@ -23,7 +35,9 @@ defineEmits(['close'])
           <span v-if="description" class="flow-property-panel-shell__desc">{{ description }}</span>
         </span>
       </div>
-      <button type="button" class="flow-property-panel-shell__close" @click="$emit('close')">
+      <button
+        type="button" class="flow-property-panel-shell__close" aria-label="关闭属性面板" @click="$emit('close')"
+      >
         <i class="i-material-symbols:close" />
       </button>
     </div>
@@ -44,6 +58,10 @@ defineEmits(['close'])
 </template>
 
 <style scoped>
+.flow-property-panel-shell,
+.flow-property-panel-shell :deep(*) {
+  box-sizing: border-box;
+}
 .flow-property-panel-shell {
   height: 100%;
   min-height: 0;
@@ -62,7 +80,7 @@ defineEmits(['close'])
   gap: 12px;
   padding: 9px 14px;
   border-bottom: 1px solid var(--border-light);
-  background: var(--bg-secondary);
+  background: var(--flow-panel-surface, var(--bg-secondary));
 }
 
 .flow-property-panel-shell__heading {
@@ -80,8 +98,8 @@ defineEmits(['close'])
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
+  background: var(--flow-panel-icon-bg, var(--bg-tertiary));
+  color: var(--flow-panel-icon-color, var(--text-secondary));
   font-size: 16px;
 }
 
@@ -142,6 +160,7 @@ defineEmits(['close'])
 
 .flow-property-panel-shell__body.is-scrollable {
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .flow-property-panel-shell__content {
@@ -152,7 +171,7 @@ defineEmits(['close'])
   flex-shrink: 0;
   padding: 12px 14px;
   border-top: 1px solid var(--border-light);
-  background: var(--bg-secondary);
+  background: var(--flow-panel-surface, var(--bg-secondary));
 }
 
 .flow-property-panel-shell__empty {
@@ -179,7 +198,6 @@ defineEmits(['close'])
 .flow-property-panel-shell__content :deep(.n-tabs .n-tabs-nav-scroll-content) {
   min-width: max-content;
   padding: 0 14px;
-  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%);
 }
 
 .flow-property-panel-shell__content :deep(.n-tabs .n-tabs-tab) {
@@ -192,11 +210,11 @@ defineEmits(['close'])
 }
 
 .flow-property-panel-shell__content :deep(.n-tabs .n-tabs-tab.n-tabs-tab--active) {
-  color: #2563eb;
+  color: var(--primary-color, #356de0);
 }
 
 .flow-property-panel-shell__content :deep(.n-tabs .n-tabs-bar) {
-  background-color: #2563eb;
+  background-color: var(--primary-color, #356de0);
 }
 
 .flow-property-panel-shell__content :deep(.n-tabs .n-tab-pane) {
@@ -240,20 +258,15 @@ defineEmits(['close'])
   font-size: 12px;
 }
 
-.flow-property-panel-shell__content :deep(.basic-config),
-.flow-property-panel-shell__content :deep(.space-y-2),
-.flow-property-panel-shell__content :deep(.space-y-3) {
-  padding: 16px 18px 20px;
-}
-
-.flow-property-panel-shell__content :deep(.n-tab-pane .basic-config),
-.flow-property-panel-shell__content :deep(.n-tab-pane .space-y-2),
-.flow-property-panel-shell__content :deep(.n-tab-pane .space-y-3) {
-  padding: 0;
+.flow-property-panel-shell__content :deep(.n-tab-pane > .basic-config) {
+  margin-bottom: 16px;
 }
 
 .flow-property-panel-shell__content :deep(.config-section-block) {
   margin-top: 18px;
+}
+.flow-property-panel-shell__content :deep(.config-section-block:first-child) {
+  margin-top: 0;
 }
 
 .flow-property-panel-shell__content :deep(.config-section-title) {
@@ -272,16 +285,15 @@ defineEmits(['close'])
   font-size: 12px;
   line-height: 1.7;
 }
+.flow-property-panel-shell__content :deep(.config-hint p) {
+  margin: 0;
+}
+.flow-property-panel-shell__content :deep(.config-hint p + p) {
+  margin-top: 4px;
+}
 
 @media (max-width: 640px) {
-  .flow-property-panel-shell__content :deep(.n-tabs .n-tabs-nav) {
-    padding: 0 12px;
-  }
-
-  .flow-property-panel-shell__content :deep(.n-tabs .n-tab-pane),
-  .flow-property-panel-shell__content :deep(.basic-config),
-  .flow-property-panel-shell__content :deep(.space-y-2),
-  .flow-property-panel-shell__content :deep(.space-y-3) {
+  .flow-property-panel-shell__content :deep(.n-tabs .n-tab-pane) {
     padding: 14px 16px 18px;
   }
 }

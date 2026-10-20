@@ -465,7 +465,9 @@ function isFilledValue(value) {
     </template>
 
     <template v-else-if="taskType === 'candidateGroups'">
-      <n-form-item label="候选角色或用户组" label-placement="top" required :show-feedback="false">
+      <n-form-item
+        class="candidate-group-item" label="候选角色或用户组" label-placement="top" required :show-feedback="false"
+      >
         <n-select
           :value="candidateGroups"
           :options="mergedRoleOptions"
@@ -537,14 +539,18 @@ function isFilledValue(value) {
 }
 
 .option-card.active {
-  border-color: #2563eb;
-  background: #eff6ff;
-  color: #1d4ed8;
+  border-color: var(--primary-color, #356de0);
+  background: color-mix(in srgb, var(--primary-color, #356de0) 6%, var(--bg-primary, #fff));
+  color: var(--primary-color, #356de0);
 }
 
 .option-card:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+.option-card:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
 .option-card i {
@@ -559,5 +565,10 @@ function isFilledValue(value) {
   margin-top: 6px;
   font-size: 12px;
   line-height: 1.5;
+}
+
+.candidate-group-item :deep(.n-form-item-blank) {
+  flex-direction: column;
+  align-items: stretch;
 }
 </style>

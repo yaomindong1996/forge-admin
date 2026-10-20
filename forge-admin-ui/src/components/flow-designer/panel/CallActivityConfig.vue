@@ -18,10 +18,10 @@ const calledElement = computed({
 
 <template>
   <div class="space-y-3">
-    <n-form-item label="被调用流程 ID" label-placement="left">
+    <n-form-item label="被调用流程 ID" label-placement="top" :show-feedback="false">
       <n-input v-model:value="calledElement" :disabled="readonly" placeholder="如：subProcess_xxx" />
     </n-form-item>
-    <div class="text-xs rounded bg-gray-50 px-3 py-2 text-gray-500">
+    <div class="config-hint">
       调用活动会启动一个独立流程实例，主流程在被调用流程结束后继续。
     </div>
   </div>

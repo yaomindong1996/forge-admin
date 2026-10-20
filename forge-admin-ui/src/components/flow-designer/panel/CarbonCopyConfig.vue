@@ -369,7 +369,7 @@ function isFilledValue(value) {
           placeholder="${ccUserIds} 或 ${flowSpelService.findUsersByRole('general_manager')}"
         />
       </n-form-item>
-      <div class="text-xs rounded bg-blue-50 px-3 py-2 text-blue-600">
+      <div class="config-hint">
         表达式可返回单个 ID、逗号分隔字符串或数组；选择“返回角色”时系统会按角色编码解析抄送人。
       </div>
     </template>
@@ -398,7 +398,7 @@ function isFilledValue(value) {
       </n-collapse-item>
     </n-collapse>
 
-    <div class="text-xs rounded bg-gray-50 px-3 py-2 text-gray-500">
+    <div class="config-hint">
       流程到达该节点时会发送抄送消息，抄送只通知，不需要审批，流程会立即流转到下一节点。
     </div>
   </div>
@@ -409,7 +409,7 @@ function isFilledValue(value) {
   width: 100%;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  border: 1px solid #d8dee8;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
   overflow: hidden;
   background: var(--bg-primary);
@@ -419,17 +419,16 @@ function isFilledValue(value) {
   min-width: 0;
   height: 34px;
   border: 0;
-  border-right: 1px solid #d8dee8;
+  border-right: 1px solid var(--border-light);
   background: transparent;
-  color: #344054;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 34px;
   text-align: center;
   cursor: pointer;
   transition:
     color 0.16s ease,
-    background-color 0.16s ease,
-    box-shadow 0.16s ease;
+    background-color 0.16s ease;
 }
 
 .carbon-copy-source-button:last-child {
@@ -437,15 +436,15 @@ function isFilledValue(value) {
 }
 
 .carbon-copy-source-button.active {
-  background: #eef4ff;
-  color: #2563eb;
-  box-shadow: inset 0 -2px 0 #2563eb;
+  background: color-mix(in srgb, var(--primary-color) 6%, var(--bg-primary));
+  color: var(--primary-color);
+  box-shadow: inset 0 -2px 0 var(--primary-color);
   font-weight: 600;
 }
 
 .carbon-copy-source-button:disabled {
   cursor: not-allowed;
-  color: #98a2b3;
+  color: var(--text-tertiary);
 }
 
 .carbon-copy-advanced-collapse {
@@ -459,13 +458,13 @@ function isFilledValue(value) {
 
 .carbon-copy-advanced-row {
   display: grid;
-  grid-template-columns: 170px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   align-items: center;
 }
 
 .carbon-copy-advanced-tip {
-  color: #667085;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }

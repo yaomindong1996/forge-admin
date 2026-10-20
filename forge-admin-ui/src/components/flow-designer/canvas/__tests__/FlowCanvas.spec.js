@@ -73,4 +73,32 @@ describe('flowCanvas - 基础渲染', () => {
     exposed.zoomOut()
     expect(exposed.viewport.scale.value).toBeCloseTo(0.9, 5)
   })
+
+  it('适应画布按真实内容范围居中，而非重置到原点', async () => {
+    const w = mount(FlowCanvas, {
+      props: { contentBounds: { minX: 100, minY: 200, maxX: 500, maxY: 600 } },
+    })
+    Object.defineProperty(w.element, 'clientWidth', { value: 1000 })
+    Object.defineProperty(w.element, 'clientHeight', { value: 800 })
+    w.vm.viewport.pan(-500, -500)
+    await w.find('[aria-label="适应画布"]').trigger('click')
+    expect(w.vm.viewport.translateX.value).toBe(200)
+    expect(w.vm.viewport.translateY.value).toBe(0)
+    expect(w.vm.viewport.scale.value).toBe(1)
+    w.unmount()
+  })
+
+  it('表单输入空格不会启动画布平移，窗口失焦清理拖动状态', async () => {
+    const w = mount(FlowCanvas, { slots: { nodes: '<input aria-label="节点名称" />' }, attachTo: document.body })
+    const input = w.find('input')
+    await input.trigger('keydown', { code: 'Space' })
+    expect(w.classes()).not.toContain('cursor-grab')
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space' }))
+    await w.vm.$nextTick()
+    expect(w.classes()).toContain('cursor-grab')
+    window.dispatchEvent(new Event('blur'))
+    await w.vm.$nextTick()
+    expect(w.classes()).not.toContain('cursor-grab')
+    w.unmount()
+  })
 })

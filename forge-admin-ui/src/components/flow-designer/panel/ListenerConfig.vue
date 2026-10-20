@@ -259,12 +259,12 @@ function getValuePlaceholder(type) {
 .listener-section-title {
   color: var(--text-primary);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .listener-empty {
-  border: 1px dashed #dbe3ef;
-  border-radius: 8px;
+  border: 1px dashed var(--border-light);
+  border-radius: 6px;
   padding: 14px;
   background: var(--bg-secondary);
   color: var(--text-tertiary);
@@ -279,8 +279,8 @@ function getValuePlaceholder(type) {
 }
 
 .listener-card {
-  border: 1px solid #e5eaf3;
-  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
   padding: 12px;
   background: var(--bg-primary);
 }
@@ -301,6 +301,7 @@ function getValuePlaceholder(type) {
 .listener-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
   gap: 10px;
 }
 

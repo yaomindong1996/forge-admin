@@ -1,23 +1,8 @@
 <script setup>
-/**
- * NodeContextMenu — 节点右键菜单
- *
- * 用法：FlowCanvas / NodeRenderer 监听节点的 context-menu 事件，传入
- * { event, node }，本组件按节点类型渲染对应操作（编辑 / 复制 / 上移 / 下移 / 删除）。
- *
- * Props:
- *   - visible    是否显示
- *   - position   { x, y } 屏幕坐标
- *   - node       目标节点
- *   - canMoveUp  是否可向上移动（外层结合 useFlowDesigner.getIncomingEdges 判断）
- *   - canMoveDown
- *   - readonly
- *
- * Events:
- *   - close
- *   - action(actionId, node)   actionId: 'edit' | 'copy' | 'move-up' | 'move-down' | 'delete'
- */
-import { computed, onMounted, onUnmounted } from 'vue'
+/** 右键和卡片更多入口共用系统 Dropdown，复用主题、避让和键盘交互。 */
+import { NDropdown } from 'naive-ui'
+import { computed, h } from 'vue'
+import { useFlowOverlayTarget } from '../composables/useFlowOverlayTarget.js'
 
 const props = defineProps({
   visible: Boolean,
@@ -27,88 +12,42 @@ const props = defineProps({
   canMoveDown: { type: Boolean, default: true },
   readonly: Boolean,
 })
-
 const emit = defineEmits(['close', 'action'])
-
-const isStartOrEnd = computed(() => ['start', 'end'].includes(props.node?.nodeType))
-const isAdvanced = computed(() => props.node?.nodeType === 'advanced')
-
-function handleAction(id) {
-  emit('action', id, props.node)
+const overlayTarget = useFlowOverlayTarget()
+const options = computed(() => {
+  const items = [item('edit', '编辑', 'i-lucide:pencil')]
+  const fixed = ['start', 'end'].includes(props.node?.nodeType)
+  if (props.readonly || fixed)
+    return items
+  if (props.node?.nodeType !== 'advanced')
+    items.push(item('copy', '复制', 'i-lucide:copy'))
+  if (props.node?.nodeType === 'approver')
+    items.push(item('merge', '合并审批节点', 'i-lucide:git-merge'))
+  if (props.canMoveUp)
+    items.push(item('move-up', '上移', 'i-lucide:arrow-up'))
+  if (props.canMoveDown)
+    items.push(item('move-down', '下移', 'i-lucide:arrow-down'))
+  items.push({ type: 'divider', key: 'divider' })
+  items.push({
+    ...item('delete', '删除', 'i-lucide:trash-2'),
+    props: { style: { color: 'var(--error-color, #f53f3f)' } },
+  })
+  return items
+})
+function item(key, label, icon) {
+  return { key, label, icon: () => h('i', { class: icon }) }
+}
+function handleAction(key) {
+  emit('action', key, props.node)
   emit('close')
 }
-
-function handleClickOutside(event) {
-  if (!event.target.closest('.node-context-menu'))
-    emit('close')
-}
-
-function handleEsc(event) {
-  if (event.key === 'Escape')
-    emit('close')
-}
-
-onMounted(() => {
-  if (typeof window !== 'undefined') {
-    window.addEventListener('mousedown', handleClickOutside, true)
-    window.addEventListener('keydown', handleEsc)
-  }
-})
-
-onUnmounted(() => {
-  if (typeof window !== 'undefined') {
-    window.removeEventListener('mousedown', handleClickOutside, true)
-    window.removeEventListener('keydown', handleEsc)
-  }
-})
 </script>
 
 <template>
-  <div
-    v-if="visible && node"
-    class="node-context-menu text-sm fixed z-50 min-w-32 border border-gray-200 rounded-md bg-white py-1 shadow-lg"
-    :style="{ left: `${position.x}px`, top: `${position.y}px` }"
-    @click.stop
-  >
-    <button
-      class="w-full flex items-center gap-2 px-3 py-1.5 text-gray-700 hover:bg-gray-50"
-      @click="handleAction('edit')"
-    >
-      <i class="i-mdi-pencil-outline text-base text-primary" />
-      <span>编辑</span>
-    </button>
-    <button
-      v-if="!readonly && !isStartOrEnd && !isAdvanced"
-      class="w-full flex items-center gap-2 px-3 py-1.5 text-gray-700 hover:bg-gray-50"
-      @click="handleAction('copy')"
-    >
-      <i class="i-mdi-content-copy text-base text-info" />
-      <span>复制</span>
-    </button>
-    <button
-      v-if="!readonly && canMoveUp && !isStartOrEnd"
-      class="w-full flex items-center gap-2 px-3 py-1.5 text-gray-700 hover:bg-gray-50"
-      @click="handleAction('move-up')"
-    >
-      <i class="i-mdi-arrow-up text-base text-info" />
-      <span>上移</span>
-    </button>
-    <button
-      v-if="!readonly && canMoveDown && !isStartOrEnd"
-      class="w-full flex items-center gap-2 px-3 py-1.5 text-gray-700 hover:bg-gray-50"
-      @click="handleAction('move-down')"
-    >
-      <i class="i-mdi-arrow-down text-base text-info" />
-      <span>下移</span>
-    </button>
-    <div v-if="!readonly && !isStartOrEnd" class="my-1 h-px bg-gray-100" />
-    <button
-      v-if="!readonly && !isStartOrEnd"
-      class="w-full flex items-center gap-2 px-3 py-1.5 text-error hover:bg-error/5"
-      @click="handleAction('delete')"
-    >
-      <i class="i-mdi-trash-can-outline text-base" />
-      <span>删除</span>
-    </button>
-  </div>
+  <NDropdown
+    trigger="manual" :show="visible && Boolean(node)" :x="position.x" :y="position.y"
+    :options="options" placement="bottom-start" :style="{ minWidth: '148px' }"
+    :to="overlayTarget || undefined"
+    @select="handleAction" @clickoutside="$emit('close')" @update:show="!$event && $emit('close')"
+  />
 </template>

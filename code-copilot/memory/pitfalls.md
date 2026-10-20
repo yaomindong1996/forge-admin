@@ -36,7 +36,11 @@
 
 ## 分类目录
 
-### [前端 / 构建 / 路由](pitfalls/frontend.md)（55）
+### [前端 / 构建 / 路由](pitfalls/frontend.md)（65）
+
+- 属性栏响应式必须跟随容器宽度，双列表单不能拉伸最后一项
+- 局部 Drawer 的默认滚动包装会撑高固定操作区
+- 缩放画布中的浮层锚点不能沿用跨断点前的屏幕坐标
 
 - HTTP EOF 不是 Agent 成功终态，SSE JSON 也不走 Long 策略
 - Vue scoped 的 global 片段可能丢失后续选择器
@@ -204,8 +208,9 @@
 - 177. 业务对象发布不能重置应用入口配置
 - 180. 运行字段基线会掩盖表单组件的结构变更
 
-### [流程 / Flowable / BPMN](pitfalls/flow.md)（60）
+### [流程 / Flowable / BPMN](pitfalls/flow.md)（68）
 
+- 删除网关不能越过分支头处的共享审批
 - 纯净版 dump 不能用 (^|_)version$ 忽略框架 *_version 表
 - 纯净版 SQL 不能只跳过 act_* 而留下 flw_*
 - Flowable 8 动过库后不能只改版本号回退到 7.x
