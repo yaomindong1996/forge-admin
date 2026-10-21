@@ -1,5 +1,9 @@
 <template>
-  <span class="plugin-illustration" :style="{ width: `${size}px`, height: `${size}px` }" aria-hidden="true">
+  <span
+    class="plugin-illustration"
+    :style="{ width: `${size}px`, height: `${size}px` }"
+    aria-hidden="true"
+  >
     <ForgeSymbol :name="pluginPresentation(plugin).symbol" :size="Math.round(size * 0.63)" />
   </span>
 </template>
@@ -13,14 +17,17 @@ defineProps({ plugin: { type: Object, default: null }, size: { type: Number, def
 
 <style scoped>
 .plugin-illustration {
-  display: inline-flex;
+  display: grid;
+  place-items: center;
   flex: none;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid color-mix(in srgb, var(--primary-color) 18%, var(--border-light));
   border-radius: 4px;
-  background: color-mix(in srgb, var(--primary-color) 5%, var(--bg-primary));
-  color: var(--primary-color);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--plugin-wash, #dbeafe) 40%, #fff),
+    var(--plugin-wash, #dbeafe)
+  );
+  color: var(--plugin-ink, #2563eb);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--plugin-ink, #2563eb) 12%, transparent);
   box-sizing: border-box;
 }
 </style>

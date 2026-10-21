@@ -1,0 +1,378 @@
+{
+  "kind": "form",
+  "name": "请假申请表单",
+  "version": "1.2.0",
+  "payload": {
+    "schemaVersion": 1,
+    "formKey": "market_leave_form",
+    "formName": "请假申请",
+    "usage": [
+      "create",
+      "edit",
+      "approve"
+    ],
+    "layout": {
+      "labelPlacement": "left",
+      "labelAlign": "right",
+      "labelWidth": "110px",
+      "size": "medium",
+      "modalType": "drawer",
+      "showFeedback": true,
+      "gridColumns": 2,
+      "rowGap": 16,
+      "columnGap": 16
+    },
+    "components": [
+      {
+        "id": "cmp_applicant",
+        "componentKey": "input",
+        "label": "申请人",
+        "fieldBinding": {
+          "mode": "field",
+          "fieldCode": "applicantName",
+          "columnName": "applicant_name",
+          "createIfMissing": true,
+          "source": "field_asset"
+        },
+        "props": {
+          "placeholder": "姓名"
+        },
+        "layout": {
+          "span": 12
+        },
+        "validation": {
+          "required": true,
+          "requiredMessage": "请填写申请人"
+        },
+        "visibility": {}
+      },
+      {
+        "id": "cmp_emp_no",
+        "componentKey": "input",
+        "label": "工号",
+        "fieldBinding": {
+          "mode": "field",
+          "fieldCode": "employeeNo",
+          "columnName": "employee_no",
+          "createIfMissing": true,
+          "source": "field_asset"
+        },
+        "props": {
+          "placeholder": "员工工号"
+        },
+        "layout": {
+          "span": 12
+        },
+        "validation": {
+          "required": false
+        },
+        "visibility": {}
+      },
+      {
+        "id": "cmp_dept",
+        "componentKey": "input",
+        "label": "所属部门",
+        "fieldBinding": {
+          "mode": "field",
+          "fieldCode": "department",
+          "columnName": "department",
+          "createIfMissing": true,
+          "source": "field_asset"
+        },
+        "props": {
+          "placeholder": "部门全称"
+        },
+        "layout": {
+          "span": 12
+        },
+        "validation": {
+          "required": true,
+          "requiredMessage": "请填写所属部门"
+        },
+        "visibility": {}
+      },
+      {
+        "id": "cmp_phone",
+        "componentKey": "input",
+        "label": "联系电话",
+        "fieldBinding": {
+          "mode": "field",
+          "fieldCode": "mobile",
+          "columnName": "mobile",
+          "createIfMissing": true,
+          "source": "field_asset"
+        },
+        "props": {
+          "placeholder": "请假期间可联系号码"
+        },
+        "layout": {
+          "span": 12
+        },
+        "validation": {
+          "required": true,
+          "requiredMessage": "请填写联系电话"
+        },
+        "visibility": {}
+      },
+      {
+        "id": "cmp_leave_type",
+        "componentKey": "select",
+        "label": "请假类型",
+        "fieldBinding": {
+          "mode": "field",
+          "fieldCode": "leaveType",
+          "columnName": "leave_type",
+          "createIfMissing": true,
+          "source": "field_asset"
+        },
+        "props": {
+          "placeholder": "请选择类型",
+          "options": [
+            {
+              "label": "年假",
+              "value": "annual"
+            },
+            {
+              "label": "事假",
+              "value": "personal"
+            },
+            {
+              "label": "病假",
+              "value": "sick"
+            },
+            {
+              "label": "调休",
+              "value": "comp"
+            },
+            {
+              "label": "婚假",
+              "value": "marriage"
+            },
+            {
+              "label": "产假/陪产假",
+              "value": "maternity"
+            },
+            {
+              "label": "丧假",
+              "value": "bereavement"
+            }
+          ]
+        },
+        "layout": {
+          "span": 12
+        },
+        "validation": {
+          "required": true,
+          "requiredMessage": "请选择请假类型"
+        },
+        "visibility": {}
+      },
+      {
+        "id": "cmp_days",
+        "componentKey": "number",
+        "label": "请假天数",
+        "fieldBinding": {
+          "mode": "field",
+          "fieldCode": "leaveDays",
+          "columnName": "leave_days",
+          "createIfMissing": true,
+          "source": "field_asset"
+        },
+        "props": {
+          "placeholder": "按制度折算",
+          "min": 0.5,
+          "step": 0.5
+        },
+        "layout": {
+          "span": 12
+        },
+        "validation": {
+          "required": true,
+          "requiredMessage": "请填写请假天数"
+        },
+        "visibility": {}
+      },
+      {
+        "id": "cmp_start",
+        "componentKey": "date",
+        "label": "开始日期",
+        "fieldBinding": {
+          "mode": "field",
+          "fieldCode": "startDate",
+          "columnName": "start_date",
+          "createIfMissing": true,
+          "source": "field_asset"
+        },
+        "props": {
+          "type": "date",
+          "clearable": true
+        },
+        "layout": {
+          "span": 12
+        },
+        "validation": {
+          "required": true,
+          "requiredMessage": "请选择开始日期"
+        },
+        "visibility": {}
+      },
+      {
+        "id": "cmp_end",
+        "componentKey": "date",
+        "label": "结束日期",
+        "fieldBinding": {
+          "mode": "field",
+          "fieldCode": "endDate",
+          "columnName": "end_date",
+          "createIfMissing": true,
+          "source": "field_asset"
+        },
+        "props": {
+          "type": "date",
+          "clearable": true
+        },
+        "layout": {
+          "span": 12
+        },
+        "validation": {
+          "required": true,
+          "requiredMessage": "请选择结束日期"
+        },
+        "visibility": {}
+      },
+      {
+        "id": "cmp_reason",
+        "componentKey": "textarea",
+        "label": "请假事由",
+        "fieldBinding": {
+          "mode": "field",
+          "fieldCode": "reason",
+          "columnName": "reason",
+          "createIfMissing": true,
+          "source": "field_asset"
+        },
+        "props": {
+          "placeholder": "请说明事由；病假请注明是否已附证明",
+          "rows": 3
+        },
+        "layout": {
+          "span": 24
+        },
+        "validation": {
+          "required": true,
+          "requiredMessage": "请填写请假事由"
+        },
+        "visibility": {}
+      },
+      {
+        "id": "cmp_deputy",
+        "componentKey": "input",
+        "label": "职务代理人",
+        "fieldBinding": {
+          "mode": "field",
+          "fieldCode": "deputyName",
+          "columnName": "deputy_name",
+          "createIfMissing": true,
+          "source": "field_asset"
+        },
+        "props": {
+          "placeholder": "请假期间工作代理人"
+        },
+        "layout": {
+          "span": 12
+        },
+        "validation": {
+          "required": false
+        },
+        "visibility": {}
+      },
+      {
+        "id": "cmp_handover",
+        "componentKey": "textarea",
+        "label": "工作交接",
+        "fieldBinding": {
+          "mode": "field",
+          "fieldCode": "handover",
+          "columnName": "handover",
+          "createIfMissing": true,
+          "source": "field_asset"
+        },
+        "props": {
+          "placeholder": "待办事项、资料位置、对接人",
+          "rows": 3
+        },
+        "layout": {
+          "span": 24
+        },
+        "validation": {
+          "required": true,
+          "requiredMessage": "请填写工作交接说明"
+        },
+        "visibility": {}
+      },
+      {
+        "id": "cmp_status",
+        "componentKey": "select",
+        "label": "审批状态",
+        "fieldBinding": {
+          "mode": "field",
+          "fieldCode": "approvalStatus",
+          "columnName": "approval_status",
+          "createIfMissing": true,
+          "source": "field_asset"
+        },
+        "props": {
+          "placeholder": "流程状态",
+          "options": [
+            {
+              "label": "草稿",
+              "value": "draft"
+            },
+            {
+              "label": "待审批",
+              "value": "pending"
+            },
+            {
+              "label": "已通过",
+              "value": "approved"
+            },
+            {
+              "label": "已驳回",
+              "value": "rejected"
+            }
+          ]
+        },
+        "layout": {
+          "span": 12
+        },
+        "validation": {
+          "required": false
+        },
+        "visibility": {}
+      },
+      {
+        "id": "cmp_remark",
+        "componentKey": "textarea",
+        "label": "备注",
+        "fieldBinding": {
+          "mode": "field",
+          "fieldCode": "remark",
+          "columnName": "remark",
+          "createIfMissing": true,
+          "source": "field_asset"
+        },
+        "props": {
+          "rows": 2,
+          "placeholder": "补充说明（选填）"
+        },
+        "layout": {
+          "span": 24
+        },
+        "validation": {
+          "required": false
+        },
+        "visibility": {}
+      }
+    ]
+  }
+}

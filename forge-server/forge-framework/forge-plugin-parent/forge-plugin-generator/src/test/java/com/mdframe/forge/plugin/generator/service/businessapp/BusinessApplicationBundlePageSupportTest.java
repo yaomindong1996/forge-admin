@@ -57,6 +57,42 @@ class BusinessApplicationBundlePageSupportTest {
     }
 
     @Test
+    @DisplayName("expands compact pages/nav into nodes and form layout")
+    @SuppressWarnings("unchecked")
+    void normalizeCompactInAppBuilderExpandsPages() {
+        Map<String, Object> compact = new LinkedHashMap<>();
+        compact.put("pages", Map.of(
+                "page_leave", Map.of(
+                        "title", "请假申请",
+                        "pageType", "object",
+                        "objectRef", Map.of("objectCode", "leave_request", "objectName", "请假单")
+                )
+        ));
+        compact.put("nav", List.of(Map.of("id", "page_leave", "title", "请假申请")));
+        Map<String, Object> objectSnapshot = new LinkedHashMap<>();
+        objectSnapshot.put("objectCode", "leave_request");
+        objectSnapshot.put("formDesignerSchema", Map.of("components", List.of(Map.of("id", "c1"))));
+
+        Map<String, Object> normalized = BusinessApplicationBundlePageSupport.normalizeCompactInAppBuilder(
+                compact, List.of(objectSnapshot));
+
+        List<Map<String, Object>> nodes = (List<Map<String, Object>>) normalized.get("nodes");
+        assertEquals(1, nodes.size());
+        assertEquals("page_leave", nodes.get(0).get("id"));
+        assertEquals("page", nodes.get(0).get("type"));
+        assertEquals("page_leave", normalized.get("homePageId"));
+        Map<String, Object> page = (Map<String, Object>) ((Map<?, ?>) normalized.get("pages")).get("page_leave");
+        Map<String, Object> grid = (Map<String, Object>) ((Map<?, ?>) page.get("layout")).get("gridLayout");
+        List<?> items = (List<?>) grid.get("items");
+        assertEquals(1, items.size());
+        assertEquals("AiCrudPage", ((Map<?, ?>) items.get(0)).get("blockType"));
+        List<Map<String, Object>> formAssets = (List<Map<String, Object>>) normalized.get("formAssets");
+        assertEquals(1, formAssets.size());
+        assertEquals("form_leave_request", formAssets.get(0).get("id"));
+        assertFalse(normalized.containsKey("nav"));
+    }
+
+    @Test
     @DisplayName("filterBuilder keeps ancestors and drops unselected pages")
     @SuppressWarnings("unchecked")
     void filterBuilderKeepsAncestors() {

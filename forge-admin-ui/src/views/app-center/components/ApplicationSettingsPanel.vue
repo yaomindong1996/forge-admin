@@ -15,26 +15,30 @@
           </button>
         </aside>
         <main class="settings-panel-content">
-          <AppSettingsBasic v-if="activeSection === 'basic'" v-model="settingsModel" />
-          <AppSettingsAccess v-else-if="activeSection === 'access'" ref="accessRef" v-model="settingsModel" :application="application" />
-          <AppSettingsNavigation v-else-if="activeSection === 'navigation'" v-model="settingsModel" :pages="applicationPages" />
-          <AppSettingsPermission
-            v-else-if="activeSection === 'permission'"
-            v-model="settingsModel"
-            :application="application"
-          />
-          <AppSettingsGlobalization v-else-if="activeSection === 'globalization'" v-model="settingsModel" />
-          <ApplicationIntegrations v-else-if="activeSection === 'integrations'" :key="application.id" :application="application" />
-          <AppSettingsAdvanced
-            v-else
-            v-model="settingsModel"
-            :application-id="application?.id"
-            :application-code="application?.applicationCode"
-          />
-          <div v-if="activeSection !== 'integrations'" class="settings-panel-actions">
+          <!-- 保存条置顶固定，避免长表单滚到底才看见 -->
+          <div v-if="activeSection !== 'integrations'" class="settings-panel-toolbar">
+            <span class="settings-panel-toolbar__hint">修改后点击保存，才会同步到应用中心与门户</span>
             <n-button type="primary" :loading="saving" @click="saveSettings">
               保存设置
             </n-button>
+          </div>
+          <div class="settings-panel-body">
+            <AppSettingsBasic v-if="activeSection === 'basic'" v-model="settingsModel" />
+            <AppSettingsAccess v-else-if="activeSection === 'access'" ref="accessRef" v-model="settingsModel" :application="application" />
+            <AppSettingsNavigation v-else-if="activeSection === 'navigation'" v-model="settingsModel" :pages="applicationPages" />
+            <AppSettingsPermission
+              v-else-if="activeSection === 'permission'"
+              v-model="settingsModel"
+              :application="application"
+            />
+            <AppSettingsGlobalization v-else-if="activeSection === 'globalization'" v-model="settingsModel" />
+            <ApplicationIntegrations v-else-if="activeSection === 'integrations'" :key="application.id" :application="application" />
+            <AppSettingsAdvanced
+              v-else
+              v-model="settingsModel"
+              :application-id="application?.id"
+              :application-code="application?.applicationCode"
+            />
           </div>
         </main>
       </div>
@@ -290,30 +294,60 @@ function stripPortalSettingsPayload(model) {
 }
 
 .settings-panel-nav button.active {
-  background: var(--settings-hover);
-  color: var(--settings-text);
-  font-weight: 600;
+  background: color-mix(in srgb, var(--n-primary-color, #2f6fed) 10%, transparent);
+  color: var(--n-primary-color, #2f6fed);
+  font-weight: 650;
+  box-shadow: inset 3px 0 0 var(--n-primary-color, #2f6fed);
 }
 
 .settings-panel-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.settings-panel-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--settings-border);
+  border-radius: 8px;
+  background: var(--settings-surface);
+  box-shadow: 0 4px 14px rgb(15 23 42 / 6%);
+}
+
+.settings-panel-toolbar__hint {
+  color: var(--settings-muted);
+  font-size: 12px;
+}
+
+.settings-panel-body {
   min-width: 0;
 }
 
 .settings-panel-content :deep(.settings-section-card) {
-  padding: 24px;
+  padding: 22px 24px 24px;
   border: 1px solid var(--settings-border);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--settings-surface);
   box-shadow: 0 1px 3px rgb(31 35 41 / 6%);
 }
 
 .settings-panel-content :deep(.settings-section-card > header) {
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
 .settings-panel-content :deep(.settings-section-card > header h2) {
   margin: 0;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 650;
 }
 
@@ -321,12 +355,6 @@ function stripPortalSettingsPayload(model) {
   margin: 6px 0 0;
   color: var(--settings-muted);
   font-size: 13px;
-}
-
-.settings-panel-actions {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--settings-border);
 }
 
 @media (max-width: 900px) {

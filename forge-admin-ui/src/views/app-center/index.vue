@@ -2,15 +2,27 @@
   <div class="app-center-page">
     <header class="app-center-view-head">
       <div class="app-center-view-brand">
-        <span class="app-center-view-brand__mark"><NIcon><AppsOutline /></NIcon></span>
-        <span><strong>应用中心</strong><small>设计、发布与交付业务应用</small></span>
+        <span class="app-center-view-brand__mark" aria-hidden="true">
+          <i class="i-lucide:boxes" />
+        </span>
+        <span>
+          <strong>应用中心</strong>
+          <small>设计、发布与交付业务应用</small>
+        </span>
       </div>
-      <n-tabs v-model:value="activeView" type="line" size="small" @update:value="handleViewChange">
+      <!-- Tab 紧贴标题，避免挤到右侧难发现 -->
+      <n-tabs
+        v-model:value="activeView"
+        type="segment"
+        size="medium"
+        class="app-center-view-tabs"
+        @update:value="handleViewChange"
+      >
         <n-tab name="MY_APPS">
-          我的应用
+          <span class="app-center-tab-label"><i class="i-lucide:folder-kanban" />我的应用</span>
         </n-tab>
         <n-tab name="MARKET">
-          应用市场
+          <span class="app-center-tab-label"><i class="i-lucide:store" />应用市场</span>
         </n-tab>
       </n-tabs>
     </header>
@@ -67,8 +79,8 @@
             title="全部应用"
             @click="selectSuite(null)"
           >
-            <span class="suite-icon all">
-              <NIcon><AppsOutline /></NIcon>
+            <span class="suite-icon all" aria-hidden="true">
+              <i class="i-lucide:layers" />
             </span>
             <span class="suite-copy">
               <strong>全部应用</strong>
@@ -107,7 +119,7 @@
             >
               <span class="suite-icon">
                 <IconRenderer v-if="row.suite.icon" :icon="row.suite.icon" :size="17" />
-                <template v-else>{{ suiteInitial(row.suite) }}</template>
+                <i v-else class="i-lucide:folder" />
               </span>
               <span class="suite-copy">
                 <strong>{{ row.suite.suiteName || row.suite.suiteCode }}</strong>
@@ -242,7 +254,11 @@
       </main>
     </section>
 
-    <AppMarketPanel v-else @create-template="openTemplateCreate" />
+    <AppMarketPanel
+      v-else
+      @create-template="openTemplateCreate"
+      @import-package="debugBundleImportVisible = true"
+    />
 
     <AppCreateWizard
       v-model:show="createWizardVisible"
@@ -293,7 +309,6 @@
 <script setup>
 import {
   AddOutline,
-  AppsOutline,
   ChevronBackOutline,
   ChevronDownOutline,
   ChevronForwardOutline,
@@ -900,10 +915,6 @@ function suiteMetaText(suite) {
     : Number(suiteApplicationTotals.value.get(String(suite.id)) || 0)
   const childCount = (suiteChildrenMap.value.get(String(suite.id)) || []).length
   return childCount ? `${applicationCount} 应用 · ${childCount} 子域` : `${applicationCount} 个应用`
-}
-
-function suiteInitial(suite) {
-  return String(suite?.suiteName || suite?.suiteCode || '域').trim().slice(0, 1).toUpperCase()
 }
 
 function compareSuites(left, right) {

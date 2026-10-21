@@ -1,10 +1,11 @@
 <template>
+  <!-- 多表单：切换 / 编辑当前 / 其他表单 / 底部模板市场 -->
   <section class="panel-item form-asset-panel">
-    <div class="form-asset-head">
-      <p class="panel-item-desc">
-        同一个业务对象可以有多个表单，比如新增、编辑用不同的表单。
+    <header class="form-asset-toolbar">
+      <p class="form-asset-hint">
+        同一业务对象可有多套表单（如新增、编辑、弹窗）
       </p>
-      <div class="form-asset-actions">
+      <div class="form-asset-toolbar__actions">
         <button type="button" class="form-asset-icon-button" title="复制当前表单" @click="duplicateCurrentFormAsset">
           <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M9 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v12a1 1 0 1 1-2 0V4h-9a1 1 0 0 1-1-1Z" fill="currentColor" />
@@ -17,7 +18,8 @@
           </svg>
         </button>
       </div>
-    </div>
+    </header>
+
     <div class="form-asset-tabs">
       <button type="button" class="form-asset-tab active" @click="showFormSettings">
         <span>{{ schema.formName || '主表单' }}</span>
@@ -33,6 +35,7 @@
         <span>{{ asset.formName || '未命名表单' }}</span>
       </button>
     </div>
+
     <div class="form-asset-edit-grid">
       <n-form-item label="表单名称">
         <n-input
@@ -72,6 +75,7 @@
         </n-button>
       </n-form-item>
     </div>
+
     <div v-if="formAssets.length" class="form-asset-list">
       <div class="form-asset-list-title">
         其他表单
@@ -94,20 +98,68 @@
             @update:value="updateFormAssetMeta(asset.formKey, { usage: $event })"
           />
         </div>
-        <n-button size="tiny" quaternary :type="defaultFormKey === asset.formKey ? 'primary' : 'default'" @click="setDefaultFormKey(asset.formKey)">
-          {{ defaultFormKey === asset.formKey ? '默认' : '设默认' }}
-        </n-button>
-        <n-button size="tiny" quaternary type="error" @click="removeFormAsset(asset.formKey)">
-          删除
-        </n-button>
+        <div class="form-asset-card__ops">
+          <n-button
+            size="tiny"
+            quaternary
+            :type="defaultFormKey === asset.formKey ? 'primary' : 'default'"
+            @click="setDefaultFormKey(asset.formKey)"
+          >
+            {{ defaultFormKey === asset.formKey ? '默认' : '设默认' }}
+          </n-button>
+          <n-button size="tiny" quaternary type="error" @click="removeFormAsset(asset.formKey)">
+            删除
+          </n-button>
+        </div>
       </div>
     </div>
+
+    <aside v-if="formMarketUrl" class="form-market-promo">
+      <img class="form-market-promo__art" :src="marketStarUrl" alt="" draggable="false">
+      <div class="form-market-promo__copy">
+        <strong>更多表单模板</strong>
+        <em>持续更新中</em>
+      </div>
+      <a
+        class="form-market-btn form-market-btn--primary"
+        :href="formMarketUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        探索表单市场 →
+      </a>
+      <button type="button" class="form-market-btn form-market-btn--ghost" @click="libraryOpen = true">
+        从我的模板选用
+      </button>
+      <button type="button" class="form-market-btn form-market-btn--ghost" @click="importOpen = true">
+        安装表单模板
+      </button>
+    </aside>
+
+    <ContentPackageImportDialog
+      v-model:show="importOpen"
+      kind="form"
+      :busy="importing"
+      @confirm="importFormPackage"
+    />
+    <InstalledContentAssetPicker
+      v-model:show="libraryOpen"
+      kind="form"
+      title="我的表单模板"
+      select-label="应用到当前表单"
+      @select="applyLibraryForm"
+    />
   </section>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import ContentPackageImportDialog from '@/components/common/ContentPackageImportDialog.vue'
+import InstalledContentAssetPicker from '@/components/common/InstalledContentAssetPicker.vue'
+import marketStarUrl from '@/assets/print/component-market-star.png'
 import { useFormDesignerStore } from '@/store'
+import { officialMarketUrl } from '@/utils/officialMarket'
+import { installContentPackageFromFile } from '@/utils/contentInstalledAsset'
 import { cloneValue, normalizeFormDesignerSchema } from '../../form-first/formDesignerSchema'
 
 /**
@@ -117,6 +169,39 @@ import { cloneValue, normalizeFormDesignerSchema } from '../../form-first/formDe
  * 支持切换当前编辑表单、编辑元信息、设默认、复制、删除。
  */
 const designerStore = useFormDesignerStore()
+const importOpen = ref(false)
+const libraryOpen = ref(false)
+const importing = ref(false)
+const formMarketUrl = computed(() => officialMarketUrl('form'))
+
+function applyFormPack(pack, successMessage) {
+  designerStore.applySchema(normalizeFormDesignerSchema(pack.payload))
+  window.$message?.success(successMessage)
+}
+
+async function importFormPackage({ file }) {
+  importing.value = true
+  try {
+    const { pack } = await installContentPackageFromFile({ file, kind: 'form' })
+    applyFormPack(pack, '已安装到我的模板，并应用到当前表单')
+    importOpen.value = false
+  }
+  catch (error) {
+    window.$message?.error(error.message || '安装表单模板失败')
+  }
+  finally {
+    importing.value = false
+  }
+}
+
+function applyLibraryForm({ pack }) {
+  try {
+    applyFormPack(pack, `已选用「${pack.name || '表单模板'}」`)
+  }
+  catch (error) {
+    window.$message?.error(error.message || '选用表单模板失败')
+  }
+}
 
 const schema = computed(() => designerStore.schema)
 const formAssets = computed(() => designerStore.formAssets)
@@ -348,46 +433,29 @@ function removeFormAsset(formKey = '') {
   margin-bottom: 0;
 }
 
-.panel-item-desc {
-  margin: 3px 0 0;
-  color: #8f959e;
-  font-size: 11px;
-  line-height: 16px;
-}
-
 .form-asset-panel {
   background: var(--bg-primary);
 }
 
-.form-asset-list {
-  display: grid;
-  gap: 6px;
+.form-asset-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
-.form-asset-list-title {
-  color: var(--text-tertiary);
+.form-asset-hint {
+  margin: 0;
+  color: var(--text-tertiary, #8f959e);
   font-size: 11px;
-  font-weight: 600;
   line-height: 16px;
 }
 
-.form-default-badge {
-  display: inline-flex;
-  align-items: center;
-  height: 26px;
-  border: 1px solid #bbf7d0;
-  border-radius: 6px;
-  background: #f0fdf4;
-  color: #16a34a;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 0 8px;
-}
-
-.form-asset-actions {
+.form-asset-toolbar__actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
@@ -395,25 +463,21 @@ function removeFormAsset(formKey = '') {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   cursor: pointer;
-  border: 0;
-  border-radius: 4px;
+  border: 1px solid transparent;
+  border-radius: 6px;
   background: transparent;
   color: var(--text-tertiary);
   font-size: 13px;
-  font-weight: 600;
   padding: 0;
-  transition:
-    background-color 160ms ease,
-    color 160ms ease;
 }
 
 .form-asset-icon-button:hover {
-  background: #eef2ff;
-  color: #4f46e5;
+  border-color: var(--border-light, #e8edf3);
+  background: #f5f7fb;
+  color: var(--primary-color, #2f6bff);
 }
 
 .form-asset-tabs {
@@ -421,7 +485,7 @@ function removeFormAsset(formKey = '') {
   gap: 6px;
   margin-bottom: 10px;
   overflow-x: auto;
-  padding-bottom: 3px;
+  padding-bottom: 2px;
 }
 
 .form-asset-tab {
@@ -430,10 +494,10 @@ function removeFormAsset(formKey = '') {
   gap: 6px;
   max-width: 168px;
   flex: 0 0 auto;
-  height: 32px;
+  height: 30px;
   cursor: pointer;
   border: 1px solid var(--border-light);
-  border-radius: 7px;
+  border-radius: 6px;
   background: var(--bg-primary);
   color: var(--text-secondary);
   padding: 0 9px;
@@ -448,18 +512,6 @@ function removeFormAsset(formKey = '') {
   border-color: #2563eb;
   background: #eff6ff;
   color: #1d4ed8;
-}
-
-.form-asset-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.form-asset-head .panel-item-desc {
-  margin: 0;
 }
 
 .form-asset-tab span {
@@ -492,59 +544,133 @@ function removeFormAsset(formKey = '') {
   margin-bottom: 0;
 }
 
+.form-default-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  background: #f0fdf4;
+  color: #16a34a;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 8px;
+}
+
+.form-asset-list {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.form-asset-list-title {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
 .form-asset-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
   gap: 8px;
   min-width: 0;
   border: 1px solid var(--border-light);
-  border-radius: 7px;
+  border-radius: 6px;
   background: var(--bg-primary);
   color: var(--text-primary);
-  padding: 9px 10px;
-  text-align: left;
-}
-
-button.form-asset-card,
-.form-asset-main {
-  cursor: pointer;
-}
-
-.form-asset-card.active {
-  border-color: #93c5fd;
-  background: #eff6ff;
+  padding: 8px 10px;
 }
 
 .form-asset-main {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: center;
   gap: 6px;
 }
 
-.form-asset-card strong,
-.form-asset-card span,
-.form-asset-main strong,
-.form-asset-main span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.form-asset-card__ops {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
 }
 
-.form-asset-card strong,
-.form-asset-main strong {
+.form-market-promo {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin: 4px -2px 0;
+  padding: 10px 10px 12px;
+  border: 0;
+  border-top: 1px solid #e8edf3;
+  border-radius: 0;
+  background: linear-gradient(180deg, #f7f9fc 0%, #eef3ff 100%);
+  text-align: center;
+}
+
+.form-market-promo__art {
+  display: block;
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.form-market-promo__copy {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+}
+
+.form-market-promo__copy strong {
+  color: #3b6ef5;
   font-size: 12px;
   font-weight: 700;
+  line-height: 1.25;
 }
 
-.form-asset-card span,
-.form-asset-main span {
-  margin-top: 2px;
-  color: #8f959e;
+.form-market-promo__copy em {
+  color: #7b8db0;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1.25;
+}
+
+.form-market-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.form-market-btn--primary {
+  border: 1px solid transparent;
+  background: var(--primary-color, #2f6bff);
+  color: #fff;
+  box-shadow: 0 1px 2px rgb(47 107 255 / 18%);
+}
+
+.form-market-btn--primary:hover {
+  filter: brightness(1.04);
+}
+
+.form-market-btn--ghost {
+  border: 1px solid #e8edf3;
+  background: #fff;
+  color: var(--text-secondary, #4e5969);
   font-size: 11px;
-  line-height: 16px;
+  font-weight: 500;
+}
+
+.form-market-btn--ghost:hover {
+  border-color: color-mix(in srgb, var(--primary-color, #2f6bff) 35%, #e8edf3);
+  color: var(--primary-color, #2f6bff);
 }
 </style>

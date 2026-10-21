@@ -230,7 +230,7 @@
       <!-- 表单设计：预览期间 v-show 保活，避免返回编辑整页重挂 -->
       <section
         v-if="keepFormDesignerAlive"
-        v-show="showFormDesignerSurface"
+        v-show="showFormDesignerSurface || (editing && editCanvasBootstrapping && showFormDesignTab)"
         class="application-form-asset-workbench"
       >
         <DesignerAsyncLoader
@@ -276,7 +276,20 @@
               </n-button>
             </div>
           </div>
-          <div v-if="activeFormAsset" class="application-form-asset-designer">
+          <!-- bootstrapping 时先盖过渡层，同时挂载设计器（v-show）以便后台拉 chunk，避免撤层后才开始空白等 -->
+          <DesignerAsyncLoader
+            v-if="editCanvasBootstrapping && !activeFormAsset"
+            title="正在打开表单设计"
+            description="正在加载设计器与页面资产，请稍候"
+          />
+          <div v-if="activeFormAsset" class="application-form-asset-designer" :class="{ 'is-surface-booting': editCanvasBootstrapping }">
+            <DesignerAsyncLoader
+              v-if="editCanvasBootstrapping"
+              class="form-surface-boot-overlay"
+              overlay
+              title="正在打开表单设计"
+              description="正在加载设计器与页面资产，请稍候"
+            />
             <ForgeFormDesigner
               :key="activeFormAsset.id || activeFormAsset.formKey"
               :model-value="activeFormDesignerSchema"
@@ -290,7 +303,7 @@
               @update:model-value="updateActiveFormDesignerSchema"
             />
           </div>
-          <n-empty v-else description="当前页面还没有表单，先创建一个再设计字段">
+          <n-empty v-else-if="!editCanvasBootstrapping" description="当前页面还没有表单，先创建一个再设计字段">
             <template #extra>
               <n-button type="primary" @click="createFormAssetForCurrentPage">
                 创建表单
@@ -303,11 +316,16 @@
       <!-- 列表设计：预览期间保活，返回编辑不重新 loadDesigner -->
       <section
         v-if="keepListDesignerAlive"
-        v-show="showListDesignerSurface"
+        v-show="showListDesignerSurface || (editing && editCanvasBootstrapping && showListDesignTab)"
         class="application-design-section"
       >
+        <DesignerAsyncLoader
+          v-if="editCanvasBootstrapping && !pageDesignObject"
+          title="正在打开列表设计"
+          description="正在加载列表设计器，请稍候"
+        />
         <BusinessObjectDesignerPage
-          v-if="pageDesignObject"
+          v-else-if="pageDesignObject"
           :key="`page-list:${pageDesignObject.objectId || pageDesignObject.objectCode}`"
           ref="embeddedDesignerRef"
           embedded

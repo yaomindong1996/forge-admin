@@ -152,7 +152,6 @@ function handleMore(key) {
       <i class="save-dot" :class="{ dirty: store.dirty || externalDirty }" />
       <span class="save-state">{{ (store.dirty || externalDirty) ? '未保存' : '已保存' }}</span>
     </div>
-
     <div class="command-group panel-commands">
       <NTooltip placement="bottom">
         <template #trigger>

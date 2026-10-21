@@ -218,7 +218,11 @@ describe('application runtime route loading', () => {
     expect(runtimeSource).toContain('import(\'@/components/ai-form/AiCrudPage.vue\')')
     expect(runtimeSource).toContain('import(\'@/components/lowcode-builder/page/RuntimeListGridFlow.vue\')')
     expect(runtimeSource).toContain('editCanvasBootstrapping')
-    expect(runtimeSource).toContain('resolveEntryDesignTab(pageId) === \'page\'')
+    // 编辑态入口（自由布局 / 表单 / 列表）都盖中间过渡，避免顶栏出来后中间纯白
+    expect(runtimeSource).toContain("['page', 'form', 'list'].includes(entryTab)")
+    expect(runtimeSource).toContain('formDesignerSessionActive.value = true')
+    expect(runtimeSource).toContain('waitForEditSurfaceReady')
+    expect(runtimeSource).toContain('.application-form-asset-designer .forge-form-designer')
     expect(portalSource).toContain('seedRuntimeCrudProps')
     expect(portalSource).toContain('portal-content-skeleton')
     expect(rendererSource).toContain('<div v-if="runtimeCrudLoading" class="runtime-crud-loading">')

@@ -4,27 +4,24 @@
       v-for="application in applications"
       :key="application.id"
       class="application-card"
+      :style="applicationTone(application)"
       role="listitem"
       tabindex="0"
       @click="emit('enter', application)"
       @keydown.enter.self.prevent="emit('enter', application)"
     >
+      <!-- 身份区：图标 + 名称编码 + 设计状态 -->
       <header class="application-card-head">
-        <span
-          class="application-icon"
-          :class="{
-            'is-draft': isDraftApplication(application) && !application.lastPublishVersion,
-            'is-changed': isUnpublishedApplication(application),
-            'is-published': application.lastPublishVersion && !isUnpublishedApplication(application),
-          }"
-        >
-          <IconRenderer v-if="application.icon" :icon="application.icon" :size="16" />
-          <i v-else class="i-lucide:layout-dashboard" />
-        </span>
-        <span class="application-copy">
-          <strong>{{ application.applicationName || application.applicationCode }}</strong>
-          <code>{{ application.applicationCode }}</code>
-        </span>
+        <div class="application-identity">
+          <span class="application-icon" aria-hidden="true">
+            <IconRenderer v-if="application.icon" :icon="application.icon" :size="18" />
+            <i v-else class="i-lucide:app-window" />
+          </span>
+          <span class="application-copy">
+            <strong>{{ application.applicationName || application.applicationCode }}</strong>
+            <code>{{ application.applicationCode }}</code>
+          </span>
+        </div>
         <span
           class="application-design-status"
           :class="{ 'is-draft': isDraftApplication(application) }"
@@ -38,39 +35,39 @@
         </span>
       </header>
 
-      <!-- 小幅插画只占正文右侧，业务图标和标题仍取真实应用配置。 -->
+      <!-- 标签 + 发布态同一行，避免底栏挤挡 -->
       <div class="application-card-body">
-        <WorkspaceIllustration artwork="application" size="card" class="application-artwork" />
         <div class="application-meta-row">
           <span class="application-badge" :title="application.suiteCode">
             {{ application.suiteName || application.suiteCode || '未分组' }}
           </span>
           <span class="application-badge">{{ application.pageCount || 0 }} 页</span>
           <span
-            class="application-version"
-            :class="{ warning: isUnpublishedApplication(application), empty: !application.lastPublishVersion }"
+            class="application-badge application-badge--version"
+            :class="{
+              'is-warning': isUnpublishedApplication(application),
+              'is-empty': !application.lastPublishVersion,
+            }"
           >
-            <i class="i-lucide:git-branch" />
-            <span v-if="isUnpublishedApplication(application)" class="problem-text">有变更未发布</span>
-            <span v-else-if="application.lastPublishVersion">已发布 v{{ application.lastPublishVersion }}</span>
-            <span v-else>尚未发布</span>
+            <template v-if="isUnpublishedApplication(application)">有变更未发布</template>
+            <template v-else-if="application.lastPublishVersion">已发布 v{{ application.lastPublishVersion }}</template>
+            <template v-else>尚未发布</template>
           </span>
         </div>
-
         <p class="application-description">
           {{ application.description || '暂无应用说明' }}
         </p>
       </div>
 
+      <!-- 底栏单行：日期 + 操作 -->
       <footer class="application-card-foot">
         <span class="application-date">
           <i class="i-lucide:calendar" />
           {{ formatDate(application.updateTime) }}
         </span>
-
         <div class="application-actions" @click.stop>
-          <button type="button" class="application-action-link" @click="emit('enter', application)">
-            编辑
+          <button type="button" class="application-action-link is-primary" @click="emit('enter', application)">
+            <i class="i-lucide:pen-line" />编辑
           </button>
           <span class="application-action-separator" />
           <button
@@ -79,7 +76,7 @@
             class="application-action-link"
             @click="emit('publish', application)"
           >
-            发布
+            <i class="i-lucide:upload" />发布
           </button>
           <button
             v-else
@@ -87,7 +84,7 @@
             class="application-action-link"
             @click="emit('run', application)"
           >
-            运行
+            <i class="i-lucide:play" />运行
           </button>
           <span class="application-action-separator" />
           <n-dropdown
@@ -106,7 +103,6 @@
 </template>
 
 <script setup>
-import WorkspaceIllustration from '@/components/common/WorkspaceIllustration.vue'
 import DictTag from '@/components/DictTag.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
 
@@ -118,6 +114,25 @@ defineProps({
 })
 
 const emit = defineEmits(['enter', 'run', 'edit', 'code', 'publish', 'exportConfig', 'toggle', 'delete'])
+
+const APP_TONES = [
+  { ink: '#2563eb', wash: '#dbeafe' },
+  { ink: '#7c3aed', wash: '#ede9fe' },
+  { ink: '#059669', wash: '#d1fae5' },
+  { ink: '#ea580c', wash: '#ffedd5' },
+  { ink: '#0891b2', wash: '#cffafe' },
+  { ink: '#db2777', wash: '#fce7f3' },
+]
+
+/** 按应用编码稳定映射色相，对齐应用市场卡片。 */
+function applicationTone(application) {
+  const key = String(application?.applicationCode || application?.id || '')
+  let hash = 0
+  for (let i = 0; i < key.length; i += 1)
+    hash = (hash + key.charCodeAt(i) * (i + 1)) % APP_TONES.length
+  const tone = APP_TONES[hash] || APP_TONES[0]
+  return { '--app-ink': tone.ink, '--app-wash': tone.wash }
+}
 
 function actionOptions(application) {
   const isDraft = isDraftApplication(application)
@@ -143,30 +158,22 @@ function isUnpublishedApplication(application) {
 }
 
 function handleAction(key, application) {
-  if (key === 'enter') {
+  if (key === 'enter')
     emit('enter', application)
-  }
-  else if (key === 'run') {
+  else if (key === 'run')
     emit('run', application)
-  }
-  else if (key === 'publish') {
+  else if (key === 'publish')
     emit('publish', application)
-  }
-  else if (key === 'code') {
+  else if (key === 'code')
     emit('code', application)
-  }
-  else if (key === 'edit') {
+  else if (key === 'edit')
     emit('edit', application)
-  }
-  else if (key === 'export-config') {
+  else if (key === 'export-config')
     emit('exportConfig', application)
-  }
-  else if (key === 'toggle') {
+  else if (key === 'toggle')
     emit('toggle', application)
-  }
-  else if (key === 'delete') {
+  else if (key === 'delete')
     emit('delete', application)
-  }
 }
 
 function formatDate(value) {
@@ -188,215 +195,172 @@ function formatDate(value) {
 <style scoped>
 .application-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
   align-content: start;
-  gap: 14px;
+  gap: 12px;
+  width: 100%;
   min-width: 0;
   min-height: 100%;
-  padding: 14px;
+  padding: 8px 16px 16px;
+  box-sizing: border-box;
 }
 
 .application-card {
-  position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 132px;
   overflow: hidden;
-  border: 1px solid var(--border-light);
+  border: 1px solid #e5e7eb;
   border-radius: 4px;
   outline: none;
-  color: var(--text-primary);
-  background: var(--bg-primary);
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 3%);
   cursor: pointer;
   transition:
-    border-color 0.16s ease,
+    transform 0.16s ease,
     box-shadow 0.16s ease;
 }
 
 .application-card:hover,
 .application-card:focus-visible,
 .application-card:focus-within {
-  border-color: var(--n-primary-color, var(--primary-color, #165dff));
-  box-shadow: 0 2px 6px rgb(22 93 255 / 10%);
+  box-shadow: 0 8px 18px rgb(15 23 42 / 8%);
+  transform: translateY(-1px);
 }
 
 .application-card-head {
-  display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) auto;
-  align-items: start;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 14px 8px;
+}
+
+.application-identity {
+  display: flex;
   gap: 10px;
   min-width: 0;
-  padding: 14px 14px 10px;
-}
-
-.application-card-body {
-  position: relative;
-  flex: 1;
-  min-height: 70px;
-  padding-right: 76px;
-}
-
-.application-artwork {
-  position: absolute;
-  top: 0;
-  right: 12px;
-  opacity: 0.82;
 }
 
 .application-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: 0;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
   border-radius: 4px;
-  color: #5f6b7a;
-  background: #f4f6f8;
-  font-size: 16px;
-}
-
-.application-icon.is-draft {
-  color: var(--primary-color, #1677ff);
-  background: color-mix(in srgb, var(--primary-color, #1677ff) 6%, transparent);
-}
-
-.application-icon.is-changed {
-  color: #2563eb;
-  background: #eff6ff;
-}
-
-.application-icon.is-published {
-  color: var(--primary-color, #1677ff);
-  background: color-mix(in srgb, var(--primary-color, #1677ff) 6%, transparent);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--app-wash) 40%, #fff),
+    var(--app-wash)
+  );
+  color: var(--app-ink);
+  font-size: 18px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-ink) 12%, transparent);
 }
 
 .application-copy {
   display: grid;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
-  padding-top: 2px;
 }
 
 .application-copy strong,
-.application-copy code,
-.application-description,
-.application-date {
+.application-copy code {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .application-copy strong {
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 16px;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.35;
 }
 
 .application-copy code {
-  color: var(--text-tertiary);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #94a3b8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
-  line-height: 14px;
+  line-height: 1.3;
+}
+
+.application-design-status {
+  flex: none;
 }
 
 .application-card-head :deep(.n-tag) {
-  max-width: 84px;
   height: 20px;
+  padding: 0 7px;
   border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 20px;
 }
 
 .application-design-status.is-draft :deep(.n-tag) {
-  color: var(--warning-color, #d46b08);
-  background-color: color-mix(in srgb, var(--warning-color, #ff7d00) 14%, transparent);
+  color: #c2410c;
+  background-color: #ffedd5;
+}
+
+.application-card-body {
+  display: grid;
+  gap: 8px;
+  flex: 1;
+  padding: 0 14px 12px;
 }
 
 .application-meta-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
   gap: 6px;
   min-width: 0;
-  padding: 0 14px 8px;
 }
 
 .application-badge {
   display: inline-flex;
   align-items: center;
-  max-width: 120px;
+  max-width: 140px;
   height: 20px;
   min-width: 0;
   overflow: hidden;
+  padding: 0 7px;
   border-radius: 4px;
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--app-wash) 70%, #fff);
+  color: var(--app-ink);
   font-size: 11px;
+  font-weight: 500;
   line-height: 20px;
-  padding: 0 6px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.application-version {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-  color: var(--text-tertiary);
-  font-size: 11px;
-  margin-left: auto;
+.application-badge--version {
+  max-width: 160px;
+  background: #f1f5f9;
+  color: #64748b;
 }
 
-.application-version i {
-  flex: 0 0 auto;
-  font-size: 12px;
-  color: var(--text-tertiary);
+.application-badge--version.is-warning {
+  background: #ffedd5;
+  color: #c2410c;
 }
 
-.application-version span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.application-version.empty {
-  color: var(--text-tertiary);
-}
-
-.application-version.warning {
-  color: var(--warning-color, #d46b08);
+.application-badge--version.is-empty {
+  background: #f1f5f9;
+  color: #94a3b8;
 }
 
 .application-description {
   display: -webkit-box;
-  white-space: normal;
   margin: 0;
-  padding: 0 14px 8px;
   overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.55;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  color: var(--text-tertiary);
-  font-size: 12px;
-  line-height: 18px;
-}
-
-.application-date {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-  color: var(--text-tertiary);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-
-.application-date i {
-  flex: 0 0 auto;
-  color: var(--text-tertiary);
-  font-size: 12px;
 }
 
 .application-card-foot {
@@ -404,26 +368,39 @@ function formatDate(value) {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  flex-wrap: nowrap;
+  margin-top: auto;
   min-height: 36px;
   min-width: 0;
-  border-top: 1px solid var(--border-light, #e5e7eb);
-  background: var(--bg-secondary, #f7f8fa);
   padding: 8px 14px;
+  border-top: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
+.application-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  color: #94a3b8;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.application-date i {
+  flex: none;
+  font-size: 12px;
 }
 
 .application-actions {
   display: flex;
   align-items: center;
-  flex: 0 0 auto;
-  justify-content: flex-end;
-  gap: 7px;
-  min-width: 0;
-}
-
-.problem-text {
-  overflow: hidden;
-  color: var(--warning-color, #d46b08);
-  text-overflow: ellipsis;
+  flex: none;
+  flex-wrap: nowrap;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .application-action-link,
@@ -431,97 +408,61 @@ function formatDate(value) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 2px;
   border: 0;
   outline: none;
   background: transparent;
+  color: #2563eb;
+  font: inherit;
+  font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;
   cursor: pointer;
-  transition: color 0.16s ease;
 }
 
-.application-action-link {
-  height: 20px;
-  color: var(--primary-color, #1677ff);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 20px;
-  padding: 0;
+.application-action-link.is-primary {
+  font-weight: 650;
 }
 
 .application-action-link:hover,
 .application-more-action:hover,
 .application-action-link:focus-visible,
 .application-more-action:focus-visible {
-  color: var(--primary-color-hover, #4096ff);
+  color: #1d4ed8;
 }
 
 .application-action-separator {
   width: 1px;
   height: 12px;
-  background: var(--border-light, #e5e7eb);
+  background: #e2e8f0;
 }
 
 .application-more-action {
   width: 18px;
   height: 20px;
-  color: var(--text-tertiary, #86909c);
+  color: #94a3b8;
   font-size: 14px;
   padding: 0;
 }
 
-html.dark .application-icon {
-  color: #aab2bf;
-  background: #2a2d34;
-}
+@media (prefers-reduced-motion: reduce) {
+  .application-card {
+    transition: none;
+  }
 
-html.dark .application-icon.is-draft {
-  color: var(--primary-color, #7aa7ff);
-  background: #213251;
-}
-
-html.dark .application-icon.is-changed {
-  color: #7aa7ff;
-  background: #213251;
-}
-
-html.dark .application-icon.is-published {
-  color: var(--primary-color, #7aa7ff);
-  background: #213251;
-}
-
-html.dark .application-card-foot {
-  background: #24272e;
-  border-color: #303540;
-}
-
-html.dark .application-card {
-  background: #1e1e22;
-  border-color: #303540;
-}
-
-html.dark .application-action-link {
-  color: #8caeff;
-}
-
-html.dark .application-action-link:hover,
-html.dark .application-action-link:focus-visible {
-  color: #b9cfff;
-}
-
-html.dark .application-card:hover,
-html.dark .application-card:focus-visible,
-html.dark .application-card:focus-within {
-  border-color: var(--n-primary-color, var(--primary-color, #4080ff));
-  box-shadow: 0 2px 6px rgb(0 0 0 / 25%);
+  .application-card:hover,
+  .application-card:focus-visible,
+  .application-card:focus-within {
+    transform: none;
+  }
 }
 
 @media (max-width: 620px) {
   .application-card-grid {
     grid-template-columns: minmax(0, 1fr);
-    padding: 10px;
-  }
-
-  .application-card {
-    min-height: 136px;
+    padding: 8px 12px 12px;
   }
 }
 </style>

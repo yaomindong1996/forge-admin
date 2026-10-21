@@ -3,10 +3,13 @@ import { CloseOutline } from '@vicons/ionicons5'
 import { NAlert, NButton, NIcon, NInput, NModal, NTabPane, NTabs, useThemeVars } from 'naive-ui'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { usePrintDesignerStore } from '@/stores/print/printDesignerStore'
+import { adaptMarketPrintDocument } from '../protocol/adaptMarketPrintDocument'
 import { createPrintDocument } from '../protocol/types'
 import PrintPreview from '../runtime/PrintPreview.vue'
 import { newPrintId } from './commands'
 import { createDesignerSampleContext, hasDesignerData } from './designerSample'
+import InstalledContentAssetPicker from '@/components/common/InstalledContentAssetPicker.vue'
+import { installContentPackageFromFile } from '@/utils/contentInstalledAsset'
 import { parseDraft, readDraft, writeDraft } from './draftStorage'
 import { cloneDocument } from './history'
 import PaperPanel from './panels/PaperPanel.vue'
@@ -156,6 +159,41 @@ async function restore() {
     store.error = `恢复失败：${error.message}`
   }
 }
+const libraryOpen = ref(false)
+
+async function applyPrintPackagePayload(payload, notice) {
+  const adapted = adaptMarketPrintDocument(payload, store.catalog || props.catalog || [])
+  protocolText.value = JSON.stringify(adapted.document)
+  await importProtocol()
+  if (!protocolError.value) {
+    const bits = [notice]
+    if (adapted.remapped)
+      bits.push(`已按当前字段目录重绑 ${adapted.remapped} 处`)
+    if (adapted.cleared)
+      bits.push(`${adapted.cleared} 处无匹配字段已清空，请在属性里重新绑定`)
+    store.notice = bits.filter(Boolean).join('；')
+  }
+}
+
+async function importPackageFile({ file }) {
+  try {
+    const { pack } = await installContentPackageFromFile({ file, kind: 'print' })
+    await applyPrintPackagePayload(pack.payload, '已安装到我的模板，并应用到当前设计')
+  }
+  catch (error) {
+    protocolError.value = error.message || '安装失败'
+    protocolOpen.value = true
+  }
+}
+
+async function applyLibraryPrint({ pack }) {
+  try {
+    await applyPrintPackagePayload(pack.payload, `已选用「${pack.name || '打印模板'}」`)
+  }
+  catch (error) {
+    store.error = error.message || '选用失败'
+  }
+}
 function openProtocol() {
   protocolText.value = JSON.stringify(store.document, null, 2)
   protocolError.value = ''
@@ -244,7 +282,10 @@ defineExpose({ canLeave, save })
           </header>
           <NTabs v-model:value="leftTab" type="segment" size="small" class="aside-tabs">
             <NTabPane name="palette" tab="组件">
-              <PrintElementPalette />
+              <PrintElementPalette
+                @pick-print-library="libraryOpen = true"
+                @import-print-package="importPackageFile"
+              />
             </NTabPane>
             <NTabPane name="fields" tab="数据源">
               <PrintFieldTree />
@@ -295,11 +336,18 @@ defineExpose({ canLeave, save })
       <div class="panel-row protocol-actions">
         <NButton @click="download">
           下载当前模板
-        </NButton><NButton type="primary" @click="importProtocol">
+        </NButton>        <NButton type="primary" @click="importProtocol">
           校验并导入
         </NButton>
       </div>
     </NModal>
+    <InstalledContentAssetPicker
+      v-model:show="libraryOpen"
+      kind="print"
+      title="我的整页模板"
+      select-label="应用到当前设计"
+      @select="applyLibraryPrint"
+    />
   </div>
 </template>
 
@@ -327,7 +375,7 @@ defineExpose({ canLeave, save })
   overflow: hidden;
 }
 .designer-layout {
-  --left-panel-width: 220px;
+  --left-panel-width: 320px;
   --right-panel-width: 280px;
   position: relative;
   width: 100%;
@@ -356,7 +404,7 @@ defineExpose({ canLeave, save })
 .designer-aside {
   border-right: 1px solid var(--border-light);
   background: var(--bg-primary);
-  padding: 0 3px 2px;
+  padding: 0 4px 4px;
   display: flex;
   flex-direction: column;
 }
@@ -414,6 +462,22 @@ defineExpose({ canLeave, save })
 .aside-tabs :deep(.n-tabs-pane-wrapper),
 .property-tabs :deep(.n-tabs-pane-wrapper) {
   padding-top: 2px;
+}
+.aside-tabs :deep(.n-tabs-content),
+.aside-tabs :deep(.n-tabs-pane-wrapper),
+.aside-tabs :deep(.n-tab-pane) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+.aside-tabs :deep(.n-tab-pane) > * {
+  flex: 1;
+  min-height: 0;
+}
+.aside-tabs :deep(.n-tabs-tab-pad) {
+  display: none;
 }
 :deep(.designer-group) {
   padding: 4px 2px 6px;
@@ -493,7 +557,7 @@ defineExpose({ canLeave, save })
     z-index: 30;
     top: 0;
     bottom: 0;
-    width: min(240px, 78vw);
+    width: min(320px, 86vw);
     box-shadow: 0 8px 24px rgb(15 23 42 / 16%);
     padding: 6px;
   }

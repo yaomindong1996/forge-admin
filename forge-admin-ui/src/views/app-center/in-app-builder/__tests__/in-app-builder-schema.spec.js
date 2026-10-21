@@ -50,6 +50,44 @@ describe('in-app builder schema', () => {
     expect(source).toEqual({ unrelated: { enabled: true } })
   })
 
+  it('hydrates compact market packages that only ship pages/nav', () => {
+    const schema = normalizeInAppBuilder({
+      inAppBuilder: {
+        pages: {
+          page_leave: {
+            title: '请假申请',
+            pageType: 'object',
+            objectRef: { objectCode: 'leave_request', objectName: '请假单' },
+          },
+        },
+        nav: [{ id: 'page_leave', title: '请假申请' }],
+      },
+    }, APPLICATION, [{
+      objectId: '88',
+      objectCode: 'leave_request',
+      objectName: '请假单',
+      formDesignerSchema: { components: [{ id: 'c1' }] },
+    }])
+
+    expect(schema.homePageId).toBe('page_leave')
+    expect(schema.nodes).toEqual([
+      expect.objectContaining({
+        id: 'page_leave',
+        title: '请假申请',
+        pageType: 'object',
+        objectRef: expect.objectContaining({ objectCode: 'leave_request', pageMode: 'form' }),
+      }),
+    ])
+    expect(schema.pages.page_leave.layout.gridLayout.items[0]).toEqual(expect.objectContaining({
+      blockType: 'AiCrudPage',
+      props: expect.objectContaining({ formAssetId: 'form_leave_request', formOnly: true }),
+    }))
+    expect(schema.formAssets[0]).toEqual(expect.objectContaining({
+      id: 'form_leave_request',
+      formDesignerSchema: { components: [{ id: 'c1' }] },
+    }))
+  })
+
   it('restores a legacy primary-object application into the new page tree', () => {
     const schema = normalizeInAppBuilder({
       primaryObjectCode: 'PS_PRESALE_ORDER',

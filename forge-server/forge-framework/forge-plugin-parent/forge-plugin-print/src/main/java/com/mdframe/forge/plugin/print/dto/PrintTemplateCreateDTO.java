@@ -19,7 +19,9 @@ public record PrintTemplateCreateDTO(
         @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}") String pageId,
         @Size(max = 128) String formKey,
         @NotBlank @Pattern(regexp = "[A-Za-z][A-Za-z0-9_]{0,99}") String objectCode,
-        @NotBlank @Size(max = DOCUMENT_BYTES) String schemaJson) {
+        @NotBlank @Size(max = DOCUMENT_BYTES) String schemaJson,
+        /** 市场/已安装模板导入草稿时允许字段尚未对齐当前来源目录；发布时仍会严格校验。 */
+        Boolean allowUnresolvedFields) {
 
     public PrintTemplateCreateDTO(Long applicationId,
                                   String templateCode,
@@ -30,7 +32,21 @@ public record PrintTemplateCreateDTO(
                                   String objectCode,
                                   String schemaJson) {
         this(null, null, applicationId, templateCode, templateName, sourceType, pageId, formKey,
-                objectCode, schemaJson);
+                objectCode, schemaJson, null);
+    }
+
+    public PrintTemplateCreateDTO(Long businessSourceId,
+                                  String sourceCode,
+                                  Long applicationId,
+                                  String templateCode,
+                                  String templateName,
+                                  PrintSourceType sourceType,
+                                  String pageId,
+                                  String formKey,
+                                  String objectCode,
+                                  String schemaJson) {
+        this(businessSourceId, sourceCode, applicationId, templateCode, templateName, sourceType, pageId, formKey,
+                objectCode, schemaJson, null);
     }
 
     @JsonIgnore
@@ -42,5 +58,9 @@ public record PrintTemplateCreateDTO(
         return new PrintSourceRequest(
                 businessSourceId, sourceCode, applicationId, sourceType, pageId, formKey, objectCode)
                 .isSourceValid();
+    }
+
+    public boolean allowsUnresolvedFields() {
+        return Boolean.TRUE.equals(allowUnresolvedFields);
     }
 }

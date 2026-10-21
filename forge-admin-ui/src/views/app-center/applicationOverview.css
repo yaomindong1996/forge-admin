@@ -13,11 +13,12 @@
 .app-center-view-head {
   display: flex;
   min-width: 0;
-  align-items: end;
-  justify-content: space-between;
-  gap: 24px;
-  min-height: 62px;
-  padding: 9px 18px 0;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 16px 28px;
+  min-height: 56px;
+  padding: 10px 18px;
   border-bottom: 1px solid var(--border-light);
   background: var(--bg-primary);
 }
@@ -30,7 +31,7 @@
 .app-center-view-brand {
   align-items: center;
   gap: 10px;
-  padding-bottom: 10px;
+  flex: none;
 }
 
 .app-center-view-brand > span:last-child {
@@ -40,25 +41,64 @@
 
 .app-center-view-brand__mark {
   display: grid;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   place-items: center;
-  border-radius: 7px;
-  color: var(--n-primary-color, #165dff);
-  background: color-mix(in srgb, var(--n-primary-color, #165dff) 10%, transparent);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 17px;
+  background: linear-gradient(145deg, #60a5fa, #2563eb);
+  box-shadow: 0 6px 14px rgb(37 99 235 / 24%);
 }
 
 .app-center-view-brand strong {
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 650;
+  color: #0f172a;
 }
 
 .app-center-view-brand small {
   color: var(--text-tertiary);
-  font-size: 10px;
+  font-size: 11px;
 }
 
-.app-center-view-head :deep(.n-tabs) {
-  width: auto;
+.app-center-view-tabs {
+  flex: none;
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.app-center-view-tabs :deep(.n-tabs-nav),
+.app-center-view-tabs :deep(.n-tabs-rail) {
+  width: max-content;
+}
+
+.app-center-view-tabs :deep(.n-tabs-rail) {
+  padding: 4px;
+  background: #f1f5f9;
+}
+
+.app-center-view-tabs :deep(.n-tabs-tab) {
+  min-width: 128px;
+  height: 36px;
+  padding: 0 18px;
+  justify-content: center;
+}
+
+.app-center-view-tabs :deep(.n-tabs-tab .n-tabs-tab__label) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-center-tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .app-center-layout {
@@ -220,7 +260,16 @@
 }
 
 .suite-icon.all {
-  color: var(--suite-accent-strong);
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  color: #fff;
+  background: linear-gradient(145deg, #60a5fa, #2563eb);
+  font-size: 12px;
+}
+
+.suite-icon i {
+  font-size: 13px;
 }
 
 .suite-copy {
@@ -517,11 +566,15 @@ html.dark .application-loading-mask {
   .app-center-view-head {
     align-items: stretch;
     flex-direction: column;
-    gap: 0;
-    padding: 9px 12px 0;
+    gap: 10px;
+    padding: 10px 12px;
   }
 
-  .app-center-view-head :deep(.n-tabs) {
+  .app-center-view-tabs {
+    width: 100%;
+  }
+
+  .app-center-view-tabs :deep(.n-tabs-nav) {
     width: 100%;
   }
 

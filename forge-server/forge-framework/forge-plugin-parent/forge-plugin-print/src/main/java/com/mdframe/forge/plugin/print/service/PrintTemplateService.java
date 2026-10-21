@@ -57,7 +57,10 @@ public class PrintTemplateService {
         var actor = identity.require(PrintDesignAction.MANAGE.permission());
         var source = access.source(actor, PrintSourceRequest.from(dto), PrintDesignAction.MANAGE, true);
         var document = protocol.validate(dto.schemaJson());
-        documents.design(source, registry.provider(source.source()), document);
+        // 市场模板先落草稿：字段可后对齐；发布路径仍走 documents.design 严格校验
+        if (!dto.allowsUnresolvedFields()) {
+            documents.design(source, registry.provider(source.source()), document);
+        }
         return insert(actor, source.source(), dto.templateCode(), dto.templateName(), document.canonicalJson());
     }
 
@@ -94,7 +97,10 @@ public class PrintTemplateService {
         var current = access.open(actor, id, PrintDesignAction.MANAGE, true);
         access.revision(current.row(), dto.expectedRevision());
         var document = protocol.validate(dto.schemaJson());
-        documents.design(current.source(), current.provider(), document);
+        // 市场模板按当前来源对齐中：草稿可暂存未绑字段；发布仍走 design 严校验
+        if (!dto.allowsUnresolvedFields()) {
+            documents.design(current.source(), current.provider(), document);
+        }
         current.row().setTemplateName(dto.templateName().strip());
         current.row().setDraftSchema(document.canonicalJson());
         current.row().setUpdateBy(actor.userId());

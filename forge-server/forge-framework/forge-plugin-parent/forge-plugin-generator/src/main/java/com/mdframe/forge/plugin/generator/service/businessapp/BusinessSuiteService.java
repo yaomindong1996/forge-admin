@@ -154,6 +154,30 @@ public class BusinessSuiteService extends ServiceImpl<BusinessSuiteMapper, AiBus
         return suite;
     }
 
+    /**
+     * 调试包 / 应用宝导入：套件编码已在包内声明时，本地没有则自动创建，避免导入因缺套件直接失败。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public AiBusinessSuite ensureByCode(String suiteCode, String suiteName) {
+        String code = StringUtils.trimToNull(suiteCode);
+        if (StringUtils.isBlank(code)) {
+            throw new BusinessException("业务套件编码不能为空");
+        }
+        AiBusinessSuite existing = baseMapper.selectBySuiteCode(resolveTenantId(), code);
+        if (existing != null) {
+            return existing;
+        }
+        BusinessSuiteDTO dto = new BusinessSuiteDTO();
+        dto.setSuiteCode(code);
+        dto.setSuiteName(StringUtils.defaultIfBlank(StringUtils.trimToNull(suiteName), code));
+        dto.setDescription("应用调试包导入时自动创建");
+        dto.setStatus(EnableStatus.ENABLED.getCode());
+        dto.setSortOrder(99);
+        dto.setOptions("{\"source\":\"debug_bundle_import\"}");
+        create(dto);
+        return requireByCode(code);
+    }
+
     public List<String> listSelfAndDescendantCodes(String suiteCode) {
         String code = StringUtils.trimToNull(suiteCode);
         if (code == null) {

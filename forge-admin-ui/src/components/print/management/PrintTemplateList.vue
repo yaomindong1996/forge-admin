@@ -4,15 +4,20 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import * as api from '@/api/print'
 import IllustratedEmpty from '@/components/common/IllustratedEmpty.vue'
+import InstalledContentAssetPicker from '@/components/common/InstalledContentAssetPicker.vue'
+import OfficialMarketEntry from '@/components/common/OfficialMarketEntry.vue'
+import { parseDraft } from '@/components/print/designer/draftStorage'
+import { adaptMarketPrintDocument } from '@/components/print/protocol/adaptMarketPrintDocument'
 import DictTag from '@/components/DictTag.vue'
 import { newPrintTemplateCode } from '@/components/print/id'
 import { hasPrintPermission } from '@/components/print/management/printPermissions'
 import { printSourcePayload } from '@/components/print/management/printRouteContext'
-import { FALLBACK_PRINT_SCENE_OPTIONS, scenesOfTemplate, syncPrintTemplateScenes } from '@/components/print/management/printSceneBinding'
+import { DEFAULT_PRINT_SCENES, FALLBACK_PRINT_SCENE_OPTIONS, scenesOfTemplate, syncPrintTemplateScenes } from '@/components/print/management/printSceneBinding'
 import PrintTemplateCreate from '@/components/print/management/PrintTemplateCreate.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
 import { usePrintTemplateStore } from '@/stores/print/printTemplateStore'
+import { installContentPackageFromFile } from '@/utils/contentInstalledAsset'
 
 const props = defineProps({
   applicationId: { type: String, default: null },
@@ -39,6 +44,7 @@ const hasContext = computed(() => Boolean(standaloneId.value || appId.value))
 const listSource = computed(() => standaloneId.value ? source.value : appId.value)
 const canManage = computed(() => hasPrintPermission(user, 'print:template:manage'))
 const creating = ref(false)
+const libraryOpen = ref(false)
 const busy = ref(false)
 const busyRowId = ref(null)
 const bindings = ref([])
@@ -121,6 +127,68 @@ async function ensureStandaloneDetailBindings() {
 }
 function rowScenes(row) {
   return scenesOfTemplate(bindings.value, row.id)
+}
+async function createFromPrintPackage(pack, { openDesigner = true } = {}) {
+  if (!canManage.value || !source.value) {
+    window.$message?.warning('请先选择业务来源，再选用打印模板')
+    return null
+  }
+  let document = parseDraft(JSON.stringify(pack.payload))
+  try {
+    const payload = printSourcePayload(source.value)
+    const { data: catalog } = await api.printCatalog({ source: payload })
+    const adapted = adaptMarketPrintDocument(document, catalog?.fields || [])
+    document = adapted.document
+    if (adapted.cleared || adapted.remapped) {
+      window.$message?.info?.(
+        [
+          adapted.remapped ? `已按当前来源重绑 ${adapted.remapped} 处字段` : '',
+          adapted.cleared ? `${adapted.cleared} 处无匹配字段已清空，请在设计器重新绑定` : '',
+        ].filter(Boolean).join('；'),
+      )
+    }
+  }
+  catch {
+    // 目录拉取失败时仍创建草稿，后端 allowUnresolvedFields 兜底
+  }
+  const name = pack.name || '选用的打印模板'
+  const row = await store.create(source.value, name, DEFAULT_PRINT_SCENES, document, {
+    allowUnresolvedFields: true,
+  })
+  await refresh()
+  if (openDesigner && row?.id)
+    design(row)
+  return row
+}
+
+async function importOfficialPrintPackage({ file }) {
+  if (!canManage.value) {
+    window.$message?.warning('当前账号无打印模板管理权限')
+    return
+  }
+  try {
+    const { pack } = await installContentPackageFromFile({ file, kind: 'print' })
+    if (source.value) {
+      await createFromPrintPackage(pack)
+      window.$message?.success('已安装到我的模板，并创建到当前来源')
+      return
+    }
+    window.$message?.success('已安装到我的模板；选择业务来源后可「从我的模板选用」')
+    libraryOpen.value = true
+  }
+  catch (error) {
+    window.$message?.error(error.message || '安装打印模板失败')
+  }
+}
+
+async function applyLibraryPrint({ pack }) {
+  try {
+    await createFromPrintPackage(pack)
+    window.$message?.success(`已从我的模板创建「${pack.name || '打印模板'}」`)
+  }
+  catch (error) {
+    window.$message?.error(error.message || '选用打印模板失败')
+  }
 }
 function design(row) {
   router.push({
@@ -285,20 +353,46 @@ async function refresh() {
 <template>
   <NCard :title="lockSource ? undefined : '打印模板'" size="small" :bordered="false" class="print-template-list">
     <template v-if="!lockSource" #header-extra>
-      <NSpace>
-        <NButton :disabled="!hasContext || busy" @click="refresh">
-          <template #icon>
-            <i class="i-lucide:refresh-cw" />
-          </template>
-          刷新
-        </NButton>
-        <NButton v-if="canManage && allowCreate" type="primary" :disabled="!source || busy" @click="creating = true">
+      <div class="print-list-actions print-list-actions--header">
+        <div class="print-list-actions__secondary">
+          <button
+            type="button"
+            class="market-link"
+            title="刷新"
+            :disabled="!hasContext || busy"
+            @click="refresh"
+          >
+            <i class="i-lucide:refresh-cw" aria-hidden="true" />
+            <span>刷新</span>
+          </button>
+          <span class="print-list-actions__sep" aria-hidden="true" />
+          <OfficialMarketEntry
+            v-if="canManage"
+            kind="print"
+            variant="toolbar"
+            @import="importOfficialPrintPackage"
+          >
+            <template #extra>
+              <button
+                type="button"
+                class="market-link"
+                title="从我的模板选用"
+                :disabled="!source || busy"
+                @click="libraryOpen = true"
+              >
+                <i class="i-lucide:folder-open" aria-hidden="true" />
+                <span>我的模板</span>
+              </button>
+            </template>
+          </OfficialMarketEntry>
+        </div>
+        <NButton v-if="canManage && allowCreate" type="primary" size="small" :disabled="!source || busy" @click="creating = true">
           <template #icon>
             <i class="i-lucide:file-plus" />
           </template>
           新建模板
         </NButton>
-      </NSpace>
+      </div>
     </template>
     <NAlert v-if="store.error" type="error" class="print-list-alert">
       {{ store.error }}
@@ -306,13 +400,39 @@ async function refresh() {
     <IllustratedEmpty v-if="!hasContext" description="请选择业务来源" />
     <template v-else>
       <div v-if="lockSource" class="print-list-actions">
-        <NButton :disabled="!hasContext || busy" @click="refresh">
-          <template #icon>
-            <i class="i-lucide:refresh-cw" />
-          </template>
-          刷新
-        </NButton>
-        <NButton v-if="canManage && allowCreate" type="primary" :disabled="!source || busy" @click="creating = true">
+        <div class="print-list-actions__secondary">
+          <button
+            type="button"
+            class="market-link"
+            title="刷新"
+            :disabled="!hasContext || busy"
+            @click="refresh"
+          >
+            <i class="i-lucide:refresh-cw" aria-hidden="true" />
+            <span>刷新</span>
+          </button>
+          <span class="print-list-actions__sep" aria-hidden="true" />
+          <OfficialMarketEntry
+            v-if="canManage"
+            kind="print"
+            variant="toolbar"
+            @import="importOfficialPrintPackage"
+          >
+            <template #extra>
+              <button
+                type="button"
+                class="market-link"
+                title="从我的模板选用"
+                :disabled="!source || busy"
+                @click="libraryOpen = true"
+              >
+                <i class="i-lucide:folder-open" aria-hidden="true" />
+                <span>我的模板</span>
+              </button>
+            </template>
+          </OfficialMarketEntry>
+        </div>
+        <NButton v-if="canManage && allowCreate" type="primary" size="small" :disabled="!source || busy" @click="creating = true">
           <template #icon>
             <i class="i-lucide:file-plus" />
           </template>
@@ -423,6 +543,13 @@ async function refresh() {
       存在绑定或发布引用时无法删除。
     </NModal>
     <PrintTemplateCreate v-model:show="creating" :source="source" @created="design" />
+    <InstalledContentAssetPicker
+      v-model:show="libraryOpen"
+      kind="print"
+      title="我的整页模板"
+      select-label="创建到当前来源"
+      @select="applyLibraryPrint"
+    />
   </NCard>
 </template>
 
@@ -432,9 +559,49 @@ async function refresh() {
 }
 .print-list-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 12px;
+  min-width: 0;
+}
+.print-list-actions__secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.print-list-actions__sep {
+  width: 1px;
+  height: 12px;
+  margin: 0 4px;
+  flex: none;
+  background: var(--border-light, #e5e7eb);
+}
+.print-list-actions :deep(.market-link) {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary, #4b5563);
+  font: inherit;
+  font-size: 12px;
+  line-height: 28px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.print-list-actions :deep(.market-link:hover:not(:disabled)) {
+  color: var(--primary-color, #2563eb);
+  background: color-mix(in srgb, var(--primary-color, #2563eb) 8%, transparent);
+}
+.print-list-actions :deep(.market-link:disabled) {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 .print-list-context {
   display: grid;

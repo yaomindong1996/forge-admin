@@ -47,26 +47,33 @@ const { dict } = useDict('sys_plugin_origin')
 <style scoped>
 .plugin-gallery__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 14px;
+  width: 100%;
 }
+
 .plugin-card--skeleton {
   overflow: hidden;
-  border: 1px solid var(--border-light);
+  border: 1px solid #e5e7eb;
   border-radius: 4px;
-  background: var(--bg-primary);
+  background: #fff;
+  box-shadow: 0 4px 14px rgb(15 23 42 / 4%);
 }
+
 .plugin-card__body {
   padding: 16px;
 }
+
 .plugin-card__content {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 14px;
 }
+
 .plugin-card__footer {
   padding: 10px 16px;
-  border-top: 1px solid var(--border-light);
+  border-top: 1px solid #f1f5f9;
+  background: #fafcff;
 }
 </style>

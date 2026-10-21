@@ -91,15 +91,15 @@ const emit = defineEmits([
 }
 
 .application-search {
-  min-width: 140px;
-  flex: 1 1 180px;
+  flex: 1 1 240px;
+  min-width: 0;
   width: auto;
-  max-width: 360px;
 }
 
 .application-filter {
-  flex: 0 0 118px;
-  width: 118px;
+  flex: 0 1 160px;
+  min-width: 120px;
+  width: auto;
 }
 
 .application-refresh {

@@ -1,0 +1,679 @@
+{
+  "kind": "print",
+  "name": "请假审批单",
+  "version": "1.1.0",
+  "payload": {
+    "protocol": "forge-print",
+    "schemaVersion": 1,
+    "paper": {
+      "widthMm": 210,
+      "heightMm": 297,
+      "orientation": "PORTRAIT",
+      "marginMm": {
+        "top": 12,
+        "right": 12,
+        "bottom": 12,
+        "left": 12
+      }
+    },
+    "header": {
+      "heightMm": 0,
+      "repeat": true,
+      "elements": []
+    },
+    "body": [
+      {
+        "id": "sec_head",
+        "kind": "FIXED",
+        "heightMm": 28,
+        "gapAfterMm": 3,
+        "elements": [
+          {
+            "id": "company",
+            "type": "TEXT",
+            "xMm": 0,
+            "yMm": 0,
+            "widthMm": 140,
+            "heightMm": 8,
+            "binding": {
+              "source": "CONSTANT",
+              "value": "Forge 示例企业 · 人力资源部"
+            },
+            "style": {
+              "fontSizePt": 10,
+              "color": "#64748b"
+            }
+          },
+          {
+            "id": "doc_no_label",
+            "type": "TEXT",
+            "xMm": 0,
+            "yMm": 9,
+            "widthMm": 18,
+            "heightMm": 8,
+            "binding": {
+              "source": "CONSTANT",
+              "value": "单号"
+            },
+            "style": {
+              "fontWeight": 700,
+              "fontSizePt": 10
+            }
+          },
+          {
+            "id": "doc_no",
+            "type": "TEXT",
+            "xMm": 18,
+            "yMm": 9,
+            "widthMm": 70,
+            "heightMm": 8,
+            "binding": {
+              "source": "FIELD",
+              "path": "main.docNo"
+            },
+            "style": {
+              "fontSizePt": 10,
+              "borderWidthMm": 0.15,
+              "borderColor": "#94a3b8",
+              "paddingMm": 1
+            }
+          },
+          {
+            "id": "title",
+            "type": "TEXT",
+            "xMm": 0,
+            "yMm": 16,
+            "widthMm": 150,
+            "heightMm": 12,
+            "binding": {
+              "source": "CONSTANT",
+              "value": "请 假 审 批 单"
+            },
+            "style": {
+              "fontSizePt": 20,
+              "fontWeight": 700,
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "qr",
+            "type": "QRCODE",
+            "xMm": 158,
+            "yMm": 0,
+            "widthMm": 28,
+            "heightMm": 28,
+            "binding": {
+              "source": "FIELD",
+              "path": "main.docNo"
+            },
+            "showCodeText": false
+          }
+        ]
+      },
+      {
+        "id": "sec_table",
+        "kind": "FIXED",
+        "heightMm": 173,
+        "gapAfterMm": 4,
+        "elements": [
+          {
+            "id": "leave_table",
+            "type": "STATIC_TABLE",
+            "xMm": 0,
+            "yMm": 0,
+            "widthMm": 186,
+            "heightMm": 171,
+            "headerStyle": {
+              "backgroundColor": "#f1f5f9",
+              "fontWeight": 700
+            },
+            "style": {
+              "borderWidthMm": 0.25,
+              "borderColor": "#334155",
+              "fontSizePt": 10
+            },
+            "table": {
+              "columns": [
+                {
+                  "id": "col_1",
+                  "widthMm": 28
+                },
+                {
+                  "id": "col_2",
+                  "widthMm": 65
+                },
+                {
+                  "id": "col_3",
+                  "widthMm": 28
+                },
+                {
+                  "id": "col_4",
+                  "widthMm": 65
+                }
+              ],
+              "rows": [
+                {
+                  "id": "row_5",
+                  "heightMm": 11
+                },
+                {
+                  "id": "row_6",
+                  "heightMm": 11
+                },
+                {
+                  "id": "row_7",
+                  "heightMm": 11
+                },
+                {
+                  "id": "row_8",
+                  "heightMm": 28
+                },
+                {
+                  "id": "row_9",
+                  "heightMm": 18
+                },
+                {
+                  "id": "row_10",
+                  "heightMm": 26
+                },
+                {
+                  "id": "row_11",
+                  "heightMm": 26
+                },
+                {
+                  "id": "row_12",
+                  "heightMm": 26
+                },
+                {
+                  "id": "row_13",
+                  "heightMm": 14
+                }
+              ],
+              "cells": [
+                {
+                  "id": "c_14",
+                  "row": 0,
+                  "column": 0,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "CONSTANT",
+                    "value": "申请人"
+                  },
+                  "style": {
+                    "fontWeight": 700,
+                    "textAlign": "center",
+                    "backgroundColor": "#f1f5f9",
+                    "verticalAlign": "middle"
+                  }
+                },
+                {
+                  "id": "c_15",
+                  "row": 0,
+                  "column": 1,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "FIELD",
+                    "path": "main.applicantName"
+                  },
+                  "style": {
+                    "paddingMm": 1.2,
+                    "verticalAlign": "middle"
+                  }
+                },
+                {
+                  "id": "c_16",
+                  "row": 0,
+                  "column": 2,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "CONSTANT",
+                    "value": "所属部门"
+                  },
+                  "style": {
+                    "fontWeight": 700,
+                    "textAlign": "center",
+                    "backgroundColor": "#f1f5f9",
+                    "verticalAlign": "middle"
+                  }
+                },
+                {
+                  "id": "c_17",
+                  "row": 0,
+                  "column": 3,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "FIELD",
+                    "path": "main.department"
+                  },
+                  "style": {
+                    "paddingMm": 1.2,
+                    "verticalAlign": "middle"
+                  }
+                },
+                {
+                  "id": "c_18",
+                  "row": 1,
+                  "column": 0,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "CONSTANT",
+                    "value": "请假类型"
+                  },
+                  "style": {
+                    "fontWeight": 700,
+                    "textAlign": "center",
+                    "backgroundColor": "#f1f5f9",
+                    "verticalAlign": "middle"
+                  }
+                },
+                {
+                  "id": "c_19",
+                  "row": 1,
+                  "column": 1,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "FIELD",
+                    "path": "main.leaveType"
+                  },
+                  "style": {
+                    "paddingMm": 1.2,
+                    "verticalAlign": "middle"
+                  }
+                },
+                {
+                  "id": "c_20",
+                  "row": 1,
+                  "column": 2,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "CONSTANT",
+                    "value": "请假天数"
+                  },
+                  "style": {
+                    "fontWeight": 700,
+                    "textAlign": "center",
+                    "backgroundColor": "#f1f5f9",
+                    "verticalAlign": "middle"
+                  }
+                },
+                {
+                  "id": "c_21",
+                  "row": 1,
+                  "column": 3,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "FIELD",
+                    "path": "main.leaveDays"
+                  },
+                  "style": {
+                    "paddingMm": 1.2,
+                    "verticalAlign": "middle"
+                  },
+                  "format": {
+                    "type": "NUMBER"
+                  }
+                },
+                {
+                  "id": "c_22",
+                  "row": 2,
+                  "column": 0,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "CONSTANT",
+                    "value": "开始日期"
+                  },
+                  "style": {
+                    "fontWeight": 700,
+                    "textAlign": "center",
+                    "backgroundColor": "#f1f5f9",
+                    "verticalAlign": "middle"
+                  }
+                },
+                {
+                  "id": "c_23",
+                  "row": 2,
+                  "column": 1,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "FIELD",
+                    "path": "main.startDate"
+                  },
+                  "style": {
+                    "paddingMm": 1.2,
+                    "verticalAlign": "middle"
+                  },
+                  "format": {
+                    "type": "DATE"
+                  }
+                },
+                {
+                  "id": "c_24",
+                  "row": 2,
+                  "column": 2,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "CONSTANT",
+                    "value": "结束日期"
+                  },
+                  "style": {
+                    "fontWeight": 700,
+                    "textAlign": "center",
+                    "backgroundColor": "#f1f5f9",
+                    "verticalAlign": "middle"
+                  }
+                },
+                {
+                  "id": "c_25",
+                  "row": 2,
+                  "column": 3,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "FIELD",
+                    "path": "main.endDate"
+                  },
+                  "style": {
+                    "paddingMm": 1.2,
+                    "verticalAlign": "middle"
+                  },
+                  "format": {
+                    "type": "DATE"
+                  }
+                },
+                {
+                  "id": "c_26",
+                  "row": 3,
+                  "column": 0,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "CONSTANT",
+                    "value": "请假事由"
+                  },
+                  "style": {
+                    "fontWeight": 700,
+                    "textAlign": "center",
+                    "backgroundColor": "#f1f5f9",
+                    "verticalAlign": "middle"
+                  }
+                },
+                {
+                  "id": "c_27",
+                  "row": 3,
+                  "column": 1,
+                  "rowSpan": 1,
+                  "colSpan": 3,
+                  "binding": {
+                    "source": "FIELD",
+                    "path": "main.reason"
+                  },
+                  "style": {
+                    "paddingMm": 2,
+                    "verticalAlign": "top"
+                  }
+                },
+                {
+                  "id": "c_28",
+                  "row": 4,
+                  "column": 0,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "CONSTANT",
+                    "value": "工作交接"
+                  },
+                  "style": {
+                    "fontWeight": 700,
+                    "textAlign": "center",
+                    "backgroundColor": "#f1f5f9",
+                    "verticalAlign": "middle"
+                  }
+                },
+                {
+                  "id": "c_29",
+                  "row": 4,
+                  "column": 1,
+                  "rowSpan": 1,
+                  "colSpan": 3,
+                  "binding": {
+                    "source": "FIELD",
+                    "path": "main.handover"
+                  },
+                  "style": {
+                    "paddingMm": 2,
+                    "verticalAlign": "top"
+                  }
+                },
+                {
+                  "id": "c_30",
+                  "row": 5,
+                  "column": 0,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "CONSTANT",
+                    "value": "直属主管\n意见"
+                  },
+                  "style": {
+                    "fontWeight": 700,
+                    "textAlign": "center",
+                    "backgroundColor": "#f1f5f9",
+                    "verticalAlign": "middle",
+                    "fontSizePt": 9
+                  }
+                },
+                {
+                  "id": "c_31",
+                  "row": 5,
+                  "column": 1,
+                  "rowSpan": 1,
+                  "colSpan": 3,
+                  "binding": {
+                    "source": "CONSTANT",
+                    "value": "意见：\n\n签名：__________  日期：____年__月__日"
+                  },
+                  "style": {
+                    "paddingMm": 2,
+                    "verticalAlign": "top"
+                  }
+                },
+                {
+                  "id": "c_32",
+                  "row": 6,
+                  "column": 0,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "CONSTANT",
+                    "value": "部门负责人\n意见"
+                  },
+                  "style": {
+                    "fontWeight": 700,
+                    "textAlign": "center",
+                    "backgroundColor": "#f1f5f9",
+                    "verticalAlign": "middle",
+                    "fontSizePt": 9
+                  }
+                },
+                {
+                  "id": "c_33",
+                  "row": 6,
+                  "column": 1,
+                  "rowSpan": 1,
+                  "colSpan": 3,
+                  "binding": {
+                    "source": "CONSTANT",
+                    "value": "意见：\n\n签名：__________  日期：____年__月__日"
+                  },
+                  "style": {
+                    "paddingMm": 2,
+                    "verticalAlign": "top"
+                  }
+                },
+                {
+                  "id": "c_34",
+                  "row": 7,
+                  "column": 0,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "CONSTANT",
+                    "value": "分管领导\n意见"
+                  },
+                  "style": {
+                    "fontWeight": 700,
+                    "textAlign": "center",
+                    "backgroundColor": "#f1f5f9",
+                    "verticalAlign": "middle",
+                    "fontSizePt": 9
+                  }
+                },
+                {
+                  "id": "c_35",
+                  "row": 7,
+                  "column": 1,
+                  "rowSpan": 1,
+                  "colSpan": 3,
+                  "binding": {
+                    "source": "CONSTANT",
+                    "value": "意见：\n\n签名：__________  日期：____年__月__日"
+                  },
+                  "style": {
+                    "paddingMm": 2,
+                    "verticalAlign": "top"
+                  }
+                },
+                {
+                  "id": "c_36",
+                  "row": 8,
+                  "column": 0,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "CONSTANT",
+                    "value": "人事备案"
+                  },
+                  "style": {
+                    "fontWeight": 700,
+                    "textAlign": "center",
+                    "backgroundColor": "#f1f5f9",
+                    "verticalAlign": "middle"
+                  }
+                },
+                {
+                  "id": "c_37",
+                  "row": 8,
+                  "column": 1,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "FIELD",
+                    "path": "main.hrRecord"
+                  },
+                  "style": {
+                    "paddingMm": 1.2,
+                    "verticalAlign": "middle"
+                  }
+                },
+                {
+                  "id": "c_38",
+                  "row": 8,
+                  "column": 2,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "CONSTANT",
+                    "value": "审批状态"
+                  },
+                  "style": {
+                    "fontWeight": 700,
+                    "textAlign": "center",
+                    "backgroundColor": "#f1f5f9",
+                    "verticalAlign": "middle"
+                  }
+                },
+                {
+                  "id": "c_39",
+                  "row": 8,
+                  "column": 3,
+                  "rowSpan": 1,
+                  "colSpan": 1,
+                  "binding": {
+                    "source": "FIELD",
+                    "path": "main.approvalStatus"
+                  },
+                  "style": {
+                    "paddingMm": 1.2,
+                    "verticalAlign": "middle"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "sec_note",
+        "kind": "TEXT",
+        "gapAfterMm": 2,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "填写说明：1. 请假天数按自然日/工作日以公司制度为准；2. 病假需附证明；3. 跨部门请先完成工作交接；4. 本单打印后与流程归档一致。"
+        },
+        "style": {
+          "fontSizePt": 8,
+          "lineHeight": 1.5,
+          "color": "#64748b",
+          "paddingMm": 1
+        }
+      }
+    ],
+    "footer": {
+      "heightMm": 10,
+      "repeat": true,
+      "elements": [
+        {
+          "id": "ft_tip",
+          "type": "TEXT",
+          "xMm": 0,
+          "yMm": 1,
+          "widthMm": 120,
+          "heightMm": 8,
+          "binding": {
+            "source": "CONSTANT",
+            "value": "打印时间以系统为准 · 受控文件"
+          },
+          "style": {
+            "fontSizePt": 8,
+            "color": "#94a3b8"
+          }
+        },
+        {
+          "id": "pn",
+          "type": "PAGE_NUMBER",
+          "xMm": 150,
+          "yMm": 1,
+          "widthMm": 36,
+          "heightMm": 8,
+          "pageNumberFormat": "CURRENT_TOTAL",
+          "style": {
+            "textAlign": "right",
+            "fontSizePt": 8
+          }
+        }
+      ]
+    },
+    "resources": []
+  }
+}

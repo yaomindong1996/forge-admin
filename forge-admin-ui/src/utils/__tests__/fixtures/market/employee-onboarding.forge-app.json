@@ -1,0 +1,2462 @@
+{
+  "format": "forge-application-bundle",
+  "schemaVersion": 2,
+  "exportedAt": "2026-10-21T02:44:23.339Z",
+  "source": {
+    "applicationCode": "market_onboard_app",
+    "applicationName": "员工入职",
+    "suiteCode": "HR"
+  },
+  "selection": {
+    "mode": "FULL",
+    "pageIds": [
+      "page_onboard_home",
+      "page_onboard_list",
+      "page_onboard_apply",
+      "page_onboard_docs",
+      "page_onboard_unlock"
+    ],
+    "objectCodes": [
+      "employee_onboard"
+    ]
+  },
+  "application": {
+    "applicationName": "员工入职",
+    "applicationCode": "market_onboard_app",
+    "suiteCode": "HR",
+    "icon": "i-lucide:user-plus",
+    "description": "人事入职进阶样例：入职中心、台账、办理入职、材料核对与开通清单五页，字段覆盖合同、银行卡与账号准备。",
+    "status": 1,
+    "options": {
+      "inAppBuilder": {
+        "schemaVersion": 2,
+        "homePageId": "page_onboard_home",
+        "nodes": [
+          {
+            "id": "page_onboard_home",
+            "type": "page",
+            "title": "入职中心",
+            "pageType": "content",
+            "pageShape": "custom",
+            "pageTemplate": "custom",
+            "parentId": null,
+            "sort": 0,
+            "navigationVisible": true,
+            "systemMenuVisible": false
+          },
+          {
+            "id": "page_onboard_list",
+            "type": "page",
+            "title": "入职台账",
+            "pageType": "object",
+            "pageShape": "list",
+            "pageTemplate": "list",
+            "parentId": null,
+            "sort": 10,
+            "navigationVisible": true,
+            "systemMenuVisible": false,
+            "objectRef": {
+              "objectCode": "employee_onboard",
+              "objectName": "入职登记",
+              "pageMode": "list",
+              "pageKey": "list"
+            }
+          },
+          {
+            "id": "page_onboard_apply",
+            "type": "page",
+            "title": "办理入职",
+            "pageType": "object",
+            "pageShape": "form",
+            "pageTemplate": "form",
+            "parentId": null,
+            "sort": 20,
+            "navigationVisible": true,
+            "systemMenuVisible": false,
+            "objectRef": {
+              "objectCode": "employee_onboard",
+              "objectName": "入职登记",
+              "pageMode": "form",
+              "pageKey": "form"
+            }
+          },
+          {
+            "id": "page_onboard_docs",
+            "type": "page",
+            "title": "材料核对",
+            "pageType": "object",
+            "pageShape": "list-form",
+            "pageTemplate": "list-form",
+            "parentId": null,
+            "sort": 30,
+            "navigationVisible": true,
+            "systemMenuVisible": false,
+            "objectRef": {
+              "objectCode": "employee_onboard",
+              "objectName": "入职登记",
+              "pageMode": "list",
+              "pageKey": "list"
+            }
+          },
+          {
+            "id": "page_onboard_unlock",
+            "type": "page",
+            "title": "开通清单",
+            "pageType": "object",
+            "pageShape": "list",
+            "pageTemplate": "list",
+            "parentId": null,
+            "sort": 40,
+            "navigationVisible": true,
+            "systemMenuVisible": false,
+            "objectRef": {
+              "objectCode": "employee_onboard",
+              "objectName": "入职登记",
+              "pageMode": "list",
+              "pageKey": "list"
+            }
+          }
+        ],
+        "pages": {
+          "page_onboard_home": {
+            "title": "入职中心",
+            "description": "入职流程说明与入口导览",
+            "layout": {
+              "gridLayout": {
+                "cols": 12,
+                "rowHeight": 32,
+                "gap": 12,
+                "designWidth": 1366,
+                "layoutType": "custom",
+                "items": [
+                  {
+                    "id": "blk_home_title",
+                    "blockType": "page-title",
+                    "label": "页面标题",
+                    "gridX": 0,
+                    "gridY": 0,
+                    "gridW": 12,
+                    "gridH": 2,
+                    "props": {
+                      "title": "入职中心",
+                      "subtitle": "覆盖登记、台账、材料核对与账号/设备开通，适合正式人事入职。"
+                    }
+                  },
+                  {
+                    "id": "blk_home_intro",
+                    "blockType": "intro",
+                    "label": "介绍",
+                    "gridX": 0,
+                    "gridY": 2,
+                    "gridW": 12,
+                    "gridH": 3,
+                    "props": {
+                      "title": "推荐使用顺序",
+                      "description": "人事在「办理入职」采集信息 → 「入职台账」查询导出 → 「材料核对」确认证件材料 → 「开通清单」跟进账号与设备。"
+                    }
+                  },
+                  {
+                    "id": "blk_home_m1",
+                    "blockType": "metric-card",
+                    "label": "指标",
+                    "gridX": 0,
+                    "gridY": 5,
+                    "gridW": 3,
+                    "gridH": 3,
+                    "props": {
+                      "title": "登记表单",
+                      "value": "20+ 字段",
+                      "trend": "身份/合同/银行卡"
+                    }
+                  },
+                  {
+                    "id": "blk_home_m2",
+                    "blockType": "metric-card",
+                    "label": "指标",
+                    "gridX": 3,
+                    "gridY": 5,
+                    "gridW": 3,
+                    "gridH": 3,
+                    "props": {
+                      "title": "台账列表",
+                      "value": "可搜索",
+                      "trend": "编辑 / 导出"
+                    }
+                  },
+                  {
+                    "id": "blk_home_m3",
+                    "blockType": "metric-card",
+                    "label": "指标",
+                    "gridX": 6,
+                    "gridY": 5,
+                    "gridW": 3,
+                    "gridH": 3,
+                    "props": {
+                      "title": "材料核对",
+                      "value": "列表+表单",
+                      "trend": "状态一眼可见"
+                    }
+                  },
+                  {
+                    "id": "blk_home_m4",
+                    "blockType": "metric-card",
+                    "label": "指标",
+                    "gridX": 9,
+                    "gridY": 5,
+                    "gridW": 3,
+                    "gridH": 3,
+                    "props": {
+                      "title": "开通清单",
+                      "value": "账号/设备",
+                      "trend": "入职当日闭环"
+                    }
+                  },
+                  {
+                    "id": "blk_home_tip",
+                    "blockType": "text",
+                    "label": "说明",
+                    "gridX": 0,
+                    "gridY": 8,
+                    "gridW": 12,
+                    "gridH": 2,
+                    "props": {
+                      "content": "导入后请发布应用与对象再使用。本包为进阶样例，字段与页面多于免费请假包，便于评估正式人事场景。"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "page_onboard_list": {
+            "title": "入职台账",
+            "description": "查询、编辑与导出入职登记",
+            "layout": {
+              "gridLayout": {
+                "cols": 12,
+                "rowHeight": 32,
+                "gap": 8,
+                "designWidth": 1366,
+                "layoutType": "list",
+                "items": [
+                  {
+                    "id": "blk_onboard_list",
+                    "blockType": "AiCrudPage",
+                    "label": "入职台账",
+                    "gridX": 0,
+                    "gridY": 0,
+                    "gridW": 12,
+                    "gridH": 24,
+                    "props": {
+                      "title": "入职台账",
+                      "formAssetId": "form_employee_onboard",
+                      "formAssetFieldsInitialized": true,
+                      "fieldRefs": [
+                        "fullName",
+                        "gender",
+                        "mobile",
+                        "idNo",
+                        "birthDate",
+                        "employeeNo",
+                        "hireDate",
+                        "department",
+                        "jobTitle",
+                        "jobLevel",
+                        "workEmail",
+                        "contractType",
+                        "contractStart",
+                        "contractEnd",
+                        "probationMonths",
+                        "education",
+                        "school",
+                        "major",
+                        "emergencyContact",
+                        "emergencyPhone",
+                        "address",
+                        "bankAccount",
+                        "bankName",
+                        "bankBranch",
+                        "mentorName",
+                        "onboardStatus",
+                        "docsReady",
+                        "accountReady",
+                        "equipmentReady",
+                        "remark"
+                      ],
+                      "objectRef": {
+                        "objectCode": "employee_onboard",
+                        "objectName": "入职登记",
+                        "pageMode": "list",
+                        "pageKey": "list"
+                      },
+                      "layoutType": "list",
+                      "formOnly": false,
+                      "hideToolbar": false,
+                      "hideBatchDelete": false,
+                      "showSearch": true,
+                      "formOpenMode": "drawer",
+                      "modalType": "drawer"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "page_onboard_apply": {
+            "title": "办理入职",
+            "description": "采集新员工完整入职信息",
+            "layout": {
+              "gridLayout": {
+                "cols": 12,
+                "rowHeight": 32,
+                "gap": 8,
+                "designWidth": 1366,
+                "layoutType": "form",
+                "items": [
+                  {
+                    "id": "blk_onboard_apply",
+                    "blockType": "AiCrudPage",
+                    "label": "办理入职",
+                    "gridX": 0,
+                    "gridY": 0,
+                    "gridW": 12,
+                    "gridH": 22,
+                    "props": {
+                      "title": "办理入职",
+                      "formAssetId": "form_employee_onboard",
+                      "formAssetFieldsInitialized": true,
+                      "fieldRefs": [
+                        "fullName",
+                        "gender",
+                        "mobile",
+                        "idNo",
+                        "birthDate",
+                        "employeeNo",
+                        "hireDate",
+                        "department",
+                        "jobTitle",
+                        "jobLevel",
+                        "workEmail",
+                        "contractType",
+                        "contractStart",
+                        "contractEnd",
+                        "probationMonths",
+                        "education",
+                        "school",
+                        "major",
+                        "emergencyContact",
+                        "emergencyPhone",
+                        "address",
+                        "bankAccount",
+                        "bankName",
+                        "bankBranch",
+                        "mentorName",
+                        "onboardStatus",
+                        "docsReady",
+                        "accountReady",
+                        "equipmentReady",
+                        "remark"
+                      ],
+                      "objectRef": {
+                        "objectCode": "employee_onboard",
+                        "objectName": "入职登记",
+                        "pageMode": "form",
+                        "pageKey": "form"
+                      },
+                      "layoutType": "form",
+                      "formOnly": true,
+                      "hideToolbar": true,
+                      "hideBatchDelete": true,
+                      "showSearch": false,
+                      "formOpenMode": "flat",
+                      "modalType": "flat"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "page_onboard_docs": {
+            "title": "材料核对",
+            "description": "核对证件材料与入职状态",
+            "layout": {
+              "gridLayout": {
+                "cols": 12,
+                "rowHeight": 32,
+                "gap": 8,
+                "designWidth": 1366,
+                "layoutType": "list-form",
+                "items": [
+                  {
+                    "id": "blk_onboard_docs",
+                    "blockType": "AiCrudPage",
+                    "label": "材料核对",
+                    "gridX": 0,
+                    "gridY": 0,
+                    "gridW": 12,
+                    "gridH": 24,
+                    "props": {
+                      "title": "材料核对",
+                      "formAssetId": "form_employee_onboard",
+                      "formAssetFieldsInitialized": true,
+                      "fieldRefs": [
+                        "fullName",
+                        "gender",
+                        "mobile",
+                        "idNo",
+                        "birthDate",
+                        "employeeNo",
+                        "hireDate",
+                        "department",
+                        "jobTitle",
+                        "jobLevel",
+                        "workEmail",
+                        "contractType",
+                        "contractStart",
+                        "contractEnd",
+                        "probationMonths",
+                        "education",
+                        "school",
+                        "major",
+                        "emergencyContact",
+                        "emergencyPhone",
+                        "address",
+                        "bankAccount",
+                        "bankName",
+                        "bankBranch",
+                        "mentorName",
+                        "onboardStatus",
+                        "docsReady",
+                        "accountReady",
+                        "equipmentReady",
+                        "remark"
+                      ],
+                      "objectRef": {
+                        "objectCode": "employee_onboard",
+                        "objectName": "入职登记",
+                        "pageMode": "list",
+                        "pageKey": "list"
+                      },
+                      "layoutType": "list-form",
+                      "formOnly": false,
+                      "hideToolbar": false,
+                      "hideBatchDelete": false,
+                      "showSearch": true,
+                      "formOpenMode": "flat",
+                      "modalType": "flat"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "page_onboard_unlock": {
+            "title": "开通清单",
+            "description": "跟进账号开通与设备就绪",
+            "layout": {
+              "gridLayout": {
+                "cols": 12,
+                "rowHeight": 32,
+                "gap": 8,
+                "designWidth": 1366,
+                "layoutType": "list",
+                "items": [
+                  {
+                    "id": "blk_onboard_unlock",
+                    "blockType": "AiCrudPage",
+                    "label": "开通清单",
+                    "gridX": 0,
+                    "gridY": 0,
+                    "gridW": 12,
+                    "gridH": 24,
+                    "props": {
+                      "title": "开通清单",
+                      "formAssetId": "form_employee_onboard",
+                      "formAssetFieldsInitialized": true,
+                      "fieldRefs": [
+                        "fullName",
+                        "gender",
+                        "mobile",
+                        "idNo",
+                        "birthDate",
+                        "employeeNo",
+                        "hireDate",
+                        "department",
+                        "jobTitle",
+                        "jobLevel",
+                        "workEmail",
+                        "contractType",
+                        "contractStart",
+                        "contractEnd",
+                        "probationMonths",
+                        "education",
+                        "school",
+                        "major",
+                        "emergencyContact",
+                        "emergencyPhone",
+                        "address",
+                        "bankAccount",
+                        "bankName",
+                        "bankBranch",
+                        "mentorName",
+                        "onboardStatus",
+                        "docsReady",
+                        "accountReady",
+                        "equipmentReady",
+                        "remark"
+                      ],
+                      "objectRef": {
+                        "objectCode": "employee_onboard",
+                        "objectName": "入职登记",
+                        "pageMode": "list",
+                        "pageKey": "list"
+                      },
+                      "layoutType": "list",
+                      "formOnly": false,
+                      "hideToolbar": false,
+                      "hideBatchDelete": false,
+                      "showSearch": true,
+                      "formOpenMode": "drawer",
+                      "modalType": "drawer"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "formAssets": [
+          {
+            "id": "form_employee_onboard",
+            "formKey": "form_employee_onboard",
+            "name": "员工入职登记",
+            "formDesignerSchema": {
+              "schemaVersion": 1,
+              "formKey": "market_onboard_form",
+              "formName": "员工入职登记",
+              "usage": [
+                "create",
+                "edit",
+                "submit"
+              ],
+              "layout": {
+                "labelPlacement": "left",
+                "labelAlign": "right",
+                "labelWidth": "110px",
+                "size": "medium",
+                "modalType": "drawer",
+                "showFeedback": true,
+                "gridColumns": 2,
+                "rowGap": 16,
+                "columnGap": 16
+              },
+              "components": [
+                {
+                  "id": "cmp_name",
+                  "componentKey": "input",
+                  "label": "姓名",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "fullName",
+                    "columnName": "full_name",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "姓名"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": true,
+                    "requiredMessage": "请填写姓名"
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_gender",
+                  "componentKey": "select",
+                  "label": "性别",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "gender",
+                    "columnName": "gender",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "请选择",
+                    "options": [
+                      {
+                        "label": "男",
+                        "value": "male"
+                      },
+                      {
+                        "label": "女",
+                        "value": "female"
+                      },
+                      {
+                        "label": "其他",
+                        "value": "other"
+                      }
+                    ]
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": true,
+                    "requiredMessage": "请填写性别"
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_mobile",
+                  "componentKey": "input",
+                  "label": "手机号",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "mobile",
+                    "columnName": "mobile",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "11 位手机号"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": true,
+                    "requiredMessage": "请填写手机号"
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_id",
+                  "componentKey": "input",
+                  "label": "身份证号",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "idNo",
+                    "columnName": "id_no",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "身份证号"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": true,
+                    "requiredMessage": "请填写身份证号"
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_birth",
+                  "componentKey": "date",
+                  "label": "出生日期",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "birthDate",
+                    "columnName": "birth_date",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "type": "date",
+                    "clearable": true
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_emp_no",
+                  "componentKey": "input",
+                  "label": "工号",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "employeeNo",
+                    "columnName": "employee_no",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "预分配工号"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_hire",
+                  "componentKey": "date",
+                  "label": "入职日期",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "hireDate",
+                    "columnName": "hire_date",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "type": "date"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": true,
+                    "requiredMessage": "请选择入职日期"
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_dept",
+                  "componentKey": "input",
+                  "label": "所属部门",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "department",
+                    "columnName": "department",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "部门全称"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": true,
+                    "requiredMessage": "请填写所属部门"
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_job",
+                  "componentKey": "input",
+                  "label": "岗位",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "jobTitle",
+                    "columnName": "job_title",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "岗位名称"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": true,
+                    "requiredMessage": "请填写岗位"
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_level",
+                  "componentKey": "select",
+                  "label": "职级",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "jobLevel",
+                    "columnName": "job_level",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "职级",
+                    "options": [
+                      {
+                        "label": "P1",
+                        "value": "P1"
+                      },
+                      {
+                        "label": "P2",
+                        "value": "P2"
+                      },
+                      {
+                        "label": "P3",
+                        "value": "P3"
+                      },
+                      {
+                        "label": "P4",
+                        "value": "P4"
+                      },
+                      {
+                        "label": "M1",
+                        "value": "M1"
+                      },
+                      {
+                        "label": "M2",
+                        "value": "M2"
+                      }
+                    ]
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_email",
+                  "componentKey": "input",
+                  "label": "工作邮箱",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "workEmail",
+                    "columnName": "work_email",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "name@company.com"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_contract_type",
+                  "componentKey": "select",
+                  "label": "合同类型",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "contractType",
+                    "columnName": "contract_type",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "请选择",
+                    "options": [
+                      {
+                        "label": "劳动合同",
+                        "value": "labor"
+                      },
+                      {
+                        "label": "劳务协议",
+                        "value": "service"
+                      },
+                      {
+                        "label": "实习协议",
+                        "value": "intern"
+                      },
+                      {
+                        "label": "外包",
+                        "value": "outsource"
+                      }
+                    ]
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": true,
+                    "requiredMessage": "请填写合同类型"
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_contract_start",
+                  "componentKey": "date",
+                  "label": "合同开始",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "contractStart",
+                    "columnName": "contract_start",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "type": "date"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": true,
+                    "requiredMessage": "请选择合同开始日期"
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_contract_end",
+                  "componentKey": "date",
+                  "label": "合同结束",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "contractEnd",
+                    "columnName": "contract_end",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "type": "date",
+                    "clearable": true
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_probation",
+                  "componentKey": "number",
+                  "label": "试用期(月)",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "probationMonths",
+                    "columnName": "probation_months",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "min": 0,
+                    "max": 12,
+                    "step": 1,
+                    "placeholder": "0-12"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_edu",
+                  "componentKey": "select",
+                  "label": "学历",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "education",
+                    "columnName": "education",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "请选择",
+                    "options": [
+                      {
+                        "label": "高中及以下",
+                        "value": "high_school"
+                      },
+                      {
+                        "label": "大专",
+                        "value": "college"
+                      },
+                      {
+                        "label": "本科",
+                        "value": "bachelor"
+                      },
+                      {
+                        "label": "硕士",
+                        "value": "master"
+                      },
+                      {
+                        "label": "博士",
+                        "value": "phd"
+                      }
+                    ]
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_school",
+                  "componentKey": "input",
+                  "label": "毕业院校",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "school",
+                    "columnName": "school",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "院校名称"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_major",
+                  "componentKey": "input",
+                  "label": "专业",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "major",
+                    "columnName": "major",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "专业名称"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_emergency",
+                  "componentKey": "input",
+                  "label": "紧急联系人",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "emergencyContact",
+                    "columnName": "emergency_contact",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "姓名"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": true,
+                    "requiredMessage": "请填写紧急联系人"
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_emergency_phone",
+                  "componentKey": "input",
+                  "label": "紧急联系电话",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "emergencyPhone",
+                    "columnName": "emergency_phone",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "联系电话"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": true,
+                    "requiredMessage": "请填写紧急联系电话"
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_addr",
+                  "componentKey": "textarea",
+                  "label": "现居住地址",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "address",
+                    "columnName": "address",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "rows": 2,
+                    "placeholder": "详细地址"
+                  },
+                  "layout": {
+                    "span": 24
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_bank",
+                  "componentKey": "input",
+                  "label": "银行卡号",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "bankAccount",
+                    "columnName": "bank_account",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "工资卡号"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_bank_name",
+                  "componentKey": "input",
+                  "label": "开户行",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "bankName",
+                    "columnName": "bank_name",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "开户行"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_bank_branch",
+                  "componentKey": "input",
+                  "label": "开户支行",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "bankBranch",
+                    "columnName": "bank_branch",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "支行名称"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_mentor",
+                  "componentKey": "input",
+                  "label": "入职导师",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "mentorName",
+                    "columnName": "mentor_name",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "导师姓名"
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_status",
+                  "componentKey": "select",
+                  "label": "入职状态",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "onboardStatus",
+                    "columnName": "onboard_status",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "状态",
+                    "options": [
+                      {
+                        "label": "待办材料",
+                        "value": "pending_docs"
+                      },
+                      {
+                        "label": "待开通账号",
+                        "value": "pending_account"
+                      },
+                      {
+                        "label": "已入职",
+                        "value": "active"
+                      },
+                      {
+                        "label": "已取消",
+                        "value": "cancelled"
+                      }
+                    ]
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_docs",
+                  "componentKey": "select",
+                  "label": "材料是否齐全",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "docsReady",
+                    "columnName": "docs_ready",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "请选择",
+                    "options": [
+                      {
+                        "label": "未齐",
+                        "value": "no"
+                      },
+                      {
+                        "label": "已齐",
+                        "value": "yes"
+                      }
+                    ]
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_account",
+                  "componentKey": "select",
+                  "label": "账号是否开通",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "accountReady",
+                    "columnName": "account_ready",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "请选择",
+                    "options": [
+                      {
+                        "label": "未开通",
+                        "value": "no"
+                      },
+                      {
+                        "label": "已开通",
+                        "value": "yes"
+                      }
+                    ]
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_equipment",
+                  "componentKey": "select",
+                  "label": "设备是否就绪",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "equipmentReady",
+                    "columnName": "equipment_ready",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "placeholder": "请选择",
+                    "options": [
+                      {
+                        "label": "未就绪",
+                        "value": "no"
+                      },
+                      {
+                        "label": "已就绪",
+                        "value": "yes"
+                      }
+                    ]
+                  },
+                  "layout": {
+                    "span": 12
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                },
+                {
+                  "id": "cmp_remark",
+                  "componentKey": "textarea",
+                  "label": "备注",
+                  "fieldBinding": {
+                    "mode": "field",
+                    "fieldCode": "remark",
+                    "columnName": "remark",
+                    "createIfMissing": true,
+                    "source": "field_asset"
+                  },
+                  "props": {
+                    "rows": 2,
+                    "placeholder": "补充说明（选填）"
+                  },
+                  "layout": {
+                    "span": 24
+                  },
+                  "validation": {
+                    "required": false
+                  },
+                  "visibility": {}
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "portalConfig": {}
+  },
+  "objects": [
+    {
+      "objectCode": "employee_onboard",
+      "objectName": "入职登记",
+      "objectType": "MASTER",
+      "role": "PRIMARY",
+      "displayField": "fullName",
+      "icon": "i-lucide:badge-check",
+      "description": "员工入职登记对象（含合同、材料与开通状态）",
+      "modelSchema": {
+        "object": {
+          "code": "employee_onboard",
+          "name": "入职登记"
+        },
+        "fields": [
+          {
+            "fieldCode": "fullName",
+            "fieldName": "姓名",
+            "columnName": "full_name",
+            "dataType": "STRING",
+            "required": true,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "gender",
+            "fieldName": "性别",
+            "columnName": "gender",
+            "dataType": "STRING",
+            "required": true,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "mobile",
+            "fieldName": "手机号",
+            "columnName": "mobile",
+            "dataType": "STRING",
+            "required": true,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "idNo",
+            "fieldName": "身份证号",
+            "columnName": "id_no",
+            "dataType": "STRING",
+            "required": true,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "birthDate",
+            "fieldName": "出生日期",
+            "columnName": "birth_date",
+            "dataType": "DATE",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "employeeNo",
+            "fieldName": "工号",
+            "columnName": "employee_no",
+            "dataType": "STRING",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "hireDate",
+            "fieldName": "入职日期",
+            "columnName": "hire_date",
+            "dataType": "DATE",
+            "required": true,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "department",
+            "fieldName": "所属部门",
+            "columnName": "department",
+            "dataType": "STRING",
+            "required": true,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "jobTitle",
+            "fieldName": "岗位",
+            "columnName": "job_title",
+            "dataType": "STRING",
+            "required": true,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "jobLevel",
+            "fieldName": "职级",
+            "columnName": "job_level",
+            "dataType": "STRING",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "workEmail",
+            "fieldName": "工作邮箱",
+            "columnName": "work_email",
+            "dataType": "STRING",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "contractType",
+            "fieldName": "合同类型",
+            "columnName": "contract_type",
+            "dataType": "STRING",
+            "required": true,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "contractStart",
+            "fieldName": "合同开始",
+            "columnName": "contract_start",
+            "dataType": "DATE",
+            "required": true,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "contractEnd",
+            "fieldName": "合同结束",
+            "columnName": "contract_end",
+            "dataType": "DATE",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "probationMonths",
+            "fieldName": "试用期(月)",
+            "columnName": "probation_months",
+            "dataType": "DECIMAL",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "education",
+            "fieldName": "学历",
+            "columnName": "education",
+            "dataType": "STRING",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "school",
+            "fieldName": "毕业院校",
+            "columnName": "school",
+            "dataType": "STRING",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "major",
+            "fieldName": "专业",
+            "columnName": "major",
+            "dataType": "STRING",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "emergencyContact",
+            "fieldName": "紧急联系人",
+            "columnName": "emergency_contact",
+            "dataType": "STRING",
+            "required": true,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "emergencyPhone",
+            "fieldName": "紧急联系电话",
+            "columnName": "emergency_phone",
+            "dataType": "STRING",
+            "required": true,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "address",
+            "fieldName": "现居住地址",
+            "columnName": "address",
+            "dataType": "TEXT",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "bankAccount",
+            "fieldName": "银行卡号",
+            "columnName": "bank_account",
+            "dataType": "STRING",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "bankName",
+            "fieldName": "开户行",
+            "columnName": "bank_name",
+            "dataType": "STRING",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "bankBranch",
+            "fieldName": "开户支行",
+            "columnName": "bank_branch",
+            "dataType": "STRING",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "mentorName",
+            "fieldName": "入职导师",
+            "columnName": "mentor_name",
+            "dataType": "STRING",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "onboardStatus",
+            "fieldName": "入职状态",
+            "columnName": "onboard_status",
+            "dataType": "STRING",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "docsReady",
+            "fieldName": "材料是否齐全",
+            "columnName": "docs_ready",
+            "dataType": "STRING",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "accountReady",
+            "fieldName": "账号是否开通",
+            "columnName": "account_ready",
+            "dataType": "STRING",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "equipmentReady",
+            "fieldName": "设备是否就绪",
+            "columnName": "equipment_ready",
+            "dataType": "STRING",
+            "required": false,
+            "formVisible": true
+          },
+          {
+            "fieldCode": "remark",
+            "fieldName": "备注",
+            "columnName": "remark",
+            "dataType": "TEXT",
+            "required": false,
+            "formVisible": true
+          }
+        ]
+      },
+      "formDesignerSchema": {
+        "schemaVersion": 1,
+        "formKey": "market_onboard_form",
+        "formName": "员工入职登记",
+        "usage": [
+          "create",
+          "edit",
+          "submit"
+        ],
+        "layout": {
+          "labelPlacement": "left",
+          "labelAlign": "right",
+          "labelWidth": "110px",
+          "size": "medium",
+          "modalType": "drawer",
+          "showFeedback": true,
+          "gridColumns": 2,
+          "rowGap": 16,
+          "columnGap": 16
+        },
+        "components": [
+          {
+            "id": "cmp_name",
+            "componentKey": "input",
+            "label": "姓名",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "fullName",
+              "columnName": "full_name",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "姓名"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true,
+              "requiredMessage": "请填写姓名"
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_gender",
+            "componentKey": "select",
+            "label": "性别",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "gender",
+              "columnName": "gender",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "请选择",
+              "options": [
+                {
+                  "label": "男",
+                  "value": "male"
+                },
+                {
+                  "label": "女",
+                  "value": "female"
+                },
+                {
+                  "label": "其他",
+                  "value": "other"
+                }
+              ]
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true,
+              "requiredMessage": "请填写性别"
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_mobile",
+            "componentKey": "input",
+            "label": "手机号",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "mobile",
+              "columnName": "mobile",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "11 位手机号"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true,
+              "requiredMessage": "请填写手机号"
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_id",
+            "componentKey": "input",
+            "label": "身份证号",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "idNo",
+              "columnName": "id_no",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "身份证号"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true,
+              "requiredMessage": "请填写身份证号"
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_birth",
+            "componentKey": "date",
+            "label": "出生日期",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "birthDate",
+              "columnName": "birth_date",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "type": "date",
+              "clearable": true
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_emp_no",
+            "componentKey": "input",
+            "label": "工号",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "employeeNo",
+              "columnName": "employee_no",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "预分配工号"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_hire",
+            "componentKey": "date",
+            "label": "入职日期",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "hireDate",
+              "columnName": "hire_date",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "type": "date"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true,
+              "requiredMessage": "请选择入职日期"
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_dept",
+            "componentKey": "input",
+            "label": "所属部门",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "department",
+              "columnName": "department",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "部门全称"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true,
+              "requiredMessage": "请填写所属部门"
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_job",
+            "componentKey": "input",
+            "label": "岗位",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "jobTitle",
+              "columnName": "job_title",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "岗位名称"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true,
+              "requiredMessage": "请填写岗位"
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_level",
+            "componentKey": "select",
+            "label": "职级",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "jobLevel",
+              "columnName": "job_level",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "职级",
+              "options": [
+                {
+                  "label": "P1",
+                  "value": "P1"
+                },
+                {
+                  "label": "P2",
+                  "value": "P2"
+                },
+                {
+                  "label": "P3",
+                  "value": "P3"
+                },
+                {
+                  "label": "P4",
+                  "value": "P4"
+                },
+                {
+                  "label": "M1",
+                  "value": "M1"
+                },
+                {
+                  "label": "M2",
+                  "value": "M2"
+                }
+              ]
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_email",
+            "componentKey": "input",
+            "label": "工作邮箱",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "workEmail",
+              "columnName": "work_email",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "name@company.com"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_contract_type",
+            "componentKey": "select",
+            "label": "合同类型",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "contractType",
+              "columnName": "contract_type",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "请选择",
+              "options": [
+                {
+                  "label": "劳动合同",
+                  "value": "labor"
+                },
+                {
+                  "label": "劳务协议",
+                  "value": "service"
+                },
+                {
+                  "label": "实习协议",
+                  "value": "intern"
+                },
+                {
+                  "label": "外包",
+                  "value": "outsource"
+                }
+              ]
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true,
+              "requiredMessage": "请填写合同类型"
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_contract_start",
+            "componentKey": "date",
+            "label": "合同开始",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "contractStart",
+              "columnName": "contract_start",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "type": "date"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true,
+              "requiredMessage": "请选择合同开始日期"
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_contract_end",
+            "componentKey": "date",
+            "label": "合同结束",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "contractEnd",
+              "columnName": "contract_end",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "type": "date",
+              "clearable": true
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_probation",
+            "componentKey": "number",
+            "label": "试用期(月)",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "probationMonths",
+              "columnName": "probation_months",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "min": 0,
+              "max": 12,
+              "step": 1,
+              "placeholder": "0-12"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_edu",
+            "componentKey": "select",
+            "label": "学历",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "education",
+              "columnName": "education",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "请选择",
+              "options": [
+                {
+                  "label": "高中及以下",
+                  "value": "high_school"
+                },
+                {
+                  "label": "大专",
+                  "value": "college"
+                },
+                {
+                  "label": "本科",
+                  "value": "bachelor"
+                },
+                {
+                  "label": "硕士",
+                  "value": "master"
+                },
+                {
+                  "label": "博士",
+                  "value": "phd"
+                }
+              ]
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_school",
+            "componentKey": "input",
+            "label": "毕业院校",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "school",
+              "columnName": "school",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "院校名称"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_major",
+            "componentKey": "input",
+            "label": "专业",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "major",
+              "columnName": "major",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "专业名称"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_emergency",
+            "componentKey": "input",
+            "label": "紧急联系人",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "emergencyContact",
+              "columnName": "emergency_contact",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "姓名"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true,
+              "requiredMessage": "请填写紧急联系人"
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_emergency_phone",
+            "componentKey": "input",
+            "label": "紧急联系电话",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "emergencyPhone",
+              "columnName": "emergency_phone",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "联系电话"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true,
+              "requiredMessage": "请填写紧急联系电话"
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_addr",
+            "componentKey": "textarea",
+            "label": "现居住地址",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "address",
+              "columnName": "address",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "rows": 2,
+              "placeholder": "详细地址"
+            },
+            "layout": {
+              "span": 24
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_bank",
+            "componentKey": "input",
+            "label": "银行卡号",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "bankAccount",
+              "columnName": "bank_account",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "工资卡号"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_bank_name",
+            "componentKey": "input",
+            "label": "开户行",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "bankName",
+              "columnName": "bank_name",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "开户行"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_bank_branch",
+            "componentKey": "input",
+            "label": "开户支行",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "bankBranch",
+              "columnName": "bank_branch",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "支行名称"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_mentor",
+            "componentKey": "input",
+            "label": "入职导师",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "mentorName",
+              "columnName": "mentor_name",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "导师姓名"
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_status",
+            "componentKey": "select",
+            "label": "入职状态",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "onboardStatus",
+              "columnName": "onboard_status",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "状态",
+              "options": [
+                {
+                  "label": "待办材料",
+                  "value": "pending_docs"
+                },
+                {
+                  "label": "待开通账号",
+                  "value": "pending_account"
+                },
+                {
+                  "label": "已入职",
+                  "value": "active"
+                },
+                {
+                  "label": "已取消",
+                  "value": "cancelled"
+                }
+              ]
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_docs",
+            "componentKey": "select",
+            "label": "材料是否齐全",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "docsReady",
+              "columnName": "docs_ready",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "请选择",
+              "options": [
+                {
+                  "label": "未齐",
+                  "value": "no"
+                },
+                {
+                  "label": "已齐",
+                  "value": "yes"
+                }
+              ]
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_account",
+            "componentKey": "select",
+            "label": "账号是否开通",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "accountReady",
+              "columnName": "account_ready",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "请选择",
+              "options": [
+                {
+                  "label": "未开通",
+                  "value": "no"
+                },
+                {
+                  "label": "已开通",
+                  "value": "yes"
+                }
+              ]
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_equipment",
+            "componentKey": "select",
+            "label": "设备是否就绪",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "equipmentReady",
+              "columnName": "equipment_ready",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "placeholder": "请选择",
+              "options": [
+                {
+                  "label": "未就绪",
+                  "value": "no"
+                },
+                {
+                  "label": "已就绪",
+                  "value": "yes"
+                }
+              ]
+            },
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          },
+          {
+            "id": "cmp_remark",
+            "componentKey": "textarea",
+            "label": "备注",
+            "fieldBinding": {
+              "mode": "field",
+              "fieldCode": "remark",
+              "columnName": "remark",
+              "createIfMissing": true,
+              "source": "field_asset"
+            },
+            "props": {
+              "rows": 2,
+              "placeholder": "补充说明（选填）"
+            },
+            "layout": {
+              "span": 24
+            },
+            "validation": {
+              "required": false
+            },
+            "visibility": {}
+          }
+        ]
+      },
+      "relations": []
+    }
+  ],
+  "entries": [],
+  "bindings": [],
+  "processes": [],
+  "extensions": [],
+  "triggers": [],
+  "printing": {}
+}

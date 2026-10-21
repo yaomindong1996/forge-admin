@@ -1241,10 +1241,28 @@ body.is-catalog-pointer-dragging .n-popover {
   flex: 0 0 auto;
 }
 .application-form-asset-designer {
+  position: relative;
   flex: 1 1 auto;
   height: 0;
   min-height: 0;
   overflow: hidden;
+}
+.application-form-asset-designer.is-surface-booting {
+  pointer-events: none;
+}
+.application-form-asset-designer .form-surface-boot-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  width: auto;
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--bg-secondary) 92%, transparent);
 }
 .application-first-page-button {
   margin-top: 16px;

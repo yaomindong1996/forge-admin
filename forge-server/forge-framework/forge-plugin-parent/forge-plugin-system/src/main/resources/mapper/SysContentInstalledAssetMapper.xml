@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.system.mapper.SysContentInstalledAssetMapper">
+
+    <sql id="AssetColumns">
+        id,
+        tenant_id,
+        kind,
+        asset_key,
+        asset_name,
+        asset_version,
+        package_json,
+        source_file_name,
+        remark,
+        del_flag,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time
+    </sql>
+
+    <sql id="AssetSummaryColumns">
+        id,
+        tenant_id,
+        kind,
+        asset_key,
+        asset_name,
+        asset_version,
+        source_file_name,
+        remark,
+        del_flag,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time
+    </sql>
+
+    <sql id="KindKeywordFilter">
+        WHERE tenant_id = #{tenantId}
+          AND kind = #{kind}
+          AND del_flag = 0
+        <if test="keyword != null and keyword != ''">
+          AND (
+            asset_name LIKE CONCAT('%', #{keyword}, '%')
+            OR asset_key LIKE CONCAT('%', #{keyword}, '%')
+            OR IFNULL(source_file_name, '') LIKE CONCAT('%', #{keyword}, '%')
+          )
+        </if>
+    </sql>
+
+    <select id="countByKind" resultType="long">
+        SELECT COUNT(1)
+        FROM sys_content_installed_asset
+        <include refid="KindKeywordFilter"/>
+    </select>
+
+    <select id="selectPageByKind" resultType="com.mdframe.forge.plugin.system.entity.SysContentInstalledAsset">
+        SELECT <include refid="AssetSummaryColumns"/>
+        FROM sys_content_installed_asset
+        <include refid="KindKeywordFilter"/>
+        ORDER BY update_time DESC, id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectByKindAndKey" resultType="com.mdframe.forge.plugin.system.entity.SysContentInstalledAsset">
+        SELECT <include refid="AssetColumns"/>
+        FROM sys_content_installed_asset
+        WHERE tenant_id = #{tenantId}
+          AND kind = #{kind}
+          AND asset_key = #{assetKey}
+          AND del_flag = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectActiveById" resultType="com.mdframe.forge.plugin.system.entity.SysContentInstalledAsset">
+        SELECT <include refid="AssetColumns"/>
+        FROM sys_content_installed_asset
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND del_flag = 0
+        LIMIT 1
+    </select>
+
+</mapper>

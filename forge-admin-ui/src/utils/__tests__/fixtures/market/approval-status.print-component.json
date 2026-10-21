@@ -1,0 +1,487 @@
+{
+  "kind": "print-component",
+  "name": "审批流程状态条",
+  "version": "1.1.0",
+  "payload": {
+    "elements": [
+      {
+        "id": "t_1",
+        "type": "TEXT",
+        "xMm": 0,
+        "yMm": 0,
+        "widthMm": 186,
+        "heightMm": 8,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "审批流程"
+        },
+        "style": {
+          "fontWeight": 700,
+          "fontSizePt": 11
+        }
+      },
+      {
+        "id": "box_2",
+        "type": "RECTANGLE",
+        "xMm": 0,
+        "yMm": 10,
+        "widthMm": 44,
+        "heightMm": 36,
+        "style": {
+          "borderWidthMm": 0.35,
+          "borderColor": "#64748b",
+          "borderStyle": "solid",
+          "backgroundColor": "#f8fafc"
+        }
+      },
+      {
+        "id": "step_3",
+        "type": "TEXT",
+        "xMm": 2,
+        "yMm": 12,
+        "widthMm": 40,
+        "heightMm": 7,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "1. 提交申请"
+        },
+        "style": {
+          "fontWeight": 700,
+          "fontSizePt": 9,
+          "textAlign": "center"
+        }
+      },
+      {
+        "id": "role_4",
+        "type": "TEXT",
+        "xMm": 2,
+        "yMm": 20,
+        "widthMm": 40,
+        "heightMm": 6,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "申请人"
+        },
+        "style": {
+          "fontSizePt": 8,
+          "color": "#64748b",
+          "textAlign": "center"
+        }
+      },
+      {
+        "id": "who_5",
+        "type": "TEXT",
+        "xMm": 2,
+        "yMm": 27,
+        "widthMm": 40,
+        "heightMm": 7,
+        "binding": {
+          "source": "FIELD",
+          "path": "main.applicantName"
+        },
+        "style": {
+          "fontSizePt": 9,
+          "textAlign": "center",
+          "borderWidthMm": 0.15,
+          "borderColor": "#cbd5e1",
+          "paddingMm": 0.5
+        }
+      },
+      {
+        "id": "st_6",
+        "type": "TEXT",
+        "xMm": 2,
+        "yMm": 36,
+        "widthMm": 40,
+        "heightMm": 7,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "已提交"
+        },
+        "style": {
+          "fontSizePt": 9,
+          "fontWeight": 700,
+          "textAlign": "center",
+          "color": "#15803d"
+        }
+      },
+      {
+        "id": "arrow_7",
+        "type": "TEXT",
+        "xMm": 42,
+        "yMm": 24,
+        "widthMm": 6,
+        "heightMm": 8,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "→"
+        },
+        "style": {
+          "fontSizePt": 12,
+          "textAlign": "center",
+          "color": "#94a3b8"
+        }
+      },
+      {
+        "id": "box_8",
+        "type": "RECTANGLE",
+        "xMm": 47,
+        "yMm": 10,
+        "widthMm": 44,
+        "heightMm": 36,
+        "style": {
+          "borderWidthMm": 0.35,
+          "borderColor": "#64748b",
+          "borderStyle": "solid",
+          "backgroundColor": "#f8fafc"
+        }
+      },
+      {
+        "id": "step_9",
+        "type": "TEXT",
+        "xMm": 49,
+        "yMm": 12,
+        "widthMm": 40,
+        "heightMm": 7,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "2. 部门审批"
+        },
+        "style": {
+          "fontWeight": 700,
+          "fontSizePt": 9,
+          "textAlign": "center"
+        }
+      },
+      {
+        "id": "role_10",
+        "type": "TEXT",
+        "xMm": 49,
+        "yMm": 20,
+        "widthMm": 40,
+        "heightMm": 6,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "直属主管"
+        },
+        "style": {
+          "fontSizePt": 8,
+          "color": "#64748b",
+          "textAlign": "center"
+        }
+      },
+      {
+        "id": "who_11",
+        "type": "TEXT",
+        "xMm": 49,
+        "yMm": 27,
+        "widthMm": 40,
+        "heightMm": 7,
+        "binding": {
+          "source": "FIELD",
+          "path": "main.deptApprover"
+        },
+        "style": {
+          "fontSizePt": 9,
+          "textAlign": "center",
+          "borderWidthMm": 0.15,
+          "borderColor": "#cbd5e1",
+          "paddingMm": 0.5
+        }
+      },
+      {
+        "id": "st_12",
+        "type": "TEXT",
+        "xMm": 49,
+        "yMm": 36,
+        "widthMm": 40,
+        "heightMm": 7,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "待审批"
+        },
+        "style": {
+          "fontSizePt": 9,
+          "fontWeight": 700,
+          "textAlign": "center",
+          "color": "#b45309"
+        }
+      },
+      {
+        "id": "arrow_13",
+        "type": "TEXT",
+        "xMm": 89,
+        "yMm": 24,
+        "widthMm": 6,
+        "heightMm": 8,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "→"
+        },
+        "style": {
+          "fontSizePt": 12,
+          "textAlign": "center",
+          "color": "#94a3b8"
+        }
+      },
+      {
+        "id": "box_14",
+        "type": "RECTANGLE",
+        "xMm": 94,
+        "yMm": 10,
+        "widthMm": 44,
+        "heightMm": 36,
+        "style": {
+          "borderWidthMm": 0.35,
+          "borderColor": "#64748b",
+          "borderStyle": "solid",
+          "backgroundColor": "#f8fafc"
+        }
+      },
+      {
+        "id": "step_15",
+        "type": "TEXT",
+        "xMm": 96,
+        "yMm": 12,
+        "widthMm": 40,
+        "heightMm": 7,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "3. 分管领导"
+        },
+        "style": {
+          "fontWeight": 700,
+          "fontSizePt": 9,
+          "textAlign": "center"
+        }
+      },
+      {
+        "id": "role_16",
+        "type": "TEXT",
+        "xMm": 96,
+        "yMm": 20,
+        "widthMm": 40,
+        "heightMm": 6,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "分管领导"
+        },
+        "style": {
+          "fontSizePt": 8,
+          "color": "#64748b",
+          "textAlign": "center"
+        }
+      },
+      {
+        "id": "who_17",
+        "type": "TEXT",
+        "xMm": 96,
+        "yMm": 27,
+        "widthMm": 40,
+        "heightMm": 7,
+        "binding": {
+          "source": "FIELD",
+          "path": "main.leaderApprover"
+        },
+        "style": {
+          "fontSizePt": 9,
+          "textAlign": "center",
+          "borderWidthMm": 0.15,
+          "borderColor": "#cbd5e1",
+          "paddingMm": 0.5
+        }
+      },
+      {
+        "id": "st_18",
+        "type": "TEXT",
+        "xMm": 96,
+        "yMm": 36,
+        "widthMm": 40,
+        "heightMm": 7,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "—"
+        },
+        "style": {
+          "fontSizePt": 9,
+          "fontWeight": 700,
+          "textAlign": "center",
+          "color": "#b45309"
+        }
+      },
+      {
+        "id": "arrow_19",
+        "type": "TEXT",
+        "xMm": 136,
+        "yMm": 24,
+        "widthMm": 6,
+        "heightMm": 8,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "→"
+        },
+        "style": {
+          "fontSizePt": 12,
+          "textAlign": "center",
+          "color": "#94a3b8"
+        }
+      },
+      {
+        "id": "box_20",
+        "type": "RECTANGLE",
+        "xMm": 141,
+        "yMm": 10,
+        "widthMm": 44,
+        "heightMm": 36,
+        "style": {
+          "borderWidthMm": 0.35,
+          "borderColor": "#64748b",
+          "borderStyle": "solid",
+          "backgroundColor": "#f8fafc"
+        }
+      },
+      {
+        "id": "step_21",
+        "type": "TEXT",
+        "xMm": 143,
+        "yMm": 12,
+        "widthMm": 40,
+        "heightMm": 7,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "4. 人事备案"
+        },
+        "style": {
+          "fontWeight": 700,
+          "fontSizePt": 9,
+          "textAlign": "center"
+        }
+      },
+      {
+        "id": "role_22",
+        "type": "TEXT",
+        "xMm": 143,
+        "yMm": 20,
+        "widthMm": 40,
+        "heightMm": 6,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "人事专员"
+        },
+        "style": {
+          "fontSizePt": 8,
+          "color": "#64748b",
+          "textAlign": "center"
+        }
+      },
+      {
+        "id": "who_23",
+        "type": "TEXT",
+        "xMm": 143,
+        "yMm": 27,
+        "widthMm": 40,
+        "heightMm": 7,
+        "binding": {
+          "source": "FIELD",
+          "path": "main.hrApprover"
+        },
+        "style": {
+          "fontSizePt": 9,
+          "textAlign": "center",
+          "borderWidthMm": 0.15,
+          "borderColor": "#cbd5e1",
+          "paddingMm": 0.5
+        }
+      },
+      {
+        "id": "st_24",
+        "type": "TEXT",
+        "xMm": 143,
+        "yMm": 36,
+        "widthMm": 40,
+        "heightMm": 7,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "—"
+        },
+        "style": {
+          "fontSizePt": 9,
+          "fontWeight": 700,
+          "textAlign": "center",
+          "color": "#b45309"
+        }
+      },
+      {
+        "id": "cur_25",
+        "type": "TEXT",
+        "xMm": 0,
+        "yMm": 50,
+        "widthMm": 28,
+        "heightMm": 9,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "当前状态"
+        },
+        "style": {
+          "fontWeight": 700,
+          "fontSizePt": 10
+        }
+      },
+      {
+        "id": "curv_26",
+        "type": "TEXT",
+        "xMm": 28,
+        "yMm": 50,
+        "widthMm": 50,
+        "heightMm": 9,
+        "binding": {
+          "source": "FIELD",
+          "path": "main.approvalStatus"
+        },
+        "style": {
+          "fontSizePt": 10,
+          "borderWidthMm": 0.2,
+          "borderColor": "#94a3b8",
+          "paddingMm": 1
+        }
+      },
+      {
+        "id": "tm_27",
+        "type": "TEXT",
+        "xMm": 86,
+        "yMm": 50,
+        "widthMm": 28,
+        "heightMm": 9,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "更新时间"
+        },
+        "style": {
+          "fontWeight": 700,
+          "fontSizePt": 10
+        }
+      },
+      {
+        "id": "tmv_28",
+        "type": "TEXT",
+        "xMm": 114,
+        "yMm": 50,
+        "widthMm": 72,
+        "heightMm": 9,
+        "binding": {
+          "source": "FIELD",
+          "path": "main.approvalTime"
+        },
+        "format": {
+          "type": "DATE"
+        },
+        "style": {
+          "fontSizePt": 10,
+          "borderWidthMm": 0.2,
+          "borderColor": "#94a3b8",
+          "paddingMm": 1
+        }
+      }
+    ]
+  }
+}

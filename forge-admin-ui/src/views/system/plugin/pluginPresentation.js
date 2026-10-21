@@ -105,3 +105,41 @@ export function pluginPresentation(plugin) {
     ? builtinPresentations[plugin.id]
     : unknownPresentation
 }
+
+/** 按插件 ID 稳定映射色相，与应用市场卡片语气一致。 */
+const PLUGIN_TONES = {
+  'plugin-system': { ink: '#2563eb', wash: '#dbeafe' },
+  'plugin-generator': { ink: '#7c3aed', wash: '#ede9fe' },
+  'plugin-flow': { ink: '#059669', wash: '#d1fae5' },
+  'plugin-message': { ink: '#ea580c', wash: '#ffedd5' },
+  'plugin-job': { ink: '#0891b2', wash: '#cffafe' },
+  'plugin-ai': { ink: '#db2777', wash: '#fce7f3' },
+  'plugin-data': { ink: '#4f46e5', wash: '#e0e7ff' },
+  'plugin-external': { ink: '#0d9488', wash: '#ccfbf1' },
+  'plugin-print': { ink: '#c2410c', wash: '#ffedd5' },
+  'plugin-collaboration': { ink: '#0284c7', wash: '#e0f2fe' },
+  'plugin-mcp': { ink: '#9333ea', wash: '#f3e8ff' },
+  'plugin-capability-core': { ink: '#1d4ed8', wash: '#dbeafe' },
+  'plugin-capability-platform': { ink: '#047857', wash: '#d1fae5' },
+  'plugin-capability-actions': { ink: '#b45309', wash: '#fef3c7' },
+  'plugin-capability-high-risk-approval': { ink: '#be123c', wash: '#ffe4e6' },
+}
+
+const FALLBACK_TONES = [
+  { ink: '#2563eb', wash: '#dbeafe' },
+  { ink: '#7c3aed', wash: '#ede9fe' },
+  { ink: '#059669', wash: '#d1fae5' },
+  { ink: '#ea580c', wash: '#ffedd5' },
+  { ink: '#0891b2', wash: '#cffafe' },
+  { ink: '#db2777', wash: '#fce7f3' },
+]
+
+export function pluginTone(plugin) {
+  const id = plugin?.id || ''
+  if (Object.hasOwn(PLUGIN_TONES, id))
+    return PLUGIN_TONES[id]
+  let hash = 0
+  for (let i = 0; i < id.length; i += 1)
+    hash = (hash + id.charCodeAt(i) * (i + 1)) % FALLBACK_TONES.length
+  return FALLBACK_TONES[hash] || FALLBACK_TONES[0]
+}

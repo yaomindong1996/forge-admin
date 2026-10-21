@@ -53,7 +53,7 @@ class BusinessApplicationBundleSupportTest {
     @DisplayName("import validate rejects unknown format")
     void validateRejectsUnknownFormat() throws Exception {
         BusinessApplicationBundleImportService service = new BusinessApplicationBundleImportService(
-                objectMapper, null, null, null, null, null, null, null, null);
+                objectMapper, null, null, null, null, null, null, null, null, null);
         Method validate = BusinessApplicationBundleImportService.class
                 .getDeclaredMethod("validateBundle", Map.class);
         validate.setAccessible(true);
@@ -75,7 +75,7 @@ class BusinessApplicationBundleSupportTest {
     @SuppressWarnings("unchecked")
     void remapJsonTreeRewritesObjectCodes() throws Exception {
         BusinessApplicationBundleImportService service = new BusinessApplicationBundleImportService(
-                objectMapper, null, null, null, null, null, null, null, null);
+                objectMapper, null, null, null, null, null, null, null, null, null);
         Method remap = BusinessApplicationBundleImportService.class
                 .getDeclaredMethod("remapJsonTree", Object.class, Map.class);
         remap.setAccessible(true);

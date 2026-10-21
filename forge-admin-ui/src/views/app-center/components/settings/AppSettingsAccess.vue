@@ -4,52 +4,61 @@
       <h2>访问地址</h2>
       <p>门户地址在当前租户内唯一，修改后需重新发布才会影响正式门户。</p>
     </header>
-    <n-form label-placement="top">
-      <n-form-item label="门户 slug" :validation-status="slugStatus" :feedback="slugFeedback">
-        <n-input-group>
-          <n-input-group-label>/app/</n-input-group-label>
-          <n-input
-            :value="modelValue.portalSlug"
-            maxlength="50"
-            placeholder="例如 crm-portal"
-            @update:value="handleSlugInput"
-            @blur="checkSlug"
-          />
-        </n-input-group>
-      </n-form-item>
+
+    <n-form class="access-form" label-placement="top">
+      <div class="access-block">
+        <n-form-item label="门户 slug" :validation-status="slugStatus" :feedback="slugFeedback">
+          <n-input-group class="portal-slug-field">
+            <n-input-group-label>/app/</n-input-group-label>
+            <n-input
+              :value="modelValue.portalSlug"
+              maxlength="50"
+              placeholder="例如 crm-portal"
+              @update:value="handleSlugInput"
+              @blur="checkSlug"
+            />
+          </n-input-group>
+        </n-form-item>
+      </div>
+
       <div class="access-link-grid">
-        <div class="access-link-card">
-          <n-qr-code :value="pcUrl" :size="108" :color="modelValue.themeColor || '#3370ff'" />
-          <div>
-            <span>电脑端</span>
-            <strong>{{ pcUrl }}</strong>
-            <p>在电脑浏览器打开完整应用门户。</p>
-            <n-space>
-              <n-button secondary @click="copyLink(pcUrl, '电脑端')">
+        <article class="access-link-card">
+          <div class="access-link-card__qr" aria-hidden="true">
+            <n-qr-code :value="pcUrl" :size="96" :color="modelValue.themeColor || '#3370ff'" />
+          </div>
+          <div class="access-link-card__body">
+            <span class="access-link-card__label">电脑端</span>
+            <code class="access-link-card__url" :title="pcUrl">{{ pcUrl }}</code>
+            <p class="access-link-card__desc">在电脑浏览器打开完整应用门户。</p>
+            <div class="access-link-card__actions">
+              <n-button secondary size="small" @click="copyLink(pcUrl, '电脑端')">
                 复制链接
               </n-button>
-              <n-button type="primary" :disabled="!modelValue.portalSlug" @click="openLink(pcUrl)">
+              <n-button type="primary" size="small" :disabled="!modelValue.portalSlug" @click="openLink(pcUrl)">
                 打开电脑端
               </n-button>
-            </n-space>
+            </div>
           </div>
-        </div>
-        <div class="access-link-card">
-          <n-qr-code :value="h5Url" :size="108" :color="modelValue.themeColor || '#3370ff'" />
-          <div>
-            <span>移动端</span>
-            <strong>{{ h5Url }}</strong>
-            <p>扫码打开独立 H5 运行页，和旧访问入口同一套地址。</p>
-            <n-space>
-              <n-button secondary :disabled="!h5Url" @click="copyLink(h5Url, '移动端')">
+        </article>
+
+        <article class="access-link-card">
+          <div class="access-link-card__qr" aria-hidden="true">
+            <n-qr-code :value="h5Url" :size="96" :color="modelValue.themeColor || '#3370ff'" />
+          </div>
+          <div class="access-link-card__body">
+            <span class="access-link-card__label">移动端</span>
+            <code class="access-link-card__url" :title="h5Url">{{ h5Url }}</code>
+            <p class="access-link-card__desc">扫码打开独立 H5 运行页，和旧访问入口同一套地址。</p>
+            <div class="access-link-card__actions">
+              <n-button secondary size="small" :disabled="!h5Url" @click="copyLink(h5Url, '移动端')">
                 复制移动端链接
               </n-button>
-              <n-button type="primary" :disabled="!h5Url" @click="openLink(h5Url)">
+              <n-button type="primary" size="small" :disabled="!h5Url" @click="openLink(h5Url)">
                 打开移动端
               </n-button>
-            </n-space>
+            </div>
           </div>
-        </div>
+        </article>
       </div>
     </n-form>
   </section>
@@ -136,47 +145,108 @@ defineExpose({ checkSlug })
 </script>
 
 <style scoped>
+.access-form {
+  width: 100%;
+}
+
+.access-block {
+  margin-bottom: 20px;
+  padding: 16px 18px 4px;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-secondary, #f8fafc) 70%, #fff);
+}
+
+.portal-slug-field {
+  width: min(100%, 480px);
+}
+
 .access-link-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 16px;
 }
 
 .access-link-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  border: 1px solid var(--border-color, #e5e6eb);
-  border-radius: 8px;
-  background: var(--card-color, #f7f8fa);
-  padding: 16px;
-}
-
-.access-link-card > div {
   display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
   min-width: 0;
-  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 8px;
+  background: #fff;
 }
 
-.access-link-card span,
-.access-link-card p {
-  margin: 0;
-  color: var(--text-color-3, #86909c);
-  font-size: 12px;
-}
-
-.access-link-card strong {
+.access-link-card__qr {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
   overflow: hidden;
-  color: var(--text-color-1, #1f2329);
+  border: 1px solid #eef2f7;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.access-link-card__qr :deep(.n-qr-code) {
+  display: block;
+  width: 96px !important;
+  height: 96px !important;
+}
+
+.access-link-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.access-link-card__label {
+  color: var(--text-tertiary, #86909c);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.access-link-card__url {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-primary, #1f2329);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+  word-break: break-all;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.access-link-card__desc {
+  margin: 0;
+  color: var(--text-tertiary, #86909c);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.access-link-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
 }
 
 @media (max-width: 1080px) {
   .access-link-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .access-link-card {
+    grid-template-columns: 1fr;
+    justify-items: start;
   }
 }
 </style>

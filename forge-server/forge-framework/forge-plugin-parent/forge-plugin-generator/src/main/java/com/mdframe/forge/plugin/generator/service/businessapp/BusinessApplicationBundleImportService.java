@@ -55,6 +55,7 @@ public class BusinessApplicationBundleImportService {
     private final BusinessNamingService namingService;
     private final BusinessApplicationBundleCompanionImporter companionImporter;
     private final BusinessApplicationPublishService publishService;
+    private final BusinessSuiteService suiteService;
 
     public BusinessApplicationBundleImportResultVO importBundle(MultipartFile file) {
         return importBundle(file, false);
@@ -168,7 +169,8 @@ public class BusinessApplicationBundleImportService {
 
         mark(steps, "builder", "还原页面与导航", "RUNNING", null);
         try {
-            restoreApplicationBuilder(created.getId(), applicationSnapshot, objectCodeMap, objectIdMap);
+            restoreApplicationBuilder(created.getId(), applicationSnapshot, objectSnapshots,
+                    objectCodeMap, objectIdMap);
             bindApplicationObjects(created.getId(), objectSnapshots, objectCodeMap, objectIdMap);
             mark(steps, "builder", "还原页面与导航", "SUCCESS", null);
         } catch (RuntimeException e) {
@@ -242,6 +244,9 @@ public class BusinessApplicationBundleImportService {
         if (StringUtils.isBlank(suiteCode)) {
             throw new BusinessException("调试包缺少 suiteCode，无法创建应用");
         }
+        // 应用宝 / 跨环境调试包常带源租户套件编码（如 MARKET_DEMO），本地没有则先补齐
+        String suiteName = StringUtils.defaultIfBlank(text(snapshot.get("suiteName")), suiteCode);
+        suiteService.ensureByCode(suiteCode, suiteName);
         dto.setSuiteCode(suiteCode);
         dto.setApplicationName(name + "（调试导入）");
         dto.setApplicationCode(allocateApplicationCode(suiteCode, name, suffix));
@@ -326,10 +331,21 @@ public class BusinessApplicationBundleImportService {
 
     private void restoreApplicationBuilder(Long applicationId,
                                            Map<String, Object> applicationSnapshot,
+                                           List<Map<String, Object>> objectSnapshots,
                                            Map<String, String> objectCodeMap,
                                            Map<String, Long> objectIdMap) {
         Map<String, Object> options = map(remapJsonTree(applicationSnapshot.get("options"), objectCodeMap));
         remapObjectRefsInBuilder(options, objectCodeMap, objectIdMap);
+        // 市场包常只有 pages/nav：展开成 nodes + layout，否则列表显示 0 页、运行壳空白
+        Object builderRaw = options.get("inAppBuilder");
+        if (builderRaw instanceof Map<?, ?>) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> compact = (Map<String, Object>) builderRaw;
+            List<Map<String, Object>> remappedObjects = listOfMap(
+                    remapJsonTree(objectSnapshots, objectCodeMap));
+            options.put("inAppBuilder",
+                    BusinessApplicationBundlePageSupport.normalizeCompactInAppBuilder(compact, remappedObjects));
+        }
         BusinessApplicationDTO dto = new BusinessApplicationDTO();
         dto.setId(applicationId);
         com.mdframe.forge.plugin.generator.domain.entity.AiBusinessApplication existing =

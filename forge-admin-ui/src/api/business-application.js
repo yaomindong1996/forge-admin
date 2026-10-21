@@ -180,6 +180,9 @@ export function importBusinessApplicationDebugBundle(file, autoPublish = false) 
     data: formData,
     encrypt: false,
     timeout: 180_000,
+    // 弹窗内已有步骤进度；FormData 默认会触发全局「文件上传中」遮罩，挡掉后面进度
+    globalLoading: false,
+    skipGlobalLoading: true,
   })
 }
 

@@ -1493,30 +1493,53 @@ export function applyApplicationRuntimePart1() {
       )
     }
     finally {
+      const pageId = String(selectedNodeId.value || route.query.pageId || '').trim()
+      const entryTab = editing.value ? resolveEntryDesignTab(pageId) : ''
+      // 编辑态：自由布局 / 表单 / 列表都要盖中间过渡，避免顶栏出来后中间纯白好几秒
+      const surfaceBoot = editing.value && ['page', 'form', 'list'].includes(entryTab)
+      // 编辑态多等一会入口 chunk；非编辑仍短等，避免空白门户
       await Promise.race([
         warmChunksPromise,
-        new Promise(resolve => setTimeout(resolve, 200)),
+        new Promise(resolve => setTimeout(resolve, surfaceBoot ? 1600 : 200)),
       ])
-      // page-custom 只是设计资源 key，不代表自由布局；按真实页面形态判断是否盖画布骨架
-      const pageId = String(selectedNodeId.value || route.query.pageId || '').trim()
-      const freeLayoutEdit = editing.value && resolveEntryDesignTab(pageId) === 'page'
-      // 先盖画布骨架再撤整页骨架，避免顶栏出来后中间纯白好几秒
-      if (freeLayoutEdit)
+      if (surfaceBoot) {
         editCanvasBootstrapping.value = true
+        // 提前激活保活，否则 keepFormDesignerAlive 为 false 时中间既无画布也无 loader
+        if (entryTab === 'form')
+          formDesignerSessionActive.value = true
+        if (entryTab === 'list')
+          listDesignerSessionActive.value = true
+      }
       loading.value = false
-      if (freeLayoutEdit) {
+      if (surfaceBoot) {
         await nextTick()
         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-        // 给区块异步子组件一次挂载窗口；超时也撤，避免一直挡操作
-        await Promise.race([
-          new Promise(resolve => setTimeout(resolve, 80)),
-          nextTick(),
-        ])
+        // 等到设计器根节点真正挂上再撤过渡层；超时也撤，避免一直挡操作
+        await waitForEditSurfaceReady(entryTab, entryTab === 'page' ? 600 : 4500)
         editCanvasBootstrapping.value = false
       }
     }
   }
   __impl.load = load
+
+  /**
+   * 编辑入口过渡：等目标表面 DOM 出现，避免顶栏已出、中间仍纯白。
+   */
+  async function waitForEditSurfaceReady(entryTab = '', timeoutMs = 2000) {
+    if (typeof document === 'undefined')
+      return
+    const selector = entryTab === 'form'
+      ? '.application-form-asset-designer .forge-form-designer'
+      : entryTab === 'list'
+        ? '.application-design-section'
+        : '.application-page-flow'
+    const startedAt = Date.now()
+    while (Date.now() - startedAt < timeoutMs) {
+      if (document.querySelector(selector))
+        return
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
+  }
 
   async function warmCurrentPortalPageCrud() {
     const pageId = String(selectedNodeId.value || '').trim()

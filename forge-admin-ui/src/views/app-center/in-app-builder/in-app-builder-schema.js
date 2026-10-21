@@ -34,7 +34,7 @@ const DEFAULT_COMPONENT_PROPS = {
 export function normalizeInAppBuilder(rawOptions, _application = {}, objects = []) {
   const options = parseOptions(rawOptions)
   const saved = restoreLegacyPrimaryObjectPage(
-    clone(options.inAppBuilder || {}),
+    hydrateCompactInAppBuilder(clone(options.inAppBuilder || {}), objects),
     options,
     _application,
     objects,
@@ -81,6 +81,167 @@ export function mergeInAppBuilderOptions(applicationOptions, schema) {
       formAssets: schema.formAssets,
       flowInteraction: normalizeFlowInteraction(schema.flowInteraction),
     }),
+  }
+}
+
+/**
+ * 市场包/紧凑调试包常只带 pages+nav、没有 nodes。
+ * 运行态先展开成正式页面树，避免「0 页」导入后壳子只有系统菜单、中间空白。
+ */
+function hydrateCompactInAppBuilder(saved, objects = []) {
+  const builder = saved && typeof saved === 'object' ? saved : {}
+  const nodes = Array.isArray(builder.nodes) ? builder.nodes : []
+  if (nodes.length > 0)
+    return builder
+
+  const pages = builder.pages && typeof builder.pages === 'object' ? builder.pages : {}
+  const nav = Array.isArray(builder.nav) ? builder.nav : []
+  const pageIds = []
+  for (const item of nav) {
+    const id = String(item?.id || '').trim()
+    if (id && !pageIds.includes(id))
+      pageIds.push(id)
+  }
+  for (const id of Object.keys(pages)) {
+    if (!pageIds.includes(id))
+      pageIds.push(id)
+  }
+  if (!pageIds.length)
+    return builder
+
+  const objectList = Array.isArray(objects) ? objects.filter(Boolean) : []
+  const objectsByCode = new Map(
+    objectList
+      .filter(item => String(item?.objectCode || '').trim())
+      .map(item => [String(item.objectCode).trim(), item]),
+  )
+  const primaryObject = objectList.find(item => String(item?.objectRole || '').toUpperCase() === 'PRIMARY')
+    || objectList[0]
+    || null
+  const formAssets = Array.isArray(builder.formAssets) ? [...builder.formAssets] : []
+  const formAssetIds = new Set(formAssets.map(asset => String(asset?.id || '').trim()).filter(Boolean))
+  const nextNodes = []
+  const nextPages = {}
+
+  pageIds.forEach((pageId, index) => {
+    const pageMeta = pages[pageId] && typeof pages[pageId] === 'object' ? pages[pageId] : {}
+    const navItem = nav.find(item => String(item?.id || '') === pageId) || {}
+    const title = String(navItem.title || pageMeta.title || pageId).trim() || pageId
+    const pageType = String(pageMeta.pageType || 'object').trim() || 'object'
+    let objectRef = pageMeta.objectRef && typeof pageMeta.objectRef === 'object'
+      ? { ...pageMeta.objectRef }
+      : {}
+    // 紧凑包偶发丢 objectRef：单页应用回退到主对象，否则运行壳只有空表单
+    if (!String(objectRef.objectCode || '').trim() && primaryObject?.objectCode) {
+      objectRef = {
+        objectId: primaryObject.objectId ?? primaryObject.id ?? null,
+        objectCode: String(primaryObject.objectCode).trim(),
+        objectName: String(primaryObject.objectName || primaryObject.objectCode).trim(),
+        configKey: String(primaryObject.configKey || '').trim() || undefined,
+      }
+    }
+    if (objectRef.objectCode && !objectRef.pageMode)
+      objectRef.pageMode = 'form'
+    if (objectRef.objectCode && !objectRef.pageKey)
+      objectRef.pageKey = 'list'
+    const objectCode = String(objectRef.objectCode || '').trim()
+    const object = objectCode ? objectsByCode.get(objectCode) : null
+
+    nextNodes.push({
+      id: pageId,
+      type: 'page',
+      title,
+      pageType,
+      pageShape: String(pageMeta.pageShape || (pageType === 'object' ? 'form' : 'custom')).trim(),
+      pageTemplate: String(pageMeta.pageTemplate || pageMeta.pageShape || (pageType === 'object' ? 'form' : '')).trim(),
+      parentId: null,
+      sort: index * 10,
+      navigationVisible: true,
+      systemMenuVisible: false,
+      ...(objectCode ? { objectRef } : {}),
+    })
+
+    const formAssetId = ensureHydratedFormAsset(formAssets, formAssetIds, pageId, title, object, objectCode)
+    const layout = pageMeta.layout && typeof pageMeta.layout === 'object' ? { ...pageMeta.layout } : {}
+    const gridLayout = layout.gridLayout && typeof layout.gridLayout === 'object'
+      ? { ...layout.gridLayout }
+      : {}
+    const items = Array.isArray(gridLayout.items) ? gridLayout.items : []
+    if (!items.length && objectCode) {
+      layout.gridLayout = buildHydratedFormCrudGrid(title, formAssetId, objectRef)
+    }
+    else if (Object.keys(gridLayout).length) {
+      layout.gridLayout = gridLayout
+    }
+    nextPages[pageId] = {
+      title,
+      description: String(pageMeta.description || ''),
+      layout: Object.keys(layout).length
+        ? layout
+        : { gridLayout: buildHydratedFormCrudGrid(title, formAssetId, objectRef) },
+    }
+  })
+
+  const next = {
+    ...builder,
+    schemaVersion: builder.schemaVersion || IN_APP_BUILDER_SCHEMA_VERSION,
+    nodes: nextNodes,
+    pages: nextPages,
+    formAssets,
+    homePageId: String(builder.homePageId || pageIds[0] || '').trim() || pageIds[0],
+  }
+  delete next.nav
+  return next
+}
+
+function ensureHydratedFormAsset(formAssets, formAssetIds, pageId, title, object, objectCode) {
+  const preferredId = `form_${objectCode || pageId}`
+  if (formAssetIds.has(preferredId))
+    return preferredId
+  const schema = object?.formDesignerSchema
+    || object?.designerOptions?.formDesignerSchema
+    || null
+  if (!schema)
+    return preferredId
+  formAssets.push({
+    id: preferredId,
+    formKey: preferredId,
+    name: title,
+    formDesignerSchema: schema,
+  })
+  formAssetIds.add(preferredId)
+  return preferredId
+}
+
+function buildHydratedFormCrudGrid(title, formAssetId, objectRef) {
+  return {
+    cols: 12,
+    rowHeight: 32,
+    gap: 8,
+    designWidth: 1366,
+    layoutType: 'form',
+    items: [{
+      id: `blk_${String(objectRef?.objectCode || 'page').trim() || 'page'}_crud`,
+      blockType: 'AiCrudPage',
+      label: title,
+      gridX: 0,
+      gridY: 0,
+      gridW: 12,
+      gridH: 18,
+      props: {
+        title,
+        formAssetId,
+        formAssetFieldsInitialized: true,
+        formOnly: true,
+        hideToolbar: true,
+        hideBatchDelete: true,
+        showSearch: false,
+        formOpenMode: 'flat',
+        modalType: 'flat',
+        layoutType: 'form',
+        ...(objectRef && Object.keys(objectRef).length ? { objectRef: { ...objectRef } } : {}),
+      },
+    }],
   }
 }
 

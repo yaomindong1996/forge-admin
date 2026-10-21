@@ -149,14 +149,21 @@ export const usePrintTemplateStore = defineStore('printTemplates', {
           this.loading = false
       }
     },
-    async create(source, name, scenes = DEFAULT_PRINT_SCENES, schema = createPrintDocument()) {
+    async create(source, name, scenes = DEFAULT_PRINT_SCENES, schema = createPrintDocument(), options = {}) {
       const payload = printSourcePayload(source)
       if (!payload)
         throw new Error('打印来源无效')
       const wanted = normalizePrintScenes(scenes)
       if (!wanted.length)
         throw new Error('请至少选择一个挂载位置')
-      const { data } = await api.createPrintTemplate({ ...payload, templateName: name, templateCode: newPrintTemplateCode(), schemaJson: JSON.stringify(schema) })
+      const { data } = await api.createPrintTemplate({
+        ...payload,
+        templateName: name,
+        templateCode: newPrintTemplateCode(),
+        schemaJson: JSON.stringify(schema),
+        // 市场/我的模板选用：字段可先落草稿，设计器内再对齐；空白新建仍严格校验
+        ...(options.allowUnresolvedFields ? { allowUnresolvedFields: true } : {}),
+      })
       try {
         if (payload.businessSourceId) {
           // 独立来源须发布后才有版本可绑定；先记下，发布时自动挂载
@@ -188,7 +195,13 @@ export const usePrintTemplateStore = defineStore('printTemplates', {
       this.error = ''
       this.notice = ''
       try {
-        const { data } = await api.updatePrintTemplate(row.id, { expectedRevision: row.draftRevision, templateName: name, schemaJson: JSON.stringify(document) })
+        const { data } = await api.updatePrintTemplate(row.id, {
+          expectedRevision: row.draftRevision,
+          templateName: name,
+          schemaJson: JSON.stringify(document),
+          // 市场模板对齐中的草稿：允许暂存未绑字段；发布仍严校验
+          allowUnresolvedFields: true,
+        })
         if (generation !== this.generation)
           return
         this.row = data

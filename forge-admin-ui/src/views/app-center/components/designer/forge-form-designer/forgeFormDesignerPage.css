@@ -157,17 +157,17 @@
 .designer-form-tabs {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
   max-width: 100%;
   overflow-x: auto;
-  padding: 0 2px 3px;
+  padding: 0;
 }
 
 .designer-form-tabs-bar {
   border-bottom: 1px solid var(--border-light);
   background: var(--bg-primary);
-  padding: 8px 12px 6px;
+  padding: 8px 12px;
 }
 
 .designer-toolbar-text-button {
@@ -241,62 +241,7 @@
   --n-text-color-focus: #dc2626 !important;
 }
 
-.designer-form-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex: 0 0 auto;
-  max-width: 176px;
-  height: 34px;
-  cursor: pointer;
-  border: 1px solid var(--border-light);
-  border-radius: 7px;
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  padding: 0 8px;
-}
-
-.designer-form-tab:hover {
-  border-color: #c9cdd4;
-  background: var(--bg-secondary);
-}
-
-.designer-form-tab.active {
-  border-color: transparent;
-  border-bottom: 2px solid #1f2329;
-  border-radius: 0 0 4px 4px;
-  background: transparent;
-  color: var(--text-primary);
-  box-shadow: none;
-}
-
-.designer-form-tab em {
-  display: inline-grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
-  font-style: normal;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.designer-form-tab.active em {
-  background: #4e5969;
-  color: #fff;
-}
-
-.designer-form-tab span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-  font-weight: 600;
-}
+/* 表单切换 tab 样式见下方 page-view-controls 统一覆盖 */
 
 .forge-form-designer {
   display: grid;
@@ -390,18 +335,18 @@
 }
 
 .designer-form-tabs-bar {
-  padding: 8px 12px;
+  padding: 6px 12px;
   border-bottom: 1px solid #e4e4e7;
-  background: color-mix(in srgb, var(--bg-primary) 72%, transparent);
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
   backdrop-filter: blur(10px);
 }
 
 .page-design-switcher {
   z-index: 5;
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) minmax(220px, 1.4fr) minmax(64px, 1fr);
+  grid-template-columns: minmax(140px, 1fr) minmax(240px, 1.6fr) minmax(64px, 1fr);
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .page-switch-title {
@@ -458,15 +403,37 @@
 }
 
 .page-view-controls {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-width: 0;
-  justify-items: center;
-  gap: 6px;
 }
 
 .page-view-controls :deep(.n-radio-group) {
   display: inline-flex;
   max-width: 100%;
+  flex: 0 0 auto;
+}
+
+.page-view-controls :deep(.n-radio-group .n-radio-button) {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.page-view-controls :deep(.n-radio-group .n-radio-button:first-child) {
+  border-radius: 6px 0 0 6px;
+}
+
+.page-view-controls :deep(.n-radio-group .n-radio-button:last-child) {
+  border-radius: 0 6px 6px 0;
+}
+
+.page-view-controls :deep(.n-radio-group .n-radio-button:only-child) {
+  border-radius: 6px;
 }
 
 .inline-page-section-editor,
@@ -503,9 +470,14 @@
 }
 
 .designer-form-tabs {
-  justify-content: center;
-  justify-self: center;
-  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: min(100%, 420px);
+  padding: 2px;
+  border: 1px solid #e8edf3;
+  border-radius: 8px;
+  background: #f5f7fb;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -515,44 +487,60 @@
 }
 
 .designer-form-tab {
-  height: 30px;
-  min-width: 76px;
-  max-width: 156px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  height: 26px;
+  min-width: 0;
+  max-width: 148px;
+  padding: 0 8px;
   border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
+  border-radius: 6px;
   background: transparent;
-  padding: 0 9px;
-  color: var(--text-tertiary);
+  color: var(--text-tertiary, #86909c);
   box-shadow: none;
+  cursor: pointer;
 }
 
 .designer-form-tab:hover {
-  background: rgba(228, 228, 231, 0.6);
+  background: rgb(255 255 255 / 75%);
+  color: var(--text-secondary, #4e5969);
 }
 
 .designer-form-tab.active {
-  border-bottom-color: #1f2329;
-  background: transparent;
-  color: var(--text-primary);
-  box-shadow: none;
+  background: #fff;
+  color: var(--primary-color, #2f6bff);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 6%);
 }
 
 .designer-form-tab em {
+  display: inline-grid;
+  place-items: center;
   width: 16px;
   height: 16px;
+  flex: 0 0 auto;
+  border-radius: 50%;
   background: #e4e4e7;
-  color: var(--text-tertiary);
+  color: var(--text-tertiary, #86909c);
+  font-style: normal;
   font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .designer-form-tab.active em {
-  background: #4266f7;
+  background: var(--primary-color, #2f6bff);
   color: #fff;
 }
 
 .designer-form-tab span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12px;
+  font-weight: 600;
 }
 
 .designer-toolbar-text-button,

@@ -2,16 +2,25 @@
   <n-modal
     :show="show"
     preset="card"
-    title="导入应用配置"
+    title="导入应用"
     :style="{ width: 'min(520px, 94vw)' }"
     :mask-closable="!importing"
     :closable="!importing"
+    class="app-import-dialog"
     @update:show="emit('update:show', $event)"
   >
-    <n-alert type="info" :bordered="false" class="bundle-alert">
-      将客户环境导出的 <code>.forge-app.json</code> 导入到当前环境。
-      会新建完整应用（对象、页面、流程、打印、扩展、触发器、入口等），应用编码自动追加后缀避免冲突；不导入业务行数据。
-    </n-alert>
+    <!-- 说明：导入进当前系统数据库，不是写到本地工程目录 -->
+    <div v-if="!result" class="import-intro">
+      <p class="import-intro__lead">
+        把别处导出的应用配置文件，装进<strong>当前系统</strong>，生成一个新应用。
+      </p>
+      <ul class="import-intro__list">
+        <li>会出现在「我的应用」列表里，可直接打开编辑</li>
+        <li>包含页面、表单、流程、打印等设计内容</li>
+        <li>不会写入你电脑上的本地项目源码</li>
+        <li>不会带入原来的业务数据，只带结构和设计</li>
+      </ul>
+    </div>
 
     <div v-if="!result" class="bundle-upload">
       <n-upload
@@ -21,15 +30,16 @@
         :disabled="importing"
         @change="handleFileChange"
       >
-        <n-upload-dragger>
+        <n-upload-dragger class="import-dragger">
           <div class="upload-copy">
-            <strong>{{ fileName || '选择或拖入应用配置文件' }}</strong>
-            <small>仅支持 forge-application-bundle JSON</small>
+            <i class="i-lucide:file-json upload-copy__icon" aria-hidden="true" />
+            <strong>{{ fileName || '选择或拖入配置文件' }}</strong>
+            <small>支持 <code>.forge-app.json</code> 或同格式 JSON</small>
           </div>
         </n-upload-dragger>
       </n-upload>
       <n-checkbox v-model:checked="autoPublish" :disabled="importing" class="publish-option">
-        导入完成后尝试一键发布（失败不影响设计态导入）
+        导入后尝试发布（失败也不影响应用已导入）
       </n-checkbox>
     </div>
 
@@ -53,14 +63,22 @@
       type="warning"
       :bordered="false"
       class="bundle-alert"
-      title="导入完成，但有警告"
+      title="导入完成，但有提醒"
     >
-      <ul>
+      <ul class="warning-list">
         <li v-for="(warning, index) in result.warnings" :key="index">
           {{ warning }}
         </li>
       </ul>
     </n-alert>
+
+    <div v-if="result" class="import-done">
+      <p>
+        应用已创建：
+        <strong>{{ result.applicationName || result.applicationCode }}</strong>
+      </p>
+      <p class="import-done__hint">编码 {{ result.applicationCode }}（已自动加后缀，避免和现有应用冲突）</p>
+    </div>
 
     <template #footer>
       <n-space justify="end">
@@ -106,15 +124,15 @@ const autoPublish = ref(true)
 const result = ref(null)
 
 const pendingSteps = [
-  { key: 'parse', label: '解析配置包', status: 'PENDING', message: '' },
+  { key: 'parse', label: '读取配置文件', status: 'PENDING', message: '' },
   { key: 'application', label: '创建应用', status: 'PENDING', message: '' },
   { key: 'objects', label: '创建业务对象', status: 'PENDING', message: '' },
-  { key: 'design', label: '还原字段与表单设计', status: 'PENDING', message: '' },
-  { key: 'ddl', label: '同步数据表结构', status: 'PENDING', message: '' },
-  { key: 'builder', label: '还原页面与导航', status: 'PENDING', message: '' },
-  { key: 'companions', label: '还原流程/打印/扩展等', status: 'PENDING', message: '' },
-  { key: 'publish', label: '导入后发布', status: 'PENDING', message: '' },
-  { key: 'done', label: '导入完成', status: 'PENDING', message: '' },
+  { key: 'design', label: '还原表单设计', status: 'PENDING', message: '' },
+  { key: 'ddl', label: '创建数据表', status: 'PENDING', message: '' },
+  { key: 'builder', label: '还原页面导航', status: 'PENDING', message: '' },
+  { key: 'companions', label: '还原流程与打印等', status: 'PENDING', message: '' },
+  { key: 'publish', label: '尝试发布', status: 'PENDING', message: '' },
+  { key: 'done', label: '完成', status: 'PENDING', message: '' },
 ]
 
 const liveSteps = ref(pendingSteps.map(step => ({ ...step })))
@@ -203,48 +221,113 @@ function openImported() {
 </script>
 
 <style scoped>
-.bundle-alert {
-  margin-bottom: 14px;
+.import-intro {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid #dbe5f5;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.import-intro__lead {
+  margin: 0 0 10px;
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.import-intro__list {
+  margin: 0;
+  padding-left: 18px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.8;
 }
 
 .bundle-upload {
-  margin-bottom: 12px;
+  margin-bottom: 4px;
 }
 
-.publish-option {
-  display: block;
-  margin-top: 12px;
+.import-dragger {
+  padding: 8px;
 }
 
 .upload-copy {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 12px 0;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 12px;
+  text-align: center;
+}
+
+.upload-copy__icon {
+  font-size: 28px;
+  color: #2563eb;
 }
 
 .upload-copy strong {
+  color: #0f172a;
   font-size: 14px;
+  font-weight: 600;
 }
 
 .upload-copy small {
-  color: var(--n-text-color-3);
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.upload-copy code {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: #f1f5f9;
+  font-size: 11px;
+}
+
+.publish-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  color: #64748b;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.publish-option :deep(.n-checkbox) {
+  display: inline-flex;
+  align-items: center;
+}
+
+.publish-option :deep(.n-checkbox__label) {
+  display: inline;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.bundle-alert {
+  margin-top: 12px;
+}
+
+.warning-list {
+  margin: 0;
+  padding-left: 18px;
 }
 
 .bundle-steps {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .bundle-step {
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: 8px;
-  background: var(--n-color-embedded);
+  background: #f8fafc;
 }
 
 .step-dot {
@@ -252,21 +335,21 @@ function openImported() {
   height: 8px;
   margin-top: 6px;
   border-radius: 50%;
-  background: var(--n-text-color-disabled);
+  background: #cbd5e1;
   flex-shrink: 0;
 }
 
 .bundle-step.is-running .step-dot {
-  background: var(--n-primary-color);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--n-primary-color) 20%, transparent);
+  background: #2563eb;
+  box-shadow: 0 0 0 4px rgb(37 99 235 / 18%);
 }
 
 .bundle-step.is-success .step-dot {
-  background: var(--n-success-color);
+  background: #16a34a;
 }
 
 .bundle-step.is-failed .step-dot {
-  background: var(--n-error-color);
+  background: #dc2626;
 }
 
 .step-copy {
@@ -280,7 +363,27 @@ function openImported() {
 }
 
 .step-copy small {
-  color: var(--n-text-color-3);
+  color: #94a3b8;
   word-break: break-all;
+}
+
+.import-done {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.import-done p {
+  margin: 0;
+}
+
+.import-done__hint {
+  margin-top: 4px !important;
+  color: #64748b;
+  font-size: 12px;
 }
 </style>
