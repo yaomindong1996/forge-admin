@@ -336,6 +336,73 @@ class BusinessApplicationServiceTest {
     }
 
     @Test
+    @DisplayName("workbench distribute persists live config without dirtying design status")
+    void workbenchDistributePersistsWithoutMarkChanged() throws Exception {
+        AiBusinessApplication existing = applicationEntity();
+        existing.setLastPublishVersion(1);
+        existing.setPortalConfig("{\"distribution\":{\"dingtalk\":{\"enabled\":true}}}");
+        AtomicReference<AiBusinessApplication> updated = new AtomicReference<>();
+        AtomicBoolean markedChanged = new AtomicBoolean();
+        BusinessApplicationMapper applicationMapper = proxy(BusinessApplicationMapper.class, (method, args) -> {
+            if ("selectEntityById".equals(method)) {
+                return existing;
+            }
+            if ("updateById".equals(method)) {
+                updated.set((AiBusinessApplication) args[0]);
+                return 1;
+            }
+            if ("markChanged".equals(method)) {
+                markedChanged.set(true);
+                return 1;
+            }
+            return defaultValue(method, args);
+        });
+        BusinessApplicationService service = service(applicationMapper,
+                proxy(BusinessApplicationObjectMapper.class, BusinessApplicationServiceTest::defaultValue),
+                proxy(BusinessAppMapper.class, BusinessApplicationServiceTest::defaultValue));
+        BusinessApplicationDistributionDTO dto = new BusinessApplicationDistributionDTO();
+        dto.setChannel("WORKBENCH");
+        dto.setTargetType("CURRENT_USER");
+        dto.setEnabled(true);
+        LoginUser loginUser = new LoginUser();
+        loginUser.setUserId(7L);
+        loginUser.setTenantId(1L);
+        try (ExecutionIdentityContextHolder.Scope ignored = ExecutionIdentityContextHolder.open(
+                new ExecutionIdentity(loginUser, "USER", 7L, null, 1L, "pc", "distribute-live", java.util.Set.of()))) {
+            Map<String, Object> result = service.distribute(existing.getId(), dto);
+            assertEquals(Boolean.TRUE, result.get("enabled"));
+            assertEquals("CURRENT_USER", result.get("targetType"));
+            assertEquals(7L, result.get("targetUserId"));
+            assertFalse(markedChanged.get());
+            assertNotNull(updated.get());
+            assertTrue(updated.get().getPortalConfig().contains("\"workbench\""));
+            assertFalse(updated.get().getPortalConfig().contains("dingtalk"));
+        }
+    }
+
+    @Test
+    @DisplayName("distribute rejects unsupported external channels")
+    void distributeRejectsDingtalkChannel() throws Exception {
+        AiBusinessApplication existing = applicationEntity();
+        existing.setLastPublishVersion(1);
+        BusinessApplicationMapper applicationMapper = proxy(BusinessApplicationMapper.class, (method, args) -> {
+            if ("selectEntityById".equals(method)) {
+                return existing;
+            }
+            return defaultValue(method, args);
+        });
+        BusinessApplicationService service = service(applicationMapper,
+                proxy(BusinessApplicationObjectMapper.class, BusinessApplicationServiceTest::defaultValue),
+                proxy(BusinessAppMapper.class, BusinessApplicationServiceTest::defaultValue));
+        BusinessApplicationDistributionDTO dto = new BusinessApplicationDistributionDTO();
+        dto.setChannel("DINGTALK");
+        dto.setEnabled(true);
+        BusinessException error = assertThrows(BusinessException.class,
+                () -> service.distribute(existing.getId(), dto));
+        assertTrue(error.getMessage().contains("Forge 系统首页"));
+    }
+
+    @Test
     @DisplayName("role distribution rejects roles without active portal permission")
     void roleDistributionRejectsRoleWithoutPortalPermission() throws Exception {
         AiBusinessApplication existing = applicationEntity();

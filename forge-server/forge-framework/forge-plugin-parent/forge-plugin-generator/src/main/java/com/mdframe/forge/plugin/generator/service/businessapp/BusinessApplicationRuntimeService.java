@@ -54,16 +54,18 @@ public class BusinessApplicationRuntimeService {
     }
 
     /**
-     * 使用正式门户的同一发布快照、应用可见范围和页面权限链路构建工作台应用。
+     * 使用正式门户的同一发布快照、应用可见范围和页面权限链路构建工作台入口。
+     * 分发开关读应用表实时 portalConfig（保存即生效），页面与 slug 仍取发布快照。
      */
     public List<BusinessApplicationVO> workbenchApplications() {
         List<BusinessApplicationVO> result = new ArrayList<>();
         for (BusinessApplicationVO candidate : applicationService.workbenchDistributionCandidates()) {
             try {
+                if (!applicationService.isCurrentUserDistributedToWorkbench(candidate.getPortalConfig())) {
+                    continue;
+                }
                 BusinessApplicationRuntimeVO runtime = runtimeCached(candidate);
-                if (hasReachableHomePage(runtime)
-                        && applicationService.isCurrentUserDistributedToWorkbench(
-                                runtime.getApplication().getPortalConfig())) {
+                if (hasReachableHomePage(runtime)) {
                     result.add(runtime.getApplication());
                 }
             } catch (BusinessException ignored) {

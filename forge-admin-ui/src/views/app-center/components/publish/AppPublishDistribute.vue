@@ -1,115 +1,144 @@
 <template>
   <section class="publish-section-card">
+    <!-- 标题：投放到 Forge 系统首页「我的应用」 -->
     <header>
-      <div><h2>应用分发</h2><p>将已发布应用添加到 Forge 工作台，或交给受管连接器同步到外部平台。</p></div>
+      <div>
+        <h2>应用分发</h2>
+        <p>将已发布应用投放到系统首页「我的应用」。保存后立即生效，无需重新发布；打开应用仍受门户权限控制。</p>
+      </div>
       <n-tag :type="workbenchConfigured ? 'success' : 'default'" :bordered="false">
-        {{ workbenchConfigured ? '已配置' : '未分发' }}
+        {{ workbenchConfigured ? '已投放' : '未投放' }}
       </n-tag>
     </header>
-    <n-tabs v-model:value="channel" type="segment" animated>
-      <n-tab-pane name="WORKBENCH" tab="Forge 工作台">
-        <n-form label-placement="top">
-          <n-form-item label="分发目标">
-            <n-radio-group v-model:value="workbench.targetType">
-              <n-radio-button value="CURRENT_USER">
-                添加到我的应用
-              </n-radio-button>
-              <n-radio-button value="ROLES">
-                指定角色首页
-              </n-radio-button>
-            </n-radio-group>
-          </n-form-item>
-          <n-form-item v-if="workbench.targetType === 'ROLES'" label="角色 ID">
-            <n-dynamic-tags v-model:value="workbench.roleIds" />
-          </n-form-item>
-          <n-space justify="end">
-            <n-button
-              v-if="workbenchConfigured"
-              :loading="saving"
-              @click="disableWorkbench"
-            >
-              <template #icon>
-                <n-icon><CloseCircleOutline /></n-icon>
-              </template>
-              取消工作台分发
-            </n-button>
-            <n-button type="primary" :loading="saving" :disabled="!application.lastPublishVersion" @click="distributeWorkbench">
-              <template #icon>
-                <n-icon><SaveOutline /></n-icon>
-              </template>
-              保存工作台分发
-            </n-button>
-          </n-space>
-        </n-form>
-      </n-tab-pane>
-      <n-tab-pane name="DINGTALK" tab="钉钉工作台">
-        <n-alert type="info" :bordered="false" class="publish-card-alert">
-          应用发布页不接收 AppKey、AppSecret 等明文凭证；请先在集成中心创建受管连接器。
-        </n-alert>
-        <n-form label-placement="top">
-          <n-form-item label="同步状态">
-            <n-tag :bordered="false" :type="dingtalkStatus.type">
-              {{ dingtalkStatus.label }}
-            </n-tag>
-          </n-form-item>
-          <n-form-item label="受管连接器标识">
-            <n-input v-model:value="dingtalk.managedConnectorKey" placeholder="例如 dingtalk-main" />
-          </n-form-item>
-          <n-form-item label="分发角色 ID">
-            <n-dynamic-tags v-model:value="dingtalk.roleIds" />
-          </n-form-item>
-          <n-space justify="end">
-            <n-button type="primary" :loading="saving" :disabled="!application.lastPublishVersion" @click="prepareDingtalk">
-              <template #icon>
-                <n-icon><CloudUploadOutline /></n-icon>
-              </template>
-              保存并等待外部同步
-            </n-button>
-          </n-space>
-        </n-form>
-      </n-tab-pane>
-    </n-tabs>
+
+    <n-alert
+      v-if="!application.lastPublishVersion"
+      type="warning"
+      :bordered="false"
+      class="publish-card-alert"
+    >
+      应用尚未发布，发布后方可投放到首页。
+    </n-alert>
+
+    <n-form label-placement="top">
+      <n-form-item label="投放目标">
+        <n-radio-group v-model:value="workbench.targetType">
+          <n-radio-button value="CURRENT_USER">
+            仅我自己
+          </n-radio-button>
+          <n-radio-button value="ROLES">
+            指定角色
+          </n-radio-button>
+        </n-radio-group>
+      </n-form-item>
+      <n-form-item v-if="workbench.targetType === 'ROLES'" label="可见角色">
+        <n-select
+          v-model:value="workbench.roleIds"
+          :options="roleOptions"
+          :loading="roleLoading"
+          multiple
+          filterable
+          placeholder="选择会出现在首页「我的应用」的角色"
+        />
+      </n-form-item>
+      <n-space justify="end">
+        <n-button
+          v-if="workbenchConfigured"
+          :loading="saving"
+          :disabled="!application.lastPublishVersion"
+          @click="disableWorkbench"
+        >
+          <template #icon>
+            <n-icon><CloseCircleOutline /></n-icon>
+          </template>
+          取消投放
+        </n-button>
+        <n-button
+          type="primary"
+          :loading="saving"
+          :disabled="!application.lastPublishVersion"
+          @click="distributeWorkbench"
+        >
+          <template #icon>
+            <n-icon><SaveOutline /></n-icon>
+          </template>
+          保存投放
+        </n-button>
+      </n-space>
+    </n-form>
   </section>
 </template>
 
 <script setup>
-import { CloseCircleOutline, CloudUploadOutline, SaveOutline } from '@vicons/ionicons5'
+import { CloseCircleOutline, SaveOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { distributeBusinessApplicationToWorkbench } from '@/api/business-application'
+import { request } from '@/utils/request'
 import { normalizePortalConfig } from '../portal/portal-config'
 
 const props = defineProps({ application: { type: Object, required: true } })
 const emit = defineEmits(['changed'])
 const message = useMessage()
 const saving = ref(false)
-const channel = ref('WORKBENCH')
+const roleLoading = ref(false)
+const roleOptions = ref([])
+
 const distribution = computed(() => normalizePortalConfig(props.application.portalConfig).distribution || {})
-const workbenchConfigured = computed(() => distribution.value.workbench?.enabled === true || distribution.value.workbench === true)
-const dingtalkStatus = computed(() => {
-  const status = distribution.value.dingtalk?.status
-  if (status === 'SYNCED')
-    return { label: '已同步', type: 'success' }
-  if (status === 'PENDING_EXTERNAL_SYNC')
-    return { label: '等待受管连接器同步', type: 'warning' }
-  return { label: '未配置', type: 'default' }
-})
-const workbench = reactive({
-  targetType: distribution.value.workbench?.targetType || 'CURRENT_USER',
-  roleIds: (distribution.value.workbench?.roleIds || []).map(String),
-})
-const dingtalk = reactive({
-  managedConnectorKey: distribution.value.dingtalk?.managedConnectorKey || '',
-  roleIds: (distribution.value.dingtalk?.roleIds || []).map(String),
+const workbenchConfigured = computed(() => {
+  const workbench = distribution.value.workbench
+  return workbench === true || workbench?.enabled === true
 })
 
+const workbench = reactive({
+  targetType: 'CURRENT_USER',
+  roleIds: [],
+})
+
+onMounted(() => {
+  loadRoles()
+  syncFromApplication()
+})
+
+watch(() => props.application?.portalConfig, () => {
+  syncFromApplication()
+})
+
+function syncFromApplication() {
+  const configured = distribution.value.workbench
+  workbench.targetType = configured?.targetType || 'CURRENT_USER'
+  workbench.roleIds = normalizeRoleIds(configured?.roleIds || [])
+}
+
+async function loadRoles() {
+  roleLoading.value = true
+  try {
+    const response = await request.get('/system/role/page', { params: { pageNum: 1, pageSize: 200 } })
+    const records = response.data?.records || response.data?.rows || response.data || []
+    roleOptions.value = (Array.isArray(records) ? records : []).map(item => ({
+      label: `${item.roleName || item.roleKey || item.id}${item.roleKey ? ` · ${item.roleKey}` : ''}`,
+      value: String(item.id || item.roleId),
+    })).filter(item => item.value)
+  }
+  catch {
+    roleOptions.value = []
+  }
+  finally {
+    roleLoading.value = false
+  }
+}
+
 async function distributeWorkbench() {
+  if (workbench.targetType === 'ROLES' && normalizeRoleIds(workbench.roleIds).length === 0) {
+    message.error('按角色投放时至少选择一个角色')
+    return
+  }
   await saveDistribution({
     channel: 'WORKBENCH',
     targetType: workbench.targetType,
     roleIds: normalizeRoleIds(workbench.roleIds),
     enabled: true,
-  }, '工作台分发配置已保存')
+  }, '已投放到系统首页「我的应用」')
 }
 
 async function disableWorkbench() {
@@ -118,24 +147,10 @@ async function disableWorkbench() {
     targetType: workbench.targetType,
     roleIds: normalizeRoleIds(workbench.roleIds),
     enabled: false,
-  }, '工作台分发已取消')
+  }, '已取消首页投放')
 }
 
-async function prepareDingtalk() {
-  const connectorKey = dingtalk.managedConnectorKey.trim()
-  if (!/^[\w.-]{2,64}$/.test(connectorKey)) {
-    message.error('请输入 2-64 位受管连接器标识，仅支持字母、数字、下划线、点和中划线')
-    return
-  }
-  await saveDistribution({
-    channel: 'DINGTALK',
-    targetType: dingtalk.roleIds.length ? 'ROLES' : 'CURRENT_USER',
-    roleIds: normalizeRoleIds(dingtalk.roleIds),
-    managedConnectorKey: connectorKey,
-    enabled: true,
-  }, '钉钉分发已进入待同步状态')
-}
-
+/** 角色 ID 保持字符串，避免雪花 ID 精度丢失；提交前再转数字 */
 function normalizeRoleIds(roleIds) {
   return [...new Set((roleIds || [])
     .map(value => String(value).trim())

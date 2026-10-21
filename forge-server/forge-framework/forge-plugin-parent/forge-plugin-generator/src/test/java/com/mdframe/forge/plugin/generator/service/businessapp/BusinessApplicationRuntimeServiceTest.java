@@ -153,6 +153,8 @@ class BusinessApplicationRuntimeServiceTest {
     void workbenchUsesPublishedRuntimeProjection() throws Exception {
         BusinessApplicationVO application = application(2);
         application.setPortalSlug("draft-slug");
+        // 分发读应用表实时配置；快照只负责正式 slug/名称/页面
+        application.setPortalConfig("{\"distribution\":{\"workbench\":{\"enabled\":true,\"targetType\":\"CURRENT_USER\",\"targetUserId\":7}}}");
         Map<String, Object> builder = Map.of(
                 "homePageId", "page_home",
                 "nodes", List.of(node("page_home", null, null)),
@@ -165,12 +167,7 @@ class BusinessApplicationRuntimeServiceTest {
                         "applicationName", "已发布应用",
                         "suiteCode", "crm",
                         "status", 1,
-                        "portalConfig", Map.of(
-                                "permission", Map.of("visibility", "all"),
-                                "distribution", Map.of("workbench", Map.of(
-                                        "enabled", true,
-                                        "targetType", "CURRENT_USER",
-                                        "targetUserId", 7))),
+                        "portalConfig", Map.of("permission", Map.of("visibility", "all")),
                         "options", Map.of("inAppBuilder", builder)),
                 "objects", List.of(),
                 "entries", List.of());
@@ -191,8 +188,8 @@ class BusinessApplicationRuntimeServiceTest {
     }
 
     @Test
-    @DisplayName("workbench ignores draft-only distribution switches")
-    void workbenchIgnoresDraftDistribution() throws Exception {
+    @DisplayName("workbench uses live distribution without requiring republish")
+    void workbenchUsesLiveDistributionWithoutRepublish() throws Exception {
         BusinessApplicationVO application = application(2);
         application.setPortalConfig("{\"distribution\":{\"workbench\":{\"enabled\":true,\"targetType\":\"CURRENT_USER\",\"targetUserId\":7}}}");
         Map<String, Object> builder = Map.of(
@@ -218,8 +215,10 @@ class BusinessApplicationRuntimeServiceTest {
         loginUser.setUserId(7L);
         loginUser.setTenantId(1L);
         try (ExecutionIdentityContextHolder.Scope ignored = ExecutionIdentityContextHolder.open(
-                new ExecutionIdentity(loginUser, "USER", 7L, null, 1L, "pc", "workbench-draft", Set.of()))) {
-            assertTrue(service.workbenchApplications().isEmpty());
+                new ExecutionIdentity(loginUser, "USER", 7L, null, 1L, "pc", "workbench-live", Set.of()))) {
+            List<BusinessApplicationVO> result = service.workbenchApplications();
+            assertEquals(1, result.size());
+            assertEquals("released-slug", result.get(0).getPortalSlug());
         }
     }
 

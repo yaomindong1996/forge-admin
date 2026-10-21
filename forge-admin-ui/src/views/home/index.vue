@@ -48,7 +48,7 @@
               <div v-if="!appLoading && appShortcuts.length === 0" class="empty-state small app-empty-state">
                 <WorkspaceIllustration artwork="application" size="small" />
                 <strong>暂无已投放应用</strong>
-                <span>应用发布后可在发布页添加到 Forge 工作台。</span>
+                <span>应用发布后，可在发布页「应用分发」投放到这里。</span>
               </div>
               <div v-else class="app-list">
                 <button

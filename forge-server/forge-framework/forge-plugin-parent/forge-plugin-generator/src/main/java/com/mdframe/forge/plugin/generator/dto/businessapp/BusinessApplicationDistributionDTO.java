@@ -5,11 +5,14 @@ import lombok.Data;
 import java.util.ArrayList;
 import java.util.List;
 
-/** 应用分发配置；外部平台只保存受管连接器标识，不接收明文凭证。 */
+/**
+ * Forge 系统首页「我的应用」分发配置。
+ * 当前仅支持 WORKBENCH；保存后立即按应用表 portalConfig 生效，不依赖重新发布。
+ */
 @Data
 public class BusinessApplicationDistributionDTO {
 
-    /** WORKBENCH / DINGTALK。 */
+    /** 仅 WORKBENCH；缺省按 WORKBENCH 处理。 */
     private String channel;
 
     /** CURRENT_USER / ROLES。 */
@@ -18,7 +21,4 @@ public class BusinessApplicationDistributionDTO {
     private List<Long> roleIds = new ArrayList<>();
 
     private Boolean enabled;
-
-    /** 受管连接器标识，凭证由集成中心维护。 */
-    private String managedConnectorKey;
 }

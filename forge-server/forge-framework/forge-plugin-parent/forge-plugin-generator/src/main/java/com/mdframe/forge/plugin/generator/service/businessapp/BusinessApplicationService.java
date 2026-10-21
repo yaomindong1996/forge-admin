@@ -78,7 +78,7 @@ public class BusinessApplicationService extends ServiceImpl<BusinessApplicationM
     }
 
     /**
-     * 查询已发布工作台候选。投放开关必须按发布快照判定，这里只返回发布过的应用。
+     * 查询已发布工作台候选。页面取发布快照；投放开关读应用表实时 portalConfig。
      */
     public List<BusinessApplicationVO> workbenchDistributionCandidates() {
         List<BusinessApplicationVO> candidates = baseMapper.selectPublishedWorkbenchApplications(resolveTenantId());
@@ -294,9 +294,10 @@ public class BusinessApplicationService extends ServiceImpl<BusinessApplicationM
         if (dto == null) {
             throw new BusinessException("分发配置不能为空");
         }
-        String channel = StringUtils.upperCase(StringUtils.trimToEmpty(dto.getChannel()), Locale.ROOT);
-        if (!Set.of("WORKBENCH", "DINGTALK").contains(channel)) {
-            throw new BusinessException("暂不支持该分发渠道");
+        String channel = StringUtils.upperCase(
+                StringUtils.defaultIfBlank(dto.getChannel(), "WORKBENCH"), Locale.ROOT);
+        if (!"WORKBENCH".equals(channel)) {
+            throw new BusinessException("暂仅支持分发到 Forge 系统首页「我的应用」");
         }
         String targetType = StringUtils.upperCase(
                 StringUtils.defaultIfBlank(dto.getTargetType(), "CURRENT_USER"), Locale.ROOT);
@@ -316,29 +317,25 @@ public class BusinessApplicationService extends ServiceImpl<BusinessApplicationM
             assertActiveDistributionRoles(roleIds);
             assertDistributionRoleManagementScope(roleIds);
         }
-        if (enabled && "DINGTALK".equals(channel)
-                && StringUtils.isBlank(dto.getManagedConnectorKey())) {
-            throw new BusinessException("请先在集成中心配置受管钉钉连接器");
-        }
 
         JSONObject portalConfig = parseJsonObject(application.getPortalConfig());
         JSONObject distribution = portalConfig.getJSONObject("distribution");
         if (distribution == null) {
             distribution = new JSONObject();
         }
+        // 运营配置：只维护 workbench；历史钉钉占位键一并清理，避免误读
+        distribution.remove("dingtalk");
         JSONObject channelConfig = new JSONObject();
         channelConfig.put("enabled", enabled);
         channelConfig.put("targetType", targetType);
         channelConfig.put("roleIds", roleIds);
         channelConfig.put("targetUserId", "CURRENT_USER".equals(targetType) ? currentUserId() : null);
-        channelConfig.put("managedConnectorKey", StringUtils.trimToNull(dto.getManagedConnectorKey()));
-        channelConfig.put("status", "DINGTALK".equals(channel)
-                ? "PENDING_EXTERNAL_SYNC" : "CONFIGURED");
-        distribution.put(channel.toLowerCase(Locale.ROOT), channelConfig);
+        channelConfig.put("status", "CONFIGURED");
+        distribution.put("workbench", channelConfig);
         portalConfig.put("distribution", distribution);
         application.setPortalConfig(normalizeJsonObject(portalConfig, "门户配置", true));
+        // 分发不脏设计态：保存后首页立即按应用表 portalConfig 生效，无需重新发布
         updateById(application);
-        baseMapper.markChanged(resolveTenantId(), id);
         return new LinkedHashMap<>(channelConfig);
     }
 
