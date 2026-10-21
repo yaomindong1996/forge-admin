@@ -66,13 +66,17 @@ export const useAppStore = defineStore('app', {
       this.themeConfig = cloneConfig(defaultThemeConfig)
       this.setThemeConfig(this.themeConfig)
     },
-    resetAccountState() {
+    resetAccountState(options = {}) {
+      const preserveAppearance = options?.preserveAppearance === true
       this.appearanceOpen = false
+      this.selectedTopMenuId = null
+      // 登录成功清理会话时保留登录页已套好的租户色，避免按钮先闪默认蓝再跳回主题色。
+      if (preserveAppearance)
+        return
       this.layout = normalizeLayout(import.meta.env.VITE_DEFAULT_LAYOUT || defaultLayout)
       this.primaryColor = defaultPrimaryColor
       this.naiveThemeOverrides = cloneConfig(naiveThemeOverrides)
       this.themeConfig = cloneConfig(defaultThemeConfig)
-      this.selectedTopMenuId = null
       this.setThemeColor(defaultPrimaryColor)
       applyThemeConfig(this.themeConfig, this.isDark)
       document.title = getDefaultPageTitle()

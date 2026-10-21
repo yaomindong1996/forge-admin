@@ -60,6 +60,43 @@ describe('登录与恢复外观使用一致的租户配置', () => {
     expect(store.themeConfig).not.toHaveProperty('extension')
   })
 
+  it('应用有效租户配置时不先重置为默认色，避免登录闪色', async () => {
+    const store = useAppStore()
+    await applyTenantConfig({
+      systemTheme: '#0f766e',
+      themeConfig: { primaryColor: '#0f766e' },
+    }, store)
+    expect(store.primaryColor).toBe('#0f766e')
+    const resetSpy = vi.spyOn(store, 'resetAccountState')
+    const seen = []
+    const stop = store.$subscribe((_mutation, state) => {
+      seen.push(state.primaryColor)
+    })
+    try {
+      await applyTenantConfig({
+        systemTheme: '#0f766e',
+        themeConfig: { primaryColor: '#0f766e' },
+      }, store)
+      expect(resetSpy).not.toHaveBeenCalled()
+      expect(seen.every(color => color === '#0f766e')).toBe(true)
+      expect(store.primaryColor).toBe('#0f766e')
+    }
+    finally {
+      stop()
+    }
+  })
+
+  it('preserveAppearance 仅清理会话 UI 状态，不改主色', () => {
+    const store = useAppStore()
+    store.setThemeConfig({ primaryColor: '#0f766e' })
+    store.appearanceOpen = true
+    store.selectedTopMenuId = 'menu_1'
+    store.resetAccountState({ preserveAppearance: true })
+    expect(store.primaryColor).toBe('#0f766e')
+    expect(store.appearanceOpen).toBe(false)
+    expect(store.selectedTopMenuId).toBeNull()
+  })
+
   it('大于旧列容量的完整主题与中文扩展字段不被截断，加载和恢复保持一致', async () => {
     const store = useAppStore()
     const theme = { ...defaultThemeConfig, extension: { description: '主题配置'.repeat(600) } }

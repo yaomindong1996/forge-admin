@@ -78,7 +78,9 @@ export const useAuthStore = defineStore('auth', {
       resetTabs()
       // 重置租户配置和账号相关的布局状态
       clearTenantConfig()
-      appStore.resetAccountState()
+      // 登录成功（resetAuth=false）保留当前外观：登录页已按租户主题着色，
+      // 若此处先 reset 成默认色，会在拉菜单/租户配置完成前闪一下系统蓝。
+      appStore.resetAccountState({ preserveAppearance: !resetAuth })
       // 清理本地缓存的账号资料和数据权限
       lStorage.remove('userInfo')
       lStorage.remove('staffInfo')

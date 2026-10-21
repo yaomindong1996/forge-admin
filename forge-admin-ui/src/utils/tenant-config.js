@@ -125,16 +125,14 @@ export function setDocumentFavicon(iconUrl) {
 }
 
 export async function applyTenantConfig(tenantConfig, appStore) {
-  appStore.resetAccountState()
-  if (!tenantConfig)
+  // 无配置才回默认；有配置时直接替换外观，避免先闪系统默认色再套租户主题。
+  if (!tenantConfig) {
+    appStore.resetAccountState()
     return
-
-  if (tenantConfig.systemLayout) {
-    appStore.setLayout(tenantConfig.systemLayout)
   }
 
   // 登录与外观恢复共用解析器，历史 systemTheme=light 不得覆盖 JSON 内合法主色。
-  appStore.setThemeConfig(readTenantAppearance(tenantConfig))
+  appStore.restoreTenantAppearance(tenantConfig)
 
   const pageBaseTitle = normalizePageTitle(tenantConfig.browserTitle) || normalizePageTitle(tenantConfig.systemName)
   if (pageBaseTitle) {
