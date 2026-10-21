@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { isApplicationPortalPath } from '@/router/guards/permission-guard'
+import { isApplicationPortalPath } from '@/router/shell-layout'
 
 function source(relativePath) {
   return readFileSync(resolve(relativePath), 'utf8')
@@ -20,8 +20,11 @@ describe('application portal first paint', () => {
     const portalSource = source('src/views/app-center/application-portal.vue')
 
     expect(guardSource).toContain('route?.meta?.layout === \'app-portal\'')
+    expect(guardSource).toContain('pendingShellLayout.value = resolvePendingShellLayout(to)')
     expect(appSource).toContain('isApplicationPortalPath(route.path)')
-    expect(appSource).toContain('<ApplicationRuntimeSkeleton v-if="isApplicationRuntimeRoute(curRoute)" />')
+    expect(appSource).toContain('resolveShellLayoutName')
+    expect(appSource).toContain('activeShellLayout')
+    expect(appSource).toContain('ApplicationRuntimeSkeleton')
     expect(appSource).toContain('<ApplicationPortalSkeleton v-else />')
     expect(portalSource).toContain('const loading = ref(true)')
     expect(portalSource).toContain('<ApplicationPortalSkeleton v-if="loading" />')

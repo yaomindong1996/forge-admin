@@ -1,4 +1,5 @@
 import { finishGlobalLoading, startGlobalLoading } from '@/composables/useGlobalLoading'
+import { pendingShellLayout, resolvePendingShellLayout } from '@/router/shell-layout'
 import { useAppStore } from '@/store'
 
 function isAppPortalRoute(route) {
@@ -14,7 +15,7 @@ function isApplicationRuntimeRoute(route) {
 
 function shouldSkipRouteChrome(route) {
   // 这些页自己画骨架，全局进度条/蒙层只会叠出「白屏感」
-  return isAppPortalRoute(route) || isApplicationRuntimeRoute(route)
+  return isAppPortalRoute(route) || isApplicationRuntimeRoute(route) || route?.meta?.layout === 'empty'
 }
 
 export function createPageLoadingGuard(router) {
@@ -49,6 +50,9 @@ export function createPageLoadingGuard(router) {
   }
 
   router.beforeEach((to) => {
+    // 进入设计态/空壳页时立刻锁布局，避免系统侧栏空内容闪一帧
+    pendingShellLayout.value = resolvePendingShellLayout(to)
+
     if (shouldSkipRouteChrome(to)) {
       finishRouteChrome()
       return
@@ -58,16 +62,21 @@ export function createPageLoadingGuard(router) {
   })
 
   router.afterEach((to) => {
+    pendingShellLayout.value = resolvePendingShellLayout(to)
+
     if (shouldSkipRouteChrome(to)) {
       finishRouteChrome()
       return
     }
+    // 回到系统壳后清除 pending，避免污染后续普通页
+    pendingShellLayout.value = null
     setTimeout(() => {
       finishRouteChrome()
     }, 200)
   })
 
   router.onError(() => {
+    pendingShellLayout.value = null
     finishRouteLoading()
     $loadingBar.error()
     const appStore = useAppStore()

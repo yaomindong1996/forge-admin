@@ -81,7 +81,7 @@ public class BusinessApplicationRuntimeService {
             return runtime(null);
         }
         long now = System.currentTimeMillis();
-        String appKey = resolveTenantId() + ":id:" + applicationId;
+        String appKey = resolveTenantId() + ":id:" + applicationId + ":" + resolveCacheUserKey();
         CachedRuntime softHit = runtimeByAppIdCache.get(appKey);
         if (softHit != null && softHit.expiresAtMs > now) {
             return softHit.value;
@@ -97,7 +97,8 @@ public class BusinessApplicationRuntimeService {
         Long tenantId = resolveTenantId();
         String prefix = tenantId + ":" + applicationId + ":";
         runtimeCache.keySet().removeIf(key -> key.startsWith(prefix));
-        runtimeByAppIdCache.remove(tenantId + ":id:" + applicationId);
+        String appPrefix = tenantId + ":id:" + applicationId + ":";
+        runtimeByAppIdCache.keySet().removeIf(key -> key.startsWith(appPrefix));
     }
 
     private BusinessApplicationRuntimeVO runtimeCached(BusinessApplicationVO current) {
@@ -108,17 +109,19 @@ public class BusinessApplicationRuntimeService {
         if (versionNo == null) {
             return runtime(current);
         }
-        String cacheKey = resolveTenantId() + ":" + current.getId() + ":" + versionNo;
+        // 运行结果已按当前用户权限过滤页面树，缓存键必须带 userId，否则会串权或「改完授权仍看不见菜单」
+        String userKey = resolveCacheUserKey();
+        String cacheKey = resolveTenantId() + ":" + current.getId() + ":" + versionNo + ":" + userKey;
         long now = System.currentTimeMillis();
         CachedRuntime hit = runtimeCache.get(cacheKey);
         if (hit != null && hit.expiresAtMs > now) {
-            runtimeByAppIdCache.put(resolveTenantId() + ":id:" + current.getId(), hit);
+            runtimeByAppIdCache.put(resolveTenantId() + ":id:" + current.getId() + ":" + userKey, hit);
             return hit.value;
         }
         BusinessApplicationRuntimeVO value = runtime(current);
         CachedRuntime cached = new CachedRuntime(value, now + RUNTIME_CACHE_TTL_MS);
         runtimeCache.put(cacheKey, cached);
-        runtimeByAppIdCache.put(resolveTenantId() + ":id:" + current.getId(), cached);
+        runtimeByAppIdCache.put(resolveTenantId() + ":id:" + current.getId() + ":" + userKey, cached);
         trimRuntimeCache(now);
         return value;
     }
@@ -144,6 +147,15 @@ public class BusinessApplicationRuntimeService {
             return tenantId == null ? 1L : tenantId;
         } catch (Exception ignored) {
             return 1L;
+        }
+    }
+
+    private String resolveCacheUserKey() {
+        try {
+            Long userId = SessionHelper.getUserId();
+            return userId == null ? "anon" : String.valueOf(userId);
+        } catch (Exception ignored) {
+            return "anon";
         }
     }
 

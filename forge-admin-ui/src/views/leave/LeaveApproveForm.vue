@@ -118,7 +118,7 @@
         </n-form-item>
       </n-form>
 
-      <div class="action-buttons">
+      <div class="action-buttons flow-task-action-bar">
         <n-popconfirm
           v-if="canApprove"
           positive-text="确认通过"
@@ -126,7 +126,7 @@
           @positive-click="handleApprove"
         >
           <template #trigger>
-            <n-button type="primary" :loading="isActionSubmitting('approve')" :disabled="isSubmitting" size="large">
+            <n-button type="primary" :loading="isActionSubmitting('approve')" :disabled="isSubmitting">
               <template #icon>
                 <i class="i-material-symbols:check-circle" />
               </template>
@@ -143,7 +143,7 @@
           @positive-click="handleReject"
         >
           <template #trigger>
-            <n-button type="error" :loading="isActionSubmitting('reject')" :disabled="isSubmitting" size="large">
+            <n-button type="error" :loading="isActionSubmitting('reject')" :disabled="isSubmitting">
               <template #icon>
                 <i class="i-material-symbols:cancel" />
               </template>
@@ -177,6 +177,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import leaveApi from '@/api/leave'
 import FlowCommentPhraseInput from '@/components/flow/FlowCommentPhraseInput.vue'
 import SignaturePad from '@/components/flow/SignaturePad.vue'
+import '@/styles/flow-task-actions.css'
 
 const props = defineProps({
   /** 任务 ID */
@@ -469,9 +470,6 @@ onMounted(() => loadDetail())
   padding: 12px 0;
 }
 .action-buttons {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
   margin-top: 16px;
 }
 .detail-card,

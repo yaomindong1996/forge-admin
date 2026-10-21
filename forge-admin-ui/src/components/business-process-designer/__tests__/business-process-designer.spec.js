@@ -621,11 +621,44 @@ describe('business process condition experience', () => {
     const branchNameInputs = wrapper.findAll('.branch-name-field input')
     expect(branchNameInputs.map(input => input.element.value)).toEqual(['金额较高', '其他情况'])
     expect(wrapper.text()).not.toMatch(/MATCHED|OTHERWISE|BRANCH_/)
+    expect(wrapper.findAll('[data-condition-rule]')).toHaveLength(0)
 
     await wrapper.find('[data-condition-add-branch]').trigger('click')
     const emittedBranches = wrapper.emitted('update:branches')[0][0]
     expect(emittedBranches).toHaveLength(3)
     expect(emittedBranches[1]).toMatchObject({ label: '条件 2' })
+  })
+
+  it('removes the last judgment rule instead of recreating an empty one', async () => {
+    const branches = [
+      {
+        port: 'BRANCH_1',
+        label: '条件 1',
+        condition: {
+          operator: 'AND',
+          logic: 'all',
+          rules: [{ field: 'name', operator: 'eq', value: '张三', endValue: '' }],
+        },
+      },
+      { port: 'OTHERWISE', label: '其他情况', isDefault: true },
+    ]
+    const wrapper = mount(BusinessProcessConditionConfig, {
+      props: {
+        branches,
+        fields: [{ fieldCode: 'name', fieldName: '姓名', dataType: 'string' }],
+      },
+    })
+
+    expect(wrapper.findAll('[data-condition-rule]')).toHaveLength(1)
+    await wrapper.find('[aria-label="删除判断规则"]').trigger('click')
+
+    const nextBranches = wrapper.emitted('update:branches')[0][0]
+    expect(nextBranches[0].condition.rules).toEqual([])
+    expect(nextBranches[0].condition.expression).toBe('')
+
+    await wrapper.setProps({ branches: nextBranches })
+    expect(wrapper.findAll('[data-condition-rule]')).toHaveLength(0)
+    expect(wrapper.text()).toContain('暂无判断规则')
   })
 
   it('renders approval and condition ports in Chinese and exposes a card delete action', async () => {

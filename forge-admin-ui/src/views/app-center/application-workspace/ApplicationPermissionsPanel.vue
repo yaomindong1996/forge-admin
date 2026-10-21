@@ -2,8 +2,8 @@
   <div class="permissions-panel">
     <header class="panel-heading">
       <div class="heading-copy">
-        <h2>应用角色授权</h2>
-        <p>选择角色，按页面配置访问权限、功能权限与数据范围。</p>
+        <h2>页面与功能授权</h2>
+        <p>先保证用户角色在步骤 1 能打开应用，再在这里勾页面；保存后对方需重新登录。</p>
       </div>
 
       <div class="heading-actions">
@@ -27,14 +27,14 @@
 
     <section class="role-toolbar" aria-label="当前授权角色">
       <div class="role-selector">
-        <span class="role-selector-label">配置角色</span>
+        <span class="role-selector-label">为哪个角色配置页面</span>
         <n-select
           :value="selectedRoleId"
           :options="roleOptions"
           :loading="catalogLoading"
           filterable
           :consistent-menu-width="false"
-          placeholder="选择要配置的角色"
+          placeholder="选择要配置页面的角色"
           @update:value="requestRoleSwitch"
         />
       </div>
@@ -64,7 +64,16 @@
     </section>
 
     <n-alert type="info" :bordered="false" class="scope-note">
-      按页面授权：勾选页面即可在应用门户看到该页（与是否挂载系统菜单无关）。页面绑定的功能权限会随勾选联动；数据范围仍需在页面卡片内单独配置。
+      勾选页面后，该角色用户才能在门户左侧看到对应菜单（与是否挂系统菜单无关）。页面下的功能权限会随勾选联动；数据范围仍需在卡片内单独配置。
+    </n-alert>
+
+    <n-alert
+      v-if="portalVisibleRoleHint"
+      type="warning"
+      :bordered="false"
+      class="scope-note"
+    >
+      {{ portalVisibleRoleHint }}
     </n-alert>
 
     <n-alert v-if="loadError" type="error" :bordered="false" class="load-alert">
@@ -156,6 +165,11 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  /** 步骤 1「可打开应用的角色」；有值时下拉优先这些角色并默认选中第一个 */
+  preferredRoleIds: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 const ROLE_DATA_SCOPE_DICT = 'sys_role_data_scope'
@@ -188,10 +202,51 @@ const applicationCode = computed(() => props.application?.applicationCode || rou
 const selectedRole = computed(() => workspace.value.roles.find(
   role => String(role.roleId) === String(selectedRoleId.value),
 ) || null)
-const roleOptions = computed(() => workspace.value.roles.map(role => ({
-  label: `${role.roleName}${role.roleKey ? ` · ${role.roleKey}` : ''}`,
-  value: String(role.roleId),
-})))
+const portalPermission = computed(() => {
+  const raw = props.application?.portalConfig
+  const config = typeof raw === 'string'
+    ? (() => { try { return JSON.parse(raw) } catch { return {} } })()
+    : (raw || {})
+  return config.permission || {}
+})
+const portalVisibleRoleIds = computed(() => {
+  const preferred = (props.preferredRoleIds || []).map(id => String(id)).filter(Boolean)
+  if (preferred.length)
+    return preferred
+  if (String(portalPermission.value.visibility || 'all').toLowerCase() !== 'roles')
+    return []
+  return (portalPermission.value.roleIds || []).map(id => String(id))
+})
+const roleOptions = computed(() => {
+  const preferred = new Set(portalVisibleRoleIds.value)
+  const mapped = workspace.value.roles.map(role => ({
+    label: `${role.roleName}${role.roleKey ? ` · ${role.roleKey}` : ''}${preferred.has(String(role.roleId)) ? '（可打开应用）' : ''}`,
+    value: String(role.roleId),
+    preferred: preferred.has(String(role.roleId)),
+  }))
+  return mapped.sort((left, right) => Number(right.preferred) - Number(left.preferred)
+    || left.label.localeCompare(right.label, 'zh-CN'))
+})
+const portalVisibleRoleHint = computed(() => {
+  if (!selectedRole.value || !portalVisibleRoleIds.value.length)
+    return ''
+  const selectedId = String(selectedRole.value.roleId)
+  if (portalVisibleRoleIds.value.includes(selectedId))
+    return ''
+  const visibleNames = workspace.value.roles
+    .filter(role => portalVisibleRoleIds.value.includes(String(role.roleId)))
+    .map(role => role.roleName || role.roleKey || role.roleId)
+  const visibleText = visibleNames.length ? visibleNames.join('、') : portalVisibleRoleIds.value.join('、')
+  return `步骤 1 可打开应用的角色是：${visibleText}。你正在给「${selectedRole.value.roleName}」配页面——若用户只挂了可打开角色而不是这个角色，进门户后仍看不到这些菜单。请改选可打开角色后再保存；对方需重新登录。`
+})
+
+function resolveDefaultRoleId(roles = []) {
+  const preferred = portalVisibleRoleIds.value
+  const preferredHit = roles.find(role => preferred.includes(String(role.roleId)))
+  if (preferredHit?.roleId != null)
+    return preferredHit.roleId
+  return roles[0]?.roleId
+}
 const dataScopeOptions = computed(() => (dict.value[ROLE_DATA_SCOPE_DICT] || []).map(item => ({
   ...item,
   value: Number(item.value),
@@ -226,6 +281,18 @@ watch(applicationCode, (code) => {
   if (code)
     loadWorkspace()
 }, { immediate: true })
+
+// 步骤 1 调整「可打开角色」后，若当前未选角色或不在优先列表，自动落到第一个可打开角色
+watch(portalVisibleRoleIds, (preferredIds) => {
+  if (!preferredIds.length || !workspace.value.roles.length || dirty.value)
+    return
+  const current = String(selectedRoleId.value || '')
+  if (current && preferredIds.includes(current))
+    return
+  const next = resolveDefaultRoleId(workspace.value.roles)
+  if (next != null && String(next) !== current)
+    loadRolePermission(next)
+})
 
 watch([
   () => route.query.dataScopeObjectId,
@@ -265,9 +332,9 @@ async function loadWorkspace() {
       ...(unwrapResponse(response, '应用权限目录加载失败') || {}),
     }
     roleGrantCache.value = {}
-    const firstRoleId = workspace.value.roles[0]?.roleId
-    if (firstRoleId !== null && firstRoleId !== undefined)
-      await loadRolePermission(firstRoleId)
+    const defaultRoleId = resolveDefaultRoleId(workspace.value.roles)
+    if (defaultRoleId !== null && defaultRoleId !== undefined)
+      await loadRolePermission(defaultRoleId)
     else
       clearRoleGrant()
   }

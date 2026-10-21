@@ -46,6 +46,7 @@ describe('下载展示工具与布局边界', () => {
   it('隐藏的浮岛侧栏不保留第二份浮层，入口判断与实际布局归一化保持一致', () => {
     const source = relative => readFileSync(new URL(relative, import.meta.url), 'utf8')
     expect(source('../../../layouts/nexus/index.vue')).toContain('!appStore.collapsed && !isNarrow')
-    expect(source('../../../App.vue')).toContain('normalizeLayoutName(route.meta?.layout || appStore.layout)')
+    expect(source('../../../App.vue')).toContain('resolveShellLayoutName')
+    expect(source('../../../App.vue')).toContain('activeShellLayout')
   })
 })

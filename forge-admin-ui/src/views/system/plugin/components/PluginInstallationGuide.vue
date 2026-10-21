@@ -1,13 +1,16 @@
 <template>
   <section class="plugin-installation" aria-label="安装说明">
-    <h3>{{ builtin ? '随项目提供，无需重复安装' : '源码交付与安装' }}</h3>
-    <p>
+    <h3 v-if="!extension">
+      {{ builtin ? '随项目提供，无需重复安装' : '源码交付与安装' }}
+    </h3>
+    <p v-if="!extension">
       {{ builtin
         ? '当前服务已经包含该内置模块。首次使用前，按实际业务配置菜单权限和对应服务。'
         : '外部插件通过源码交付。安装及升级需要在开发工程中完成，浏览器不会直接加载新代码。' }}
     </p>
     <!-- 说明不是执行器：不提供即时安装或后台发布入口 -->
-    <NTimeline>
+    <PluginGuideOutlet v-if="extension" :plugin-id="plugin.id" />
+    <NTimeline v-else>
       <template v-if="builtin">
         <NTimelineItem title="核对当前版本">
           当前模块版本：{{ plugin.version || '未提供' }}。升级请使用与宿主工程兼容的发行版本。
@@ -46,10 +49,13 @@
 <script setup>
 import { NButton, NTimeline, NTimelineItem } from 'naive-ui'
 import { computed } from 'vue'
+import { getPluginGuideExtension } from '@/utils/plugin-guide'
 import { pluginGuideUrl } from '../pluginLinks'
+import PluginGuideOutlet from './PluginGuideOutlet.vue'
 
 const props = defineProps({ plugin: { type: Object, required: true } })
 const builtin = computed(() => props.plugin.origin === 'builtin')
+const extension = computed(() => getPluginGuideExtension(props.plugin.id))
 </script>
 
 <style scoped>

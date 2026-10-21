@@ -189,7 +189,7 @@ export const manualRoutes = [
         return { path: '/app-center' }
       return { name: 'BusinessApplicationRuntime', params: { applicationCode } }
     },
-    meta: { title: '页面管理', skipTab: true, preserveOnQuery: true },
+    meta: { title: '页面管理', layout: 'empty', skipTab: true, preserveOnQuery: true },
   },
   {
     name: 'BusinessApplicationSettings',
@@ -217,7 +217,7 @@ export const manualRoutes = [
     name: 'BusinessApplicationPreview',
     path: '/app-center/application/:applicationCode/preview',
     component: () => import('@/views/app-center/application-preview.[applicationCode].vue'),
-    meta: { title: '预览应用', skipTab: true, preserveOnQuery: true },
+    meta: { title: '预览应用', layout: 'empty', skipTab: true, preserveOnQuery: true },
   },
   {
     name: 'BusinessAppEntry',

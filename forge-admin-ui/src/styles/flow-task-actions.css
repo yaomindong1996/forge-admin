@@ -1,0 +1,30 @@
+/**
+ * 流程待办审批动作条：转办 / 同意 / 驳回等按钮统一高度与最小宽度，
+ * 避免宿主页 size=small 与业务表单 size=large 混用导致高低不一。
+ */
+.flow-task-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.flow-task-action-bar .n-button {
+  box-sizing: border-box;
+  min-width: 120px;
+  height: 34px;
+  padding: 0 16px;
+}
+
+@media (max-width: 760px) {
+  .flow-task-action-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .flow-task-action-bar .n-button {
+    width: 100%;
+    min-width: 0;
+  }
+}

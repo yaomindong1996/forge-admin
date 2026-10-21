@@ -70,12 +70,13 @@ function branchLogic(branch) {
 }
 
 function branchRules(branch) {
-  if (Array.isArray(branch?.condition?.rules) && branch.condition.rules.length)
+  // 已有 rules 数组（含空数组）以数组为准，避免「删光后又凭空补一条」导致删除无效
+  if (Array.isArray(branch?.condition?.rules))
     return branch.condition.rules.map(normalizeConditionRule)
   const parsed = parseConditionExpression(branch?.condition?.expression, fieldOptions.value)
   if (parsed.rules.length)
     return parsed.rules
-  return [createConditionRule(fieldOptions.value[0]?.value || '')]
+  return []
 }
 
 function updateBranchLabel(index, event) {
@@ -104,11 +105,7 @@ function updateRule(branchIndex, ruleIndex, patch) {
 
 function removeRule(branchIndex, ruleIndex) {
   const rules = branchRules(props.branches[branchIndex]).filter((_, index) => index !== ruleIndex)
-  patchCondition(
-    branchIndex,
-    rules.length ? rules : [createConditionRule(fieldOptions.value[0]?.value || '')],
-    branchLogic(props.branches[branchIndex]),
-  )
+  patchCondition(branchIndex, rules, branchLogic(props.branches[branchIndex]))
 }
 
 function patchCondition(branchIndex, rules, logic) {
@@ -281,6 +278,10 @@ function clone(value) {
           <button type="button" :disabled="readonly || !fieldOptions.length" @click="addRule(branchIndex)">
             添加判断规则
           </button>
+        </div>
+
+        <div v-if="!branchRules(branch).length" class="rule-empty-tip">
+          暂无判断规则，请点击「添加判断规则」。
         </div>
 
         <div
@@ -500,9 +501,14 @@ function clone(value) {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.rule-no-value {
+.rule-no-value,
+.rule-empty-tip {
   color: var(--text-color-3, #64748b);
   font-size: 12px;
+}
+
+.rule-empty-tip {
+  line-height: 1.5;
 }
 
 .field-empty-tip {

@@ -348,6 +348,54 @@ class BusinessApplicationRuntimeServiceTest {
         assertEquals(1, apps.detailCalls());
     }
 
+    @Test
+    @DisplayName("runtime cache is isolated per user so filtered page trees do not leak across sessions")
+    void runtimeCacheIsolatedPerUser() throws Exception {
+        BusinessApplicationVO application = application(3);
+        Map<String, Object> builder = Map.of(
+                "homePageId", "page_home",
+                "nodes", List.of(node("page_home", null, null)),
+                "pages", Map.of("page_home", Map.of("title", "已发布首页")));
+        Map<String, Object> snapshot = Map.of(
+                "application", Map.of(
+                        "id", "10",
+                        "applicationCode", "crm_test",
+                        "applicationName", "发布时名称",
+                        "status", 1,
+                        "portalConfig", Map.of(),
+                        "options", Map.of("inAppBuilder", builder)),
+                "objects", List.of(),
+                "entries", List.of(),
+                "extensions", List.of());
+        AiBusinessApplicationVersion version = version(3, objectMapper.writeValueAsString(snapshot));
+        StubVersionService versions = new StubVersionService(version);
+        StubApplicationService apps = new StubApplicationService(application);
+        BusinessApplicationSnapshotService snapshotService = new BusinessApplicationSnapshotService(
+                objectMapper, null, null, null, null, null, null, null, null, null);
+        BusinessApplicationRuntimeService runtimeService = new BusinessApplicationRuntimeService(
+                apps, versions, snapshotService, objectMapper);
+
+        LoginUser userA = new LoginUser();
+        userA.setUserId(77L);
+        userA.setTenantId(1L);
+        LoginUser userB = new LoginUser();
+        userB.setUserId(88L);
+        userB.setTenantId(1L);
+
+        try (ExecutionIdentityContextHolder.Scope ignored = ExecutionIdentityContextHolder.open(
+                new ExecutionIdentity(userA, "USER", 77L, null, 1L, "pc", "cache-a", Set.of()))) {
+            runtimeService.runtimeById(10L);
+            runtimeService.runtimeById(10L);
+        }
+        assertEquals(1, versions.requireVersionCalls());
+
+        try (ExecutionIdentityContextHolder.Scope ignored = ExecutionIdentityContextHolder.open(
+                new ExecutionIdentity(userB, "USER", 88L, null, 1L, "pc", "cache-b", Set.of()))) {
+            runtimeService.runtimeById(10L);
+        }
+        assertEquals(2, versions.requireVersionCalls());
+    }
+
     private BusinessApplicationVO application(Integer lastPublishVersion) {
         BusinessApplicationVO application = new BusinessApplicationVO();
         application.setId(10L);

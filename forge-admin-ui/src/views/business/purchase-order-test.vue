@@ -160,12 +160,11 @@
             />
           </n-form-item>
 
-          <div v-if="!taskRuntime.readOnly" class="task-actions">
+          <div v-if="!taskRuntime.readOnly" class="task-actions flow-task-action-bar">
             <slot name="actions" />
             <n-button
               v-if="canApprove"
               type="primary"
-              size="large"
               :loading="isActionSubmitting('approve')"
               :disabled="taskFormDisabled"
               @click="submitTask('approve')"
@@ -176,7 +175,6 @@
               v-if="canReject"
               type="error"
               secondary
-              size="large"
               :loading="isActionSubmitting('reject')"
               :disabled="taskFormDisabled"
               @click="submitTask('reject')"
@@ -408,6 +406,7 @@ import UserSelectPicker from '@/components/common/UserSelectPicker.vue'
 import DictTag from '@/components/DictTag.vue'
 import FileUpload from '@/components/file-upload/index.vue'
 import FlowCommentPhraseInput from '@/components/flow/FlowCommentPhraseInput.vue'
+import '@/styles/flow-task-actions.css'
 import { useBusinessTaskFormContext } from '@/composables/useBusinessTaskFormContext'
 import { useCodeAppMetadata } from '@/composables/useCodeAppMetadata'
 import { useDict } from '@/composables/useDict'
@@ -1268,15 +1267,10 @@ function formatDateTime(value) {
 }
 
 .query-actions,
-.modal-footer,
-.task-actions {
+.modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-}
-
-.task-actions :deep(.n-button) {
-  min-width: 96px;
 }
 
 .table-card :deep(.n-card__content) {

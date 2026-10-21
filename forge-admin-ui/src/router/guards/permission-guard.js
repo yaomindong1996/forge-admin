@@ -7,7 +7,13 @@ import { initKeyExchange } from '@/utils/crypto/key-exchange'
 import { applyTenantConfig } from '@/utils/tenant-config'
 import { SSO_BRIDGE_ROUTE } from '@/utils/sso-target'
 import { canAccessHiddenOpenPlatformTool, normalizeOpenPlatformPath } from '../open-platform-routes'
+import {
+  isApplicationPortalPath,
+  isApplicationRuntimePath,
+} from '../shell-layout'
 import { recoverFromAuthBootstrapFailure } from './auth-bootstrap-recovery'
+
+export { isApplicationPortalPath }
 
 const AUTH_ROUTE_ALLOWLIST = new Set([
   '/',
@@ -58,11 +64,6 @@ function isSameRoutePath(routePath, targetPath) {
   return new RegExp(`^${pattern}$`).test(normalizedTargetPath)
 }
 
-export function isApplicationPortalPath(path) {
-  const targetPath = normalizeRoutePath(path)
-  return targetPath === '/app' || (targetPath.startsWith('/app/') && !targetPath.startsWith('/app-center'))
-}
-
 export function canAccessRoute(to, permissionStore, userStore) {
   const targetPath = normalizeRoutePath(to.path)
   if (!targetPath)
@@ -70,6 +71,8 @@ export function canAccessRoute(to, permissionStore, userStore) {
   if (WHITE_LIST.includes(targetPath)
     || AUTH_ROUTE_ALLOWLIST.has(targetPath)
     || isApplicationPortalPath(targetPath)
+    // 设计运行页不走后台侧栏菜单鉴权，应用内权限由运行页自行校验
+    || isApplicationRuntimePath(targetPath)
     || AUTH_ROUTE_PREFIX_ALLOWLIST.some(prefix => targetPath === prefix || targetPath.startsWith(`${prefix}/`))) {
     return true
   }
@@ -170,7 +173,8 @@ export function createPermissionGuard(router) {
 
       const userStore = useUserStore()
       const permissionStore = usePermissionStore()
-      const deferAdminMenu = isApplicationPortalPath(to.path)
+      // 门户 / 应用设计态不依赖后台侧栏菜单，先放行再后台预取，缩短空壳等待
+      const deferAdminMenu = isApplicationPortalPath(to.path) || isApplicationRuntimePath(to.path)
 
       // 【关键修复】确保在请求任何加密接口前完成密钥交换
       await initKeyExchange(request)

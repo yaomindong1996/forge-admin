@@ -245,7 +245,6 @@
                      AND overdue_task.due_date IS NOT NULL
                      AND overdue_task.due_date &lt;= NOW()
                      AND overdue_task.status IN (0, 1)
-                     AND (overdue_task.del_flag = 0 OR overdue_task.del_flag IS NULL)
                ) AS timeoutTasks
         FROM sys_flow_business business
         WHERE business.tenant_id = #{tenantId}

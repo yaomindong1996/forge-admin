@@ -47,9 +47,10 @@ class BusinessApplicationPermissionServiceTest {
     private final BusinessObjectDesignerService designerService = mock(BusinessObjectDesignerService.class);
     private final LowcodePolicyService lowcodePolicyService = new LowcodePolicyService();
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final BusinessApplicationRuntimeService runtimeService = mock(BusinessApplicationRuntimeService.class);
     private final BusinessApplicationPermissionService service = new BusinessApplicationPermissionService(
             applicationService, objectService, businessAppService, permissionAdapter,
-            designerService, lowcodePolicyService, objectMapper);
+            designerService, lowcodePolicyService, objectMapper, runtimeService);
 
     @BeforeEach
     void setUp() {
@@ -92,6 +93,7 @@ class BusinessApplicationPermissionServiceTest {
                 eq(Set.of(102L, 100L)),
                 eq(Set.of(MODULE_CODE)),
                 eq(Map.of(MODULE_CODE, 3)));
+        verify(runtimeService).invalidateRuntimeCache(1L);
         assertTrue(service.rolePermission(APPLICATION_CODE, 7L).getResourceIds().contains(102L));
         assertFalse(service.rolePermission(APPLICATION_CODE, 7L).getResourceIds().contains(100L));
         assertFalse(service.rolePermission(APPLICATION_CODE, 7L).getResourceIds().contains(101L));

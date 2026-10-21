@@ -14,7 +14,7 @@
           返回
         </NButton>
         <div>
-          <h1>插件中心</h1>
+          <h1>{{ focusedExamples ? (store.detail?.name || store.selectedId) : '插件中心' }}</h1>
           <p v-if="!store.detailVisible">
             查看插件能力，了解安装与授权
           </p>
@@ -25,7 +25,7 @@
       </div>
       <div class="plugin-center__actions">
         <NButton
-          v-if="pluginMarketUrl" tag="a" :href="pluginMarketUrl" target="_blank" rel="noopener noreferrer"
+          v-if="pluginMarketUrl && !focusedExamples" tag="a" :href="pluginMarketUrl" target="_blank" rel="noopener noreferrer"
         >
           <template #icon>
             <i class="i-lucide:external-link" />
@@ -88,9 +88,14 @@
       <!-- B：连体列表＋详情，复用系统公共滚动与响应式布局 -->
       <MasterDetailWorkspace
         v-if="store.detailVisible && store.canDetail" :aside-width="280" class="plugin-center__workspace"
+        :class="{
+          'plugin-center__workspace--settings': store.detailTab === 'settings',
+          'plugin-center__workspace--guide': store.detailTab === 'installation',
+          'plugin-center__workspace--examples': store.detailTab === 'examples',
+        }"
       >
         <template #aside>
-          <PluginListNavigation />
+          <PluginListNavigation v-if="!focusedExamples" />
         </template>
         <PluginDetail />
       </MasterDetailWorkspace>
@@ -100,7 +105,7 @@
 
 <script setup>
 import { NAlert, NButton, NPagination, NTab, NTabs } from 'naive-ui'
-import { onActivated, onBeforeUnmount, onDeactivated, onMounted } from 'vue'
+import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted } from 'vue'
 import pluginModules from '@/assets/illustrations/plugins/plugin-modules.png'
 import MasterDetailWorkspace from '@/components/common/MasterDetailWorkspace.vue'
 import { usePluginCenterStore } from '@/stores/plugin/centerStore'
@@ -113,6 +118,7 @@ import { pluginMarketUrl } from './plugin/pluginLinks'
 
 defineOptions({ name: 'SystemPluginCenter' })
 const store = usePluginCenterStore()
+const focusedExamples = computed(() => store.detailVisible && store.detailTab === 'examples')
 function refresh() {
   store.load()
   if (store.detailVisible)
@@ -150,10 +156,20 @@ onBeforeUnmount(store.deactivate)
   align-items: center;
   gap: 8px;
 }
+.plugin-center__heading {
+  flex: 1;
+  min-width: 0;
+}
+.plugin-center__heading > div {
+  min-width: 0;
+}
 .plugin-center__header h1 {
   margin: 0;
   font-size: 17px;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .plugin-center__header p {
   margin: 4px 0 0;
@@ -209,10 +225,38 @@ onBeforeUnmount(store.deactivate)
   flex: 1;
   min-height: 0;
 }
+/* 示例是阅读工作区，不再同时占用一列插件切换导航；其它详情分组保留公共双栏。 */
+.plugin-center__workspace.plugin-center__workspace--examples {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+}
+/* 只隐藏宿主直系侧栏，不能影响 ZIP 阅读器内部的文件目录。 */
+.plugin-center__workspace--examples > :deep(.master-detail-workspace__aside),
+.plugin-center__workspace--examples > :deep(.master-detail-workspace__divider) {
+  display: none;
+}
 /* 窄屏上下堆叠时保留可用详情高度，由公共工作台统一承接外层滚动。 */
 @media (max-width: 960px) {
-  .plugin-center__workspace :deep(.master-detail-workspace__main) {
+  .plugin-center__workspace > :deep(.master-detail-workspace__main) {
     min-height: 540px;
+  }
+  /* 设置和说明保留返回入口，窄屏为正文提供独立可用的阅读区。 */
+  .plugin-center__workspace--settings,
+  .plugin-center__workspace--guide,
+  .plugin-center__workspace--examples {
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+  }
+  .plugin-center__workspace--settings > :deep(.master-detail-workspace__aside),
+  .plugin-center__workspace--guide > :deep(.master-detail-workspace__aside),
+  .plugin-center__workspace--examples > :deep(.master-detail-workspace__aside) {
+    display: none;
+  }
+  .plugin-center__workspace--settings > :deep(.master-detail-workspace__main),
+  .plugin-center__workspace--guide > :deep(.master-detail-workspace__main),
+  .plugin-center__workspace--examples > :deep(.master-detail-workspace__main) {
+    min-height: 0;
   }
 }
 @media (max-width: 540px) {

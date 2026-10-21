@@ -62,6 +62,7 @@ public class BusinessApplicationPermissionService {
     private final BusinessObjectDesignerService designerService;
     private final LowcodePolicyService lowcodePolicyService;
     private final ObjectMapper objectMapper;
+    private final BusinessApplicationRuntimeService runtimeService;
 
     public BusinessApplicationPermissionWorkspaceVO workspace(String applicationCode) {
         return buildCatalog(applicationCode).workspace();
@@ -100,6 +101,8 @@ public class BusinessApplicationPermissionService {
         permissionAdapter.saveRoleGrant(roleId,
                 catalog.resourceIds(), selectedResourceIds,
                 catalog.moduleCodes(), requestedModuleScopes);
+        // 运行态缓存了按用户过滤后的页面树；授权变更后必须失效，否则 30s 内仍可能读到旧空菜单
+        runtimeService.invalidateRuntimeCache(catalog.workspace().getApplicationId());
         return rolePermission(applicationCode, roleId);
     }
 

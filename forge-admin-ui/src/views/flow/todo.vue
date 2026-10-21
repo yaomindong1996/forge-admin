@@ -337,13 +337,12 @@
               @cancel="showDrawer = false"
             >
               <template #actions>
-                <NButton v-if="canDelegate" size="small" :disabled="isApprovalBusy" @click="handleDelegate">
+                <NButton v-if="canDelegate" :disabled="isApprovalBusy" @click="handleDelegate">
                   转办
                 </NButton>
 
                 <NButton
                   v-if="currentTask.status === 0 && !currentTask.assignee"
-                  size="small"
                   :loading="isClaimingTask(currentTask)"
                   :disabled="isApprovalBusy"
                   @click="handleClaim(currentTask)"
@@ -458,10 +457,10 @@
               </n-form-item>
             </n-form>
 
-            <div class="action-buttons">
+            <div class="action-buttons flow-task-action-bar">
               <n-popconfirm v-if="canApprove" @positive-click="() => submitApprove('approve')">
                 <template #trigger>
-                  <NButton type="primary" size="small" :loading="isActionLoading('approve')" :disabled="isApprovalBusy">
+                  <NButton type="primary" :loading="isActionLoading('approve')" :disabled="isApprovalBusy">
                     同意
                   </NButton>
                 </template>
@@ -471,7 +470,6 @@
               <NButton
                 v-if="canReject && canChooseReturnTarget"
                 type="error"
-                size="small"
                 :loading="isActionLoading('reject') || isActionLoading('return')"
                 :disabled="isApprovalBusy"
                 @click="openRejectTargetModal"
@@ -480,7 +478,7 @@
               </NButton>
               <n-popconfirm v-else-if="canReject" @positive-click="() => submitApprove('reject')">
                 <template #trigger>
-                  <NButton type="error" size="small" :loading="isActionLoading('reject')" :disabled="isApprovalBusy">
+                  <NButton type="error" :loading="isActionLoading('reject')" :disabled="isApprovalBusy">
                     驳回
                   </NButton>
                 </template>
@@ -489,7 +487,7 @@
 
               <n-popconfirm v-if="canRejectToStart" @positive-click="() => submitApprove('rejectToStart')">
                 <template #trigger>
-                  <NButton type="warning" ghost size="small" :loading="isActionLoading('rejectToStart')" :disabled="isApprovalBusy">
+                  <NButton type="warning" ghost :loading="isActionLoading('rejectToStart')" :disabled="isApprovalBusy">
                     退回发起人修改
                   </NButton>
                 </template>
@@ -498,20 +496,19 @@
 
               <n-popconfirm v-if="canTerminate" @positive-click="() => submitApprove('terminate')">
                 <template #trigger>
-                  <NButton type="error" ghost size="small" :loading="isActionLoading('terminate')" :disabled="isApprovalBusy">
+                  <NButton type="error" ghost :loading="isActionLoading('terminate')" :disabled="isApprovalBusy">
                     终结
                   </NButton>
                 </template>
                 确认终结该流程？
               </n-popconfirm>
 
-              <NButton v-if="canDelegate" size="small" :disabled="isApprovalBusy" @click="handleDelegate">
+              <NButton v-if="canDelegate" :disabled="isApprovalBusy" @click="handleDelegate">
                 转办
               </NButton>
 
               <NButton
                 v-if="currentTask.status === 0 && !currentTask.assignee"
-                size="small"
                 :loading="isClaimingTask(currentTask)"
                 :disabled="isApprovalBusy"
                 @click="handleClaim(currentTask)"
@@ -598,4 +595,5 @@ export default {
 }
 </script>
 
+<style src="@/styles/flow-task-actions.css"></style>
 <style scoped src="./todo.css"></style>

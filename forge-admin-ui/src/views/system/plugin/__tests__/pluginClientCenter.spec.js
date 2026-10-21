@@ -5,9 +5,34 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { h, nextTick, reactive, ref } from 'vue'
 import { usePluginCenterStore } from '@/stores/plugin/centerStore'
 import PluginCenter from '../../plugin.vue'
+import pluginSource from '../../plugin.vue?raw'
 
 const api = vi.hoisted(() => ({ listRuntimePlugins: vi.fn(), getRuntimePlugin: vi.fn() }))
 vi.mock('@/api/system/plugin', () => api)
+vi.mock('@/utils/plugin-settings', () => ({
+  getPluginSettingsExtension: id => id === 'file-preview'
+    ? {
+        permission: 'file:preview:settings:query',
+        loader: async () => ({ render: () => h('section', { 'aria-label': '测试配置槽' }, '配置正文') }),
+      }
+    : null,
+}))
+vi.mock('@/utils/plugin-examples', () => ({
+  getPluginExamplesExtension: id => id === 'file-preview'
+    ? {
+        permission: 'file:preview:read',
+        loader: async () => ({ render: () => h('section', { 'aria-label': '测试使用示例槽' }, '示例阅读区') }),
+      }
+    : null,
+}))
+// 社区模板不捆绑具体插件 guide；用 mock 验证宿主扩展槽，不依赖已安装插件包
+vi.mock('@/utils/plugin-guide', () => ({
+  getPluginGuideExtension: id => id === 'file-preview'
+    ? async () => ({
+        render: () => h('section', { 'aria-label': '测试安装说明槽' }, '文件预览 · 使用与部署；服务接入'),
+      })
+    : null,
+}))
 let user
 let auth
 vi.mock('@/store', () => ({ useUserStore: () => user, useAuthStore: () => auth }))
@@ -43,6 +68,79 @@ function setup() {
 }
 
 describe('a 首页与 B 详情真实组件', () => {
+  it('工作台样式仅覆盖宿主直系区域，不隐藏ZIP内部目录或修改其阅读高度', () => {
+    const style = pluginSource.match(/<style scoped>([\s\S]+)<\/style>/)[1]
+    const workspaceSelectors = style.split('\n').filter(line => line.includes(':deep(.master-detail-workspace__'))
+    expect(workspaceSelectors.length).toBeGreaterThan(0)
+    expect(workspaceSelectors.every(line => line.includes(' > :deep('))).toBe(true)
+  })
+
+  it('可选使用示例独立工作区，切换无扩展插件卸载示例且不重复介绍头', async () => {
+    const plugin = { id: 'file-preview', name: '通用文件预览', origin: 'external', version: '0.1.0' }
+    api.listRuntimePlugins.mockResolvedValueOnce({ code: 200, data: { records: [plugin, records[0]], total: 2 } })
+    api.getRuntimePlugin.mockImplementation(id => Promise.resolve({
+      code: 200,
+      data: id === plugin.id ? plugin : records[0],
+    }))
+    setup()
+    await flushPromises()
+    const store = usePluginCenterStore()
+    await store.open(plugin.id, 'examples')
+    await vi.dynamicImportSettled()
+    await flushPromises()
+    expect(wrapper.find('.plugin-detail__header').exists()).toBe(false)
+    expect(wrapper.find('.plugin-detail__body--examples').exists()).toBe(true)
+    expect(wrapper.find('.plugin-center__workspace--examples').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="测试使用示例槽"]').exists()).toBe(true)
+    expect(wrapper.find('.plugin-navigation').exists()).toBe(false)
+    expect(wrapper.find('.plugin-center__header h1').text()).toBe('通用文件预览')
+    store.detailTab = 'introduction'
+    await nextTick()
+    expect(wrapper.find('.plugin-navigation').exists()).toBe(true)
+    store.detailTab = 'examples'
+    await nextTick()
+    expect(wrapper.find('.plugin-navigation').exists()).toBe(false)
+    await store.open(records[0].id)
+    await flushPromises()
+    expect(wrapper.find('[aria-label="测试使用示例槽"]').exists()).toBe(false)
+    expect(wrapper.find('.plugin-detail__body--examples').exists()).toBe(false)
+    expect(wrapper.findAll('.plugin-detail__tabs .n-tabs-tab').some(tab => tab.text() === '使用示例')).toBe(false)
+    expect(wrapper.find('.plugin-navigation').exists()).toBe(true)
+  })
+
+  it('所有详情分组都不重复渲染介绍头，设置模式为窄屏启用独立工作区', async () => {
+    const plugin = { id: 'file-preview', name: '通用文件预览', origin: 'external', version: '0.1.0' }
+    api.listRuntimePlugins.mockResolvedValueOnce({ code: 200, data: { records: [plugin], total: 1 } })
+    api.getRuntimePlugin.mockResolvedValue({ code: 200, data: plugin })
+    setup()
+    await flushPromises()
+    const store = usePluginCenterStore()
+    await store.open(plugin.id, 'settings')
+    await flushPromises()
+    expect(wrapper.find('.plugin-detail__header').exists()).toBe(false)
+    expect(wrapper.find('.plugin-detail__body--settings').exists()).toBe(true)
+    expect(wrapper.find('.plugin-center__workspace--settings').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="测试配置槽"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="返回插件列表"]').exists()).toBe(true)
+    await wrapper.findAll('.plugin-detail__tabs .n-tabs-tab')
+      .find(tab => tab.text() === '功能介绍')
+      .trigger('click')
+    expect(wrapper.find('.plugin-detail__header').exists()).toBe(false)
+    expect(wrapper.find('.plugin-navigation__item.is-selected').text()).toContain('通用文件预览')
+    expect(wrapper.find('.plugin-introduction').text()).toContain('功能概览')
+    expect(wrapper.find('.plugin-center__workspace--settings').exists()).toBe(false)
+    await wrapper.findAll('.plugin-detail__tabs .n-tabs-tab')
+      .find(tab => tab.text() === '安装说明')
+      .trigger('click')
+    expect(wrapper.find('.plugin-detail__header').exists()).toBe(false)
+    await vi.dynamicImportSettled()
+    await flushPromises()
+    expect(wrapper.find('[aria-label="安装说明"]').text()).toContain('文件预览 · 使用与部署')
+    expect(wrapper.find('[aria-label="安装说明"]').text()).toContain('服务接入')
+    expect(wrapper.find('[aria-label="测试安装说明槽"]').exists()).toBe(true)
+    expect(wrapper.find('.plugin-center__workspace--guide').exists()).toBe(true)
+  })
+
   it('初次加载使用模块卡骨架，返回后身份、简介与操作保持独立分区', async () => {
     let resolve
     api.listRuntimePlugins.mockReturnValueOnce(new Promise(done => resolve = done))

@@ -16,13 +16,13 @@
           </div>
         </div>
         <router-view v-else v-slot="{ Component, route: curRoute }">
-          <component :is="LayoutComponent" :key="curRoute.meta?.layout || appStore.layout">
+          <component :is="LayoutComponent" :key="activeShellLayout">
             <Suspense v-if="useRouteSuspense(curRoute)">
               <template #default>
                 <component :is="Component" v-if="!tabStore.reloading" :key="resolveRouteViewKey(curRoute)" />
               </template>
               <template #fallback>
-                <ApplicationRuntimeSkeleton v-if="isApplicationRuntimeRoute(curRoute)" />
+                <ApplicationRuntimeSkeleton v-if="isApplicationRuntimeRoute(curRoute) || isApplicationRuntimePath(readBrowserPathname())" />
                 <ApplicationPortalSkeleton v-else />
               </template>
             </Suspense>
@@ -45,6 +45,15 @@
         <!-- 全局水印 -->
         <div v-if="watermarkConfig.enable" class="watermark-layer" :style="watermarkStyle" />
         <GlobalLoadingOverlay />
+        <!-- 切入设计态瞬间盖住旧系统壳内容，避免侧栏卸掉后列表空闪一帧 -->
+        <div
+          v-if="showDesignShellTransition"
+          class="design-shell-transition"
+          aria-busy="true"
+          aria-label="正在进入设计态"
+        >
+          <ApplicationRuntimeSkeleton />
+        </div>
         <!-- 无侧栏停靠点时左下角兜底：始终图标态，避免白底长按钮挡内容 -->
         <RecentDownloads v-if="showRecentDownloads && !downloadsDockAvailable" compact />
         <NoticeDetailModal />
@@ -57,7 +66,7 @@
 <script setup>
 import { useMediaQuery } from '@vueuse/core'
 import { darkTheme, dateZhCN, zhCN } from 'naive-ui'
-import { computed, defineAsyncComponent, markRaw, onMounted, shallowRef, watch, watchEffect } from 'vue'
+import { computed, defineAsyncComponent, markRaw, onMounted, watch, watchEffect } from 'vue'
 // 初始化响应式字体功能
 import { useRoute } from 'vue-router'
 import { LayoutSetting } from '@/components'
@@ -66,7 +75,14 @@ import SystemPageLayout from '@/components/common/SystemPageLayout.vue'
 import NoticeDetailModal from '@/components/notice/NoticeDetailModal.vue'
 import { useWatermark } from '@/composables/useWatermark'
 import { useSidebarVisibility } from '@/layouts/composables/useSidebarVisibility'
-import { isApplicationPortalPath } from '@/router/guards/permission-guard'
+import {
+  isApplicationPortalPath,
+  isApplicationRuntimePath,
+  isEmptyShellPath,
+  pendingShellLayout,
+  readBrowserPathname,
+  resolveShellLayoutName,
+} from '@/router/shell-layout'
 import { useAppStore, useAuthStore, usePermissionStore, useTabStore, useUserStore } from '@/store'
 import { useRecentDownloadsStore } from '@/stores/system/recentDownloadsStore'
 import { hasDownloadDock } from '@/stores/system/recentDownloadsUtils'
@@ -80,8 +96,6 @@ import EmptyLayout from './layouts/empty/index.vue'
 import { canConfigureLayout } from './layouts/layout-settings-visibility'
 import { defaultLayout, layoutSettingVisible, normalizeLayout } from './settings'
 
-// 使用 shallowRef 确保 Layout 引用稳定
-const LayoutComponent = shallowRef(null)
 const SystemAboutModal = defineAsyncComponent(() => import('@/components/common/SystemAboutModal.vue'))
 const versionStore = useSystemVersionStore()
 const versionAuth = useAuthStore()
@@ -101,12 +115,15 @@ function resolveRouteViewKey(curRoute) {
 function isApplicationRuntimeRoute(curRoute) {
   if (curRoute?.name === 'BusinessApplicationRuntime')
     return true
-  const path = String(curRoute?.path || '')
-  return /^\/app-center\/application\/[^/]+\/runtime(?:\/|$)/.test(path)
+  return isApplicationRuntimePath(curRoute?.path)
 }
 
 function useRouteSuspense(curRoute) {
-  return curRoute?.meta?.layout === 'app-portal' || isApplicationRuntimeRoute(curRoute)
+  // 仅应用门户 / 设计运行页用 Suspense 骨架；登录等其它空壳页保持原同步挂载
+  return curRoute?.meta?.layout === 'app-portal'
+    || isApplicationRuntimeRoute(curRoute)
+    || isApplicationPortalPath(curRoute?.path)
+    || isApplicationRuntimePath(readBrowserPathname())
 }
 
 /** 同步加载的布局（不在 glob 里，但必须按名称认作合法，否则会回退到默认工作台） */
@@ -142,7 +159,17 @@ const userStore = useUserStore()
 const downloadsStore = useRecentDownloadsStore()
 const downloadsNarrow = useMediaQuery('(max-width: 768px)')
 const { showSidebar: downloadsSidebarVisible } = useSidebarVisibility()
-const downloadsLayout = computed(() => normalizeLayoutName(route.meta?.layout || appStore.layout))
+
+// 用 pending + URL 推断，避免进入设计态时仍渲染系统侧栏一帧
+const activeShellLayout = computed(() => normalizeLayoutName(resolveShellLayoutName({
+  routeMetaLayout: route.meta?.layout,
+  routePath: route.path,
+  locationPath: readBrowserPathname(),
+  pending: pendingShellLayout.value,
+  appLayout: appStore.layout,
+})))
+const LayoutComponent = computed(() => getLayout(activeShellLayout.value))
+const downloadsLayout = computed(() => activeShellLayout.value)
 const downloadsDockAvailable = computed(() => hasDownloadDock(downloadsLayout.value, {
   narrow: downloadsNarrow.value,
   collapsed: appStore.collapsed,
@@ -153,32 +180,44 @@ watch([() => route.fullPath, downloadsLayout, () => appStore.collapsed, download
 })
 const isSystemRoute = computed(() => route.path.startsWith('/system/'))
 const showRecentDownloads = computed(() => {
-  return !!versionAuth.accessToken && route.meta?.layout !== 'empty' && route.path !== '/login'
+  return !!versionAuth.accessToken
+    && activeShellLayout.value !== 'empty'
+    && activeShellLayout.value !== 'app-portal'
+    && route.path !== '/login'
 })
 const showLayoutSetting = computed(() => {
+  const shell = activeShellLayout.value
   return layoutSettingVisible && canConfigureLayout({
-    routeLayout: route.meta?.layout,
+    // 设计态/门户空壳禁止打开布局设置；系统壳才允许
+    routeLayout: (shell === 'empty' || shell === 'app-portal') ? shell : undefined,
     authenticated: userStore.userInfo || userStore.staffInfo,
   })
 })
 
-// 监听布局变化，及时更新布局组件
-watch(() => route.meta?.layout || appStore.layout, (layoutName) => {
-  if (layoutName) {
-    const layoutComponent = getLayout(layoutName)
-    LayoutComponent.value = layoutComponent
-  }
-  else {
-    LayoutComponent.value = null
-  }
-}, { immediate: true })
+const showDesignShellTransition = computed(() => {
+  if (pendingShellLayout.value !== 'empty')
+    return false
+  // 目标已是空壳且当前路由也已落在设计态时，交给页面内骨架，不必再盖一层
+  if (isApplicationRuntimeRoute(route) || isEmptyShellPath(route.path))
+    return false
+  return true
+})
 
 // 显示加载状态的条件：
 // 1. 用户已登录但路由守卫未完成
 // 2. 菜单数据未加载完成
 const showLoading = computed(() => {
-  // 发布运行页 / 页面管理自己画骨架，不要先盖一层“正在加载...”再白屏。
-  if (isApplicationPortalPath(route.path) || isApplicationRuntimeRoute(route)) {
+  const browserPath = readBrowserPathname()
+  // 发布运行页 / 设计态自己画骨架，不要先盖一层“正在加载...”再闪系统菜单。
+  if (
+    isApplicationPortalPath(route.path)
+    || isApplicationPortalPath(browserPath)
+    || isApplicationRuntimeRoute(route)
+    || isEmptyShellPath(route.path)
+    || isEmptyShellPath(browserPath)
+    || activeShellLayout.value === 'empty'
+    || activeShellLayout.value === 'app-portal'
+  ) {
     return false
   }
 
@@ -311,5 +350,12 @@ watchEffect(() => {
   height: 100%;
   pointer-events: none;
   z-index: 1000;
+}
+
+.design-shell-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 98;
+  background: var(--bg-secondary, #f5f6f8);
 }
 </style>

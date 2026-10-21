@@ -14,27 +14,13 @@
       </NAlert>
     </div>
     <template v-else-if="store.detail">
-      <!-- 当前插件与统一操作 -->
-      <header class="plugin-detail__header">
-        <PluginIllustration :plugin="store.detail" :size="48" />
-        <div class="plugin-detail__identity">
-          <div class="plugin-detail__title">
-            <h2>{{ store.detail.name || store.detail.id }}</h2>
-            <DictTag :options="dict.sys_plugin_origin" :value="store.detail.origin" type="default" :bordered="false" />
-          </div>
-          <p>{{ presentation.summary }}</p>
-          <span class="plugin-detail__version">{{ store.detail.version ? `v${store.detail.version}` : '版本未提供' }}</span>
-        </div>
-        <NButton v-if="pluginGuideUrl" tag="a" :href="pluginGuideUrl" target="_blank" rel="noopener noreferrer">
-          <template #icon>
-            <i class="i-lucide:book-open" />
-          </template>
-          使用文档
-        </NButton>
-      </header>
+      <!-- 当前插件由导航或页标题标识，详情从页签开始，不重复堆叠介绍头。 -->
       <NTabs v-model:value="store.detailTab" class="plugin-detail__tabs" type="line">
         <NTab name="introduction">
           功能介绍
+        </NTab>
+        <NTab v-if="canExamples" name="examples">
+          使用示例
         </NTab>
         <NTab name="installation">
           安装说明
@@ -42,10 +28,17 @@
         <NTab name="license">
           授权状态
         </NTab>
+        <NTab v-if="canSettings" name="settings">
+          插件设置
+        </NTab>
       </NTabs>
       <!-- 详情正文独立滚动，底部内容不被导航或分页遮挡 -->
       <div
         :key="store.selectedId + store.detailTab" class="plugin-detail__body"
+        :class="{
+          'plugin-detail__body--settings': settingsActive,
+          'plugin-detail__body--examples': examplesActive,
+        }"
         tabindex="0" aria-label="插件详情正文"
       >
         <section v-if="store.detailTab === 'introduction'" class="plugin-introduction">
@@ -65,11 +58,23 @@
               <NButton text type="primary" @click="store.detailTab = 'installation'">
                 查看安装说明 →
               </NButton>
+              <NButton
+                v-if="canExamples" text type="primary" class="plugin-introduction__example-link"
+                @click="store.detailTab = 'examples'"
+              >
+                查看使用示例 →
+              </NButton>
             </div>
           </div>
           <PluginTechnicalInfo :plugin="store.detail" />
         </section>
         <PluginInstallationGuide v-else-if="store.detailTab === 'installation'" :plugin="store.detail" />
+        <PluginExamplesOutlet
+          v-else-if="examplesActive" :plugin-id="store.detail.id"
+        />
+        <PluginSettingsOutlet
+          v-else-if="store.detailTab === 'settings' && canSettings" :plugin-id="store.detail.id"
+        />
         <PluginLicenseSummary v-else :plugin="store.detail" />
       </div>
     </template>
@@ -78,20 +83,39 @@
 
 <script setup>
 import { NAlert, NButton, NSkeleton, NTab, NTabs } from 'naive-ui'
-import { computed } from 'vue'
-import DictTag from '@/components/DictTag.vue'
-import { useDict } from '@/composables/useDict'
+import { computed, watch } from 'vue'
 import { usePluginCenterStore } from '@/stores/plugin/centerStore'
-import { pluginGuideUrl } from '../pluginLinks'
+import { getPluginExamplesExtension } from '@/utils/plugin-examples'
+import { getPluginSettingsExtension } from '@/utils/plugin-settings'
 import { pluginPresentation } from '../pluginPresentation'
-import PluginIllustration from './PluginIllustration.vue'
+import { usePluginPermission } from '../usePluginPermission'
+import PluginExamplesOutlet from './PluginExamplesOutlet.vue'
 import PluginInstallationGuide from './PluginInstallationGuide.vue'
 import PluginLicenseSummary from './PluginLicenseSummary.vue'
+import PluginSettingsOutlet from './PluginSettingsOutlet.vue'
 import PluginTechnicalInfo from './PluginTechnicalInfo.vue'
 
 const store = usePluginCenterStore()
-const { dict } = useDict('sys_plugin_origin')
 const presentation = computed(() => pluginPresentation(store.detail))
+const hasPermission = usePluginPermission()
+const canSettings = computed(() => {
+  const extension = getPluginSettingsExtension(store.detail?.id)
+  return !!extension && hasPermission(extension.permission)
+})
+const settingsActive = computed(() => store.detailTab === 'settings' && canSettings.value)
+const canExamples = computed(() => {
+  const extension = getPluginExamplesExtension(store.detail?.id)
+  return !!extension && hasPermission(extension.permission)
+})
+const examplesActive = computed(() => store.detailTab === 'examples' && canExamples.value)
+watch([canSettings, () => store.detailTab], ([allowed]) => {
+  if (!allowed && store.detailTab === 'settings')
+    store.detailTab = 'introduction'
+}, { flush: 'sync' })
+watch([canExamples, () => store.detailTab], ([allowed]) => {
+  if (!allowed && store.detailTab === 'examples')
+    store.detailTab = 'introduction'
+}, { flush: 'sync' })
 </script>
 
 <style scoped>
@@ -109,42 +133,24 @@ const presentation = computed(() => pluginPresentation(store.detail))
   flex-direction: column;
   gap: 16px;
 }
-.plugin-detail__header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  flex-wrap: wrap;
-}
-.plugin-detail__identity {
-  flex: 1;
-  min-width: 160px;
-  overflow-wrap: anywhere;
-}
-.plugin-detail__title {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.plugin-detail h2 {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 500;
-}
 .plugin-detail p {
   margin: 8px 0;
   font-size: 13px;
   color: var(--text-tertiary);
   line-height: 1.8;
 }
-.plugin-detail__version {
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
 .plugin-detail__tabs {
   flex: none;
   padding: 0 20px;
+}
+/* 新增可选设置页签后，窄屏仍可直接看到选中项，不把入口挤出容器。 */
+@media (max-width: 600px) {
+  .plugin-detail__tabs :deep(.n-tabs-tab) {
+    font-size: 12px;
+  }
+  .plugin-detail__tabs :deep(.n-tabs-tab-pad) {
+    width: 16px;
+  }
 }
 .plugin-detail__body {
   flex: 1;
@@ -152,6 +158,17 @@ const presentation = computed(() => pluginPresentation(store.detail))
   overflow: auto;
   scrollbar-gutter: stable;
   padding: 24px 20px;
+}
+.plugin-detail__body--settings,
+.plugin-detail__body--examples {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px 20px;
+}
+.plugin-detail__body--examples {
+  padding: 8px 12px;
+  scrollbar-gutter: auto;
 }
 .plugin-introduction {
   display: flex;
@@ -201,6 +218,9 @@ const presentation = computed(() => pluginPresentation(store.detail))
   font-size: 14px;
   font-weight: 500;
 }
+.plugin-introduction__example-link {
+  margin-left: 16px;
+}
 @media (max-width: 640px) {
   .plugin-detail__header {
     padding: 12px;
@@ -211,6 +231,9 @@ const presentation = computed(() => pluginPresentation(store.detail))
   }
   .plugin-detail__body {
     padding: 16px 12px;
+  }
+  .plugin-detail__body--examples {
+    padding: 8px;
   }
   .plugin-introduction__features {
     grid-template-columns: 1fr;
