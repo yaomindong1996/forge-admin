@@ -50,7 +50,7 @@ class FlowModelPublicationDictionaryMigrationTest {
     private String migration() throws Exception {
         Path cursor = Path.of("").toAbsolutePath();
         while (cursor != null) {
-            Path file = cursor.resolve("db/migration/V1.0.226__add_flow_model_publication_state_dict.sql");
+            Path file = cursor.resolve("db/migration/V1.0.228__add_flow_model_publication_state_dict.sql");
             if (Files.isRegularFile(file)) {
                 return Files.readString(file);
             }
