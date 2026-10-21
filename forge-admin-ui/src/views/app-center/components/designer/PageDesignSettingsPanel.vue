@@ -186,8 +186,8 @@
           </div>
         </dl>
         <div v-if="layoutPolluted" class="page-design-settings-restore">
-          <n-alert type="warning" :bordered="false" title="布局已被自由布局组件污染">
-            可一键清除多余组件，恢复为列表/表单标准布局（保留数据对象与表单资产）。
+          <n-alert type="warning" :bordered="false" title="该对象页缺少标准列表/表单布局">
+            未找到 AiCrud 块或页面类型异常。可一键恢复标准布局（保留数据对象与表单资产）。
           </n-alert>
           <n-button type="warning" :loading="restoring" @click="emit('restore-layout')">
             恢复列表/表单布局

@@ -212,86 +212,6 @@ function pageNode({ id, title, pageType, pageShape, pageTemplate, sort, objectRe
   }
 }
 
-const homeLayout = {
-  gridLayout: {
-    cols: 12,
-    rowHeight: 32,
-    gap: 12,
-    designWidth: 1366,
-    layoutType: 'custom',
-    items: [
-      {
-        id: 'blk_home_title',
-        blockType: 'page-title',
-        label: '页面标题',
-        gridX: 0,
-        gridY: 0,
-        gridW: 12,
-        gridH: 2,
-        props: {
-          title: '请假中心',
-          subtitle: '从发起申请、查看记录到审批办理，一套页面覆盖日常人事请假。',
-        },
-      },
-      {
-        id: 'blk_home_intro',
-        blockType: 'intro',
-        label: '介绍',
-        gridX: 0,
-        gridY: 2,
-        gridW: 12,
-        gridH: 3,
-        props: {
-          title: '怎么用这套应用',
-          description: '员工在「发起请假」填写并提交；本人与人事在「请假记录」查询与导出；主管在「审批办理」处理待审单据。可对接请假审批打印单。',
-        },
-      },
-      {
-        id: 'blk_home_metric_1',
-        blockType: 'metric-card',
-        label: '指标',
-        gridX: 0,
-        gridY: 5,
-        gridW: 4,
-        gridH: 3,
-        props: { title: '发起入口', value: '表单页', trend: '一键填写提交' },
-      },
-      {
-        id: 'blk_home_metric_2',
-        blockType: 'metric-card',
-        label: '指标',
-        gridX: 4,
-        gridY: 5,
-        gridW: 4,
-        gridH: 3,
-        props: { title: '记录查询', value: '列表页', trend: '搜索 / 编辑 / 导出' },
-      },
-      {
-        id: 'blk_home_metric_3',
-        blockType: 'metric-card',
-        label: '指标',
-        gridX: 8,
-        gridY: 5,
-        gridW: 4,
-        gridH: 3,
-        props: { title: '审批办理', value: '列表+表单', trend: '状态与交接一屏处理' },
-      },
-      {
-        id: 'blk_home_tip',
-        blockType: 'text',
-        label: '说明',
-        gridX: 0,
-        gridY: 8,
-        gridW: 12,
-        gridH: 2,
-        props: {
-          content: '导入后请先发布应用与对象，再在门户使用。字段已含交接说明、代理人与审批状态，便于接流程与打印。',
-        },
-      },
-    ],
-  },
-}
-
 const listBlock = crudBlock({
   id: 'blk_leave_list_crud',
   title: '请假记录',
@@ -308,6 +228,198 @@ const approveBlock = crudBlock({
   title: '审批办理',
   pageMode: 'list-form',
 })
+
+/**
+ * 首页演示自由布局：快捷入口 + 指标 + 柱状/折线图 + 请假列表。
+ * 入口跳转走 targetPageId（与导航页 id 一致），避免再用散落的裸按钮。
+ */
+const homeLayout = pageLayout([
+  {
+    id: 'blk_home_quick_entry',
+    blockType: 'quick-entry',
+    label: '快捷入口',
+    gridX: 0,
+    gridY: 0,
+    gridW: 12,
+    gridH: 3,
+    props: {
+      columns: 3,
+      items: [
+        {
+          key: 'go_apply',
+          title: '发起请假',
+          description: '填写申请并提交审批',
+          icon: 'CalendarOutline',
+          tone: 'primary',
+          targetPageId: 'page_leave_apply',
+        },
+        {
+          key: 'go_list',
+          title: '请假记录',
+          description: '查询、导出与跟进',
+          icon: 'ListOutline',
+          tone: 'info',
+          targetPageId: 'page_leave_list',
+        },
+        {
+          key: 'go_approve',
+          title: '审批办理',
+          description: '处理待审请假单',
+          icon: 'CheckmarkCircleOutline',
+          tone: 'success',
+          targetPageId: 'page_leave_approve',
+        },
+      ],
+      style: {
+        widthMode: 'full',
+        heightMode: 'auto',
+        height: 120,
+      },
+    },
+  },
+  {
+    id: 'blk_home_stats',
+    blockType: 'stats-strip',
+    label: '请假统计',
+    gridX: 0,
+    gridY: 3,
+    gridW: 12,
+    gridH: 2,
+    props: {
+      metrics: [
+        { label: '本月申请', value: '36', trend: '+12%' },
+        { label: '待审批', value: '8', trend: '+2' },
+        { label: '已通过', value: '24', trend: '+9%' },
+        { label: '平均天数', value: '2.4', trend: '-0.3' },
+      ],
+      style: {
+        widthMode: 'full',
+        heightMode: 'auto',
+        height: 88,
+      },
+    },
+  },
+  {
+    id: 'blk_home_bar_chart',
+    blockType: 'bar-chart',
+    label: '请假类型分布',
+    gridX: 0,
+    gridY: 5,
+    gridW: 6,
+    gridH: 8,
+    props: {
+      title: '请假类型分布',
+      height: 260,
+      showLegend: false,
+      categories: ['年假', '事假', '病假', '调休', '婚假'],
+      series: [{ name: '申请数', data: [14, 9, 6, 4, 3] }],
+      style: {
+        widthMode: 'full',
+        heightMode: 'fixed',
+        height: 300,
+      },
+    },
+  },
+  {
+    id: 'blk_home_line_chart',
+    blockType: 'line-chart',
+    label: '近六月趋势',
+    gridX: 6,
+    gridY: 5,
+    gridW: 6,
+    gridH: 8,
+    props: {
+      title: '近六月请假趋势',
+      height: 260,
+      showLegend: true,
+      smooth: true,
+      showArea: true,
+      categories: ['1月', '2月', '3月', '4月', '5月', '6月'],
+      series: [
+        { name: '申请', data: [8, 12, 10, 16, 14, 18] },
+        { name: '通过', data: [6, 9, 8, 12, 11, 15] },
+      ],
+      style: {
+        widthMode: 'full',
+        heightMode: 'fixed',
+        height: 300,
+      },
+    },
+  },
+  {
+    ...listBlock,
+    id: 'blk_home_list_crud',
+    gridX: 0,
+    gridY: 13,
+    gridW: 12,
+    gridH: 18,
+    props: {
+      ...listBlock.props,
+      title: '请假记录',
+    },
+  },
+], 'list')
+
+const workbenchPage = {
+  title: '个人工作台',
+  pageType: 'content',
+  layout: {
+    workbenchLayoutVersion: 4,
+    gridLayout: {
+      cols: 12,
+      rowHeight: 32,
+      gap: 8,
+      designWidth: 1366,
+      layoutType: 'simple-crud',
+      items: [
+        {
+          id: 'blk_wb_metrics',
+          blockType: 'workspace-summary-metrics',
+          label: '工作台统计',
+          gridX: 0,
+          gridY: 0,
+          gridW: 12,
+          gridH: 3,
+          props: {
+            visibleKeys: ['todo', 'done', 'started', 'cc'],
+            columns: 4,
+            showHeader: false,
+            style: {
+              widthMode: 'full',
+              heightMode: 'auto',
+              pageFlowX: 24,
+              pageFlowY: 20,
+              pageFlowHeight: 200,
+              height: 200,
+            },
+          },
+        },
+        {
+          id: 'blk_wb_tip',
+          blockType: 'info-panel',
+          label: '使用提示',
+          gridX: 0,
+          gridY: 2,
+          gridW: 12,
+          gridH: 2,
+          props: {
+            type: 'info',
+            title: '使用提示',
+            content: '点击上方统计可进入待办/已办/发起中/抄送。日常请假请从左侧「请假中心」进入。',
+            style: {
+              widthMode: 'full',
+              heightMode: 'auto',
+              pageFlowX: 24,
+              pageFlowY: 236,
+              pageFlowHeight: 96,
+              height: 96,
+            },
+          },
+        },
+      ],
+    },
+  },
+}
 
 const appPack = {
   format: 'forge-application-bundle',
@@ -327,7 +439,8 @@ const appPack = {
     applicationName: '请假申请',
     applicationCode: 'market_leave_app',
     suiteCode: 'HR',
-    icon: 'i-lucide:calendar-days',
+    // 应用卡片走 IconRenderer：须用 ionicons5，勿用 i-lucide（动态 class 不会进 UnoCSS，会显示空色块）
+    icon: 'ionicons5:CalendarOutline',
     description: '人事请假完整样例：请假中心、记录列表、发起表单与审批办理四页，含交接/代理人/审批状态，可对接打印单。',
     status: 1,
     options: {
@@ -338,10 +451,11 @@ const appPack = {
           pageNode({
             id: 'page_leave_home',
             title: '请假中心',
-            pageType: 'content',
-            pageShape: 'custom',
-            pageTemplate: 'custom',
+            pageType: 'object',
+            pageShape: 'list',
+            pageTemplate: 'list',
             sort: 0,
+            objectRef: objectRef('list'),
           }),
           pageNode({
             id: 'page_leave_list',
@@ -374,7 +488,7 @@ const appPack = {
         pages: {
           page_leave_home: {
             title: '请假中心',
-            description: '应用使用说明与入口导览',
+            description: '查询与管理请假记录',
             layout: homeLayout,
           },
           page_leave_list: {
@@ -392,6 +506,7 @@ const appPack = {
             description: '主管查看单据并维护审批状态',
             layout: pageLayout([approveBlock], 'list-form'),
           },
+          'system:workbench': workbenchPage,
         },
         formAssets: [
           {
@@ -412,7 +527,7 @@ const appPack = {
       objectType: 'MASTER',
       role: 'PRIMARY',
       displayField: 'applicantName',
-      icon: 'i-lucide:file-text',
+      icon: 'ionicons5:DocumentTextOutline',
       description: '请假申请主对象（含交接与审批状态）',
       modelSchema: {
         object: { code: 'leave_request', name: '请假单' },

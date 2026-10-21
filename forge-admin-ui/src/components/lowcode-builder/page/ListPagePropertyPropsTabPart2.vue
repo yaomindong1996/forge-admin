@@ -1383,90 +1383,35 @@
                 </n-form-item>
               </template>
 
-              <!-- Stats strip -->
-              <template v-if="selectedBlock.blockType === 'stats-strip'">
-                <n-form-item :label="isStatsStripListMode(selectedBlock) ? '指标项（列表空数据时占位）' : '指标项'">
-                  <div class="metrics-editor">
-                    <div
-                      v-if="isStatsStripListMode(selectedBlock)"
-                      class="field-help"
-                    >
-                      当前为「列表循环」：画布按数组条数渲染。这里的指标仅在列表无数据时作占位；要自己增删多张卡，请把渲染方式改回「手动多项」。
-                    </div>
-                    <div
-                      v-else
-                      class="field-help"
-                    >
-                      手动多项：点「添加指标」增加卡片。可写静态值，也可在每项点选字段（来源为详情/表单时生效）。
-                    </div>
-                    <div
-                      v-for="(metric, idx) in (selectedBlock.props?.metrics || [])"
-                      :key="idx"
-                      class="metric-row metric-row-card"
-                    >
-                      <div class="metric-row-fields">
-                        <n-input
-                          :value="metric.label"
-                          placeholder="标签"
-                          size="small"
-                          @update:value="updateMetric(idx, { label: $event })"
-                        />
-                        <n-input
-                          :value="metric.value"
-                          placeholder="数值"
-                          size="small"
-                          @update:value="updateMetric(idx, { value: $event })"
-                        />
-                        <n-input
-                          class="metric-trend-input"
-                          :value="metric.trend"
-                          placeholder="趋势，如 +5%"
-                          size="small"
-                          @update:value="updateMetric(idx, { trend: $event })"
-                        />
-                        <n-button class="metric-row-remove" size="tiny" quaternary type="error" @click="removeMetric(idx)">
-                          删除
-                        </n-button>
-                      </div>
-                      <div
-                        v-if="isWidgetBindingActive(selectedBlock) && !isStatsStripListMode(selectedBlock)"
-                        class="metric-row-bind"
-                      >
-                        <div class="metric-row-bind-label">
-                          字段绑定（可选）
-                        </div>
-                        <WidgetFieldPathPicker
-                          v-if="fields.length"
-                          :value="metric.labelField || ''"
-                          :fields="fields"
-                          :form-designer-schema="formDesignerSchema"
-                          placeholder="标签字段"
-                          @update:value="updateMetric(idx, { labelField: $event || '' })"
-                        />
-                        <WidgetFieldPathPicker
-                          v-if="fields.length"
-                          :value="metric.valueField || ''"
-                          :fields="fields"
-                          :form-designer-schema="formDesignerSchema"
-                          placeholder="数值字段"
-                          @update:value="updateMetric(idx, { valueField: $event || '' })"
-                        />
-                        <WidgetFieldPathPicker
-                          v-if="fields.length"
-                          :value="metric.metaField || ''"
-                          :fields="fields"
-                          :form-designer-schema="formDesignerSchema"
-                          placeholder="趋势字段"
-                          @update:value="updateMetric(idx, { metaField: $event || '' })"
-                        />
-                      </div>
-                    </div>
-                    <n-button size="small" dashed block @click="addMetric">
-                      + 添加指标
-                    </n-button>
-                  </div>
-                </n-form-item>
-              </template>
+              <!-- 指标卡片 -->
+              <StatsStripPropertyPanel
+                v-if="selectedBlock.blockType === 'stats-strip'"
+                :block="selectedBlock"
+                :page-options="pageTargetOptions"
+                :list-bound="isStatsStripListMode(selectedBlock)"
+                @patch-props="patchBlockProps(selectedBlock.id, $event)"
+              />
+
+              <!-- 快捷入口 -->
+              <QuickEntryPropertyPanel
+                v-if="selectedBlock.blockType === 'quick-entry'"
+                :block="selectedBlock"
+                :page-options="pageTargetOptions"
+                :list-bound="isQuickEntryListMode(selectedBlock)"
+                @patch-props="patchBlockProps(selectedBlock.id, $event)"
+              />
+
+              <!-- 柱状图 / 折线图 -->
+              <PageChartPropertyPanel
+                v-if="selectedBlock.blockType === 'bar-chart' || selectedBlock.blockType === 'line-chart'"
+                :block="selectedBlock"
+                :list-bound="isChartListMode(selectedBlock)"
+                @patch-props="patchBlockProps(selectedBlock.id, $event)"
+                @update-categories="updateChartCategories"
+                @update-series-item="(idx, patch) => updateChartSeriesItem(idx, patch)"
+                @add-series="addChartSeriesItem"
+                @remove-series="removeChartSeriesItem"
+              />
 
               <template v-if="selectedBlock.blockType === 'detail-info'">
                 <n-form-item label="详情字段">
@@ -1563,31 +1508,12 @@
                 </n-form-item>
               </template>
 
-              <template v-if="selectedBlock.blockType === 'info-panel'">
-                <n-form-item label="提示内容">
-                  <div class="metrics-editor">
-                    <n-input
-                      :value="selectedBlock.props?.title"
-                      placeholder="标题"
-                      @update:value="patchBlockProps(selectedBlock.id, { title: $event })"
-                    />
-                    <n-input
-                      :value="selectedBlock.props?.content"
-                      type="textarea"
-                      :rows="3"
-                      placeholder="内容"
-                      @update:value="patchBlockProps(selectedBlock.id, { content: $event })"
-                    />
-                  </div>
-                </n-form-item>
-                <n-form-item label="提示类型">
-                  <n-select
-                    :value="selectedBlock.props?.type || 'info'"
-                    :options="tagTypeOptions"
-                    @update:value="patchBlockProps(selectedBlock.id, { type: $event || 'info' })"
-                  />
-                </n-form-item>
-              </template>
+              <InfoPanelPropertyPanel
+                v-if="selectedBlock.blockType === 'info-panel'"
+                :block="selectedBlock"
+                :page-options="pageTargetOptions"
+                @patch-props="patchBlockProps(selectedBlock.id, $event)"
+              />
 
               <!-- Custom html -->
               <template v-if="selectedBlock.blockType === 'custom-html'">

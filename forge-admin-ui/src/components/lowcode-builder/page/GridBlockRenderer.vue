@@ -605,26 +605,54 @@
 
     <!-- 指标卡片 -->
     <template v-else-if="block.blockType === 'stats-strip'">
-      <div class="stats-grid">
-        <div
-          v-for="(metric, idx) in statsMetrics"
-          :key="idx"
-          class="stats-card"
-        >
-          <div v-if="isBlockSlotVisible('labelField')" class="stats-label">
-            {{ metric.label }}
-          </div>
-          <div v-if="isBlockSlotVisible('valueField')" class="stats-value">
-            {{ metric.value }}
-          </div>
-          <div v-if="isBlockSlotVisible('metaField') && metric.trend" class="stats-trend" :class="trendClass(metric.trend)">
-            {{ metric.trend }}
-          </div>
-        </div>
-        <div v-if="!statsMetrics.length" class="block-empty">
-          点击右侧添加指标项
-        </div>
-      </div>
+      <StatsStripBlock
+        :metrics="statsMetrics"
+        :columns="block.props?.columns || 4"
+        :compact="block.props?.compact === true"
+        :show-icon="block.props?.showIcon !== false"
+        :show-trend="block.props?.showTrend !== false && isBlockSlotVisible('metaField')"
+        :interactive="runtimeInteractive"
+        @select="handleWidgetLinkSelect"
+      />
+    </template>
+
+    <!-- 快捷入口 -->
+    <template v-else-if="block.blockType === 'quick-entry'">
+      <QuickEntryBlock
+        :items="quickEntryItems"
+        :columns="block.props?.columns || 3"
+        :variant="block.props?.variant || 'card'"
+        :show-description="block.props?.showDescription !== false"
+        :interactive="runtimeInteractive"
+        @select="handleWidgetLinkSelect"
+      />
+    </template>
+
+    <!-- 柱状图 / 折线图 -->
+    <template v-else-if="block.blockType === 'bar-chart' || block.blockType === 'line-chart'">
+      <PageChartBlock
+        :chart-type="block.blockType === 'line-chart' ? 'line' : 'bar'"
+        :title="block.props?.title || ''"
+        :categories="chartSeriesPayload.categories"
+        :series="chartSeriesPayload.series"
+        :height="resolveChartBlockHeight(block)"
+        :show-legend="block.props?.showLegend !== false"
+        :smooth="block.props?.smooth !== false"
+        :show-area="block.props?.showArea === true"
+        :colors="block.props?.colors || []"
+        :legend-position="block.props?.legendPosition || 'top-right'"
+        :bar-max-width="block.props?.barMaxWidth || 36"
+        :category-label-rotate="block.props?.categoryLabelRotate || 0"
+        :y-axis-name="block.props?.yAxisName || ''"
+        :show-split-line="block.props?.showSplitLine !== false"
+        :symbol-size="block.props?.symbolSize || 6"
+        :area-opacity="block.props?.areaOpacity ?? 0.12"
+        :grid-left="block.props?.gridLeft ?? 8"
+        :grid-right="block.props?.gridRight ?? 12"
+        :grid-bottom="block.props?.gridBottom ?? 8"
+        :option-overrides="block.props?.optionOverrides || null"
+        :data-locked="true"
+      />
     </template>
 
     <!-- 工作台统计（待办/已办/发起中/抄送） -->
@@ -641,10 +669,19 @@
 
     <!-- 提示面板 -->
     <template v-else-if="block.blockType === 'info-panel'">
-      <div class="info-panel-preview" :class="`type-${boundInfoType || 'info'}`">
-        <strong v-if="isBlockSlotVisible('titleField')">{{ boundInfoTitle || '提示信息' }}</strong>
-        <span v-if="isBlockSlotVisible('contentField')">{{ boundInfoContent || '在右侧填写提示内容' }}</span>
-      </div>
+      <InfoPanelBlock
+        :title="isBlockSlotVisible('titleField') ? (boundInfoTitle || '提示信息') : ''"
+        :content="isBlockSlotVisible('contentField') ? (boundInfoContent || '在右侧填写提示内容') : ''"
+        :type="boundInfoType || 'info'"
+        :icon="block.props?.icon || ''"
+        :color="block.props?.color || ''"
+        :show-icon="block.props?.showIcon !== false"
+        :link-type="block.props?.linkType || 'none'"
+        :target-page-id="block.props?.targetPageId || ''"
+        :href="block.props?.href || ''"
+        :interactive="runtimeInteractive"
+        @select="handleWidgetLinkSelect"
+      />
     </template>
 
     <!-- 说明文本 -->

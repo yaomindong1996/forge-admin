@@ -40,8 +40,7 @@
               </template>
             </n-button>
             <span v-if="portalConfig.navigation.showLogo" class="portal-logo" aria-hidden="true">
-              <IconRenderer v-if="application.icon" :icon="application.icon" :size="22" />
-              <n-icon v-else><AppsOutline /></n-icon>
+              <IconRenderer :icon="resolveApplicationDisplayIcon(application.icon)" :size="22" />
             </span>
             <strong v-if="portalConfig.navigation.showName">{{ application.applicationName }}</strong>
           </div>
@@ -190,11 +189,12 @@
 </template>
 
 <script setup>
-import { AppsOutline, MenuOutline, SparklesOutline } from '@vicons/ionicons5'
+import { MenuOutline, SparklesOutline } from '@vicons/ionicons5'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { businessApplicationRuntimeByCodeOrSlug } from '@/api/business-application'
 import IconRenderer from '@/components/IconRenderer.vue'
+import { resolveApplicationDisplayIcon } from '@/views/app-center/application-display-icon'
 import MessageNotification from '@/layouts/components/MessageNotification.vue'
 import UserAvatar from '@/layouts/components/UserAvatar.vue'
 import { useUserStore } from '@/store'

@@ -116,6 +116,10 @@ export const GridBlockRenderer = defineAsyncComponent({
   loadingComponent: DesignerAsyncLoader,
   loader: () => import('@/components/lowcode-builder/page/GridBlockRenderer.vue'),
 })
+export const FreeLayoutPresetThumb = defineAsyncComponent({
+  delay: 0,
+  loader: () => import('@/views/app-center/in-app-builder/FreeLayoutPresetThumb.vue'),
+})
 
 export const applicationRuntimeLocalComponents = {
   NIcon,
@@ -182,4 +186,5 @@ export const applicationRuntimeLocalComponents = {
   PageDesignPublishPanel,
   PageManagementSystemView,
   GridBlockRenderer,
+  FreeLayoutPresetThumb,
 }

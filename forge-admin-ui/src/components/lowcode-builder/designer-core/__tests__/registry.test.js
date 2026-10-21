@@ -21,9 +21,9 @@ describe('Component Registry', () => {
     // index.js 自动注册，无需手动调用
   })
 
-  it('should register all 105 components (transfer 双重身份合并)', () => {
+  it('should register all 108 components (transfer 双重身份合并)', () => {
     const all = listAllComponents()
-    expect(all.length).toBe(105)
+    expect(all.length).toBe(108)
   })
 
   it('should have unique type for each component', () => {
@@ -54,22 +54,20 @@ describe('Component Registry', () => {
     expect(field.length).toBe(32) // transfer 被 widget 版本覆盖
     expect(layout.length).toBe(15)
     expect(business.length).toBe(21) // 12 (business-components) + 9 (zone-action)
-    expect(page.length).toBe(13) // 7 (page-components) + 6 (zone-action)
+    expect(page.length).toBe(16) // 7 (page-components) + 9 (zone-action 含快捷入口/图表)
     expect(media.length).toBe(6)
     expect(widget.length).toBe(18)
   })
 
-  it('should include 15 zone action components', () => {
-    const zoneActions = listAllComponents().filter(s => s.group === '操作' && s.category === 'page')
-    // zone-action 组件 category 是 'page'，group 是 '操作'
-    // 实际 15 个 zone 组件全在 zone-action-components.js
+  it('should include 18 zone action components', () => {
+    // zone-action 组件含操作按钮与数据展示（指标/快捷入口/图表）
     const zoneCount = listAllComponents().filter(s =>
       ['query-set', 'custom-query', 'import-button', 'export-button',
        'add-button', 'reset-button', 'action-button', 'button-group',
        'link', 'info-panel', 'steps', 'timeline', 'empty-state',
-       'custom-html', 'stats-strip'].includes(s.type)
+       'custom-html', 'stats-strip', 'quick-entry', 'bar-chart', 'line-chart'].includes(s.type)
     ).length
-    expect(zoneCount).toBe(15)
+    expect(zoneCount).toBe(18)
   })
 
   it('should include 4 wrapper node types', () => {
@@ -98,8 +96,9 @@ describe('Component Registry', () => {
 
   it('should return stats', () => {
     const stats = getRegistryStats()
-    expect(stats.total).toBe(105) // transfer 双重身份合并
+    expect(stats.total).toBe(108) // transfer 双重身份合并
     expect(stats.byCategory.field).toBe(32) // transfer 被 widget 覆盖
     expect(stats.byCategory.layout).toBe(15)
+    expect(stats.byCategory.page).toBe(16)
   })
 })

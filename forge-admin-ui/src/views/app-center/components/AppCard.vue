@@ -1,8 +1,7 @@
 <template>
   <article class="app-card">
     <div class="app-icon">
-      <IconRenderer v-if="app.icon" :icon="app.icon" :size="22" />
-      <WorkspaceIllustration v-else artwork="application" size="card" />
+      <IconRenderer :icon="resolveApplicationDisplayIcon(app.icon)" :size="22" />
     </div>
     <div class="app-main">
       <div class="app-title-line">
@@ -45,9 +44,9 @@
 
 <script setup>
 import { EllipsisVertical, OpenOutline } from '@vicons/ionicons5'
-import WorkspaceIllustration from '@/components/common/WorkspaceIllustration.vue'
 import DictTag from '@/components/DictTag.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
+import { resolveApplicationDisplayIcon } from '@/views/app-center/application-display-icon'
 
 defineProps({
   app: {
@@ -161,11 +160,6 @@ function handleMoreSelect(key, app) {
   background: var(--bg-secondary, #f7f8fa);
   color: var(--primary-color, #1677ff);
   font-size: 22px;
-}
-
-.app-icon :deep(.workspace-illustration) {
-  width: 38px;
-  height: 38px;
 }
 
 .app-main {

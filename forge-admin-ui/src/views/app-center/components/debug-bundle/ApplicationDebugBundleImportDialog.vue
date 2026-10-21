@@ -4,6 +4,7 @@
     preset="card"
     title="导入应用"
     :style="{ width: 'min(520px, 94vw)' }"
+    :content-style="{ maxHeight: 'min(70vh, 560px)', overflow: 'auto' }"
     :mask-closable="!importing"
     :closable="!importing"
     class="app-import-dialog"
@@ -285,23 +286,23 @@ function openImported() {
 }
 
 .publish-option {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  align-items: flex-start;
   gap: 8px;
   margin-top: 14px;
   color: #64748b;
   font-size: 13px;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .publish-option :deep(.n-checkbox) {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .publish-option :deep(.n-checkbox__label) {
   display: inline;
-  line-height: 1.4;
+  line-height: 1.45;
   white-space: normal;
 }
 
@@ -317,23 +318,23 @@ function openImported() {
 .bundle-steps {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   margin-top: 4px;
 }
 
 .bundle-step {
   display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 10px 12px;
-  border-radius: 8px;
+  gap: 8px;
+  align-items: center;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 6px;
   background: #f8fafc;
 }
 
 .step-dot {
   width: 8px;
   height: 8px;
-  margin-top: 6px;
   border-radius: 50%;
   background: #cbd5e1;
   flex-shrink: 0;

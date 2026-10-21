@@ -41,6 +41,10 @@ const QRCodeVue3 = blockAsyncLoader(() => import('qrcode-vue3'))
 const WorkspaceSummaryMetrics = blockAsyncLoader(() => import('@/views/workspace/WorkspaceSummaryMetrics.vue'))
 const TreeCrudTemplate = blockAsyncLoader(() => import('@/components/page-templates/TreeCrudTemplate.vue'))
 const RuntimeListGridFlow = blockAsyncLoader(() => import('@/components/lowcode-builder/page/RuntimeListGridFlow.vue'))
+const QuickEntryBlock = blockAsyncLoader(() => import('@/components/lowcode-builder/page/QuickEntryBlock.vue'))
+const PageChartBlock = blockAsyncLoader(() => import('@/components/lowcode-builder/page/PageChartBlock.vue'))
+const StatsStripBlock = blockAsyncLoader(() => import('@/components/lowcode-builder/page/StatsStripBlock.vue'))
+const InfoPanelBlock = blockAsyncLoader(() => import('@/components/lowcode-builder/page/InfoPanelBlock.vue'))
 
 export const gridBlockRendererLocalComponents = {
   ChevronBackOutline,
@@ -56,6 +60,10 @@ export const gridBlockRendererLocalComponents = {
   PageWidgetRenderer,
   ContainerContextMenu,
   WorkspaceSummaryMetrics,
+  QuickEntryBlock,
+  PageChartBlock,
+  StatsStripBlock,
+  InfoPanelBlock,
   AiCrudPage,
   TreeCrudTemplate,
   RuntimeListGridFlow,

@@ -389,7 +389,14 @@ export function ensureFreeLayoutPageNode(node = null) {
 }
 
 /**
- * 对象页（表单/列表/列表+表单/左树右表）布局是否被自由布局组件污染，或丢失了 AiCrudPage。
+ * 对象页（表单/列表/列表+表单/左树右表）是否需要「恢复标准布局」提示。
+ *
+ * 仅在真正异常时判定为污染：
+ * - 仍挂 objectRef，但 pageType/pageShape 被误改成 content/custom
+ * - 对象页丢失了 AiCrudPage
+ *
+ * 列表页上叠加图表/指标/快捷入口等自由布局组件是合法能力（市场样例也如此），
+ * 不再当成污染，避免导入后误报黄条。
  */
 export function isObjectBoundPageLayoutPolluted(node = null, page = null) {
   if (!node || node.type !== 'page')
@@ -406,21 +413,13 @@ export function isObjectBoundPageLayoutPolluted(node = null, page = null) {
     : []
   const contentItems = items.filter(item => item && item.blockType !== 'page-title')
   const hasCrud = contentItems.some(item => item.blockType === 'AiCrudPage')
-  // tree-panel 是左树右表合法组成部分，不算污染
-  const hasForeign = contentItems.some(item => (
-    item.blockType
-    && item.blockType !== 'AiCrudPage'
-    && item.blockType !== 'tree-panel'
-  ))
   // 误写成自由布局元数据，但还挂着 objectRef
   const shapeCorrupted = Boolean(node.objectRef)
     && (String(node.pageType || '').trim().toLowerCase() === 'content'
       || String(node.pageShape || '').trim().toLowerCase() === 'custom')
   if (shapeCorrupted)
     return true
-  if (!hasCrud)
-    return true
-  return hasForeign
+  return !hasCrud
 }
 
 /**

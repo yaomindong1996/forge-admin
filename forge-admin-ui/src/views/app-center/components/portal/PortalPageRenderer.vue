@@ -95,8 +95,14 @@ import {
   selectScopedCssExtensions,
 } from '@/components/lowcode-extension/runtime/application-extension-runtime'
 import RuntimeScopedStyles from '@/components/lowcode-extension/runtime/RuntimeScopedStyles'
-import { isRuntimeAutoHeightBlock, resolvePortalPageBlocks, shouldUseContentSizedFlow, sortBlocksByPageFlowY } from './portal-page-runtime-layout'
-import { normalizePagePadding, resolvePagePaddingCss, resolvePageBlockShellStyle as computePageBlockShellStyle, DEFAULT_PAGE_PADDING } from '@/views/app-center/runtime-modules/page-flow-geometry'
+import {
+  isRuntimeAutoHeightBlock,
+  normalizePortalLegacyBlock,
+  resolvePortalPageBlocks,
+  shouldUseContentSizedFlow,
+  sortBlocksByPageFlowY,
+} from './portal-page-runtime-layout'
+import { normalizePagePadding, resolvePagePaddingCss, resolvePageSurfaceStyle, resolvePageBlockShellStyle as computePageBlockShellStyle, DEFAULT_PAGE_PADDING } from '@/views/app-center/runtime-modules/page-flow-geometry'
 import PortalEmptyState from './PortalEmptyState.vue'
 import { isDataFieldBlockType } from '@/components/lowcode-builder/page/page-schema'
 
@@ -260,7 +266,13 @@ function resolvePortalRuntimePagePadding(raw) {
 }
 
 const portalFlowStyle = computed(() => {
-  const style = { padding: pagePaddingCss.value }
+  const surface = resolvePageSurfaceStyle(
+    props.page?.layout?.gridLayout?.pageSurface || props.page?.layout?.pageSurface,
+  )
+  const style = {
+    padding: pagePaddingCss.value,
+    ...surface,
+  }
   // 绝对自由布局需要按 pageFlow 坐标撑开画布高度（含 fillHost 宿主场景）
   if (!contentSizedFlow.value)
     style.minHeight = `${pageHeight.value}px`
@@ -804,23 +816,7 @@ function resolveDefaultBlockY(block, index) {
 }
 
 function normalizeLegacyBlock(item, index) {
-  const legacyTypes = {
-    'intro': 'page-title',
-    'metric-card': 'stats-strip',
-    'business-list': 'AiCrudPage',
-    'business-form': 'AiForm',
-    'todo': 'info-panel',
-    'chart': 'stats-strip',
-    'text': 'custom-html',
-    'image': 'info-panel',
-    'columns': 'grid-layout',
-  }
-  return {
-    ...item,
-    id: item.id || `legacy-${index + 1}`,
-    blockType: item.blockType || legacyTypes[item.type] || item.type || 'custom-html',
-    props: { ...(item.props || {}), ...(item.content ? { content: item.content } : {}) },
-  }
+  return normalizePortalLegacyBlock(item, index)
 }
 
 function resolveEntry(entryRef) {

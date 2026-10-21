@@ -1,6 +1,6 @@
 /** application-runtime setup part 2. */
 import { AddOutline, AppsOutline, ArrowBackOutline, ArrowDownOutline, ArrowRedoOutline, ArrowUndoOutline, ArrowUpOutline, BarChartOutline, CheckboxOutline, CheckmarkDoneOutline, ColorFillOutline, CopyOutline, CreateOutline, CubeOutline, DocumentTextOutline, DuplicateOutline, EllipsisHorizontalOutline, ExpandOutline, EyeOffOutline, EyeOutline, FolderOpenOutline, FunnelOutline, GitBranchOutline, GitNetworkOutline, GridOutline, InformationCircleOutline, ListOutline, MoveOutline, NotificationsOutline, PaperPlaneOutline, PeopleOutline, ReaderOutline, RemoveOutline, ResizeOutline, SaveOutline, SettingsOutline, SquareOutline, StatsChartOutline, SwapHorizontalOutline, TextOutline, TrashOutline } from '@vicons/ionicons5'
-import { NIcon, useMessage } from 'naive-ui'
+import { NIcon, useDialog, useMessage } from 'naive-ui'
 import { computed, defineAsyncComponent, h, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import draggable from 'vuedraggable'
@@ -73,16 +73,22 @@ import {
 } from '../in-app-builder/workbench-page'
 import { inAppPageTemplateCatalog, resolveInAppPageTemplate } from '../in-app-builder/page-template-catalog'
 import {
+  buildFreeLayoutPresetGrid,
+  freeLayoutPresetCatalog,
+  resolveFreeLayoutPreset,
+} from '../in-app-builder/free-layout-preset-catalog'
+import {
   overlayFormDesignerOnRuntimeCrudProps,
   resolveBoundFormDesignerSchema,
 } from '@/components/lowcode-builder/shared/runtime-crud-props'
 import { findPageBlockInTree, mapPageBlocksInTree, removePageBlockFromTree, visitPageBlocksInTree } from './page-block-tree'
-import { resolvePageBlockShellStyle as computePageBlockShellStyle, readPageBlockLength, resolveDefaultPageBlockHeight, resolveDefaultPageBlockYFromItems, resolvePageBlockFlowGeometry, resolveRootPageBlockCollisions, shouldUsePageFlowStack, normalizePagePadding, resolvePagePaddingCss, migratePageFlowToContentCoords, canvasToContentFlowPoint, contentToCanvasFlowPoint, DEFAULT_PAGE_PADDING } from './page-flow-geometry'
+import { resolvePageBlockShellStyle as computePageBlockShellStyle, readPageBlockLength, resolveDefaultPageBlockHeight, resolveDefaultPageBlockYFromItems, resolvePageBlockFlowGeometry, resolveRootPageBlockCollisions, shouldUsePageFlowStack, normalizePagePadding, resolvePagePaddingCss, normalizePageSurface, migratePageFlowToContentCoords, canvasToContentFlowPoint, contentToCanvasFlowPoint, DEFAULT_PAGE_PADDING, DEFAULT_PAGE_SURFACE } from './page-flow-geometry'
 import { flattenNodes, hasPermission, isNavigationVisible } from './runtime-navigation-utils'
 import { useBuilderHistory } from './use-builder-history'
 import { useRuntimeCrudConfig } from './use-runtime-crud-config'
 
 export function applyApplicationRuntimePart2(deps = {}) {
+  const dialog = useDialog()
   const {
     __impl, mut, animatePageBlockSwap, appendPageBlockToContainer, appendPageBlockToGridCell, appendPageBlockToTab, applyDesignerResource, applyNestedPageBlockMove,
     applyPageBlockMove, applyPageBlockSwapPreview, bumpPortalCrudConfigAfterDesignerSave, cancelRenameApplication, clearPageAlignGuides, clearPageBlockSwapPreview, clonePageBlockTree, confirmRenameApplication,
@@ -113,7 +119,7 @@ export function applyApplicationRuntimePart2(deps = {}) {
     componentKeyword, savedSignature, selectedPageBlockId, nestHostPinnedId, draggingPageBlockId, dragPreview, pageAlignGuides, PAGE_ALIGN_SNAP_PX, configPanelVisible,
     inspectorTab, componentButtonPosition, componentButtonMoveCtx, catalogDragBlockType, suppressCatalogClick, activePageFlowTabTarget, activePageFlowGridTarget, activePageFlowContainerTarget,
     resizeCollisionBlockIds, formDesignerObjectContextByObjectId, formDesignerObjectContextLoadingIds, formDesignerMode, designerTransitionLoading, runtimeTreeFilter, runtimeTreeFilterByBlockId, runtimeTreeActiveKeyByBlockId,
-    formDesignerFromPageManagement, activeFormAssetId, activePageShapeDesign, pageTypeSelectorVisible, pageTypeSelectorParentId, pageTypeSelectorDefaultType, sidebarCollapsed, renamingApplication,
+    formDesignerFromPageManagement, activeFormAssetId, activePageShapeDesign, pageTypeSelectorVisible, layoutPresetPickerVisible, pageTypeSelectorParentId, pageTypeSelectorDefaultType, sidebarCollapsed, renamingApplication,
     renameApplicationValue, renameSaving, renameInputRef, collapsedGroupIds, copyBlockVisible, copyBlockId, copyBlockTargetPageId, blockBackgroundPickerVisible,
     backgroundPickerBlockId, formAssetSelectorOpen, formAssetSelectorKeyword, formDataProvisioningByAssetId, objectSetupVisible, selectedDesignerResourceKey, workspaceExtensions, workspaceEntries,
     portalCrudConfigRevision, portalCrudSeed, isDraftMode, activeFlowContext, embeddedDesignerRef, embeddedDesignerDirty, embeddedDesignerSaving, embeddedProcessDesignerVisible,
@@ -122,7 +128,7 @@ export function applyApplicationRuntimePart2(deps = {}) {
     activeResourceConfigKey, previewableResourceActive, legacyBlockTypeMap, pageBlockResizeAnchors, pageBlockRecommendedColors, groupOptions, navigationActionNode, iconPickerNode,
     navigationIconValue, navigationActionTitle, navigationActionHasChildren, navigationDeleteImpact, navigationDeleteTip, moveGroupOptions, navigationNodes, currentNode,
     currentPage, currentPageLayoutPolluted, currentPageManagementTitle, pageDesignObject, currentGridLayout, pageBlocks, pageFlowStackMode, pageCanvasPadding,
-    pageCanvasPaddingCss, designerGridLayout, appPageTargetOptions, pageFlowHeight, hasCustomComponentButtonPosition, componentButtonStyle, selectedPageBlock, formAssets, filteredFormAssets,
+    pageCanvasPaddingCss, pageCanvasSurface, pageCanvasSurfaceStyle, designerGridLayout, appPageTargetOptions, pageFlowHeight, hasCustomComponentButtonPosition, componentButtonStyle, selectedPageBlock, formAssets, filteredFormAssets,
     pageFormAssetOptions, activeFormAsset, activeFormDesignerSchema, activeFormAssetBlock, activeFormDesignerObjectRef, activeFormDesignerContext, activeFormDesignerRelations, activeFormDesignerActions,
     activeFormFields, activeFormDataState, selectedPageBlockFormAssetId, selectedPageBlockFormAsset, selectedPageBlockRuntimeObjectRef, selectedPageBlockIsCrud, selectedPageBlockSupportsDataSource, selectedPageBlockUsesObjectRuntime,
     selectedPageBlockRuntimeObjectId, selectedPageBlockObjectDesignerPanel, selectedPageBlockFormDataState, runtimeObjectFormOptions, pageTemplateOptions, selectedPageBlockFields, selectedPageBlockFormDesignerSchema, applicationGridModelSchema,
@@ -216,6 +222,91 @@ export function applyApplicationRuntimePart2(deps = {}) {
     }
   }
   __impl.applyPageTemplate = applyPageTemplate
+
+  /**
+   * 自由布局栅格预设：整页替换为带组件的 grid-layout。
+   * @param {string} pageId
+   * @param {string} presetKey ops-overview | entry-workbench | analytics-board
+   * @param {{ replace?: boolean, pageTitle?: string }} options
+   */
+  function applyFreeLayoutPreset(pageId, presetKey, options = {}) {
+    const page = builder.value?.pages?.[pageId]
+    if (!page)
+      return false
+    const preset = resolveFreeLayoutPreset(presetKey)
+    if (!preset)
+      return false
+    const existingItems = page.layout?.gridLayout?.items || []
+    if (existingItems.length && options.replace !== true)
+      return false
+    const pageTitle = options.pageTitle
+      || builder.value?.nodes?.find(node => node.id === pageId)?.title
+      || '应用页面'
+    const gridLayout = buildFreeLayoutPresetGrid(presetKey, { pageTitle })
+    if (!gridLayout)
+      return false
+    builder.value = {
+      ...builder.value,
+      pages: {
+        ...builder.value.pages,
+        [pageId]: {
+          ...page,
+          layout: {
+            ...page.layout,
+            items: [],
+            pageTitleComponentInitialized: true,
+            appliedLayoutPreset: preset.key,
+            gridLayout,
+          },
+        },
+      },
+    }
+    selectedPageBlockId.value = gridLayout.items?.[0]?.id || ''
+    return true
+  }
+  __impl.applyFreeLayoutPreset = applyFreeLayoutPreset
+  __impl.freeLayoutPresetCatalog = freeLayoutPresetCatalog
+
+  function applyCurrentFreeLayoutPreset(presetKey, options = {}) {
+    const pageId = currentNode.value?.id || selectedNodeId.value
+    if (!pageId) {
+      message.warning('请先选择页面')
+      return false
+    }
+    const hasBlocks = (pageBlocks.value || []).length > 0
+    const run = () => {
+      const ok = applyFreeLayoutPreset(pageId, presetKey, {
+        replace: true,
+        pageTitle: currentNode.value?.title || '',
+      })
+      if (ok) {
+        message.success('已应用布局预设，可继续调整数据源')
+        layoutPresetPickerVisible.value = false
+      }
+      else {
+        message.warning('应用布局预设失败')
+      }
+      return ok
+    }
+    if (hasBlocks && options.skipConfirm !== true) {
+      const preset = resolveFreeLayoutPreset(presetKey)
+      dialog.warning({
+        title: '替换当前页面布局？',
+        content: `将清空画布上的组件，并应用「${preset?.label || '布局预设'}」。此操作可再手动调整，但当前组件会被覆盖。`,
+        positiveText: '替换并应用',
+        negativeText: '取消',
+        onPositiveClick: () => {
+          run()
+        },
+      })
+      return false
+    }
+    return run()
+  }
+  __impl.applyCurrentFreeLayoutPreset = applyCurrentFreeLayoutPreset
+  __impl.openLayoutPresetPicker = () => {
+    layoutPresetPickerVisible.value = true
+  }
 
   function resolveNavigationMoreOptions(node) {
     const siblings = (builder.value?.nodes || []).filter(item => item.parentId === node.parentId).sort((a, b) => a.sort - b.sort)
@@ -529,9 +620,11 @@ export function applyApplicationRuntimePart2(deps = {}) {
       ...previous,
       ...(gridLayout && typeof gridLayout === 'object' ? gridLayout : {}),
     }
-    // 属性面板回写整份 layout 时可能丢掉 pagePadding，这里强制保留。
+    // 属性面板回写整份 layout 时可能丢掉 pagePadding / pageSurface，这里强制保留。
     if (nextLayout.pagePadding == null && previous.pagePadding != null)
       nextLayout.pagePadding = previous.pagePadding
+    if (nextLayout.pageSurface == null && previous.pageSurface != null)
+      nextLayout.pageSurface = previous.pageSurface
     // 与当前布局深相等时跳过，避免属性面板回声写入污染撤销栈
     if (JSON.stringify(previous) === JSON.stringify(nextLayout))
       return
@@ -570,6 +663,25 @@ export function applyApplicationRuntimePart2(deps = {}) {
   }
   __impl.updatePageCanvasPadding = updatePageCanvasPadding
 
+  function updatePageCanvasSurface(partial = {}) {
+    const previous = pageCanvasSurface.value
+    const next = normalizePageSurface({
+      ...previous,
+      ...(partial && typeof partial === 'object' ? partial : {}),
+    })
+    const layout = {
+      ...(currentGridLayout.value || {}),
+      pageSurface: next,
+    }
+    updateCurrentGridLayout(layout)
+  }
+  __impl.updatePageCanvasSurface = updatePageCanvasSurface
+
+  function resetPageCanvasSurface() {
+    updatePageCanvasSurface({ ...DEFAULT_PAGE_SURFACE })
+  }
+  __impl.resetPageCanvasSurface = resetPageCanvasSurface
+
   /** 编辑态写画布时锁定目标页，避免 currentNode 漂移把组件写到首页 */
   function resolveActiveDesignerPageId() {
     const routeId = String(route.query.pageId || '').trim()
@@ -597,7 +709,14 @@ export function applyApplicationRuntimePart2(deps = {}) {
       return
     block = attachDefaultRuntimeObject(block)
     block = attachSingleFormAsset(block)
-    const height = resolveDefaultPageBlockHeight(block)
+    // 优先保留 createGridBlock / props 里已声明的高度，避免图表等被默认 96 压扁后溢出叠层
+    const schemaHeight = readPageBlockLength(block.props?.style?.height)
+    const propHeight = Number(block.props?.height)
+    const height = Math.max(
+      resolveDefaultPageBlockHeight(block),
+      schemaHeight,
+      Number.isFinite(propHeight) && propHeight > 0 ? Math.round(propHeight) : 0,
+    )
     // 内容区相对坐标：通栏 X=0，Y 从内容区顶向下堆叠
     if (!pageFlowStackMode.value)
       updateCurrentGridLayout(ensurePageFlowContentCoords({ ...(currentGridLayout.value || {}) }))
@@ -1747,15 +1866,22 @@ export function applyApplicationRuntimePart2(deps = {}) {
   }
   __impl.resolvePageBlockShellStyle = resolvePageBlockShellStyle
 
-  function handlePageFlowBlankClick(event) {
+  function openPagePropertiesPanel() {
     if (!editing.value)
-      return
-    if (event.target?.closest?.('[data-page-block-id]'))
       return
     selectedPageBlockId.value = ''
     nestHostPinnedId.value = ''
     inspectorTab.value = 'properties'
     configPanelVisible.value = true
+  }
+  __impl.openPagePropertiesPanel = openPagePropertiesPanel
+
+  function handlePageFlowBlankClick(event) {
+    if (!editing.value)
+      return
+    if (event.target?.closest?.('[data-page-block-id]'))
+      return
+    openPagePropertiesPanel()
   }
   __impl.handlePageFlowBlankClick = handlePageFlowBlankClick
 
@@ -1954,6 +2080,8 @@ export function applyApplicationRuntimePart2(deps = {}) {
   __impl.updateCurrentGridLayout = updateCurrentGridLayout
   __impl.ensurePageFlowContentCoords = ensurePageFlowContentCoords
   __impl.updatePageCanvasPadding = updatePageCanvasPadding
+  __impl.updatePageCanvasSurface = updatePageCanvasSurface
+  __impl.resetPageCanvasSurface = resetPageCanvasSurface
   __impl.resolveActiveDesignerPageId = resolveActiveDesignerPageId
   __impl.appendPageBlock = appendPageBlock
   __impl.resolveNextPageBlockStackY = resolveNextPageBlockStackY
@@ -1999,6 +2127,7 @@ export function applyApplicationRuntimePart2(deps = {}) {
   __impl.updatePageBlocks = updatePageBlocks
   __impl.isSimpleBodyContainer = isSimpleBodyContainer
   __impl.resolvePageBlockShellStyle = resolvePageBlockShellStyle
+  __impl.openPagePropertiesPanel = openPagePropertiesPanel
   __impl.handlePageFlowBlankClick = handlePageFlowBlankClick
   __impl.selectPageBlock = selectPageBlock
   __impl.handleNestedPageBlockSelect = handleNestedPageBlockSelect

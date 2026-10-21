@@ -221,6 +221,7 @@ export function applyApplicationRuntimePart4(deps = {}) {
         heightMode: 'fixed',
         height: pageFlowHeight,
         pageFlowHeight,
+        minHeight: pageFlowHeight,
         pageFlowY: content.y,
       }
       if (keepFullWidth) {
@@ -233,14 +234,19 @@ export function applyApplicationRuntimePart4(deps = {}) {
         nextStyle.widthMode = 'fixed'
         nextStyle.width = nextW
         nextStyle.pageFlowWidth = `${nextW}px`
-        nextStyle.pageFlowX = content.x
+        // 仅左右拖且未横向挪位时保持 pageFlowX=0，文档流堆叠下定宽仍生效
+        nextStyle.pageFlowX = resizingWidth && Math.abs(content.x) < 1 ? 0 : content.x
       }
+      const nextProps = {
+        ...(item.props || {}),
+        style: nextStyle,
+      }
+      // 图表画布高度跟壳同步，否则拖锚点只变框、图画仍卡在 props.height
+      if (['bar-chart', 'line-chart'].includes(item.blockType))
+        nextProps.height = Math.max(160, pageFlowHeight)
       return {
         ...item,
-        props: {
-          ...(item.props || {}),
-          style: nextStyle,
-        },
+        props: nextProps,
       }
     }))
   }

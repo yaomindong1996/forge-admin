@@ -636,10 +636,10 @@
               type="warning"
               :bordered="false"
               class="page-layout-pollution-alert"
-              title="该列表/表单页被自由布局组件污染"
+              title="该对象页缺少标准列表/表单布局"
             >
               <div class="page-layout-pollution-alert__body">
-                <span>中间预览里的自由布局内容可以一键清掉，恢复为原来的列表+表单（AiCrud）布局。</span>
+                <span>当前页已绑定业务对象，但未找到 AiCrud 列表/表单块（或页面类型被误改）。可一键恢复标准布局。</span>
                 <n-button type="warning" size="small" :loading="restoringObjectPageLayout" @click="restoreCurrentObjectPageLayout">
                   恢复列表/表单布局
                 </n-button>
@@ -670,10 +670,10 @@
               type="warning"
               :bordered="false"
               class="page-layout-pollution-alert"
-              title="检测到自由布局组件污染了对象页"
+              title="该对象页缺少标准列表/表单布局"
             >
               <div class="page-layout-pollution-alert__body">
-                <span>点下方按钮可清空这些组件，并恢复为列表+表单页标准布局。</span>
+                <span>当前页已绑定业务对象，但未找到 AiCrud 块（或页面类型异常）。可一键恢复标准列表/表单布局。</span>
                 <n-button type="warning" size="small" :loading="restoringObjectPageLayout" @click="restoreCurrentObjectPageLayout">
                   恢复列表/表单布局
                 </n-button>
@@ -760,7 +760,11 @@
                 handle=".page-block-drag-handle"
                 class="application-page-flow"
                 :class="{ 'is-editing': editing, 'is-flow-stack': pageFlowStackMode }"
-                :style="{ minHeight: `${pageFlowHeight}px`, padding: pageFlowStackMode ? pageCanvasPaddingCss : '0px' }"
+                :style="{
+                  minHeight: `${pageFlowHeight}px`,
+                  padding: pageFlowStackMode ? pageCanvasPaddingCss : '0px',
+                  ...pageCanvasSurfaceStyle,
+                }"
                 :disabled="true"
                 :animation="180"
                 :force-fallback="true"
@@ -939,8 +943,21 @@
               <section v-if="editing && !pageBlocks.length" class="grid-empty-guide">
                 <div class="empty-guide-copy">
                   <span class="empty-guide-eyebrow">页面搭建</span>
-                  <h2>从一个组件开始</h2>
-                  <p>选择常用组件，页面会立刻呈现最终效果；后续仍可自由拖动、调整尺寸和配置数据。</p>
+                  <h2>先选布局预设，或从组件开始</h2>
+                  <p>预设基于栅格排版，带好指标 / 入口 / 图表等组件；也可先放单个组件再慢慢搭。</p>
+                </div>
+                <div class="page-layout-preset-row">
+                  <button
+                    v-for="preset in freeLayoutPresetOptions"
+                    :key="preset.key"
+                    type="button"
+                    class="page-layout-preset-card has-thumb"
+                    @click="applyCurrentFreeLayoutPreset(preset.key, { skipConfirm: true })"
+                  >
+                    <FreeLayoutPresetThumb :kind="preset.thumb || 'ops'" />
+                    <strong>{{ preset.label }}</strong>
+                    <small>{{ preset.description }}</small>
+                  </button>
                 </div>
                 <div class="page-recommendations">
                   <button v-for="item in recommendedComponents" :key="item.blockType" type="button" @click="appendPageBlock(item.blockType)">
@@ -984,10 +1001,35 @@
         <aside v-if="editing && configPanelVisible" class="runtime-inspector">
           <div class="runtime-inspector-head">
             <div class="runtime-inspector-tabs" role="tablist" aria-label="组件配置类型">
-              <button type="button" :class="{ active: inspectorTab === 'properties' }" role="tab" :aria-selected="inspectorTab === 'properties'" @click="inspectorTab = 'properties'">
-                <NIcon><SettingsOutline /></NIcon>属性
+              <button
+                type="button"
+                :class="{ active: !selectedPageBlock && inspectorTab === 'properties' }"
+                role="tab"
+                :aria-selected="!selectedPageBlock && inspectorTab === 'properties'"
+                title="整页属性（布局预设、内边距、背景/圆角/边框）"
+                @click="openPagePropertiesPanel()"
+              >
+                <NIcon><AppsOutline /></NIcon>页面
               </button>
-              <button type="button" :class="{ active: inspectorTab === 'data' }" role="tab" :aria-selected="inspectorTab === 'data'" @click="inspectorTab = 'data'">
+              <button
+                type="button"
+                :class="{ active: !!selectedPageBlock && inspectorTab === 'properties' }"
+                role="tab"
+                :aria-selected="!!selectedPageBlock && inspectorTab === 'properties'"
+                :disabled="!selectedPageBlock"
+                title="当前选中组件的属性"
+                @click="inspectorTab = 'properties'"
+              >
+                <NIcon><SettingsOutline /></NIcon>组件
+              </button>
+              <button
+                type="button"
+                :class="{ active: inspectorTab === 'data' }"
+                role="tab"
+                :aria-selected="inspectorTab === 'data'"
+                :disabled="!selectedPageBlock"
+                @click="inspectorTab = 'data'"
+              >
                 <NIcon><FolderOpenOutline /></NIcon>数据
               </button>
             </div>
@@ -996,9 +1038,34 @@
             </button>
           </div>
           <div v-if="!selectedPageBlock && inspectorTab === 'properties'" class="page-canvas-padding-panel">
+            <p class="page-inspector-hint">
+              当前为整页属性。画布被组件占满时，点上方「页面」即可回到这里，无需找空白处。
+            </p>
+            <!-- 整页属性：布局预设 -->
+            <div v-if="showPageDesignTab || isFreeLayoutPage" class="page-layout-preset-inspector">
+              <div class="page-canvas-padding-head">
+                <strong>布局预设</strong>
+                <span>更换整页骨架，下方为分区轮廓；应用后可再改组件与数据</span>
+              </div>
+              <div class="page-layout-preset-inspector-grid" role="list">
+                <button
+                  v-for="preset in freeLayoutPresetOptions"
+                  :key="preset.key"
+                  type="button"
+                  class="page-layout-preset-inspector-card"
+                  role="listitem"
+                  @click="applyCurrentFreeLayoutPreset(preset.key)"
+                >
+                  <FreeLayoutPresetThumb :kind="preset.thumb || 'ops'" />
+                  <strong>{{ preset.label }}</strong>
+                  <small>{{ preset.description }}</small>
+                </button>
+              </div>
+            </div>
+
             <div class="page-canvas-padding-head">
               <strong>页面内边距</strong>
-              <span>作用于画布与最终运行页，默认 24</span>
+              <span>作用于画布与最终运行页</span>
             </div>
             <div class="page-canvas-padding-grid">
               <label>
@@ -1047,7 +1114,73 @@
               </label>
             </div>
             <n-button size="tiny" secondary @click="updatePageCanvasPadding(DEFAULT_PAGE_PADDING)">
-              恢复默认 24
+              恢复默认内边距
+            </n-button>
+
+            <!-- 整页表面：背景 / 圆角 / 边框 -->
+            <div class="page-canvas-padding-head">
+              <strong>页面外观</strong>
+              <span>背景色、圆角与边框，编辑态与运行态同步生效</span>
+            </div>
+            <div class="page-surface-grid">
+              <label class="page-surface-color">
+                <span>背景色</span>
+                <n-color-picker
+                  :value="pageCanvasSurface.backgroundColor || null"
+                  :modes="['hex']"
+                  size="small"
+                  clearable
+                  @update:value="updatePageCanvasSurface({ backgroundColor: $event || '' })"
+                />
+              </label>
+              <label>
+                <span>圆角</span>
+                <n-input-number
+                  size="small"
+                  :value="pageCanvasSurface.borderRadius"
+                  :min="0"
+                  :max="48"
+                  :show-button="false"
+                  @update:value="updatePageCanvasSurface({ borderRadius: $event ?? 0 })"
+                />
+              </label>
+              <label>
+                <span>边框宽</span>
+                <n-input-number
+                  size="small"
+                  :value="pageCanvasSurface.borderWidth"
+                  :min="0"
+                  :max="12"
+                  :show-button="false"
+                  @update:value="updatePageCanvasSurface({ borderWidth: $event ?? 0 })"
+                />
+              </label>
+              <label>
+                <span>边框样式</span>
+                <n-select
+                  size="small"
+                  :value="pageCanvasSurface.borderStyle || 'solid'"
+                  :options="[
+                    { label: '实线', value: 'solid' },
+                    { label: '虚线', value: 'dashed' },
+                    { label: '点线', value: 'dotted' },
+                    { label: '无', value: 'none' },
+                  ]"
+                  @update:value="updatePageCanvasSurface({ borderStyle: $event || 'solid' })"
+                />
+              </label>
+              <label class="page-surface-color page-surface-color-full">
+                <span>边框色</span>
+                <n-color-picker
+                  :value="pageCanvasSurface.borderColor || '#e5e7eb'"
+                  :modes="['hex']"
+                  size="small"
+                  @update:value="updatePageCanvasSurface({ borderColor: $event || '#e5e7eb' })"
+                />
+              </label>
+            </div>
+            <n-button size="tiny" secondary @click="resetPageCanvasSurface()">
+              恢复默认外观
             </n-button>
           </div>
           <div v-if="selectedPageBlock && inspectorTab === 'data'" class="application-form-source-config">

@@ -3,6 +3,8 @@ import {
   applyMeasuredPageBlockHeights,
   migratePageFlowToContentCoords,
   normalizePagePadding,
+  normalizePageSurface,
+  resolvePageSurfaceStyle,
   resolveDefaultPageBlockHeight,
   resolvePageBlockFlowGeometry,
   resolvePageBlockShellStyle,
@@ -23,6 +25,36 @@ describe('page-flow-geometry', () => {
     expect(resolveDefaultPageBlockHeight({ blockType: 'search-form' })).toBe(220)
   })
 
+  it('gives charts a shell tall enough for the echarts canvas', () => {
+    expect(resolveDefaultPageBlockHeight({ blockType: 'bar-chart' })).toBe(280)
+    expect(resolveDefaultPageBlockHeight({ blockType: 'line-chart' })).toBe(280)
+    expect(resolveDefaultPageBlockHeight({
+      blockType: 'bar-chart',
+      props: { height: 320 },
+    })).toBe(340)
+    expect(resolveDefaultPageBlockHeight({ blockType: 'quick-entry' })).toBe(128)
+  })
+
+  it('lifts historically short chart shells so canvas no longer overflows', () => {
+    const block = {
+      id: 'chart_1',
+      blockType: 'bar-chart',
+      props: {
+        height: 260,
+        style: {
+          widthMode: 'full',
+          heightMode: 'fixed',
+          height: 96,
+          pageFlowHeight: 96,
+          pageFlowY: 20,
+        },
+      },
+    }
+    const style = resolvePageBlockShellStyle(block, [block], { pageId: 'page_1' })
+    expect(style.height).toBe('280px')
+    expect(style.minHeight).toBe('280px')
+  })
+
   it('keeps fixed-height shells shrinkable and in sync with anchors', () => {
     const block = {
       id: 't1',
@@ -41,6 +73,29 @@ describe('page-flow-geometry', () => {
     expect(style.minHeight).toBe('48px')
     expect(style.position).toBe('relative')
     expect(style.overflow).toBe('visible')
+  })
+
+  it('honors fixed width for stacked chart shells so side anchors can shrink', () => {
+    const block = {
+      id: 'chart_1',
+      blockType: 'bar-chart',
+      props: {
+        height: 260,
+        style: {
+          widthMode: 'fixed',
+          width: 420,
+          pageFlowWidth: '420px',
+          pageFlowX: 0,
+          heightMode: 'fixed',
+          height: 280,
+          pageFlowHeight: 280,
+        },
+      },
+    }
+    const style = resolvePageBlockShellStyle(block, [block], { pageId: 'page_1' })
+    expect(style.position).toBe('relative')
+    expect(style.width).toBe('420px')
+    expect(style.maxWidth).toBe('100%')
   })
 
   it('lets container auto-height grow with content while keeping minHeight', () => {
@@ -175,6 +230,42 @@ describe('page-flow-geometry', () => {
     expect(normalizePagePadding(12)).toEqual({ top: 12, right: 12, bottom: 12, left: 12 })
     expect(normalizePagePadding({ top: 8, left: 16 })).toEqual({ top: 8, right: 8, bottom: 8, left: 16 })
     expect(resolvePagePaddingCss({ top: 8, right: 12, bottom: 16, left: 20 })).toBe('8px 12px 16px 20px')
+  })
+
+  it('normalizes page surface and resolves style object', () => {
+    expect(normalizePageSurface(null)).toMatchObject({
+      backgroundColor: '',
+      borderRadius: 0,
+      borderWidth: 0,
+    })
+    expect(normalizePageSurface({
+      backgroundColor: '#f8fafc',
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#e2e8f0',
+      borderStyle: 'dashed',
+    })).toEqual({
+      backgroundColor: '#f8fafc',
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#e2e8f0',
+      borderStyle: 'dashed',
+    })
+    expect(resolvePageSurfaceStyle({
+      backgroundColor: '#fff',
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: '#cbd5e1',
+      borderStyle: 'solid',
+    })).toEqual({
+      backgroundColor: '#fff',
+      borderRadius: '8px',
+      borderWidth: '1px',
+      borderStyle: 'solid',
+      borderColor: '#cbd5e1',
+    })
+    expect(resolvePageSurfaceStyle({ backgroundColor: '' })).toEqual({})
+    expect(normalizePageSurface({ backgroundColor: 'red;url(x)' }).backgroundColor).toBe('')
   })
 
   it('collision geometry prefers the larger of pageFlowHeight and height for grow blocks', () => {

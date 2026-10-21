@@ -3,7 +3,8 @@ import { request } from '@/utils'
 // 工作台聚合在 forge-flow；走 /api/flow/* 才能命中生产 Nginx 已有的 flow 反代。
 // needTip:false：失败由 WorkspaceSummaryMetrics 内联告警，避免弹全局「请求资源不存在」打断应用页。
 export function getWorkspaceSummary() {
-  return request.get('/api/flow/workspace/summary', { needTip: false })
+  // 流程服务未起或代理挂起时，短超时快速失败，避免工作台白屏转圈十余秒
+  return request.get('/api/flow/workspace/summary', { needTip: false, timeout: 3500 })
 }
 
 export function getWorkspaceTodoCount() {

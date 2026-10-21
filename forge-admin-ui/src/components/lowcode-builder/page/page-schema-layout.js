@@ -998,6 +998,10 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
   if (blockType === 'stats-strip') {
     base.props = {
       ...base.props,
+      columns: 4,
+      compact: false,
+      showIcon: true,
+      showTrend: true,
       dataBinding: createWidgetDataBinding('items', {
         renderMode: 'manual',
         labelField: 'label',
@@ -1005,11 +1009,84 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
         metaField: 'trend',
       }),
       metrics: [
-        { label: '总数', value: '128', trend: '+8%' },
-        { label: '活跃', value: '92', trend: '+3%' },
-        { label: '本月新增', value: '21', trend: '+12%' },
-        { label: '异常', value: '3', trend: '-1' },
+        { key: 'm1', label: '总数', value: '128', trend: '+8%', icon: 'LayersOutline', tone: 'primary', linkType: 'none' },
+        { key: 'm2', label: '活跃', value: '92', trend: '+3%', icon: 'PulseOutline', tone: 'success', linkType: 'none' },
+        { key: 'm3', label: '本月新增', value: '21', trend: '+12%', icon: 'TrendingUpOutline', tone: 'info', linkType: 'none' },
+        { key: 'm4', label: '异常', value: '3', trend: '-1', icon: 'AlertCircleOutline', tone: 'warning', linkType: 'none' },
       ],
+    }
+  }
+  if (blockType === 'quick-entry') {
+    base.props = {
+      ...base.props,
+      columns: 3,
+      variant: 'card',
+      showDescription: true,
+      dataBinding: createWidgetDataBinding('items', {
+        renderMode: 'manual',
+        titleField: 'title',
+        descriptionField: 'description',
+        valueField: 'targetPageId',
+        metaField: 'icon',
+      }),
+      items: [
+        { key: 'entry_1', title: '新建单据', description: '打开录入页', icon: 'AddOutline', tone: 'primary', linkType: 'none', targetPageId: '', href: '' },
+        { key: 'entry_2', title: '数据列表', description: '查询与导出', icon: 'ListOutline', tone: 'info', linkType: 'none', targetPageId: '', href: '' },
+        { key: 'entry_3', title: '待办办理', description: '处理审批', icon: 'CheckmarkCircleOutline', tone: 'success', linkType: 'none', targetPageId: '', href: '' },
+      ],
+      style: {
+        ...(base.props?.style || {}),
+        widthMode: 'full',
+        heightMode: 'auto',
+        height: 120,
+      },
+    }
+  }
+  if (blockType === 'bar-chart' || blockType === 'line-chart') {
+    const isLine = blockType === 'line-chart'
+    base.props = {
+      ...base.props,
+      title: isLine ? '趋势折线图' : '分类柱状图',
+      height: 260,
+      showLegend: true,
+      legendPosition: 'top-right',
+      smooth: true,
+      showArea: false,
+      showSplitLine: true,
+      barMaxWidth: 36,
+      categoryLabelRotate: 0,
+      yAxisName: '',
+      symbolSize: 6,
+      areaOpacity: 0.12,
+      gridLeft: 8,
+      gridRight: 12,
+      gridBottom: 8,
+      colors: ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
+      optionOverrides: null,
+      dataBinding: createWidgetDataBinding('items', {
+        renderMode: 'manual',
+        labelField: 'category',
+        valueField: 'value',
+        metaField: 'series',
+      }),
+      categories: isLine
+        ? ['1月', '2月', '3月', '4月', '5月', '6月']
+        : ['类型A', '类型B', '类型C', '类型D'],
+      series: isLine
+        ? [
+            { name: '申请数', data: [8, 12, 10, 16, 14, 18] },
+            { name: '通过数', data: [6, 9, 8, 12, 11, 15] },
+          ]
+        : [
+            { name: '数量', data: [18, 12, 9, 6] },
+          ],
+      style: {
+        ...(base.props?.style || {}),
+        widthMode: 'full',
+        heightMode: 'fixed',
+        height: 300,
+        minHeight: 300,
+      },
     }
   }
   if (blockType === 'workspace-summary-metrics') {
@@ -1033,6 +1110,12 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
       title: '提示信息',
       content: '在这里展示当前页面的说明、风险提醒或操作结果。',
       type: 'info',
+      showIcon: true,
+      icon: '',
+      color: '',
+      linkType: 'none',
+      targetPageId: '',
+      href: '',
     }
   }
   if (blockType === 'custom-html') {

@@ -33,6 +33,7 @@ import { postEncrypt, request } from '@/utils'
 import { applyCrudHookRules, CRUD_HOOK_RULE_TARGETS, normalizeCrudHookRules } from '../crud-hook-rules'
 import FieldValueRenderer from '@/components/lowcode-builder/shared/FieldValueRenderer.vue'
 import { isDataFieldBlockType, resolveListFieldTitle } from '../page-schema'
+import { resolveWidgetLinkAction } from '../free-layout-widget-kit.js'
 import { buildRuntimeCrudBlockProps, resolveEffectiveFormOpenMode, resolveEffectiveModalType } from '../runtime-crud-block-props'
 import {
   resolvePreviewChildHeight,
@@ -41,6 +42,7 @@ import {
   hasGridCellChildren,
   resolveFormLayoutBlockType,
   nestedChildShellStyle,
+  resolveChartBlockHeight,
   normalizeCssSize,
   createLegacyPageTitleContent,
   resolvePageTitleRichContent,
@@ -74,9 +76,13 @@ import {
   parseInlineStyle,
 } from '../gridBlockRendererUtils.js'
 import { stripAccidentalSelectionChrome } from '../block-style-chrome.js'
+import { buildChartDataFromRows } from '../page-chart-option.js'
 export function useGridBlockRenderer(props, emit) {
 const localDataBindableBlockTypes = new Set([
   'stats-strip',
+  'quick-entry',
+  'bar-chart',
+  'line-chart',
   'info-panel',
   'custom-html',
   'tag-list',
@@ -181,9 +187,9 @@ const blockBoundData = computed(() => {
   const binding = props.block.props?.dataBinding || {}
   if (binding.enabled !== true || binding.sourceType === 'static')
     return null
-  // 手动多项模式：取整条详情对象（不按数组截断），供每张指标卡单独绑字段
+  // 手动多项模式：取整条详情对象（不按数组截断），供每张指标卡/入口单独绑字段
   if (
-    props.block.blockType === 'stats-strip'
+    ['stats-strip', 'quick-entry'].includes(props.block.blockType)
     && resolveWidgetRenderMode(binding, props.block.blockType) === 'manual'
   ) {
     return resolveContextObjectSource(binding)
@@ -251,17 +257,31 @@ const statsMetrics = computed(() => {
   const metrics = Array.isArray(props.block.props?.metrics) ? props.block.props.metrics : []
   if (mode === 'list' && binding.enabled === true && binding.sourceType !== 'static') {
     return normalizeBlockBoundRows(metrics).map((row, index) => ({
+      key: row.key || `metric_${index + 1}`,
       label: boundRowField(row, 'labelField', 'label', `指标${index + 1}`),
       value: boundRowField(row, 'valueField', 'value', '-'),
       trend: boundRowField(row, 'metaField', 'trend', ''),
+      icon: row.icon || '',
+      tone: row.tone || 'primary',
+      color: row.color || '',
+      linkType: row.linkType || (row.targetPageId ? 'page' : 'none'),
+      targetPageId: String(row.targetPageId || ''),
+      href: String(row.href || ''),
     }))
   }
   // 手动多项：始终用 metrics 数组长度；单项可绑字段覆盖静态值
   const data = blockBoundData.value
   return metrics.map((metric, index) => ({
+    key: metric.key || `metric_${index + 1}`,
     label: resolveManualMetricValue(metric, data, 'labelField', 'label', metric.label || `指标${index + 1}`),
     value: resolveManualMetricValue(metric, data, 'valueField', 'value', metric.value ?? '-'),
     trend: resolveManualMetricValue(metric, data, 'metaField', 'trend', metric.trend || ''),
+    icon: metric.icon || '',
+    tone: metric.tone || 'primary',
+    color: metric.color || '',
+    linkType: metric.linkType || (metric.targetPageId ? 'page' : 'none'),
+    targetPageId: String(metric.targetPageId || ''),
+    href: String(metric.href || ''),
   }))
 })
 
@@ -276,6 +296,83 @@ function resolveManualMetricValue(metric = {}, data, fieldKey, defaultField, fal
   if (metric?.[defaultField] !== undefined && metric?.[defaultField] !== null && metric?.[defaultField] !== '')
     return metric[defaultField]
   return fallback
+}
+
+const quickEntryItems = computed(() => {
+  const binding = props.block.props?.dataBinding || {}
+  const mode = resolveWidgetRenderMode(binding, 'quick-entry')
+  const items = Array.isArray(props.block.props?.items) ? props.block.props.items : []
+  if (mode === 'list' && binding.enabled === true && binding.sourceType !== 'static') {
+    return normalizeBlockBoundRows(items).map((row, index) => ({
+      key: row.key || `entry_${index + 1}`,
+      title: boundRowField(row, 'titleField', 'title', `入口${index + 1}`),
+      description: boundRowField(row, 'descriptionField', 'description', ''),
+      targetPageId: String(boundRowField(row, 'valueField', 'targetPageId', row.pageId || '') || ''),
+      icon: boundRowField(row, 'metaField', 'icon', 'GridOutline'),
+      tone: row.tone || 'primary',
+      color: row.color || '',
+      linkType: row.linkType || '',
+      href: String(row.href || row.url || ''),
+    }))
+  }
+  const data = blockBoundData.value
+  return items.map((item, index) => ({
+    key: item.key || `entry_${index + 1}`,
+    title: resolveManualMetricValue(item, data, 'titleField', 'title', item.title || `入口${index + 1}`),
+    description: resolveManualMetricValue(item, data, 'descriptionField', 'description', item.description || ''),
+    targetPageId: String(resolveManualMetricValue(item, data, 'valueField', 'targetPageId', item.targetPageId || item.pageId || '') || ''),
+    icon: resolveManualMetricValue(item, data, 'metaField', 'icon', item.icon || 'GridOutline'),
+    tone: item.tone || 'primary',
+    color: item.color || '',
+    linkType: item.linkType || '',
+    href: String(item.href || item.url || ''),
+  }))
+})
+
+const chartSeriesPayload = computed(() => {
+  const blockType = props.block.blockType
+  if (!['bar-chart', 'line-chart'].includes(blockType))
+    return { categories: [], series: [] }
+  const binding = props.block.props?.dataBinding || {}
+  const mode = resolveWidgetRenderMode(binding, blockType)
+  if (mode === 'list' && binding.enabled === true && binding.sourceType !== 'static') {
+    const fallbackRows = Array.isArray(props.block.props?.chartRows) ? props.block.props.chartRows : []
+    return buildChartDataFromRows(normalizeBlockBoundRows(fallbackRows), {
+      labelField: binding.labelField || 'category',
+      valueField: binding.valueField || 'value',
+      metaField: binding.metaField || 'series',
+    })
+  }
+  return {
+    categories: Array.isArray(props.block.props?.categories) ? props.block.props.categories : [],
+    series: Array.isArray(props.block.props?.series) ? props.block.props.series : [],
+  }
+})
+
+async function handleQuickEntrySelect(item = {}) {
+  await handleWidgetLinkSelect(item)
+}
+
+/** 快捷入口 / 指标卡 / 提示面板统一跳转：应用内页面或外部链接 */
+async function handleWidgetLinkSelect(item = {}) {
+  if (!props.readonly)
+    return
+  const link = resolveWidgetLinkAction(item)
+  if (link.type === 'page') {
+    await runBlockClickEvent({
+      trigger: 'click',
+      action: 'navigate',
+      targetPageKey: link.targetPageId,
+    }, buildRuntimeEventContext())
+    return
+  }
+  if (link.type === 'url') {
+    await runBlockClickEvent({
+      trigger: 'click',
+      action: 'openUrl',
+      href: link.href,
+    }, buildRuntimeEventContext())
+  }
 }
 const boundInfoTitle = computed(() => boundContentValue(props.block.props?.title || '提示信息', 'titleField', 'title'))
 const boundInfoContent = computed(() => boundContentValue(props.block.props?.content || '在右侧填写提示内容', 'contentField', 'content'))
@@ -1729,7 +1826,7 @@ async function handleButtonGroupClick(button = {}) {
 async function handleRuntimeBlockShellClick(event) {
   if (!props.readonly)
     return
-  const selfHandled = ['action-button', 'button-group', 'link', 'back-button']
+  const selfHandled = ['action-button', 'button-group', 'link', 'back-button', 'quick-entry']
   if (selfHandled.includes(props.block?.blockType))
     return
   const target = event?.target
@@ -2060,7 +2157,7 @@ function handleContainerDragEnter(event) {
     runtimeTreeNodes, runtimeTreeError, runtimeTreeNodeMap, runtimeExpandedTreeKeys, detailInfoLoading, detailInfoError, remoteDetailInfoRecord, blockBindingLoading,
     blockBindingError, remoteBlockBindingData, previewTreeExpanded, treePanelCollapsed, activeTabKeyByBlockId, runtimeTreeChildrenField, runtimeTreeConfig, runtimeTreeLoadMode,
     hasRuntimeTreeApi, runtimeTreeTotal, runtimeSelectedTreeKeys, runtimeRuleContext, blockRuntimeControl, blockRuntimeVisible, detailInfoRecord, blockBoundData,
-    resolveContextObjectSource, isBlockSlotVisible, isLocalDataBindableBlock, showBlockBindingState, statsMetrics, resolveManualMetricValue, boundInfoTitle, boundInfoContent,
+    resolveContextObjectSource, isBlockSlotVisible, isLocalDataBindableBlock, showBlockBindingState, statsMetrics, quickEntryItems, chartSeriesPayload, resolveManualMetricValue, boundInfoTitle, boundInfoContent,
     boundInfoType, boundCustomTitle, boundCustomContent, boundTags, boundSteps, boundTimelineTitle, boundTimelineItems, boundEmptyTitle,
     boundEmptyDescription, boundEmptyActionText, boundTextTitle, boundTextSubtitle, boundParagraphContent, boundStatisticTitle, boundStatisticValue, boundStatisticDescription,
     boundStatisticTrend, boundLinkText, boundLinkHref, boundTextTipTitle, boundTextTipContent, boundTextTipType, boundMediaTitle, boundMediaSrc,
@@ -2080,9 +2177,9 @@ function handleContainerDragEnter(event) {
     renderTableCell, resolveSearchOptionSource, resolveNestedBlockFields, resolveNestedBlockRuntimeCrudProps, resolveNestedBlockRuntimeCrudLoading, resolveNestedBlockDataSourceConfigured, detailValue, normalizeBlockBoundRows,
     boundContentValue, readBoundField, loadBlockBindingData, normalizeBlockBindingParams, loadDetailInfoRecord, normalizeDetailInfoParams, resolveRuntimeTreeApi, loadRuntimeTree,
     loadRuntimeTreeChildren, normalizeRuntimeTreeNodes, expandTree, collapseTree, toggleTreePanel, clearRuntimeTreeSelection, handleRuntimeTreeSelected, emitCrudPreviewState,
-    handleCrudPreviewSuccess, handleCrudPreviewError, applyCrudPreviewMode, handleBackClick, handleLinkClick, handleActionButtonClick, handleButtonGroupClick, handleRuntimeBlockShellClick, resolvePrimaryClickEvent, navigateRuntimeEvent, resolveRuntimeParamValue,
+    handleCrudPreviewSuccess, handleCrudPreviewError, applyCrudPreviewMode, handleBackClick, handleLinkClick, handleActionButtonClick, handleButtonGroupClick, handleQuickEntrySelect, handleWidgetLinkSelect, handleRuntimeBlockShellClick, resolvePrimaryClickEvent, navigateRuntimeEvent, resolveRuntimeParamValue,
     resolveRuntimeText, resolveSystemRuntimeParam, hasRuntimePermission, handleAiFormSubmit, handleStandaloneAiFormValueUpdate, handleRuntimeEventSuccess,
-    resolvePreviewChildHeight, hasGridCellChildren, shouldShowGridCellDropPreview, handleGridCellDragEnter, handleContainerDragEnter, resolveFormLayoutBlockType, nestedChildShellStyle, createLegacyPageTitleContent,
+    resolvePreviewChildHeight, hasGridCellChildren, shouldShowGridCellDropPreview, handleGridCellDragEnter, handleContainerDragEnter, resolveFormLayoutBlockType, nestedChildShellStyle, resolveChartBlockHeight, createLegacyPageTitleContent,
     loadBarcodeModule, componentType, resolveTitleFontSize, sanitizeIframeSrc, toOptionalNumber, isDefaultAiFormField, toAiFormField, trendClass,
     sampleValue, extractBlockBoundRows, normalizeBlockRow, boundRowField, interpolateText, getNestedRecordValue, parseApiConfigValue, extractRuntimeTreeRows,
     countTreeNodes, collectTreeKeys, normalizeRuntimeTreeConfig, appendRuntimeEventParams, resolveTemplatePlaceholder, matchDisplayCondition, parseRuntimeApiConfig,

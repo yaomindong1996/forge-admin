@@ -59,6 +59,65 @@ export function resolvePagePaddingCss(raw, fallback = DEFAULT_PAGE_PADDING) {
   return `${pad.top}px ${pad.right}px ${pad.bottom}px ${pad.left}px`
 }
 
+/** 整页表面：背景 / 圆角 / 边框（存 gridLayout.pageSurface） */
+export const DEFAULT_PAGE_SURFACE = Object.freeze({
+  backgroundColor: '',
+  borderRadius: 0,
+  borderWidth: 0,
+  borderColor: '#e5e7eb',
+  borderStyle: 'solid',
+})
+
+const BORDER_STYLES = new Set(['none', 'solid', 'dashed', 'dotted'])
+
+function normalizeCssColorToken(value, fallback = '') {
+  const text = String(value || '').trim()
+  if (!text || text.length > 64)
+    return fallback
+  // 拒绝明显注入片段，只允许常见 CSS 颜色写法
+  if (/[;{}]|url\s*\(/i.test(text))
+    return fallback
+  return text
+}
+
+export function normalizePageSurface(raw, fallback = DEFAULT_PAGE_SURFACE) {
+  const base = {
+    backgroundColor: String(fallback.backgroundColor || ''),
+    borderRadius: Math.max(0, readPageBlockLength(fallback.borderRadius, 0)),
+    borderWidth: Math.max(0, readPageBlockLength(fallback.borderWidth, 0)),
+    borderColor: String(fallback.borderColor || '#e5e7eb'),
+    borderStyle: BORDER_STYLES.has(String(fallback.borderStyle || ''))
+      ? String(fallback.borderStyle)
+      : 'solid',
+  }
+  if (!raw || typeof raw !== 'object')
+    return { ...base }
+  const borderStyle = String(raw.borderStyle || '').trim().toLowerCase()
+  return {
+    backgroundColor: normalizeCssColorToken(raw.backgroundColor, base.backgroundColor),
+    borderRadius: Math.max(0, Math.min(48, readPageBlockLength(raw.borderRadius, base.borderRadius))),
+    borderWidth: Math.max(0, Math.min(12, readPageBlockLength(raw.borderWidth, base.borderWidth))),
+    borderColor: normalizeCssColorToken(raw.borderColor, base.borderColor),
+    borderStyle: BORDER_STYLES.has(borderStyle) ? borderStyle : base.borderStyle,
+  }
+}
+
+/** 转为可直接绑到画布/运行页的 style 对象 */
+export function resolvePageSurfaceStyle(raw, fallback = DEFAULT_PAGE_SURFACE) {
+  const surface = normalizePageSurface(raw, fallback)
+  const style = {}
+  if (surface.backgroundColor)
+    style.backgroundColor = surface.backgroundColor
+  if (surface.borderRadius > 0)
+    style.borderRadius = `${surface.borderRadius}px`
+  if (surface.borderWidth > 0 && surface.borderStyle !== 'none') {
+    style.borderWidth = `${surface.borderWidth}px`
+    style.borderStyle = surface.borderStyle || 'solid'
+    style.borderColor = surface.borderColor || '#e5e7eb'
+  }
+  return style
+}
+
 /**
  * 将历史「画布绝对坐标」迁移为「内容区相对坐标」（相对 pagePadding 内缘）。
  * 迁移后改上下内边距时块会跟着走，与左右通栏行为一致。
@@ -132,6 +191,15 @@ export function resolveDefaultPageBlockHeight(block = {}) {
     return 120
   if (['stats-strip', 'workspace-summary-metrics'].includes(blockType))
     return blockType === 'workspace-summary-metrics' ? 200 : 100
+  if (blockType === 'quick-entry')
+    return 128
+  // 图表画布默认 ≥260px；壳高若仍用 96 会 overflow 叠到邻块上
+  if (['bar-chart', 'line-chart'].includes(blockType)) {
+    const fromProp = Number(block?.props?.height)
+    if (Number.isFinite(fromProp) && fromProp > 120)
+      return Math.round(fromProp + 20)
+    return 280
+  }
   if (blockType === 'AiForm')
     return 128
   if (['grid-layout', 'card', 'box-layout', 'tabs'].includes(blockType))
@@ -314,6 +382,16 @@ export function resolvePageBlockShellStyle(block = {}, items = [], options = {})
   const FREE_LAYOUT_CRUD_MIN_HEIGHT = 420
   let resolvedHeight = Math.max(40, customHeight > 0 ? customHeight : frameHeight || defaultHeight)
 
+  // 图表：历史数据可能把 pageFlowHeight/height 写成 96，画布仍按 props.height≈260 绘制并溢出叠层
+  if (['bar-chart', 'line-chart'].includes(block.blockType)) {
+    const chartCanvas = Number(block.props?.height)
+    resolvedHeight = Math.max(
+      resolvedHeight,
+      defaultHeight,
+      Number.isFinite(chartCanvas) && chartCanvas > 120 ? Math.round(chartCanvas + 20) : 0,
+    )
+  }
+
   // heightMode=fixed：非容器仍锁死壳高；栅格/卡片等容器始终跟内容撑开（minHeight 保留拖拽下限）
   // heightMode=auto：跟内容走
   const useAutoHeight = heightMode === 'auto'
@@ -334,11 +412,21 @@ export function resolvePageBlockShellStyle(block = {}, items = [], options = {})
       top: 'auto',
       right: 'auto',
       bottom: 'auto',
-      width: '100%',
       maxWidth: '100%',
       order: Number.isFinite(customY) && customY >= 0
         ? Math.round(customY)
         : Math.round(resolveDefaultPageBlockYFromItems(items, index)),
+    }
+    // 文档流也要认固定宽，否则左右锚点改宽被写死成 100%
+    if (widthMode === 'fixed') {
+      const floored = readPageBlockLength(customWidth) || frameWidth || 0
+      shell.width = floored > 0 ? `${Math.max(180, floored)}px` : '100%'
+    }
+    else if (widthMode === 'auto') {
+      shell.width = 'auto'
+    }
+    else {
+      shell.width = '100%'
     }
     if (heightMode === 'full') {
       shell.height = 'auto'

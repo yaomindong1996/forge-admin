@@ -14,8 +14,7 @@
       <header class="application-card-head">
         <div class="application-identity">
           <span class="application-icon" aria-hidden="true">
-            <IconRenderer v-if="application.icon" :icon="application.icon" :size="18" />
-            <i v-else class="i-lucide:app-window" />
+            <IconRenderer :icon="resolveApplicationDisplayIcon(application.icon)" :size="18" />
           </span>
           <span class="application-copy">
             <strong>{{ application.applicationName || application.applicationCode }}</strong>
@@ -103,8 +102,10 @@
 </template>
 
 <script setup>
+import { h } from 'vue'
 import DictTag from '@/components/DictTag.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
+import { resolveApplicationDisplayIcon } from '@/views/app-center/application-display-icon'
 
 defineProps({
   applications: {
@@ -124,6 +125,10 @@ const APP_TONES = [
   { ink: '#db2777', wash: '#fce7f3' },
 ]
 
+function renderActionIcon(className) {
+  return () => h('i', { class: className, 'aria-hidden': true })
+}
+
 /** 按应用编码稳定映射色相，对齐应用市场卡片。 */
 function applicationTone(application) {
   const key = String(application?.applicationCode || application?.id || '')
@@ -136,14 +141,39 @@ function applicationTone(application) {
 
 function actionOptions(application) {
   const isDraft = isDraftApplication(application)
+  const enabled = Number(application.status) === 1
   return [
-    { label: isDraft ? '运行应用' : '发布应用', key: isDraft ? 'run' : 'publish' },
-    { label: '预览与下载代码', key: 'code' },
-    { label: '应用设置', key: 'edit' },
-    { label: '导出应用配置', key: 'export-config' },
-    { label: Number(application.status) === 1 ? '停用应用' : '启用应用', key: 'toggle' },
+    {
+      label: isDraft ? '运行应用' : '发布应用',
+      key: isDraft ? 'run' : 'publish',
+      icon: renderActionIcon(isDraft ? 'i-lucide:play' : 'i-lucide:upload'),
+    },
+    {
+      label: '预览与下载代码',
+      key: 'code',
+      icon: renderActionIcon('i-lucide:code-xml'),
+    },
+    {
+      label: '应用设置',
+      key: 'edit',
+      icon: renderActionIcon('i-lucide:settings'),
+    },
+    {
+      label: '导出应用配置',
+      key: 'export-config',
+      icon: renderActionIcon('i-lucide:download'),
+    },
+    {
+      label: enabled ? '停用应用' : '启用应用',
+      key: 'toggle',
+      icon: renderActionIcon(enabled ? 'i-lucide:ban' : 'i-lucide:circle-check'),
+    },
     { type: 'divider', key: 'divider' },
-    { label: '删除应用', key: 'delete' },
+    {
+      label: '删除应用',
+      key: 'delete',
+      icon: renderActionIcon('i-lucide:trash-2'),
+    },
   ]
 }
 

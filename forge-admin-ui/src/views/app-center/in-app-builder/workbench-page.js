@@ -5,7 +5,7 @@ import { PAGE_MANAGEMENT_SYSTEM_PAGES } from './page-management'
 export const WORKBENCH_PAGE_ID = 'system:workbench'
 
 /** 仅含早期默认布局时可升级；用户手动改过的页面不覆盖 */
-export const WORKBENCH_LAYOUT_VERSION = 3
+export const WORKBENCH_LAYOUT_VERSION = 4
 
 export function isWorkbenchPageId(pageId = '') {
   return String(pageId || '').trim() === WORKBENCH_PAGE_ID
@@ -55,7 +55,7 @@ function withFlowStyle(block, { x = 24, y = 20, height = 160, heightMode = 'auto
 
 /**
  * 所有应用通用的个人工作台默认布局：
- * 待办统计 → 使用提示 → 空状态引导
+ * 待办统计 → 使用提示（不再塞空状态占位，避免「一片空白」观感）
  * 页面标题用外层 summary-head，画布内不再放 page-title，避免重复。
  */
 export function createDefaultWorkbenchBlocks() {
@@ -72,7 +72,7 @@ export function createDefaultWorkbenchBlocks() {
 
   const tip = withFlowStyle(
     createGridBlock('info-panel', null, { gridX: 0, gridY: 2 }),
-    { y: 236, height: 112, heightMode: 'auto' },
+    { y: 236, height: 96, heightMode: 'auto' },
   )
   tip.props = {
     ...tip.props,
@@ -81,17 +81,7 @@ export function createDefaultWorkbenchBlocks() {
     type: 'info',
   }
 
-  const empty = withFlowStyle(
-    createGridBlock('empty-state', null, { gridX: 0, gridY: 4 }),
-    { y: 364, height: 160, heightMode: 'auto' },
-  )
-  empty.props = {
-    ...empty.props,
-    title: '从这里开始',
-    description: '处理完待办后，可在此浏览发起中的流程与抄送消息。需要定制本页时，管理员可点击「编辑」自由拖入组件。',
-  }
-
-  return [metrics, tip, empty]
+  return [metrics, tip]
 }
 
 export function createDefaultWorkbenchPage(title = '个人工作台') {
@@ -112,18 +102,25 @@ export function createDefaultWorkbenchPage(title = '个人工作台') {
   }
 }
 
-function isLegacyMinimalWorkbenchPage(page = null) {
+function isUpgradeableDefaultWorkbenchPage(page = null) {
   const items = page?.layout?.gridLayout?.items
   if (!Array.isArray(items) || !items.length)
     return true
   const version = Number(page?.layout?.workbenchLayoutVersion || 0)
   if (version >= WORKBENCH_LAYOUT_VERSION)
     return false
-  // 仅早期「单块矮统计」默认布局，可安全升级
-  if (items.length !== 1 || items[0]?.blockType !== 'workspace-summary-metrics')
-    return false
-  const height = Number(items[0]?.props?.style?.pageFlowHeight || items[0]?.props?.style?.height || 0)
-  return !Number.isFinite(height) || height <= 160
+  const types = items.map(item => String(item?.blockType || ''))
+  // 早期「单块矮统计」默认布局
+  if (items.length === 1 && types[0] === 'workspace-summary-metrics') {
+    const height = Number(items[0]?.props?.style?.pageFlowHeight || items[0]?.props?.style?.height || 0)
+    return !Number.isFinite(height) || height <= 160 || version < WORKBENCH_LAYOUT_VERSION
+  }
+  // v3 默认：统计 + 提示 + 空状态；可安全换成 v4（去掉空壳占位）
+  if (types.includes('workspace-summary-metrics') && types.includes('empty-state')) {
+    const allowed = new Set(['workspace-summary-metrics', 'info-panel', 'empty-state', 'page-title'])
+    return types.every(type => allowed.has(type))
+  }
+  return false
 }
 
 function bumpMetricsBlockHeight(items = []) {
@@ -198,7 +195,7 @@ export function ensureWorkbenchPageInBuilder(schema = {}) {
   const existing = pages[WORKBENCH_PAGE_ID]
   const meta = resolveWorkbenchSystemPage()
 
-  if (isLegacyMinimalWorkbenchPage(existing)) {
+  if (isUpgradeableDefaultWorkbenchPage(existing)) {
     const page = createDefaultWorkbenchPage(existing?.title || meta.title || '个人工作台')
     pages[WORKBENCH_PAGE_ID] = {
       ...page,

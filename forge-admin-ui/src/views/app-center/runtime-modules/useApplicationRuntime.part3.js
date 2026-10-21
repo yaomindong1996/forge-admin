@@ -9,7 +9,7 @@ import { businessApplicationRuntimeByCode, businessApplicationWorkspaceByCode, d
 import defaultLogo from '@/assets/images/logo.png'
 import AuthImage from '@/components/common/AuthImage.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
-import { createGridBlock, DATA_FIELD_BLOCK_TYPES, isDataFieldBlockType, listPageBlockCatalog, resolveListPageBlockMeta } from '@/components/lowcode-builder/page/page-schema'
+import { createDefaultBlockStyle, createGridBlock, DATA_FIELD_BLOCK_TYPES, isDataFieldBlockType, listPageBlockCatalog, resolveListPageBlockMeta } from '@/components/lowcode-builder/page/page-schema'
 import {
   alignSearchSchemaWithLeftTree,
   buildLeftTreeFilterParams,
@@ -72,7 +72,7 @@ import {
   WORKBENCH_PAGE_ID,
 } from '../in-app-builder/workbench-page'
 import { inAppPageTemplateCatalog, resolveInAppPageTemplate } from '../in-app-builder/page-template-catalog'
-import { findPageBlockInTree, mapPageBlocksInTree, removePageBlockFromTree, visitPageBlocksInTree } from './page-block-tree'
+import { findGridCellHostForChild, findPageBlockInTree, mapPageBlocksInTree, removePageBlockFromTree, visitPageBlocksInTree } from './page-block-tree'
 import { resolvePageBlockShellStyle as computePageBlockShellStyle, readPageBlockLength, resolveDefaultPageBlockHeight, resolveDefaultPageBlockYFromItems, resolvePageBlockFlowGeometry, resolveRootPageBlockCollisions, shouldUsePageFlowStack, normalizePagePadding, resolvePagePaddingCss, migratePageFlowToContentCoords, canvasToContentFlowPoint, contentToCanvasFlowPoint, DEFAULT_PAGE_PADDING } from './page-flow-geometry'
 import { flattenNodes, hasPermission, isNavigationVisible } from './runtime-navigation-utils'
 import { useBuilderHistory } from './use-builder-history'
@@ -899,6 +899,12 @@ export function applyApplicationRuntimePart3(deps = {}) {
       { label: '复制到当前页面', key: 'duplicate', icon: () => renderNavigationMenuIcon(DuplicateOutline) },
       { label: '复制到其他页面', key: 'copyToPage', disabled: !copyBlockPageOptions.value.length, icon: () => renderNavigationMenuIcon(CopyOutline) },
       {
+        label: '与上一组件并排',
+        key: 'arrangeBesidePrevious',
+        disabled: pageBlocks.value.findIndex(item => item.id === block.id) <= 0,
+        icon: () => renderNavigationMenuIcon(SwapHorizontalOutline),
+      },
+      {
         label: '移入布局',
         key: 'moveIntoLayout',
         icon: () => renderNavigationMenuIcon(GitBranchOutline),
@@ -952,11 +958,77 @@ export function applyApplicationRuntimePart3(deps = {}) {
   }
   __impl.resolvePageBlockMoreOptions = resolvePageBlockMoreOptions
 
+  function arrangePageBlockBesidePrevious(blockId) {
+    const items = pageBlocks.value || []
+    const index = items.findIndex(item => item.id === blockId)
+    if (index <= 0) {
+      message.warning('上面没有可并排的组件')
+      return false
+    }
+    const previous = items[index - 1]
+    const current = items[index]
+    if (!previous || !current)
+      return false
+    const left = normalizePageBlockForContainer(previous)
+    const right = normalizePageBlockForContainer(current)
+    const grid = createGridBlock('grid-layout', { fields: [] }, { gridX: 0, gridY: 0 })
+    const gridId = `grid_side_${Date.now().toString(36)}`
+    const row = {
+      ...grid,
+      id: gridId,
+      label: '并排布局',
+      props: {
+        ...(grid.props || {}),
+        columns: 24,
+        gutter: 16,
+        rowGap: 16,
+        cellMinHeight: 88,
+        alignItems: 'stretch',
+        justifyItems: 'stretch',
+        showCellBorder: false,
+        cellBackground: 'transparent',
+        cells: [
+          { key: 'side_left', title: '左侧', span: 12, children: [left] },
+          { key: 'side_right', title: '右侧', span: 12, children: [right] },
+        ],
+        style: {
+          ...createDefaultBlockStyle('full'),
+          ...(grid.props?.style || {}),
+          widthMode: 'full',
+          width: '100%',
+          heightMode: 'auto',
+          height: 'auto',
+          backgroundColor: 'transparent',
+          borderColor: 'transparent',
+          borderWidth: 0,
+          padding: 0,
+          pageFlowX: 0,
+          pageFlowY: Number(previous.props?.style?.pageFlowY) || 0,
+        },
+      },
+      children: [],
+    }
+    const nextItems = [
+      ...items.slice(0, index - 1),
+      row,
+      ...items.slice(index + 1),
+    ]
+    updatePageBlocks(nextItems, { resolveCollisions: true, changedBlockId: gridId })
+    selectedPageBlockId.value = gridId
+    message.success('已与上一组件并排；选中格子内组件可继续拖左右锚点调列宽')
+    return true
+  }
+  __impl.arrangePageBlockBesidePrevious = arrangePageBlockBesidePrevious
+
   function handlePageBlockMoreSelect(key, block) {
     const index = pageBlocks.value.findIndex(item => item.id === block.id)
     if (index < 0)
       return
     selectPageBlock(block.id)
+    if (key === 'arrangeBesidePrevious') {
+      arrangePageBlockBesidePrevious(block.id)
+      return
+    }
     if (key === 'configure') {
       configPanelVisible.value = true
       return
@@ -1086,6 +1158,13 @@ export function applyApplicationRuntimePart3(deps = {}) {
       heightMode: _topLevelHeightMode,
       ...containerStyle
     } = block.props?.style || {}
+    const isChart = ['bar-chart', 'line-chart'].includes(block?.blockType)
+    const chartHeight = Math.max(
+      200,
+      Number(block?.props?.height) || 0,
+      readPageBlockLength(_topLevelHeight),
+      280,
+    )
     return {
       ...JSON.parse(JSON.stringify(block)),
       props: {
@@ -1096,7 +1175,9 @@ export function applyApplicationRuntimePart3(deps = {}) {
           widthMode: 'full',
           width: '100%',
           maxWidth: '100%',
-          heightMode: 'auto',
+          // 图表必须保留固定壳高，否则 height:100% / 默认 96 会把画布挤出格子叠在一起
+          heightMode: isChart ? 'fixed' : 'auto',
+          ...(isChart ? { height: chartHeight } : {}),
           x: 0,
           y: 0,
           left: 0,
@@ -1217,17 +1298,27 @@ export function applyApplicationRuntimePart3(deps = {}) {
     const parentPadX = parentStyle
       ? (Number.parseFloat(parentStyle.paddingLeft) || 0) + (Number.parseFloat(parentStyle.paddingRight) || 0)
       : 0
-    const maxWidth = parentRect?.width
+    const cellHost = findGridCellHostForChild(pageBlocks.value, block.id)
+    // 栅格内左右拖：按整行栅格宽度换算列宽，不再锁死在当前格子里
+    const gridRoot = node?.closest?.('[data-page-block-type="grid-layout"],[data-page-block-type="grid"]')
+      || node?.closest?.('.application-page-block')
+    const gridRect = gridRoot?.getBoundingClientRect?.()
+    const cellMaxWidth = parentRect?.width
       ? Math.max(120, Math.floor(parentRect.width - parentPadX))
       : 0
+    const gridMaxWidth = gridRect?.width
+      ? Math.max(120, Math.floor(gridRect.width))
+      : cellMaxWidth
     mut.nestedPageBlockResizeCtx = {
       blockId: block.id,
+      blockType: block.blockType || '',
       anchor: payload.anchor || 'bottom-right',
       startX: event.clientX,
       startY: event.clientY,
       originWidth: rect.width,
       originHeight: rect.height,
-      maxWidth,
+      maxWidth: cellHost ? gridMaxWidth : cellMaxWidth,
+      cellHost,
     }
     window.addEventListener('pointermove', resizeNestedPageBlock)
     window.addEventListener('pointerup', endNestedPageBlockResize)
@@ -1517,6 +1608,8 @@ export function applyApplicationRuntimePart3(deps = {}) {
     const dy = event.clientY - ctx.startY
     let width = ctx.originWidth
     let height = ctx.originHeight
+    const resizingWidth = ctx.anchor.includes('left') || ctx.anchor.includes('right')
+    const resizingHeight = ctx.anchor.includes('top') || ctx.anchor.includes('bottom')
     if (ctx.anchor.includes('right'))
       width += dx
     if (ctx.anchor.includes('left'))
@@ -1528,25 +1621,64 @@ export function applyApplicationRuntimePart3(deps = {}) {
     const maxWidth = Number(ctx.maxWidth) > 0 ? Number(ctx.maxWidth) : Number.POSITIVE_INFINITY
     const nextWidth = Math.min(maxWidth, Math.max(120, Math.round(width)))
     const nextHeight = Math.max(40, Math.round(height))
-    // 嵌套容器内拉伸到接近父宽时切回铺满，避免越界
-    const useFullWidth = Number.isFinite(maxWidth) && nextWidth >= maxWidth - 2
-    updatePageBlocks(mapPageBlocksInTree(pageBlocks.value, block => block.id === ctx.blockId
-      ? {
+    const host = ctx.cellHost
+    const nextSpan = host && resizingWidth && ctx.originWidth > 0
+      ? Math.min(
+          host.columns,
+          Math.max(2, Math.round(host.span * (nextWidth / ctx.originWidth))),
+        )
+      : null
+
+    updatePageBlocks(mapPageBlocksInTree(pageBlocks.value, (block) => {
+      // 左右锚点：改所在格子的 span，图表始终通栏填满格子（真正改变页面上的宽度）
+      if (host && nextSpan != null && block.id === host.gridId) {
+        const cells = Array.isArray(block.props?.cells) ? block.props.cells : []
+        return {
           ...block,
           props: {
             ...(block.props || {}),
-            style: {
-              ...(block.props?.style || {}),
-              widthMode: useFullWidth ? 'full' : 'fixed',
-              width: useFullWidth ? '100%' : `${nextWidth}px`,
-              maxWidth: '100%',
-              heightMode: 'fixed',
-              height: `${nextHeight}px`,
-              pageFlowHeight: nextHeight,
-            },
+            cells: cells.map((cell) => {
+              if (String(cell.key) !== String(host.cellKey))
+                return cell
+              return { ...cell, span: nextSpan }
+            }),
           },
         }
-      : block))
+      }
+      if (block.id !== ctx.blockId)
+        return block
+      const prevStyle = block.props?.style || {}
+      const nextStyle = { ...prevStyle }
+      if (host && nextSpan != null) {
+        // 栅格内横向只改列宽，组件保持铺满格子
+        nextStyle.widthMode = 'full'
+        nextStyle.width = '100%'
+        nextStyle.maxWidth = '100%'
+        delete nextStyle.pageFlowWidth
+      }
+      else if (resizingWidth) {
+        const useFullWidth = Number.isFinite(maxWidth) && nextWidth >= maxWidth - 2
+        nextStyle.widthMode = useFullWidth ? 'full' : 'fixed'
+        nextStyle.width = useFullWidth ? '100%' : `${nextWidth}px`
+        nextStyle.maxWidth = '100%'
+      }
+      if (resizingHeight) {
+        nextStyle.heightMode = 'fixed'
+        nextStyle.height = `${nextHeight}px`
+        nextStyle.minHeight = nextHeight
+        nextStyle.pageFlowHeight = nextHeight
+      }
+      const nextProps = {
+        ...(block.props || {}),
+        style: nextStyle,
+      }
+      if (resizingHeight && ['bar-chart', 'line-chart'].includes(block.blockType))
+        nextProps.height = Math.max(160, nextHeight)
+      return {
+        ...block,
+        props: nextProps,
+      }
+    }))
   }
   __impl.resizeNestedPageBlock = resizeNestedPageBlock
 
@@ -1588,6 +1720,7 @@ export function applyApplicationRuntimePart3(deps = {}) {
   __impl.appendPageBlockToTab = appendPageBlockToTab
   __impl.resolvePageBlockMoreOptions = resolvePageBlockMoreOptions
   __impl.handlePageBlockMoreSelect = handlePageBlockMoreSelect
+  __impl.arrangePageBlockBesidePrevious = arrangePageBlockBesidePrevious
   __impl.resolvePageBlockMoveIntoOptions = resolvePageBlockMoveIntoOptions
   __impl.movePageBlockIntoContainer = movePageBlockIntoContainer
   __impl.normalizePageBlockForContainer = normalizePageBlockForContainer

@@ -78,6 +78,7 @@ import {
   WORKBENCH_PAGE_ID,
 } from '../in-app-builder/workbench-page'
 import { inAppPageTemplateCatalog, resolveInAppPageTemplate } from '../in-app-builder/page-template-catalog'
+import { freeLayoutPresetCatalog } from '../in-app-builder/free-layout-preset-catalog'
 import {
   ApplicationExtensionsPanel,
   ApplicationObjectsPanel,
@@ -95,7 +96,7 @@ import {
   PageTypeSelector,
 } from './applicationRuntimeLocalComponents'
 import { findPageBlockInTree, mapPageBlocksInTree, removePageBlockFromTree, visitPageBlocksInTree } from './page-block-tree'
-import { resolvePageBlockShellStyle as computePageBlockShellStyle, readPageBlockLength, resolveDefaultPageBlockHeight, resolveDefaultPageBlockYFromItems, resolvePageBlockFlowGeometry, resolveRootPageBlockCollisions, shouldUsePageFlowStack, normalizePagePadding, resolvePagePaddingCss, migratePageFlowToContentCoords, canvasToContentFlowPoint, contentToCanvasFlowPoint, DEFAULT_PAGE_PADDING } from './page-flow-geometry'
+import { resolvePageBlockShellStyle as computePageBlockShellStyle, readPageBlockLength, resolveDefaultPageBlockHeight, resolveDefaultPageBlockYFromItems, resolvePageBlockFlowGeometry, resolveRootPageBlockCollisions, shouldUsePageFlowStack, normalizePagePadding, resolvePagePaddingCss, normalizePageSurface, resolvePageSurfaceStyle, migratePageFlowToContentCoords, canvasToContentFlowPoint, contentToCanvasFlowPoint, DEFAULT_PAGE_PADDING, DEFAULT_PAGE_SURFACE } from './page-flow-geometry'
 import { flattenNodes, hasPermission, isNavigationVisible } from './runtime-navigation-utils'
 import { useBuilderHistory } from './use-builder-history'
 import { useRuntimeCrudConfig } from './use-runtime-crud-config'
@@ -127,6 +128,9 @@ export function applyApplicationRuntimePart1() {
   const applyPageBlockMove = (...args) => __impl.applyPageBlockMove(...args)
   const applyPageBlockSwapPreview = (...args) => __impl.applyPageBlockSwapPreview(...args)
   const applyPageTemplate = (...args) => __impl.applyPageTemplate(...args)
+  const applyFreeLayoutPreset = (...args) => __impl.applyFreeLayoutPreset(...args)
+  const applyCurrentFreeLayoutPreset = (...args) => __impl.applyCurrentFreeLayoutPreset(...args)
+  const openLayoutPresetPicker = (...args) => __impl.openLayoutPresetPicker(...args)
   const attachDefaultRuntimeObject = (...args) => __impl.attachDefaultRuntimeObject(...args)
   const attachSingleFormAsset = (...args) => __impl.attachSingleFormAsset(...args)
   const bindSingleFormToCompatibleBlocks = (...args) => __impl.bindSingleFormToCompatibleBlocks(...args)
@@ -181,6 +185,7 @@ export function applyApplicationRuntimePart1() {
   const handlePageBlockDataSourceRequest = (...args) => __impl.handlePageBlockDataSourceRequest(...args)
   const handlePageBlockMoreSelect = (...args) => __impl.handlePageBlockMoreSelect(...args)
   const handlePageFlowBlankClick = (...args) => __impl.handlePageFlowBlankClick(...args)
+  const openPagePropertiesPanel = (...args) => __impl.openPagePropertiesPanel(...args)
   const handlePageFlowContainerClear = (...args) => __impl.handlePageFlowContainerClear(...args)
   const handlePageFlowContainerInsert = (...args) => __impl.handlePageFlowContainerInsert(...args)
   const handlePageFlowDragOver = (...args) => __impl.handlePageFlowDragOver(...args)
@@ -314,6 +319,8 @@ export function applyApplicationRuntimePart1() {
   const updatePageBlockSize = (...args) => __impl.updatePageBlockSize(...args)
   const updatePageBlocks = (...args) => __impl.updatePageBlocks(...args)
   const updatePageCanvasPadding = (...args) => __impl.updatePageCanvasPadding(...args)
+  const updatePageCanvasSurface = (...args) => __impl.updatePageCanvasSurface(...args)
+  const resetPageCanvasSurface = (...args) => __impl.resetPageCanvasSurface(...args)
   const updateResizeCollisionHighlights = (...args) => __impl.updateResizeCollisionHighlights(...args)
   const updateSelectedBlockAppearance = (...args) => __impl.updateSelectedBlockAppearance(...args)
   const updateSelectedBlockFormAsset = (...args) => __impl.updateSelectedBlockFormAsset(...args)
@@ -510,6 +517,7 @@ export function applyApplicationRuntimePart1() {
   const pageTypeSelectorVisible = ref(false)
   const pageTypeSelectorParentId = ref(null)
   const pageTypeSelectorDefaultType = ref('form')
+  const layoutPresetPickerVisible = ref(false)
   const sidebarCollapsed = ref(false)
   const renamingApplication = ref(false)
   const renameApplicationValue = ref('')
@@ -791,6 +799,11 @@ export function applyApplicationRuntimePart1() {
     DEFAULT_PAGE_PADDING,
   ))
   const pageCanvasPaddingCss = computed(() => resolvePagePaddingCss(pageCanvasPadding.value))
+  const pageCanvasSurface = computed(() => normalizePageSurface(
+    currentGridLayout.value?.pageSurface ?? currentPage.value?.layout?.pageSurface,
+    DEFAULT_PAGE_SURFACE,
+  ))
+  const pageCanvasSurfaceStyle = computed(() => resolvePageSurfaceStyle(pageCanvasSurface.value))
   const designerGridLayout = computed(() => currentGridLayout.value)
   const appPageTargetOptions = computed(() => (builder.value?.nodes || [])
     .filter(node => node && node.id && !isWorkbenchPageId(node.id))
@@ -998,6 +1011,12 @@ export function applyApplicationRuntimePart1() {
       label: item.objectName || item.objectCode || '未命名表单',
     })))
   const pageTemplateOptions = computed(() => inAppPageTemplateCatalog.filter(template => ['blank', 'intro', 'crud', 'tree-list', 'tree-table', 'master-detail'].includes(template.key)))
+  const freeLayoutPresetOptions = computed(() => freeLayoutPresetCatalog.map(item => ({
+    key: item.key,
+    label: item.label,
+    description: item.description,
+    thumb: item.thumb,
+  })))
   const selectedPageBlockFields = computed(() => {
     if (!selectedPageBlock.value)
       return []
@@ -1731,6 +1750,11 @@ export function applyApplicationRuntimePart1() {
         message.warning(persistError?.message || '页面已创建，但草稿暂未保存成功，请稍后手动保存')
       }
       selectCreatedDesignerPage(result.pageId, { designTab: customPage ? 'page' : undefined })
+      if (customPage && selection.layoutPresetKey)
+        applyFreeLayoutPreset(result.pageId, selection.layoutPresetKey, {
+          replace: true,
+          pageTitle: selection.pageName,
+        })
       if (!result.formAssetId)
         return
       activePageShapeDesign.value = {
@@ -1857,7 +1881,7 @@ export function applyApplicationRuntimePart1() {
 
   return {
     __impl, mut, animatePageBlockSwap, appendPageBlock, appendPageBlockToContainer, appendPageBlockToGridCell, appendPageBlockToTab, applyDesignerResource,
-    applyNestedPageBlockMove, applyPageBlockMove, applyPageBlockSwapPreview, applyPageTemplate, attachDefaultRuntimeObject, attachSingleFormAsset, bindSingleFormToCompatibleBlocks, bumpPortalCrudConfigAfterDesignerSave,
+    applyNestedPageBlockMove, applyPageBlockMove, applyPageBlockSwapPreview, applyPageTemplate, applyFreeLayoutPreset, applyCurrentFreeLayoutPreset, openLayoutPresetPicker, attachDefaultRuntimeObject, attachSingleFormAsset, bindSingleFormToCompatibleBlocks, bumpPortalCrudConfigAfterDesignerSave,
     cancelRenameApplication, clearPageAlignGuides, clearPageBlockSwapPreview, clonePageBlockTree, confirmNavigationAction, confirmRenameApplication, confirmSystemMenuMount, copySelectedBlockToOtherPage,
     createFormAssetForCurrentPage, createFormAssetForPageCrud, createFormAssetForSelectedBlock, createFormFieldVisibilitySettings, createLegacyBlock, createPageFromTemplate, createQuickNode, createStandaloneFormAsset,
     currentDesignerDirty, discardAndExitEditing, duplicateNavigationNode, duplicateNestedPageBlock, editSelectedBlockFormAsset, endComponentButtonMove, endNestedPageBlockMove, endNestedPageBlockResize,
@@ -1870,7 +1894,7 @@ export function applyApplicationRuntimePart1() {
     isPageCatalogDrag, isSimpleBodyContainer, isValidPageBlockObjectRef, itemBorderColorMode, load, markBuilderClean, moveNavigationByOffset, movePageBlockIntoContainer,
     moveRootPageBlockToGridCell, moveRootPageBlockToTab, normalizeContainerDropTarget, normalizePageBlockForContainer, onComponentButtonMove, onNestedPageBlockMove, onPageBlockMove, onPageBlockResize,
     openBusinessObjectDesign, openCustomPageSelector, openDraftPreview, openEmbeddedObjectActions, openExcelPageImport, openFormAssetDesigner, openFormAssetDesignerForPage, openObjectDesigner,
-    openObjectResourcePreview, openObjectSetup, openPageBlockConfiguration, openPageTypeSelector, openProcessDesigner, openSelectedBlockFormDesigner, openSystemMenuMountDialog, openWorkspace,
+    openObjectResourcePreview, openObjectSetup, openPageBlockConfiguration, openPagePropertiesPanel, openPageTypeSelector, openProcessDesigner, openSelectedBlockFormDesigner, openSystemMenuMountDialog, openWorkspace,
     pageUsesFreeLayoutCanvas, patchCurrentPageNode, patchNavigationNodeMount, persistApplicationDraft, prefetchRuntimeWorkspacePanels, preloadCurrentPageCrudRuntimeProps, preloadPageBlockCrudRuntimeProps, promoteCurrentPageToListShape,
     provisionPendingFormData, readRouteDesignTab, refreshWorkspaceMetadata, relocateNestedPageBlockToContainer, relocateNestedPageBlockToGridCell, relocateNestedPageBlockToTab, renderNavigationMenuIcon, requestExitEditing,
     resizeNestedPageBlock, resolveActiveDesignerPageId, resolveComponentIcon, resolveComponentPickerGroup, resolveEmptyGuideIcon, resolveEntryDesignTab, resolveFormAssetFields, resolveFormAssetIdForPage,
@@ -1883,9 +1907,9 @@ export function applyApplicationRuntimePart1() {
     selectDesignerResource, selectFormAssetFromPicker, selectIntroTemplate, selectNode, selectPageBlock, selectPageManagementNode, setFormDataProvisionState, snapPageBlockPosition,
     startCatalogPointerDrag, startComponentButtonMove, startPageBlockMove, startPageBlockResize, startRenameApplication, supportsFormAsset, switchPageDesignTab, switchRuntimeView,
     syncActiveFormAssetForPage, syncActivePageShapeObject, syncCatalogDropActiveClass, toggleGroupExpanded, toggleNavigationVisible, unmountSystemMenu, updateActiveFormDesignerSchema, updateCurrentGridLayout,
-    updatePageAlignGuides, updatePageBlockBackgroundColor, updatePageBlockSize, updatePageBlocks, updatePageCanvasPadding, updateResizeCollisionHighlights, updateSelectedBlockAppearance, updateSelectedBlockFormAsset,
+    updatePageAlignGuides, updatePageBlockBackgroundColor, updatePageBlockSize, updatePageBlocks, updatePageCanvasPadding, updatePageCanvasSurface, resetPageCanvasSurface, updateResizeCollisionHighlights, updateSelectedBlockAppearance, updateSelectedBlockFormAsset,
     setFormAssetAsListCrudForm, isFormAssetBoundToListCrud, collectFormAssetUsages, formatFormAssetUsageSummary, focusFormAssetUsage, clearFormAssetListCrudBinding,
-    updateSelectedPageBlockRuntimeObject, warmCurrentPortalPageCrud, route, router, message, tenantStore, defaultLogo, WORKBENCH_PAGE_ID, isNavigationVisible, DEFAULT_PAGE_PADDING, formComponentIconModules, formComponentIconCache,
+    updateSelectedPageBlockRuntimeObject, warmCurrentPortalPageCrud, route, router, message, tenantStore, defaultLogo, WORKBENCH_PAGE_ID, isNavigationVisible, DEFAULT_PAGE_PADDING, DEFAULT_PAGE_SURFACE, formComponentIconModules, formComponentIconCache,
     formComponentIconFileByBlockType, userStore, asyncPanelLoader, ApplicationObjectsPanel, ApplicationExtensionsPanel, ApplicationProcessPanel, ApplicationSettingsPanel, runtimeWorkspacePanelImporters,
     BusinessObjectDesignerPage, BusinessProcessPage, ForgeFormDesigner, ListPageGridDesigner, IconSelector, PageTypeSelector, PageDesignSettingsPanel, PageDesignPublishPanel,
     PageManagementSystemView, GridBlockRenderer, application, objects, builder, processSelectableObjects, loadError, loading,
@@ -1894,7 +1918,7 @@ export function applyApplicationRuntimePart1() {
     systemMenuMountVisible, systemMenuMountNodeId, systemMenuMountNode, componentPopoverVisible, componentKeyword, savedSignature, selectedPageBlockId, hoveredPageBlockId, nestHostPinnedId, draggingPageBlockId,
     dragPreview, pageAlignGuides, PAGE_ALIGN_SNAP_PX, configPanelVisible, inspectorTab, componentButtonPosition, componentButtonMoveCtx, catalogDragBlockType,
     suppressCatalogClick, activePageFlowTabTarget, activePageFlowGridTarget, activePageFlowContainerTarget, resizeCollisionBlockIds, formDesignerObjectContextByObjectId, formDesignerObjectContextLoadingIds, formDesignerMode,
-    designerTransitionLoading, runtimeTreeFilter, runtimeTreeFilterByBlockId, runtimeTreeActiveKeyByBlockId, formDesignerFromPageManagement, activeFormAssetId, activePageShapeDesign, pageTypeSelectorVisible,
+    designerTransitionLoading, runtimeTreeFilter, runtimeTreeFilterByBlockId, runtimeTreeActiveKeyByBlockId, formDesignerFromPageManagement, activeFormAssetId, activePageShapeDesign, pageTypeSelectorVisible, layoutPresetPickerVisible,
     pageTypeSelectorParentId, pageTypeSelectorDefaultType, sidebarCollapsed, renamingApplication, renameApplicationValue, renameSaving, renameInputRef, collapsedGroupIds,
     copyBlockVisible, copyBlockId, copyBlockTargetPageId, blockBackgroundPickerVisible, backgroundPickerBlockId, formAssetSelectorOpen, formAssetSelectorKeyword, formDataProvisioningByAssetId,
     objectSetupVisible, selectedDesignerResourceKey, workspaceExtensions, workspaceEntries, portalCrudConfigRevision, portalCrudSeed, isDraftMode, activeFlowContext,
@@ -1903,11 +1927,11 @@ export function applyApplicationRuntimePart1() {
     pageBuilderResourceActive, canEditApplication, usePortalDesignPreview, activeDesignerObject, activeResourceConfigKey, previewableResourceActive, legacyBlockTypeMap, pageBlockResizeAnchors,
     pageBlockRecommendedColors, groupOptions, navigationActionNode, iconPickerNode, navigationIconValue, navigationActionTitle, navigationActionHasChildren, navigationDeleteImpact,
     navigationDeleteTip, moveGroupOptions, navigationNodes, currentNode, currentPage, currentPageLayoutPolluted, currentPageManagementTitle, pageDesignObject,
-    currentGridLayout, pageBlocks, pageFlowStackMode, pageCanvasPadding, pageCanvasPaddingCss, designerGridLayout, appPageTargetOptions, pageFlowHeight, hasCustomComponentButtonPosition,
+    currentGridLayout, pageBlocks, pageFlowStackMode, pageCanvasPadding, pageCanvasPaddingCss, pageCanvasSurface, pageCanvasSurfaceStyle, designerGridLayout, appPageTargetOptions, pageFlowHeight, hasCustomComponentButtonPosition,
     componentButtonStyle, selectedPageBlock, formAssets, filteredFormAssets, pageFormAssetOptions, activeFormAsset, activeFormDesignerSchema, activeFormAssetBlock,
     activeFormDesignerObjectRef, activeFormDesignerContext, activeFormDesignerRelations, activeFormDesignerActions, activeFormFields, activeFormDataState, selectedPageBlockFormAssetId, selectedPageBlockBoundFormAssetId, selectedPageBlockFormAsset, selectedPageBlockBoundFormAsset,
     selectedPageBlockRuntimeObjectRef, selectedPageBlockIsCrud, selectedPageBlockSupportsDataSource, selectedPageBlockUsesObjectRuntime, selectedPageBlockRuntimeObjectId, selectedPageBlockObjectDesignerPanel, selectedPageBlockFormDataState, runtimeObjectFormOptions,
-    pageTemplateOptions, selectedPageBlockFields, selectedPageBlockFormDesignerSchema, applicationGridModelSchema, dragPreviewBlock, nestedMovingPageBlockId, copyBlockPageOptions, dirty,
+    pageTemplateOptions, freeLayoutPresetOptions, selectedPageBlockFields, selectedPageBlockFormDesignerSchema, applicationGridModelSchema, dragPreviewBlock, nestedMovingPageBlockId, copyBlockPageOptions, dirty,
     canSaveActiveFormDesigner, loadErrorTitle, filteredComponents, componentPickerGroups, recommendedComponents,
     runtimeCrudPropsByObjectId, runtimeCrudLoadingObjectIds, runtimeCrudUnavailableObjectIds, loadRuntimeCrudProps, resetRuntimeCrudConfig,
     historyReady, canUndo, canRedo, resetBuilderHistory, runWithoutHistory,

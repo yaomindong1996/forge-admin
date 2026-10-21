@@ -1302,11 +1302,14 @@
 .runtime-inspector > .page-form-bind-card {
   flex: 0 0 auto;
 }
+/* panel-only 嵌在 inspector 里：自身 flex 撑满，内层 .property-panel 滚动。
+ * 以前 height:auto + overflow:hidden 会把「基础样式/点击动作」裁掉，看起来像属性面板没东西。 */
 .runtime-inspector :deep(.list-grid-designer.panel-only) {
-  height: auto;
-  min-height: 0;
+  display: flex;
   flex: 1;
-  display: block;
+  flex-direction: column;
+  min-height: 0;
+  height: auto;
   overflow: hidden;
 }
 .runtime-inspector :deep(.list-grid-designer.panel-only > .palette-panel),
@@ -1318,8 +1321,17 @@
 .runtime-inspector :deep(.list-grid-designer.panel-only .side-rail-toggle-button.right) {
   display: none;
 }
-.runtime-inspector :deep(.list-grid-designer.panel-only .block-property-panel),
+.runtime-inspector :deep(.list-grid-designer.panel-only .block-property-panel) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  overflow: hidden;
+}
 .runtime-inspector :deep(.list-grid-designer.panel-only .property-panel) {
+  flex: 1;
   width: 100%;
   min-height: 0;
   overflow: auto;
@@ -1359,6 +1371,10 @@
   border-bottom-color: #3370ff;
   color: #1456f0;
   font-weight: 600;
+}
+.runtime-inspector-tabs button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 .runtime-inspector-close {
   display: grid;

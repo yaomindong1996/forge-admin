@@ -306,100 +306,84 @@ function pageNode({ id, title, pageType, pageShape, pageTemplate, sort, objectRe
   }
 }
 
-const homeLayout = {
-  gridLayout: {
-    cols: 12,
-    rowHeight: 32,
-    gap: 12,
-    designWidth: 1366,
-    layoutType: 'custom',
-    items: [
-      {
-        id: 'blk_home_title',
-        blockType: 'page-title',
-        label: '页面标题',
-        gridX: 0,
-        gridY: 0,
-        gridW: 12,
-        gridH: 2,
-        props: {
-          title: '入职中心',
-          subtitle: '覆盖登记、台账、材料核对与账号/设备开通，适合正式人事入职。',
-        },
-      },
-      {
-        id: 'blk_home_intro',
-        blockType: 'intro',
-        label: '介绍',
-        gridX: 0,
-        gridY: 2,
-        gridW: 12,
-        gridH: 3,
-        props: {
-          title: '推荐使用顺序',
-          description: '人事在「办理入职」采集信息 → 「入职台账」查询导出 → 「材料核对」确认证件材料 → 「开通清单」跟进账号与设备。',
-        },
-      },
-      {
-        id: 'blk_home_m1',
-        blockType: 'metric-card',
-        label: '指标',
-        gridX: 0,
-        gridY: 5,
-        gridW: 3,
-        gridH: 3,
-        props: { title: '登记表单', value: '20+ 字段', trend: '身份/合同/银行卡' },
-      },
-      {
-        id: 'blk_home_m2',
-        blockType: 'metric-card',
-        label: '指标',
-        gridX: 3,
-        gridY: 5,
-        gridW: 3,
-        gridH: 3,
-        props: { title: '台账列表', value: '可搜索', trend: '编辑 / 导出' },
-      },
-      {
-        id: 'blk_home_m3',
-        blockType: 'metric-card',
-        label: '指标',
-        gridX: 6,
-        gridY: 5,
-        gridW: 3,
-        gridH: 3,
-        props: { title: '材料核对', value: '列表+表单', trend: '状态一眼可见' },
-      },
-      {
-        id: 'blk_home_m4',
-        blockType: 'metric-card',
-        label: '指标',
-        gridX: 9,
-        gridY: 5,
-        gridW: 3,
-        gridH: 3,
-        props: { title: '开通清单', value: '账号/设备', trend: '入职当日闭环' },
-      },
-      {
-        id: 'blk_home_tip',
-        blockType: 'text',
-        label: '说明',
-        gridX: 0,
-        gridY: 8,
-        gridW: 12,
-        gridH: 2,
-        props: {
-          content: '导入后请发布应用与对象再使用。本包为进阶样例，字段与页面多于免费请假包，便于评估正式人事场景。',
-        },
-      },
-    ],
-  },
-}
-
 const listBlock = crudBlock({ id: 'blk_onboard_list', title: '入职台账', pageMode: 'list' })
 const applyBlock = crudBlock({ id: 'blk_onboard_apply', title: '办理入职', pageMode: 'form', formOnly: true })
 const docsBlock = crudBlock({ id: 'blk_onboard_docs', title: '材料核对', pageMode: 'list-form' })
 const unlockBlock = crudBlock({ id: 'blk_onboard_unlock', title: '开通清单', pageMode: 'list' })
+
+/**
+ * 首页 = 入职台账列表（满高单块）。
+ * 办理/核对/开通已在左侧导航，不再堆重复快捷按钮。
+ */
+const homeLayout = pageLayout([{
+  ...listBlock,
+  id: 'blk_home_list',
+  props: {
+    ...listBlock.props,
+    title: '入职台账',
+  },
+}], 'list')
+
+const workbenchPage = {
+  title: '个人工作台',
+  pageType: 'content',
+  layout: {
+    workbenchLayoutVersion: 4,
+    gridLayout: {
+      cols: 12,
+      rowHeight: 32,
+      gap: 8,
+      designWidth: 1366,
+      layoutType: 'simple-crud',
+      items: [
+        {
+          id: 'blk_wb_metrics',
+          blockType: 'workspace-summary-metrics',
+          label: '工作台统计',
+          gridX: 0,
+          gridY: 0,
+          gridW: 12,
+          gridH: 3,
+          props: {
+            visibleKeys: ['todo', 'done', 'started', 'cc'],
+            columns: 4,
+            showHeader: false,
+            style: {
+              widthMode: 'full',
+              heightMode: 'auto',
+              pageFlowX: 24,
+              pageFlowY: 20,
+              pageFlowHeight: 200,
+              height: 200,
+            },
+          },
+        },
+        {
+          id: 'blk_wb_tip',
+          blockType: 'info-panel',
+          label: '使用提示',
+          gridX: 0,
+          gridY: 2,
+          gridW: 12,
+          gridH: 2,
+          props: {
+            type: 'info',
+            title: '使用提示',
+            content: '点击上方统计可进入待办/已办/发起中/抄送。入职办理请从左侧「入职中心」进入。',
+            style: {
+              widthMode: 'full',
+              heightMode: 'auto',
+              pageFlowX: 24,
+              pageFlowY: 236,
+              pageFlowHeight: 96,
+              height: 96,
+            },
+          },
+        },
+      ],
+    },
+  },
+}
 
 const appPack = {
   format: 'forge-application-bundle',
@@ -425,7 +409,8 @@ const appPack = {
     applicationName: '员工入职',
     applicationCode: 'market_onboard_app',
     suiteCode: 'HR',
-    icon: 'i-lucide:user-plus',
+    // 应用卡片走 IconRenderer：须用 ionicons5，勿用 i-lucide（动态 class 不会进 UnoCSS）
+    icon: 'ionicons5:PersonAddOutline',
     description: '人事入职进阶样例：入职中心、台账、办理入职、材料核对与开通清单五页，字段覆盖合同、银行卡与账号准备。',
     status: 1,
     options: {
@@ -436,10 +421,11 @@ const appPack = {
           pageNode({
             id: 'page_onboard_home',
             title: '入职中心',
-            pageType: 'content',
-            pageShape: 'custom',
-            pageTemplate: 'custom',
+            pageType: 'object',
+            pageShape: 'list',
+            pageTemplate: 'list',
             sort: 0,
+            objectRef: objectRef('list'),
           }),
           pageNode({
             id: 'page_onboard_list',
@@ -481,7 +467,7 @@ const appPack = {
         pages: {
           page_onboard_home: {
             title: '入职中心',
-            description: '入职流程说明与入口导览',
+            description: '查询与管理入职台账',
             layout: homeLayout,
           },
           page_onboard_list: {
@@ -504,6 +490,7 @@ const appPack = {
             description: '跟进账号开通与设备就绪',
             layout: pageLayout([unlockBlock], 'list'),
           },
+          'system:workbench': workbenchPage,
         },
         formAssets: [
           {
@@ -524,7 +511,7 @@ const appPack = {
       objectType: 'MASTER',
       role: 'PRIMARY',
       displayField: 'fullName',
-      icon: 'i-lucide:badge-check',
+      icon: 'ionicons5:RibbonOutline',
       description: '员工入职登记对象（含合同、材料与开通状态）',
       modelSchema: {
         object: { code: 'employee_onboard', name: '入职登记' },

@@ -102,6 +102,40 @@
           </template>
         </n-form-item>
       </div>
+      <div v-else class="page-layout-presets">
+        <div class="page-data-source-head">
+          <strong>布局预设</strong>
+          <span>基于栅格排版，选好后可再改数据源与跳转目标。</span>
+        </div>
+        <div class="layout-preset-grid" role="radiogroup" aria-label="布局预设">
+          <button
+            type="button"
+            class="layout-preset-card has-wire"
+            :class="{ active: form.layoutPresetKey === 'blank' }"
+            role="radio"
+            :aria-checked="form.layoutPresetKey === 'blank'"
+            @click="form.layoutPresetKey = 'blank'"
+          >
+            <FreeLayoutPresetThumb kind="blank" />
+            <strong>空白画布</strong>
+            <small>自行拖入组件</small>
+          </button>
+          <button
+            v-for="preset in freeLayoutPresets"
+            :key="preset.key"
+            type="button"
+            class="layout-preset-card has-wire"
+            :class="{ active: form.layoutPresetKey === preset.key }"
+            role="radio"
+            :aria-checked="form.layoutPresetKey === preset.key"
+            @click="form.layoutPresetKey = preset.key"
+          >
+            <FreeLayoutPresetThumb :kind="preset.thumb || 'ops'" />
+            <strong>{{ preset.label }}</strong>
+            <small>{{ preset.description }}</small>
+          </button>
+        </div>
+      </div>
     </n-form>
 
     <template #footer>
@@ -123,12 +157,16 @@ import { useMessage } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { businessObjectCodeAvailable, genDatasourceEnabled, genDatasourceTableColumns, genDatasourceTables } from '@/api/business-app'
 import { PAGE_SHAPE_TYPES } from '../../in-app-builder/page-shape-design'
+import FreeLayoutPresetThumb from '../../in-app-builder/FreeLayoutPresetThumb.vue'
+import { listFreeLayoutPresetOptions } from '../../in-app-builder/free-layout-preset-catalog'
 import {
   inferFormFieldsFromColumns,
   PAGE_DATA_SOURCE_CREATE,
   PAGE_DATA_SOURCE_EXISTING_TABLE,
 } from '../../in-app-builder/page-table-import'
 import { normalizeObjectCode } from './form-first/namingUtils'
+
+const freeLayoutPresets = listFreeLayoutPresetOptions()
 
 const props = defineProps({
   show: {
@@ -276,6 +314,7 @@ function createDefaultForm() {
     dataSourceMode: PAGE_DATA_SOURCE_CREATE,
     runtimeDatasourceId: null,
     importTableName: '',
+    layoutPresetKey: pageType === 'custom' ? 'ops-overview' : 'blank',
     parentId: props.defaultParentId == null || props.defaultParentId === ''
       ? null
       : String(props.defaultParentId),
@@ -284,6 +323,8 @@ function createDefaultForm() {
 
 function selectPageType(pageType) {
   form.pageType = pageType
+  if (pageType === 'custom' && (!form.layoutPresetKey || form.layoutPresetKey === 'blank'))
+    form.layoutPresetKey = 'ops-overview'
   formRef.value?.restoreValidation?.()
 }
 
@@ -421,6 +462,9 @@ async function confirmSelection() {
     fields: form.pageType !== 'custom' && form.dataSourceMode === PAGE_DATA_SOURCE_EXISTING_TABLE
       ? importedFields.value
       : [],
+    layoutPresetKey: form.pageType === 'custom' && form.layoutPresetKey !== 'blank'
+      ? form.layoutPresetKey
+      : '',
   })
 }
 </script>
@@ -588,6 +632,53 @@ async function confirmSelection() {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+}
+
+.page-layout-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.layout-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.layout-preset-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 128px;
+  padding: 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: var(--bg-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.layout-preset-card:hover {
+  border-color: var(--primary-300, #93c5fd);
+}
+
+.layout-preset-card.active {
+  border-color: var(--primary-500, #3b82f6);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-500, #3b82f6) 18%, transparent);
+}
+
+.layout-preset-card strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.layout-preset-card small {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .page-type-footer {

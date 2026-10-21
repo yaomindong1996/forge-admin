@@ -54,6 +54,10 @@ import CrudDefaultParamsEditor from './CrudDefaultParamsEditor.vue'
 import CrudHookRulesEditor from './CrudHookRulesEditor.vue'
 import FieldConfigDrawer from './FieldConfigDrawer.vue'
 import GridBlockRenderer from './GridBlockRenderer.vue'
+import PageChartPropertyPanel from './PageChartPropertyPanel.vue'
+import QuickEntryPropertyPanel from './QuickEntryPropertyPanel.vue'
+import StatsStripPropertyPanel from './StatsStripPropertyPanel.vue'
+import InfoPanelPropertyPanel from './InfoPanelPropertyPanel.vue'
 
 export const listPageDesignerLocalComponents = {
   AddOutline,
@@ -104,4 +108,8 @@ export const listPageDesignerLocalComponents = {
   CrudHookRulesEditor,
   FieldConfigDrawer,
   GridBlockRenderer,
+  PageChartPropertyPanel,
+  QuickEntryPropertyPanel,
+  StatsStripPropertyPanel,
+  InfoPanelPropertyPanel,
 }

@@ -336,7 +336,7 @@
   right: auto !important;
   bottom: auto !important;
   left: auto !important;
-  width: 100% !important;
+  /* 宽高交给 inline shell style；禁止 width:100%!important，否则左右锚点改宽无效 */
   max-width: 100% !important;
 }
 .application-page-flow.is-editing {
@@ -362,6 +362,53 @@
   color: #667085;
   font-size: 12px;
 }
+.page-inspector-hint {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.page-layout-preset-inspector {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed #e5eaf3;
+  margin-bottom: 4px;
+}
+.page-layout-preset-inspector-grid {
+  display: grid;
+  gap: 10px;
+}
+.page-layout-preset-inspector-card {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid #e1e8f5;
+  border-radius: 10px;
+  background: var(--bg-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.page-layout-preset-inspector-card:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 2px color-mix(in srgb, #2563eb 12%, transparent);
+}
+.page-layout-preset-inspector-card strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+.page-layout-preset-inspector-card small {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.page-layout-preset-inspector-card :deep(.preset-thumb) {
+  height: 64px;
+}
 .page-canvas-padding-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -374,6 +421,23 @@
   align-items: center;
   color: var(--text-secondary);
   font-size: 12px;
+}
+.page-surface-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.page-surface-grid > label {
+  display: grid;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.page-surface-grid > label > span {
+  line-height: 1.2;
+}
+.page-surface-color-full {
+  grid-column: 1 / -1;
 }
 .page-block-drag-ghost {
   position: absolute;
@@ -814,13 +878,14 @@ body.is-catalog-pointer-dragging .n-popover {
 }
 .page-block-resize-anchor {
   position: absolute;
-  z-index: 4;
+  z-index: 48;
   width: 10px;
   height: 10px;
   border: 2px solid #fff;
   border-radius: 999px;
   background: #1d4ed8;
   box-shadow: 0 2px 6px rgba(29, 78, 216, 0.36);
+  pointer-events: auto;
 }
 .page-block-resize-anchor::before {
   position: absolute;
@@ -931,6 +996,91 @@ body.is-catalog-pointer-dragging .n-popover {
   color: #646a73;
   font-size: 13px;
   line-height: 22px;
+}
+.page-layout-preset-row {
+  z-index: 1;
+  display: grid;
+  grid-column: 1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-self: start;
+  max-width: 560px;
+  margin-bottom: 4px;
+}
+.page-layout-preset-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 118px;
+  padding: 10px;
+  border: 1px solid #e1e8f5;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-primary) 86%, transparent);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+.page-layout-preset-card.has-thumb :deep(.preset-thumb) {
+  height: 72px;
+}
+.page-layout-preset-card:hover {
+  border-color: #8bb4ff;
+  background: var(--bg-primary);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.08);
+  transform: translateY(-2px);
+}
+.page-layout-preset-card strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+.page-layout-preset-card small {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.layout-preset-picker-lead {
+  margin: 0 0 14px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.layout-preset-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.layout-preset-picker-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-light, #e5eaf3);
+  border-radius: 10px;
+  background: var(--bg-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.layout-preset-picker-card:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 2px color-mix(in srgb, #2563eb 14%, transparent);
+}
+.layout-preset-picker-copy {
+  display: grid;
+  gap: 4px;
+}
+.layout-preset-picker-copy strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+.layout-preset-picker-copy small {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
 }
 .page-recommendations {
   z-index: 1;

@@ -117,6 +117,25 @@ describe('applyPageNavigationQuery', () => {
     expect(query.pageKey).toBeUndefined()
   })
 
+  it('switches market-style application pages with pageId (not pageKey)', () => {
+    const query = applyPageNavigationQuery(
+      { pageId: 'page_leave_home', pageKey: 'list' },
+      'page_leave_apply',
+      () => true,
+    )
+    expect(query.pageId).toBe('page_leave_apply')
+    expect(query.pageKey).toBeUndefined()
+  })
+
+  it('keeps object canvas page_<timestamp> as pageKey under current app page', () => {
+    const query = applyPageNavigationQuery(
+      { pageId: 'page_leave_home' },
+      'page_1712345678901',
+      () => true,
+    )
+    expect(query).toEqual({ pageId: 'page_leave_home', pageKey: 'page_1712345678901' })
+  })
+
   it('uses pageKey on non-application routes', () => {
     const query = applyPageNavigationQuery({}, 'detail', () => false)
     expect(query).toEqual({ pageKey: 'detail' })
@@ -135,6 +154,23 @@ describe('applyPageNavigationQuery', () => {
     expect(push).toHaveBeenCalledWith({
       path: '/app/hr',
       query: { pageId: 'page_page_u6xdzs', pageKey: 'e2e_dialog' },
+      hash: '',
+    })
+  })
+
+  it('navigateRuntimeEvent switches leave pages via pageId', () => {
+    const push = vi.fn()
+    navigateRuntimeEvent(
+      { targetPageKey: 'page_leave_approve' },
+      {
+        route: { path: '/app/hr_apply_dbg', query: { pageId: 'page_leave_home' }, hash: '' },
+        router: { push },
+        isApplicationRuntimeRoute: () => true,
+      },
+    )
+    expect(push).toHaveBeenCalledWith({
+      path: '/app/hr_apply_dbg',
+      query: { pageId: 'page_leave_approve' },
       hash: '',
     })
   })

@@ -1,41 +1,40 @@
 <template>
-  <div class="workspace-summary-metrics" :class="{ 'is-compact': compact, 'is-readonly': readonly }">
+  <div class="workspace-summary-metrics" :class="{ 'is-compact': compact, 'is-readonly': readonly, 'is-loading': loading }">
     <NAlert v-if="loadError" class="summary-alert" type="warning" :show-icon="false">
       {{ loadError }}
     </NAlert>
-    <NSpin :show="loading">
-      <section class="summary-grid" :style="gridStyle">
-        <button
-          v-for="item in visibleMetricItems"
-          :key="item.key"
-          class="summary-metric"
-          :class="[`tone-${item.tone}`, { 'is-emphasis': item.key === emphasisKey }]"
-          type="button"
-          :disabled="readonly"
-          @click="handleMetricClick(item)"
-        >
-          <span class="metric-icon" :class="item.tone">
-            <i :class="item.icon" />
+    <!-- 先渲染卡片骨架，统计请求异步填充，避免整页转圈 -->
+    <section class="summary-grid" :style="gridStyle">
+      <button
+        v-for="item in visibleMetricItems"
+        :key="item.key"
+        class="summary-metric"
+        :class="[`tone-${item.tone}`, { 'is-emphasis': item.key === emphasisKey }]"
+        type="button"
+        :disabled="readonly || loading"
+        @click="handleMetricClick(item)"
+      >
+        <span class="metric-icon" :class="item.tone">
+          <i :class="item.icon" />
+        </span>
+        <span class="metric-copy">
+          <strong>{{ loading ? '—' : item.value }}</strong>
+          <span>{{ item.label }}</span>
+          <small>{{ item.desc }}</small>
+          <span class="metric-share" aria-hidden="true">
+            <i :style="{ width: `${loading ? 0 : item.sharePercent}%` }" />
           </span>
-          <span class="metric-copy">
-            <strong>{{ item.value }}</strong>
-            <span>{{ item.label }}</span>
-            <small>{{ item.desc }}</small>
-            <!-- 占比条：让统计区更像“图表”，而不是纯数字 -->
-            <span class="metric-share" aria-hidden="true">
-              <i :style="{ width: `${item.sharePercent}%` }" />
-            </span>
-          </span>
-          <i v-if="!readonly" class="i-material-symbols:chevron-right metric-arrow" />
-        </button>
-      </section>
-    </NSpin>
+        </span>
+        <i v-if="!readonly" class="i-material-symbols:chevron-right metric-arrow" />
+      </button>
+    </section>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { NAlert } from 'naive-ui'
 import { getWorkspaceSummary } from '@/api/workspace'
 
 const props = defineProps({
@@ -212,9 +211,14 @@ async function loadSummary() {
     const code = error?.code ?? error?.response?.data?.code
     const rawMessage = error?.message ?? error?.response?.data?.message
     const message = typeof rawMessage === 'string' && rawMessage.trim() ? rawMessage.trim() : ''
+    const isTimeout = code === 'ECONNABORTED'
+      || /timeout/i.test(message)
+      || error?.message === 'Network Error'
     // 本地未起 flow / 代理指错环境时常见 401；避免把布尔 false 等脏值当成文案
     if (code === 401 || code === '401')
       loadError.value = '流程服务未接通或登录态不一致，工作台统计暂不可用（请确认本地 forge-flow 已启动且与 admin 同库）'
+    else if (isTimeout)
+      loadError.value = '流程服务响应超时，工作台统计暂不可用（请确认 forge-flow 已启动）'
     else
       loadError.value = message || '工作台统计加载失败'
     summary.value = {
@@ -243,6 +247,10 @@ defineExpose({ loadSummary, summary })
 .workspace-summary-metrics {
   width: 100%;
   min-width: 0;
+}
+
+.workspace-summary-metrics.is-loading .summary-metric {
+  opacity: 0.72;
 }
 
 .summary-alert {

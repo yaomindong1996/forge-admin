@@ -5,6 +5,7 @@ import {
   isDefaultEmptyStatePlaceholder,
   isDefaultInfoPanelPlaceholder,
   isRuntimeAutoHeightBlock,
+  normalizePortalLegacyBlock,
   resolvePortalPageBlocks,
   shouldUseContentSizedFlow,
   shouldUsePageFlowStack,
@@ -233,5 +234,41 @@ describe('portal-page-runtime-layout', () => {
       resolveObjectRef: () => null,
     })
     expect(blocks.map(item => item.blockType)).toEqual(['workspace-summary-metrics'])
+  })
+
+  it('remaps market legacy block aliases on gridLayout items', () => {
+    const remapped = normalizePortalLegacyBlock({
+      id: 'm1',
+      blockType: 'metric-card',
+      props: { title: '发起入口', value: '表单页', trend: '一键填写' },
+    }, 0)
+    expect(remapped.blockType).toBe('stats-strip')
+    expect(remapped.props.metrics).toEqual([
+      { label: '发起入口', value: '表单页', trend: '一键填写' },
+    ])
+
+    const blocks = resolvePortalPageBlocks({
+      node: { id: 'page_leave_home', pageType: 'content' },
+      page: {
+        layout: {
+          gridLayout: {
+            items: [
+              { id: 'intro_1', blockType: 'intro', props: { title: '介绍', description: '说明文案' } },
+              { id: 'm1', blockType: 'metric-card', props: { title: '指标', value: '1', trend: '' } },
+              { id: 'tip_1', blockType: 'text', props: { content: '提示' } },
+              { id: 'list_1', blockType: 'list', props: { title: '清单', content: '条目' } },
+            ],
+          },
+        },
+      },
+      resolveObjectRef: () => null,
+    })
+    expect(blocks.map(item => item.blockType)).toEqual([
+      'page-title',
+      'stats-strip',
+      'custom-html',
+      'info-panel',
+    ])
+    expect(blocks[0].props.subtitle).toBe('说明文案')
   })
 })

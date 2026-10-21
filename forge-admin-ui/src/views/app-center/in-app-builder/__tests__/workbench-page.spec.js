@@ -20,11 +20,37 @@ describe('workbench-page', () => {
     expect(items.map(item => item.blockType)).toEqual([
       'workspace-summary-metrics',
       'info-panel',
-      'empty-state',
     ])
     const metrics = items.find(item => item.blockType === 'workspace-summary-metrics')
     expect(Number(metrics.props.style.pageFlowHeight)).toBeGreaterThanOrEqual(200)
     expect(metrics.props.style.heightMode).toBe('auto')
+  })
+
+  it('upgrades v3 default layout that still has empty-state filler', () => {
+    const legacy = {
+      pages: {
+        [WORKBENCH_PAGE_ID]: {
+          title: '个人工作台',
+          layout: {
+            workbenchLayoutVersion: 3,
+            gridLayout: {
+              items: [
+                { id: 'm1', blockType: 'workspace-summary-metrics', props: { style: { pageFlowHeight: 200, heightMode: 'auto' } } },
+                { id: 't1', blockType: 'info-panel', props: { title: '使用提示' } },
+                { id: 'e1', blockType: 'empty-state', props: { title: '从这里开始' } },
+              ],
+            },
+          },
+        },
+      },
+    }
+    const result = ensureWorkbenchPageInBuilder(legacy)
+    expect(result.upgraded).toBe(true)
+    expect(result.page.layout.gridLayout.items.map(item => item.blockType)).toEqual([
+      'workspace-summary-metrics',
+      'info-panel',
+    ])
+    expect(result.page.layout.workbenchLayoutVersion).toBe(WORKBENCH_LAYOUT_VERSION)
   })
 
   it('upgrades legacy short metrics-only layout', () => {

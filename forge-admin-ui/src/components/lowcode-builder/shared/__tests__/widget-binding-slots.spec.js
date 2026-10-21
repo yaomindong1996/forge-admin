@@ -25,6 +25,15 @@ describe('widget binding slots', () => {
     expect(profile.slots.map(item => item.key)).toEqual(['labelField', 'valueField', 'metaField'])
   })
 
+  it('exposes quick-entry / chart slots for list binding', () => {
+    expect(resolveWidgetBindingProfile('quick-entry').slots.map(item => item.key))
+      .toEqual(['titleField', 'descriptionField', 'valueField', 'metaField'])
+    expect(resolveWidgetBindingProfile('bar-chart').slots.map(item => item.key))
+      .toEqual(['labelField', 'valueField', 'metaField'])
+    expect(resolveWidgetRenderMode({ enabled: true, sourceType: 'context' }, 'line-chart')).toBe('manual')
+    expect(resolveWidgetRenderMode({ enabled: true, sourceType: 'context', renderMode: 'list' }, 'bar-chart')).toBe('list')
+  })
+
   it('lists assigned slots and ignores classic defaults until real field is picked', () => {
     expect(listAssignedBindingSlots({
       titleField: 'title',

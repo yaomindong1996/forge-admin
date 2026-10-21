@@ -290,6 +290,51 @@ describe('page shape design draft', () => {
     expect(isObjectBoundPageLayoutPolluted(restored.nodes[0], restored.pages.page_orders)).toBe(false)
   })
 
+  it('allows free-layout companion widgets on object list pages when AiCrudPage remains', () => {
+    const node = {
+      id: 'page_leave_home',
+      type: 'page',
+      title: '请假中心',
+      pageType: 'object',
+      pageShape: 'list',
+      pageTemplate: 'list',
+      objectRef: { objectCode: 'leave_request', objectName: '请假单', pageMode: 'list' },
+    }
+    const page = {
+      title: '请假中心',
+      layout: {
+        gridLayout: {
+          items: [
+            { id: 'b1', blockType: 'bar-chart', props: {} },
+            { id: 'b2', blockType: 'line-chart', props: {} },
+            { id: 'b3', blockType: 'stats-strip', props: {} },
+            { id: 'b4', blockType: 'AiCrudPage', props: { formAssetId: 'form_leave' } },
+          ],
+        },
+      },
+    }
+    expect(isObjectBoundPageLayoutPolluted(node, page)).toBe(false)
+  })
+
+  it('marks object page polluted when AiCrudPage is missing', () => {
+    const node = {
+      id: 'page_orders',
+      type: 'page',
+      title: '订单',
+      pageType: 'object',
+      pageShape: 'list',
+      objectRef: { objectCode: 'order', pageMode: 'list' },
+    }
+    const page = {
+      layout: {
+        gridLayout: {
+          items: [{ id: 'b1', blockType: 'bar-chart', props: {} }],
+        },
+      },
+    }
+    expect(isObjectBoundPageLayoutPolluted(node, page)).toBe(true)
+  })
+
   it('keeps an existing object field when the form reuses it instead of creating it', () => {
     const result = buildBusinessObjectDesignerPayloadFromFormAsset({
       formDesignerSchema: {

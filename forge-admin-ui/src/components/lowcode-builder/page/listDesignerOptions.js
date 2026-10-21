@@ -215,6 +215,9 @@ export const dataBindablePageWidgetKeys = [
 ]
 export const localDataBindableBlockTypes = [
   'stats-strip',
+  'quick-entry',
+  'bar-chart',
+  'line-chart',
   'info-panel',
   'custom-html',
   'tag-list',

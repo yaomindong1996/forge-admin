@@ -54,6 +54,27 @@ export function resolveRuntimeEventMessageContent(eventItem = {}, resolveRuntime
 }
 
 /**
+ * 是否像应用导航页 id（切 pageId）。
+ * - page_page_*：设计器自动生成
+ * - page_leave_apply / page_onboard_home：市场包等人读命名
+ * - system:workbench：系统页
+ * 对象多画布 pageKey（list / e2e_dialog / page_<时间戳>）不要走这里。
+ */
+export function looksLikeApplicationPageId(target = '') {
+  const next = String(target || '').trim()
+  if (!next)
+    return false
+  if (next.startsWith('system:'))
+    return true
+  if (/^page_page_[a-z0-9]+$/i.test(next))
+    return true
+  // 排除 page_1712345678901 这类对象画布 key
+  if (/^page_\d{10,}$/.test(next))
+    return false
+  return /^page_[a-z][a-z0-9_]*$/i.test(next)
+}
+
+/**
  * 应用运行态默认用 pageId 切应用页；但对象多画布页（list/dialog/自定义 pageKey）
  * 必须保留当前 pageId，只改 pageKey，否则会把 e2e_dialog 误写成 pageId 导致白页/串页。
  */
@@ -65,13 +86,18 @@ export function applyPageNavigationQuery(query = {}, target = '', isApplicationR
     ? Boolean(isApplicationRuntimeRoute())
     : Boolean(isApplicationRuntimeRoute)
   const currentPageId = String(query.pageId || '').trim()
-  // 应用页节点 id 常见 page_page_*；对象多页 pageKey 为 list/create/e2e_dialog/page_<ts>
-  const looksLikeAppPageId = /^page_page_/.test(next) || (currentPageId && next === currentPageId)
-  if (onAppRoute && currentPageId && !looksLikeAppPageId) {
-    query.pageKey = next
-    return query
-  }
   if (onAppRoute) {
+    // 应用页 ↔ 应用页：换 pageId，清掉残留 pageKey，避免列表被当成「非 list」空壳
+    if (looksLikeApplicationPageId(next) || (currentPageId && next === currentPageId)) {
+      query.pageId = next
+      delete query.pageKey
+      return query
+    }
+    // 仍在当前应用页内切对象画布（list / dialog / e2e_*）
+    if (currentPageId) {
+      query.pageKey = next
+      return query
+    }
     query.pageId = next
     delete query.pageKey
     return query
@@ -194,6 +220,17 @@ export async function runBlockClickEvent(eventItem = {}, ctx = {}) {
   }
   if (action === 'navigate') {
     navigateRuntimeEvent(eventItem, ctx)
+    return true
+  }
+  if (action === 'openUrl') {
+    const href = String(resolveRuntimeText?.(eventItem.href || eventItem.url || '') || eventItem.href || eventItem.url || '').trim()
+    if (href && typeof window !== 'undefined') {
+      const safe = /^(https?:|mailto:|tel:|\/)/i.test(href) ? href : ''
+      if (safe)
+        window.open(safe, '_blank', 'noopener,noreferrer')
+      else
+        showRuntimeToast('外部链接格式无效', 'warning', ctx)
+    }
     return true
   }
   if (action === 'refreshBlock') {

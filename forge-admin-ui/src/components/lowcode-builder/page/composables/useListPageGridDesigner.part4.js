@@ -136,26 +136,31 @@ function patchBlockFrame(id, patch) {
   next.y = Math.max(0, Number(next.y) || 0)
   const gridPatch = frameToGridPatch(next)
   const nextWidthValue = nextWidthMode === 'full' ? '100%' : nextWidthMode === 'auto' ? 'auto' : next.width
-  const patchedItems = blocks.value.map(block => block.id === id
-    ? {
-        ...block,
-        ...gridPatch,
-        props: {
-          ...(block.props || {}),
-          style: {
-            ...createDefaultBlockStyle(),
-            ...(block.props?.style || {}),
-            x: next.x,
-            y: next.y,
-            widthMode: nextWidthMode,
-            width: nextWidthValue,
-            heightMode: nextHeightMode,
-            height: next.height,
-            ...buildPanelOnlyPageFlowStyle(next, nextWidthMode),
-          },
-        },
-      }
-    : block)
+  const patchedItems = blocks.value.map((block) => {
+    if (block.id !== id)
+      return block
+    const nextProps = {
+      ...(block.props || {}),
+      style: {
+        ...createDefaultBlockStyle(),
+        ...(block.props?.style || {}),
+        x: next.x,
+        y: next.y,
+        widthMode: nextWidthMode,
+        width: nextWidthValue,
+        heightMode: nextHeightMode,
+        height: next.height,
+        ...buildPanelOnlyPageFlowStyle(next, nextWidthMode),
+      },
+    }
+    if (['bar-chart', 'line-chart'].includes(block.blockType) && heightChanged)
+      nextProps.height = Math.max(160, Math.round(next.height))
+    return {
+      ...block,
+      ...gridPatch,
+      props: nextProps,
+    }
+  })
   const withTree = applyTreePanelResponsiveMainFrames(source, next, patchedItems)
   // 拉高/拖动撞到下方块时下推，而不是静默失败（否则高度手柄几乎拖不动）
   const nextItems = pushStackedBlocksDown(withTree, {
@@ -508,13 +513,19 @@ function patchBlockStyle(id, patch) {
   const source = findBlockInTree(blocks.value, id)
   if (!source)
     return
-  patchBlockProps(id, {
-    style: {
-      ...createDefaultBlockStyle(),
-      ...(source.props?.style || {}),
-      ...patch,
-    },
-  })
+  const nextStyle = {
+    ...createDefaultBlockStyle(),
+    ...(source.props?.style || {}),
+    ...patch,
+  }
+  const propsPatch = { style: nextStyle }
+  // 图表画布跟壳高：锚点改 style.height 时同步 props.height，否则只变框、图不变
+  if (['bar-chart', 'line-chart'].includes(source.blockType) && patch.height != null) {
+    const h = resolveCssNumber(patch.height, 0)
+    if (h > 0)
+      propsPatch.height = Math.max(160, Math.round(h))
+  }
+  patchBlockProps(id, propsPatch)
 }
 __impl.patchBlockStyle = patchBlockStyle
 
@@ -1181,7 +1192,9 @@ function onNestedResize(event) {
   }
   if (anchor.includes('bottom') || anchor.includes('top')) {
     const heightDelta = anchor.includes('top') ? -dy : dy
-    patch.height = Math.max(40, nestedResizeCtx.originH + heightDelta)
+    patch.heightMode = 'fixed'
+    patch.height = Math.max(160, nestedResizeCtx.originH + heightDelta)
+    patch.minHeight = patch.height
   }
   if (Object.keys(patch).length)
     patchBlockStyle(nestedResizeCtx.blockId, patch)

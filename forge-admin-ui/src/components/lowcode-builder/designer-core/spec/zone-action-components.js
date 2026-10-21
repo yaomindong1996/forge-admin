@@ -363,6 +363,71 @@ const statsStrip = {
   print: { hidden: false, breakAvoid: true },
 }
 
+const quickEntry = {
+  type: 'quick-entry',
+  aliases: [],
+  scope: 'L',
+  category: 'page',
+  group: '数据',
+  label: '快捷入口',
+  desc: '图标卡片入口，可跳转应用内页面',
+  layout: { defaultSpan: 24, defaultW: 12, defaultH: 3 },
+  container: false,
+  meta: { defaultWidth: 1200, defaultHeight: 110 },
+  propsSchema: { properties: {
+    columns: { type: 'number', title: '列数', default: 3 },
+    items: { type: 'json', title: '入口列表' },
+  } },
+  dataSources: ['context', 'remote'],
+  print: { hidden: false, breakAvoid: true },
+}
+
+const barChart = {
+  type: 'bar-chart',
+  aliases: [],
+  scope: 'L',
+  category: 'page',
+  group: '数据',
+  label: '柱状图',
+  desc: '分类对比，支持手动数据或列表绑定',
+  layout: { defaultSpan: 12, defaultW: 6, defaultH: 8 },
+  container: false,
+  meta: { defaultWidth: 640, defaultHeight: 280 },
+  propsSchema: { properties: {
+    title: { type: 'string', title: '标题', default: '柱状图' },
+    height: { type: 'number', title: '高度', default: 260 },
+    showLegend: { type: 'boolean', title: '图例', default: true },
+    categories: { type: 'json', title: '分类轴' },
+    series: { type: 'json', title: '系列数据' },
+  } },
+  dataSources: ['context', 'remote'],
+  print: { hidden: false, breakAvoid: true },
+}
+
+const lineChart = {
+  type: 'line-chart',
+  aliases: [],
+  scope: 'L',
+  category: 'page',
+  group: '数据',
+  label: '折线图',
+  desc: '趋势变化，支持手动数据或列表绑定',
+  layout: { defaultSpan: 12, defaultW: 6, defaultH: 8 },
+  container: false,
+  meta: { defaultWidth: 640, defaultHeight: 280 },
+  propsSchema: { properties: {
+    title: { type: 'string', title: '标题', default: '折线图' },
+    height: { type: 'number', title: '高度', default: 260 },
+    showLegend: { type: 'boolean', title: '图例', default: true },
+    smooth: { type: 'boolean', title: '平滑曲线', default: true },
+    showArea: { type: 'boolean', title: '面积填充', default: false },
+    categories: { type: 'json', title: '分类轴' },
+    series: { type: 'json', title: '系列数据' },
+  } },
+  dataSources: ['context', 'remote'],
+  print: { hidden: false, breakAvoid: true },
+}
+
 export const zoneActionComponentSpecs = [
   querySet,
   customQuery,
@@ -379,4 +444,7 @@ export const zoneActionComponentSpecs = [
   emptyState,
   customHtml,
   statsStrip,
+  quickEntry,
+  barChart,
+  lineChart,
 ]

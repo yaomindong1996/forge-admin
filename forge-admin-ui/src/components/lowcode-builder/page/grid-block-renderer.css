@@ -10,6 +10,14 @@
   overflow: visible;
 }
 
+/* 图表：禁止 height:100% 在不定高格子里塌缩，画布按内容撑开并裁切溢出 */
+.grid-block.block-bar-chart,
+.grid-block.block-line-chart {
+  height: auto !important;
+  min-height: 200px;
+  overflow: hidden;
+}
+
 .grid-block.block-AiCrudPage,
 .grid-block.block-AiTable,
 .grid-block.block-data-table {
@@ -519,7 +527,7 @@
 
 .layout-grid-cell-child {
   position: relative;
-  width: 100%;
+  /* 默认通栏；固定宽由 inline style + justify-self:start 控制，勿在此写死 width:100% 压过锚点 */
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -634,7 +642,7 @@
 
 .nested-resize-anchor {
   position: absolute;
-  z-index: 38;
+  z-index: 48;
   display: block;
   width: 10px;
   height: 10px;
@@ -642,6 +650,7 @@
   border-radius: 999px;
   background: #1d4ed8;
   box-shadow: 0 2px 6px rgba(29, 78, 216, 0.36);
+  pointer-events: auto;
 }
 
 .nested-resize-anchor::before {
@@ -712,8 +721,18 @@
 }
 
 .layout-grid-cell-child.selected {
+  z-index: 6;
+  overflow: visible;
   border-color: #2563eb;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+/* 选中时抬高格子，避免锚点被相邻格 / overflow 裁切 */
+.designer-grid-cell:has(.layout-grid-cell-child.selected),
+.designer-grid-cell-inner:has(.layout-grid-cell-child.selected),
+.layout-grid-cell:has(.layout-grid-cell-child.selected) {
+  z-index: 4;
+  overflow: visible;
 }
 
 .layout-grid-preview.is-nested-moving .layout-grid-cell-child.selected {

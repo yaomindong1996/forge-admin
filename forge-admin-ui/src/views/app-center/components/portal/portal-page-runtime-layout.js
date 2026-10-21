@@ -31,10 +31,22 @@ export function shouldUsePageFlowStack(blocks = [], options = {}) {
   // 全是内容自适应块（统计/提示/空状态等）也一律堆叠
   if (items.every(isRuntimeAutoHeightBlock))
     return true
-  return items.every((block) => {
+  const allFull = items.every((block) => {
     const widthMode = block?.props?.style?.widthMode || 'full'
     return widthMode === 'full'
   })
+  if (allFull)
+    return true
+  // 单独一块定宽且未横向偏移：保持文档流，避免插图表拖窄时整页跳成绝对定位
+  if (items.length === 1) {
+    const block = items[0]
+    if (['AiCrudPage', 'AiTable', 'data-table'].includes(block?.blockType))
+      return false
+    const widthMode = block?.props?.style?.widthMode || 'full'
+    const x = Number(block?.props?.style?.pageFlowX)
+    return widthMode === 'fixed' && (!Number.isFinite(x) || x <= 0)
+  }
+  return false
 }
 
 export function shouldUseContentSizedFlow(blocks = [], options = {}) {
@@ -93,6 +105,49 @@ export function isUntouchedDecorativePlaceholder(block = {}) {
   return isDefaultInfoPanelPlaceholder(block) || isDefaultEmptyStatePlaceholder(block)
 }
 
+/** 市场包/旧设计稿常用别名 → 运行态正式 blockType */
+export const LEGACY_PORTAL_BLOCK_TYPES = Object.freeze({
+  intro: 'page-title',
+  'metric-card': 'stats-strip',
+  'business-list': 'AiCrudPage',
+  'business-form': 'AiForm',
+  todo: 'info-panel',
+  chart: 'stats-strip',
+  text: 'custom-html',
+  image: 'info-panel',
+  columns: 'grid-layout',
+  list: 'info-panel',
+})
+
+/**
+ * 将 intro / metric-card 等别名映射为运行态可渲染类型，并补齐必要 props。
+ * gridLayout.items 与旧 layout.items 都要走这里，否则门户会显示「未知区块类型」。
+ */
+export function normalizePortalLegacyBlock(item = {}, index = 0) {
+  const rawType = String(item?.blockType || item?.type || '').trim()
+  const blockType = LEGACY_PORTAL_BLOCK_TYPES[rawType] || rawType || 'custom-html'
+  const props = { ...(item?.props || {}) }
+  if (rawType === 'metric-card' && !Array.isArray(props.metrics)) {
+    props.metrics = [{
+      label: props.title || props.label || '指标',
+      value: props.value ?? '-',
+      trend: props.trend || '',
+    }]
+  }
+  if (rawType === 'intro') {
+    if (!props.subtitle && props.description)
+      props.subtitle = props.description
+  }
+  if (rawType === 'text' && !props.content && props.text)
+    props.content = props.text
+  return {
+    ...item,
+    id: item?.id || `legacy-${index + 1}`,
+    blockType,
+    props,
+  }
+}
+
 /**
  * 解析门户页应渲染的区块。
  * - 优先 gridLayout.items；否则回退旧 layout.items
@@ -107,10 +162,15 @@ export function resolvePortalPageBlocks({
   normalizeLegacyBlock,
 } = {}) {
   const layout = page?.layout || {}
-  const gridItems = Array.isArray(layout.gridLayout?.items) ? layout.gridLayout.items : null
-  const legacyItems = Array.isArray(layout.items) && typeof normalizeLegacyBlock === 'function'
-    ? layout.items.map((item, index) => normalizeLegacyBlock(item, index))
-    : (Array.isArray(layout.items) ? layout.items : [])
+  const normalize = typeof normalizeLegacyBlock === 'function'
+    ? normalizeLegacyBlock
+    : normalizePortalLegacyBlock
+  const gridItems = Array.isArray(layout.gridLayout?.items)
+    ? layout.gridLayout.items.map((item, index) => normalize(item, index))
+    : null
+  const legacyItems = Array.isArray(layout.items)
+    ? layout.items.map((item, index) => normalize(item, index))
+    : []
   const rawItems = (gridItems && gridItems.length > 0) ? gridItems : legacyItems
   let items = Array.isArray(rawItems) ? [...rawItems] : []
 

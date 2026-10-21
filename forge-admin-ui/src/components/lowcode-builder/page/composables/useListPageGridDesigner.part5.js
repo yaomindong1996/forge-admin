@@ -204,6 +204,87 @@ function removeMetric(idx) {
   patchBlockProps(selectedBlock.value.id, { metrics: list })
 }
 
+const quickEntryToneOptions = [
+  { label: '主色', value: 'primary' },
+  { label: '成功', value: 'success' },
+  { label: '警告', value: 'warning' },
+  { label: '信息', value: 'info' },
+]
+
+function isQuickEntryListMode(block = selectedBlock.value) {
+  const binding = block?.props?.dataBinding || {}
+  return resolveWidgetRenderMode(binding, 'quick-entry') === 'list'
+}
+
+function isChartListMode(block = selectedBlock.value) {
+  const blockType = block?.blockType
+  if (!['bar-chart', 'line-chart'].includes(blockType))
+    return false
+  const binding = block?.props?.dataBinding || {}
+  return resolveWidgetRenderMode(binding, blockType) === 'list'
+}
+
+function updateQuickEntryItem(idx, patch) {
+  const list = [...(selectedBlock.value?.props?.items || [])]
+  list[idx] = { ...list[idx], ...patch }
+  patchBlockProps(selectedBlock.value.id, { items: list })
+}
+function addQuickEntryItem() {
+  const list = [...(selectedBlock.value?.props?.items || []), {
+    key: `entry_${Date.now()}`,
+    title: '新入口',
+    description: '',
+    icon: 'GridOutline',
+    tone: 'primary',
+    targetPageId: '',
+  }]
+  patchBlockProps(selectedBlock.value.id, { items: list })
+}
+function removeQuickEntryItem(idx) {
+  const list = [...(selectedBlock.value?.props?.items || [])]
+  list.splice(idx, 1)
+  patchBlockProps(selectedBlock.value.id, { items: list })
+}
+
+function updateChartCategories(text) {
+  const categories = String(text || '')
+    .split(/[,，]/)
+    .map(item => item.trim())
+    .filter(Boolean)
+  patchBlockProps(selectedBlock.value.id, { categories })
+}
+
+function updateChartSeriesItem(idx, patch) {
+  const list = [...(selectedBlock.value?.props?.series || [])]
+  const next = { ...list[idx] }
+  if (Object.prototype.hasOwnProperty.call(patch, 'dataText')) {
+    next.data = String(patch.dataText || '')
+      .split(/[,，]/)
+      .map(item => item.trim())
+      .filter(item => item !== '')
+      .map(item => Number(item) || 0)
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, 'name'))
+    next.name = patch.name
+  if (Object.prototype.hasOwnProperty.call(patch, 'data') && Array.isArray(patch.data))
+    next.data = patch.data
+  list[idx] = next
+  patchBlockProps(selectedBlock.value.id, { series: list })
+}
+function addChartSeriesItem() {
+  const categories = selectedBlock.value?.props?.categories || []
+  const list = [...(selectedBlock.value?.props?.series || []), {
+    name: `系列${(selectedBlock.value?.props?.series || []).length + 1}`,
+    data: categories.map(() => 0),
+  }]
+  patchBlockProps(selectedBlock.value.id, { series: list })
+}
+function removeChartSeriesItem(idx) {
+  const list = [...(selectedBlock.value?.props?.series || [])]
+  list.splice(idx, 1)
+  patchBlockProps(selectedBlock.value.id, { series: list })
+}
+
 function updateButtonGroupItem(idx, patch) {
   const list = [...(selectedBlock.value?.props?.buttons || [])]
   list[idx] = { ...list[idx], ...patch }
@@ -1236,6 +1317,16 @@ __impl.resolveCrudFieldLabel = resolveCrudFieldLabel
     updateMetric,
     addMetric,
     removeMetric,
+    quickEntryToneOptions,
+    isQuickEntryListMode,
+    isChartListMode,
+    updateQuickEntryItem,
+    addQuickEntryItem,
+    removeQuickEntryItem,
+    updateChartCategories,
+    updateChartSeriesItem,
+    addChartSeriesItem,
+    removeChartSeriesItem,
     updateButtonGroupItem,
     addButtonGroupItem,
     removeButtonGroupItem,

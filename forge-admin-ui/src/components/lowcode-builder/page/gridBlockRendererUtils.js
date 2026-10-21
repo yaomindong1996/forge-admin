@@ -42,26 +42,50 @@ export function resolveFormLayoutBlockType(event) {
   }
 }
 
+/** 图表显示高度：优先壳上固定高（锚点拖拽），再回落 props.height */
+export function resolveChartBlockHeight(block = {}) {
+  const styleH = normalizeCssNumberValue(block?.props?.style?.height)
+  const propH = Number(block?.props?.height)
+  const fromProp = Number.isFinite(propH) && propH > 120 ? propH : 0
+  if (styleH > 120)
+    return Math.max(160, Math.round(styleH), fromProp)
+  if (fromProp)
+    return Math.max(160, Math.round(fromProp))
+  return 260
+}
+
 export function nestedChildShellStyle(child = {}) {
   const style = child?.props?.style || {}
   const widthMode = style.widthMode || 'full'
   const rawWidth = style.width
-  const rawHeight = style.height
+  let rawHeight = style.height
+  const isChart = ['bar-chart', 'line-chart'].includes(child?.blockType)
+  // 图表：style.height 缺失或仍是 100% 时，回落到 props.height，避免壳塌成一条线后画布溢出叠层
+  if (isChart && (rawHeight === '' || rawHeight == null || rawHeight === '100%' || rawHeight === 'auto')) {
+    const propH = Number(child?.props?.height)
+    rawHeight = Number.isFinite(propH) && propH > 120 ? propH + 20 : 280
+  }
   const isFullWidth = widthMode === 'full'
     || rawWidth === ''
     || rawWidth === null
     || rawWidth === undefined
     || rawWidth === '100%'
     || rawWidth === 'auto'
-  // 外壳承载选中边框与缩放锚点，必须与子组件实际宽高同步
+  const resolvedHeight = normalizeCssSize(rawHeight, '')
+  // 外壳承载选中边框与缩放锚点，必须与子组件实际宽高同步。
+  // 父级 .layout-grid-cell-body 是 grid，默认 justify-items:stretch 会无视 width，
+  // 固定宽时必须 justifySelf:start，左右锚点才能真正改宽。
   return {
     position: 'relative',
     left: '0',
     top: '0',
     width: isFullWidth ? '100%' : normalizeCssSize(rawWidth, '100%'),
     maxWidth: '100%',
+    justifySelf: isFullWidth ? 'stretch' : 'start',
     boxSizing: 'border-box',
-    height: normalizeCssSize(rawHeight, ''),
+    height: resolvedHeight,
+    minHeight: isChart && resolvedHeight ? resolvedHeight : undefined,
+    // 锚点在壳外伸出，壳必须 visible；图表画布溢出由内部 .page-chart-block / .grid-block 自己裁
     overflow: 'visible',
   }
 }

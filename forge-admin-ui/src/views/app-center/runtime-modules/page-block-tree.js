@@ -14,6 +14,36 @@ export function findPageBlockInTree(items = [], blockId = '') {
   return null
 }
 
+/**
+ * 查找嵌套组件所在的栅格格子（用于左右锚点改列宽 span）。
+ * @returns {{ gridId: string, cellKey: string, span: number, columns: number } | null}
+ */
+export function findGridCellHostForChild(items = [], blockId = '') {
+  if (!blockId)
+    return null
+  let found = null
+  visitPageBlocksInTree(items, (block) => {
+    if (found || !['grid-layout', 'grid'].includes(block?.blockType))
+      return
+    const columns = Math.max(1, Number(block.props?.columns) || 24)
+    const cells = Array.isArray(block.props?.cells) ? block.props.cells : []
+    cells.forEach((cell) => {
+      if (found)
+        return
+      const children = Array.isArray(cell?.children) ? cell.children : []
+      if (!children.some(child => child?.id === blockId))
+        return
+      found = {
+        gridId: block.id,
+        cellKey: String(cell.key || ''),
+        span: Math.max(1, Number(cell.span) || columns),
+        columns,
+      }
+    })
+  })
+  return found
+}
+
 export function resolvePageBlockChildren(block = {}) {
   const children = Array.isArray(block.children) ? block.children : []
   const tabChildren = (block.props?.tabs || []).flatMap(tab => Array.isArray(tab.children) ? tab.children : [])

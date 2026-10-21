@@ -7,8 +7,7 @@
         </template>
       </n-button>
       <span class="workspace-icon" aria-hidden="true">
-        <IconRenderer v-if="application?.icon" :icon="application.icon" :size="22" />
-        <n-icon v-else><AppsOutline /></n-icon>
+        <IconRenderer :icon="resolveApplicationDisplayIcon(application?.icon)" :size="22" />
       </span>
       <div class="workspace-title">
         <div class="workspace-title-line">
@@ -71,10 +70,11 @@
 </template>
 
 <script setup>
-import { AppsOutline, ArrowBackOutline, CodeSlashOutline, CreateOutline, LayersOutline, OpenOutline, RocketOutline } from '@vicons/ionicons5'
+import { ArrowBackOutline, CodeSlashOutline, CreateOutline, LayersOutline, OpenOutline, RocketOutline } from '@vicons/ionicons5'
 import { computed } from 'vue'
 import DictTag from '@/components/DictTag.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
+import { resolveApplicationDisplayIcon } from '@/views/app-center/application-display-icon'
 
 const props = defineProps({
   application: {
