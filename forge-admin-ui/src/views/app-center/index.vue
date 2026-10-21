@@ -170,6 +170,9 @@
             <div class="toolbar-actions">
               <span class="result-summary">{{ resultRangeText }}</span>
               <n-button secondary aria-label="导入应用配置" title="导入应用配置" @click="debugBundleImportVisible = true">
+                <template #icon>
+                  <NIcon><CloudUploadOutline /></NIcon>
+                </template>
                 导入应用配置
               </n-button>
               <n-button type="primary" aria-label="新建应用" title="新建应用" @click="openApplicationCreate('BLANK')">
@@ -312,6 +315,7 @@ import {
   ChevronBackOutline,
   ChevronDownOutline,
   ChevronForwardOutline,
+  CloudUploadOutline,
   EllipsisVertical,
 } from '@vicons/ionicons5'
 import { NIcon, useMessage } from 'naive-ui'
