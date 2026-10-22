@@ -46,6 +46,7 @@ const PageChartBlock = blockAsyncLoader(() => import('@/components/lowcode-build
 const StatsStripBlock = blockAsyncLoader(() => import('@/components/lowcode-builder/page/StatsStripBlock.vue'))
 const InfoPanelBlock = blockAsyncLoader(() => import('@/components/lowcode-builder/page/InfoPanelBlock.vue'))
 const WorkflowTaskListBlock = blockAsyncLoader(() => import('@/components/lowcode-builder/page/WorkflowTaskListBlock.vue'))
+const TopRankingBlock = blockAsyncLoader(() => import('@/components/lowcode-builder/page/TopRankingBlock.vue'))
 const NoticeBoardBlock = blockAsyncLoader(() => import('@/components/lowcode-builder/page/NoticeBoardBlock.vue'))
 const WelcomeBannerBlock = blockAsyncLoader(() => import('@/components/lowcode-builder/page/WelcomeBannerBlock.vue'))
 
@@ -68,6 +69,7 @@ export const gridBlockRendererLocalComponents = {
   StatsStripBlock,
   InfoPanelBlock,
   WorkflowTaskListBlock,
+  TopRankingBlock,
   NoticeBoardBlock,
   WelcomeBannerBlock,
   AiCrudPage,

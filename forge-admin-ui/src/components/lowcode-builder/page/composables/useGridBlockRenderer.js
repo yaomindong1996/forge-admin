@@ -38,6 +38,7 @@ import { applyCrudHookRules, CRUD_HOOK_RULE_TARGETS, normalizeCrudHookRules } fr
 import FieldValueRenderer from '@/components/lowcode-builder/shared/FieldValueRenderer.vue'
 import { isDataFieldBlockType, resolveListFieldTitle } from '../page-schema'
 import { resolveWidgetLinkAction } from '../free-layout-widget-kit.js'
+import { safeHtml as sanitizeCustomHtmlContent } from '@/components/lowcode-builder/shared/page-widget-schema'
 import { buildRuntimeCrudBlockProps, resolveEffectiveFormOpenMode, resolveEffectiveModalType } from '../runtime-crud-block-props'
 import {
   resolvePreviewChildHeight,
@@ -89,6 +90,7 @@ export function useGridBlockRenderer(props, emit) {
 const localDataBindableBlockTypes = new Set([
   'stats-strip',
   'quick-entry',
+  'top-ranking',
   'bar-chart',
   'line-chart',
   'area-chart',
@@ -384,6 +386,34 @@ const quickEntryItems = computed(() => {
   }))
 })
 
+const topRankingItems = computed(() => {
+  const binding = props.block.props?.dataBinding || {}
+  const mode = resolveWidgetRenderMode(binding, 'top-ranking')
+  const items = Array.isArray(props.block.props?.items) ? props.block.props.items : []
+  const defaultUnit = String(props.block.props?.valueUnit || '')
+  if (mode === 'list' && binding.enabled === true && binding.sourceType !== 'static') {
+    return normalizeBlockBoundRows(items).map((row, index) => ({
+      key: row.key || `rank_${index + 1}`,
+      name: boundRowField(row, 'labelField', 'name', `项目${index + 1}`),
+      value: boundRowField(row, 'valueField', 'value', 0),
+      unit: boundRowField(row, 'metaField', 'unit', defaultUnit),
+      targetPageId: String(row.targetPageId || ''),
+      href: String(row.href || row.url || ''),
+      linkType: row.linkType || '',
+    }))
+  }
+  const data = blockBoundData.value
+  return items.map((item, index) => ({
+    key: item.key || `rank_${index + 1}`,
+    name: resolveManualMetricValue(item, data, 'labelField', 'name', item.name || item.label || `项目${index + 1}`),
+    value: resolveManualMetricValue(item, data, 'valueField', 'value', item.value ?? 0),
+    unit: resolveManualMetricValue(item, data, 'metaField', 'unit', item.unit || defaultUnit),
+    targetPageId: String(item.targetPageId || ''),
+    href: String(item.href || item.url || ''),
+    linkType: item.linkType || '',
+  }))
+})
+
 const chartSeriesPayload = computed(() => {
   const blockType = props.block.blockType
   if (!['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(blockType))
@@ -406,6 +436,57 @@ const chartSeriesPayload = computed(() => {
 
 async function handleQuickEntrySelect(item = {}) {
   await handleWidgetLinkSelect(item)
+}
+
+/** 工作台路径不得作为应用内「全部」跳转 */
+const WORKBENCH_TASK_PATHS = new Set([
+  '/flow/todo',
+  '/flow/done',
+  '/workspace/todo',
+  '/workspace/done',
+])
+
+function sanitizeWorkflowExternalPath(path = '') {
+  const raw = String(path || '').trim()
+  if (!raw)
+    return ''
+  const bare = raw.split('?')[0].replace(/\/+$/, '') || '/'
+  if (WORKBENCH_TASK_PATHS.has(bare))
+    return ''
+  return raw
+}
+
+/**
+ * 待办/已办「全部」与行点击：优先应用内 pageId，避免冲到工作台 /flow/todo。
+ * @param {{ pageId?: string, path?: string, taskId?: string, mode?: string }} payload
+ */
+async function handleWorkflowTaskNavigate(payload = {}) {
+  if (!props.readonly)
+    return
+  const pageId = String(payload.pageId || '').trim()
+  const path = sanitizeWorkflowExternalPath(payload.path)
+  const taskId = String(payload.taskId || '').trim()
+  if (pageId) {
+    const params = taskId
+      ? [{ name: 'taskId', value: taskId }, { name: 'source', value: 'free-layout' }]
+      : []
+    await runBlockClickEvent({
+      trigger: 'click',
+      action: 'navigate',
+      targetPageKey: pageId,
+      params,
+    }, buildRuntimeEventContext())
+    return
+  }
+  if (path) {
+    if (taskId) {
+      router.push({ path, query: { taskId, source: 'free-layout', t: Date.now() } })
+      return
+    }
+    router.push(path)
+    return
+  }
+  runtimeMessage.warning('请先在属性面板「跳转」里选择应用内的待办/已办目标页')
 }
 
 /** 快捷入口 / 指标卡 / 提示面板统一跳转：应用内页面或外部链接 */
@@ -2361,7 +2442,7 @@ function handleContainerDragEnter(event) {
     runtimeTreeNodes, runtimeTreeError, runtimeTreeNodeMap, runtimeExpandedTreeKeys, detailInfoLoading, detailInfoError, detailInfoBusy, detailInfoFailMessage, remoteDetailInfoRecord, blockBindingLoading,
     blockBindingError, remoteBlockBindingData, previewTreeExpanded, treePanelCollapsed, activeTabKeyByBlockId, runtimeTreeChildrenField, runtimeTreeConfig, runtimeTreeLoadMode,
     hasRuntimeTreeApi, runtimeTreeTotal, runtimeSelectedTreeKeys, runtimeRuleContext, blockRuntimeControl, blockRuntimeVisible, detailInfoRecord, blockBoundData,
-    resolveContextObjectSource, isBlockSlotVisible, isLocalDataBindableBlock, showBlockBindingState, statsMetrics, quickEntryItems, chartSeriesPayload, resolveManualMetricValue, boundInfoTitle, boundInfoContent,
+    resolveContextObjectSource, isBlockSlotVisible, isLocalDataBindableBlock, showBlockBindingState, statsMetrics, quickEntryItems, topRankingItems, chartSeriesPayload, resolveManualMetricValue, boundInfoTitle, boundInfoContent,
     boundInfoType, boundCustomTitle, boundCustomContent, boundTags, boundSteps, boundTimelineTitle, boundTimelineItems, boundEmptyTitle,
     boundEmptyDescription, boundEmptyActionText, boundTextTitle, boundTextSubtitle, boundParagraphContent, boundStatisticTitle, boundStatisticValue, boundStatisticDescription,
     boundStatisticTrend, boundLinkText, boundLinkHref, boundTextTipTitle, boundTextTipContent, boundTextTipType, boundMediaTitle, boundMediaSrc,
@@ -2381,10 +2462,10 @@ function handleContainerDragEnter(event) {
     renderTableCell, resolveSearchOptionSource, resolveNestedBlockFields, resolveNestedBlockRuntimeCrudProps, resolveNestedBlockRuntimeCrudLoading, resolveNestedBlockDataSourceConfigured, detailValue, normalizeBlockBoundRows,
     boundContentValue, readBoundField, loadBlockBindingData, normalizeBlockBindingParams, loadDetailInfoRecord, normalizeDetailInfoParams, resolveRuntimeTreeApi, loadRuntimeTree,
     loadRuntimeTreeChildren, normalizeRuntimeTreeNodes, expandTree, collapseTree, toggleTreePanel, clearRuntimeTreeSelection, handleRuntimeTreeSelected, emitCrudPreviewState,
-    handleCrudPreviewSuccess, handleCrudPreviewError, applyCrudPreviewMode, handleBackClick, handleLinkClick, handleActionButtonClick, handleButtonGroupClick, handleQuickEntrySelect, handleWidgetLinkSelect, handleRuntimeBlockShellClick, resolvePrimaryClickEvent, navigateRuntimeEvent, resolveRuntimeParamValue,
+    handleCrudPreviewSuccess, handleCrudPreviewError, applyCrudPreviewMode, handleBackClick, handleLinkClick, handleActionButtonClick, handleButtonGroupClick, handleQuickEntrySelect, handleWorkflowTaskNavigate, handleWidgetLinkSelect, handleRuntimeBlockShellClick, resolvePrimaryClickEvent, navigateRuntimeEvent, resolveRuntimeParamValue,
     resolveRuntimeText, resolveSystemRuntimeParam, hasRuntimePermission, handleAiFormSubmit, handleStandaloneAiFormValueUpdate, handleRuntimeEventSuccess,
     resolvePreviewChildHeight, hasGridCellChildren, shouldShowGridCellDropPreview, handleGridCellDragEnter, handleContainerDragEnter, resolveFormLayoutBlockType, nestedChildShellStyle, isNestedFillHeightChild, resolveChartBlockHeight, createLegacyPageTitleContent,
-    loadBarcodeModule, componentType, resolveTitleFontSize, sanitizeIframeSrc, toOptionalNumber, isDefaultAiFormField, toAiFormField, trendClass,
+    loadBarcodeModule, componentType, resolveTitleFontSize, sanitizeIframeSrc, sanitizeCustomHtmlContent, toOptionalNumber, isDefaultAiFormField, toAiFormField, trendClass,
     sampleValue, extractBlockBoundRows, normalizeBlockRow, boundRowField, interpolateText, getNestedRecordValue, parseApiConfigValue, extractRuntimeTreeRows,
     countTreeNodes, collectTreeKeys, normalizeRuntimeTreeConfig, appendRuntimeEventParams, resolveTemplatePlaceholder, matchDisplayCondition, parseRuntimeApiConfig,
     resolveEffectiveFormOpenMode, resolveEffectiveModalType, buildRuntimeCrudBlockProps, normalizeTableRowGap, pageWidgetComponentKeys, confirmRuntimeAction, toCssSize, parseInlineStyle, gridBlockExposeApi,

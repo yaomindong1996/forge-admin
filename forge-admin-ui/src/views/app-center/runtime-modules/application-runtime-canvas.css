@@ -1674,9 +1674,10 @@ body.is-catalog-pointer-dragging .n-popover {
     order: 2;
     min-width: 0;
   }
-  .canvas-component-anchor {
+  .canvas-component-anchor.is-default-position {
     left: 12px !important;
     bottom: 12px !important;
+    margin-left: 12px;
   }
   .canvas-component-anchor:not(.is-default-position) {
     bottom: auto !important;

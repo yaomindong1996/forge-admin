@@ -1154,13 +1154,46 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
       showTime: true,
       showRefresh: true,
       showMoreLink: true,
-      accentColor: '#2563eb',
+      accentColor: '#3370ff',
       emptyText: '',
-      todoPath: '/flow/todo',
-      donePath: '/flow/done',
+      // 默认挂到应用内系统页（与左侧导航「我的待办 / 我已办的」同源）
+      todoPageId: 'system:todo',
+      donePageId: 'system:done',
+      todoPath: '',
+      donePath: '',
       previewItems: [
-        { title: '请假申请审批', taskName: '部门经理审批', startUserName: '张三', createTime: '2026-10-21 09:30', status: 1 },
-        { title: '加班申请审批', taskName: '待签收', startUserName: '李四', createTime: '2026-10-20 16:12', status: 0 },
+        { processName: '请假申请审批', taskName: '部门经理审批', startUserName: '张三', createTime: '2026-10-21 09:30', status: 1 },
+        { processName: '加班申请审批', taskName: '待签收', startUserName: '李四', createTime: '2026-10-20 16:12', status: 0 },
+        { processName: '采购单审批', taskName: '财务复核', startUserName: '王五', createTime: '2026-10-20 11:08', status: 1 },
+      ],
+      style: {
+        ...(base.props?.style || {}),
+        widthMode: 'full',
+        heightMode: 'fixed',
+        height: 360,
+        minHeight: 280,
+      },
+    }
+  }
+  if (blockType === 'top-ranking') {
+    base.props = {
+      ...base.props,
+      title: '业务排行',
+      subtitle: '按办理量排序',
+      limit: 8,
+      compact: false,
+      showHeader: true,
+      showBar: true,
+      showTopHint: true,
+      accentColor: '#2563eb',
+      valueUnit: '单',
+      emptyText: '',
+      items: [
+        { key: 'r1', name: '采购审批', value: 128, unit: '单' },
+        { key: 'r2', name: '请假申请', value: 96, unit: '单' },
+        { key: 'r3', name: '合同用印', value: 74, unit: '单' },
+        { key: 'r4', name: '报销申请', value: 61, unit: '单' },
+        { key: 'r5', name: '用章申请', value: 48, unit: '单' },
       ],
       style: {
         ...(base.props?.style || {}),
@@ -1271,7 +1304,7 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
       ...base.props,
       dataBinding: createWidgetDataBinding('content', { titleField: 'title', contentField: 'content' }),
       title: '说明',
-      content: '在此填写业务说明、操作指引或链接。',
+      content: '<p style="margin:0;color:#646a73;">在此填写业务说明、操作指引；支持 <strong style="color:#1f2329;">HTML</strong> 与内联样式。</p>',
     }
   }
   if (blockType === 'action-button') {

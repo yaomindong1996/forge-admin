@@ -108,11 +108,11 @@ export function createPageWidgetDefaultProps(componentKey = '') {
   }
   if (componentKey === 'html-tag') {
     return {
-      tagName: 'section',
-      textContent: 'HTML 标签内容',
-      htmlContent: '<strong>HTML 内容</strong><p>支持安全标签和属性。</p>',
+      tagName: 'div',
+      textContent: '',
+      htmlContent: '<strong style="color:#1f2329;">说明标题</strong><p style="margin:8px 0 0;color:#646a73;">在这里写 HTML / 富文本，可用内联 style；外层样式可写在属性 JSON 的 style 里。</p>',
       renderMode: 'html',
-      attributesText: '{\n  "class": "html-panel",\n  "aria-label": "说明区块"\n}',
+      attributesText: '{\n  "class": "html-panel",\n  "style": "padding:12px 14px;border-radius:8px;background:#f5f8ff;border:1px solid #d6e4ff;",\n  "aria-label": "说明区块"\n}',
       semanticRole: 'region',
       allowHtml: true,
       sanitize: true,

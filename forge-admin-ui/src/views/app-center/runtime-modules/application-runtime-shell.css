@@ -1085,13 +1085,23 @@
 }
 .canvas-component-anchor {
   position: absolute;
-  z-index: 9;
+  z-index: 20;
   touch-action: none;
   cursor: move;
   transition: filter 160ms ease;
 }
+/* 默认：贴在画布滚动可视区底部，长页滚动时加号仍可见 */
+.canvas-component-anchor.is-default-position {
+  position: sticky;
+  left: 20px;
+  bottom: 20px;
+  width: fit-content;
+  margin: -56px 0 20px 20px;
+  align-self: flex-start;
+  flex: none;
+}
 .canvas-component-anchor.moving {
-  z-index: 8;
+  z-index: 21;
   cursor: grabbing;
 }
 .canvas-component-anchor.moving .component-add-trigger {

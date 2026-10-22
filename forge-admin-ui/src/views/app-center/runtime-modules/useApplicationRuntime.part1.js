@@ -855,13 +855,22 @@ export function applyApplicationRuntimePart1() {
     return bg ? { backgroundColor: bg } : undefined
   })
   const designerGridLayout = computed(() => currentGridLayout.value)
-  const appPageTargetOptions = computed(() => (builder.value?.nodes || [])
-    .filter(node => node && node.id && !isWorkbenchPageId(node.id))
-    .map(node => ({
-      pageKey: String(node.id),
-      pageName: node.title || node.name || String(node.id),
-      pageType: node.pageType || node.type || 'custom',
-    })))
+  /** 跳转目标：系统页（我的待办/已办等）+ 应用内自定义页；系统页在前便于挂件选型 */
+  const appPageTargetOptions = computed(() => {
+    const systemPages = PAGE_MANAGEMENT_SYSTEM_PAGES.map(page => ({
+      pageKey: page.id,
+      pageName: page.title,
+      pageType: '系统',
+    }))
+    const customPages = (builder.value?.nodes || [])
+      .filter(node => node && node.id && !isWorkbenchPageId(node.id) && !isPageManagementSystemPageId(node.id))
+      .map(node => ({
+        pageKey: String(node.id),
+        pageName: node.title || node.name || String(node.id),
+        pageType: node.pageType || node.type || 'custom',
+      }))
+    return [...systemPages, ...customPages]
+  })
   const pageFlowHeight = computed(() => {
     // 通栏文档流：高度随内容走，只保底可拖放区域
     if (pageFlowStackMode.value) {
@@ -891,12 +900,15 @@ export function applyApplicationRuntimePart1() {
     )
   })
   const hasCustomComponentButtonPosition = computed(() => Number.isFinite(componentButtonPosition.value.x) && Number.isFinite(componentButtonPosition.value.y))
-  const componentButtonStyle = computed(() => ({
-    left: `${componentButtonPosition.value.x ?? 20}px`,
-    ...(hasCustomComponentButtonPosition.value
-      ? { top: `${componentButtonPosition.value.y}px` }
-      : { bottom: '20px' }),
-  }))
+  const componentButtonStyle = computed(() => {
+    // 默认靠 CSS sticky 贴可视区底；自定义拖拽才写 absolute 坐标
+    if (!hasCustomComponentButtonPosition.value)
+      return {}
+    return {
+      left: `${componentButtonPosition.value.x}px`,
+      top: `${componentButtonPosition.value.y}px`,
+    }
+  })
   const selectedPageBlock = computed(() => findPageBlockInTree(pageBlocks.value, selectedPageBlockId.value))
   const formAssets = computed(() => builder.value?.formAssets || [])
   const filteredFormAssets = computed(() => {
@@ -1215,11 +1227,20 @@ export function applyApplicationRuntimePart1() {
   __impl.resolveEmptyGuideIcon = resolveEmptyGuideIcon
 
   const recommendedComponents = computed(() => {
-    const recommendedTypes = ['page-title', 'workspace-summary-metrics', 'stats-strip', 'AiCrudPage', 'AiForm', 'custom-html']
+    const recommendedTypes = [
+      'workflow-task-list',
+      'notice-board',
+      'top-ranking',
+      'stats-strip',
+      'welcome-banner',
+      'quick-entry',
+      'AiCrudPage',
+      'page-title',
+    ]
     return recommendedTypes
       .map(blockType => resolveListPageBlockMeta(blockType))
       .filter(Boolean)
-      .slice(0, 6)
+      .slice(0, 8)
   })
 
   // NOTE: applicationRuntimeLoadCoordinator.run watch with immediate:true lives in part5

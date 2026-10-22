@@ -1465,6 +1465,13 @@
               <WorkflowTaskListPropertyPanel
                 v-if="selectedBlock.blockType === 'workflow-task-list'"
                 :block="selectedBlock"
+                :page-options="pageTargetOptions"
+                @patch-props="patchBlockProps(selectedBlock.id, $event)"
+              />
+
+              <TopRankingPropertyPanel
+                v-if="selectedBlock.blockType === 'top-ranking'"
+                :block="selectedBlock"
                 @patch-props="patchBlockProps(selectedBlock.id, $event)"
               />
 
@@ -1632,7 +1639,7 @@
                 @patch-props="patchBlockProps(selectedBlock.id, $event)"
               />
 
-              <!-- Custom html -->
+              <!-- Custom html：正文按 v-html 富文本渲染 -->
               <template v-if="selectedBlock.blockType === 'custom-html'">
                 <n-form-item label="标题">
                   <n-input
@@ -1640,13 +1647,19 @@
                     @update:value="patchBlockProps(selectedBlock.id, { title: $event })"
                   />
                 </n-form-item>
-                <n-form-item label="正文">
-                  <n-input
-                    :value="selectedBlock.props?.content"
-                    type="textarea"
-                    :rows="4"
-                    @update:value="patchBlockProps(selectedBlock.id, { content: $event })"
-                  />
+                <n-form-item label="正文 HTML" class="prop-stack-item">
+                  <div class="prop-stack">
+                    <n-input
+                      :value="selectedBlock.props?.content"
+                      type="textarea"
+                      :rows="6"
+                      placeholder="<p style=&quot;color:#646a73&quot;>支持标签与内联样式</p>"
+                      @update:value="patchBlockProps(selectedBlock.id, { content: $event })"
+                    />
+                    <div class="field-help">
+                      按富文本渲染（v-html），可写常见 HTML 与内联 style。
+                    </div>
+                  </div>
                 </n-form-item>
               </template>
 

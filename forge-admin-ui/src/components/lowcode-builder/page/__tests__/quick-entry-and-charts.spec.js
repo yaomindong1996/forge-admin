@@ -48,6 +48,7 @@ vi.mock('../gridBlockRendererLocalComponents.js', async () => {
       ContainerContextMenu: true,
       WorkspaceSummaryMetrics: true,
       WorkflowTaskListBlock: true,
+      TopRankingBlock: true,
       NoticeBoardBlock: true,
       AiCrudPage: true,
       TreeCrudTemplate: true,

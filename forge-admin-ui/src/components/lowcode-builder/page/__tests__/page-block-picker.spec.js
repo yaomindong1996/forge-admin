@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_NEST_EXCLUDE_BLOCK_TYPES,
+  FREQUENT_PAGE_BLOCK_TYPES,
   PAGE_BLOCK_PICKER_GROUPS,
   buildPageBlockPickerGroups,
   listInsertablePageBlocks,
@@ -14,6 +15,7 @@ describe('page-block-picker', () => {
     expect(resolvePageBlockPickerGroup({ blockType: 'workflow-task-list', title: '我的待办/已办' })).toBe('list')
     expect(resolvePageBlockPickerGroup({ blockType: 'notice-board', title: '通知公告' })).toBe('list')
     expect(resolvePageBlockPickerGroup({ blockType: 'welcome-banner', title: '欢迎条' })).toBe('list')
+    expect(resolvePageBlockPickerGroup({ blockType: 'top-ranking', title: '排行榜' })).toBe('chart')
   })
 
   it('right-click nest insert includes new widgets under the same groups as +', () => {
@@ -31,11 +33,12 @@ describe('page-block-picker', () => {
       })
     })
 
-    for (const type of ['pie-chart', 'area-chart', 'bar-chart', 'line-chart', 'workflow-task-list', 'notice-board', 'welcome-banner', 'card', 'panel-box', 'box-layout', 'grid-layout']) {
+    for (const type of ['pie-chart', 'area-chart', 'bar-chart', 'line-chart', 'top-ranking', 'workflow-task-list', 'notice-board', 'welcome-banner', 'card', 'panel-box', 'box-layout', 'grid-layout']) {
       expect(byType.has(type), `${type} missing from insert catalog`).toBe(true)
     }
     expect(byType.get('pie-chart')).toBe('chart')
     expect(byType.get('area-chart')).toBe('chart')
+    expect(byType.get('top-ranking')).toBe('chart')
     expect(byType.get('workflow-task-list')).toBe('list')
     expect(byType.get('notice-board')).toBe('list')
     expect(byType.get('welcome-banner')).toBe('list')
@@ -56,5 +59,15 @@ describe('page-block-picker', () => {
     expect(panels.some(item => item.blockType === 'panel-box')).toBe(true)
     const welcome = listInsertablePageBlocks({ keyword: '欢迎' })
     expect(welcome.some(item => item.blockType === 'welcome-banner')).toBe(true)
+  })
+
+  it('puts frequent widgets ahead within each group', () => {
+    const groups = buildPageBlockPickerGroups()
+    const listGroup = groups.find(group => group.key === 'list')
+    expect(listGroup?.items?.[0]?.blockType).toBe('workflow-task-list')
+    const chartGroup = groups.find(group => group.key === 'chart')
+    const chartTypes = (chartGroup?.items || []).map(item => item.blockType)
+    const firstFrequent = FREQUENT_PAGE_BLOCK_TYPES.find(type => chartTypes.includes(type))
+    expect(chartTypes[0]).toBe(firstFrequent)
   })
 })

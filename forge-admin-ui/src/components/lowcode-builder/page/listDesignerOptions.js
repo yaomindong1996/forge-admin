@@ -216,6 +216,7 @@ export const dataBindablePageWidgetKeys = [
 export const localDataBindableBlockTypes = [
   'stats-strip',
   'quick-entry',
+  'top-ranking',
   'bar-chart',
   'line-chart',
   'area-chart',

@@ -375,11 +375,11 @@
                     <n-form-item label="标签 / 角色 / 渲染模式">
                       <div class="style-grid three">
                         <n-select
-                          :value="selectedBlock.props?.tagName || 'section'"
+                          :value="selectedBlock.props?.tagName || 'div'"
                           :options="htmlTagOptions"
                           filterable
                           tag
-                          @update:value="patchBlockProps(selectedBlock.id, { tagName: $event || 'section' })"
+                          @update:value="patchBlockProps(selectedBlock.id, { tagName: $event || 'div' })"
                         />
                         <n-input
                           :value="selectedBlock.props?.semanticRole || ''"
@@ -394,31 +394,43 @@
                         />
                       </div>
                     </n-form-item>
-                    <n-form-item label="属性 JSON">
-                      <n-input
-                        :value="selectedBlock.props?.attributesText || '{}'"
-                        type="textarea"
-                        :rows="4"
-                        placeholder="{ &quot;class&quot;: &quot;notice&quot; }"
-                        @update:value="patchBlockProps(selectedBlock.id, { attributesText: $event })"
-                      />
-                    </n-form-item>
-                    <n-form-item label="文本 / HTML 内容">
-                      <div class="metrics-editor">
+                    <n-form-item label="属性 JSON" class="prop-stack-item">
+                      <div class="prop-stack">
                         <n-input
-                          :value="selectedBlock.props?.textContent || ''"
-                          clearable
-                          placeholder="纯文本内容"
-                          @update:value="patchBlockProps(selectedBlock.id, { textContent: $event })"
+                          :value="selectedBlock.props?.attributesText || '{}'"
+                          type="textarea"
+                          :rows="5"
+                          placeholder="{ &quot;class&quot;: &quot;notice&quot;, &quot;style&quot;: &quot;padding:12px;color:#1f2329;&quot; }"
+                          @update:value="patchBlockProps(selectedBlock.id, { attributesText: $event })"
                         />
+                        <div class="field-help">
+                          支持 class / id / title / aria-label / style。外层样式写在 style；只写 class 不会自动带样式。
+                        </div>
+                      </div>
+                    </n-form-item>
+                    <n-form-item label="HTML 内容（v-html）" class="prop-stack-item">
+                      <div class="prop-stack">
                         <n-input
                           :value="selectedBlock.props?.htmlContent || ''"
                           type="textarea"
-                          :rows="6"
-                          placeholder="HTML 内容"
+                          :rows="8"
+                          placeholder="<strong style=&quot;color:#3370ff&quot;>标题</strong><p>正文</p>"
                           @update:value="patchBlockProps(selectedBlock.id, { htmlContent: $event })"
                         />
+                        <div class="field-help">
+                          按富文本渲染：可用常见 HTML 标签与内联 style；脚本与事件属性会被过滤。
+                        </div>
                       </div>
+                    </n-form-item>
+                    <n-form-item v-if="selectedBlock.props?.renderMode === 'text'" label="纯文本内容">
+                      <n-input
+                        :value="selectedBlock.props?.textContent || ''"
+                        type="textarea"
+                        :rows="3"
+                        clearable
+                        placeholder="仅「纯文本」模式使用"
+                        @update:value="patchBlockProps(selectedBlock.id, { textContent: $event })"
+                      />
                     </n-form-item>
                   </template>
                   <template v-if="selectedBlock.blockType === 'vue-component'">

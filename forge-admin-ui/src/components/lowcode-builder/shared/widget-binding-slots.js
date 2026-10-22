@@ -57,6 +57,24 @@ export const WIDGET_BINDING_SLOTS = {
       { key: 'metaField', label: '图标', placeholder: 'icon' },
     ],
   },
+  'top-ranking': {
+    kind: 'list',
+    supportsCompose: false,
+    needsContextPath: true,
+    contextPathLabel: '排行列表字段',
+    contextPathHelp: '选「列表循环」时使用：从数组字段循环渲染排行项。',
+    supportsRenderMode: true,
+    renderModeOptions: [
+      { label: '手动多项', value: 'manual', help: '自己增删排行项，填写名称与数值' },
+      { label: '列表循环', value: 'list', help: '从一个数组字段循环出排行项' },
+    ],
+    primarySlot: 'valueField',
+    slots: [
+      { key: 'labelField', label: '名称', placeholder: 'name / label / title' },
+      { key: 'valueField', label: '数值', placeholder: 'value / count / score', primary: true },
+      { key: 'metaField', label: '单位', placeholder: 'unit' },
+    ],
+  },
   'bar-chart': {
     kind: 'list',
     supportsCompose: false,

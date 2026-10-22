@@ -495,6 +495,28 @@ const workflowTaskList = {
   print: { hidden: false, breakAvoid: true },
 }
 
+const topRanking = {
+  type: 'top-ranking',
+  aliases: [],
+  scope: 'L',
+  category: 'page',
+  group: '数据',
+  label: '排行榜',
+  desc: 'TOP 排行列表，手动数据或列表绑定',
+  layout: { defaultSpan: 8, defaultW: 4, defaultH: 10 },
+  container: false,
+  meta: { defaultWidth: 420, defaultHeight: 360 },
+  propsSchema: { properties: {
+    title: { type: 'string', title: '标题', default: '排行榜' },
+    limit: { type: 'number', title: '展示前 N 名', default: 10 },
+    showBar: { type: 'boolean', title: '进度条', default: true },
+    accentColor: { type: 'color', title: '强调色', default: '#2563eb' },
+    items: { type: 'json', title: '排行数据' },
+  } },
+  dataSources: ['context', 'remote'],
+  print: { hidden: false, breakAvoid: true },
+}
+
 const noticeBoard = {
   type: 'notice-board',
   aliases: [],
@@ -562,6 +584,7 @@ export const zoneActionComponentSpecs = [
   areaChart,
   pieChart,
   workflowTaskList,
+  topRanking,
   noticeBoard,
   welcomeBanner,
 ]

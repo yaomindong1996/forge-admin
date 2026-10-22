@@ -46,6 +46,42 @@ const emit = defineEmits(['update:show', 'insert', 'action', 'close'])
 
 const keyword = ref('')
 const searchInputRef = ref(null)
+const menuRef = ref(null)
+/** 视口内夹紧后的坐标 / 高度，避免右键靠近底边时菜单被裁切 */
+const menuStyle = ref({ left: '0px', top: '0px' })
+
+const MENU_PAD = 12
+const MENU_MAX_H = 520
+
+function clampMenuInViewport() {
+  const el = menuRef.value
+  if (!el)
+    return
+  const vw = window.innerWidth || 0
+  const vh = window.innerHeight || 0
+  let left = Number(props.x) || 0
+  let top = Number(props.y) || 0
+  // 先按可用高度限制，再量宽高做左右/上下翻转
+  const maxH = Math.max(240, Math.min(MENU_MAX_H, vh - MENU_PAD * 2))
+  el.style.maxHeight = `${maxH}px`
+  const rect = el.getBoundingClientRect()
+  const width = rect.width || 420
+  const height = Math.min(rect.height || maxH, maxH)
+  if (left + width > vw - MENU_PAD)
+    left = Math.max(MENU_PAD, vw - MENU_PAD - width)
+  if (left < MENU_PAD)
+    left = MENU_PAD
+  if (top + height > vh - MENU_PAD)
+    top = Math.max(MENU_PAD, vh - MENU_PAD - height)
+  if (top < MENU_PAD)
+    top = MENU_PAD
+  const fitH = Math.max(240, Math.min(maxH, vh - top - MENU_PAD))
+  menuStyle.value = {
+    left: `${Math.round(left)}px`,
+    top: `${Math.round(top)}px`,
+    maxHeight: `${Math.round(fitH)}px`,
+  }
+}
 
 const BLOCK_ICON_MAP = {
   'stats-strip': AnalyticsOutline,
@@ -55,6 +91,7 @@ const BLOCK_ICON_MAP = {
   'area-chart': AnalyticsOutline,
   'pie-chart': StatsChartOutline,
   'workflow-task-list': CheckboxOutline,
+  'top-ranking': StatsChartOutline,
   'notice-board': NotificationsOutline,
   'welcome-banner': StarOutline,
   'info-panel': DocumentTextOutline,
@@ -88,8 +125,23 @@ watch(() => props.show, async (visible) => {
   if (!visible)
     return
   keyword.value = ''
+  menuStyle.value = {
+    left: `${Number(props.x) || 0}px`,
+    top: `${Number(props.y) || 0}px`,
+  }
   await nextTick()
+  clampMenuInViewport()
+  // 二次测量：分组列表渲染后再夹一次，避免高度低估仍溢出
+  await nextTick()
+  clampMenuInViewport()
   searchInputRef.value?.focus?.()
+})
+
+watch(() => [props.x, props.y], async () => {
+  if (!props.show)
+    return
+  await nextTick()
+  clampMenuInViewport()
 })
 
 const actionOptions = computed(() => {
@@ -153,8 +205,9 @@ function onPanelClick(event) {
       @contextmenu.prevent="close"
     >
       <div
+        ref="menuRef"
         class="container-ctx-menu"
-        :style="{ left: `${x}px`, top: `${y}px` }"
+        :style="menuStyle"
         @mousedown="onPanelClick"
         @click="onPanelClick"
       >
@@ -264,6 +317,7 @@ function onPanelClick(event) {
   box-shadow:
     0 4px 6px rgba(15, 23, 42, 0.04),
     0 12px 28px rgba(15, 23, 42, 0.12);
+  /* 列表在内部滚动，避免贴底时整块被裁切 */
 }
 
 .container-ctx-head {
@@ -378,10 +432,10 @@ function onPanelClick(event) {
   flex-direction: column;
   gap: 12px;
   min-height: 0;
-  max-height: 360px;
   padding: 0 12px 12px;
   overflow: auto;
   scrollbar-gutter: stable;
+  overscroll-behavior: contain;
 }
 
 .container-ctx-group {

@@ -765,53 +765,6 @@
               </n-space>
             </section>
 
-            <div v-if="editing && currentNode" class="canvas-component-anchor" :class="{ 'moving': componentButtonMoveCtx, 'is-default-position': !hasCustomComponentButtonPosition }" :style="componentButtonStyle" @pointerdown.capture="startComponentButtonMove">
-              <n-popover v-model:show="componentPopoverVisible" trigger="click" placement="top-start" :show-arrow="false">
-                <template #trigger>
-                  <button type="button" class="component-add-trigger" aria-label="添加组件" title="添加组件">
-                    <span class="component-add-icon" aria-hidden="true">+</span>
-                    <span class="component-add-label">添加组件</span>
-                  </button>
-                </template>
-                <div class="component-popover">
-                  <n-input v-model:value="componentKeyword" clearable size="small" placeholder="搜索组件" class="component-search-input" />
-                  <div v-if="componentPickerGroups.length" class="component-picker-groups">
-                    <section v-for="group in componentPickerGroups" :key="group.key" class="component-picker-group">
-                      <h3>{{ group.label }}</h3>
-                      <div class="component-picker-grid">
-                        <button
-                          v-for="item in group.items"
-                          :key="item.blockType"
-                          type="button"
-                          :draggable="false"
-                          @pointerdown.stop="startCatalogPointerDrag($event, item)"
-                          @dragstart="handleComponentCatalogDragStart($event, item)"
-                          @dragend="handleComponentCatalogDragEnd"
-                          @click="handleComponentCatalogClick(item, $event)"
-                        >
-                          <span class="component-icon-slot" :class="`kind-${group.key}`" aria-hidden="true">
-                            <img v-if="resolveComponentIcon(item)" :src="resolveComponentIcon(item)" alt="">
-                            <svg v-else-if="group.key === 'list'" viewBox="0 0 24 24"><path d="M7 6h11M7 12h11M7 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01" /></svg>
-                            <svg v-else-if="group.key === 'chart'" viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 16v-4m4 4V8m4 8V6" /></svg>
-                            <svg v-else-if="group.key === 'view'" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2" /><path d="M4 9h16M8 13h8" /></svg>
-                            <svg v-else viewBox="0 0 24 24"><path d="M12 4v16M4 12h16" /><circle cx="12" cy="12" r="7" /></svg>
-                          </span>
-                          <span class="component-item-copy">
-                            <span class="component-item-heading">
-                              <strong>{{ item.title }}</strong>
-                              <small v-if="item.techTitle" :title="`技术组件：${item.techTitle}`">{{ item.techTitle }}</small>
-                            </span>
-                            <span class="component-item-desc">{{ item.desc }}</span>
-                          </span>
-                        </button>
-                      </div>
-                    </section>
-                  </div>
-                  <n-empty v-else size="small" description="没有匹配的组件" />
-                </div>
-              </n-popover>
-            </div>
-
             <div class="application-grid-host">
               <div
                 v-if="editCanvasBootstrapping"
@@ -1080,6 +1033,60 @@
                   <span class="empty-guide-float-card float-filter"><NIcon><FunnelOutline /></NIcon></span>
                 </div>
               </section>
+            </div>
+
+            <!-- 加号放在画布内容之后：默认 sticky 贴可视区底部，长页滚动时仍可见 -->
+            <div
+              v-if="editing && currentNode"
+              class="canvas-component-anchor"
+              :class="{ moving: componentButtonMoveCtx, 'is-default-position': !hasCustomComponentButtonPosition }"
+              :style="componentButtonStyle"
+              @pointerdown.capture="startComponentButtonMove"
+            >
+              <n-popover v-model:show="componentPopoverVisible" trigger="click" placement="top-start" :show-arrow="false">
+                <template #trigger>
+                  <button type="button" class="component-add-trigger" aria-label="添加组件" title="添加组件（拖动可挪位，双击恢复贴底）">
+                    <span class="component-add-icon" aria-hidden="true">+</span>
+                    <span class="component-add-label">添加组件</span>
+                  </button>
+                </template>
+                <div class="component-popover">
+                  <n-input v-model:value="componentKeyword" clearable size="small" placeholder="搜索组件" class="component-search-input" />
+                  <div v-if="componentPickerGroups.length" class="component-picker-groups">
+                    <section v-for="group in componentPickerGroups" :key="group.key" class="component-picker-group">
+                      <h3>{{ group.label }}</h3>
+                      <div class="component-picker-grid">
+                        <button
+                          v-for="item in group.items"
+                          :key="item.blockType"
+                          type="button"
+                          :draggable="false"
+                          @pointerdown.stop="startCatalogPointerDrag($event, item)"
+                          @dragstart="handleComponentCatalogDragStart($event, item)"
+                          @dragend="handleComponentCatalogDragEnd"
+                          @click="handleComponentCatalogClick(item, $event)"
+                        >
+                          <span class="component-icon-slot" :class="`kind-${group.key}`" aria-hidden="true">
+                            <img v-if="resolveComponentIcon(item)" :src="resolveComponentIcon(item)" alt="">
+                            <svg v-else-if="group.key === 'list'" viewBox="0 0 24 24"><path d="M7 6h11M7 12h11M7 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01" /></svg>
+                            <svg v-else-if="group.key === 'chart'" viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 16v-4m4 4V8m4 8V6" /></svg>
+                            <svg v-else-if="group.key === 'view'" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2" /><path d="M4 9h16M8 13h8" /></svg>
+                            <svg v-else viewBox="0 0 24 24"><path d="M12 4v16M4 12h16" /><circle cx="12" cy="12" r="7" /></svg>
+                          </span>
+                          <span class="component-item-copy">
+                            <span class="component-item-heading">
+                              <strong>{{ item.title }}</strong>
+                              <small v-if="item.techTitle" :title="`技术组件：${item.techTitle}`">{{ item.techTitle }}</small>
+                            </span>
+                            <span class="component-item-desc">{{ item.desc }}</span>
+                          </span>
+                        </button>
+                      </div>
+                    </section>
+                  </div>
+                  <n-empty v-else size="small" description="没有匹配的组件" />
+                </div>
+              </n-popover>
             </div>
           </section>
         </main>

@@ -168,6 +168,8 @@ const paletteIconMap = {
   'pie-chart': StatsChartOutline,
   workflowTaskList: CheckboxOutline,
   'workflow-task-list': CheckboxOutline,
+  topRanking: StatsChartOutline,
+  'top-ranking': StatsChartOutline,
   noticeBoard: NotificationsOutline,
   'notice-board': NotificationsOutline,
   welcomeBanner: StarOutline,

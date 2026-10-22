@@ -13,6 +13,35 @@ export const PAGE_BLOCK_PICKER_GROUPS = Object.freeze([
 ])
 
 /**
+ * 组内常用组件靠前（工作台高频：待办、公告、指标、排行、图表、CRUD、布局容器）。
+ * 未列入的按原 catalog 顺序排在后面。
+ */
+export const FREQUENT_PAGE_BLOCK_TYPES = Object.freeze([
+  'workflow-task-list',
+  'notice-board',
+  'welcome-banner',
+  'workspace-summary-metrics',
+  'stats-strip',
+  'top-ranking',
+  'quick-entry',
+  'bar-chart',
+  'line-chart',
+  'area-chart',
+  'pie-chart',
+  'AiCrudPage',
+  'AiTable',
+  'AiForm',
+  'card',
+  'panel-box',
+  'grid-layout',
+  'box-layout',
+  'tabs',
+  'page-title',
+  'info-panel',
+  'custom-html',
+])
+
+/**
  * 默认不在容器内再嵌套的布局容器。
  * 栅格可插入到卡片/面板/盒子；标签页仍排除，避免深层结构失控。
  * 栅格格子内嵌套栅格由容器侧动态 exclude（见 GridBlockRenderer）。
@@ -34,13 +63,31 @@ export const GRID_CELL_NEST_EXCLUDE_BLOCK_TYPES = Object.freeze([
  */
 export function resolvePageBlockPickerGroup(item = {}) {
   const descriptor = `${item.blockType || ''} ${item.title || ''} ${item.group || ''}`.toLowerCase()
-  if (/chart|gauge|stat|progress|趋势|图表|指标|饼|面积/.test(descriptor))
+  if (/chart|gauge|stat|progress|趋势|图表|指标|饼|面积|排行/.test(descriptor))
     return 'chart'
   if (/crud|table|list|search|列表|查询|数据|待办|通知|公告|欢迎/.test(descriptor))
     return 'list'
   if (/title|text|html|layout|tabs|divider|view|card|panel|box|标题|文本|布局|标签|分割|卡片|面板|盒子|容器/.test(descriptor))
     return 'view'
   return 'other'
+}
+
+function frequentRank(blockType = '') {
+  const idx = FREQUENT_PAGE_BLOCK_TYPES.indexOf(String(blockType || ''))
+  return idx >= 0 ? idx : FREQUENT_PAGE_BLOCK_TYPES.length + 1
+}
+
+/**
+ * 组内排序：常用优先，其余保持 catalog 相对顺序。
+ * @param {Array} items
+ */
+export function sortPageBlockPickerItems(items = []) {
+  return [...items].sort((a, b) => {
+    const rankDiff = frequentRank(a?.blockType) - frequentRank(b?.blockType)
+    if (rankDiff !== 0)
+      return rankDiff
+    return String(a?.title || '').localeCompare(String(b?.title || ''), 'zh-CN')
+  })
 }
 
 /**
@@ -55,7 +102,7 @@ export function listInsertablePageBlocks(options = {}) {
     : ['simple-crud']
   const seen = new Set()
 
-  return listPageBlockCatalog.filter((item) => {
+  const filtered = listPageBlockCatalog.filter((item) => {
     const type = String(item?.blockType || '').trim()
     if (!type || seen.has(type) || exclude.has(type))
       return false
@@ -70,6 +117,7 @@ export function listInsertablePageBlocks(options = {}) {
       .toLowerCase()
       .includes(keyword)
   })
+  return sortPageBlockPickerItems(filtered)
 }
 
 /**
@@ -82,7 +130,9 @@ export function buildPageBlockPickerGroups(options = {}) {
   return PAGE_BLOCK_PICKER_GROUPS
     .map(group => ({
       ...group,
-      items: items.filter(item => resolvePageBlockPickerGroup(item) === group.key),
+      items: sortPageBlockPickerItems(
+        items.filter(item => resolvePageBlockPickerGroup(item) === group.key),
+      ),
     }))
     .filter(group => group.items.length)
 }

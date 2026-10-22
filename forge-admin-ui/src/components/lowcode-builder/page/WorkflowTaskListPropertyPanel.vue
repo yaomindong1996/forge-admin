@@ -3,6 +3,7 @@ import { computed } from 'vue'
 
 const props = defineProps({
   block: { type: Object, required: true },
+  pageOptions: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['patchProps'])
@@ -14,6 +15,13 @@ const modeOptions = [
   { label: '仅待办', value: 'todo' },
   { label: '仅已办', value: 'done' },
 ]
+
+const pageSelectOptions = computed(() =>
+  (Array.isArray(props.pageOptions) ? props.pageOptions : []).map(item => ({
+    label: item.pageName || item.label || item.pageKey || item.value,
+    value: item.pageKey || item.value,
+  })).filter(item => item.value),
+)
 
 function patch(partial = {}) {
   emit('patchProps', partial)
@@ -50,7 +58,7 @@ function patch(partial = {}) {
         </label>
         <label class="prop-field">
           <span>强调色</span>
-          <n-color-picker :value="p.accentColor || '#2563eb'" size="small" @update:value="patch({ accentColor: $event || '#2563eb' })" />
+          <n-color-picker :value="p.accentColor || '#3370ff'" size="small" @update:value="patch({ accentColor: $event || '#3370ff' })" />
         </label>
       </div>
     </section>
@@ -77,16 +85,40 @@ function patch(partial = {}) {
     <section class="prop-section">
       <header class="prop-section__head">
         <strong>跳转</strong>
-        <span>点击任务打开的页面</span>
+        <span>选左侧导航同款系统页（我的待办 / 我已办的），「全部」会进应用内该页，不要填 /flow/todo</span>
       </header>
       <div class="prop-section__body">
         <label class="prop-field">
-          <span>待办页路径</span>
-          <n-input :value="p.todoPath || '/flow/todo'" size="small" @update:value="patch({ todoPath: $event || '/flow/todo' })" />
+          <span>待办目标页</span>
+          <n-select
+            :value="p.todoPageId || null"
+            :options="pageSelectOptions"
+            clearable
+            filterable
+            size="small"
+            placeholder="如：我的待办（系统）"
+            @update:value="patch({ todoPageId: $event || '' })"
+          />
         </label>
         <label class="prop-field">
-          <span>已办页路径</span>
-          <n-input :value="p.donePath || '/flow/done'" size="small" @update:value="patch({ donePath: $event || '/flow/done' })" />
+          <span>已办目标页</span>
+          <n-select
+            :value="p.donePageId || null"
+            :options="pageSelectOptions"
+            clearable
+            filterable
+            size="small"
+            placeholder="如：我已办的（系统）"
+            @update:value="patch({ donePageId: $event || '' })"
+          />
+        </label>
+        <label class="prop-field">
+          <span>待办外部路径（可选）</span>
+          <n-input :value="p.todoPath || ''" size="small" placeholder="仅无应用页时兜底，如 /app/xxx" @update:value="patch({ todoPath: $event || '' })" />
+        </label>
+        <label class="prop-field">
+          <span>已办外部路径（可选）</span>
+          <n-input :value="p.donePath || ''" size="small" placeholder="仅无应用页时兜底" @update:value="patch({ donePath: $event || '' })" />
         </label>
       </div>
     </section>

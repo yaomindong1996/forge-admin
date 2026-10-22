@@ -952,19 +952,28 @@ export function applyApplicationRuntimePart4(deps = {}) {
   function startComponentButtonMove(event) {
     if (event.button !== 0)
       return
+    // 双击恢复默认 sticky，避免长页后卡在顶部拖不下来
+    if (event.detail >= 2) {
+      componentButtonPosition.value = { x: null, y: null }
+      componentButtonMoveCtx.value = null
+      return
+    }
     const button = event.currentTarget
     const host = button.closest('.page-surface')
     const buttonRect = button.getBoundingClientRect()
     const hostRect = host?.getBoundingClientRect()
     if (!hostRect)
       return
+    // sticky 默认态：用内容区坐标作拖拽原点（含 scrollTop）
+    const scrollTop = host?.scrollTop || 0
+    const scrollLeft = host?.scrollLeft || 0
     componentButtonMoveCtx.value = {
       host,
       button,
       startX: event.clientX,
       startY: event.clientY,
-      originTop: buttonRect.top - hostRect.top,
-      originLeft: buttonRect.left - hostRect.left,
+      originTop: buttonRect.top - hostRect.top + scrollTop,
+      originLeft: buttonRect.left - hostRect.left + scrollLeft,
     }
     window.addEventListener('pointermove', onComponentButtonMove)
     window.addEventListener('pointerup', endComponentButtonMove)
@@ -976,10 +985,13 @@ export function applyApplicationRuntimePart4(deps = {}) {
       return
     const nextTop = componentButtonMoveCtx.value.originTop + event.clientY - componentButtonMoveCtx.value.startY
     const nextLeft = componentButtonMoveCtx.value.originLeft + event.clientX - componentButtonMoveCtx.value.startX
-    const hostRect = componentButtonMoveCtx.value.host?.getBoundingClientRect()
+    const host = componentButtonMoveCtx.value.host
+    const hostRect = host?.getBoundingClientRect()
     const buttonRect = componentButtonMoveCtx.value.button?.getBoundingClientRect()
+    // 用 scrollHeight，避免长页时 maxY 只等于可视高度，拖不到下方
+    const hostScrollH = Math.max(host?.scrollHeight || 0, hostRect?.height || 0, pageFlowHeight.value || 0)
     const maxX = Math.max(12, (hostRect?.width || 0) - (buttonRect?.width || 44) - 12)
-    const maxY = Math.max(12, (hostRect?.height || pageFlowHeight.value) - (buttonRect?.height || 44) - 12)
+    const maxY = Math.max(12, hostScrollH - (buttonRect?.height || 44) - 12)
     componentButtonPosition.value = {
       x: Math.round(Math.max(12, Math.min(maxX, nextLeft))),
       y: Math.round(Math.max(12, Math.min(maxY, nextTop))),

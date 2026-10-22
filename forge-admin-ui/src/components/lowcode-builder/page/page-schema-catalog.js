@@ -189,6 +189,14 @@ export const listPageBlockCatalog = dedupeListPageBlockCatalog([
     defaultH: 10,
   },
   {
+    blockType: 'top-ranking',
+    group: 'extra',
+    title: '排行榜',
+    desc: 'TOP 排行列表，支持手动数据或列表绑定，金银铜名次',
+    defaultW: 4,
+    defaultH: 10,
+  },
+  {
     blockType: 'notice-board',
     group: 'extra',
     title: '通知公告',

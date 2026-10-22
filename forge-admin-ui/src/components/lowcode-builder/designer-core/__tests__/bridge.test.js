@@ -252,9 +252,9 @@ describe('bridge Legacy Type Compatibility (存量类型名回归红线)', () =>
     }
   })
 
-  it('toListPageBlockCatalog must match legacy catalog exactly (68 items)', () => {
+  it('toListPageBlockCatalog must match legacy catalog exactly (69 items)', () => {
     const catalog = toListPageBlockCatalog()
-    expect(catalog).toHaveLength(68)
+    expect(catalog).toHaveLength(69)
     const legacyTypes = [
       'AiCrudPage',
       'AiForm',
@@ -291,6 +291,7 @@ describe('bridge Legacy Type Compatibility (存量类型名回归红线)', () =>
       'area-chart',
       'pie-chart',
       'workflow-task-list',
+      'top-ranking',
       'notice-board',
       'welcome-banner',
       'step-form',
@@ -366,9 +367,9 @@ describe('bridge Form Palette Compatibility (表单统一面板回归红线)', (
     }
   })
 
-  it('widget scope change must not break list catalog (68 items)', () => {
-    // 挂件改 F+L 后，列表目录仍应精确 68 项（含欢迎条/面板容器/图表/待办公告等）
-    expect(toListPageBlockCatalog()).toHaveLength(68)
+  it('widget scope change must not break list catalog (69 items)', () => {
+    // 挂件改 F+L 后，列表目录仍应精确 69 项（含欢迎条/面板容器/图表/待办/排行榜等）
+    expect(toListPageBlockCatalog()).toHaveLength(69)
     const widgetKeys = toPageWidgetComponentKeys()
     expect([...widgetKeys].sort()).toEqual([...EXPECTED_WIDGET_KEYS].sort())
     expect(widgetKeys).toContain('transfer')
@@ -381,9 +382,9 @@ describe('bridge Palette Union (B1/B2 统一合集两侧同显红线)', () => {
   // 两侧设计器面板 scope='ALL' 同显同一份组件合集（仅排除容器内部包装节点），
   // 数量一致是用户验收标准；画布能力差异由接入方 itemDisabledReason 禁用态呈现，不再从面板隐藏。
 
-  it('isPaletteUnionSpec should keep all non-wrapper components (110 items)', () => {
+  it('isPaletteUnionSpec should keep all non-wrapper components (111 items)', () => {
     const union = listAllComponents().filter(isPaletteUnionSpec)
-    expect(union).toHaveLength(110)
+    expect(union).toHaveLength(111)
     // 包装节点（tabPane/collapseItem/col/tableCell）不进面板
     expect(union.map(s => s.group)).not.toContain('包装节点')
   })

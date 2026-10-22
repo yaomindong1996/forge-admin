@@ -174,6 +174,23 @@ describe('applyPageNavigationQuery', () => {
       hash: '',
     })
   })
+
+  it('navigateRuntimeEvent switches to system todo page via pageId', () => {
+    const push = vi.fn()
+    navigateRuntimeEvent(
+      { targetPageKey: 'system:todo' },
+      {
+        route: { path: '/app/demo', query: { pageId: 'page_home' }, hash: '' },
+        router: { push },
+        isApplicationRuntimeRoute: () => true,
+      },
+    )
+    expect(push).toHaveBeenCalledWith({
+      path: '/app/demo',
+      query: { pageId: 'system:todo' },
+      hash: '',
+    })
+  })
 })
 
 describe('runtime-block-registry', () => {

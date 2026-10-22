@@ -1271,7 +1271,20 @@
   font-size: 12px;
   color: var(--text-secondary);
   line-height: 1.6;
-  white-space: pre-wrap;
+  overflow: auto;
+}
+
+.custom-body :deep(p) {
+  margin: 0 0 0.5em;
+}
+
+.custom-body :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.custom-body :deep(img) {
+  max-width: 100%;
+  height: auto;
 }
 
 .action-button-preview {

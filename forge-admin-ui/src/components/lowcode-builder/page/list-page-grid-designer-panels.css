@@ -239,6 +239,20 @@
   text-align: center;
 }
 
+/* 属性说明跟在控件下方，避免和输入框并排挤窄 */
+.prop-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.prop-stack-item :deep(.n-form-item-blank) {
+  display: block;
+  width: 100%;
+}
+
 .metrics-editor {
   display: grid;
   gap: 6px;

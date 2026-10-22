@@ -60,6 +60,7 @@ import StatsStripPropertyPanel from './StatsStripPropertyPanel.vue'
 import WorkflowTaskListPropertyPanel from './WorkflowTaskListPropertyPanel.vue'
 import NoticeBoardPropertyPanel from './NoticeBoardPropertyPanel.vue'
 import WelcomeBannerPropertyPanel from './WelcomeBannerPropertyPanel.vue'
+import TopRankingPropertyPanel from './TopRankingPropertyPanel.vue'
 import CardPropertyPanel from './CardPropertyPanel.vue'
 import PanelBoxPropertyPanel from './PanelBoxPropertyPanel.vue'
 import InfoPanelPropertyPanel from './InfoPanelPropertyPanel.vue'
@@ -120,6 +121,7 @@ export const listPageDesignerLocalComponents = {
   WorkflowTaskListPropertyPanel,
   NoticeBoardPropertyPanel,
   WelcomeBannerPropertyPanel,
+  TopRankingPropertyPanel,
   CardPropertyPanel,
   PanelBoxPropertyPanel,
   InfoPanelPropertyPanel,

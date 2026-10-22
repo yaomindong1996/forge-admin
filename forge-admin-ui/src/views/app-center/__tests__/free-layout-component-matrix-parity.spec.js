@@ -38,6 +38,7 @@ const PRIORITY_BLOCK_TYPES = [
   'area-chart',
   'pie-chart',
   'workflow-task-list',
+  'top-ranking',
   'notice-board',
   'welcome-banner',
   'info-panel',

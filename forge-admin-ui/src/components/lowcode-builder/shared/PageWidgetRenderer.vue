@@ -318,19 +318,25 @@
       </n-split>
     </template>
 
+    <!-- HTML：根节点直接 v-html，支持内联 style / 块级标签，相当于富文本渲染 -->
     <template v-else-if="componentKey === 'html-tag'">
       <component
+        v-if="propsData.renderMode === 'text'"
         :is="safeTagName"
         class="html-widget"
         :role="propsData.semanticRole || undefined"
         v-bind="safeAttributes"
       >
-        <span v-if="propsData.renderMode === 'text'">{{ htmlTextContent || 'HTML 标签内容' }}</span>
-        <span v-else v-html="safeHtml(htmlContent || htmlTextContent || '')" />
+        {{ htmlTextContent || 'HTML 标签内容' }}
       </component>
-      <div class="html-meta">
-        &lt;{{ safeTagName }}&gt; · {{ propsData.sanitize === false ? '原始模式需审查' : '安全渲染' }}
-      </div>
+      <component
+        v-else
+        :is="safeTagName"
+        class="html-widget"
+        :role="propsData.semanticRole || undefined"
+        v-bind="safeAttributes"
+        v-html="renderedHtmlContent"
+      />
     </template>
 
     <template v-else-if="componentKey === 'vue-component'">
@@ -562,9 +568,14 @@ const htmlContent = computed(() => {
   const raw = props.propsData.htmlContent
     || props.propsData.content
     || props.propsData.html
-    || props.propsData.textContent
     || ''
   return String(resolveBoundContent(raw, 'content') || '')
+})
+const renderedHtmlContent = computed(() => {
+  const html = htmlContent.value || htmlTextContent.value
+  if (html)
+    return safeHtml(html)
+  return safeHtml('<p style="margin:0;color:#8f959e;">在右侧「HTML 内容」填写富文本，支持标签与内联样式</p>')
 })
 const boundWatermarkText = computed(() => String(resolveBoundContent(props.propsData.content || '内部资料', 'content') || '内部资料'))
 const watermarkContent = computed(() => {
@@ -1098,13 +1109,44 @@ function toOptionalNumber(value) {
 
 function sanitizeHtmlTagName(value = 'section') {
   const tag = String(value || 'section').trim().toLowerCase()
-  const allowed = new Set(['div', 'section', 'article', 'aside', 'header', 'footer', 'main', 'span', 'p', 'strong', 'em', 'small', 'label'])
+  const allowed = new Set(['div', 'section', 'article', 'aside', 'header', 'footer', 'main', 'span', 'p', 'strong', 'em', 'small', 'label', 'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'li'])
   return allowed.has(tag) ? tag : 'section'
 }
 
+function sanitizeInlineStyle(value = '') {
+  return String(value || '')
+    .replace(/expression\s*\(/gi, '')
+    .replace(/-moz-binding\s*:/gi, '')
+    .replace(/javascript\s*:/gi, '')
+    .replace(/url\s*\(\s*['"]?\s*javascript:/gi, 'url(')
+}
+
+function cssObjectToString(style = {}) {
+  return Object.entries(style || {})
+    .filter(([, value]) => value != null && value !== '')
+    .map(([key, value]) => {
+      const prop = String(key).replace(/[A-Z]/g, match => `-${match.toLowerCase()}`)
+      return `${prop}:${value}`
+    })
+    .join(';')
+}
+
 function sanitizeAttributes(attrs = {}) {
-  const allowed = ['class', 'title', 'aria-label', 'data-key']
-  return Object.fromEntries(Object.entries(attrs).filter(([key]) => allowed.includes(key)))
+  // 允许 class / style，便于写富文本外观；过滤事件与危险协议
+  const allowed = new Set(['class', 'id', 'title', 'aria-label', 'data-key', 'style'])
+  return Object.fromEntries(
+    Object.entries(attrs || {})
+      .filter(([key]) => allowed.has(String(key || '').trim()))
+      .map(([key, value]) => {
+        if (key === 'style') {
+          const raw = value && typeof value === 'object' && !Array.isArray(value)
+            ? cssObjectToString(value)
+            : value
+          return [key, sanitizeInlineStyle(raw)]
+        }
+        return [key, value]
+      }),
+  )
 }
 
 function stripVueTemplate(value = '') {
@@ -1434,19 +1476,30 @@ function sanitizeCss(value = '') {
 
 .html-widget {
   display: block;
-  min-height: 64px;
-  padding: 12px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
   color: var(--text-primary);
   line-height: 1.7;
+  overflow: auto;
 }
 
-.html-meta {
-  margin-top: 6px;
-  color: var(--text-secondary);
-  font-size: 11px;
+.html-widget :deep(p) {
+  margin: 0 0 0.6em;
+}
+
+.html-widget :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.html-widget :deep(img) {
+  max-width: 100%;
+  height: auto;
+}
+
+.html-widget :deep(a) {
+  color: var(--primary-color, #3370ff);
 }
 
 .vue-widget-shell {

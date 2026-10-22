@@ -664,6 +664,25 @@
       />
     </template>
 
+    <!-- TOP 排行榜 -->
+    <template v-else-if="block.blockType === 'top-ranking'">
+      <TopRankingBlock
+        :title="block.props?.title || '排行榜'"
+        :subtitle="block.props?.subtitle || ''"
+        :items="topRankingItems"
+        :limit="block.props?.limit || 10"
+        :compact="block.props?.compact === true"
+        :show-header="block.props?.showHeader !== false"
+        :show-bar="block.props?.showBar !== false"
+        :show-top-hint="block.props?.showTopHint !== false"
+        :accent-color="block.props?.accentColor || '#2563eb'"
+        :empty-text="block.props?.emptyText || ''"
+        :value-unit="block.props?.valueUnit || ''"
+        :interactive="runtimeInteractive"
+        @select="handleWidgetLinkSelect"
+      />
+    </template>
+
     <!-- 柱状图 / 折线图 / 面积图 / 饼图 -->
     <template v-else-if="['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(block.blockType)">
       <PageChartBlock
@@ -717,13 +736,17 @@
         :show-time="block.props?.showTime !== false"
         :show-refresh="block.props?.showRefresh !== false"
         :show-more-link="block.props?.showMoreLink !== false"
-        :accent-color="block.props?.accentColor || '#2563eb'"
+        :accent-color="block.props?.accentColor || '#3370ff'"
         :empty-text="block.props?.emptyText || ''"
-        :todo-path="block.props?.todoPath || '/flow/todo'"
-        :done-path="block.props?.donePath || '/flow/done'"
+        :todo-page-id="block.props?.todoPageId || ''"
+        :done-page-id="block.props?.donePageId || ''"
+        :todo-path="block.props?.todoPath || ''"
+        :done-path="block.props?.donePath || ''"
         :preview-items="block.props?.previewItems || []"
         :interactive="runtimeInteractive"
         :auto-load="runtimeInteractive"
+        @open-more="handleWorkflowTaskNavigate"
+        @open="handleWorkflowTaskNavigate"
       />
     </template>
 
@@ -811,15 +834,17 @@
       />
     </template>
 
-    <!-- 说明文本 -->
+    <!-- 说明文本：正文按富文本 v-html 渲染 -->
     <template v-else-if="block.blockType === 'custom-html'">
       <div class="custom-html" :style="textContentStyle">
         <div v-if="boundCustomTitle" class="custom-title" :style="textContentStyle">
           {{ boundCustomTitle }}
         </div>
-        <div class="custom-body" :style="textContentStyle">
-          {{ boundCustomContent || '在右侧填写说明内容' }}
-        </div>
+        <div
+          class="custom-body"
+          :style="textContentStyle"
+          v-html="sanitizeCustomHtmlContent(boundCustomContent || '在右侧填写说明内容')"
+        />
       </div>
     </template>
 
