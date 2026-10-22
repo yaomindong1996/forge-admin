@@ -339,6 +339,26 @@ Admin 本地启动正常，生产同一项目打包后出现大量 checksum mism
 - 修改前比较全部迁移与历史，确认 pending；保留 JAR、历史表和外部 SQL，不 repair、不关闭校验。
 - 服务器存在未激活的 profile 文件，不代表其配置正在生效；不要误改其数据源或历史表。
 
+## 迁移改名后 target/classes 残留旧文件名导致 checksum mismatch
+
+**发现日期**: 2026-10-22
+
+**问题描述**:
+启动报 `Migration checksum mismatch for migration version 1.0.226`，日志里 Applied / Resolved 对不上；同时感觉「少了 227」。例如 Applied=`1421982953`（内容资产脚本）、Resolved=`-746902544`（流程发布状态字典脚本）。
+
+**根本原因**:
+历史上曾把流程字典与内容资产抢成同号 `1.0.226`，后又改名对齐（最终：`V1.0.226__add_content_installed_asset`、`V1.0.228__add_flow_model_publication_state_dict`，中间临时的 `1.0.227` 不再需要）。`maven-resources-plugin` 的 `copy-resources` **只拷贝不删除**：`forge-admin-server/target/classes/db/migration/` 里仍残留旧名 `V1.0.226__add_flow_model_publication_state_dict.sql`。IDE / 上次编译的 classpath 读到的是残留文件，校验就对不上已入库的内容资产 checksum。版本号允许跳号，库里没执行过 `1.0.227` 时本地也不需要这个文件。
+
+**解决方案**:
+1. 对照 `forge_schema_history`：`description`/`checksum` 与源码 `forge-server/db/migration/V1.0.226__*.sql` 是否一致。
+2. 删除或重建 `forge-admin-server/target/classes/db/migration`（`mvn -pl forge-admin-server process-resources` 或 `clean compile`），确认 classpath 里 226 文件名与源码一致、不再残留旧 description。
+3. 禁止对已执行版本做 `flyway repair` 来“换脚本内容”；本场景是 classpath 脏，不是库坏了。
+4. Admin POM 在 copy 前先清空 classpath 下的 `db/migration`，避免改名残留再次踩坑。
+
+**影响范围**:
+- 本地 IDE 启动、未 `clean` 的增量编译
+- 任何 Flyway 脚本改名（同版本换 description 或升号）后的开发机
+
 ## 分支合并 / 上游同步后 Flyway 同号双文件
 
 **发现日期**: 2026-10-16

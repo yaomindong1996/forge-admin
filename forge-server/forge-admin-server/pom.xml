@@ -190,6 +190,26 @@
                  会拒绝访问 project base 之外的路径）。见下方 copy-resources。 -->
         </resources>
         <plugins>
+            <!-- 迁移改名后 copy-resources 不会删除旧文件名，残留会导致同号 checksum 校验失败。 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>clean-flyway-classpath-sql</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <delete dir="${project.build.outputDirectory}/db/migration" quiet="true"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- 将 forge-server/db/migration 原样拷到 classpath:db/migration（JAR/IDE 共用）。 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
