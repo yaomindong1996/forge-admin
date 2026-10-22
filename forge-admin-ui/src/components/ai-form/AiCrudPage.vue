@@ -94,10 +94,10 @@
           </template>
         </AiForm>
         <ChildTableEditor
-          v-if="hasChildrenConfig"
+          v-if="hasBottomChildrenConfig"
           ref="childFormRef"
           v-model:value="childFormData"
-          :children-config="visibleChildrenConfig"
+          :children-config="bottomChildrenConfig"
           :readonly="isDetailMode"
           :parent-form-data="formData"
           :context="formContext"
@@ -425,7 +425,7 @@
                     v-if="showDefaultDetailChildren"
                     ref="childFormRef"
                     v-model:value="childFormData"
-                    :children-config="visibleChildrenConfig"
+                    :children-config="bottomChildrenConfig"
                     :readonly="isDetailMode"
                     :parent-form-data="formData"
                     :context="formContext"
@@ -492,7 +492,7 @@
                   v-if="showDefaultDetailChildren"
                   ref="childFormRef"
                   v-model:value="childFormData"
-                  :children-config="visibleChildrenConfig"
+                  :children-config="bottomChildrenConfig"
                   :readonly="isDetailMode"
                   :parent-form-data="formData"
                   :context="formContext"
@@ -618,7 +618,7 @@
               v-if="showDefaultDetailChildren"
               ref="childFormRef"
               v-model:value="childFormData"
-              :children-config="visibleChildrenConfig"
+              :children-config="bottomChildrenConfig"
               :readonly="isDetailMode"
               :parent-form-data="formData"
               :context="formContext"
@@ -686,7 +686,7 @@
             v-if="showDefaultDetailChildren"
             ref="childFormRef"
             v-model:value="childFormData"
-            :children-config="visibleChildrenConfig"
+            :children-config="bottomChildrenConfig"
             :readonly="isDetailMode"
             :parent-form-data="formData"
             :context="formContext"
@@ -798,10 +798,10 @@
             </template>
           </AiForm>
           <ChildTableEditor
-            v-if="hasChildrenConfig"
+            v-if="hasBottomChildrenConfig"
             ref="childFormRef"
             v-model:value="childFormData"
-            :children-config="visibleChildrenConfig"
+            :children-config="bottomChildrenConfig"
             :readonly="isDetailMode"
             :parent-form-data="formData"
             :context="formContext"

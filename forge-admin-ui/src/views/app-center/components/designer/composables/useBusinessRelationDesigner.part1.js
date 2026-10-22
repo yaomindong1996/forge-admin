@@ -16,6 +16,11 @@ import {
   normalizeLinkageSchema,
   validateLinkageSchema,
 } from '../form-first/linkageSchema'
+import {
+  afterBusinessObjectsLoaded,
+  afterRelationsLoaded,
+  onObjectSwitched,
+} from './er-canvas-candidates'
 export function applyBusinessRelationDesignerPart1(props, emit) {
   const __impl = {}
   const mut = {
@@ -194,6 +199,8 @@ export function applyBusinessRelationDesignerPart1(props, emit) {
   const erDiagramModels = computed(() => buildErDiagramModels())
 
   watch(() => props.objectId, () => {
+    // 切换对象时清空画布候选，避免把上一对象的无关表带到新画布
+    erCandidateObjectCodes.value = onObjectSwitched()
     loadRelations()
   }, { immediate: true })
 
@@ -235,10 +242,10 @@ export function applyBusinessRelationDesignerPart1(props, emit) {
       localRelations.value = (res.data || [])
         .filter(relation => !props.objectCode || !relation.sourceObjectCode || relation.sourceObjectCode === props.objectCode)
         .map(normalizeRelation)
-      erCandidateObjectCodes.value = Array.from(new Set([
-        ...erCandidateObjectCodes.value,
-        ...localRelations.value.map(relation => relation.targetObjectCode).filter(Boolean),
-      ]))
+      erCandidateObjectCodes.value = afterRelationsLoaded(
+        erCandidateObjectCodes.value,
+        localRelations.value.map(relation => relation.targetObjectCode),
+      )
       relationsLoaded.value = true
       relationDirty.value = false
       emit('updated', localRelations.value)
@@ -268,8 +275,8 @@ export function applyBusinessRelationDesignerPart1(props, emit) {
         seen.add(item.objectCode)
         return true
       })
-      if (!erCandidateObjectCodes.value.length && targetObjectOptions.value[0])
-        erCandidateObjectCodes.value = [targetObjectOptions.value[0].value]
+      // 画布对象只来自：已配置关系的目标 + 用户在「画布对象」里显式勾选。
+      erCandidateObjectCodes.value = afterBusinessObjectsLoaded(erCandidateObjectCodes.value)
       localRelations.value.forEach((relation) => {
         loadTargetFields(relation.targetObjectCode)
         loadTargetFields(selectorCandidateObjectCode(relation))

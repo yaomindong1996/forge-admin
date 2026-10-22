@@ -104,7 +104,7 @@ export function applyAiCrudPagePart2(props, emit, deps = {}) {
     paginationConfig, searchSlots, tableSlots, formSlots, isDetailMode, resolvedFormOpenMode, usesInlineFormWorkspace, isTabWorkspaceMode,
     inlineWorkspaceVisible, showInlineListPane, showInlineFormWorkspacePane, tiledEditGridCols, activeInlineFormTab, activeInlineFormTitle, inlineFormModeLabel, showInlineFormModeTag,
     resolvedTabWorkspace, activeModalWidth, detailFlowTimelineVisible, detailFlowDiagramVisible, showDetailFlowTabs, dataAuditMeta, showDataChangeLogTab, showDetailExtraTabs,
-    dataAuditObjectId, dataAuditRecordId, dataAuditEnabled, dataAuditHistoryAvailable, visibleChildrenConfig, hasChildrenConfig, showDefaultDetailContent, showDefaultDetailChildren,
+    dataAuditObjectId, dataAuditRecordId, dataAuditEnabled, dataAuditHistoryAvailable, visibleChildrenConfig, hasChildrenConfig, bottomChildrenConfig, hasBottomChildrenConfig, showDefaultDetailContent, showDefaultDetailChildren,
     normalizedDetailPanelConfig, showDetailPanels, detailPanelRowKeyValue, hasSearchSchema, hasActiveListFilters, resolvedEmptyTitle, resolvedEmptyDescription, normalizedSearchSchema,
     modalFormSchema, offlineReplayAvailable, resolvedFormOnlyTitle, resolvedEditFormClass, DEFAULT_SELECTION_COLUMN_WIDTH, DEFAULT_EXPAND_COLUMN_WIDTH, DEFAULT_ACTION_COLUMN_WIDTH, DEFAULT_DATA_COLUMN_WIDTH,
     TABLE_SCROLL_X_BUFFER, computedScrollX, computedMaxHeight,

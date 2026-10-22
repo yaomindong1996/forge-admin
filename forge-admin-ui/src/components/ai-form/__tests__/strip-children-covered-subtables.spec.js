@@ -1,10 +1,71 @@
 import { describe, expect, it } from 'vitest'
 import {
+  collectLayoutSubTableKeys,
+  filterChildrenConfigNotCoveredByLayout,
   schemaHasSubTableNode,
   stripChildrenCoveredSubTables,
 } from '../strip-children-covered-subtables'
 
-describe('stripChildrenCoveredSubTables', () => {
+describe('filterChildrenConfigNotCoveredByLayout (prefer layout position)', () => {
+  /** 复现企业档案：联系信息标题 → 子表 → 银行账号标题（扁平叶子，非子节点包裹） */
+  const companyFormSchema = [
+    { componentKey: 'title', label: '基础信息', layout: { span: 3 } },
+    { componentKey: 'title', label: '联系信息', layout: { span: 3 } },
+    {
+      componentKey: 'subTable',
+      label: '关联子表',
+      props: {
+        header: '企业联系人',
+        relationKey: 'biz_company_contact',
+        modelCode: 'biz_company_contact',
+        columns: [{ fieldCode: 'contactName', fieldLabel: '姓名' }],
+      },
+      layout: { span: 3 },
+    },
+    { componentKey: 'title', label: '银行账号', layout: { span: 3 } },
+  ]
+
+  const childrenConfig = [
+    {
+      key: 'biz_company_contact',
+      relationKey: 'biz_company_contact',
+      title: '企业联系人',
+      fields: [{ field: 'contactName', label: '姓名' }],
+    },
+    {
+      key: 'bank_account',
+      relationKey: 'bank_account',
+      title: '银行账号',
+      fields: [{ field: 'accountNo', label: '账号' }],
+    },
+  ]
+
+  it('keeps layout subTable in schema order (联系信息后、银行账号前)', () => {
+    expect(schemaHasSubTableNode(companyFormSchema)).toBe(true)
+    const keys = collectLayoutSubTableKeys(companyFormSchema)
+    expect(keys.has('biz_company_contact')).toBe(true)
+    const subIndex = companyFormSchema.findIndex(n => n.componentKey === 'subTable')
+    const bankIndex = companyFormSchema.findIndex(n => n.label === '银行账号')
+    const contactTitleIndex = companyFormSchema.findIndex(n => n.label === '联系信息')
+    expect(contactTitleIndex).toBeLessThan(subIndex)
+    expect(subIndex).toBeLessThan(bankIndex)
+  })
+
+  it('drops bottom childrenConfig entries already inlined in layout', () => {
+    const bottom = filterChildrenConfigNotCoveredByLayout(childrenConfig, companyFormSchema)
+    expect(bottom).toHaveLength(1)
+    expect(bottom[0].key).toBe('bank_account')
+  })
+
+  it('keeps all childrenConfig when layout has no subTable', () => {
+    const bottom = filterChildrenConfigNotCoveredByLayout(childrenConfig, [
+      { componentKey: 'title', label: '基础信息' },
+    ])
+    expect(bottom).toEqual(childrenConfig)
+  })
+})
+
+describe('stripChildrenCoveredSubTables (legacy)', () => {
   const childrenConfig = [
     {
       key: 'product_detail',

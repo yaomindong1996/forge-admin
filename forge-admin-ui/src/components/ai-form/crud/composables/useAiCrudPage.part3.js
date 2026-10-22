@@ -110,7 +110,7 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
     searchSlots, tableSlots, formSlots, isDetailMode, resolvedFormOpenMode, usesInlineFormWorkspace, isTabWorkspaceMode, inlineWorkspaceVisible,
     showInlineListPane, showInlineFormWorkspacePane, tiledEditGridCols, activeInlineFormTab, activeInlineFormTitle, inlineFormModeLabel, showInlineFormModeTag, resolvedTabWorkspace,
     activeModalWidth, detailFlowTimelineVisible, detailFlowDiagramVisible, showDetailFlowTabs, dataAuditMeta, showDataChangeLogTab, showDetailExtraTabs, dataAuditObjectId,
-    dataAuditRecordId, dataAuditEnabled, dataAuditHistoryAvailable, visibleChildrenConfig, hasChildrenConfig, showDefaultDetailContent, showDefaultDetailChildren, normalizedDetailPanelConfig,
+    dataAuditRecordId, dataAuditEnabled, dataAuditHistoryAvailable, visibleChildrenConfig, hasChildrenConfig, bottomChildrenConfig, hasBottomChildrenConfig, showDefaultDetailContent, showDefaultDetailChildren, normalizedDetailPanelConfig,
     showDetailPanels, detailPanelRowKeyValue, hasSearchSchema, hasActiveListFilters, resolvedEmptyTitle, resolvedEmptyDescription, normalizedSearchSchema, modalFormSchema,
     offlineReplayAvailable, resolvedFormOnlyTitle, resolvedEditFormClass, DEFAULT_SELECTION_COLUMN_WIDTH, DEFAULT_EXPAND_COLUMN_WIDTH, DEFAULT_ACTION_COLUMN_WIDTH, DEFAULT_DATA_COLUMN_WIDTH, TABLE_SCROLL_X_BUFFER,
     computedScrollX, computedMaxHeight,
@@ -529,14 +529,62 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
     return result
   }
 
+  function mirrorChildrenIntoFormData(children = {}) {
+    // 布局内 subTable 读 formData[relationKey]；详情回填时把 children 镜像进去。
+    const next = { ...(formData.value || {}) }
+    Object.entries(children || {}).forEach(([key, rows]) => {
+      if (key)
+        next[key] = Array.isArray(rows) ? rows : []
+    })
+    formData.value = next
+  }
+
+  function collectChildrenForSubmit(preferred = {}) {
+    const preferredMap = preferred && typeof preferred === 'object' ? preferred : {}
+    const editorValue = childFormRef.value?.getValue?.() || {}
+    const result = {}
+    visibleChildrenConfig.value.forEach((child) => {
+      const key = resolveChildKey(child)
+      if (Array.isArray(preferredMap[key])) {
+        result[key] = preferredMap[key]
+        return
+      }
+      if (Array.isArray(editorValue[key])) {
+        result[key] = editorValue[key]
+        return
+      }
+      if (Array.isArray(childFormData.value?.[key])) {
+        result[key] = childFormData.value[key]
+        return
+      }
+      // 布局内联编辑写在 formData 上
+      if (Array.isArray(formData.value?.[key])) {
+        result[key] = formData.value[key]
+        return
+      }
+      result[key] = []
+    })
+    return result
+  }
+
+  function stripChildKeysFromMain(main = {}) {
+    const next = { ...(main || {}) }
+    visibleChildrenConfig.value.forEach((child) => {
+      delete next[resolveChildKey(child)]
+    })
+    return next
+  }
+
   function applyDetailData(data) {
     if (hasChildrenConfig.value && isMasterDetailPayload(data)) {
       formData.value = normalizeEditData({ ...resolveFormDefaultValues(), ...(data.main || {}) })
       childFormData.value = normalizeChildrenData(data.children)
+      mirrorChildrenIntoFormData(childFormData.value)
       return
     }
     formData.value = normalizeEditData({ ...resolveFormDefaultValues(), ...(data || {}) })
     childFormData.value = buildInitialChildrenData()
+    mirrorChildrenIntoFormData(childFormData.value)
   }
 
   function buildMasterDetailSubmitData(data) {
@@ -545,12 +593,12 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
     }
     const payload = isMasterDetailPayload(data)
       ? {
-          main: { ...(data.main || {}) },
-          children: normalizeChildrenData(data.children),
+          main: stripChildKeysFromMain(data.main || {}),
+          children: collectChildrenForSubmit(data.children),
         }
       : {
-          main: { ...(data || {}) },
-          children: childFormRef.value?.getValue?.() || childFormData.value || {},
+          main: stripChildKeysFromMain(data || {}),
+          children: collectChildrenForSubmit(childFormData.value),
         }
     if (modalStatus.value === 'edit') {
       const key = typeof props.rowKey === 'string' ? props.rowKey : 'id'
@@ -1531,6 +1579,23 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
   })
 
   watch(formData, () => {
+    // 布局内联子表改的是 formData[relationKey]，同步到 childFormData 供提交/其它逻辑复用
+    if (hasChildrenConfig.value) {
+      let changed = false
+      const next = { ...(childFormData.value || {}) }
+      visibleChildrenConfig.value.forEach((child) => {
+        const key = resolveChildKey(child)
+        const rows = formData.value?.[key]
+        if (!Array.isArray(rows))
+          return
+        if (JSON.stringify(next[key] || []) !== JSON.stringify(rows)) {
+          next[key] = rows
+          changed = true
+        }
+      })
+      if (changed)
+        childFormData.value = next
+    }
     persistActiveInlineFormTab({ dirty: true })
     scheduleOfflineDraftSave()
   }, { deep: true })

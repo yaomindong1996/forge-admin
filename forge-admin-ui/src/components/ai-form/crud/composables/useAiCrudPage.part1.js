@@ -46,7 +46,7 @@ import { useFlowActionFeedback } from './useFlowActionFeedback'
 import { useRecordFormLoader } from './useRecordFormLoader'
 import { resolveFormInitRecordId } from '../../data-source-binding-runtime'
 import { normalizeExpandConfig, shouldExpandRow } from '../../expand-utils'
-import { stripChildrenCoveredSubTables } from '../../strip-children-covered-subtables'
+import { filterChildrenConfigNotCoveredByLayout } from '../../strip-children-covered-subtables'
 import { isNumberFieldType } from '../../field-type-utils'
 import { resolveRuntimeDefaultValue } from '@/views/app-center/components/designer/forge-form-designer/field-default-value'
 import { isImageFileName, resolveFileRenderItems } from '../../file-render-utils'
@@ -1028,12 +1028,30 @@ export function applyAiCrudPagePart1(props, emit, deps = {}) {
 
   const hasChildrenConfig = computed(() => visibleChildrenConfig.value.some(child => child?.fields?.length))
 
+  /** 当前编辑 schema：详情只读态会包一层，布局内 subTable 仍保留原位置。 */
+  const resolvedEditSchema = computed(() => {
+    if (!isDetailMode.value)
+      return props.editSchema || []
+    const schema = (props.editSchema || []).map(toReadonlyField)
+    return schema.length > 0 ? schema : buildDetailFallbackSchema(props.columns)
+  })
+
+  /**
+   * 底部 ChildTableEditor 用：去掉布局里已内联的子表，避免「联系信息」下空、子表沉到表单末尾。
+   * 数据仍走 visibleChildrenConfig / childFormData，提交语义不变。
+   */
+  const bottomChildrenConfig = computed(() => {
+    return filterChildrenConfigNotCoveredByLayout(visibleChildrenConfig.value, resolvedEditSchema.value)
+  })
+
+  const hasBottomChildrenConfig = computed(() => bottomChildrenConfig.value.some(child => child?.fields?.length))
+
   const showDefaultDetailContent = computed(() => {
     return !isDetailMode.value || !props.hideDefaultDetailContent
   })
 
   const showDefaultDetailChildren = computed(() => {
-    return hasChildrenConfig.value && showDefaultDetailContent.value
+    return hasBottomChildrenConfig.value && showDefaultDetailContent.value
   })
 
   const normalizedDetailPanelConfig = computed(() => normalizeExpandConfig({
@@ -1088,17 +1106,7 @@ export function applyAiCrudPagePart1(props, emit, deps = {}) {
     })
   })
 
-  const modalFormSchema = computed(() => {
-    // 布局 subTable 与底部 childrenConfig 会各画一块；childrenConfig 已覆盖时去掉布局节点，避免主子表明细重复。
-    const children = visibleChildrenConfig.value
-    const baseSchema = (() => {
-      if (!isDetailMode.value)
-        return props.editSchema || []
-      const schema = (props.editSchema || []).map(toReadonlyField)
-      return schema.length > 0 ? schema : buildDetailFallbackSchema(props.columns)
-    })()
-    return stripChildrenCoveredSubTables(baseSchema, children)
-  })
+  const modalFormSchema = computed(() => resolvedEditSchema.value)
 
   const {
     runtimeFormulaFields,
@@ -1957,7 +1965,7 @@ export function applyAiCrudPagePart1(props, emit, deps = {}) {
     paginationConfig, searchSlots, tableSlots, formSlots, isDetailMode, resolvedFormOpenMode, usesInlineFormWorkspace, isTabWorkspaceMode,
     inlineWorkspaceVisible, showInlineListPane, showInlineFormWorkspacePane, tiledEditGridCols, activeInlineFormTab, activeInlineFormTitle, inlineFormModeLabel, showInlineFormModeTag,
     resolvedTabWorkspace, activeModalWidth, detailFlowTimelineVisible, detailFlowDiagramVisible, showDetailFlowTabs, dataAuditMeta, showDataChangeLogTab, showDetailExtraTabs,
-    dataAuditObjectId, dataAuditRecordId, dataAuditEnabled, dataAuditHistoryAvailable, visibleChildrenConfig, hasChildrenConfig, showDefaultDetailContent, showDefaultDetailChildren,
+    dataAuditObjectId, dataAuditRecordId, dataAuditEnabled, dataAuditHistoryAvailable, visibleChildrenConfig, hasChildrenConfig, bottomChildrenConfig, hasBottomChildrenConfig, showDefaultDetailContent, showDefaultDetailChildren,
     normalizedDetailPanelConfig, showDetailPanels, detailPanelRowKeyValue, hasSearchSchema, hasActiveListFilters, resolvedEmptyTitle, resolvedEmptyDescription, normalizedSearchSchema,
     modalFormSchema, offlineReplayAvailable, resolvedFormOnlyTitle, resolvedEditFormClass, DEFAULT_SELECTION_COLUMN_WIDTH, DEFAULT_EXPAND_COLUMN_WIDTH, DEFAULT_ACTION_COLUMN_WIDTH, DEFAULT_DATA_COLUMN_WIDTH,
     TABLE_SCROLL_X_BUFFER, computedScrollX, computedMaxHeight,

@@ -461,6 +461,93 @@ async function downloadFileContent(fileData, filename, expires, forceRefresh, ob
 }
 
 /**
+ * 从 axios blob 响应触发浏览器下载。
+ * 注意：不能在 click 后立刻 revokeObjectURL，否则大文件/慢磁盘下会出现「点好几次才下得下来」。
+ *
+ * @param {object|Blob} response axios rawResponse 或 Blob
+ * @param {string} fallbackName 无 Content-Disposition 时的文件名
+ * @param {{ revokeDelayMs?: number }} [options]
+ * @returns {Promise<string>} 解析出的文件名
+ */
+export async function downloadAxiosBlobResponse(response, fallbackName = 'download.bin', options = {}) {
+  const revokeDelayMs = Number.isFinite(options.revokeDelayMs) ? options.revokeDelayMs : 60_000
+  let blob = response?.data instanceof Blob ? response.data : response
+  if (!(blob instanceof Blob) && blob && typeof blob === 'object') {
+    blob = new Blob([JSON.stringify(blob, null, 2)], { type: 'application/json;charset=UTF-8' })
+  }
+  if (!(blob instanceof Blob))
+    throw new TypeError('下载响应不是文件流')
+
+  await assertBlobIsNotBusinessError(blob)
+
+  const headers = response?.headers
+  const disposition = (typeof headers?.get === 'function'
+    ? (headers.get('content-disposition') || headers.get('Content-Disposition'))
+    : null)
+    || headers?.['content-disposition']
+    || headers?.['Content-Disposition']
+    || ''
+  const utf8Match = String(disposition).match(/filename\*=(?:UTF-8|utf-8)''([^;]+)/i)
+  const normalMatch = String(disposition).match(/filename="?([^";]+)"?/i)
+  const fileName = utf8Match?.[1]
+    ? decodeURIComponent(utf8Match[1])
+    : (normalMatch?.[1] ? decodeURIComponent(normalMatch[1]) : fallbackName)
+
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  link.rel = 'noopener'
+  // 保持在文档树中直到浏览器接管下载，减少偶发 click 无效
+  document.body.appendChild(link)
+  link.click()
+  window.setTimeout(() => {
+    link.remove()
+    URL.revokeObjectURL(url)
+  }, Math.max(1000, revokeDelayMs))
+  return fileName
+}
+
+/** 部分接口失败时仍以 octet-stream 返回 JSON 错误体，避免保存成假文件。 */
+async function assertBlobIsNotBusinessError(blob) {
+  if (!blob || blob.size <= 0 || blob.size > 8192)
+    return
+  let text = ''
+  try {
+    text = await readBlobAsText(blob)
+  }
+  catch {
+    return
+  }
+  if (!String(text || '').trimStart().startsWith('{'))
+    return
+  let payload
+  try {
+    payload = JSON.parse(text)
+  }
+  catch {
+    return
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload))
+    return
+  const code = payload.code
+  if (code === undefined || code === null || code === 200 || code === 0 || code === '200' || code === '0')
+    return
+  throw new Error(payload.message || '导出失败')
+}
+
+function readBlobAsText(blob) {
+  if (typeof blob?.text === 'function')
+    return blob.text()
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(reader.error || new Error('读取下载内容失败'))
+    reader.readAsText(blob)
+  })
+}
+
+/**
  * 获取图片预览 URL（带缩略图参数）
  * @param {string} filePath - 文件路径
  * @param {object} options - 选项

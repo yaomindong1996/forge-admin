@@ -1,6 +1,12 @@
 /**
- * 主子表运行态去重：布局里的 subTable 与底部 childrenConfig 会各画一块明细。
- * 当 childrenConfig 已覆盖同一关系键时，从 schema 去掉对应布局节点，只保留 childrenConfig 那一块。
+ * 主子表运行态去重。
+ *
+ * 历史策略：布局有 subTable 时剥掉布局、只留底部 childrenConfig → 子表会沉到表单末尾，
+ * 分区标题（如「联系信息」）下面变空，看起来像跑到下一节「银行账号」下面。
+ *
+ * 现行策略：优先保留布局位置的 subTable；底部 ChildTableEditor 再按布局键去重。
+ * `stripChildrenCoveredSubTables` 仍保留给旧调用方/测试，新运行态请用
+ * `filterChildrenConfigNotCoveredByLayout`。
  */
 
 const SUB_TABLE_TYPES = new Set(['subTable', 'forgeSubTable', 'childTable'])
@@ -46,13 +52,16 @@ function resolveSubTableRelationKey(node = {}) {
   return String(props.relationKey || props.modelCode || node.key || node.id || '').trim()
 }
 
+function childConfigIdentityKeys(child = {}) {
+  return [child?.key, child?.relationKey, child?.modelCode, child?.tableName, child?.field]
+    .filter(Boolean)
+    .map(value => String(value))
+}
+
 function collectChildrenConfigKeys(childrenConfig = []) {
   const keys = new Set()
-  for (const child of childrenConfig || []) {
-    ;[child?.key, child?.relationKey, child?.modelCode, child?.tableName, child?.field]
-      .filter(Boolean)
-      .forEach(value => keys.add(String(value)))
-  }
+  for (const child of childrenConfig || [])
+    childConfigIdentityKeys(child).forEach(value => keys.add(value))
   return keys
 }
 
@@ -71,6 +80,42 @@ function stripNode(node, coveredKeys) {
 }
 
 /**
+ * 收集布局中已内联的 subTable 关系键（含 modelCode / key / id）。
+ */
+export function collectLayoutSubTableKeys(schema = []) {
+  const keys = new Set()
+  const walk = (nodes) => {
+    for (const node of nodes || []) {
+      if (isSubTableNode(node)) {
+        const key = resolveSubTableRelationKey(node)
+        if (key)
+          keys.add(key)
+      }
+      if (Array.isArray(node?.children) && node.children.length)
+        walk(node.children)
+    }
+  }
+  walk(Array.isArray(schema) ? schema : [])
+  return keys
+}
+
+/**
+ * 底部 childrenConfig 去掉已被布局 subTable 覆盖的项，避免同键画两遍、且位置错乱。
+ */
+export function filterChildrenConfigNotCoveredByLayout(childrenConfig = [], schema = []) {
+  const layoutKeys = collectLayoutSubTableKeys(schema)
+  if (!layoutKeys.size || !Array.isArray(childrenConfig) || !childrenConfig.length)
+    return childrenConfig
+  return childrenConfig.filter((child) => {
+    const ids = childConfigIdentityKeys(child)
+    if (!ids.length)
+      return true
+    return !ids.some(id => layoutKeys.has(id))
+  })
+}
+
+/**
+ * @deprecated 优先保留布局位置；新代码用 filterChildrenConfigNotCoveredByLayout。
  * @param {Array} schema AiForm/editSchema 节点树
  * @param {Array} childrenConfig 主子表 childrenConfig
  * @returns {Array} 去掉已被 childrenConfig 覆盖的布局 subTable 后的 schema

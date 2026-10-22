@@ -65,6 +65,7 @@ import {
   exportBusinessApplicationDebugBundle,
   listBusinessApplicationDebugBundlePages,
 } from '@/api/business-application'
+import { downloadAxiosBlobResponse } from '@/utils/file'
 
 const props = defineProps({
   show: { type: Boolean, default: false },
@@ -128,32 +129,6 @@ function pageTypeLabel(pageType) {
   return map[pageType] || pageType || '页面'
 }
 
-function downloadBlobResponse(response, fallbackName) {
-  let blob = response?.data instanceof Blob ? response.data : response
-  // 兜底：若拦截器已把 JSON 附件解析成对象，重新包成文件流
-  if (!(blob instanceof Blob) && blob && typeof blob === 'object') {
-    blob = new Blob([JSON.stringify(blob, null, 2)], { type: 'application/json;charset=UTF-8' })
-  }
-  if (!(blob instanceof Blob))
-    throw new TypeError('下载响应不是文件流')
-  const disposition = response?.headers?.['content-disposition']
-    || response?.headers?.get?.('content-disposition')
-    || ''
-  const utf8Match = disposition.match(/filename\*=utf-8''([^;]+)/i)
-  const normalMatch = disposition.match(/filename="?([^";]+)"?/i)
-  const fileName = utf8Match?.[1]
-    ? decodeURIComponent(utf8Match[1])
-    : (normalMatch?.[1] ? decodeURIComponent(normalMatch[1]) : fallbackName)
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = fileName
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-}
-
 async function runExport() {
   if (!props.applicationId || exporting.value)
     return
@@ -162,7 +137,11 @@ async function runExport() {
     // 全选时不传 pageIds，走 FULL 模式，避免与整应用导出语义漂移
     const pageIds = allChecked.value ? [] : selectedPageIds.value
     const response = await exportBusinessApplicationDebugBundle(props.applicationId, pageIds)
-    downloadBlobResponse(response, `${props.applicationCode || 'application'}.forge-app.json`)
+    // 延迟 revoke blob URL，避免大文件尚未被浏览器接管就被回收
+    await downloadAxiosBlobResponse(
+      response,
+      `${props.applicationCode || 'application'}.forge-app.json`,
+    )
     message.success(pageIds.length ? `已导出 ${pageIds.length} 个页面的应用配置` : '已导出整应用配置')
     emit('exported')
     emit('update:show', false)
