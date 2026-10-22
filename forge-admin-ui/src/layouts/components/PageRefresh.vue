@@ -12,13 +12,16 @@
 
 <script setup>
 import { useRoute } from 'vue-router'
+import { bumpPageDataRefresh } from '@/composables/usePageDataRefresh'
 import { useTabStore } from '@/store'
 
 const route = useRoute()
 const tabStore = useTabStore()
 
-function handleRefresh() {
-  tabStore.reloadTab(route.fullPath, route.meta?.keepAlive)
+async function handleRefresh() {
+  // 先广播数据刷新：挂件可立刻重拉；再 remount 路由视图兜底整页状态
+  bumpPageDataRefresh('header-refresh')
+  await tabStore.reloadTab(route.fullPath, route.meta?.keepAlive)
 }
 </script>
 

@@ -4,42 +4,64 @@
     <ApplicationRuntimeSkeleton v-if="loading" />
     <template v-else-if="application">
       <header v-if="!formDesignerMode" class="runtime-header">
+        <!-- 左侧：返回 + 面包屑层级 + 当前页标题 + 个人工作台入口 -->
         <div class="runtime-brand">
-          <n-button quaternary circle :aria-label="resolveRuntimeBackLabel()" @click="handleRuntimeBack">
+          <n-button quaternary circle size="tiny" class="runtime-header-launcher" :aria-label="resolveRuntimeBackLabel()" @click="handleRuntimeBack">
             <template #icon>
-              <NIcon><ArrowBackOutline /></NIcon>
+              <NIcon :size="14"><ArrowBackOutline /></NIcon>
             </template>
           </n-button>
-          <button type="button" class="runtime-breadcrumb" :title="resolveRuntimeBackLabel()" @click="handleRuntimeBack">
-            <span>{{ resolveRuntimeBackLabel() }}</span>
-            <span aria-hidden="true">›</span>
-          </button>
-          <div class="runtime-brand-copy">
-            <span class="runtime-brand-app-icon" aria-hidden="true"><NIcon><FolderOpenOutline /></NIcon></span>
-            <div class="runtime-design-title">
+          <div class="runtime-breadcrumb-trail" aria-label="当前位置">
+            <button type="button" class="runtime-breadcrumb-link" :title="resolveRuntimeBackLabel()" @click="handleRuntimeBack">
+              {{ resolveRuntimeBackLabel() }}
+            </button>
+            <NIcon class="runtime-breadcrumb-sep" :size="12" aria-hidden="true"><ChevronForwardOutline /></NIcon>
+            <span class="runtime-breadcrumb-section">
+              <span class="runtime-brand-app-icon" aria-hidden="true"><NIcon size="12"><FolderOpenOutline /></NIcon></span>
               <span>{{ resolveRuntimeBrandEyebrow() }}</span>
-              <strong>{{ application.applicationName || '未命名应用' }}</strong>
-            </div>
-            <span class="runtime-brand-status">{{ resolveRuntimeBrandStatus() }}</span>
+            </span>
           </div>
+          <!-- 已在个人工作台时只保留胶囊，避免标题与入口文案重复 -->
+          <strong
+            v-if="!isRuntimeWorkbenchActive"
+            class="runtime-brand-title"
+            :title="resolveRuntimeHeaderTitle()"
+          >{{ resolveRuntimeHeaderTitle() }}</strong>
+          <button
+            v-if="!editing && !isDraftPreviewMode()"
+            type="button"
+            class="runtime-workbench-pill"
+            :class="{ active: isRuntimeWorkbenchActive }"
+            title="个人工作台"
+            @click="openRuntimeWorkbench"
+          >
+            <NIcon size="12"><DesktopOutline /></NIcon>
+            <span>个人工作台</span>
+          </button>
+          <span v-if="editing || isDraftPreviewMode()" class="runtime-brand-status">{{ resolveRuntimeBrandStatus() }}</span>
         </div>
         <nav class="runtime-app-tabs" aria-label="应用导航">
-          <!-- 非编辑模式：应用级 Tab -->
+          <!-- 非编辑模式：应用级 Tab（图标 + 文案 + 底线选中态） -->
           <template v-if="!editing && !isDraftPreviewMode()">
             <button type="button" class="runtime-app-tab" :class="{ active: runtimeViewMode === 'pages' }" @click="switchRuntimeView('pages')">
-              页面管理
+              <NIcon size="13"><ListOutline /></NIcon>
+              <span>页面管理</span>
             </button>
             <button type="button" class="runtime-app-tab" :class="{ active: runtimeViewMode === 'process' }" @click="switchRuntimeView('process')">
-              业务流程
+              <NIcon size="13"><GitNetworkOutline /></NIcon>
+              <span>业务流程</span>
             </button>
             <button type="button" class="runtime-app-tab" :class="{ active: runtimeViewMode === 'enhance' }" @click="switchRuntimeView('enhance')">
-              增强
+              <NIcon size="13"><FlashOutline /></NIcon>
+              <span>增强</span>
             </button>
             <button type="button" class="runtime-app-tab" :class="{ active: runtimeViewMode === 'settings' }" @click="switchRuntimeView('settings')">
-              应用设置
+              <NIcon size="13"><SettingsOutline /></NIcon>
+              <span>应用设置</span>
             </button>
             <button type="button" class="runtime-app-tab" @click="switchRuntimeView('publish')">
-              应用发布
+              <NIcon size="13"><PaperPlaneOutline /></NIcon>
+              <span>应用发布</span>
             </button>
           </template>
           <!-- 编辑 / 草稿预览：页面级 Tab（设置/发布时隐藏页面预览，避免叠层串样式） -->
@@ -55,7 +77,8 @@
               :aria-busy="previewTabLoading ? 'true' : undefined"
               @click="switchPageDesignTab('preview')"
             >
-              {{ previewTabLoading ? '打开预览中…' : '预览' }}
+              <NIcon size="13"><EyeOutline /></NIcon>
+              <span>{{ previewTabLoading ? '打开预览中…' : '预览' }}</span>
             </button>
             <button
               v-if="showPageDesignTab"
@@ -64,7 +87,8 @@
               :class="{ active: editing && isPageDesignTabActive }"
               @click="switchPageDesignTab('page')"
             >
-              页面设计
+              <NIcon size="13"><ColorFillOutline /></NIcon>
+              <span>页面设计</span>
             </button>
             <button
               v-if="showFormDesignTab"
@@ -73,7 +97,8 @@
               :class="{ active: editing && activePageDesignTab === 'form' }"
               @click="switchPageDesignTab('form')"
             >
-              表单设计
+              <NIcon size="13"><DocumentTextOutline /></NIcon>
+              <span>表单设计</span>
             </button>
             <button
               v-if="showListDesignTab"
@@ -82,7 +107,8 @@
               :class="{ active: editing && activePageDesignTab === 'list' }"
               @click="switchPageDesignTab('list')"
             >
-              列表设计
+              <NIcon size="13"><ListOutline /></NIcon>
+              <span>列表设计</span>
             </button>
             <button
               type="button"
@@ -90,7 +116,8 @@
               :class="{ active: (editing || isDraftPreviewMode()) && activePageDesignTab === 'settings' }"
               @click="switchPageDesignTab('settings')"
             >
-              页面设置
+              <NIcon size="13"><SettingsOutline /></NIcon>
+              <span>页面设置</span>
             </button>
             <button
               type="button"
@@ -98,7 +125,8 @@
               :class="{ active: (editing || isDraftPreviewMode()) && activePageDesignTab === 'publish' }"
               @click="switchPageDesignTab('publish')"
             >
-              发布
+              <NIcon size="13"><PaperPlaneOutline /></NIcon>
+              <span>发布</span>
             </button>
           </template>
         </nav>
@@ -423,7 +451,10 @@
               </div>
               <div class="sidebar-title-actions">
                 <button class="sidebar-collapse-hint" type="button" :aria-label="sidebarCollapsed ? '展开页面菜单' : '收起页面菜单'" :title="sidebarCollapsed ? '展开页面菜单' : '收起页面菜单'" @click="sidebarCollapsed = !sidebarCollapsed">
-                  {{ sidebarCollapsed ? '»' : '«' }}
+                  <NIcon size="16">
+                    <ChevronForwardOutline v-if="sidebarCollapsed" />
+                    <ChevronBackOutline v-else />
+                  </NIcon>
                 </button>
               </div>
             </div>
@@ -433,7 +464,7 @@
               <div
                 v-for="item in pageManagementSystemPages"
                 :key="item.id"
-                class="navigation-row base-app-sidebar__node_vertical"
+                class="navigation-row base-app-sidebar__node_vertical is-system-nav"
                 :class="{ 'base-app-sidebar__node_selected': item.id === selectedNodeId }"
               >
                 <button
@@ -442,10 +473,26 @@
                   type="button"
                   @click="selectPageManagementNode(item.id)"
                 >
-                  <span class="navigation-icon-slot" aria-hidden="true">
-                    <NIcon v-if="item.icon"><component :is="resolveSystemPageIcon(item.icon)" /></NIcon>
+                  <span class="navigation-icon-slot" :class="{ 'is-selected': item.id === selectedNodeId }" aria-hidden="true">
+                    <NIcon v-if="item.icon" :size="15"><component :is="resolveSystemPageIcon(item.icon)" /></NIcon>
                   </span>
-                  <span>{{ item.title }}</span>
+                  <span class="navigation-page-label">{{ item.title }}</span>
+                  <span
+                    v-if="formatNavigationBadgeCount(resolveNavigationBadge(item.id).count)"
+                    class="navigation-badge"
+                  >{{ formatNavigationBadgeCount(resolveNavigationBadge(item.id).count) }}</span>
+                  <span
+                    v-else-if="resolveNavigationBadge(item.id).dot"
+                    class="navigation-dot"
+                    aria-label="有未读"
+                  />
+                  <NIcon
+                    v-if="item.id === selectedNodeId && !canEditApplication"
+                    size="14"
+                    class="navigation-active-chevron"
+                  >
+                    <ChevronForwardOutline />
+                  </NIcon>
                 </button>
                 <button
                   v-if="item.id === WORKBENCH_PAGE_ID && canEditApplication"
@@ -461,7 +508,16 @@
               </div>
               <div class="navigation-section-divider" />
               <template v-for="item in navigationNodes" :key="item.id">
-                <div class="navigation-row base-app-sidebar__node_vertical" :class="{ 'base-app-sidebar__node_selected': item.id === selectedNodeId, 'is-nav-hidden': !isNavigationVisible(item) }" :style="{ paddingLeft: `${12 + item.depth * 16}px` }">
+                <div
+                  class="navigation-row base-app-sidebar__node_vertical"
+                  :class="{
+                    'base-app-sidebar__node_selected': item.id === selectedNodeId,
+                    'is-nav-hidden': !isNavigationVisible(item),
+                    'is-group-row': item.type !== 'page',
+                    'is-child-nav': item.type === 'page' && Number(item.depth) > 0,
+                  }"
+                  :style="{ paddingLeft: `${10 + Math.max(0, Number(item.depth) || 0) * 14}px` }"
+                >
                   <button
                     v-if="item.type === 'page'"
                     class="navigation-page"
@@ -469,10 +525,25 @@
                     type="button"
                     @click="selectPageManagementNode(item.id)"
                   >
-                    <span v-if="item.icon" class="navigation-icon-slot" aria-hidden="true">
-                      <IconRenderer v-if="item.icon" :icon="item.icon" :size="16" />
+                    <span
+                      class="navigation-icon-slot"
+                      :class="{
+                        'is-selected': item.id === selectedNodeId,
+                        'is-child': Number(item.depth) > 0,
+                      }"
+                      aria-hidden="true"
+                    >
+                      <IconRenderer v-if="item.icon" :icon="item.icon" :size="14" />
+                      <NIcon v-else :size="14"><DocumentTextOutline /></NIcon>
                     </span>
-                    <span>{{ item.title }}</span>
+                    <span class="navigation-page-label">{{ item.title }}</span>
+                    <NIcon
+                      v-if="item.id === selectedNodeId && !canEditApplication"
+                      size="14"
+                      class="navigation-active-chevron"
+                    >
+                      <ChevronForwardOutline />
+                    </NIcon>
                   </button>
                   <button
                     v-else
@@ -482,10 +553,10 @@
                     :aria-expanded="!isGroupCollapsed(item.id)"
                     @click="toggleGroupExpanded(item.id)"
                   >
+                    <span class="navigation-group-label">{{ item.title }}</span>
                     <NIcon size="12" class="navigation-group-chevron">
                       <ArrowDownOutline />
                     </NIcon>
-                    <span>{{ item.title }}</span>
                   </button>
                   <!-- 页面项的编辑按钮（hover 显示） -->
                   <button
@@ -519,7 +590,8 @@
             <n-popover v-model:show="newNodePopoverVisible" trigger="click" placement="right-end" :show-arrow="false">
               <template #trigger>
                 <button type="button" class="navigation-create base-app-sidebar__new_node_vertical">
-                  <span>+</span>新建
+                  <span class="navigation-create-plus">+</span>
+                  <span>新建</span>
                 </button>
               </template>
               <div class="new-node-popover">
@@ -630,6 +702,7 @@
             v-else-if="!editing"
             class="page-surface"
             :class="{ 'is-fill': !isFreeLayoutPage }"
+            :style="pageSurfaceHostStyle"
           >
             <n-alert
               v-if="currentPageLayoutPolluted"
@@ -664,7 +737,7 @@
               :fill-host="!isFreeLayoutPage"
             />
           </section>
-          <section v-else class="page-surface">
+          <section v-else class="page-surface" :style="pageSurfaceHostStyle">
             <n-alert
               v-if="currentPageLayoutPolluted"
               type="warning"
@@ -761,8 +834,9 @@
                 class="application-page-flow"
                 :class="{ 'is-editing': editing, 'is-flow-stack': pageFlowStackMode }"
                 :style="{
-                  minHeight: `${pageFlowHeight}px`,
-                  padding: pageFlowStackMode ? pageCanvasPaddingCss : '0px',
+                  minHeight: `max(${pageFlowHeight}px, 100%)`,
+                  // 自由布局编辑态底部留白，避免贴底时底边缩放锚点被裁切
+                  padding: pageFlowStackMode ? pageCanvasPaddingCss : (editing ? '0 0 16px' : '0px'),
                   ...pageCanvasSurfaceStyle,
                 }"
                 :disabled="true"
@@ -901,6 +975,13 @@
                       @request-data-source="handlePageBlockDataSourceRequest"
                       @runtime-tree-select="handleRuntimeTreeSelect"
                     />
+                    <!-- 唯一选中框：盖在内容之上，四边等粗 -->
+                    <div
+                      v-if="editing && selectedPageBlockId === block.id"
+                      class="page-block-selection-ring"
+                      :class="{ 'is-collision': resizeCollisionBlockIds.includes(block.id) }"
+                      aria-hidden="true"
+                    />
                   </section>
                 </template>
               </draggable>
@@ -917,16 +998,20 @@
                 class="page-align-guides"
                 aria-hidden="true"
               >
+                <!-- 当前组件四边参考线（改宽高/拖动对齐用，不用中心十字） -->
                 <div
-                  v-if="pageAlignGuides.cross"
-                  class="page-align-cross-v"
-                  :style="{ left: `${pageAlignGuides.cross.x}px` }"
+                  v-for="(x, idx) in (pageAlignGuides.edges?.left != null ? [pageAlignGuides.edges.left, pageAlignGuides.edges.right] : [])"
+                  :key="`edge-v-${idx}-${x}`"
+                  class="page-align-edge-v"
+                  :style="{ left: `${x}px` }"
                 />
                 <div
-                  v-if="pageAlignGuides.cross"
-                  class="page-align-cross-h"
-                  :style="{ top: `${pageAlignGuides.cross.y}px` }"
+                  v-for="(y, idx) in (pageAlignGuides.edges?.top != null ? [pageAlignGuides.edges.top, pageAlignGuides.edges.bottom] : [])"
+                  :key="`edge-h-${idx}-${y}`"
+                  class="page-align-edge-h"
+                  :style="{ top: `${y}px` }"
                 />
+                <!-- 吸附到其它组件时的高亮标线 -->
                 <div
                   v-for="(x, idx) in pageAlignGuides.x"
                   :key="`snap-x-${idx}-${x}`"

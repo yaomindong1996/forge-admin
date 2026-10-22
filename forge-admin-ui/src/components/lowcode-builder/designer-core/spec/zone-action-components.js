@@ -428,6 +428,118 @@ const lineChart = {
   print: { hidden: false, breakAvoid: true },
 }
 
+const areaChart = {
+  type: 'area-chart',
+  aliases: [],
+  scope: 'L',
+  category: 'page',
+  group: '数据',
+  label: '面积图',
+  desc: '趋势面积填充，适合占比随时间变化',
+  layout: { defaultSpan: 12, defaultW: 6, defaultH: 8 },
+  container: false,
+  meta: { defaultWidth: 640, defaultHeight: 280 },
+  propsSchema: { properties: {
+    title: { type: 'string', title: '标题', default: '面积图' },
+    height: { type: 'number', title: '高度', default: 260 },
+    showLegend: { type: 'boolean', title: '图例', default: true },
+    smooth: { type: 'boolean', title: '平滑曲线', default: true },
+    categories: { type: 'json', title: '分类轴' },
+    series: { type: 'json', title: '系列数据' },
+  } },
+  dataSources: ['context', 'remote'],
+  print: { hidden: false, breakAvoid: true },
+}
+
+const pieChart = {
+  type: 'pie-chart',
+  aliases: [],
+  scope: 'L',
+  category: 'page',
+  group: '数据',
+  label: '饼图',
+  desc: '占比分布，支持环形 / 南丁格尔图',
+  layout: { defaultSpan: 12, defaultW: 6, defaultH: 8 },
+  container: false,
+  meta: { defaultWidth: 640, defaultHeight: 280 },
+  propsSchema: { properties: {
+    title: { type: 'string', title: '标题', default: '饼图' },
+    height: { type: 'number', title: '高度', default: 260 },
+    showLegend: { type: 'boolean', title: '图例', default: true },
+    doughnut: { type: 'boolean', title: '环形图', default: false },
+    categories: { type: 'json', title: '扇区名' },
+    series: { type: 'json', title: '数值' },
+  } },
+  dataSources: ['context', 'remote'],
+  print: { hidden: false, breakAvoid: true },
+}
+
+const workflowTaskList = {
+  type: 'workflow-task-list',
+  aliases: [],
+  scope: 'L',
+  category: 'page',
+  group: '数据',
+  label: '我的待办/已办',
+  desc: '待办与已办列表，可切换、搜索与跳转办理',
+  layout: { defaultSpan: 12, defaultW: 6, defaultH: 10 },
+  container: false,
+  meta: { defaultWidth: 640, defaultHeight: 360 },
+  propsSchema: { properties: {
+    title: { type: 'string', title: '标题', default: '我的待办/已办' },
+    mode: { type: 'string', title: '模式', default: 'both' },
+    pageSize: { type: 'number', title: '条数', default: 6 },
+    accentColor: { type: 'color', title: '强调色', default: '#2563eb' },
+  } },
+  dataSources: ['remote'],
+  print: { hidden: false, breakAvoid: true },
+}
+
+const noticeBoard = {
+  type: 'notice-board',
+  aliases: [],
+  scope: 'L',
+  category: 'page',
+  group: '数据',
+  label: '通知公告',
+  desc: '站内消息 / 公告列表，未读筛选与标已读',
+  layout: { defaultSpan: 12, defaultW: 6, defaultH: 10 },
+  container: false,
+  meta: { defaultWidth: 640, defaultHeight: 360 },
+  propsSchema: { properties: {
+    title: { type: 'string', title: '标题', default: '通知公告' },
+    pageSize: { type: 'number', title: '条数', default: 6 },
+    unreadOnly: { type: 'boolean', title: '仅未读', default: false },
+    accentColor: { type: 'color', title: '强调色', default: '#2563eb' },
+  } },
+  dataSources: ['remote'],
+  print: { hidden: false, breakAvoid: true },
+}
+
+const welcomeBanner = {
+  type: 'welcome-banner',
+  aliases: [],
+  scope: 'L',
+  category: 'page',
+  group: '数据',
+  label: '欢迎条',
+  desc: '按时段问候 + 昵称/日期，可配渐变背景与快捷按钮',
+  layout: { defaultSpan: 24, defaultW: 12, defaultH: 3 },
+  container: false,
+  meta: { defaultWidth: 960, defaultHeight: 120 },
+  propsSchema: { properties: {
+    title: { type: 'string', title: '自定义标题', default: '' },
+    subtitle: { type: 'string', title: '副标题', default: '今天也要高效推进工作' },
+    tone: { type: 'string', title: '色调', default: 'primary' },
+    showCta: { type: 'boolean', title: '操作按钮', default: true },
+    ctaText: { type: 'string', title: '按钮文案', default: '去办理' },
+    ctaPath: { type: 'string', title: '按钮跳转', default: '/flow/todo' },
+    backgroundMode: { type: 'string', title: '背景模式', default: 'gradient' },
+  } },
+  dataSources: [],
+  print: { hidden: false, breakAvoid: true },
+}
+
 export const zoneActionComponentSpecs = [
   querySet,
   customQuery,
@@ -447,4 +559,9 @@ export const zoneActionComponentSpecs = [
   quickEntry,
   barChart,
   lineChart,
+  areaChart,
+  pieChart,
+  workflowTaskList,
+  noticeBoard,
+  welcomeBanner,
 ]

@@ -82,5 +82,7 @@ export function useListPageDesignerApi() {
   const api = inject(LIST_PAGE_DESIGNER_KEY, null)
   if (!api)
     throw new Error('useListPageDesignerApi() requires ListPageGridDesigner parent')
+  // 必须原样返回 Proxy，禁止 `return { ...api, extra }`：展开会把 ref/computed
+  // 解成一次性快照，属性/样式/交互 Tab 的 v-show 会失效。
   return api
 }

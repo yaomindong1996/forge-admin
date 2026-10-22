@@ -11,6 +11,12 @@ import AuthImage from '@/components/common/AuthImage.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
 import { createGridBlock, DATA_FIELD_BLOCK_TYPES, isDataFieldBlockType, listPageBlockCatalog, resolveListPageBlockMeta } from '@/components/lowcode-builder/page/page-schema'
 import {
+  PAGE_BLOCK_PICKER_GROUPS,
+  buildPageBlockPickerGroups,
+  listInsertablePageBlocks,
+  resolvePageBlockPickerGroup,
+} from '@/components/lowcode-builder/page/page-block-picker'
+import {
   alignSearchSchemaWithLeftTree,
   buildLeftTreeFilterParams,
   findTreePanelProps,
@@ -98,6 +104,12 @@ import {
 import { findPageBlockInTree, mapPageBlocksInTree, removePageBlockFromTree, visitPageBlocksInTree } from './page-block-tree'
 import { resolvePageBlockShellStyle as computePageBlockShellStyle, readPageBlockLength, resolveDefaultPageBlockHeight, resolveDefaultPageBlockYFromItems, resolvePageBlockFlowGeometry, resolveRootPageBlockCollisions, shouldUsePageFlowStack, normalizePagePadding, resolvePagePaddingCss, normalizePageSurface, resolvePageSurfaceStyle, migratePageFlowToContentCoords, canvasToContentFlowPoint, contentToCanvasFlowPoint, DEFAULT_PAGE_PADDING, DEFAULT_PAGE_SURFACE } from './page-flow-geometry'
 import { flattenNodes, hasPermission, isNavigationVisible } from './runtime-navigation-utils'
+import {
+  createEmptyNavigationBadges,
+  formatNavigationBadgeCount,
+  loadRuntimeNavigationBadges,
+  resolveSystemPageBadge,
+} from './runtime-navigation-badges'
 import { useBuilderHistory } from './use-builder-history'
 import { useRuntimeCrudConfig } from './use-runtime-crud-config'
 
@@ -283,7 +295,9 @@ export function applyApplicationRuntimePart1() {
   const resolveResourceNodeMenuOptions = (...args) => __impl.resolveResourceNodeMenuOptions(...args)
   const resolveRuntimeBackLabel = (...args) => __impl.resolveRuntimeBackLabel(...args)
   const resolveRuntimeBrandEyebrow = (...args) => __impl.resolveRuntimeBrandEyebrow(...args)
+  const resolveRuntimeHeaderTitle = (...args) => __impl.resolveRuntimeHeaderTitle(...args)
   const resolveRuntimeBrandStatus = (...args) => __impl.resolveRuntimeBrandStatus(...args)
+  const openRuntimeWorkbench = (...args) => __impl.openRuntimeWorkbench(...args)
   const resolveRuntimeObjectCacheKey = (...args) => __impl.resolveRuntimeObjectCacheKey(...args)
   const restoreCurrentObjectPageLayout = (...args) => __impl.restoreCurrentObjectPageLayout(...args)
   const returnToEditorFromDraftPreview = (...args) => __impl.returnToEditorFromDraftPreview(...args)
@@ -487,7 +501,7 @@ export function applyApplicationRuntimePart1() {
   const nestHostPinnedId = ref('')
   const draggingPageBlockId = ref('')
   const dragPreview = ref(null)
-  const pageAlignGuides = ref({ visible: false, cross: null, x: [], y: [] })
+  const pageAlignGuides = ref({ visible: false, edges: null, x: [], y: [] })
   const PAGE_ALIGN_SNAP_PX = 6
   const configPanelVisible = ref(false)
   const inspectorTab = ref('properties')
@@ -567,12 +581,7 @@ export function applyApplicationRuntimePart1() {
   const embeddedProcessDesignerId = ref('')
   const applicationRuntimeLoadCoordinator = createApplicationRuntimeLoadCoordinator(load)
 
-  const componentPickerGroupOptions = [
-    { key: 'list', label: '数据' },
-    { key: 'chart', label: '图表' },
-    { key: 'view', label: '展示' },
-    { key: 'other', label: '其他' },
-  ]
+  const componentPickerGroupOptions = PAGE_BLOCK_PICKER_GROUPS.map(group => ({ ...group }))
   const runtimeHeaderMoreOptions = computed(() => [
     ...(editing.value
       ? [
@@ -598,10 +607,35 @@ export function applyApplicationRuntimePart1() {
     'people': PeopleOutline,
     'notifications': NotificationsOutline,
   }
+  const navigationBadges = ref(createEmptyNavigationBadges())
+  let navigationBadgeTimer = 0
   function resolveSystemPageIcon(icon) {
     return systemPageIconMap[icon] || DocumentTextOutline
   }
   __impl.resolveSystemPageIcon = resolveSystemPageIcon
+  function resolveNavigationBadge(pageId) {
+    return resolveSystemPageBadge(pageId, navigationBadges.value)
+  }
+  __impl.resolveNavigationBadge = resolveNavigationBadge
+  async function refreshNavigationBadges() {
+    if (editing.value)
+      return
+    try {
+      navigationBadges.value = await loadRuntimeNavigationBadges()
+    }
+    catch {
+      navigationBadges.value = createEmptyNavigationBadges()
+    }
+  }
+  __impl.refreshNavigationBadges = refreshNavigationBadges
+  function scheduleNavigationBadgeRefresh() {
+    if (navigationBadgeTimer)
+      window.clearTimeout(navigationBadgeTimer)
+    navigationBadgeTimer = window.setTimeout(() => {
+      navigationBadgeTimer = 0
+      void refreshNavigationBadges()
+    }, 80)
+  }
   const currentSystemPage = computed(() => resolvePageManagementSystemPage(selectedNodeId.value))
   const workbenchPage = computed(() => builder.value?.pages?.[WORKBENCH_PAGE_ID] || null)
   const systemPageNavigationRoutes = computed(() => ({
@@ -766,6 +800,11 @@ export function applyApplicationRuntimePart1() {
     return isObjectBoundPageLayoutPolluted(currentNode.value, currentPage.value)
   })
   const currentPageManagementTitle = computed(() => currentSystemPage.value?.title || currentNode.value?.title || '页面管理')
+  /** 顶栏「个人工作台」胶囊选中：与标题互斥，避免文案重复 */
+  const isRuntimeWorkbenchActive = computed(() => (
+    runtimeViewMode.value === 'pages'
+    && isWorkbenchPageId(selectedNodeId.value)
+  ))
   const pageDesignObject = computed(() => {
     const objectRef = currentNode.value?.objectRef
     if (!objectRef?.objectId && !objectRef?.objectCode)
@@ -791,9 +830,15 @@ export function applyApplicationRuntimePart1() {
     }
   })
   const pageBlocks = computed(() => currentGridLayout.value.items || [])
-  const pageFlowStackMode = computed(() => shouldUsePageFlowStack(pageBlocks.value, {
-    pageId: String(route.query.pageId || selectedNodeId.value || currentNode.value?.id || ''),
-  }))
+  const pageFlowStackMode = computed(() => {
+    const pageShape = String(currentNode.value?.pageShape || currentNode.value?.pageTemplate || '').trim().toLowerCase()
+    return shouldUsePageFlowStack(pageBlocks.value, {
+      pageId: String(route.query.pageId || selectedNodeId.value || currentNode.value?.id || ''),
+      pageShape,
+      // 自由布局页强制绝对定位，保证「左 X / 上 Y」可调
+      forceAbsolute: pageShape === 'custom',
+    })
+  })
   const pageCanvasPadding = computed(() => normalizePagePadding(
     currentGridLayout.value?.pagePadding ?? currentPage.value?.layout?.pagePadding,
     DEFAULT_PAGE_PADDING,
@@ -804,6 +849,11 @@ export function applyApplicationRuntimePart1() {
     DEFAULT_PAGE_SURFACE,
   ))
   const pageCanvasSurfaceStyle = computed(() => resolvePageSurfaceStyle(pageCanvasSurface.value))
+  /** 宿主 .page-surface 铺整页背景，避免内容区以下露出默认白底 */
+  const pageSurfaceHostStyle = computed(() => {
+    const bg = pageCanvasSurfaceStyle.value?.backgroundColor
+    return bg ? { backgroundColor: bg } : undefined
+  })
   const designerGridLayout = computed(() => currentGridLayout.value)
   const appPageTargetOptions = computed(() => (builder.value?.nodes || [])
     .filter(node => node && node.id && !isWorkbenchPageId(node.id))
@@ -988,7 +1038,8 @@ export function applyApplicationRuntimePart1() {
     return formAssets.value.find(asset => String(asset?.id || asset?.formKey || '').trim() === key) || null
   })
   const selectedPageBlockRuntimeObjectRef = computed(() => selectedPageBlock.value ? resolvePageBlockObjectRef(selectedPageBlock.value) : null)
-  const selectedPageBlockIsCrud = computed(() => selectedPageBlock.value?.blockType === 'AiCrudPage')
+  // 基础列表同样绑定对象 CRUD，数据 Tab 需展示「设计数据表单」等能力
+  const selectedPageBlockIsCrud = computed(() => ['AiCrudPage', 'data-table'].includes(selectedPageBlock.value?.blockType))
   const selectedPageBlockSupportsDataSource = computed(() => isDataFieldBlockType(selectedPageBlock.value?.blockType))
   const selectedPageBlockUsesObjectRuntime = computed(() => {
     if (!selectedPageBlockSupportsDataSource.value)
@@ -1119,39 +1170,15 @@ export function applyApplicationRuntimePart1() {
     isHistoryActive: () => editing.value && !formDesignerMode.value,
   })
   const loadErrorTitle = computed(() => isDraftMode.value ? '应用草稿加载失败' : '应用暂不可访问')
-  const filteredComponents = computed(() => {
-    const keyword = componentKeyword.value.trim().toLowerCase()
-    const seen = new Set()
-    return listPageBlockCatalog.filter((item) => {
-      const key = String(item.blockType || '').trim()
-      if (!key || seen.has(key))
-        return false
-      if (item.hidden)
-        return false
-      seen.add(key)
-      if (item.onlyFor && !item.onlyFor.includes('simple-crud'))
-        return false
-      if (!keyword)
-        return true
-      return `${item.title || ''}${item.techTitle || ''}${item.desc || ''}${item.blockType || ''}`.toLowerCase().includes(keyword)
-    })
-  })
-  const componentPickerGroups = computed(() => componentPickerGroupOptions
-    .map(group => ({
-      ...group,
-      items: filteredComponents.value.filter(item => resolveComponentPickerGroup(item) === group.key),
-    }))
-    .filter(group => group.items.length))
+  const filteredComponents = computed(() => listInsertablePageBlocks({
+    keyword: componentKeyword.value,
+  }))
+  const componentPickerGroups = computed(() => buildPageBlockPickerGroups({
+    keyword: componentKeyword.value,
+  }))
 
   function resolveComponentPickerGroup(item = {}) {
-    const descriptor = `${item.blockType || ''} ${item.title || ''} ${item.group || ''}`.toLowerCase()
-    if (/chart|gauge|stat|progress|趋势|图表|指标/.test(descriptor))
-      return 'chart'
-    if (/crud|table|list|search|列表|查询|数据/.test(descriptor))
-      return 'list'
-    if (/title|text|html|layout|tabs|divider|view|标题|文本|布局|标签|分割/.test(descriptor))
-      return 'view'
-    return 'other'
+    return resolvePageBlockPickerGroup(item)
   }
   __impl.resolveComponentPickerGroup = resolveComponentPickerGroup
 
@@ -1216,15 +1243,25 @@ export function applyApplicationRuntimePart1() {
     if (activePageDesignTab.value !== next)
       activePageDesignTab.value = next
   }, { flush: 'post' })
-  // 编辑态且 URL 未显式带 designTab 时，按页面内容对齐默认 Tab（避免自由布局预览却进表单设计）
+  // 编辑态且 URL 未显式带 designTab 时，按页面内容对齐默认 Tab（避免自由布局预览却进表单/列表设计）
   watch([editing, () => builder.value?.nodes, selectedNodeId, () => route.query.designTab], () => {
     if (!editing.value || !builder.value)
       return
     if (readRouteDesignTab() !== '')
       return
-    const next = resolveEntryDesignTab(String(route.query.pageId || selectedNodeId.value || '').trim())
+    const pageId = String(route.query.pageId || selectedNodeId.value || '').trim()
+    const next = resolveEntryDesignTab(pageId)
     if (activePageDesignTab.value !== next)
       activePageDesignTab.value = next
+    // 伴生自由布局必须写入 designTab=page，否则顶栏不出「页面设计」、形态仍按 list 打开列表壳
+    if (next === 'page') {
+      router.replace({
+        query: {
+          ...route.query,
+          designTab: 'page',
+        },
+      })
+    }
   })
   // designTab=page：强制页面设计 Tab，并回写 pageShape，避免节点形态丢失后只剩表单/列表
   watch([editing, () => route.query.designTab, () => route.query.pageId, () => builder.value?.nodes], () => {
@@ -1341,8 +1378,22 @@ export function applyApplicationRuntimePart1() {
       nodes: builder.value.nodes.map(item => item.id === navigationActionNode.value.id ? { ...item, icon: String(icon || '') } : item),
     }
   })
-  onMounted(() => window.addEventListener('keydown', handleBuilderShortcut))
+  onMounted(() => {
+    window.addEventListener('keydown', handleBuilderShortcut)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible')
+        scheduleNavigationBadgeRefresh()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    mut.navigationBadgeVisibilityHandler = onVisible
+  })
   onBeforeUnmount(() => {
+    if (navigationBadgeTimer)
+      window.clearTimeout(navigationBadgeTimer)
+    if (mut.navigationBadgeVisibilityHandler) {
+      document.removeEventListener('visibilitychange', mut.navigationBadgeVisibilityHandler)
+      mut.navigationBadgeVisibilityHandler = null
+    }
     endPageBlockResize()
     endPageBlockMove()
     endComponentButtonMove()
@@ -1496,6 +1547,7 @@ export function applyApplicationRuntimePart1() {
       if (seeded && typeof seeded === 'object')
         portalCrudSeed.value = seeded
       preloadCurrentPageCrudRuntimeProps()
+      scheduleNavigationBadgeRefresh()
     }
     catch (error) {
       application.value = null
@@ -1894,7 +1946,7 @@ export function applyApplicationRuntimePart1() {
     isPageCatalogDrag, isSimpleBodyContainer, isValidPageBlockObjectRef, itemBorderColorMode, load, markBuilderClean, moveNavigationByOffset, movePageBlockIntoContainer,
     moveRootPageBlockToGridCell, moveRootPageBlockToTab, normalizeContainerDropTarget, normalizePageBlockForContainer, onComponentButtonMove, onNestedPageBlockMove, onPageBlockMove, onPageBlockResize,
     openBusinessObjectDesign, openCustomPageSelector, openDraftPreview, openEmbeddedObjectActions, openExcelPageImport, openFormAssetDesigner, openFormAssetDesignerForPage, openObjectDesigner,
-    openObjectResourcePreview, openObjectSetup, openPageBlockConfiguration, openPagePropertiesPanel, openPageTypeSelector, openProcessDesigner, openSelectedBlockFormDesigner, openSystemMenuMountDialog, openWorkspace,
+    openObjectResourcePreview, openObjectSetup, openPageBlockConfiguration, openPagePropertiesPanel, openPageTypeSelector, openProcessDesigner, openRuntimeWorkbench, openSelectedBlockFormDesigner, openSystemMenuMountDialog, openWorkspace,
     pageUsesFreeLayoutCanvas, patchCurrentPageNode, patchNavigationNodeMount, persistApplicationDraft, prefetchRuntimeWorkspacePanels, preloadCurrentPageCrudRuntimeProps, preloadPageBlockCrudRuntimeProps, promoteCurrentPageToListShape,
     provisionPendingFormData, readRouteDesignTab, refreshWorkspaceMetadata, relocateNestedPageBlockToContainer, relocateNestedPageBlockToGridCell, relocateNestedPageBlockToTab, renderNavigationMenuIcon, requestExitEditing,
     resizeNestedPageBlock, resolveActiveDesignerPageId, resolveComponentIcon, resolveComponentPickerGroup, resolveEmptyGuideIcon, resolveEntryDesignTab, resolveFormAssetFields, resolveFormAssetIdForPage,
@@ -1902,7 +1954,7 @@ export function applyApplicationRuntimePart1() {
     resolvePageBlockObjectRef, resolvePageBlockRuntimeCrudProps, resolvePageBlockShellStyle, resolvePageBlockSwapTarget, resolvePageContextFieldCatalog, resolvePageDesignTab, resolvePageFlowContainerTargetByPageBlock, resolvePageFlowContainerTargetByRect,
     resolvePageFlowContainerTargetFromElement, resolvePageFlowContainerTargetFromPoint, resolvePageFlowGridCellTarget, resolvePageFlowGridCellTargetByPageBlock, resolvePageFlowGridCellTargetByRect, resolvePageFlowGridCellTargetFromElement, resolvePageFlowGridCellTargetFromPoint, resolvePageFlowTabTarget,
     resolvePageFlowTabTargetFromPoint, resolvePagePreviewBlock, resolvePageShapeDesignContext, resolvePageShapeKey, resolvePageTemplateIcon, resolvePortalFormFields, resolveResourceNodeBuilderNode, resolveResourceNodeMenuOptions,
-    resolveRuntimeBackLabel, resolveRuntimeBrandEyebrow, resolveRuntimeBrandStatus, resolveRuntimeObjectCacheKey, resolveRuntimeView, resolveSelectablePageId, resolveSystemPageIcon, restoreCurrentObjectPageLayout,
+    resolveRuntimeBackLabel, resolveRuntimeBrandEyebrow, resolveRuntimeHeaderTitle, resolveRuntimeBrandStatus, resolveRuntimeObjectCacheKey, resolveRuntimeView, resolveSelectablePageId, resolveSystemPageIcon, resolveNavigationBadge, formatNavigationBadgeCount, refreshNavigationBadges, restoreCurrentObjectPageLayout,
     returnToEditorFromDraftPreview, returnToPageDesigner, saveActiveFormDesigner, saveCurrentDesignerSection, saveDraft, saveNavigationDraft, scheduleNavigationSave, selectCreatedDesignerPage,
     selectDesignerResource, selectFormAssetFromPicker, selectIntroTemplate, selectNode, selectPageBlock, selectPageManagementNode, setFormDataProvisionState, snapPageBlockPosition,
     startCatalogPointerDrag, startComponentButtonMove, startPageBlockMove, startPageBlockResize, startRenameApplication, supportsFormAsset, switchPageDesignTab, switchRuntimeView,
@@ -1923,11 +1975,11 @@ export function applyApplicationRuntimePart1() {
     copyBlockVisible, copyBlockId, copyBlockTargetPageId, blockBackgroundPickerVisible, backgroundPickerBlockId, formAssetSelectorOpen, formAssetSelectorKeyword, formDataProvisioningByAssetId,
     objectSetupVisible, selectedDesignerResourceKey, workspaceExtensions, workspaceEntries, portalCrudConfigRevision, portalCrudSeed, isDraftMode, activeFlowContext,
     embeddedDesignerRef, embeddedDesignerDirty, embeddedDesignerSaving, suppressHeavyEmbeddedSaveSideEffects, listDesignerSessionActive, formDesignerSessionActive, embeddedProcessDesignerVisible, embeddedProcessDesignerId, applicationRuntimeLoadCoordinator, componentPickerGroupOptions, runtimeHeaderMoreOptions,
-    pageManagementSystemPages, systemPageIconMap, currentSystemPage, workbenchPage, systemPageNavigationRoutes, designerResourceGroups, activeDesignerResource, designerSection,
+    pageManagementSystemPages, systemPageIconMap, navigationBadges, currentSystemPage, workbenchPage, systemPageNavigationRoutes, designerResourceGroups, activeDesignerResource, designerSection,
     pageBuilderResourceActive, canEditApplication, usePortalDesignPreview, activeDesignerObject, activeResourceConfigKey, previewableResourceActive, legacyBlockTypeMap, pageBlockResizeAnchors,
     pageBlockRecommendedColors, groupOptions, navigationActionNode, iconPickerNode, navigationIconValue, navigationActionTitle, navigationActionHasChildren, navigationDeleteImpact,
-    navigationDeleteTip, moveGroupOptions, navigationNodes, currentNode, currentPage, currentPageLayoutPolluted, currentPageManagementTitle, pageDesignObject,
-    currentGridLayout, pageBlocks, pageFlowStackMode, pageCanvasPadding, pageCanvasPaddingCss, pageCanvasSurface, pageCanvasSurfaceStyle, designerGridLayout, appPageTargetOptions, pageFlowHeight, hasCustomComponentButtonPosition,
+    navigationDeleteTip, moveGroupOptions, navigationNodes, currentNode, currentPage, currentPageLayoutPolluted, currentPageManagementTitle, isRuntimeWorkbenchActive, pageDesignObject,
+    currentGridLayout, pageBlocks, pageFlowStackMode, pageCanvasPadding, pageCanvasPaddingCss, pageCanvasSurface, pageCanvasSurfaceStyle, pageSurfaceHostStyle, designerGridLayout, appPageTargetOptions, pageFlowHeight, hasCustomComponentButtonPosition,
     componentButtonStyle, selectedPageBlock, formAssets, filteredFormAssets, pageFormAssetOptions, activeFormAsset, activeFormDesignerSchema, activeFormAssetBlock,
     activeFormDesignerObjectRef, activeFormDesignerContext, activeFormDesignerRelations, activeFormDesignerActions, activeFormFields, activeFormDataState, selectedPageBlockFormAssetId, selectedPageBlockBoundFormAssetId, selectedPageBlockFormAsset, selectedPageBlockBoundFormAsset,
     selectedPageBlockRuntimeObjectRef, selectedPageBlockIsCrud, selectedPageBlockSupportsDataSource, selectedPageBlockUsesObjectRuntime, selectedPageBlockRuntimeObjectId, selectedPageBlockObjectDesignerPanel, selectedPageBlockFormDataState, runtimeObjectFormOptions,

@@ -1381,6 +1381,48 @@
   min-width: 0;
 }
 
+/* 属性区说明：小字辅助，不要 Naive 大号 Alert */
+.property-inline-tip,
+.data-table-source-tip.property-inline-tip {
+  margin: 0 0 8px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: #f0f7ff;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.property-inline-tip code {
+  padding: 0 2px;
+  border-radius: 2px;
+  background: rgba(37, 99, 235, 0.08);
+  font-size: 10px;
+}
+
+/* 属性面板通用 field-help：统一小字，避免说明比表单项还抢眼 */
+.property-tab-content .field-help,
+.block-property-panel .field-help {
+  margin: 4px 0 0;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.property-tab-content .field-help code,
+.block-property-panel .field-help code {
+  padding: 0 2px;
+  border-radius: 2px;
+  font-size: 10px;
+}
+
+.detail-binding-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
 .detail-layout-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1410,7 +1452,8 @@
 }
 
 .detail-layout-control :deep(.n-input-number),
-.detail-layout-control :deep(.n-select) {
+.detail-layout-control :deep(.n-select),
+.detail-layout-control :deep(.n-input) {
   width: 100%;
   min-width: 0;
 }
@@ -1491,6 +1534,18 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+/* 位置 / 偏移说明：弱化提示，避免抢主控件视觉 */
+.position-axis-hint {
+  margin: -4px 0 0;
+  padding: 6px 8px 6px 10px;
+  border-left: 2px solid #c9d8f5;
+  border-radius: 0 4px 4px 0;
+  background: #f6f9ff;
+  color: #7a8699;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .position-number-field,

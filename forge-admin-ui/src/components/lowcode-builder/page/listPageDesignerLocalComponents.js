@@ -57,7 +57,13 @@ import GridBlockRenderer from './GridBlockRenderer.vue'
 import PageChartPropertyPanel from './PageChartPropertyPanel.vue'
 import QuickEntryPropertyPanel from './QuickEntryPropertyPanel.vue'
 import StatsStripPropertyPanel from './StatsStripPropertyPanel.vue'
+import WorkflowTaskListPropertyPanel from './WorkflowTaskListPropertyPanel.vue'
+import NoticeBoardPropertyPanel from './NoticeBoardPropertyPanel.vue'
+import WelcomeBannerPropertyPanel from './WelcomeBannerPropertyPanel.vue'
+import CardPropertyPanel from './CardPropertyPanel.vue'
+import PanelBoxPropertyPanel from './PanelBoxPropertyPanel.vue'
 import InfoPanelPropertyPanel from './InfoPanelPropertyPanel.vue'
+import SpacingBoxControl from './SpacingBoxControl.vue'
 
 export const listPageDesignerLocalComponents = {
   AddOutline,
@@ -111,5 +117,11 @@ export const listPageDesignerLocalComponents = {
   PageChartPropertyPanel,
   QuickEntryPropertyPanel,
   StatsStripPropertyPanel,
+  WorkflowTaskListPropertyPanel,
+  NoticeBoardPropertyPanel,
+  WelcomeBannerPropertyPanel,
+  CardPropertyPanel,
+  PanelBoxPropertyPanel,
   InfoPanelPropertyPanel,
+  SpacingBoxControl,
 }

@@ -7,9 +7,22 @@ import { resolveDefaultSearchComponentType } from './fieldDrawerConfig'
 let barcodeModulePromise
 
 export function resolvePreviewChildHeight(child = {}) {
+  if (['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(child?.blockType)) {
+    const propH = Number(child?.props?.height)
+    const floor = Number.isFinite(propH) && propH > 120 ? propH + 20 : 280
+    return Math.max(
+      160,
+      normalizeCssNumber(child.props?.style?.height),
+      normalizeCssNumber(child.props?.style?.minHeight),
+      floor,
+    )
+  }
   const height = normalizeCssNumber(child.props?.style?.height)
   if (height)
     return height
+  const minHeight = normalizeCssNumber(child.props?.style?.minHeight)
+  if (minHeight)
+    return minHeight
   return Math.max(72, Number(child.gridH || 2) * 32 + Math.max(0, Number(child.gridH || 2) - 1) * 8)
 }
 
@@ -56,37 +69,125 @@ export function resolveChartBlockHeight(block = {}) {
 
 export function nestedChildShellStyle(child = {}) {
   const style = child?.props?.style || {}
-  const widthMode = style.widthMode || 'full'
+  const widthMode = ['full', 'auto', 'fixed'].includes(style.widthMode) ? style.widthMode : 'full'
+  const heightMode = ['fixed', 'auto', 'full'].includes(style.heightMode) ? style.heightMode : 'fixed'
   const rawWidth = style.width
   let rawHeight = style.height
-  const isChart = ['bar-chart', 'line-chart'].includes(child?.blockType)
-  // 图表：style.height 缺失或仍是 100% 时，回落到 props.height，避免壳塌成一条线后画布溢出叠层
-  if (isChart && (rawHeight === '' || rawHeight == null || rawHeight === '100%' || rawHeight === 'auto')) {
+  const isChart = ['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(child?.blockType)
+  const chartFloor = (() => {
     const propH = Number(child?.props?.height)
-    rawHeight = Number.isFinite(propH) && propH > 120 ? propH + 20 : 280
-  }
+    return Number.isFinite(propH) && propH > 120 ? propH + 20 : 280
+  })()
+  // 仅固定高度且缺省时回落 props.height；auto/full 必须跟模式走，否则样式分段「点了没变化」
+  if (isChart && heightMode === 'fixed' && (rawHeight === '' || rawHeight == null || rawHeight === '100%' || rawHeight === 'auto'))
+    rawHeight = chartFloor
+  // 宽度：严格按 widthMode。禁止把 width:'auto' 当成 100%（默认宽 ≠ 填充容器）
   const isFullWidth = widthMode === 'full'
-    || rawWidth === ''
-    || rawWidth === null
-    || rawWidth === undefined
-    || rawWidth === '100%'
-    || rawWidth === 'auto'
-  const resolvedHeight = normalizeCssSize(rawHeight, '')
+  const isAutoWidth = widthMode === 'auto'
+  const isFixedWidth = widthMode === 'fixed'
+  let width = '100%'
+  let justifySelf = 'stretch'
+  if (isAutoWidth) {
+    width = 'auto'
+    justifySelf = 'start'
+  }
+  else if (isFixedWidth) {
+    width = normalizeCssSize(rawWidth, '320px')
+    justifySelf = 'start'
+  }
+  else if (!isFullWidth && rawWidth != null && rawWidth !== '' && rawWidth !== '100%' && rawWidth !== 'auto') {
+    width = normalizeCssSize(rawWidth, '100%')
+    justifySelf = 'start'
+  }
+  // 图表一律用确定像素高撑开栅格/格子；height:100% 在父级定高时撑不开、不定高时又会塌缩
+  // 其它组件：full 跟父拉伸；auto 跟内容；fixed 用像素
+  const fillParentHeight = !isChart && heightMode === 'full'
+  const floorMin = px => `min(${px}, 100%)`
+  let height = ''
+  let minHeight
+  if (isChart) {
+    const px = heightMode === 'fixed' && rawHeight != null && rawHeight !== '' && rawHeight !== '100%' && rawHeight !== 'auto'
+      ? (normalizeCssNumberValue(rawHeight) || chartFloor)
+      : chartFloor
+    height = `${Math.max(160, Math.round(px))}px`
+    minHeight = height
+  }
+  else if (fillParentHeight) {
+    height = '100%'
+    minHeight = floorMin('120px')
+  }
+  else if (heightMode === 'auto') {
+    height = 'auto'
+    minHeight = undefined
+  }
+  else {
+    height = normalizeCssSize(rawHeight, '')
+  }
+  // 容器内 X/Y：相对父格偏移（属性面板「左 X / 上 Y」）；顶层画布坐标走 pageFlow，不经此壳
+  const offsetX = normalizeCssNumberValue(style.x ?? style.left)
+  const offsetY = normalizeCssNumberValue(style.y ?? style.top)
   // 外壳承载选中边框与缩放锚点，必须与子组件实际宽高同步。
   // 父级 .layout-grid-cell-body 是 grid，默认 justify-items:stretch 会无视 width，
-  // 固定宽时必须 justifySelf:start，左右锚点才能真正改宽。
+  // 固定/默认宽时必须 justifySelf:start，左右锚点才能真正改宽。
   return {
     position: 'relative',
-    left: '0',
-    top: '0',
-    width: isFullWidth ? '100%' : normalizeCssSize(rawWidth, '100%'),
+    left: offsetX ? `${offsetX}px` : '0',
+    top: offsetY ? `${offsetY}px` : '0',
+    width,
     maxWidth: '100%',
-    justifySelf: isFullWidth ? 'stretch' : 'start',
+    // 图表用像素高撑开宿主，禁止 maxHeight:100% 把高出部分裁掉
+    maxHeight: isChart ? undefined : '100%',
+    justifySelf,
+    alignSelf: fillParentHeight ? 'stretch' : undefined,
     boxSizing: 'border-box',
-    height: resolvedHeight,
-    minHeight: isChart && resolvedHeight ? resolvedHeight : undefined,
+    height,
+    minHeight,
+    flex: fillParentHeight ? '1 1 auto' : undefined,
     // 锚点在壳外伸出，壳必须 visible；图表画布溢出由内部 .page-chart-block / .grid-block 自己裁
     overflow: 'visible',
+  }
+}
+
+/** 容器内子块是否「填充容器」——随父壳拉伸（图表除外，图表用固定高撑开宿主） */
+export function isNestedFillHeightChild(child = {}) {
+  if (['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(child?.blockType))
+    return false
+  return child?.props?.style?.heightMode === 'full'
+}
+
+/**
+ * 卡片 / 面板容器共用的表面背景（纯色 / 渐变 / 图片）。
+ * @param {Record<string, any>} props
+ */
+export function resolveSurfaceBackgroundStyle(props = {}) {
+  const mode = String(props.backgroundMode || 'solid')
+  if (mode === 'gradient') {
+    const from = props.gradientFrom || '#eff6ff'
+    const to = props.gradientTo || '#ffffff'
+    const angle = Number.isFinite(Number(props.gradientAngle)) ? Number(props.gradientAngle) : 160
+    return {
+      backgroundColor: props.backgroundColor || from,
+      backgroundImage: `linear-gradient(${angle}deg, ${from}, ${to})`,
+      backgroundSize: 'auto',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+    }
+  }
+  if (mode === 'image' && String(props.backgroundImage || '').trim()) {
+    return {
+      backgroundColor: props.backgroundColor || 'transparent',
+      backgroundImage: `url(${String(props.backgroundImage).trim()})`,
+      backgroundSize: props.backgroundSize || 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+    }
+  }
+  return {
+    backgroundColor: props.backgroundColor || '',
+    backgroundImage: 'none',
+    backgroundSize: 'auto',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
   }
 }
 
@@ -369,6 +470,44 @@ export function interpolateText(value = '', data = {}) {
   })
 }
 
+/** 详情 URL：先 {{ id }}，再兼容 CRUD 的 :id 路径占位 */
+export function interpolateApiUrl(value = '', data = {}) {
+  let resolved = interpolateText(value, data)
+  resolved = String(resolved || '').replace(/:([A-Za-z_][\w]*)/g, (matched, key) => {
+    const result = getNestedRecordValue(data, key)
+    if (result === undefined || result === null || result === '')
+      return matched
+    return String(result)
+  })
+  return resolved
+}
+
+/**
+ * 详情/远程绑定模板上下文：地址栏 query/params + 当前记录。
+ * 支持 {{ id }}、{{ route.id }}、{{ query.id }}、{{ params.id }}、{{ route.params.id }}。
+ */
+export function buildRuntimeTemplateContext(options = {}) {
+  const record = options.record && typeof options.record === 'object' ? options.record : {}
+  const rawQuery = options.query && typeof options.query === 'object' ? options.query : {}
+  const rawParams = options.params && typeof options.params === 'object' ? options.params : {}
+  const query = {}
+  Object.keys(rawQuery).forEach((key) => {
+    const value = rawQuery[key]
+    query[key] = Array.isArray(value) ? value[0] : value
+  })
+  const params = { ...rawParams }
+  // route.id 等同 params/query 摊平，方便模板写 {{ route.id }}
+  const routeFlat = { ...query, ...params }
+  return {
+    ...query,
+    ...params,
+    ...record,
+    query,
+    params,
+    route: { ...routeFlat, query, params },
+  }
+}
+
 export function getNestedRecordValue(source = {}, path = '') {
   return String(path || '')
     .split('.')
@@ -467,6 +606,14 @@ export function toCssSize(value, fallback = '') {
     return fallback
   if (typeof value === 'number')
     return `${value}px`
+  // 四向间距对象：{ top, right, bottom, left }
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    const top = toCssSize(value.top ?? value.t, '0px')
+    const right = toCssSize(value.right ?? value.r, top)
+    const bottom = toCssSize(value.bottom ?? value.b, top)
+    const left = toCssSize(value.left ?? value.l, right)
+    return `${top} ${right} ${bottom} ${left}`
+  }
   const text = String(value).trim()
   return /^\d+(?:\.\d+)?$/.test(text) ? `${text}px` : text
 }

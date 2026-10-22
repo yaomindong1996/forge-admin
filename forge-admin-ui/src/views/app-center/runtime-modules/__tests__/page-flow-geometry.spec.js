@@ -10,6 +10,8 @@ import {
   resolvePageBlockShellStyle,
   resolvePagePaddingCss,
   resolveRootPageBlockCollisions,
+  snapResizeRectToPeers,
+  pageFlowRectsOverlap,
 } from '../page-flow-geometry'
 
 describe('page-flow-geometry', () => {
@@ -116,7 +118,7 @@ describe('page-flow-geometry', () => {
     expect(style.overflow).toBe('visible')
   })
 
-  it('keeps grid containers content-sized even when heightMode is fixed', () => {
+  it('locks container shell height when heightMode is fixed so nested fill children can stretch', () => {
     const block = {
       id: 'g2',
       blockType: 'grid-layout',
@@ -131,9 +133,28 @@ describe('page-flow-geometry', () => {
       },
     }
     const style = resolvePageBlockShellStyle(block, [block], { pageId: 'custom_page' })
-    expect(style.height).toBe('auto')
+    expect(style.height).toBe('200px')
     expect(style.minHeight).toBe('200px')
     expect(style.overflow).toBe('visible')
+  })
+
+  it('locks card shell height when heightMode is fixed', () => {
+    const block = {
+      id: 'c1',
+      blockType: 'card',
+      props: {
+        style: {
+          widthMode: 'full',
+          heightMode: 'fixed',
+          pageFlowHeight: 420,
+          pageFlowX: 0,
+          pageFlowY: 0,
+        },
+      },
+    }
+    const style = resolvePageBlockShellStyle(block, [block], { pageId: 'custom_page' })
+    expect(style.height).toBe('420px')
+    expect(style.minHeight).toBe('420px')
   })
 
   it('positions full-width shells inside canvas padding without double inset', () => {
@@ -220,9 +241,34 @@ describe('page-flow-geometry', () => {
       pagePadding: { top: 8, right: 8, bottom: 8, left: 8 },
       pageFlowCoordSpace: 'content',
     })
-    expect(style.width).toMatch(/^min\(640px/)
+    expect(style.width).toBe('640px')
     expect(style.height).toBe('420px')
     expect(style.minHeight).toBe('420px')
+  })
+
+  it('lets chart shells shrink to explicit pageFlowHeight when >= 160', () => {
+    const block = {
+      id: 'chart_shrink',
+      blockType: 'bar-chart',
+      props: {
+        height: 320,
+        style: {
+          widthMode: 'fixed',
+          width: 400,
+          pageFlowWidth: '400px',
+          heightMode: 'fixed',
+          height: 200,
+          pageFlowHeight: 200,
+        },
+      },
+    }
+    const style = resolvePageBlockShellStyle(block, [block], {
+      pagePadding: { top: 8, right: 8, bottom: 8, left: 8 },
+      pageFlowCoordSpace: 'content',
+    })
+    expect(style.width).toBe('400px')
+    expect(style.height).toBe('200px')
+    expect(style.minHeight).toBe('200px')
   })
 
   it('normalizes page padding defaults and css', () => {
@@ -322,5 +368,67 @@ describe('page-flow-geometry', () => {
     expect(measured.items[0].props.style.pageFlowHeight).toBe(250)
     const resolved = resolveRootPageBlockCollisions(measured.items, 'tabs_1')
     expect(resolved[1].props.style.pageFlowY).toBe(366) // 100 + 250 + 16
+  })
+
+  it('pins the moved block and pushes the overlapped peer down', () => {
+    const upper = {
+      id: 'a',
+      blockType: 'card',
+      props: {
+        style: {
+          widthMode: 'fixed',
+          heightMode: 'fixed',
+          pageFlowX: 0,
+          pageFlowY: 0,
+          pageFlowWidth: '400px',
+          pageFlowHeight: 200,
+          width: 400,
+          height: 200,
+        },
+      },
+    }
+    const moved = {
+      id: 'b',
+      blockType: 'card',
+      props: {
+        style: {
+          widthMode: 'fixed',
+          heightMode: 'fixed',
+          pageFlowX: 40,
+          pageFlowY: 80,
+          pageFlowWidth: '400px',
+          pageFlowHeight: 200,
+          width: 400,
+          height: 200,
+        },
+      },
+    }
+    const resolved = resolveRootPageBlockCollisions([upper, moved], 'b')
+    expect(resolved.find(item => item.id === 'b').props.style.pageFlowY).toBe(80)
+    expect(resolved.find(item => item.id === 'a').props.style.pageFlowY).toBe(296) // 80 + 200 + 16
+  })
+
+  it('snaps resize bottom edge to a peer bottom and reports guide lines', () => {
+    const snapped = snapResizeRectToPeers(
+      { x: 0, y: 0, width: 320, height: 194 },
+      [{ x: 400, y: 40, width: 200, height: 160 }],
+      'bottom-right',
+      8,
+    )
+    expect(snapped.height).toBe(200) // 0 + 200 peer bottom
+    expect(snapped.lines.y).toEqual([200])
+  })
+
+  it('detects spaced overlap for avoidance', () => {
+    expect(pageFlowRectsOverlap(
+      { x: 0, y: 0, width: 100, height: 100 },
+      { x: 0, y: 110, width: 100, height: 100 },
+      16,
+    )).toBe(true)
+    expect(pageFlowRectsOverlap(
+      { x: 0, y: 0, width: 100, height: 100 },
+      { x: 0, y: 120, width: 100, height: 100 },
+      16,
+    )).toBe(false)
   })
 })

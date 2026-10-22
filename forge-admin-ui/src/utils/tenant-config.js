@@ -1,4 +1,3 @@
-import { resolveRenderableFileUrl } from '@/utils/file'
 import { normalizePageTitle, setDocumentTitle } from '@/utils/page-title'
 import { readTenantAppearance } from '@/utils/tenant-appearance'
 
@@ -104,30 +103,100 @@ export function getDefaultFaviconUrl() {
   return `${prefix}favicon-32.png`
 }
 
+/**
+ * 浏览器标签页图标只能用「无需鉴权头」的地址。
+ * blob:/api/file/* 文件 ID 在 <link rel="icon"> 上会 401/失效，Chrome 就会显示地球图标。
+ */
+export function isBrowserSafeFaviconUrl(value = '') {
+  const text = String(value || '').trim()
+  if (!text)
+    return false
+  const lower = text.toLowerCase()
+  if (lower.startsWith('blob:'))
+    return false
+  if (lower.includes('/api/file/'))
+    return false
+  if (lower.startsWith('data:image/'))
+    return true
+  if (lower.startsWith('http://') || lower.startsWith('https://'))
+    return true
+  if (text.includes('/auth/tenant/assets/'))
+    return true
+  if ((lower.endsWith('.png') || lower.endsWith('.ico') || lower.endsWith('.svg') || lower.endsWith('.webp'))
+    && (text.startsWith('/') || text.startsWith('.'))) {
+    return true
+  }
+  return false
+}
+
+/** 解析租户浏览器图标；不可用则返回空串，由 setDocumentFavicon 回退默认图标 */
+export function resolveTenantFaviconUrl(tenantConfig) {
+  if (!tenantConfig?.browserIcon)
+    return ''
+  const publicUrl = resolveTenantPublicAssetUrl(tenantConfig, 'icon')
+  if (isBrowserSafeFaviconUrl(publicUrl))
+    return publicUrl
+  const raw = String(tenantConfig.browserIcon || '').trim()
+  if (isBrowserSafeFaviconUrl(raw))
+    return raw
+  return ''
+}
+
 export function setDocumentFavicon(iconUrl) {
   const head = document.head || document.getElementsByTagName('head')[0]
   if (!head)
     return
 
-  const href = String(iconUrl || '').trim() || getDefaultFaviconUrl()
-  document.querySelectorAll('link[rel*=\'icon\']').forEach(link => link.remove())
+  const preferred = String(iconUrl || '').trim()
+  const href = isBrowserSafeFaviconUrl(preferred) ? preferred : getDefaultFaviconUrl()
 
-  const png = document.createElement('link')
-  png.rel = 'icon'
-  png.type = 'image/png'
-  png.href = href
-  head.appendChild(png)
+  // 只替换 favicon，保留 apple-touch-icon（旧逻辑 rel*="icon" 会误删）
+  document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]').forEach(link => link.remove())
+
+  const icon = document.createElement('link')
+  icon.rel = 'icon'
+  icon.type = href.toLowerCase().includes('.ico') ? 'image/x-icon' : 'image/png'
+  icon.href = href
+  head.appendChild(icon)
 
   const shortcut = document.createElement('link')
   shortcut.rel = 'shortcut icon'
   shortcut.href = href
   head.appendChild(shortcut)
+
+  if (!document.querySelector('link[rel="apple-touch-icon"]')) {
+    const base = import.meta.env.BASE_URL || '/'
+    const prefix = base.endsWith('/') ? base : `${base}/`
+    const apple = document.createElement('link')
+    apple.rel = 'apple-touch-icon'
+    apple.href = `${prefix}apple-touch-icon.png`
+    head.appendChild(apple)
+  }
+}
+
+/** 同页生命周期内已完整套用的租户品牌指纹，避免路由切换反复刷主题 */
+let appliedTenantBrandingKey = ''
+
+/** @internal vitest 隔离用 */
+export function resetTenantBrandingStateForTests() {
+  appliedTenantBrandingKey = ''
+}
+
+function resolveTenantBrandingKey(tenantConfig = {}) {
+  return [
+    tenantConfig.id ?? tenantConfig.tenantId ?? '',
+    tenantConfig.browserIcon || '',
+    tenantConfig.browserTitle || '',
+    tenantConfig.systemName || '',
+  ].join('|')
 }
 
 export async function applyTenantConfig(tenantConfig, appStore) {
   // 无配置才回默认；有配置时直接替换外观，避免先闪系统默认色再套租户主题。
   if (!tenantConfig) {
     appStore.resetAccountState()
+    setDocumentFavicon('')
+    appliedTenantBrandingKey = ''
     return
   }
 
@@ -139,16 +208,38 @@ export async function applyTenantConfig(tenantConfig, appStore) {
     setDocumentTitle(pageBaseTitle)
   }
 
-  let iconUrl = ''
-  if (tenantConfig.browserIcon) {
-    try {
-      iconUrl = resolveTenantPublicAssetUrl(tenantConfig, 'icon')
-      if (!iconUrl)
-        iconUrl = await resolveRenderableFileUrl(tenantConfig.browserIcon)
-    }
-    catch {
-      iconUrl = resolveTenantPublicAssetUrl(tenantConfig, 'icon') || tenantConfig.browserIcon
-    }
+  // 标签页图标只用公开地址；不再走 resolveRenderableFileUrl（会生成 blob，标签页常显示地球）
+  setDocumentFavicon(resolveTenantFaviconUrl(tenantConfig))
+  appliedTenantBrandingKey = resolveTenantBrandingKey(tenantConfig)
+}
+
+/**
+ * 已登录页面（含新开「运行」标签）补齐租户品牌。
+ * 用户信息在 localStorage，租户配置若只在 sessionStorage：新标签有 user 无 tenant，
+ * 门户/运行页又 defer 菜单引导，会跳过 applyTenantConfig，标签页就一直是地球图标。
+ */
+export async function ensureTenantBranding(appStore, options = {}) {
+  const tenantId = options.tenantId
+  let tenantStore = options.tenantStore
+  if (!tenantStore) {
+    const { useTenantStore } = await import('@/store/modules/tenant.js')
+    tenantStore = useTenantStore()
   }
-  setDocumentFavicon(iconUrl)
+  let config = tenantStore.config
+  if (!config)
+    config = await tenantStore.loadTenantConfig(tenantId)
+  if (!config) {
+    setDocumentFavicon('')
+    appliedTenantBrandingKey = ''
+    return null
+  }
+  const brandingKey = resolveTenantBrandingKey(config)
+  // 仅补图标：显式要求，或本页已完整套用过同一份配置
+  if (options.faviconOnly || appliedTenantBrandingKey === brandingKey) {
+    setDocumentFavicon(resolveTenantFaviconUrl(config))
+    return config
+  }
+  await applyTenantConfig(config, appStore)
+  appliedTenantBrandingKey = brandingKey
+  return config
 }

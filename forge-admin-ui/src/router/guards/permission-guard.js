@@ -4,7 +4,7 @@ import { useAppStore, useAuthStore, usePermissionStore, useTenantStore, useUserS
 import { getPermissions, getUserInfo } from '@/store/helper'
 import { initWebSocketClient, lStorage, request } from '@/utils'
 import { initKeyExchange } from '@/utils/crypto/key-exchange'
-import { applyTenantConfig } from '@/utils/tenant-config'
+import { applyTenantConfig, ensureTenantBranding } from '@/utils/tenant-config'
 import { SSO_BRIDGE_ROUTE } from '@/utils/sso-target'
 import { canAccessHiddenOpenPlatformTool, normalizeOpenPlatformPath } from '../open-platform-routes'
 import {
@@ -241,6 +241,17 @@ export function createPermissionGuard(router) {
         appStore.setRouteGuardCompleted(true)
         next({ path: PASSWORD_CHANGE_ROUTE, replace: true })
         return
+      }
+
+      // 用户信息已从 localStorage 恢复时（新开运行标签最常见），仍要补租户图标/外观。
+      // 门户/运行页 defer 菜单不会走进下面的 loadTenantConfig 分支。
+      try {
+        await ensureTenantBranding(appStore, {
+          tenantId: userStore.userInfo?.tenantId,
+        })
+      }
+      catch (error) {
+        console.warn('补齐租户浏览器图标失败:', error)
       }
 
       // 已登录进发布运行页时不要卡住等后台菜单；菜单不参与门户导航。

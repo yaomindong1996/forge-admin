@@ -5,6 +5,7 @@ import {
   createPageShapeBuilder,
   ensureFreeLayoutPageNode,
   isObjectBoundPageLayoutPolluted,
+  pageHasFreeLayoutCompanionBlocks,
   normalizePageShapeSelection,
   PAGE_SHAPE_TYPES,
   resolvePageShapeFromNode,
@@ -314,6 +315,29 @@ describe('page shape design draft', () => {
       },
     }
     expect(isObjectBoundPageLayoutPolluted(node, page)).toBe(false)
+    // 运行态已是自由布局伴生页时，编辑入口应识别并进页面设计（而非纯列表壳）
+    expect(pageHasFreeLayoutCompanionBlocks(page)).toBe(true)
+    expect(resolvePageShapeFromNode(node)).toBe('list')
+  })
+
+  it('does not treat a pure AiCrudPage list as free-layout companions', () => {
+    expect(pageHasFreeLayoutCompanionBlocks({
+      layout: {
+        gridLayout: {
+          items: [{ id: 'c1', blockType: 'AiCrudPage', props: {} }],
+        },
+      },
+    })).toBe(false)
+    expect(pageHasFreeLayoutCompanionBlocks({
+      layout: {
+        gridLayout: {
+          items: [
+            { id: 'c1', blockType: 'AiCrudPage', props: {} },
+            { id: 't1', blockType: 'data-table', props: {} },
+          ],
+        },
+      },
+    })).toBe(false)
   })
 
   it('marks object page polluted when AiCrudPage is missing', () => {

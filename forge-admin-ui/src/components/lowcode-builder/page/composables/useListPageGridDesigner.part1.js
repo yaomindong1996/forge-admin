@@ -186,6 +186,8 @@ const paletteKeyword = ref('')
 const propertyKeyword = ref('')
 const propertyCollapseExpandedNames = ref(['base'])
 const allPropertyCollapseNames = ['base', 'search', 'edit', 'toolbar', 'table', 'form-actions', 'default-params', 'event-help']
+/** 详情远程参数默认文案（放 API 里供 Part2 模板用，避免展开 Proxy） */
+const defaultDetailParamsText = '{ "id": "{{ id }}" }'
 const propertySearchTabIndex = {
   props: [
     '属性',
@@ -378,8 +380,13 @@ const localLayout = computed({
 // layout hydrated after later parts wire __impl (see hydrateInitialState)
 
 const blocks = computed(() => localLayout.value.items || [])
-/** panel-only 挂载时 hydrate 晚于 activeBlockId immediate watch，需同时盯 blocks */
-function syncActiveBlockSelection() {
+/**
+ * panel-only：画布 activeBlockId → store 选中。
+ * - force：activeBlockId 变化或 hydrate 后，以画布为准写入 store
+ * - 仅 layout/blocks 回写：保留用户当前选中（避免旧 activeBlockId 盖掉刚点的卡片）
+ */
+function syncActiveBlockSelection(options = {}) {
+  const force = options.force === true
   if (props.readonly)
     return
   const blockId = props.activeBlockId
@@ -388,14 +395,24 @@ function syncActiveBlockSelection() {
       selectedBlockId.value = null
     return
   }
-  if (findBlockInTree(blocks.value, blockId))
+  const activeInTree = findBlockInTree(blocks.value, blockId)
+  if (force) {
+    if (activeInTree)
+      selectedBlockId.value = blockId
+    return
+  }
+  // 布局回声：当前选中仍在树里则不动；否则再跟 activeBlockId
+  if (selectedBlockId.value && findBlockInTree(blocks.value, selectedBlockId.value))
+    return
+  if (activeInTree)
     selectedBlockId.value = blockId
 }
 watch(
-  [() => props.activeBlockId, blocks],
-  () => { syncActiveBlockSelection() },
+  () => props.activeBlockId,
+  () => { syncActiveBlockSelection({ force: true }) },
   { immediate: true },
 )
+watch(blocks, () => { syncActiveBlockSelection({ force: false }) })
 const runtimeTreeFilter = ref({})
 const runtimeTreeActiveKey = ref('__all__')
 const collapsedTreePanelMap = ref({})
@@ -490,7 +507,7 @@ const SPEC_PANEL_EXCLUDED_PROPS = {
   // 表单弹窗类属性以表单设计器 layout 为单一事实来源（resolveEffectiveFormOpenMode）；
   // Spec 抽屉再暴露会改了看起来没生效。手写「表单与弹窗」区已只读摘要。
   'AiCrudPage': ['addButtonText', 'api', 'createApi', 'deleteApi', 'detailApi', 'drawerPlacement', 'editGridCols', 'editLabelPlacement', 'editLabelWidth', 'editSize', 'emptyDescription', 'emptyFilterDescription', 'emptyFilterTitle', 'emptyText', 'emptyTitle', 'enableTreeAddChild', 'exportApi', 'exportButtonText', 'exportFileName', 'formOpenMode', 'importApi', 'listApi', 'listDataField', 'listMethod', 'listTotalField', 'maxHeight', 'modalWidth', 'previewRecordId', 'renderMode', 'rowKey', 'scrollX', 'searchGridCols', 'searchLabelWidth', 'searchMaxVisibleFields', 'searchYGap', 'tableSize', 'updateApi'],
-  'AiForm': ['cancelText', 'resetText', 'submitText', 'xGap', 'yGap'],
+  'AiForm': ['cancelText', 'resetText', 'submitText', 'xGap', 'yGap', 'gridCols', 'labelPlacement', 'labelAlign', 'labelWidth', 'size', 'createApi', 'maxVisibleFields', 'showActions', 'showSubmit', 'showReset', 'showCancel', 'enableCollapse', 'showFeedback'],
   'AiTable': ['gridCols', 'labelAlign', 'labelPlacement', 'labelWidth', 'maxHeight', 'maxVisibleFields', 'renderMode', 'rowKey', 'scrollX', 'size'],
   // action-button：手写区已有 文案/类型/尺寸/点击动作；secondary/dashed/block/loading/disabled
   // 等由 SpecPropertyPanel 提供（此前 spec 缺这些 key，排除项形同虚设、属性无编辑入口）
@@ -505,7 +522,7 @@ const SPEC_PANEL_EXCLUDED_PROPS = {
   'countdown': ['active', 'duration', 'precision'],
   'custom-html': ['content', 'title'],
   'descriptions': [],
-  'detail-info': ['bordered', 'columnCount', 'contextPath', 'dataPath', 'dataSourceType', 'detailApi', 'detailMethod', 'labelPlacement', 'paramsText'],
+  'detail-info': ['bordered', 'columnCount', 'contentWrap', 'contextPath', 'dataBinding', 'dataPath', 'dataSourceType', 'detailApi', 'detailMethod', 'labelAlign', 'labelPlacement', 'labelWidth', 'paramsText', 'separator', 'showTitle', 'size', 'title'],
   'divider': ['orientation', 'title'],
   'empty-state': ['actionText', 'description', 'title'],
   'html-tag': ['attributesText', 'htmlContent', 'renderMode', 'semanticRole', 'tagName', 'textContent'],
@@ -859,7 +876,7 @@ const rowFieldOptions = computed(() => props.fields
     value: field.field,
   })))
 const runtimeRuleFieldOptions = computed(() => rowFieldOptions.value)
-const NESTED_CONTAINER_BLOCK_TYPES = ['card', 'tabs', 'grid-layout', 'box-layout']
+const NESTED_CONTAINER_BLOCK_TYPES = ['card', 'panel-box', 'tabs', 'grid-layout', 'box-layout']
 
 /** 容器嵌套保护：画布 > 容器 > 容器，最多两层（嵌套容器内不可再放入容器） */
 function isTopLevelBlockId(id = '') {
@@ -922,6 +939,89 @@ const defaultApiValues = computed(() => {
     exportApi: `get@${prefix}/export`,
   }
 })
+/** 详情信息块：优先当前块绑定对象的 configKey，接口占位用 {{ id }} */
+const detailInfoDefaultApi = computed(() => {
+  const objectRef = selectedBlock.value?.props?.objectRef || selectedBlock.value?.props?.businessObjectRef || {}
+  const key = String(
+    objectRef.configKey
+    || objectRef.objectCode
+    || props.modelSchema?.configKey
+    || props.modelSchema?.object?.configKey
+    || props.modelSchema?.objectCode
+    || props.modelSchema?.modelCode
+    || '',
+  ).trim()
+  if (!key)
+    return ''
+  return `get@/ai/crud/${key}/{{ id }}`
+})
+/** 存量详情块可能只有 detailApi：属性面板展示时合成 dataBinding，与图表远程接口同一套编辑器 */
+function resolveDetailInfoBinding(block = null) {
+  const propsData = block?.props || {}
+  const binding = propsData.dataBinding && typeof propsData.dataBinding === 'object'
+    ? propsData.dataBinding
+    : {}
+  if (binding.api || binding.sourceType)
+    return binding
+  const legacySource = propsData.dataSourceType || 'remote'
+  return {
+    enabled: legacySource === 'remote' || legacySource === 'context',
+    sourceType: legacySource === 'remote'
+      ? 'remote'
+      : legacySource === 'context'
+        ? 'context'
+        : 'static',
+    api: propsData.detailApi || '',
+    method: propsData.detailMethod || 'get',
+    dataPath: propsData.dataPath || 'data',
+    paramsText: propsData.paramsText || defaultDetailParamsText,
+    contextPath: propsData.contextPath || '',
+  }
+}
+
+function updateDetailInfoDataBinding(patch = {}) {
+  if (!selectedBlock.value || selectedBlock.value.blockType !== 'detail-info')
+    return
+  const next = {
+    ...resolveDetailInfoBinding(selectedBlock.value),
+    ...patch,
+  }
+  if (next.sourceType === 'static')
+    next.enabled = false
+  else
+    next.enabled = true
+  const legacySource = next.sourceType === 'remote'
+    ? 'remote'
+    : next.sourceType === 'context'
+      ? 'context'
+      : 'current'
+  patchBlockProps(selectedBlock.value.id, {
+    dataBinding: next,
+    dataSourceType: legacySource,
+    detailApi: next.api || '',
+    detailMethod: next.method || 'get',
+    dataPath: next.dataPath || 'data',
+    paramsText: next.paramsText || defaultDetailParamsText,
+    contextPath: next.contextPath || '',
+  })
+}
+
+function applyDetailInfoDefaultApi() {
+  const block = selectedBlock.value
+  if (!block || block.blockType !== 'detail-info')
+    return
+  const api = detailInfoDefaultApi.value
+  if (!api)
+    return
+  updateDetailInfoDataBinding({
+    enabled: true,
+    sourceType: 'remote',
+    api,
+    method: 'get',
+    dataPath: block.props?.dataPath || block.props?.dataBinding?.dataPath || 'data',
+    paramsText: block.props?.paramsText || block.props?.dataBinding?.paramsText || defaultDetailParamsText,
+  })
+}
 const treeSourceCatalog = ref([])
 const treeSourceFields = ref([])
 const treeSourceLoading = ref(false)
@@ -1289,7 +1389,10 @@ watch(
   selectedBlockId,
   (blockId) => {
     const block = findBlockInTree(blocks.value, blockId)
-    propertyCollapseExpandedNames.value = ['base']
+    // 数据表单：展开按钮区，避免列数以外的常用项都藏在折叠里
+    propertyCollapseExpandedNames.value = block?.blockType === 'AiForm'
+      ? ['base', 'form-actions']
+      : ['base']
     if (block?.blockType === 'tabs') {
       const firstKey = block.props?.tabs?.[0]?.key || ''
       if (!block.props?.tabs?.some(tab => tab.key === activeTabKey.value))
@@ -1319,7 +1422,7 @@ watch(
     const keyword = String(value || '').trim().toLowerCase()
     if (!keyword)
       return
-    propertyPanelTab.value = resolvePropertySearchTab(keyword)
+    designerStore.setPropertyTab(resolvePropertySearchTab(keyword))
     propertyCollapseExpandedNames.value = [...allPropertyCollapseNames]
     nextTick(() => {
       scrollPropertySearchTarget(keyword)
@@ -1420,8 +1523,8 @@ async function hydrateInitialState() {
     buildGridSyncModelSchema(props.modelSchema, props.fields),
     { layoutType: props.layoutType },
   ))
-  // hydrate 写入 layout 后补一次选中（immediate watch 当时可能还找不到块）
-  syncActiveBlockSelection()
+  // hydrate 写入 layout 后强制跟 activeBlockId（immediate watch 当时可能还找不到块）
+  syncActiveBlockSelection({ force: true })
   // one-shot equivalent of the former immediate tree-panel watch
   const blockType = selectedBlock.value?.blockType
   const sourceValue = selectedTreeSourceValue.value
@@ -1465,6 +1568,7 @@ __impl.hydrateInitialState = hydrateInitialState
     paletteKeyword,
     propertyKeyword,
     propertyCollapseExpandedNames,
+    defaultDetailParamsText,
     allPropertyCollapseNames,
     propertySearchTabIndex,
     propertySearchKeywordRegistry,
@@ -1573,6 +1677,10 @@ __impl.hydrateInitialState = hydrateInitialState
     primaryFieldOptions,
     sortFieldOptions,
     defaultApiValues,
+    detailInfoDefaultApi,
+    resolveDetailInfoBinding,
+    updateDetailInfoDataBinding,
+    applyDetailInfoDefaultApi,
     treeSourceCatalog,
     treeSourceFields,
     treeSourceLoading,

@@ -462,9 +462,9 @@
 
 .child-list-display .field-help {
   margin: 0;
-  color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 1.6;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .bitable-field-name small {

@@ -28,6 +28,10 @@ export function shouldUsePageFlowStack(blocks = [], options = {}) {
   // 个人工作台固定文档流，不因某个块被改成固定宽又退回绝对定位
   if (options.forceStack || String(options.pageId || '').trim() === 'system:workbench')
     return true
+  // 自由布局页必须绝对定位，否则属性面板「左 X / 上 Y」看起来完全无效
+  const pageShape = String(options.pageShape || options.shape || '').trim().toLowerCase()
+  if (options.forceAbsolute || pageShape === 'custom')
+    return false
   // 全是内容自适应块（统计/提示/空状态等）也一律堆叠
   if (items.every(isRuntimeAutoHeightBlock))
     return true

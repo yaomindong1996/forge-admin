@@ -17,6 +17,7 @@
 .designer-grid-cell {
   position: relative;
   min-width: 0;
+  /* 具体 padding 由 cellStyle / cellPadding 属性写入，便于设计态可调 */
   padding: 8px;
   border-radius: 6px;
   transition:

@@ -78,8 +78,9 @@ export const useTenantStore = defineStore('tenant', {
   },
 
   persist: {
+    // 与 user/token 一样走 localStorage：新开「运行」标签才能立刻读到 browserIcon，
+    // sessionStorage 按标签隔离会导致运行页永远不套租户 favicon。
     key: `${import.meta.env.VITE_TENANT || 'default'}_tenant`,
     pick: ['config'],
-    storage: sessionStorage,
   },
 })

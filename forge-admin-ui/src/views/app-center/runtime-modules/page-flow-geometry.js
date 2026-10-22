@@ -200,10 +200,20 @@ export function resolveDefaultPageBlockHeight(block = {}) {
       return Math.round(fromProp + 20)
     return 280
   }
-  if (blockType === 'AiForm')
-    return 128
-  if (['grid-layout', 'card', 'box-layout', 'tabs'].includes(blockType))
-    return 180
+  if (blockType === 'AiForm') {
+    const fieldCount = Array.isArray(block?.fieldRefs) ? block.fieldRefs.length : 0
+    const cols = Math.max(1, Number(block?.props?.gridCols) || 2)
+    const rows = Math.max(3, Math.ceil(Math.max(fieldCount, 6) / cols))
+    return Math.max(280, 72 + rows * 56 + 64)
+  }
+  if (blockType === 'detail-info') {
+    const fieldCount = Array.isArray(block?.fieldRefs) ? block.fieldRefs.length : 0
+    const cols = Math.max(1, Number(block?.props?.columnCount) || 2)
+    const rows = Math.max(2, Math.ceil(Math.max(fieldCount, 4) / cols))
+    return Math.max(220, 64 + rows * 48)
+  }
+  if (['grid-layout', 'card', 'panel-box', 'box-layout', 'tabs'].includes(blockType))
+    return 220
   // 与门户运行态 / 列表设计预览一致，过小会被 overflow 裁成“列表看不全”
   if (['AiCrudPage', 'AiTable', 'data-table'].includes(blockType))
     return 560
@@ -223,7 +233,8 @@ export function isPageFlowGrowBlock(block = {}) {
   const heightMode = block?.props?.style?.heightMode || 'fixed'
   if (heightMode === 'auto' || heightMode === 'full')
     return true
-  return ['grid-layout', 'card', 'box-layout', 'tabs'].includes(block?.blockType)
+  // 表单 / 详情按字段数量撑开，避免固定矮壳裁切内容
+  return ['grid-layout', 'card', 'panel-box', 'box-layout', 'tabs', 'AiForm', 'detail-info'].includes(block?.blockType)
 }
 
 export function resolvePageBlockFlowGeometry(block = {}, index = 0, items = []) {
@@ -292,49 +303,205 @@ export function applyMeasuredPageBlockHeights(items = [], measuredById = new Map
   return { items: next, changed }
 }
 
+/** 带间距的轴对齐包围盒是否重叠（根级块避让用） */
+export function pageFlowRectsOverlap(a = {}, b = {}, gap = 16) {
+  const ax2 = Number(a.right ?? (Number(a.x) + Number(a.width))) || 0
+  const ay2 = Number(a.bottom ?? (Number(a.y) + Number(a.height))) || 0
+  const bx2 = Number(b.right ?? (Number(b.x) + Number(b.width))) || 0
+  const by2 = Number(b.bottom ?? (Number(b.y) + Number(b.height))) || 0
+  const ax = Number(a.x) || 0
+  const ay = Number(a.y) || 0
+  const bx = Number(b.x) || 0
+  const by = Number(b.y) || 0
+  const g = Math.max(0, Number(gap) || 0)
+  return ax < bx2 + g
+    && ax2 + g > bx
+    && ay < by2 + g
+    && ay2 + g > by
+}
+
+/** 把矩形下推到不与已放置块重叠的位置 */
+export function pushPageFlowRectBelow(placed = [], geometry = {}, gap = 16) {
+  let nextY = Number(geometry.y) || 0
+  const height = Math.max(1, Number(geometry.height) || 1)
+  let guard = 0
+  while (guard++ < 64) {
+    const candidate = {
+      x: Number(geometry.x) || 0,
+      y: nextY,
+      width: Number(geometry.width) || 0,
+      height,
+      right: (Number(geometry.x) || 0) + (Number(geometry.width) || 0),
+      bottom: nextY + height,
+    }
+    let hit = null
+    placed.forEach((previous) => {
+      if (!pageFlowRectsOverlap(candidate, previous, gap))
+        return
+      if (!hit || previous.bottom > hit.bottom)
+        hit = previous
+    })
+    if (!hit)
+      break
+    nextY = hit.bottom + gap
+  }
+  return nextY
+}
+
 /**
  * 根页面的组件是最终页面的布局，不是可重叠的自由画布。
  * 这里仅整理根级块；组合布局中的 children 继续由自己的容器布局管理。
+ * changedBlockId 优先钉住其落点，其它块绕开（拖放不再把主动块弹走）。
  */
 export function resolveRootPageBlockCollisions(items = [], changedBlockId = '') {
   const gap = 16
+  const entries = items.map((block, index) => ({
+    block,
+    index,
+    geometry: resolvePageBlockFlowGeometry(block, index, items),
+  }))
   const placed = []
-  const sorted = items
-    .map((block, index) => ({ block, index, geometry: resolvePageBlockFlowGeometry(block, index, items) }))
-    .sort((left, right) => left.geometry.y - right.geometry.y || left.geometry.x - right.geometry.x || left.index - right.index)
-
   const resolvedById = new Map()
-  sorted.forEach(({ block, geometry }) => {
-    let nextY = geometry.y
-    placed.forEach((previous) => {
-      const horizontallyOverlapped = geometry.x < previous.right && geometry.right > previous.x
-      const needsPushDown = horizontallyOverlapped && nextY < previous.bottom + gap
-      if (needsPushDown)
-        nextY = previous.bottom + gap
-    })
 
+  function commit(entry, nextY) {
+    const geometry = entry.geometry
     const resolved = { ...geometry, y: nextY, bottom: nextY + geometry.height }
     placed.push(resolved)
-    if (nextY !== geometry.y || block.id === changedBlockId) {
-      resolvedById.set(block.id, {
-        ...block,
+    if (nextY !== geometry.y || entry.block.id === changedBlockId) {
+      resolvedById.set(entry.block.id, {
+        ...entry.block,
         props: {
-          ...(block.props || {}),
+          ...(entry.block.props || {}),
           style: {
-            ...(block.props?.style || {}),
+            ...(entry.block.props?.style || {}),
             pageFlowY: Math.round(nextY),
           },
         },
       })
     }
+  }
+
+  const sticky = changedBlockId
+    ? entries.find(entry => entry.block.id === changedBlockId)
+    : null
+  const rest = entries
+    .filter(entry => !sticky || entry.block.id !== sticky.block.id)
+    .sort((left, right) => left.geometry.y - right.geometry.y
+      || left.geometry.x - right.geometry.x
+      || left.index - right.index)
+
+  // 有主动块：先钉住落点，其它块绕开。无主动块：全量按 Y 下推避让。
+  // 嵌入容器内的 children 不走这里。
+  if (sticky)
+    commit(sticky, sticky.geometry.y)
+  rest.forEach((entry) => {
+    commit(entry, pushPageFlowRectBelow(placed, entry.geometry, gap))
   })
 
   return items.map(block => resolvedById.get(block.id) || block)
 }
 
+/**
+ * 缩放时把活动边吸附到其它根级块的边/中线，并返回应对齐标线。
+ * @param {{ x:number, y:number, width:number, height:number }} rect
+ * @param {Array<{ x:number, y:number, width:number, height:number }>} peers
+ * @param {string} anchor top|bottom|left|right|corners…
+ * @param {number} threshold
+ */
+export function snapResizeRectToPeers(rect = {}, peers = [], anchor = 'bottom-right', threshold = 6) {
+  const snapPx = Math.max(1, Number(threshold) || 6)
+  let x = Number(rect.x) || 0
+  let y = Number(rect.y) || 0
+  let width = Math.max(1, Number(rect.width) || 1)
+  let height = Math.max(1, Number(rect.height) || 1)
+  const resizeLeft = String(anchor).includes('left')
+  const resizeRight = String(anchor).includes('right')
+  const resizeTop = String(anchor).includes('top')
+  const resizeBottom = String(anchor).includes('bottom')
+  let bestX = null
+  let bestY = null
+  const movingEdgesX = []
+  const movingEdgesY = []
+  if (resizeLeft)
+    movingEdgesX.push({ edge: 'left', value: x })
+  if (resizeRight)
+    movingEdgesX.push({ edge: 'right', value: x + width })
+  if (!resizeLeft && !resizeRight)
+    movingEdgesX.push({ edge: 'cx', value: x + width / 2 })
+  if (resizeTop)
+    movingEdgesY.push({ edge: 'top', value: y })
+  if (resizeBottom)
+    movingEdgesY.push({ edge: 'bottom', value: y + height })
+  if (!resizeTop && !resizeBottom)
+    movingEdgesY.push({ edge: 'cy', value: y + height / 2 })
+
+  peers.forEach((peer) => {
+    const left = Number(peer.x) || 0
+    const top = Number(peer.y) || 0
+    const right = left + (Number(peer.width) || 0)
+    const bottom = top + (Number(peer.height) || 0)
+    const cx = left + (right - left) / 2
+    const cy = top + (bottom - top) / 2
+    const targetsX = [left, right, cx]
+    const targetsY = [top, bottom, cy]
+    movingEdgesX.forEach((moving) => {
+      targetsX.forEach((to) => {
+        const delta = Math.abs(moving.value - to)
+        if (delta > snapPx)
+          return
+        if (bestX && delta >= bestX.delta)
+          return
+        bestX = { delta, to: Math.round(to), edge: moving.edge }
+      })
+    })
+    movingEdgesY.forEach((moving) => {
+      targetsY.forEach((to) => {
+        const delta = Math.abs(moving.value - to)
+        if (delta > snapPx)
+          return
+        if (bestY && delta >= bestY.delta)
+          return
+        bestY = { delta, to: Math.round(to), edge: moving.edge }
+      })
+    })
+  })
+
+  if (bestX) {
+    if (bestX.edge === 'left') {
+      const right = x + width
+      x = bestX.to
+      width = Math.max(1, right - x)
+    }
+    else if (bestX.edge === 'right') {
+      width = Math.max(1, bestX.to - x)
+    }
+  }
+  if (bestY) {
+    if (bestY.edge === 'top') {
+      const bottom = y + height
+      y = bestY.to
+      height = Math.max(1, bottom - y)
+    }
+    else if (bestY.edge === 'bottom') {
+      height = Math.max(1, bestY.to - y)
+    }
+  }
+
+  return {
+    x: Math.round(x),
+    y: Math.round(y),
+    width: Math.round(width),
+    height: Math.round(height),
+    lines: {
+      x: bestX ? [bestX.to] : [],
+      y: bestY ? [bestY.to] : [],
+    },
+  }
+}
+
 function isContainerGrowBlock(block = {}) {
   // 壳样式：仅按组件类型判定「内容撑开」；heightMode=auto 另有分支
-  return ['grid-layout', 'card', 'box-layout', 'tabs'].includes(block?.blockType)
+  return ['grid-layout', 'card', 'panel-box', 'box-layout', 'tabs', 'AiForm', 'detail-info'].includes(block?.blockType)
 }
 
 export { shouldUsePageFlowStack }
@@ -382,20 +549,26 @@ export function resolvePageBlockShellStyle(block = {}, items = [], options = {})
   const FREE_LAYOUT_CRUD_MIN_HEIGHT = 420
   let resolvedHeight = Math.max(40, customHeight > 0 ? customHeight : frameHeight || defaultHeight)
 
-  // 图表：历史数据可能把 pageFlowHeight/height 写成 96，画布仍按 props.height≈260 绘制并溢出叠层
-  if (['bar-chart', 'line-chart'].includes(block.blockType)) {
-    const chartCanvas = Number(block.props?.height)
-    resolvedHeight = Math.max(
-      resolvedHeight,
-      defaultHeight,
-      Number.isFinite(chartCanvas) && chartCanvas > 120 ? Math.round(chartCanvas + 20) : 0,
-    )
+  // 图表固定高度：历史脏数据 pageFlowHeight≈96 时抬升，避免画布溢出叠层。
+  // 一旦 pageFlowHeight≥160（锚点拖过），必须以壳高为准，否则标线先动、壳高被 props.height+20 顶住缩不下去。
+  if (
+    heightMode === 'fixed'
+    && ['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(block.blockType)
+  ) {
+    if (!(customHeight >= 160)) {
+      const chartCanvas = Number(block.props?.height)
+      resolvedHeight = Math.max(
+        resolvedHeight,
+        defaultHeight,
+        Number.isFinite(chartCanvas) && chartCanvas > 120 ? Math.round(chartCanvas + 20) : 0,
+      )
+    }
   }
 
-  // heightMode=fixed：非容器仍锁死壳高；栅格/卡片等容器始终跟内容撑开（minHeight 保留拖拽下限）
-  // heightMode=auto：跟内容走
+  // heightMode=fixed：锁死壳高（含卡片/面板），内部非固定高度子块才能跟着拉高
+  // heightMode=auto：跟内容走；未显式 fixed/full 的容器历史数据仍按内容撑开
   const useAutoHeight = heightMode === 'auto'
-    || (heightMode !== 'full' && isContainerGrowBlock(block))
+    || (heightMode !== 'full' && heightMode !== 'fixed' && isContainerGrowBlock(block))
 
   const shared = {
     textAlign: style.textAlign || block.props?.textAlign || block.props?.align || 'left',
@@ -482,15 +655,17 @@ export function resolvePageBlockShellStyle(block = {}, items = [], options = {})
       maxWidth: canvasSafeWidth,
     }
   }
+  // auto：不要吃 pageFlowWidth 里残留的 px（开属性面板时量到的窄宽），否则看起来像固定宽
   if (widthMode === 'auto')
-    return { ...position, width: customWidth || `min(${Math.max(280, Math.min(560, frameWidth || 520))}px, ${remainingSafeWidth})` }
+    return { ...position, width: `min(${Math.max(280, Math.min(560, frameWidth || 520))}px, ${remainingSafeWidth})` }
   if (widthMode === 'fixed') {
     const rawWidth = readPageBlockLength(customWidth) || frameWidth || 0
     const floored = isListCrud
       ? Math.max(rawWidth, FREE_LAYOUT_CRUD_MIN_WIDTH)
       : rawWidth
+    // 固定宽用精确 px，避免 min(px, calc%) 实宽落后于对齐标线
     if (floored > 0)
-      return { ...position, width: `min(${floored}px, ${remainingSafeWidth})` }
+      return { ...position, width: `${floored}px`, maxWidth: remainingSafeWidth }
   }
   const columns = Math.min(12, Math.max(3, Number(meta.defaultW) || 6))
   return {

@@ -108,17 +108,19 @@ describe('list page grid designer nested selection', () => {
     wrapper.unmount()
   })
 
-  it('panel-only activeBlockId sync uses findBlockInTree and watches blocks', () => {
+  it('panel-only activeBlockId sync forces on id change and preserves selection on layout echo', () => {
     const source = readSource('src/components/lowcode-builder/page/composables/useListPageGridDesigner.part1.js')
     expect(source).toContain('function syncActiveBlockSelection')
     expect(source).toContain('findBlockInTree(blocks.value, blockId)')
-    expect(source).toMatch(/watch\(\s*\[\s*\(\) => props\.activeBlockId,\s*blocks\s*\]/)
-    expect(source).toContain('syncActiveBlockSelection()')
+    expect(source).toContain('syncActiveBlockSelection({ force: true })')
+    expect(source).toContain('syncActiveBlockSelection({ force: false })')
+    expect(source).toMatch(/watch\(\s*\(\)\s*=>\s*props\.activeBlockId/)
+    expect(source).toMatch(/watch\(\s*blocks\s*,/)
   })
 
   it('hydrateInitialState re-syncs active block after layout apply', () => {
     const source = readSource('src/components/lowcode-builder/page/composables/useListPageGridDesigner.part1.js')
-    expect(source).toMatch(/async function hydrateInitialState[\s\S]*syncActiveBlockSelection\(\)/)
+    expect(source).toMatch(/async function hydrateInitialState[\s\S]*syncActiveBlockSelection\(\{\s*force:\s*true\s*\}\)/)
   })
 
   it('nested container child style uses pixel height instead of top-level 100%', () => {

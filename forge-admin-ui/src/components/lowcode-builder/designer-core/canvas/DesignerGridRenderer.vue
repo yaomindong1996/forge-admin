@@ -16,7 +16,9 @@ const props = defineProps({
   /** 行间距（px） */
   rowGap: { type: Number, default: 0 },
   /** 格子最小高度（px） */
-  cellMinHeight: { type: Number, default: 120 },
+  cellMinHeight: { type: Number, default: 160 },
+  /** 格子内边距（px），覆盖 CSS 默认 8 */
+  cellPadding: { type: Number, default: 8 },
   /** 垂直对齐 */
   alignItems: { type: String, default: 'stretch' },
   /** 水平对齐 */
@@ -53,9 +55,13 @@ const gridStyle = computed(() => ({
 /** 计算单个格子的 CSS 样式 */
 function cellStyle(cell = {}) {
   const span = Math.max(1, Math.min(safeColumns.value, Number(cell.span) || 1))
+  const padding = Number.isFinite(Number(cell.padding))
+    ? Math.max(0, Number(cell.padding))
+    : Math.max(0, Number(props.cellPadding ?? 8))
   return {
     gridColumn: `span ${span}`,
-    minHeight: `${Math.max(24, Number(cell.minHeight) || props.cellMinHeight || 120)}px`,
+    minHeight: `${Math.max(24, Number(cell.minHeight) || props.cellMinHeight || 160)}px`,
+    padding: `${padding}px`,
     backgroundColor: props.cellBackground || cell.backgroundColor || 'transparent',
   }
 }

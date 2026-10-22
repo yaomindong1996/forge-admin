@@ -44,6 +44,18 @@ async function bootstrap() {
   const themeConfig = appStore.themeConfig || defaultThemeConfig
   applyThemeConfig(themeConfig, appStore.isDark)
 
+  // 新标签页启动时尽早挂上租户 favicon，避免先闪地球再换成品牌图
+  try {
+    const { useTenantStore } = await import('./store/modules/tenant.js')
+    const { resolveTenantFaviconUrl, setDocumentFavicon } = await import('./utils/tenant-config.js')
+    const tenantConfig = useTenantStore().config
+    if (tenantConfig)
+      setDocumentFavicon(resolveTenantFaviconUrl(tenantConfig))
+  }
+  catch (error) {
+    console.warn('启动时恢复浏览器图标失败:', error)
+  }
+
   // 企微PC客户端工作台免登：写入 token 后由路由守卫补拉用户信息/菜单/密钥交换
   const wecomResult = await runWeComAutoLogin()
   if (wecomResult?.status === 'redirecting') {

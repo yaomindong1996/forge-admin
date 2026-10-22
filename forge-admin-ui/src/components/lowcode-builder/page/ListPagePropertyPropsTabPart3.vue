@@ -138,22 +138,8 @@
                 </n-form-item>
               </template>
 
-              <template v-if="selectedBlock.blockType === 'card'">
-                <n-form-item label="卡片标题">
-                  <n-input
-                    :value="selectedBlock.props?.title"
-                    @update:value="patchBlockProps(selectedBlock.id, { title: $event })"
-                  />
-                </n-form-item>
-                <n-form-item label="卡片内容">
-                  <n-input
-                    :value="selectedBlock.props?.content"
-                    type="textarea"
-                    :rows="3"
-                    @update:value="patchBlockProps(selectedBlock.id, { content: $event })"
-                  />
-                </n-form-item>
-                <n-form-item label="卡片内组件">
+              <template v-if="['card', 'panel-box', 'box-layout'].includes(selectedBlock.blockType)">
+                <n-form-item :label="selectedBlock.blockType === 'card' ? '卡片内组件' : (selectedBlock.blockType === 'panel-box' ? '面板内组件' : '盒子内组件')">
                   <div class="container-child-editor">
                     <div
                       v-for="child in (selectedBlock.children || [])"
@@ -166,12 +152,12 @@
                       </n-button>
                     </div>
                     <div v-if="!(selectedBlock.children || []).length" class="container-child-empty">
-                      可把左侧组件拖入卡片，也可以在这里添加。
+                      可把左侧组件拖入，也可以在这里添加；画布上右键插入同样可用。
                     </div>
                     <n-select
                       :options="childBlockTypeOptions"
                       size="small"
-                      placeholder="添加组件到卡片"
+                      :placeholder="selectedBlock.blockType === 'card' ? '添加组件到卡片' : (selectedBlock.blockType === 'panel-box' ? '添加组件到面板' : '添加组件到盒子')"
                       clearable
                       @update:value="value => value && appendContainerChild(selectedBlock.id, value)"
                     />

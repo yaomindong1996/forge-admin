@@ -251,6 +251,7 @@ const TECH_TITLE_MAP = {
 export const LIST_BLOCK_TYPE_OVERRIDES = {
   grid: 'grid-layout',
   box: 'box-layout',
+  panel: 'panel-box',
   groupTitle: 'section-divider',
 }
 

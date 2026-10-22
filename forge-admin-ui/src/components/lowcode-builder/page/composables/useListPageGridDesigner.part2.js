@@ -241,7 +241,8 @@ function resolveBlockFrame(block = {}) {
     ? flowY
     : resolveCssNumber(componentStyle.y ?? componentStyle.top, fallbackY)
   const widthMode = resolveBlockWidthMode(block)
-  const flowWidth = props.panelOnly
+  // full/auto 忽略 pageFlowWidth 像素残留，否则属性面板会按「固定宽」回读并写回
+  const flowWidth = props.panelOnly && widthMode === 'fixed'
     ? resolveCssNumber(componentStyle.pageFlowWidth, NaN)
     : NaN
   let width = Math.max(
@@ -376,9 +377,25 @@ function toNumberOrNull(value) {
 }
 
 function normalizeSpacingValue(value) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const pack = side => {
+      const num = Number(side)
+      return Number.isFinite(num) ? num : 0
+    }
+    return {
+      top: pack(value.top ?? value.t),
+      right: pack(value.right ?? value.r),
+      bottom: pack(value.bottom ?? value.b),
+      left: pack(value.left ?? value.l),
+    }
+  }
+  if (typeof value === 'number' && Number.isFinite(value))
+    return value
   const text = String(value ?? '').trim()
   if (!text)
     return 0
+  if (/^\d+(?:\.\d+)?$/.test(text))
+    return Number(text)
   return text
     .split(/\s+/)
     .map(part => (/^\d+(?:\.\d+)?$/.test(part) ? `${part}px` : part))

@@ -15,6 +15,27 @@ export function findPageBlockInTree(items = [], blockId = '') {
 }
 
 /**
+ * 查找嵌套块的直接父节点（children / tabs / cells 任一容器）。
+ * @returns {object | null}
+ */
+export function findDirectParentPageBlock(items = [], blockId = '') {
+  if (!blockId)
+    return null
+  for (const block of items || []) {
+    const children = resolvePageBlockChildren(block)
+    if (children.some(child => child?.id === blockId))
+      return block
+    const nested = findDirectParentPageBlock(children, blockId)
+    if (nested)
+      return nested
+  }
+  return null
+}
+
+/** 内容型嵌套容器：点内部子块时优先选中容器本身（卡片/面板/盒子） */
+export const NEST_CONTENT_HOST_TYPES = ['card', 'panel-box', 'box-layout']
+
+/**
  * 查找嵌套组件所在的栅格格子（用于左右锚点改列宽 span）。
  * @returns {{ gridId: string, cellKey: string, span: number, columns: number } | null}
  */

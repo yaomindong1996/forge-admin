@@ -1,9 +1,34 @@
 <script setup>
 /**
- * 容器右键菜单：三列组件插入 + 删除/清空等快捷操作
+ * 容器右键菜单：分组插入组件 + 删除/清空等快捷操作
+ * 插入目录与加号弹层共用 page-block-picker，避免新组件只出现在一侧。
  */
-import { computed } from 'vue'
-import { listPageBlockCatalog } from '@/components/lowcode-builder/page/page-schema'
+import { computed, nextTick, ref, watch } from 'vue'
+import {
+  AlbumsOutline,
+  AnalyticsOutline,
+  BrowsersOutline,
+  CheckboxOutline,
+  CopyOutline,
+  DocumentTextOutline,
+  GridOutline,
+  HomeOutline,
+  ImageOutline,
+  ListOutline,
+  NotificationsOutline,
+  PricetagOutline,
+  ResizeOutline,
+  SearchOutline,
+  StarOutline,
+  StatsChartOutline,
+  TextOutline,
+  TimerOutline,
+  TrashOutline,
+} from '@vicons/ionicons5'
+import {
+  DEFAULT_NEST_EXCLUDE_BLOCK_TYPES,
+  buildPageBlockPickerGroups,
+} from '@/components/lowcode-builder/page/page-block-picker'
 
 const props = defineProps({
   show: { type: Boolean, default: false },
@@ -14,63 +39,90 @@ const props = defineProps({
   title: { type: String, default: '' },
   /** child 模式下是否仍允许插入到同一区域 */
   allowInsert: { type: Boolean, default: true },
-  excludeBlockTypes: { type: Array, default: () => ['grid-layout', 'tabs', 'box-layout', 'card'] },
+  excludeBlockTypes: { type: Array, default: () => [...DEFAULT_NEST_EXCLUDE_BLOCK_TYPES] },
 })
 
 const emit = defineEmits(['update:show', 'insert', 'action', 'close'])
 
+const keyword = ref('')
+const searchInputRef = ref(null)
+
+const BLOCK_ICON_MAP = {
+  'stats-strip': AnalyticsOutline,
+  'quick-entry': GridOutline,
+  'bar-chart': StatsChartOutline,
+  'line-chart': AnalyticsOutline,
+  'area-chart': AnalyticsOutline,
+  'pie-chart': StatsChartOutline,
+  'workflow-task-list': CheckboxOutline,
+  'notice-board': NotificationsOutline,
+  'welcome-banner': StarOutline,
+  'info-panel': DocumentTextOutline,
+  'custom-html': DocumentTextOutline,
+  'tag-list': PricetagOutline,
+  steps: TimerOutline,
+  timeline: TimerOutline,
+  'empty-state': AlbumsOutline,
+  'text-title': TextOutline,
+  paragraph: DocumentTextOutline,
+  statistic: AnalyticsOutline,
+  link: TextOutline,
+  'text-tip': DocumentTextOutline,
+  'audio-player': BrowsersOutline,
+  'video-player': BrowsersOutline,
+  avatar: ImageOutline,
+  card: AlbumsOutline,
+  'panel-box': BrowsersOutline,
+  'box-layout': BrowsersOutline,
+  'grid-layout': GridOutline,
+  tabs: BrowsersOutline,
+  divider: ResizeOutline,
+  image: ImageOutline,
+  table: ListOutline,
+  'data-list': ListOutline,
+  'crud-table': ListOutline,
+  'search-form': SearchOutline,
+}
+
+watch(() => props.show, async (visible) => {
+  if (!visible)
+    return
+  keyword.value = ''
+  await nextTick()
+  searchInputRef.value?.focus?.()
+})
+
 const actionOptions = computed(() => {
   if (props.mode === 'child') {
     return [
-      { key: 'delete', label: '删除组件', danger: true },
-      { key: 'duplicate', label: '复制组件' },
+      { key: 'duplicate', label: '复制', icon: CopyOutline },
+      { key: 'delete', label: '删除', icon: TrashOutline, danger: true },
     ]
   }
   return [
-    { key: 'clear', label: '清空此区域', danger: true },
+    { key: 'clear', label: '清空此区域', icon: TrashOutline, danger: true },
   ]
 })
 
 const showInsertSection = computed(() => props.mode !== 'child' || props.allowInsert)
 
-const insertGroups = computed(() => {
-  const exclude = new Set((props.excludeBlockTypes || []).map(String))
-  const items = listPageBlockCatalog.filter((item) => {
-    const type = String(item?.blockType || '')
-    if (!type || exclude.has(type))
-      return false
-    if (item.hidden)
-      return false
-    if (item.onlyFor)
-      return false
-    return true
-  })
-  const groups = new Map()
-  items.forEach((item) => {
-    const group = resolveGroup(item)
-    if (!groups.has(group.key))
-      groups.set(group.key, { key: group.key, label: group.label, items: [] })
-    groups.get(group.key).items.push({
-      blockType: item.blockType,
-      label: item.title || item.blockType,
-      desc: item.desc || '',
-    })
-  })
-  return [...groups.values()]
-})
+const insertGroups = computed(() => buildPageBlockPickerGroups({
+  excludeBlockTypes: props.excludeBlockTypes,
+  keyword: keyword.value,
+}).map(group => ({
+  key: group.key,
+  label: group.label,
+  items: group.items.map(item => ({
+    blockType: item.blockType,
+    label: item.title || item.blockType,
+    desc: item.desc || '',
+    icon: BLOCK_ICON_MAP[item.blockType] || HomeOutline,
+  })),
+})))
 
-function resolveGroup(item = {}) {
-  const raw = `${item.group || ''} ${item.blockType || ''} ${item.title || ''}`.toLowerCase()
-  if (/layout|tabs|grid|box|card|布局|栅格|标签/.test(raw))
-    return { key: 'layout', label: '布局' }
-  if (/data|table|form|crud|list|search|数据|列表|表单|查询/.test(raw))
-    return { key: 'data', label: '数据' }
-  if (/media|audio|video|image|avatar|iframe|媒体|音视频|头像/.test(raw))
-    return { key: 'media', label: '媒体' }
-  if (/action|button|link|toolbar|操作|按钮|链接/.test(raw))
-    return { key: 'action', label: '操作' }
-  return { key: 'content', label: '内容' }
-}
+const totalCount = computed(() =>
+  insertGroups.value.reduce((sum, group) => sum + group.items.length, 0),
+)
 
 function close() {
   emit('update:show', false)
@@ -106,13 +158,19 @@ function onPanelClick(event) {
         @mousedown="onPanelClick"
         @click="onPanelClick"
       >
+        <!-- 标题栏 -->
         <div class="container-ctx-head">
-          <strong>{{ title || (mode === 'child' ? '组件操作' : '插入组件') }}</strong>
-          <button type="button" class="container-ctx-close" @click="close">
+          <div class="container-ctx-head-text">
+            <strong>{{ title || (mode === 'child' ? '组件操作' : '插入组件') }}</strong>
+            <span v-if="showInsertSection && !keyword">共 {{ totalCount }} 个</span>
+            <span v-else-if="showInsertSection && keyword">匹配 {{ totalCount }} 个</span>
+          </div>
+          <button type="button" class="container-ctx-close" aria-label="关闭" @click="close">
             ×
           </button>
         </div>
 
+        <!-- 快捷操作：与插入区用分隔线分开，避免挤在一起 -->
         <div v-if="actionOptions.length" class="container-ctx-actions">
           <button
             v-for="item in actionOptions"
@@ -122,21 +180,39 @@ function onPanelClick(event) {
             :class="{ danger: item.danger }"
             @click="onAction(item.key)"
           >
-            {{ item.label }}
+            <n-icon :component="item.icon" :size="14" />
+            <span>{{ item.label }}</span>
           </button>
         </div>
 
         <template v-if="showInsertSection">
-          <div class="container-ctx-section-title">
-            {{ mode === 'child' ? '在此区域插入组件' : '选择要插入的组件' }}
+          <div class="container-ctx-divider" />
+
+          <div class="container-ctx-search-wrap">
+            <n-input
+              ref="searchInputRef"
+              v-model:value="keyword"
+              clearable
+              size="small"
+              placeholder="搜索组件名称…"
+              class="container-ctx-search"
+            >
+              <template #prefix>
+                <n-icon :component="SearchOutline" :size="14" />
+              </template>
+            </n-input>
           </div>
+
           <div class="container-ctx-scroll">
             <section
               v-for="group in insertGroups"
               :key="group.key"
               class="container-ctx-group"
             >
-              <header>{{ group.label }}</header>
+              <header class="container-ctx-group-head">
+                <span>{{ group.label }}</span>
+                <em>{{ group.items.length }}</em>
+              </header>
               <div class="container-ctx-grid">
                 <button
                   v-for="item in group.items"
@@ -146,10 +222,19 @@ function onPanelClick(event) {
                   :title="item.desc || item.label"
                   @click="onInsert(item.blockType)"
                 >
-                  <strong>{{ item.label }}</strong>
+                  <span class="container-ctx-item-icon">
+                    <n-icon :component="item.icon" :size="16" />
+                  </span>
+                  <span class="container-ctx-item-main">
+                    <span class="container-ctx-item-title">{{ item.label }}</span>
+                    <span v-if="item.desc" class="container-ctx-item-desc">{{ item.desc }}</span>
+                  </span>
                 </button>
               </div>
             </section>
+            <div v-if="!insertGroups.length" class="container-ctx-empty">
+              没有匹配的组件
+            </div>
           </div>
         </template>
       </div>
@@ -163,117 +248,241 @@ function onPanelClick(event) {
   inset: 0;
   z-index: 4000;
 }
+
 .container-ctx-menu {
   position: fixed;
   z-index: 4001;
-  display: grid;
-  gap: 10px;
-  width: min(480px, calc(100vw - 24px));
-  max-height: min(560px, calc(100vh - 24px));
-  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(520px, calc(100vh - 24px));
+  padding: 0;
   overflow: hidden;
   border: 1px solid var(--border-light);
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--bg-primary);
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+  box-shadow:
+    0 4px 6px rgba(15, 23, 42, 0.04),
+    0 12px 28px rgba(15, 23, 42, 0.12);
 }
+
 .container-ctx-head {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  padding: 10px 12px 8px;
 }
-.container-ctx-head strong {
+
+.container-ctx-head-text {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.container-ctx-head-text strong {
   color: var(--text-primary);
   font-size: 13px;
+  font-weight: 600;
 }
+
+.container-ctx-head-text span {
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
 .container-ctx-close {
+  display: grid;
   width: 24px;
   height: 24px;
+  flex: 0 0 auto;
+  place-items: center;
   border: 0;
   border-radius: 6px;
+  padding: 0;
   background: transparent;
   color: var(--text-tertiary);
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
 }
+
 .container-ctx-close:hover {
   background: var(--bg-tertiary);
   color: var(--text-primary);
 }
+
 .container-ctx-actions {
   display: flex;
+  flex: 0 0 auto;
   flex-wrap: wrap;
   gap: 6px;
+  padding: 0 12px 8px;
 }
+
 .container-ctx-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 4px 10px;
   border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #fafbfc;
+  background: transparent;
   color: var(--text-secondary);
   font-size: 12px;
+  line-height: 1.2;
   cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
 }
+
 .container-ctx-action:hover {
-  border-color: #94bfff;
+  border-color: var(--primary-color, #2080f0);
   background: #f0f7ff;
   color: #165dff;
 }
+
 .container-ctx-action.danger {
-  color: #f53f3f;
+  color: var(--error-color, #f53f3f);
 }
+
 .container-ctx-action.danger:hover {
   border-color: #fbaca3;
   background: #fff1f0;
   color: #cb2634;
 }
-.container-ctx-section-title {
-  color: var(--text-tertiary);
-  font-size: 12px;
+
+.container-ctx-divider {
+  flex: 0 0 auto;
+  height: 1px;
+  margin: 0 12px;
+  background: var(--border-light);
 }
+
+.container-ctx-search-wrap {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+}
+
+.container-ctx-search {
+  width: 100%;
+}
+
 .container-ctx-scroll {
-  display: grid;
-  gap: 10px;
-  max-height: 380px;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  max-height: 360px;
+  padding: 0 12px 12px;
   overflow: auto;
-  padding-right: 2px;
+  scrollbar-gutter: stable;
 }
+
 .container-ctx-group {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 6px;
 }
-.container-ctx-group header {
-  color: var(--text-secondary);
+
+.container-ctx-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 600;
 }
+
+.container-ctx-group-head em {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
 .container-ctx-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
 }
+
 .container-ctx-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   min-width: 0;
-  padding: 8px 6px;
-  border: 1px solid #eef0f3;
+  padding: 8px;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
-  background: #fafbfc;
-  text-align: center;
+  background: transparent;
+  text-align: left;
   cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
+
 .container-ctx-item:hover {
-  border-color: #94bfff;
-  background: #f0f7ff;
+  border-color: var(--primary-color, #2080f0);
+  background: #f7faff;
 }
-.container-ctx-item strong {
-  display: block;
+
+.container-ctx-item-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: #f0f5ff;
+  color: var(--primary-color, #2080f0);
+}
+
+.container-ctx-item:hover .container-ctx-item-icon {
+  background: #e8f0ff;
+}
+
+.container-ctx-item-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.container-ctx-item-title {
   overflow: hidden;
   color: var(--text-primary);
   font-size: 12px;
   font-weight: 500;
+  line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.container-ctx-item-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.container-ctx-empty {
+  padding: 28px 8px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  text-align: center;
 }
 </style>

@@ -45,6 +45,9 @@ const QuickEntryBlock = blockAsyncLoader(() => import('@/components/lowcode-buil
 const PageChartBlock = blockAsyncLoader(() => import('@/components/lowcode-builder/page/PageChartBlock.vue'))
 const StatsStripBlock = blockAsyncLoader(() => import('@/components/lowcode-builder/page/StatsStripBlock.vue'))
 const InfoPanelBlock = blockAsyncLoader(() => import('@/components/lowcode-builder/page/InfoPanelBlock.vue'))
+const WorkflowTaskListBlock = blockAsyncLoader(() => import('@/components/lowcode-builder/page/WorkflowTaskListBlock.vue'))
+const NoticeBoardBlock = blockAsyncLoader(() => import('@/components/lowcode-builder/page/NoticeBoardBlock.vue'))
+const WelcomeBannerBlock = blockAsyncLoader(() => import('@/components/lowcode-builder/page/WelcomeBannerBlock.vue'))
 
 export const gridBlockRendererLocalComponents = {
   ChevronBackOutline,
@@ -64,6 +67,9 @@ export const gridBlockRendererLocalComponents = {
   PageChartBlock,
   StatsStripBlock,
   InfoPanelBlock,
+  WorkflowTaskListBlock,
+  NoticeBoardBlock,
+  WelcomeBannerBlock,
   AiCrudPage,
   TreeCrudTemplate,
   RuntimeListGridFlow,

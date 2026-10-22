@@ -275,6 +275,20 @@
   border-radius: 6px;
   background: var(--bg-primary);
 }
+/* 画布铺满宿主高度，整页背景色才能盖住底部空白 */
+.page-surface > .application-grid-host,
+.page-surface > .portal-page-renderer,
+.page-surface > .application-page-flow {
+  flex: 1 0 auto;
+  width: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+.page-surface > .application-grid-host > .application-page-flow,
+.page-surface .portal-page-flow {
+  min-height: 100%;
+  box-sizing: border-box;
+}
 .page-layout-pollution-alert {
   margin: 12px 16px 0;
   flex: none;
@@ -340,15 +354,19 @@
   max-width: 100% !important;
 }
 .application-page-flow.is-editing {
-  /* 编辑态最低高度交给 JS pageFlowHeight，这里只保底 */
+  /* 编辑态最低高度交给 JS pageFlowHeight；背景由 pageSurface 内联控制，避免盖住整页配色 */
   min-height: 320px;
-  background-color: var(--bg-primary);
 }
 .page-canvas-padding-panel {
   display: grid;
   gap: 12px;
-  padding: 14px 16px 16px;
-  border-bottom: 1px solid #e5eaf3;
+  flex: 1 1 auto;
+  align-content: start;
+  min-height: 0;
+  padding: 4px 4px 16px;
+  overflow: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
 }
 .page-canvas-padding-head {
   display: grid;
@@ -470,36 +488,39 @@ body.is-nested-page-block-moving .layout-grid-cell-child.is-moving-source {
   pointer-events: none;
   overflow: hidden;
 }
-.page-align-cross-v,
-.page-align-cross-h,
+.page-align-edge-v,
+.page-align-edge-h,
 .page-align-snap-v,
 .page-align-snap-h {
   position: absolute;
   pointer-events: none;
 }
-.page-align-cross-v,
+/* 当前组件四边：淡蓝虚线，贯穿画布便于对齐 */
+.page-align-edge-v {
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px dashed rgba(37, 99, 235, 0.55);
+}
+.page-align-edge-h {
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px dashed rgba(37, 99, 235, 0.55);
+}
+/* 吸附命中：橙色实线 */
 .page-align-snap-v {
   top: 0;
   bottom: 0;
   width: 0;
-  border-left: 1px solid #2563eb;
+  border-left: 1.5px solid #f97316;
+  opacity: 0.95;
 }
-.page-align-cross-h,
 .page-align-snap-h {
   left: 0;
   right: 0;
   height: 0;
-  border-top: 1px solid #2563eb;
-}
-.page-align-cross-v,
-.page-align-cross-h {
-  border-left-style: dashed;
-  border-top-style: dashed;
-  opacity: 0.85;
-}
-.page-align-snap-v,
-.page-align-snap-h {
-  border-color: #f97316;
+  border-top: 1.5px solid #f97316;
   opacity: 0.95;
 }
 body.is-catalog-pointer-dragging .application-page-block:not([data-page-block-type='grid-layout']):not([data-page-block-type='tabs']):not([data-page-block-type='card']):not([data-page-block-type='box-layout']) {
@@ -560,7 +581,8 @@ body.is-catalog-pointer-dragging .n-popover {
 }
 .application-page-block::after {
   position: absolute;
-  z-index: 2;
+  /* 高于内部内容与 drop-layer(40)，保证四边描边（含底边）始终可见 */
+  z-index: 46;
   inset: -2px;
   border: 1px solid transparent;
   border-radius: 6px;
@@ -578,21 +600,45 @@ body.is-catalog-pointer-dragging .n-popover {
 .application-page-block.selected {
   border-color: transparent;
   background: transparent;
+  outline: none;
+  box-shadow: none;
 }
 .application-page-block.selected::after {
-  border-color: #2563eb;
+  border-color: transparent;
   box-shadow: none;
 }
 .application-page-block.selected.editing:hover,
 .application-page-block.selected.editing:hover::after {
-  border-color: #2563eb;
+  border-color: transparent;
+}
+/* 选中时压低内容层，保证选中框盖在卡片之上 */
+.application-page-block.selected :deep(.grid-block) {
+  z-index: 0;
+}
+/* 唯一选中框：一层 2px，四边等粗（含底边） */
+.page-block-selection-ring {
+  position: absolute;
+  z-index: 60;
+  inset: 0;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  pointer-events: none;
+  box-sizing: border-box;
+  background: transparent;
+  box-shadow: none;
+}
+.page-block-selection-ring.is-collision {
+  border-color: #f97316;
+}
+.application-page-block.is-resize-collision,
+.application-page-block.selected.is-resize-collision {
+  border-color: transparent;
+  outline: none;
+  box-shadow: none;
 }
 .application-page-block.is-resize-collision::after {
-  border-color: #f97316 !important;
-  box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.28) !important;
-}
-.application-page-block.is-resize-collision {
-  border-color: transparent;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 /* 预览 / 运行态彻底去掉设计描边 */
 .runtime-body:not(.editing-canvas) .application-page-block,
@@ -602,6 +648,7 @@ body.is-catalog-pointer-dragging .n-popover {
   border-color: transparent !important;
   background: transparent !important;
   box-shadow: none !important;
+  outline: none !important;
 }
 .runtime-body:not(.editing-canvas) .layout-grid-cell-child,
 .runtime-body:not(.editing-canvas) .layout-grid-cell-child:hover,
@@ -633,6 +680,7 @@ body.is-catalog-pointer-dragging .n-popover {
   border-color: transparent !important;
   background: transparent !important;
   box-shadow: none !important;
+  outline: none !important;
 }
 .application-page-block.dragging::after {
   border-color: transparent;
@@ -667,11 +715,12 @@ body.is-catalog-pointer-dragging .n-popover {
 }
 .page-block-node-overlay {
   position: absolute;
-  z-index: 3;
+  z-index: 49;
+  /* 放在卡片内顶边下方，避开顶边中心缩放锚点，也不要飘到画布上方 */
   top: 6px;
   right: 6px;
   left: 6px;
-  height: 24px;
+  height: 18px;
   /* 操作条仅在悬停/选中时挂载，挂载即可见 */
   opacity: 1;
   /* 透明的整条覆盖层不能抢走标题/富文本的第一次点击。 */
@@ -686,14 +735,14 @@ body.is-catalog-pointer-dragging .n-popover {
 .page-block-menu-trigger {
   display: grid;
   position: absolute;
-  width: 26px;
-  height: 24px;
+  width: 18px;
+  height: 16px;
   place-items: center;
-  border: 1px solid #b7d0ff;
-  border-radius: 5px;
+  border: 1px solid #bfdbfe;
+  border-radius: 4px;
   background: #eff6ff;
   color: #1d4ed8;
-  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.14);
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.16);
 }
 .page-block-drag-handle {
   top: 0;
@@ -705,11 +754,11 @@ body.is-catalog-pointer-dragging .n-popover {
   display: none;
 }
 .page-block-drag-handle::before {
-  width: 17px;
-  height: 10px;
-  background-image: radial-gradient(circle at 1.5px 1.5px, currentColor 1.5px, transparent 1.7px);
+  width: 11px;
+  height: 7px;
+  background-image: radial-gradient(circle at 1px 1px, currentColor 1px, transparent 1.15px);
   background-position: 0 0;
-  background-size: 7px 7px;
+  background-size: 4.5px 4.5px;
   content: '';
 }
 .page-block-menu-trigger {
@@ -852,13 +901,25 @@ body.is-catalog-pointer-dragging .n-popover {
   min-height: 0;
 }
 
-/* 栅格/卡片等容器：壳 height:auto，内部跟内容撑开，选中框才能贴底 */
+/* 栅格/卡片等容器：吃满外层壳。壳锁高时可把子块压矮；溢出必须裁切，否则会盖住底边选中线 */
 .application-page-block[data-page-block-type='grid-layout'] :deep(.grid-block),
 .application-page-block[data-page-block-type='card'] :deep(.grid-block),
+.application-page-block[data-page-block-type='panel-box'] :deep(.grid-block),
 .application-page-block[data-page-block-type='box-layout'] :deep(.grid-block),
 .application-page-block[data-page-block-type='tabs'] :deep(.grid-block) {
-  height: auto !important;
-  min-height: 100%;
+  height: 100% !important;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+/* 嵌套子块选中时放开裁切，子锚点可伸出 */
+.application-page-block[data-page-block-type='card']:has(.container-child-item.selected) :deep(.grid-block),
+.application-page-block[data-page-block-type='panel-box']:has(.container-child-item.selected) :deep(.grid-block),
+.application-page-block[data-page-block-type='box-layout']:has(.container-child-item.selected) :deep(.grid-block),
+.application-page-block[data-page-block-type='card']:has(.container-child-item:hover) :deep(.grid-block),
+.application-page-block[data-page-block-type='panel-box']:has(.container-child-item:hover) :deep(.grid-block),
+.application-page-block[data-page-block-type='box-layout']:has(.container-child-item:hover) :deep(.grid-block) {
   overflow: visible;
 }
 
@@ -878,7 +939,7 @@ body.is-catalog-pointer-dragging .n-popover {
 }
 .page-block-resize-anchor {
   position: absolute;
-  z-index: 48;
+  z-index: 62;
   width: 10px;
   height: 10px;
   border: 2px solid #fff;
@@ -899,9 +960,10 @@ body.is-catalog-pointer-dragging .n-popover {
   cursor: nwse-resize;
 }
 .anchor-top {
+  /* 顶边中心锚点：水平居中压在选中线上；拖拽把手已抬到 -28px，二者不再重叠 */
   top: -7px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, 0);
   cursor: ns-resize;
 }
 .anchor-top-right {
@@ -923,8 +985,9 @@ body.is-catalog-pointer-dragging .n-popover {
 .anchor-bottom {
   bottom: -7px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, 0);
   cursor: ns-resize;
+  z-index: 62;
 }
 .anchor-bottom-left {
   bottom: -7px;
@@ -1585,7 +1648,27 @@ body.is-catalog-pointer-dragging .n-popover {
     grid-template-columns: 1fr;
     height: auto;
     min-height: 56px;
+    row-gap: 8px;
     padding-block: 8px;
+  }
+  .runtime-brand {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .runtime-brand-title {
+    max-width: min(220px, 56vw);
+  }
+  .runtime-app-tabs {
+    justify-self: start;
+    flex-wrap: wrap;
+    height: auto;
+    row-gap: 4px;
+  }
+  .runtime-app-tab {
+    height: 36px;
+  }
+  .runtime-app-tab.active::after {
+    bottom: 2px;
   }
   .runtime-header-actions {
     order: 2;

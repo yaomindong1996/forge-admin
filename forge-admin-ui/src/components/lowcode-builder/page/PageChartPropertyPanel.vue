@@ -9,6 +9,7 @@ import {
   parseChartOptionOverrides,
   stringifyChartOptionOverrides,
   buildPageChartOption,
+  resolvePageChartType,
 } from './page-chart-option'
 
 const props = defineProps({
@@ -28,8 +29,18 @@ const optionText = ref('')
 const optionError = ref('')
 const optionSynced = ref(true)
 
-const isLine = computed(() => props.block?.blockType === 'line-chart')
+const chartKind = computed(() => resolvePageChartType(props.block?.blockType || props.block?.props?.chartType || 'bar'))
+const isLine = computed(() => chartKind.value === 'line' || chartKind.value === 'area')
+const isArea = computed(() => chartKind.value === 'area')
+const isPie = computed(() => chartKind.value === 'pie')
+const isBar = computed(() => chartKind.value === 'bar')
 const chartProps = computed(() => props.block?.props || {})
+
+const roseTypeOptions = [
+  { label: '普通饼图', value: 'none' },
+  { label: '南丁格尔（半径）', value: 'radius' },
+  { label: '南丁格尔（面积）', value: 'area' },
+]
 const seriesList = computed(() => Array.isArray(chartProps.value.series) ? chartProps.value.series : [])
 const isFullWidth = computed(() => {
   const mode = chartProps.value.style?.widthMode || 'full'
@@ -131,13 +142,13 @@ function onColorAt(index, value) {
 }
 
 function fillOptionFromCurrent() {
-  const option = buildPageChartOption(isLine.value ? 'line' : 'bar', {
+  const option = buildPageChartOption(chartKind.value, {
     title: chartProps.value.title,
     categories: chartProps.value.categories,
     series: chartProps.value.series,
     showLegend: chartProps.value.showLegend,
     smooth: chartProps.value.smooth,
-    showArea: chartProps.value.showArea,
+    showArea: isArea.value || chartProps.value.showArea,
     colors: chartProps.value.colors,
     legendPosition: chartProps.value.legendPosition,
     barMaxWidth: chartProps.value.barMaxWidth,
@@ -149,6 +160,15 @@ function fillOptionFromCurrent() {
     gridLeft: chartProps.value.gridLeft,
     gridRight: chartProps.value.gridRight,
     gridBottom: chartProps.value.gridBottom,
+    doughnut: chartProps.value.doughnut,
+    pieVariant: chartProps.value.pieVariant,
+    innerRadius: chartProps.value.innerRadius,
+    outerRadius: chartProps.value.outerRadius,
+    roseType: chartProps.value.roseType,
+    showLabel: chartProps.value.showLabel,
+    showPercent: chartProps.value.showPercent,
+    pieBorderRadius: chartProps.value.pieBorderRadius,
+    pieBorderWidth: chartProps.value.pieBorderWidth,
   })
   // 给用户可编辑的「覆盖层」草稿：去掉 data，避免和数据源打架
   const draft = { ...option }
@@ -280,7 +300,86 @@ function onOptionInput(value) {
             @update:value="patch({ legendPosition: $event || 'top-right' })"
           />
         </label>
-        <template v-if="isLine">
+        <template v-if="isPie">
+          <div class="chart-prop-switch-row">
+            <span>环形图</span>
+            <n-switch
+              :value="chartProps.doughnut === true || chartProps.pieVariant === 'doughnut'"
+              size="small"
+              @update:value="patch({ doughnut: $event, pieVariant: $event ? 'doughnut' : 'pie' })"
+            />
+          </div>
+          <label class="chart-prop-field">
+            <span>内径 %</span>
+            <n-input-number
+              :value="Number(chartProps.innerRadius ?? 48)"
+              :min="0"
+              :max="70"
+              size="small"
+              style="width: 100%"
+              @update:value="patch({ innerRadius: $event ?? 48 })"
+            />
+          </label>
+          <label class="chart-prop-field">
+            <span>外径 %</span>
+            <n-input-number
+              :value="Number(chartProps.outerRadius ?? 68)"
+              :min="20"
+              :max="90"
+              size="small"
+              style="width: 100%"
+              @update:value="patch({ outerRadius: $event ?? 68 })"
+            />
+          </label>
+          <label class="chart-prop-field">
+            <span>南丁格尔图</span>
+            <n-select
+              :value="chartProps.roseType || 'none'"
+              :options="roseTypeOptions"
+              size="small"
+              @update:value="patch({ roseType: $event || 'none' })"
+            />
+          </label>
+          <div class="chart-prop-switch-row">
+            <span>显示标签</span>
+            <n-switch
+              :value="chartProps.showLabel !== false"
+              size="small"
+              @update:value="patch({ showLabel: $event })"
+            />
+          </div>
+          <div class="chart-prop-switch-row">
+            <span>显示百分比</span>
+            <n-switch
+              :value="chartProps.showPercent !== false"
+              size="small"
+              @update:value="patch({ showPercent: $event })"
+            />
+          </div>
+          <label class="chart-prop-field">
+            <span>扇区圆角</span>
+            <n-input-number
+              :value="Number(chartProps.pieBorderRadius ?? 4)"
+              :min="0"
+              :max="12"
+              size="small"
+              style="width: 100%"
+              @update:value="patch({ pieBorderRadius: $event ?? 4 })"
+            />
+          </label>
+          <label class="chart-prop-field">
+            <span>扇区间隙</span>
+            <n-input-number
+              :value="Number(chartProps.pieBorderWidth ?? 2)"
+              :min="0"
+              :max="6"
+              size="small"
+              style="width: 100%"
+              @update:value="patch({ pieBorderWidth: $event ?? 2 })"
+            />
+          </label>
+        </template>
+        <template v-else-if="isLine">
           <div class="chart-prop-switch-row">
             <span>平滑曲线</span>
             <n-switch
@@ -289,7 +388,7 @@ function onOptionInput(value) {
               @update:value="patch({ smooth: $event })"
             />
           </div>
-          <div class="chart-prop-switch-row">
+          <div v-if="!isArea" class="chart-prop-switch-row">
             <span>面积填充</span>
             <n-switch
               :value="chartProps.showArea === true"
@@ -297,16 +396,16 @@ function onOptionInput(value) {
               @update:value="patch({ showArea: $event })"
             />
           </div>
-          <label v-if="chartProps.showArea" class="chart-prop-field">
+          <label v-if="isArea || chartProps.showArea" class="chart-prop-field">
             <span>面积透明度</span>
             <n-input-number
-              :value="Number(chartProps.areaOpacity ?? 0.12)"
+              :value="Number(chartProps.areaOpacity ?? (isArea ? 0.22 : 0.12))"
               :min="0.04"
-              :max="0.4"
+              :max="0.45"
               :step="0.02"
               size="small"
               style="width: 100%"
-              @update:value="patch({ areaOpacity: $event ?? 0.12 })"
+              @update:value="patch({ areaOpacity: $event ?? (isArea ? 0.22 : 0.12) })"
             />
           </label>
           <label class="chart-prop-field">
@@ -321,7 +420,7 @@ function onOptionInput(value) {
             />
           </label>
         </template>
-        <label v-else class="chart-prop-field">
+        <label v-else-if="isBar" class="chart-prop-field">
           <span>柱宽上限</span>
           <n-input-number
             :value="Number(chartProps.barMaxWidth || 36)"
@@ -332,69 +431,71 @@ function onOptionInput(value) {
             @update:value="patch({ barMaxWidth: $event || 36 })"
           />
         </label>
-        <label class="chart-prop-field">
-          <span>分类标签旋转</span>
-          <n-input-number
-            :value="Number(chartProps.categoryLabelRotate || 0)"
-            :min="0"
-            :max="60"
-            size="small"
-            style="width: 100%"
-            @update:value="patch({ categoryLabelRotate: $event || 0 })"
-          />
-        </label>
-        <label class="chart-prop-field">
-          <span>Y 轴名称</span>
-          <n-input
-            :value="chartProps.yAxisName || ''"
-            size="small"
-            placeholder="可选，如 数量"
-            @update:value="patch({ yAxisName: $event || '' })"
-          />
-        </label>
-        <div class="chart-prop-switch-row">
-          <span>网格线</span>
-          <n-switch
-            :value="chartProps.showSplitLine !== false"
-            size="small"
-            @update:value="patch({ showSplitLine: $event })"
-          />
-        </div>
-        <div class="chart-prop-field">
-          <span>绘图区内边距</span>
-          <div class="chart-prop-grid-row">
-            <label>
-              <em>左</em>
-              <n-input-number
-                :value="Number(chartProps.gridLeft ?? 8)"
-                :min="0"
-                :max="80"
-                size="tiny"
-                @update:value="patch({ gridLeft: $event ?? 8 })"
-              />
-            </label>
-            <label>
-              <em>右</em>
-              <n-input-number
-                :value="Number(chartProps.gridRight ?? 12)"
-                :min="0"
-                :max="80"
-                size="tiny"
-                @update:value="patch({ gridRight: $event ?? 12 })"
-              />
-            </label>
-            <label>
-              <em>底</em>
-              <n-input-number
-                :value="Number(chartProps.gridBottom ?? 8)"
-                :min="0"
-                :max="80"
-                size="tiny"
-                @update:value="patch({ gridBottom: $event ?? 8 })"
-              />
-            </label>
+        <template v-if="!isPie">
+          <label class="chart-prop-field">
+            <span>分类标签旋转</span>
+            <n-input-number
+              :value="Number(chartProps.categoryLabelRotate || 0)"
+              :min="0"
+              :max="60"
+              size="small"
+              style="width: 100%"
+              @update:value="patch({ categoryLabelRotate: $event || 0 })"
+            />
+          </label>
+          <label class="chart-prop-field">
+            <span>Y 轴名称</span>
+            <n-input
+              :value="chartProps.yAxisName || ''"
+              size="small"
+              placeholder="可选，如 数量"
+              @update:value="patch({ yAxisName: $event || '' })"
+            />
+          </label>
+          <div class="chart-prop-switch-row">
+            <span>网格线</span>
+            <n-switch
+              :value="chartProps.showSplitLine !== false"
+              size="small"
+              @update:value="patch({ showSplitLine: $event })"
+            />
           </div>
-        </div>
+          <div class="chart-prop-field">
+            <span>绘图区内边距</span>
+            <div class="chart-prop-grid-row">
+              <label>
+                <em>左</em>
+                <n-input-number
+                  :value="Number(chartProps.gridLeft ?? 8)"
+                  :min="0"
+                  :max="80"
+                  size="tiny"
+                  @update:value="patch({ gridLeft: $event ?? 8 })"
+                />
+              </label>
+              <label>
+                <em>右</em>
+                <n-input-number
+                  :value="Number(chartProps.gridRight ?? 12)"
+                  :min="0"
+                  :max="80"
+                  size="tiny"
+                  @update:value="patch({ gridRight: $event ?? 12 })"
+                />
+              </label>
+              <label>
+                <em>底</em>
+                <n-input-number
+                  :value="Number(chartProps.gridBottom ?? 8)"
+                  :min="0"
+                  :max="80"
+                  size="tiny"
+                  @update:value="patch({ gridBottom: $event ?? 8 })"
+                />
+              </label>
+            </div>
+          </div>
+        </template>
         <div class="chart-prop-field">
           <span>系列配色</span>
           <div class="chart-color-row">

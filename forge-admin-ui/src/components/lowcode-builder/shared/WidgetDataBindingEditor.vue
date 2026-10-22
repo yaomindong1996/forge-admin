@@ -23,6 +23,8 @@ const props = defineProps({
   /** 当前组件类型，用于只展示本组件可赋值槽位 */
   blockType: { type: String, default: '' },
   showMappingFields: { type: Boolean, default: true },
+  /** 隐藏顶部长说明（详情等专用面板已有更短提示时用） */
+  hideIntroHelp: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -290,8 +292,8 @@ function suggestArrayDataPath() {
 
 <template>
   <div class="widget-data-binding-editor">
-    <div class="field-help">
-      静态配置用下方「组件内容」。选「当前详情/表单数据」后给本组件各项点选字段；页面暂无详情时预览会用字段示例值。
+    <div v-if="!hideIntroHelp" class="field-help">
+      静态配置用下方「组件内容」。选「当前详情/表单数据」后点选字段；无详情时预览用示例值。
     </div>
 
     <div class="data-source-row">
@@ -494,7 +496,7 @@ function suggestArrayDataPath() {
         <n-input
           :value="binding.api || ''"
           clearable
-          placeholder="例如 /api/order/detail/{{ id }}"
+          placeholder="如 /ai/crud/对象名/{{ id }}"
           @update:value="patch({ api: $event || '' })"
         />
       </div>
@@ -532,7 +534,7 @@ function suggestArrayDataPath() {
           :value="binding.paramsText || '{}'"
           type="textarea"
           :rows="3"
-          placeholder='{ "id": "{{ id }}" }，可引用当前详情数据'
+          placeholder='{ "id": "{{ id }}" }'
           @update:value="patch({ paramsText: $event || '{}' })"
         />
       </div>
@@ -667,15 +669,17 @@ function suggestArrayDataPath() {
   width: 100%;
 }
 .field-help {
+  margin: 0;
   color: var(--text-tertiary);
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 11px;
+  line-height: 1.4;
 }
 .field-help code {
-  padding: 0 4px;
-  border-radius: 4px;
+  padding: 0 3px;
+  border-radius: 3px;
   background: var(--bg-tertiary);
   color: var(--text-secondary);
+  font-size: 10px;
 }
 .data-source-row {
   display: grid;

@@ -273,9 +273,11 @@ const portalFlowStyle = computed(() => {
     padding: pagePaddingCss.value,
     ...surface,
   }
-  // 绝对自由布局需要按 pageFlow 坐标撑开画布高度（含 fillHost 宿主场景）
+  // 绝对自由布局按内容撑开；同时至少铺满宿主，避免整页背景色下方留白
   if (!contentSizedFlow.value)
-    style.minHeight = `${pageHeight.value}px`
+    style.minHeight = `max(${pageHeight.value}px, 100%)`
+  else
+    style.minHeight = '100%'
   return style
 })
 
@@ -730,7 +732,7 @@ function resolveBlockShellStyle(block, index) {
   const customHeight = finiteNumber(style.pageFlowHeight, readLength(style.height) || resolveDefaultBlockHeight(block))
   const runtimeAutoHeight = isRuntimeAutoHeightBlock(block) && heightMode !== 'fixed'
   const contentSized = contentSizedFlow.value
-  const isContainer = ['grid-layout', 'card', 'box-layout', 'tabs'].includes(block.blockType)
+  const isContainer = ['grid-layout', 'card', 'panel-box', 'box-layout', 'tabs'].includes(block.blockType)
   const isListCrud = ['AiCrudPage', 'AiTable', 'data-table'].includes(block.blockType) && !runtimeAutoHeight
 
   // 文档流：彻底丢掉 pageFlowX/Y，避免 top 残留把块钉死在旧坐标
@@ -846,6 +848,8 @@ function readLength(value) {
 <style scoped>
 .portal-page-renderer {
   position: relative;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 100%;
 }

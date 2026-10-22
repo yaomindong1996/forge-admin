@@ -702,6 +702,9 @@ function sanitizeBlockStyle(style = {}, blockType = '') {
     next.width = 320
   if (!['fixed', 'auto', 'full'].includes(next.heightMode))
     next.heightMode = 'fixed'
+  // 存量表单/详情若仍是 fixed，统一改为 auto，避免矮壳裁切字段
+  if (['AiForm', 'detail-info'].includes(blockType) && next.heightMode === 'fixed')
+    next.heightMode = 'auto'
   return next
 }
 
@@ -894,7 +897,7 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
       },
       columns: 24,
       gutter: 16,
-      cellMinHeight: 120,
+      cellMinHeight: 160,
       alignItems: 'stretch',
       justifyItems: 'stretch',
       showCellBorder: true,
@@ -913,10 +916,35 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
     base.props = {
       ...base.props,
       title: '详情信息',
+      showTitle: true,
       columnCount: 2,
       labelPlacement: 'left',
-      bordered: false,
+      labelAlign: 'left',
+      labelWidth: 100,
+      size: 'medium',
+      // 默认走 Naive Descriptions 边框表格式，观感更接近详情页
+      bordered: true,
+      separator: ':',
+      contentWrap: true,
       fieldSettings: {},
+      // 与图表等组件同一套 dataBinding；legacy detailApi 仍同步写入便于存量回退
+      dataSourceType: 'remote',
+      detailApi: '',
+      detailMethod: 'get',
+      dataPath: 'data',
+      paramsText: '{ "id": "{{ id }}" }',
+      dataBinding: {
+        enabled: true,
+        sourceType: 'remote',
+        api: '',
+        method: 'get',
+        dataPath: 'data',
+        paramsText: '{ "id": "{{ id }}" }',
+      },
+      style: {
+        ...(base.props?.style || {}),
+        heightMode: 'auto',
+      },
     }
   }
   if (blockType === 'search-form') {
@@ -978,7 +1006,7 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
       labelAlign: 'right',
       size: 'medium',
       xGap: 12,
-      yGap: 0,
+      yGap: 12,
       showActions: true,
       showSubmit: true,
       showReset: true,
@@ -987,10 +1015,15 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
       resetText: '重置',
       cancelText: '取消',
       enableCollapse: false,
-      maxVisibleFields: 6,
+      maxVisibleFields: 40,
       showFeedback: true,
+      createApi: '',
+      style: {
+        ...(base.props?.style || {}),
+        heightMode: 'auto',
+      },
     }
-    base.fieldRefs = filterPageFields(fields, 'table').slice(0, 6).map(f => f.field)
+    base.fieldRefs = filterPageFields(fields, 'table').slice(0, 12).map(f => f.field)
   }
   if (blockType === 'tree-panel') {
     base.props = { ...base.props, ...resolveDefaultTreeConfig(modelSchema) }
@@ -1042,25 +1075,36 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
       },
     }
   }
-  if (blockType === 'bar-chart' || blockType === 'line-chart') {
+  if (blockType === 'bar-chart' || blockType === 'line-chart' || blockType === 'area-chart' || blockType === 'pie-chart') {
     const isLine = blockType === 'line-chart'
+    const isArea = blockType === 'area-chart'
+    const isPie = blockType === 'pie-chart'
     base.props = {
       ...base.props,
-      title: isLine ? '趋势折线图' : '分类柱状图',
+      title: isPie ? '占比饼图' : isArea ? '趋势面积图' : isLine ? '趋势折线图' : '分类柱状图',
       height: 260,
       showLegend: true,
       legendPosition: 'top-right',
       smooth: true,
-      showArea: false,
-      showSplitLine: true,
+      showArea: isArea,
+      showSplitLine: !isPie,
       barMaxWidth: 36,
       categoryLabelRotate: 0,
       yAxisName: '',
       symbolSize: 6,
-      areaOpacity: 0.12,
+      areaOpacity: isArea ? 0.22 : 0.12,
       gridLeft: 8,
       gridRight: 12,
       gridBottom: 8,
+      doughnut: false,
+      pieVariant: 'pie',
+      innerRadius: 48,
+      outerRadius: 68,
+      roseType: 'none',
+      showLabel: true,
+      showPercent: true,
+      pieBorderRadius: 4,
+      pieBorderWidth: 2,
       colors: ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
       optionOverrides: null,
       dataBinding: createWidgetDataBinding('items', {
@@ -1069,23 +1113,127 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
         valueField: 'value',
         metaField: 'series',
       }),
-      categories: isLine
-        ? ['1月', '2月', '3月', '4月', '5月', '6月']
-        : ['类型A', '类型B', '类型C', '类型D'],
-      series: isLine
-        ? [
-            { name: '申请数', data: [8, 12, 10, 16, 14, 18] },
-            { name: '通过数', data: [6, 9, 8, 12, 11, 15] },
-          ]
-        : [
-            { name: '数量', data: [18, 12, 9, 6] },
-          ],
+      categories: isPie
+        ? ['年假', '事假', '病假', '调休']
+        : (isLine || isArea)
+          ? ['1月', '2月', '3月', '4月', '5月', '6月']
+          : ['类型A', '类型B', '类型C', '类型D'],
+      series: isPie
+        ? [{ name: '占比', data: [36, 22, 18, 14] }]
+        : (isLine || isArea)
+          ? [
+              { name: '申请数', data: [8, 12, 10, 16, 14, 18] },
+              { name: '通过数', data: [6, 9, 8, 12, 11, 15] },
+            ]
+          : [
+              { name: '数量', data: [18, 12, 9, 6] },
+            ],
       style: {
         ...(base.props?.style || {}),
         widthMode: 'full',
         heightMode: 'fixed',
         height: 300,
         minHeight: 300,
+      },
+    }
+  }
+  if (blockType === 'workflow-task-list') {
+    base.props = {
+      ...base.props,
+      title: '我的待办/已办',
+      subtitle: '点击任务可进入办理',
+      mode: 'both',
+      pageSize: 6,
+      compact: false,
+      showHeader: true,
+      showTabs: true,
+      showSearch: false,
+      showStatus: true,
+      showNode: true,
+      showApplicant: true,
+      showTime: true,
+      showRefresh: true,
+      showMoreLink: true,
+      accentColor: '#2563eb',
+      emptyText: '',
+      todoPath: '/flow/todo',
+      donePath: '/flow/done',
+      previewItems: [
+        { title: '请假申请审批', taskName: '部门经理审批', startUserName: '张三', createTime: '2026-10-21 09:30', status: 1 },
+        { title: '加班申请审批', taskName: '待签收', startUserName: '李四', createTime: '2026-10-20 16:12', status: 0 },
+      ],
+      style: {
+        ...(base.props?.style || {}),
+        widthMode: 'full',
+        heightMode: 'fixed',
+        height: 360,
+        minHeight: 280,
+      },
+    }
+  }
+  if (blockType === 'notice-board') {
+    base.props = {
+      ...base.props,
+      title: '通知公告',
+      subtitle: '最新消息与系统公告',
+      pageSize: 6,
+      compact: false,
+      variant: 'list',
+      density: 'comfortable',
+      showHeader: true,
+      showFilterTabs: true,
+      showUnreadBadge: true,
+      showUnreadDot: true,
+      showTypeTag: true,
+      showSummary: true,
+      showSender: false,
+      showTime: true,
+      showRefresh: true,
+      showMarkAll: true,
+      showMoreLink: true,
+      accentColor: '#2563eb',
+      unreadOnly: false,
+      markReadOnOpen: true,
+      emptyText: '',
+      morePath: '/message',
+      previewItems: [
+        { title: '系统维护通知', content: '本周六 2:00-4:00 进行例行维护。', createTime: '2026-10-21 10:00', readFlag: 0, messageType: 'system' },
+        { title: '流程上线公告', content: '请假流程 V2 已发布，请知悉。', createTime: '2026-10-20 15:20', readFlag: 1, messageType: 'notice' },
+      ],
+      style: {
+        ...(base.props?.style || {}),
+        widthMode: 'full',
+        heightMode: 'fixed',
+        height: 360,
+        minHeight: 280,
+      },
+    }
+  }
+  if (blockType === 'welcome-banner') {
+    base.props = {
+      ...base.props,
+      title: '',
+      subtitle: '今天也要高效推进工作',
+      greetingPrefix: '',
+      tone: 'primary',
+      compact: false,
+      showAvatar: true,
+      showDate: true,
+      showCta: true,
+      ctaText: '去办理',
+      ctaPath: '/flow/todo',
+      backgroundMode: 'gradient',
+      backgroundColor: '#eff6ff',
+      gradientFrom: '#eff6ff',
+      gradientTo: '#ffffff',
+      gradientAngle: 135,
+      backgroundImage: '',
+      backgroundSize: 'cover',
+      style: {
+        ...(base.props?.style || {}),
+        widthMode: 'full',
+        heightMode: 'auto',
+        height: 120,
       },
     }
   }
@@ -1380,6 +1528,33 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
       },
       title: '卡片标题',
       content: '',
+      showTitleAccent: true,
+      titleAccentColor: '#2563eb',
+      titleFontSize: 14,
+      titleFontWeight: '700',
+      backgroundMode: 'solid',
+      backgroundColor: '',
+      contentPadding: 12,
+      bordered: true,
+    }
+    base.children = []
+  }
+  if (blockType === 'panel-box') {
+    base.props = {
+      ...base.props,
+      style: {
+        ...(base.props?.style || {}),
+        heightMode: 'auto',
+      },
+      title: '',
+      minHeight: 160,
+      minWidth: 0,
+      contentPadding: 12,
+      borderRadius: 8,
+      bordered: true,
+      borderColor: '#e4e4e7',
+      backgroundMode: 'solid',
+      backgroundColor: '#ffffff',
     }
     base.children = []
   }

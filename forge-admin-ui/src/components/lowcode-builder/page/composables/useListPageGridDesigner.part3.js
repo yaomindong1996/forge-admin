@@ -436,7 +436,7 @@ function resolveClosestContainerBlock(target) {
 }
 
 function isContainerBlock(block = {}) {
-  return ['card', 'tabs', 'grid-layout', 'box-layout'].includes(block?.blockType)
+  return ['card', 'panel-box', 'tabs', 'grid-layout', 'box-layout'].includes(block?.blockType)
 }
 
 function appendContainerChild(containerId, blockType, cellKey = '', tabKey = '') {
@@ -880,7 +880,7 @@ function applyGridLayoutPreset(presetKey) {
       title: def.title || prev?.title || `栅格 ${index + 1}`,
       span: clamp(Number(def.span) || 1, 1, columns),
       children: Array.isArray(prev?.children) ? prev.children : [],
-      minHeight: prev?.minHeight || Number(selectedBlock.value.props?.cellMinHeight || 120),
+      minHeight: prev?.minHeight || Number(selectedBlock.value.props?.cellMinHeight || 160),
     }
   })
   // 多余旧格子的子组件并入最后一个格子，避免丢组件

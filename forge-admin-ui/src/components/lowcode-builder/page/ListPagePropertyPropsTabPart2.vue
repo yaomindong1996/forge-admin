@@ -2,6 +2,9 @@
             <div v-show="propertyPanelTab === 'props'" class="property-tab-content">
               <!-- Search / Table 字段配置 -->
               <template v-if="isFieldConfigurableBlock(selectedBlock.blockType)">
+                <p v-if="selectedBlock.blockType === 'data-table'" class="property-inline-tip">
+                  列表数据来自「数据」Tab 绑定的业务对象；下方只配展示字段。
+                </p>
                 <n-form-item :label="resolveFieldConfigLabel(selectedBlock.blockType)">
                   <n-button size="small" type="primary" secondary @click="openFieldDrawer('table')">
                     {{ selectedBlock.blockType === 'AiCrudPage' ? '配置列表字段' : '配置字段' }}（{{ selectedBlock.fieldRefs?.length || 0 }}/{{ fields.length }}）
@@ -79,6 +82,79 @@
                     @update:value="patchBlockProps(selectedBlock.id, { title: $event })"
                   />
                 </n-form-item>
+                <!-- 数据表单：列数/标签等常用项提到折叠外，避免被收进「接口与数据源」找不到 -->
+                <template v-if="selectedBlock.blockType === 'AiForm'">
+                  <p class="property-inline-tip">
+                    先在「数据」Tab 绑业务对象生成字段；下方调列数与标签，高度随字段自适应。
+                  </p>
+                  <n-form-item label="表单列数">
+                    <n-input-number
+                      :value="selectedBlock.props?.gridCols || 2"
+                      :min="1"
+                      :max="4"
+                      :show-button="false"
+                      @update:value="patchBlockProps(selectedBlock.id, { gridCols: $event || 2 })"
+                    />
+                  </n-form-item>
+                  <n-form-item label="标签位置 / 对齐 / 宽度">
+                    <div class="style-grid three">
+                      <n-select
+                        :value="selectedBlock.props?.labelPlacement || 'left'"
+                        :options="labelPlacementOptions"
+                        @update:value="patchBlockProps(selectedBlock.id, { labelPlacement: $event || 'left' })"
+                      />
+                      <n-select
+                        :value="selectedBlock.props?.labelAlign || 'right'"
+                        :options="labelAlignOptions"
+                        @update:value="patchBlockProps(selectedBlock.id, { labelAlign: $event || 'right' })"
+                      />
+                      <n-input-number
+                        :value="toNumberOrNull(selectedBlock.props?.labelWidth) ?? 100"
+                        :min="0"
+                        :max="260"
+                        :show-button="false"
+                        @update:value="patchBlockProps(selectedBlock.id, { labelWidth: $event ?? 100 })"
+                      />
+                    </div>
+                  </n-form-item>
+                  <n-form-item label="尺寸 / 行距 / 列距">
+                    <div class="style-grid three">
+                      <n-select
+                        :value="selectedBlock.props?.size || 'medium'"
+                        :options="componentSizeOptions"
+                        @update:value="patchBlockProps(selectedBlock.id, { size: $event || 'medium' })"
+                      />
+                      <n-input-number
+                        :value="selectedBlock.props?.yGap ?? 12"
+                        :min="0"
+                        :max="48"
+                        :show-button="false"
+                        placeholder="行距"
+                        @update:value="patchBlockProps(selectedBlock.id, { yGap: $event ?? 12 })"
+                      />
+                      <n-input-number
+                        :value="selectedBlock.props?.xGap ?? 12"
+                        :min="0"
+                        :max="48"
+                        :show-button="false"
+                        placeholder="列距"
+                        @update:value="patchBlockProps(selectedBlock.id, { xGap: $event ?? 12 })"
+                      />
+                    </div>
+                  </n-form-item>
+                  <n-form-item label="提交接口">
+                    <n-input
+                      :value="selectedBlock.props?.createApi || defaultApiValues.createApi"
+                      :placeholder="defaultApiValues.createApi"
+                      @update:value="patchBlockProps(selectedBlock.id, { createApi: $event || '' })"
+                    />
+                  </n-form-item>
+                  <n-form-item label="表单字段">
+                    <n-button size="small" type="primary" secondary @click="openFieldDrawer('table')">
+                      配置字段（{{ selectedBlock.fieldRefs?.length || 0 }}/{{ fields.length }}）
+                    </n-button>
+                  </n-form-item>
+                </template>
                 <template v-if="selectedBlock.blockType === 'AiCrudPage'">
                   <n-form-item label="空态标题">
                     <n-input
@@ -266,50 +342,22 @@
                         </div>
                       </n-form-item>
                     </template>
-                    <template v-else>
-                      <n-form-item label="表单布局">
-                        <div class="style-grid three">
-                          <n-input-number
-                            :value="selectedBlock.props?.gridCols || 2"
-                            :min="1"
-                            :max="4"
-                            :show-button="false"
-                            @update:value="patchBlockProps(selectedBlock.id, { gridCols: $event || 2 })"
-                          />
-                          <n-select
-                            :value="selectedBlock.props?.labelPlacement || 'left'"
-                            :options="labelPlacementOptions"
-                            @update:value="patchBlockProps(selectedBlock.id, { labelPlacement: $event || 'left' })"
-                          />
-                          <n-select
-                            :value="selectedBlock.props?.labelAlign || 'right'"
-                            :options="labelAlignOptions"
-                            @update:value="patchBlockProps(selectedBlock.id, { labelAlign: $event || 'right' })"
-                          />
-                        </div>
+                    <template v-else-if="selectedBlock.blockType === 'AiForm'">
+                      <n-form-item label="提交接口（可覆盖上方）">
+                        <n-input
+                          :value="selectedBlock.props?.createApi || defaultApiValues.createApi"
+                          :placeholder="defaultApiValues.createApi"
+                          @update:value="patchBlockProps(selectedBlock.id, { createApi: $event || '' })"
+                        />
                       </n-form-item>
-                      <n-form-item label="标签宽度 / 尺寸">
-                        <div class="style-grid three">
-                          <n-input-number
-                            :value="toNumberOrNull(selectedBlock.props?.labelWidth) ?? 100"
-                            :min="0"
-                            :max="260"
-                            :show-button="false"
-                            @update:value="patchBlockProps(selectedBlock.id, { labelWidth: $event ?? 100 })"
-                          />
-                          <n-select
-                            :value="selectedBlock.props?.size || 'medium'"
-                            :options="componentSizeOptions"
-                            @update:value="patchBlockProps(selectedBlock.id, { size: $event || 'medium' })"
-                          />
-                          <n-input-number
-                            :value="selectedBlock.props?.maxVisibleFields || 6"
-                            :min="1"
-                            :max="40"
-                            :show-button="false"
-                            @update:value="patchBlockProps(selectedBlock.id, { maxVisibleFields: $event || 6 })"
-                          />
-                        </div>
+                      <n-form-item label="折叠时最多显示字段数">
+                        <n-input-number
+                          :value="selectedBlock.props?.maxVisibleFields ?? 40"
+                          :min="1"
+                          :max="80"
+                          :show-button="false"
+                          @update:value="patchBlockProps(selectedBlock.id, { maxVisibleFields: $event || 40 })"
+                        />
                       </n-form-item>
                     </template>
                   </n-collapse-item>
@@ -1032,13 +1080,13 @@
                           @update:value="patchBlockProps(selectedBlock.id, { xGap: $event ?? 12 })"
                         />
                         <n-input-number
-                          :value="selectedBlock.props?.yGap ?? 0"
-                          :min="0"
-                          :max="48"
-                          :show-button="false"
-                          placeholder="行距"
-                          @update:value="patchBlockProps(selectedBlock.id, { yGap: $event ?? 0 })"
-                        />
+                        :value="selectedBlock.props?.yGap ?? 12"
+                        :min="0"
+                        :max="48"
+                        :show-button="false"
+                        placeholder="行距"
+                        @update:value="patchBlockProps(selectedBlock.id, { yGap: $event ?? 12 })"
+                      />
                       </div>
                     </n-form-item>
                     <n-form-item label="显示项">
@@ -1371,7 +1419,8 @@
                 </div>
               </template>
 
-              <template v-if="localDataBindableBlockTypes.includes(selectedBlock.blockType)">
+              <!-- detail-info 在下方专用区挂同一套编辑器（关槽位映射 + 填入对象接口） -->
+              <template v-if="localDataBindableBlockTypes.includes(selectedBlock.blockType) && selectedBlock.blockType !== 'detail-info'">
                 <n-form-item label="数据来源">
                   <WidgetDataBindingEditor
                     :model-value="selectedBlock.props?.dataBinding || {}"
@@ -1401,9 +1450,9 @@
                 @patch-props="patchBlockProps(selectedBlock.id, $event)"
               />
 
-              <!-- 柱状图 / 折线图 -->
+              <!-- 柱状图 / 折线图 / 面积图 / 饼图 -->
               <PageChartPropertyPanel
-                v-if="selectedBlock.blockType === 'bar-chart' || selectedBlock.blockType === 'line-chart'"
+                v-if="['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(selectedBlock.blockType)"
                 :block="selectedBlock"
                 :list-bound="isChartListMode(selectedBlock)"
                 @patch-props="patchBlockProps(selectedBlock.id, $event)"
@@ -1413,68 +1462,91 @@
                 @remove-series="removeChartSeriesItem"
               />
 
+              <WorkflowTaskListPropertyPanel
+                v-if="selectedBlock.blockType === 'workflow-task-list'"
+                :block="selectedBlock"
+                @patch-props="patchBlockProps(selectedBlock.id, $event)"
+              />
+
+              <NoticeBoardPropertyPanel
+                v-if="selectedBlock.blockType === 'notice-board'"
+                :block="selectedBlock"
+                @patch-props="patchBlockProps(selectedBlock.id, $event)"
+              />
+
+              <WelcomeBannerPropertyPanel
+                v-if="selectedBlock.blockType === 'welcome-banner'"
+                :block="selectedBlock"
+                @patch-props="patchBlockProps(selectedBlock.id, $event)"
+              />
+
+              <CardPropertyPanel
+                v-if="selectedBlock.blockType === 'card'"
+                :block="selectedBlock"
+                @patch-props="patchBlockProps(selectedBlock.id, $event)"
+              />
+
+              <PanelBoxPropertyPanel
+                v-if="selectedBlock.blockType === 'panel-box'"
+                :block="selectedBlock"
+                @patch-props="patchBlockProps(selectedBlock.id, $event)"
+              />
+
               <template v-if="selectedBlock.blockType === 'detail-info'">
+                <p class="property-inline-tip">
+                  选「远程接口」填地址；地址栏
+                  <code v-pre>?id=</code>
+                  替换
+                  <code v-pre>{{ id }}</code>。
+                </p>
                 <n-form-item label="详情字段">
                   <n-button size="small" type="primary" secondary @click="openFieldDrawer('table')">
                     配置字段（{{ selectedBlock.fieldRefs?.length || 0 }}/{{ fields.length }}）
                   </n-button>
                 </n-form-item>
                 <n-form-item label="数据来源">
-                  <div class="metrics-editor">
-                    <div class="style-grid three">
-                      <n-select
-                        :value="selectedBlock.props?.dataSourceType || 'current'"
-                        :options="detailInfoDataSourceOptions"
-                        @update:value="patchBlockProps(selectedBlock.id, { dataSourceType: $event || 'current' })"
-                      />
-                      <WidgetFieldPathPicker
-                        v-if="fields.length"
-                        :value="selectedBlock.props?.contextPath || ''"
-                        :fields="fields"
-                        :form-designer-schema="formDesignerSchema"
-                        include-collections
-                        placeholder="详情字段路径，如 detail / customerName"
-                        @update:value="patchBlockProps(selectedBlock.id, { contextPath: $event || '' })"
-                      />
-                      <n-input
-                        v-else
-                        :value="selectedBlock.props?.contextPath || ''"
-                        clearable
-                        placeholder="当前详情数据路径，如 detail"
-                        @update:value="patchBlockProps(selectedBlock.id, { contextPath: $event || '' })"
-                      />
-                      <n-input
-                        :value="selectedBlock.props?.dataPath || 'data'"
-                        clearable
-                        placeholder="接口响应路径，如 data"
-                        @update:value="patchBlockProps(selectedBlock.id, { dataPath: $event || 'data' })"
-                      />
-                    </div>
-                    <template v-if="selectedBlock.props?.dataSourceType === 'remote'">
-                      <div class="style-grid two">
-                        <n-input
-                          :value="selectedBlock.props?.detailApi || ''"
-                          clearable
-                          placeholder="详情接口，如 get@/api/order/{{ id }}"
-                          @update:value="patchBlockProps(selectedBlock.id, { detailApi: $event || '' })"
-                        />
-                        <n-select
-                          :value="selectedBlock.props?.detailMethod || 'get'"
-                          :options="requestMethodOptions"
-                          @update:value="patchBlockProps(selectedBlock.id, { detailMethod: $event || 'get' })"
-                        />
-                      </div>
-                      <n-input
-                        :value="selectedBlock.props?.paramsText || '{}'"
-                        type="textarea"
-                        :rows="3"
-                        placeholder="{ &quot;id&quot;: &quot;{{ id }}&quot; }，可引用当前详情数据"
-                        @update:value="patchBlockProps(selectedBlock.id, { paramsText: $event || '{}' })"
-                      />
-                    </template>
+                  <WidgetDataBindingEditor
+                    :model-value="resolveDetailInfoBinding(selectedBlock)"
+                    block-type="detail-info"
+                    :fields="fields"
+                    :form-designer-schema="formDesignerSchema"
+                    :show-mapping-fields="false"
+                    hide-intro-help
+                    @update:model-value="updateDetailInfoDataBinding"
+                  />
+                </n-form-item>
+                <div class="detail-binding-actions">
+                  <n-button
+                    size="small"
+                    secondary
+                    type="primary"
+                    :disabled="!detailInfoDefaultApi"
+                    @click="applyDetailInfoDefaultApi"
+                  >
+                    填入对象接口
+                  </n-button>
+                </div>
+                <n-form-item label="描述标题">
+                  <div class="style-grid two">
+                    <n-input
+                      :value="selectedBlock.props?.title || '详情信息'"
+                      placeholder="标题文案"
+                      @update:value="patchBlockProps(selectedBlock.id, { title: $event || '详情信息' })"
+                    />
+                    <n-switch
+                      :value="selectedBlock.props?.showTitle !== false"
+                      @update:value="patchBlockProps(selectedBlock.id, { showTitle: $event })"
+                    >
+                      <template #checked>
+                        显示标题
+                      </template>
+                      <template #unchecked>
+                        隐藏标题
+                      </template>
+                    </n-switch>
                   </div>
                 </n-form-item>
-                <n-form-item label="详情布局">
+                <n-form-item label="Descriptions 布局">
                   <div class="detail-layout-grid">
                     <label class="detail-layout-control">
                       <span>列数</span>
@@ -1487,21 +1559,66 @@
                       />
                     </label>
                     <label class="detail-layout-control">
-                      <span>标题位置</span>
+                      <span>标签位置</span>
                       <n-select
                         :value="selectedBlock.props?.labelPlacement || 'left'"
                         :options="labelPlacementOptions"
                         @update:value="patchBlockProps(selectedBlock.id, { labelPlacement: $event || 'left' })"
                       />
                     </label>
+                    <label class="detail-layout-control">
+                      <span>标签对齐</span>
+                      <n-select
+                        :value="selectedBlock.props?.labelAlign || 'left'"
+                        :options="labelAlignOptions"
+                        @update:value="patchBlockProps(selectedBlock.id, { labelAlign: $event || 'left' })"
+                      />
+                    </label>
+                    <label class="detail-layout-control">
+                      <span>尺寸</span>
+                      <n-select
+                        :value="selectedBlock.props?.size || 'medium'"
+                        :options="componentSizeOptions"
+                        @update:value="patchBlockProps(selectedBlock.id, { size: $event || 'medium' })"
+                      />
+                    </label>
+                    <label class="detail-layout-control">
+                      <span>标签宽度</span>
+                      <n-input-number
+                        :value="toNumberOrNull(selectedBlock.props?.labelWidth) ?? 100"
+                        :min="60"
+                        :max="240"
+                        :show-button="false"
+                        @update:value="patchBlockProps(selectedBlock.id, { labelWidth: $event ?? 100 })"
+                      />
+                    </label>
+                    <label class="detail-layout-control">
+                      <span>分隔符</span>
+                      <n-input
+                        :value="selectedBlock.props?.separator ?? ':'"
+                        placeholder=":"
+                        :disabled="selectedBlock.props?.bordered !== false"
+                        @update:value="patchBlockProps(selectedBlock.id, { separator: $event ?? ':' })"
+                      />
+                    </label>
                     <label class="detail-layout-switch">
                       <span>
                         <strong>显示边框</strong>
-                        <small>控制详情字段之间是否显示分隔边框</small>
+                        <small>表格边框样式（Descriptions bordered）</small>
                       </span>
                       <n-switch
-                        :value="!!selectedBlock.props?.bordered"
+                        :value="selectedBlock.props?.bordered !== false"
                         @update:value="patchBlockProps(selectedBlock.id, { bordered: $event })"
+                      />
+                    </label>
+                    <label class="detail-layout-switch">
+                      <span>
+                        <strong>内容换行</strong>
+                        <small>关闭后长文本单行省略</small>
+                      </span>
+                      <n-switch
+                        :value="selectedBlock.props?.contentWrap !== false"
+                        @update:value="patchBlockProps(selectedBlock.id, { contentWrap: $event })"
                       />
                     </label>
                   </div>
@@ -1781,6 +1898,8 @@ export default {
   components: { ...listPageDesignerLocalComponents },
   name: 'ListPagePropertyPropsTabPart2',
   setup() {
+    // 禁止展开 inject Proxy：展开会把 propertyPanelTab 等解成一次性快照，
+    // 切到「样式/交互」后「属性」区仍显示（如数据表排序/行间距）。
     return useListPageDesignerApi()
   },
 }

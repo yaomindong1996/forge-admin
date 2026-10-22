@@ -1,13 +1,13 @@
 <template>
-  <!-- 高度优先跟外壳（锚点拖拽），props.height 作下限；画布 100% 填满以便 ResizeObserver 生效 -->
+  <!-- 高度跟外壳；壳高由外层锁死，画布不再用 props.height 顶死 minHeight（否则缩卡片会溢出重合） -->
   <div
     class="page-chart-block"
-    :style="{ height: '100%', minHeight: `${chartHeight}px` }"
+    :style="{ height: '100%', minHeight: 0, maxHeight: '100%' }"
   >
     <div
       ref="chartRef"
       class="page-chart-canvas"
-      :style="{ height: '100%', minHeight: `${chartHeight}px` }"
+      :style="{ height: '100%', minHeight: 0, maxHeight: '100%' }"
     />
     <div v-if="!hasData" class="page-chart-empty">
       暂无图表数据，请在右侧配置分类与数值，或绑定列表数据源
@@ -18,13 +18,14 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as echarts from 'echarts'
-import { buildPageChartOption } from './page-chart-option'
+import { buildPageChartOption, buildPieSeriesData, resolvePageChartType } from './page-chart-option'
 
 const props = defineProps({
   chartType: { type: String, default: 'bar' },
   title: { type: String, default: '' },
   categories: { type: Array, default: () => [] },
   series: { type: Array, default: () => [] },
+  pieItems: { type: Array, default: () => [] },
   height: { type: [Number, String], default: 260 },
   showLegend: { type: Boolean, default: true },
   smooth: { type: Boolean, default: true },
@@ -40,6 +41,15 @@ const props = defineProps({
   gridLeft: { type: [Number, String], default: 8 },
   gridRight: { type: [Number, String], default: 12 },
   gridBottom: { type: [Number, String], default: 8 },
+  doughnut: { type: Boolean, default: false },
+  pieVariant: { type: String, default: 'pie' },
+  innerRadius: { type: [Number, String], default: 48 },
+  outerRadius: { type: [Number, String], default: 68 },
+  roseType: { type: String, default: 'none' },
+  showLabel: { type: Boolean, default: true },
+  showPercent: { type: Boolean, default: true },
+  pieBorderRadius: { type: [Number, String], default: 4 },
+  pieBorderWidth: { type: [Number, String], default: 2 },
   optionOverrides: { type: [Object, String], default: null },
   /** 列表绑定时锁定数据集，防止 optionOverrides 盖掉真实数据 */
   dataLocked: { type: Boolean, default: true },
@@ -49,26 +59,28 @@ const chartRef = ref(null)
 let chart = null
 let resizeObserver = null
 
-const chartHeight = computed(() => {
-  const n = Number(props.height)
-  return Number.isFinite(n) && n > 120 ? n : 260
-})
+const resolvedType = computed(() => resolvePageChartType(props.chartType))
 
 const hasData = computed(() => {
+  if (resolvedType.value === 'pie') {
+    const pieData = buildPieSeriesData({
+      categories: props.categories,
+      series: props.series,
+      pieItems: props.pieItems,
+    })
+    return pieData.some(item => Number(item.value) > 0 || item.name)
+  }
   const cats = Array.isArray(props.categories) ? props.categories.filter(Boolean) : []
   const series = Array.isArray(props.series) ? props.series : []
   return cats.length > 0 && series.some(item => Array.isArray(item?.data) && item.data.length > 0)
 })
 
-function renderChart() {
-  if (!chartRef.value)
-    return
-  if (!chart)
-    chart = echarts.init(chartRef.value)
-  const option = buildPageChartOption(props.chartType === 'line' ? 'line' : 'bar', {
+function buildPayload() {
+  return {
     title: props.title,
     categories: props.categories,
     series: props.series,
+    pieItems: props.pieItems,
     showLegend: props.showLegend,
     smooth: props.smooth,
     showArea: props.showArea,
@@ -83,19 +95,50 @@ function renderChart() {
     gridLeft: props.gridLeft,
     gridRight: props.gridRight,
     gridBottom: props.gridBottom,
+    doughnut: props.doughnut,
+    pieVariant: props.pieVariant,
+    innerRadius: props.innerRadius,
+    outerRadius: props.outerRadius,
+    roseType: props.roseType,
+    showLabel: props.showLabel,
+    showPercent: props.showPercent,
+    pieBorderRadius: props.pieBorderRadius,
+    pieBorderWidth: props.pieBorderWidth,
     optionOverrides: props.optionOverrides,
     dataLocked: props.dataLocked !== false,
+  }
+}
+
+let resizeRaf = 0
+
+function scheduleChartResize() {
+  if (!chart)
+    return
+  if (resizeRaf)
+    return
+  resizeRaf = window.requestAnimationFrame(() => {
+    resizeRaf = 0
+    chart?.resize()
   })
+}
+
+function renderChart() {
+  if (!chartRef.value)
+    return
+  if (!chart)
+    chart = echarts.init(chartRef.value)
+  const option = buildPageChartOption(resolvedType.value, buildPayload())
   chart.setOption(option, true)
-  chart.resize()
+  scheduleChartResize()
 }
 
 function bindResize() {
   if (!chartRef.value || typeof ResizeObserver === 'undefined')
     return
   resizeObserver?.disconnect()
+  // 锚点拖宽高时壳尺寸连跳，合并到每帧一次 resize，避免一卡一卡
   resizeObserver = new ResizeObserver(() => {
-    chart?.resize()
+    scheduleChartResize()
   })
   resizeObserver.observe(chartRef.value)
 }
@@ -107,11 +150,23 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  if (resizeRaf) {
+    window.cancelAnimationFrame(resizeRaf)
+    resizeRaf = 0
+  }
   resizeObserver?.disconnect()
   resizeObserver = null
   chart?.dispose()
   chart = null
 })
+
+// 高度变化只调 resize，不要全量 setOption（拖锚点会卡）
+watch(
+  () => props.height,
+  () => {
+    scheduleChartResize()
+  },
+)
 
 watch(
   () => [
@@ -119,7 +174,7 @@ watch(
     props.title,
     props.categories,
     props.series,
-    props.height,
+    props.pieItems,
     props.showLegend,
     props.smooth,
     props.showArea,
@@ -134,6 +189,15 @@ watch(
     props.gridLeft,
     props.gridRight,
     props.gridBottom,
+    props.doughnut,
+    props.pieVariant,
+    props.innerRadius,
+    props.outerRadius,
+    props.roseType,
+    props.showLabel,
+    props.showPercent,
+    props.pieBorderRadius,
+    props.pieBorderWidth,
     props.optionOverrides,
     props.dataLocked,
   ],

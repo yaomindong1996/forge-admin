@@ -2,6 +2,7 @@
 import { nextTick, onBeforeUnmount, onMounted, watch } from 'vue'
 import {
   findBlockInTree,
+  mapBlocksInTree,
   mapBlockSiblingsInTree,
   removeBlockFromTree,
 } from '../blockTree'
@@ -18,6 +19,7 @@ import {
 } from '../listDesignerOptions'
 import { resolveVerticalPushY } from '../listPageFramePush'
 import { isAccidentalSelectionChrome, selectionChromeClearPatch } from '../block-style-chrome'
+import { resolveDefaultPageBlockHeight } from '@/views/app-center/runtime-modules/page-flow-geometry'
 export function useListPageGridDesignerPart4(props, emit, deps = {}) {
   const {
     __impl,
@@ -101,29 +103,57 @@ function crudPreviewStatusText(status) {
   return '模拟预览'
 }
 
-/** 自由布局画布读 pageFlow*；属性面板改帧时必须同步，否则宽高/坐标与画布脱节 */
-function buildPanelOnlyPageFlowStyle(next = {}, widthMode = 'fixed') {
-  if (!props.panelOnly)
-    return {}
-  return {
+/**
+ * 顶层自由布局坐标：属性面板 X/Y/宽高必须同步 pageFlow*，
+ * 否则设计态改了、运行态绝对定位仍读旧值（看起来「左 X 一直是 0 / 改了没用」）。
+ *
+ * full/auto 禁止写像素 pageFlowWidth：否则开属性面板量到的窄宽会被锁死，
+ * 关面板后看起来就像「自适应变成了固定宽度」。
+ */
+function buildPageFlowStyleFromFrame(next = {}, widthMode = 'fixed') {
+  const base = {
     pageFlowX: Math.max(0, Math.round(Number(next.x) || 0)),
     pageFlowY: Math.max(0, Math.round(Number(next.y) || 0)),
-    pageFlowWidth: widthMode === 'full'
-      ? 'calc(100% - 48px)'
-      : `${Math.max(24, Math.round(Number(next.width) || 24))}px`,
     pageFlowHeight: Math.max(24, Math.round(Number(next.height) || 24)),
+  }
+  if (widthMode === 'full' || widthMode === 'auto') {
+    return {
+      ...base,
+      pageFlowWidth: '',
+    }
+  }
+  return {
+    ...base,
+    pageFlowWidth: `${Math.max(24, Math.round(Number(next.width) || 24))}px`,
   }
 }
 
+/** @deprecated 兼容旧调用名；顶层改帧一律写 pageFlow */
+function buildPanelOnlyPageFlowStyle(next = {}, widthMode = 'fixed') {
+  return buildPageFlowStyleFromFrame(next, widthMode)
+}
+
 function patchBlockFrame(id, patch) {
-  const source = blocks.value.find(block => block.id === id)
+  const source = findBlockInTree(blocks.value, id)
   if (!source)
     return false
+  const isTopLevel = (blocks.value || []).some(block => block?.id === id)
   const current = resolveBlockFrame(source)
+  // 输入框挂载回声：数值没变则整份跳过，避免误把 heightMode/widthMode 锁成 fixed
+  const frameChanged = Object.keys(patch || {}).some((key) => {
+    const nextVal = Number(patch[key])
+    const curVal = Number(current[key])
+    if (Number.isFinite(nextVal) && Number.isFinite(curVal))
+      return Math.round(nextVal) !== Math.round(curVal)
+    return String(patch[key] ?? '') !== String(current[key] ?? '')
+  })
+  if (!frameChanged)
+    return false
   const widthChanged = Object.prototype.hasOwnProperty.call(patch, 'width')
   const heightChanged = Object.prototype.hasOwnProperty.call(patch, 'height')
   const currentWidthMode = resolveBlockWidthMode(source)
   const currentHeightMode = resolveBlockHeightMode(source)
+  // 仅用户改宽时才锁成 fixed；改 X/Y/高不得把填充/默认宽写成固定宽
   const nextWidthMode = widthChanged ? 'fixed' : currentWidthMode
   const nextHeightMode = heightChanged ? 'fixed' : currentHeightMode
   const next = {
@@ -132,35 +162,61 @@ function patchBlockFrame(id, patch) {
   }
   next.width = Math.max(24, Number(next.width) || current.width)
   next.height = Math.max(24, Number(next.height) || current.height)
-  next.x = clamp(Number(next.x) || 0, 0, Math.max(0, canvasGridWidth.value - next.width))
-  next.y = Math.max(0, Number(next.y) || 0)
-  const gridPatch = frameToGridPatch(next)
+  if (isTopLevel) {
+    next.x = clamp(Number(next.x) || 0, 0, Math.max(0, canvasGridWidth.value - next.width))
+    next.y = Math.max(0, Number(next.y) || 0)
+  }
+  else {
+    // 容器内组件：X/Y 是相对父格的偏移，不按整页画布裁剪
+    next.x = Math.max(0, Number(next.x) || 0)
+    next.y = Math.max(0, Number(next.y) || 0)
+  }
+  const gridPatch = isTopLevel ? frameToGridPatch(next) : {}
   const nextWidthValue = nextWidthMode === 'full' ? '100%' : nextWidthMode === 'auto' ? 'auto' : next.width
-  const patchedItems = blocks.value.map((block) => {
+  const patchedItems = mapBlocksInTree(blocks.value, (block) => {
     if (block.id !== id)
       return block
+    const prevStyle = block.props?.style || {}
+    const nextStyle = {
+      ...createDefaultBlockStyle(),
+      ...prevStyle,
+      x: next.x,
+      y: next.y,
+      widthMode: nextWidthMode,
+      width: nextWidthValue,
+      heightMode: nextHeightMode,
+      height: nextHeightMode === 'auto' ? 'auto' : nextHeightMode === 'full' ? '100%' : next.height,
+      ...(isTopLevel ? buildPageFlowStyleFromFrame(next, nextWidthMode) : {}),
+    }
+    // 流体宽：清掉历史像素 pageFlowWidth，防止关面板后仍按窄宽渲染
+    if (nextWidthMode === 'full' || nextWidthMode === 'auto')
+      delete nextStyle.pageFlowWidth
     const nextProps = {
       ...(block.props || {}),
-      style: {
-        ...createDefaultBlockStyle(),
-        ...(block.props?.style || {}),
-        x: next.x,
-        y: next.y,
-        widthMode: nextWidthMode,
-        width: nextWidthValue,
-        heightMode: nextHeightMode,
-        height: next.height,
-        ...buildPanelOnlyPageFlowStyle(next, nextWidthMode),
-      },
+      style: nextStyle,
     }
-    if (['bar-chart', 'line-chart'].includes(block.blockType) && heightChanged)
+    // 锚点拖拽中由 ResizeObserver 跟壳；仅非拖拽（属性面板改高）时立刻同步 props.height
+    if (
+      ['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(block.blockType)
+      && heightChanged
+      && !resizeCtx
+      && !nestedResizeCtx
+    ) {
       nextProps.height = Math.max(160, Math.round(next.height))
+    }
     return {
       ...block,
       ...gridPatch,
       props: nextProps,
     }
   })
+  if (!isTopLevel) {
+    localLayout.value = {
+      ...localLayout.value,
+      items: normalizeGridItems(patchedItems),
+    }
+    return true
+  }
   const withTree = applyTreePanelResponsiveMainFrames(source, next, patchedItems)
   // 拉高/拖动撞到下方块时下推，而不是静默失败（否则高度手柄几乎拖不动）
   const nextItems = pushStackedBlocksDown(withTree, {
@@ -205,22 +261,25 @@ function pushStackedBlocksDown(items = [], options = {}) {
     const nextFrame = { ...current, y: nextY }
     const gridPatch = frameToGridPatch(nextFrame)
     const widthMode = resolveBlockWidthMode(block)
+    const nextStyle = {
+      ...createDefaultBlockStyle(),
+      ...(block.props?.style || {}),
+      x: nextFrame.x,
+      y: nextFrame.y,
+      width: block.props?.style?.width ?? nextFrame.width,
+      height: block.props?.style?.height ?? nextFrame.height,
+      widthMode,
+      heightMode: resolveBlockHeightMode(block),
+      ...buildPanelOnlyPageFlowStyle(nextFrame, widthMode),
+    }
+    if (widthMode === 'full' || widthMode === 'auto')
+      delete nextStyle.pageFlowWidth
     return {
       ...block,
       ...gridPatch,
       props: {
         ...(block.props || {}),
-        style: {
-          ...createDefaultBlockStyle(),
-          ...(block.props?.style || {}),
-          x: nextFrame.x,
-          y: nextFrame.y,
-          width: block.props?.style?.width ?? nextFrame.width,
-          height: block.props?.style?.height ?? nextFrame.height,
-          widthMode,
-          heightMode: resolveBlockHeightMode(block),
-          ...buildPanelOnlyPageFlowStyle(nextFrame, widthMode),
-        },
+        style: nextStyle,
       },
     }
   })
@@ -304,82 +363,122 @@ function framesOverlap(a = {}, b = {}) {
 }
 
 function setBlockWidthMode(id, mode = 'full') {
-  const source = blocks.value.find(block => block.id === id)
+  // 必须走树查找：栅格/卡片内的图表等嵌套块不在顶层 items 里
+  const source = findBlockInTree(blocks.value, id)
   if (!source)
     return
+  const isTopLevel = (blocks.value || []).some(block => block?.id === id)
   const widthMode = ['full', 'auto', 'fixed'].includes(mode) ? mode : 'full'
   const current = resolveBlockFrame(source)
   const fixedRuntimeWidth = props.panelOnly && resolveBlockWidthMode(source) !== 'fixed'
     ? Math.max(280, Math.min(640, Math.round(canvasGridWidth.value * 0.52)))
     : current.width
+  // 顶层：填充容器扩到画布右缘；嵌套：只改 mode，宽由父格 100% 撑开
   const nextFrame = {
     ...current,
-    // 切“默认宽度”保持当前视觉宽度（栅格宽度随后由 frameToGridPatch 同步），
-    // 仅“填充容器”按语义扩展到画布右缘，避免模式切换时宽度跳变
-    width: widthMode === 'full'
-      ? Math.max(24, canvasGridWidth.value - current.x)
-      : widthMode === 'auto'
-        ? Math.min(current.width, Math.max(24, canvasGridWidth.value - current.x))
-        : fixedRuntimeWidth,
+    width: !isTopLevel
+      ? Math.max(24, current.width)
+      : widthMode === 'full'
+        ? Math.max(24, canvasGridWidth.value - current.x)
+        : widthMode === 'auto'
+          ? Math.min(current.width, Math.max(24, canvasGridWidth.value - current.x))
+          : fixedRuntimeWidth,
   }
-  const gridPatch = frameToGridPatch(nextFrame)
+  const gridPatch = isTopLevel ? frameToGridPatch(nextFrame) : {}
+  const nextWidthValue = widthMode === 'full' ? '100%' : widthMode === 'auto' ? 'auto' : nextFrame.width
   localLayout.value = {
     ...localLayout.value,
-    items: normalizeGridItems(blocks.value.map(block => block.id === id
-      ? {
-          ...block,
-          ...gridPatch,
-          props: {
-            ...(block.props || {}),
-            style: {
-              ...createDefaultBlockStyle(),
-              ...(block.props?.style || {}),
-              x: nextFrame.x,
-              y: nextFrame.y,
-              widthMode,
-              width: widthMode === 'full' ? '100%' : widthMode === 'auto' ? 'auto' : nextFrame.width,
-              height: nextFrame.height,
-              ...buildPanelOnlyPageFlowStyle(nextFrame, widthMode),
-            },
-          },
-        }
-      : block)),
+    items: normalizeGridItems(mapBlocksInTree(blocks.value, (block) => {
+      if (block.id !== id)
+        return block
+      const nextStyle = {
+        ...createDefaultBlockStyle(),
+        ...(block.props?.style || {}),
+        x: nextFrame.x,
+        y: nextFrame.y,
+        widthMode,
+        width: nextWidthValue,
+        height: nextFrame.height,
+        ...(isTopLevel ? buildPanelOnlyPageFlowStyle(nextFrame, widthMode) : {}),
+      }
+      if (widthMode === 'full' || widthMode === 'auto')
+        delete nextStyle.pageFlowWidth
+      return {
+        ...block,
+        ...gridPatch,
+        props: {
+          ...(block.props || {}),
+          style: nextStyle,
+        },
+      }
+    })),
   }
 }
 
 function setBlockHeightMode(id, mode = 'fixed') {
-  const source = blocks.value.find(block => block.id === id)
+  const source = findBlockInTree(blocks.value, id)
   if (!source)
     return
+  const isTopLevel = (blocks.value || []).some(block => block?.id === id)
   const heightMode = ['fixed', 'auto', 'full'].includes(mode) ? mode : 'fixed'
   const current = resolveBlockFrame(source)
+  // 表单/详情切 auto 时按字段估算，不要压成 240
+  let nextAutoHeight = Math.max(48, Math.min(240, current.height))
+  if (heightMode === 'auto' && ['AiForm', 'detail-info'].includes(source.blockType))
+    nextAutoHeight = Math.max(current.height, resolveDefaultPageBlockHeight(source))
   const nextFrame = {
     ...current,
-    height: heightMode === 'auto' ? Math.max(48, Math.min(240, current.height)) : current.height,
+    height: heightMode === 'auto' ? nextAutoHeight : current.height,
   }
-  const gridPatch = frameToGridPatch(nextFrame)
+  const gridPatch = isTopLevel ? frameToGridPatch(nextFrame) : {}
   const widthMode = resolveBlockWidthMode(source)
+  const nextHeightValue = heightMode === 'auto'
+    ? 'auto'
+    : heightMode === 'full'
+      ? '100%'
+      : nextFrame.height
   localLayout.value = {
     ...localLayout.value,
-    items: normalizeGridItems(blocks.value.map(block => block.id === id
-      ? {
-          ...block,
-          ...gridPatch,
-          props: {
-            ...(block.props || {}),
-            style: {
-              ...createDefaultBlockStyle(),
-              ...(block.props?.style || {}),
-              x: nextFrame.x,
-              y: nextFrame.y,
-              width: nextFrame.width,
-              heightMode,
-              height: nextFrame.height,
-              ...buildPanelOnlyPageFlowStyle(nextFrame, widthMode),
-            },
-          },
-        }
-      : block)),
+    items: normalizeGridItems(mapBlocksInTree(blocks.value, (block) => {
+      if (block.id !== id)
+        return block
+      const nextStyle = {
+        ...createDefaultBlockStyle(),
+        ...(block.props?.style || {}),
+        x: nextFrame.x,
+        y: nextFrame.y,
+        width: isTopLevel
+          ? (widthMode === 'full' ? '100%' : widthMode === 'auto' ? 'auto' : nextFrame.width)
+          : (block.props?.style?.width ?? nextFrame.width),
+        widthMode,
+        heightMode,
+        height: nextHeightValue,
+        ...(isTopLevel
+          ? buildPanelOnlyPageFlowStyle({
+              ...nextFrame,
+              height: heightMode === 'fixed' ? nextFrame.height : nextAutoHeight,
+            }, widthMode)
+          : {}),
+      }
+      if (widthMode === 'full' || widthMode === 'auto')
+        delete nextStyle.pageFlowWidth
+      const nextProps = {
+        ...(block.props || {}),
+        style: nextStyle,
+      }
+      // 图表画布跟壳高：固定高度同步 props.height；auto/full 保留既有 props.height 作 minHeight 下限
+      if (
+        ['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(block.blockType)
+        && heightMode === 'fixed'
+      ) {
+        nextProps.height = Math.max(160, Math.round(Number(nextFrame.height) || Number(block.props?.height) || 260))
+      }
+      return {
+        ...block,
+        ...gridPatch,
+        props: nextProps,
+      }
+    })),
   }
 }
 
@@ -519,8 +618,13 @@ function patchBlockStyle(id, patch) {
     ...patch,
   }
   const propsPatch = { style: nextStyle }
-  // 图表画布跟壳高：锚点改 style.height 时同步 props.height，否则只变框、图不变
-  if (['bar-chart', 'line-chart'].includes(source.blockType) && patch.height != null) {
+  // 拖拽中只改壳，松手再同步 props.height；属性面板改高仍立刻同步
+  if (
+    ['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(source.blockType)
+    && patch.height != null
+    && !resizeCtx
+    && !nestedResizeCtx
+  ) {
     const h = resolveCssNumber(patch.height, 0)
     if (h > 0)
       propsPatch.height = Math.max(160, Math.round(h))
@@ -770,6 +874,12 @@ __impl.normalizeGridItems = normalizeGridItems
 function normalizeGridItemFrame(item = {}, gridH = item.gridH) {
   const autoHeight = gridHeightToPixels(gridH || item.gridH || 1)
   const style = item.props?.style || {}
+  const heightMode = style.heightMode
+  // 适应内容 / 填充容器：禁止把 height 改回像素，否则样式分段切换后立刻被冲掉
+  if (heightMode === 'auto' || heightMode === 'full')
+    return item
+  if (style.height === 'auto' || style.height === '100%')
+    return item
   const currentHeight = resolveCssNumber(style.height, 0)
   if (currentHeight >= autoHeight)
     return item
@@ -806,11 +916,10 @@ function resolveAutoGridH(block = {}, normalizedGridW = block.gridW) {
     return Math.max(8, gridRowsForPixels(250))
   }
   if (block.blockType === 'AiForm') {
-    return Math.max(5, gridRowsForPixels(164))
+    return Math.max(5, gridRowsForPixels(resolveDefaultPageBlockHeight(block)))
   }
   if (block.blockType === 'detail-info') {
-    const fieldRows = Math.max(1, Math.ceil((block.fieldRefs?.length || 0) / Math.max(1, Number(block.props?.columnCount || 2))))
-    return Math.max(5, gridRowsForPixels(58 + fieldRows * 54))
+    return Math.max(5, gridRowsForPixels(resolveDefaultPageBlockHeight(block)))
   }
   if (block.blockType === 'tree-panel') {
     return Math.max(12, gridRowsForPixels(360))
@@ -1149,7 +1258,17 @@ function onResize(event) {
     patchBlockFrame(block.id, { x: nextX, y: nextY, width: nextW, height: nextH })
 }
 function endResize() {
+  const finishedId = resizeCtx?.blockId || ''
   resizeCtx = null
+  if (finishedId) {
+    const block = findBlockInTree(blocks.value, finishedId)
+    if (block && ['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(block.blockType)) {
+      const shellH = resolveCssNumber(block.props?.style?.height, 0)
+        || resolveCssNumber(block.props?.style?.pageFlowHeight, 0)
+      if (shellH >= 160)
+        patchBlockProps(finishedId, { height: Math.max(160, Math.round(shellH)) })
+    }
+  }
   flushDeferredLayoutEmit()
   window.removeEventListener('pointermove', onResize)
   window.removeEventListener('pointerup', endResize)
@@ -1201,7 +1320,17 @@ function onNestedResize(event) {
 }
 
 function endNestedResize() {
+  const finishedId = nestedResizeCtx?.blockId || ''
   nestedResizeCtx = null
+  if (finishedId) {
+    const block = findBlockInTree(blocks.value, finishedId)
+    if (block && ['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(block.blockType)) {
+      const shellH = resolveCssNumber(block.props?.style?.height, 0)
+        || resolveCssNumber(block.props?.style?.pageFlowHeight, 0)
+      if (shellH >= 160)
+        patchBlockProps(finishedId, { height: Math.max(160, Math.round(shellH)) })
+    }
+  }
   window.removeEventListener('pointermove', onNestedResize)
   window.removeEventListener('pointerup', endNestedResize)
 }

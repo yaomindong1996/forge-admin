@@ -282,11 +282,17 @@ const detailInfo = {
   container: false,
   meta: { multiField: true, requireFields: true },
   propsSchema: { properties: {
-    // 常用 · 数据
-    fields: { group: '数据', priority: 'common', type: 'json', title: '字段集' },
-    columns: { group: '数据', priority: 'common', type: 'number', title: '布局列数', default: 2, min: 1, max: 4 },
+    // 常用 · 数据（手写属性面板已覆盖；spec 保留给抽屉/搜索）
+    detailApi: { group: '数据', priority: 'common', type: 'string', title: '详情接口', default: '' },
+    dataSourceType: { group: '数据', priority: 'common', type: 'select', title: '数据来源', options: [
+      { label: '远程详情接口', value: 'remote' },
+      { label: '当前详情数据', value: 'current' },
+      { label: '当前详情字段路径', value: 'context' },
+    ], default: 'remote' },
+    columnCount: { group: '数据', priority: 'common', type: 'number', title: '布局列数', default: 2, min: 1, max: 4 },
     // 高级
-    groups: { group: '高级', priority: 'advanced', type: 'json', title: '分组' },
+    dataPath: { group: '高级', priority: 'advanced', type: 'string', title: '响应路径', default: 'data' },
+    paramsText: { group: '高级', priority: 'advanced', type: 'string', title: '请求参数 JSON', default: '{ "id": "{{ id }}" }' },
     labelPlacement: { group: '高级', priority: 'advanced', type: 'select', title: '标签位置', options: [
       { label: '左', value: 'left' },
       { label: '上', value: 'top' },

@@ -1,4 +1,5 @@
 import { createGridBlock } from '@/components/lowcode-builder/page/page-schema'
+import { isRichListGridLayout } from '@/components/lowcode-builder/shared/runtime-list-grid'
 import { createDefaultFormDesignerSchema } from '@/views/app-center/components/designer/form-first/formDesignerSchema'
 import { normalizeObjectCode } from '@/views/app-center/components/designer/form-first/namingUtils'
 import { createInAppFormAsset, createNavigationNode } from './in-app-builder-schema'
@@ -386,6 +387,17 @@ export function ensureFreeLayoutPageNode(node = null) {
       ? node.pageType
       : 'content',
   }
+}
+
+/**
+ * 应用页画布是否含 CRUD 以外的伴生块（图表、指标、快捷入口等）。
+ * 运行态 Portal 会渲染这些块；编辑入口必须进「页面设计」，不能只开对象列表设计器。
+ */
+export function pageHasFreeLayoutCompanionBlocks(page = null) {
+  const layout = page?.layout?.gridLayout
+  if (!layout || !Array.isArray(layout.items))
+    return false
+  return isRichListGridLayout(layout)
 }
 
 /**

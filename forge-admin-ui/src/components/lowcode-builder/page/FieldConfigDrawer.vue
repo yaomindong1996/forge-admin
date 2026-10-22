@@ -574,14 +574,25 @@ function renderTargetFieldOptions(field = {}) {
             </div>
             <div v-if="zoneKey !== 'search'" class="field-detail-grid">
               <label class="field-detail-control">
-                <span>列标题</span>
+                <span>{{ selectedBlock?.blockType === 'detail-info' ? '标签' : '列标题' }}</span>
                 <n-input
                   :value="resolveListFieldTitle(activeDrawerField, activeDrawerFieldSetting, activeDrawerField.field)"
                   size="small"
                   @update:value="updateFieldSetting(activeDrawerField.field, { title: $event || '' })"
                 />
               </label>
-              <label class="field-detail-control">
+              <label v-if="selectedBlock?.blockType === 'detail-info'" class="field-detail-control">
+                <span>跨列</span>
+                <n-input-number
+                  :value="Number(activeDrawerFieldSetting.span || 1)"
+                  size="small"
+                  :min="1"
+                  :max="4"
+                  :show-button="false"
+                  @update:value="updateFieldSetting(activeDrawerField.field, { span: $event || 1 })"
+                />
+              </label>
+              <label v-if="selectedBlock?.blockType !== 'detail-info'" class="field-detail-control">
                 <span>列宽</span>
                 <n-input
                   :value="activeDrawerFieldSetting.width || ''"
@@ -590,7 +601,7 @@ function renderTargetFieldOptions(field = {}) {
                   @update:value="updateFieldSetting(activeDrawerField.field, { width: $event || '' })"
                 />
               </label>
-              <label class="field-detail-control">
+              <label v-if="selectedBlock?.blockType !== 'detail-info'" class="field-detail-control">
                 <span>对齐</span>
                 <n-select
                   :value="activeDrawerFieldSetting.align || 'left'"
@@ -600,7 +611,7 @@ function renderTargetFieldOptions(field = {}) {
                   @update:value="updateFieldSetting(activeDrawerField.field, { align: $event || 'left' })"
                 />
               </label>
-              <label class="field-detail-control">
+              <label v-if="selectedBlock?.blockType !== 'detail-info'" class="field-detail-control">
                 <span>固定</span>
                 <n-select
                   :value="activeDrawerFieldSetting.fixed || ''"

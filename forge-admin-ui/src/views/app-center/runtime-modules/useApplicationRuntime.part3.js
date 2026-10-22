@@ -73,7 +73,7 @@ import {
 } from '../in-app-builder/workbench-page'
 import { inAppPageTemplateCatalog, resolveInAppPageTemplate } from '../in-app-builder/page-template-catalog'
 import { findGridCellHostForChild, findPageBlockInTree, mapPageBlocksInTree, removePageBlockFromTree, visitPageBlocksInTree } from './page-block-tree'
-import { resolvePageBlockShellStyle as computePageBlockShellStyle, readPageBlockLength, resolveDefaultPageBlockHeight, resolveDefaultPageBlockYFromItems, resolvePageBlockFlowGeometry, resolveRootPageBlockCollisions, shouldUsePageFlowStack, normalizePagePadding, resolvePagePaddingCss, migratePageFlowToContentCoords, canvasToContentFlowPoint, contentToCanvasFlowPoint, DEFAULT_PAGE_PADDING } from './page-flow-geometry'
+import { resolvePageBlockShellStyle as computePageBlockShellStyle, readPageBlockLength, resolveDefaultPageBlockHeight, resolveDefaultPageBlockYFromItems, resolvePageBlockFlowGeometry, resolveRootPageBlockCollisions, shouldUsePageFlowStack, normalizePagePadding, resolvePagePaddingCss, migratePageFlowToContentCoords, canvasToContentFlowPoint, contentToCanvasFlowPoint, snapResizeRectToPeers, DEFAULT_PAGE_PADDING } from './page-flow-geometry'
 import { flattenNodes, hasPermission, isNavigationVisible } from './runtime-navigation-utils'
 import { useBuilderHistory } from './use-builder-history'
 import { useRuntimeCrudConfig } from './use-runtime-crud-config'
@@ -91,12 +91,12 @@ export function applyApplicationRuntimePart3(deps = {}) {
     isPageBlockRuntimeCrudLoading, isSimpleBodyContainer, isValidPageBlockObjectRef, load, markBuilderClean, moveNavigationByOffset, moveRootPageBlockToGridCell, moveRootPageBlockToTab,
     normalizeContainerDropTarget, onComponentButtonMove, onPageBlockMove, onPageBlockResize, openBusinessObjectDesign, openCustomPageSelector, openDraftPreview, openEmbeddedObjectActions,
     openExcelPageImport, openFormAssetDesigner, openFormAssetDesignerForPage, openObjectDesigner, openObjectResourcePreview, openObjectSetup, openPageBlockConfiguration, openPageTypeSelector,
-    openProcessDesigner, openSelectedBlockFormDesigner, openSystemMenuMountDialog, openWorkspace, pageUsesFreeLayoutCanvas, patchCurrentPageNode, patchNavigationNodeMount, persistApplicationDraft,
+    openProcessDesigner, openRuntimeWorkbench, openSelectedBlockFormDesigner, openSystemMenuMountDialog, openWorkspace, pageUsesFreeLayoutCanvas, patchCurrentPageNode, patchNavigationNodeMount, persistApplicationDraft,
     prefetchRuntimeWorkspacePanels, preloadCurrentPageCrudRuntimeProps, preloadPageBlockCrudRuntimeProps, promoteCurrentPageToListShape, provisionPendingFormData, readRouteDesignTab, refreshWorkspaceMetadata, renderNavigationMenuIcon,
     requestExitEditing, resolveActiveDesignerPageId, resolveComponentIcon, resolveComponentPickerGroup, resolveEmptyGuideIcon, resolveEntryDesignTab, resolveFormAssetFields, resolveFormAssetIdForPage,
     resolveNavigationMoreOptions, resolveNextNavigationTitle, resolveNextPageBlockStackY, resolvePageBlockFields, resolvePageBlockObjectRef, resolvePageBlockRuntimeCrudProps, resolvePageBlockShellStyle, resolvePageBlockSwapTarget,
     resolvePageContextFieldCatalog, resolvePageDesignTab, resolvePagePreviewBlock, resolvePageShapeDesignContext, resolvePageShapeKey, resolvePageTemplateIcon, resolvePortalFormFields, resolveResourceNodeBuilderNode,
-    resolveResourceNodeMenuOptions, resolveRuntimeBackLabel, resolveRuntimeBrandEyebrow, resolveRuntimeBrandStatus, resolveRuntimeObjectCacheKey, resolveRuntimeView, resolveSelectablePageId, resolveSystemPageIcon,
+    resolveResourceNodeMenuOptions, resolveRuntimeBackLabel, resolveRuntimeBrandEyebrow, resolveRuntimeHeaderTitle, resolveRuntimeBrandStatus, resolveRuntimeObjectCacheKey, resolveRuntimeView, resolveSelectablePageId, resolveSystemPageIcon,
     restoreCurrentObjectPageLayout, returnToEditorFromDraftPreview, returnToPageDesigner, saveActiveFormDesigner, saveCurrentDesignerSection, saveDraft, saveNavigationDraft, scheduleNavigationSave,
     selectCreatedDesignerPage, selectDesignerResource, selectFormAssetFromPicker, selectIntroTemplate, selectNode, selectPageBlock, selectPageManagementNode, setFormDataProvisionState,
     snapPageBlockPosition, startCatalogPointerDrag, startComponentButtonMove, startPageBlockMove, startPageBlockResize, startRenameApplication, supportsFormAsset, switchPageDesignTab,
@@ -324,7 +324,7 @@ export function applyApplicationRuntimePart3(deps = {}) {
       return null
     const candidates = []
     root.querySelectorAll(
-      '[data-page-block-id][data-page-block-type="grid-layout"], [data-page-block-id][data-page-block-type="card"], [data-page-block-id][data-page-block-type="box-layout"]',
+      '[data-page-block-id][data-page-block-type="grid-layout"], [data-page-block-id][data-page-block-type="card"], [data-page-block-id][data-page-block-type="panel-box"], [data-page-block-id][data-page-block-type="box-layout"]',
     ).forEach((el) => {
       const rect = el.getBoundingClientRect?.()
       if (!rect || rect.width <= 0 || rect.height <= 0)
@@ -339,7 +339,7 @@ export function applyApplicationRuntimePart3(deps = {}) {
       const blockType = String(el.dataset.pageBlockType || '')
       if (!blockId)
         continue
-      if (blockType === 'card' || blockType === 'box-layout')
+      if (blockType === 'card' || blockType === 'box-layout' || blockType === 'panel-box')
         return { blockId, cellKey: '__body__', cellIndex: 0 }
       const cellNodes = [...el.querySelectorAll('[data-grid-cell-key]')]
       if (!cellNodes.length) {
@@ -381,7 +381,9 @@ export function applyApplicationRuntimePart3(deps = {}) {
   __impl.resolvePageFlowGridCellTargetByPageBlock = resolvePageFlowGridCellTargetByPageBlock
 
   function resolvePageFlowGridCellTargetFromElement(element) {
-    const simpleHost = element?.closest?.('[data-page-block-type="card"][data-page-block-id], [data-page-block-type="box-layout"][data-page-block-id]')
+    const simpleHost = element?.closest?.(
+      '[data-page-block-type="card"][data-page-block-id], [data-page-block-type="box-layout"][data-page-block-id], [data-page-block-type="panel-box"][data-page-block-id]',
+    )
     if (simpleHost?.dataset?.pageBlockId) {
       return {
         blockId: String(simpleHost.dataset.pageBlockId),
@@ -429,11 +431,11 @@ export function applyApplicationRuntimePart3(deps = {}) {
 
   function resolvePageFlowContainerTargetFromElement(element) {
     const target = element?.closest?.('[data-page-container-id][data-page-container-type]')
-      || element?.closest?.('[data-page-block-type="card"], [data-page-block-type="box-layout"]')
+      || element?.closest?.('[data-page-block-type="card"], [data-page-block-type="box-layout"], [data-page-block-type="panel-box"]')
     if (!target)
       return null
     const containerType = String(target.dataset.pageContainerType || target.dataset.pageBlockType || '')
-    if (!['card', 'box-layout'].includes(containerType))
+    if (!['card', 'panel-box', 'box-layout'].includes(containerType))
       return null
     const rect = target.getBoundingClientRect?.()
     if (!rect || rect.width <= 0 || rect.height <= 0)
@@ -453,13 +455,13 @@ export function applyApplicationRuntimePart3(deps = {}) {
     if (!root)
       return null
     const nodes = root.querySelectorAll(
-      '[data-page-container-id][data-page-container-type], [data-page-block-type="card"], [data-page-block-type="box-layout"]',
+      '[data-page-container-id][data-page-container-type], [data-page-block-type="card"], [data-page-block-type="box-layout"], [data-page-block-type="panel-box"]',
     )
     let best = null
     let bestArea = Number.POSITIVE_INFINITY
     nodes.forEach((el) => {
       const containerType = String(el.dataset.pageContainerType || el.dataset.pageBlockType || '')
-      if (!['card', 'box-layout'].includes(containerType))
+      if (!['card', 'panel-box', 'box-layout'].includes(containerType))
         return
       const rect = el.getBoundingClientRect?.()
       if (!rect || rect.width <= 0 || rect.height <= 0)
@@ -482,7 +484,9 @@ export function applyApplicationRuntimePart3(deps = {}) {
     if (!root)
       return null
     const candidates = []
-    root.querySelectorAll('[data-page-block-id][data-page-block-type="card"], [data-page-block-id][data-page-block-type="box-layout"]').forEach((el) => {
+    root.querySelectorAll(
+      '[data-page-block-id][data-page-block-type="card"], [data-page-block-id][data-page-block-type="box-layout"], [data-page-block-id][data-page-block-type="panel-box"]',
+    ).forEach((el) => {
       const rect = el.getBoundingClientRect?.()
       if (!rect || rect.width <= 0 || rect.height <= 0)
         return
@@ -677,11 +681,11 @@ export function applyApplicationRuntimePart3(deps = {}) {
   function appendPageBlockToContainer(blockType, containerId) {
     const meta = resolveListPageBlockMeta(blockType)
     const container = findPageBlockInTree(pageBlocks.value, containerId)
-    if (!meta || !container || !['card', 'box-layout'].includes(container.blockType))
+    if (!meta || !container || !['card', 'panel-box', 'box-layout'].includes(container.blockType))
       return false
-    // 容器内禁止再嵌套同级大容器，避免拖进后看不见
-    if (['grid-layout', 'tabs', 'box-layout', 'card'].includes(blockType)) {
-      message.warning('卡片/盒子内请放入普通组件，布局容器请放在画布根级')
+    // 禁止卡片套卡片；栅格允许放入卡片/面板/盒子
+    if (['tabs', 'box-layout', 'card', 'panel-box'].includes(blockType)) {
+      message.warning('卡片/面板/盒子内请放入普通组件或栅格，其它布局容器请放在画布根级')
       return false
     }
     let block = createGridBlock(blockType, applicationGridModelSchema.value, {
@@ -692,10 +696,13 @@ export function applyApplicationRuntimePart3(deps = {}) {
       return false
     block = attachDefaultRuntimeObject(block)
     block = attachSingleFormAsset(block)
-    block = normalizePageBlockForContainer(block)
-    updatePageBlocks(mapPageBlocksInTree(pageBlocks.value, item => item.id === containerId
-      ? { ...item, children: [...(item.children || []), block] }
-      : item))
+    block = normalizePageBlockForContainer(block, container.blockType)
+    updatePageBlocks(mapPageBlocksInTree(pageBlocks.value, (item) => {
+      if (item.id !== containerId)
+        return item
+      const next = { ...item, children: [...(item.children || []), block] }
+      return expandContainerShellForNestedChild(next, block)
+    }))
     selectedPageBlockId.value = block.id
     preloadPageBlockCrudRuntimeProps(block)
     __impl.scrollPageBlockIntoView?.(block.id)
@@ -812,12 +819,16 @@ export function applyApplicationRuntimePart3(deps = {}) {
     if (!meta || !container)
       return
     // 卡片/盒子复用栅格命中协议（data-grid-cell-key=__body__），落到 children
-    if (['card', 'box-layout'].includes(container.blockType)) {
+    if (['card', 'panel-box', 'box-layout'].includes(container.blockType)) {
       appendPageBlockToContainer(blockType, containerId)
       return
     }
     if (container.blockType !== 'grid-layout')
       return
+    if (['grid-layout', 'tabs'].includes(blockType)) {
+      message.warning('栅格格子内请放入普通组件，勿再嵌套栅格或标签页')
+      return
+    }
     const rawCells = Array.isArray(container.props?.cells) && container.props.cells.length
       ? container.props.cells
       : [{ key: 'cell_1', title: '栅格 1', span: 24, children: [] }]
@@ -843,13 +854,16 @@ export function applyApplicationRuntimePart3(deps = {}) {
       return
     block = attachDefaultRuntimeObject(block)
     block = attachSingleFormAsset(block)
-    block = normalizePageBlockForContainer(block)
+    block = normalizePageBlockForContainer(block, 'grid-layout')
     const nextCells = cells.map(cell => cell.key === targetKey
       ? { ...cell, children: [...(cell.children || []), block] }
       : cell)
-    updatePageBlocks(mapPageBlocksInTree(pageBlocks.value, item => item.id === containerId
-      ? { ...item, props: { ...(item.props || {}), cells: nextCells } }
-      : item))
+    updatePageBlocks(mapPageBlocksInTree(pageBlocks.value, (item) => {
+      if (item.id !== containerId)
+        return item
+      const next = { ...item, props: { ...(item.props || {}), cells: nextCells } }
+      return expandContainerShellForNestedChild(next, block)
+    }))
     selectedPageBlockId.value = block.id
     preloadPageBlockCrudRuntimeProps(block)
     __impl.scrollPageBlockIntoView?.(block.id)
@@ -874,7 +888,7 @@ export function applyApplicationRuntimePart3(deps = {}) {
       return
     block = attachDefaultRuntimeObject(block)
     block = attachSingleFormAsset(block)
-    block = normalizePageBlockForContainer(block)
+    block = normalizePageBlockForContainer(block, 'tabs')
     const nextTabs = tabs.map(tab => tab.key === tabKey
       ? { ...tab, children: [...(tab.children || []), block] }
       : tab)
@@ -1093,7 +1107,7 @@ export function applyApplicationRuntimePart3(deps = {}) {
         if (!candidate?.id || candidate.id === block.id)
           return false
         const meta = resolveListPageBlockMeta(candidate.blockType)
-        return meta?.container === true && ['grid-layout', 'box-layout', 'card', 'tabs'].includes(candidate.blockType)
+        return meta?.container === true && ['grid-layout', 'box-layout', 'card', 'panel-box', 'tabs'].includes(candidate.blockType)
       })
       .map((candidate) => {
         const meta = resolveListPageBlockMeta(candidate.blockType)
@@ -1114,7 +1128,7 @@ export function applyApplicationRuntimePart3(deps = {}) {
     if (!source || !container)
       return
 
-    const nested = normalizePageBlockForContainer(source)
+    const nested = normalizePageBlockForContainer(source, container.blockType)
     const nextItems = pageBlocks.value
       .filter(item => item.id !== blockId)
       .map((item) => {
@@ -1125,7 +1139,10 @@ export function applyApplicationRuntimePart3(deps = {}) {
             ? item.props.cells.map(cell => ({ ...cell, children: [...(cell.children || [])] }))
             : [{ key: 'cell_1', title: '栅格 1', span: 24, children: [] }]
           cells[0] = { ...cells[0], children: [...cells[0].children, nested] }
-          return { ...item, props: { ...(item.props || {}), cells } }
+          return expandContainerShellForNestedChild(
+            { ...item, props: { ...(item.props || {}), cells } },
+            nested,
+          )
         }
         if (item.blockType === 'tabs') {
           const tabs = Array.isArray(item.props?.tabs) && item.props.tabs.length
@@ -1134,7 +1151,10 @@ export function applyApplicationRuntimePart3(deps = {}) {
           tabs[0] = { ...tabs[0], children: [...tabs[0].children, nested] }
           return { ...item, props: { ...(item.props || {}), tabs } }
         }
-        return { ...item, children: [...(item.children || []), nested] }
+        return expandContainerShellForNestedChild(
+          { ...item, children: [...(item.children || []), nested] },
+          nested,
+        )
       })
     updatePageBlocks(nextItems, { resolveCollisions: true, changedBlockId: containerId })
     selectedPageBlockId.value = containerId
@@ -1142,7 +1162,22 @@ export function applyApplicationRuntimePart3(deps = {}) {
   }
   __impl.movePageBlockIntoContainer = movePageBlockIntoContainer
 
-  function normalizePageBlockForContainer(block) {
+  function resolveNestedChartHeight(block = {}, fallbackHeight) {
+    return Math.max(
+      200,
+      Number(block?.props?.height) || 0,
+      readPageBlockLength(fallbackHeight),
+      resolveDefaultPageBlockHeight(block) || 280,
+      280,
+    )
+  }
+
+  /**
+   * 嵌套进容器后的尺寸约定：
+   * - 栅格内图表必须用固定像素高，才能把栅格壳撑开（height:100% 只会跟矮壳走）
+   * - 卡片/面板内图表仍可 heightMode=full 跟宿主伸缩
+   */
+  function normalizePageBlockForContainer(block, hostType = '') {
     const {
       pageFlowX,
       pageFlowY,
@@ -1158,26 +1193,37 @@ export function applyApplicationRuntimePart3(deps = {}) {
       heightMode: _topLevelHeightMode,
       ...containerStyle
     } = block.props?.style || {}
-    const isChart = ['bar-chart', 'line-chart'].includes(block?.blockType)
-    const chartHeight = Math.max(
-      200,
-      Number(block?.props?.height) || 0,
-      readPageBlockLength(_topLevelHeight),
-      280,
-    )
+    const isChart = ['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(block?.blockType)
+    const chartHeight = resolveNestedChartHeight(block, _topLevelHeight)
+    const nestInGrid = hostType === 'grid-layout'
+    let heightStyle = {}
+    if (isChart && nestInGrid) {
+      heightStyle = {
+        heightMode: 'fixed',
+        height: chartHeight,
+        minHeight: chartHeight,
+      }
+    }
+    else if (isChart) {
+      heightStyle = {
+        heightMode: 'full',
+        height: '100%',
+        minHeight: chartHeight,
+      }
+    }
+    else {
+      heightStyle = { heightMode: 'auto' }
+    }
     return {
       ...JSON.parse(JSON.stringify(block)),
       props: {
         ...(block.props || {}),
         style: {
           ...containerStyle,
-          // 嵌套容器内默认铺满宽、高度跟内容，禁止带出画布绝对坐标/100% 固定高
           widthMode: 'full',
           width: '100%',
           maxWidth: '100%',
-          // 图表必须保留固定壳高，否则 height:100% / 默认 96 会把画布挤出格子叠在一起
-          heightMode: isChart ? 'fixed' : 'auto',
-          ...(isChart ? { height: chartHeight } : {}),
+          ...heightStyle,
           x: 0,
           y: 0,
           left: 0,
@@ -1188,6 +1234,62 @@ export function applyApplicationRuntimePart3(deps = {}) {
   }
   __impl.normalizePageBlockForContainer = normalizePageBlockForContainer
 
+  /** 子块需要的高度（图表固定高 / 其它默认高） */
+  function resolveNestedChildNeededHeight(child = {}) {
+    const style = child?.props?.style || {}
+    if (['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(child?.blockType)) {
+      return Math.max(
+        resolveNestedChartHeight(child, style.height),
+        readPageBlockLength(style.minHeight),
+        readPageBlockLength(style.height),
+      )
+    }
+    return Math.max(
+      120,
+      readPageBlockLength(style.height),
+      readPageBlockLength(style.minHeight),
+      readPageBlockLength(style.pageFlowHeight),
+      resolveDefaultPageBlockHeight(child),
+    )
+  }
+
+  /**
+   * 往栅格/卡片塞进更高子块时，把宿主壳改成 auto 并抬 minHeight，避免还要手拖锚点。
+   */
+  function expandContainerShellForNestedChild(container, child) {
+    if (!container || !child)
+      return container
+    if (!['grid-layout', 'card', 'panel-box', 'box-layout'].includes(container.blockType))
+      return container
+    const style = container.props?.style || {}
+    const pad = container.blockType === 'grid-layout'
+      ? Math.max(16, Number(container.props?.cellPadding ?? 8) * 2 + 16)
+      : 32
+    const needed = resolveNestedChildNeededHeight(child) + pad
+    const current = Math.max(
+      readPageBlockLength(style.pageFlowHeight),
+      readPageBlockLength(style.height),
+      readPageBlockLength(style.minHeight),
+      resolveDefaultPageBlockHeight(container),
+    )
+    const nextH = Math.max(current, needed)
+    return {
+      ...container,
+      props: {
+        ...(container.props || {}),
+        style: {
+          ...style,
+          // 内容可继续撑开；pageFlowHeight 作碰撞下限
+          heightMode: 'auto',
+          pageFlowHeight: nextH,
+          height: nextH,
+          minHeight: nextH,
+        },
+      },
+    }
+  }
+  __impl.expandContainerShellForNestedChild = expandContainerShellForNestedChild
+
   function updatePageBlockSize(block, key) {
     const [, axis, mode] = key.split(':')
     const style = block.props?.style || {}
@@ -1195,7 +1297,11 @@ export function applyApplicationRuntimePart3(deps = {}) {
     if (axis === 'width') {
       nextStyle.widthMode = mode
       nextStyle.width = mode === 'full' ? '100%' : mode === 'auto' ? 'auto' : Math.max(280, Math.min(640, readPageBlockLength(style.width, 640)))
-      nextStyle.pageFlowWidth = mode === 'full' ? 'calc(100% - 48px)' : `${readPageBlockLength(nextStyle.width, mode === 'auto' ? 520 : 640)}px`
+      // full/auto 禁止写像素 pageFlowWidth，否则开属性面板后会被锁成「固定宽」
+      if (mode === 'full' || mode === 'auto')
+        delete nextStyle.pageFlowWidth
+      else
+        nextStyle.pageFlowWidth = `${readPageBlockLength(nextStyle.width, 640)}px`
     }
     if (axis === 'height')
       nextStyle.heightMode = mode
@@ -1281,6 +1387,53 @@ export function applyApplicationRuntimePart3(deps = {}) {
   }
   __impl.itemBorderColorMode = itemBorderColorMode
 
+  /** 标线挂在 .application-grid-host 上，坐标必须相对该宿主，不能只相对 page-flow */
+  function resolvePageAlignGuideHost() {
+    const host = document.querySelector('.application-grid-host')
+      || document.querySelector('.application-page-flow')
+    const rect = host?.getBoundingClientRect?.()
+    if (!host || !rect)
+      return null
+    return {
+      host,
+      left: rect.left,
+      top: rect.top,
+      scrollLeft: host.scrollLeft || 0,
+      scrollTop: host.scrollTop || 0,
+    }
+  }
+
+  function clientRectToGuideSpace(domRect, hostInfo) {
+    return {
+      x: Math.round(domRect.left - hostInfo.left + hostInfo.scrollLeft),
+      y: Math.round(domRect.top - hostInfo.top + hostInfo.scrollTop),
+      width: Math.round(domRect.width),
+      height: Math.round(domRect.height),
+    }
+  }
+
+  function syncNestedResizeGuidesFromDom(ctx, snapLines = null) {
+    if (!ctx?.blockId || mut.nestedPageBlockResizeCtx !== ctx)
+      return
+    const hostInfo = resolvePageAlignGuideHost()
+    const selfNode = document.querySelector(`[data-grid-child-id="${ctx.blockId}"]`)
+    const rect = selfNode?.getBoundingClientRect?.()
+    if (!hostInfo || !rect)
+      return
+    const box = clientRectToGuideSpace(rect, hostInfo)
+    pageAlignGuides.value = {
+      visible: true,
+      edges: {
+        left: box.x,
+        right: box.x + box.width,
+        top: box.y,
+        bottom: box.y + box.height,
+      },
+      x: snapLines?.x || pageAlignGuides.value?.x || [],
+      y: snapLines?.y || pageAlignGuides.value?.y || [],
+    }
+  }
+
   function handleNestedPageBlockResizeStart(payload = {}) {
     const block = payload.block
     const event = payload.event
@@ -1309,6 +1462,8 @@ export function applyApplicationRuntimePart3(deps = {}) {
     const gridMaxWidth = gridRect?.width
       ? Math.max(120, Math.floor(gridRect.width))
       : cellMaxWidth
+    const hostInfo = resolvePageAlignGuideHost()
+    const originBox = hostInfo ? clientRectToGuideSpace(rect, hostInfo) : null
     mut.nestedPageBlockResizeCtx = {
       blockId: block.id,
       blockType: block.blockType || '',
@@ -1317,11 +1472,16 @@ export function applyApplicationRuntimePart3(deps = {}) {
       startY: event.clientY,
       originWidth: rect.width,
       originHeight: rect.height,
+      originGuideX: originBox?.x ?? 0,
+      originGuideY: originBox?.y ?? 0,
       maxWidth: cellHost ? gridMaxWidth : cellMaxWidth,
       cellHost,
+      shellNode: node,
+      guideSyncRaf: 0,
     }
     window.addEventListener('pointermove', resizeNestedPageBlock)
     window.addEventListener('pointerup', endNestedPageBlockResize)
+    window.addEventListener('pointercancel', endNestedPageBlockResize)
   }
   __impl.handleNestedPageBlockResizeStart = handleNestedPageBlockResizeStart
 
@@ -1395,9 +1555,11 @@ export function applyApplicationRuntimePart3(deps = {}) {
     dragPreview.value = { ...dragPreview.value, x: pageFlowX, y: pageFlowY }
     pageAlignGuides.value = {
       visible: true,
-      cross: {
-        x: Math.round(pageFlowX + ctx.width / 2),
-        y: Math.round(pageFlowY + ctx.height / 2),
+      edges: {
+        left: Math.round(pageFlowX),
+        right: Math.round(pageFlowX + ctx.width),
+        top: Math.round(pageFlowY),
+        bottom: Math.round(pageFlowY + ctx.height),
       },
       x: [],
       y: [],
@@ -1467,7 +1629,7 @@ export function applyApplicationRuntimePart3(deps = {}) {
     const container = findPageBlockInTree(pageBlocks.value, containerId)
     if (!source || !container)
       return false
-    if (['card', 'box-layout'].includes(container.blockType))
+    if (['card', 'panel-box', 'box-layout'].includes(container.blockType))
       return relocateNestedPageBlockToContainer(blockId, containerId)
     if (container.blockType !== 'grid-layout')
       return false
@@ -1485,19 +1647,22 @@ export function applyApplicationRuntimePart3(deps = {}) {
       && (cell.children || []).some(child => child.id === blockId))
     if (alreadyInTarget)
       return true
-    const nested = normalizePageBlockForContainer(source)
+    const nested = normalizePageBlockForContainer(source, 'grid-layout')
     const withoutSource = removePageBlockFromTree(pageBlocks.value, blockId)
-    updatePageBlocks(mapPageBlocksInTree(withoutSource, item => item.id === containerId
-      ? {
-          ...item,
-          props: {
-            ...(item.props || {}),
-            cells: (item.props?.cells || []).map(cell => String(cell.key) === targetKey
-              ? { ...cell, children: [...(cell.children || []), nested] }
-              : cell),
-          },
-        }
-      : item))
+    updatePageBlocks(mapPageBlocksInTree(withoutSource, (item) => {
+      if (item.id !== containerId)
+        return item
+      const next = {
+        ...item,
+        props: {
+          ...(item.props || {}),
+          cells: (item.props?.cells || []).map(cell => String(cell.key) === targetKey
+            ? { ...cell, children: [...(cell.children || []), nested] }
+            : cell),
+        },
+      }
+      return expandContainerShellForNestedChild(next, nested)
+    }))
     selectedPageBlockId.value = blockId
     return true
   }
@@ -1511,7 +1676,7 @@ export function applyApplicationRuntimePart3(deps = {}) {
     const tabs = Array.isArray(container.props?.tabs) ? container.props.tabs : []
     if (!tabs.some(tab => tab.key === tabKey))
       return false
-    const nested = normalizePageBlockForContainer(source)
+    const nested = normalizePageBlockForContainer(source, 'tabs')
     const withoutSource = removePageBlockFromTree(pageBlocks.value, blockId)
     updatePageBlocks(mapPageBlocksInTree(withoutSource, item => item.id === containerId
       ? {
@@ -1532,17 +1697,22 @@ export function applyApplicationRuntimePart3(deps = {}) {
   function relocateNestedPageBlockToContainer(blockId, containerId) {
     const source = findPageBlockInTree(pageBlocks.value, blockId)
     const container = findPageBlockInTree(pageBlocks.value, containerId)
-    if (!source || !container || !['card', 'box-layout'].includes(container.blockType))
+    if (!source || !container || !['card', 'panel-box', 'box-layout'].includes(container.blockType))
       return false
     if (source.id === containerId || findPageBlockInTree([source], containerId))
       return false
     if ((container.children || []).some(child => child.id === blockId))
       return true
-    const nested = normalizePageBlockForContainer(source)
+    const nested = normalizePageBlockForContainer(source, container.blockType)
     const withoutSource = removePageBlockFromTree(pageBlocks.value, blockId)
-    updatePageBlocks(mapPageBlocksInTree(withoutSource, item => item.id === containerId
-      ? { ...item, children: [...(item.children || []), nested] }
-      : item))
+    updatePageBlocks(mapPageBlocksInTree(withoutSource, (item) => {
+      if (item.id !== containerId)
+        return item
+      return expandContainerShellForNestedChild(
+        { ...item, children: [...(item.children || []), nested] },
+        nested,
+      )
+    }))
     selectedPageBlockId.value = blockId
     return true
   }
@@ -1619,8 +1789,59 @@ export function applyApplicationRuntimePart3(deps = {}) {
     if (ctx.anchor.includes('top'))
       height -= dy
     const maxWidth = Number(ctx.maxWidth) > 0 ? Number(ctx.maxWidth) : Number.POSITIVE_INFINITY
-    const nextWidth = Math.min(maxWidth, Math.max(120, Math.round(width)))
-    const nextHeight = Math.max(40, Math.round(height))
+    let nextWidth = Math.min(maxWidth, Math.max(120, Math.round(width)))
+    let nextHeight = Math.max(40, Math.round(height))
+    // 栅格/容器内缩放：标线坐标系跟 .page-align-guides 宿主对齐
+    const hostInfo = resolvePageAlignGuideHost()
+    const selfNode = ctx.shellNode?.isConnected
+      ? ctx.shellNode
+      : document.querySelector(`[data-grid-child-id="${ctx.blockId}"]`)
+    const selfRect = selfNode?.getBoundingClientRect?.()
+    let snapLines = { x: [], y: [] }
+    if (hostInfo && selfRect) {
+      const selfBox = clientRectToGuideSpace(selfRect, hostInfo)
+      const parent = selfNode?.parentElement
+      const peerNodes = parent
+        ? Array.from(parent.querySelectorAll(':scope > [data-grid-child-id]'))
+        : []
+      const peers = peerNodes
+        .filter(node => node.getAttribute('data-grid-child-id') !== ctx.blockId)
+        .map((node) => {
+          const r = node.getBoundingClientRect()
+          return { ...clientRectToGuideSpace(r, hostInfo) }
+        })
+      // 再叠一层根级块，便于跟画布其它组件对齐
+      pageBlocks.value.forEach((item) => {
+        if (!item?.id)
+          return
+        const node = document.querySelector(`[data-page-block-id="${item.id}"]`)
+        const r = node?.getBoundingClientRect?.()
+        if (!r)
+          return
+        peers.push({ ...clientRectToGuideSpace(r, hostInfo) })
+      })
+      const snapped = snapResizeRectToPeers(
+        { x: selfBox.x, y: selfBox.y, width: nextWidth, height: nextHeight },
+        peers,
+        ctx.anchor || 'bottom-right',
+        PAGE_ALIGN_SNAP_PX,
+      )
+      nextWidth = Math.min(maxWidth, Math.max(120, snapped.width))
+      nextHeight = Math.max(40, snapped.height)
+      snapLines = snapped.lines || snapLines
+      // 容器内子块一般不改 left；右边缘 = 实测左 + 目标宽（目标宽会被 maxWidth/栅格再裁）
+      pageAlignGuides.value = {
+        visible: true,
+        edges: {
+          left: Math.round(selfBox.x),
+          right: Math.round(selfBox.x + nextWidth),
+          top: Math.round(selfBox.y),
+          bottom: Math.round(selfBox.y + nextHeight),
+        },
+        x: snapLines.x || [],
+        y: snapLines.y || [],
+      }
+    }
     const host = ctx.cellHost
     const nextSpan = host && resizingWidth && ctx.originWidth > 0
       ? Math.min(
@@ -1628,6 +1849,34 @@ export function applyApplicationRuntimePart3(deps = {}) {
           Math.max(2, Math.round(host.span * (nextWidth / ctx.originWidth))),
         )
       : null
+
+    // 非栅格 span：先写 DOM，让标线能马上跟到被 maxWidth:100% 裁过的实宽
+    if (selfNode?.style && !(host && nextSpan != null)) {
+      if (resizingWidth) {
+        selfNode.style.width = `${nextWidth}px`
+        selfNode.style.maxWidth = '100%'
+      }
+      if (resizingHeight) {
+        selfNode.style.height = `${nextHeight}px`
+        selfNode.style.minHeight = `${nextHeight}px`
+      }
+      // 立刻按实宽重贴竖线（避免标线比组件宽一截）
+      if (hostInfo) {
+        const liveRect = selfNode.getBoundingClientRect()
+        const liveBox = clientRectToGuideSpace(liveRect, hostInfo)
+        pageAlignGuides.value = {
+          visible: true,
+          edges: {
+            left: liveBox.x,
+            right: liveBox.x + liveBox.width,
+            top: liveBox.y,
+            bottom: liveBox.y + liveBox.height,
+          },
+          x: snapLines.x || [],
+          y: snapLines.y || [],
+        }
+      }
+    }
 
     updatePageBlocks(mapPageBlocksInTree(pageBlocks.value, (block) => {
       // 左右锚点：改所在格子的 span，图表始终通栏填满格子（真正改变页面上的宽度）
@@ -1668,24 +1917,58 @@ export function applyApplicationRuntimePart3(deps = {}) {
         nextStyle.minHeight = nextHeight
         nextStyle.pageFlowHeight = nextHeight
       }
-      const nextProps = {
-        ...(block.props || {}),
-        style: nextStyle,
-      }
-      if (resizingHeight && ['bar-chart', 'line-chart'].includes(block.blockType))
-        nextProps.height = Math.max(160, nextHeight)
+      // 拖拽中不写 props.height，避免图表每帧重绘；松手在 end 里同步
       return {
         ...block,
-        props: nextProps,
+        props: {
+          ...(block.props || {}),
+          style: nextStyle,
+        },
       }
     }))
+
+    // 栅格 span / Vue 回写后按实测矩形校正标线，保证竖线盖住真实宽
+    if (ctx.guideSyncRaf)
+      window.cancelAnimationFrame(ctx.guideSyncRaf)
+    ctx.guideSyncRaf = window.requestAnimationFrame(() => {
+      ctx.guideSyncRaf = 0
+      syncNestedResizeGuidesFromDom(ctx, snapLines)
+    })
   }
   __impl.resizeNestedPageBlock = resizeNestedPageBlock
 
   function endNestedPageBlockResize() {
+    const ctx = mut.nestedPageBlockResizeCtx
+    const resizedBlockId = ctx?.blockId || ''
+    if (ctx?.guideSyncRaf) {
+      window.cancelAnimationFrame(ctx.guideSyncRaf)
+      ctx.guideSyncRaf = 0
+    }
     mut.nestedPageBlockResizeCtx = null
+    clearPageAlignGuides()
     window.removeEventListener('pointermove', resizeNestedPageBlock)
     window.removeEventListener('pointerup', endNestedPageBlockResize)
+    window.removeEventListener('pointercancel', endNestedPageBlockResize)
+    if (!resizedBlockId)
+      return
+    updatePageBlocks(mapPageBlocksInTree(pageBlocks.value, (block) => {
+      if (block.id !== resizedBlockId)
+        return block
+      if (!['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(block.blockType))
+        return block
+      const shellH = Number(block.props?.style?.pageFlowHeight)
+        || Number.parseFloat(String(block.props?.style?.height || ''))
+        || 0
+      if (!(shellH >= 160))
+        return block
+      return {
+        ...block,
+        props: {
+          ...(block.props || {}),
+          height: Math.max(160, Math.round(shellH)),
+        },
+      }
+    }))
   }
   __impl.endNestedPageBlockResize = endNestedPageBlockResize
 

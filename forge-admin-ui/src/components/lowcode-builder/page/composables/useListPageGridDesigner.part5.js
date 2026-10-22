@@ -218,7 +218,7 @@ function isQuickEntryListMode(block = selectedBlock.value) {
 
 function isChartListMode(block = selectedBlock.value) {
   const blockType = block?.blockType
-  if (!['bar-chart', 'line-chart'].includes(blockType))
+  if (!['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(blockType))
     return false
   const binding = block?.props?.dataBinding || {}
   return resolveWidgetRenderMode(binding, blockType) === 'list'

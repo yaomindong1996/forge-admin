@@ -81,7 +81,14 @@ import {
   overlayFormDesignerOnRuntimeCrudProps,
   resolveBoundFormDesignerSchema,
 } from '@/components/lowcode-builder/shared/runtime-crud-props'
-import { findPageBlockInTree, mapPageBlocksInTree, removePageBlockFromTree, visitPageBlocksInTree } from './page-block-tree'
+import {
+  findDirectParentPageBlock,
+  findPageBlockInTree,
+  mapPageBlocksInTree,
+  NEST_CONTENT_HOST_TYPES,
+  removePageBlockFromTree,
+  visitPageBlocksInTree,
+} from './page-block-tree'
 import { resolvePageBlockShellStyle as computePageBlockShellStyle, readPageBlockLength, resolveDefaultPageBlockHeight, resolveDefaultPageBlockYFromItems, resolvePageBlockFlowGeometry, resolveRootPageBlockCollisions, shouldUsePageFlowStack, normalizePagePadding, resolvePagePaddingCss, normalizePageSurface, migratePageFlowToContentCoords, canvasToContentFlowPoint, contentToCanvasFlowPoint, DEFAULT_PAGE_PADDING, DEFAULT_PAGE_SURFACE } from './page-flow-geometry'
 import { flattenNodes, hasPermission, isNavigationVisible } from './runtime-navigation-utils'
 import { useBuilderHistory } from './use-builder-history'
@@ -100,12 +107,12 @@ export function applyApplicationRuntimePart2(deps = {}) {
     handleRuntimeHeaderMoreSelect, isDraftPreviewMode, isGroupCollapsed, isPageCatalogDrag, itemBorderColorMode, load, markBuilderClean, movePageBlockIntoContainer,
     moveRootPageBlockToGridCell, moveRootPageBlockToTab, normalizePageBlockForContainer, onComponentButtonMove, onNestedPageBlockMove, onPageBlockMove, onPageBlockResize, openBusinessObjectDesign,
     openCustomPageSelector, openDraftPreview, openEmbeddedObjectActions, openExcelPageImport, openFormAssetDesignerForPage, openObjectDesigner, openObjectResourcePreview, openObjectSetup,
-    openPageTypeSelector, openProcessDesigner, openWorkspace, pageUsesFreeLayoutCanvas, patchCurrentPageNode, persistApplicationDraft, prefetchRuntimeWorkspacePanels, promoteCurrentPageToListShape,
+    openPageTypeSelector, openProcessDesigner, openRuntimeWorkbench, openWorkspace, pageUsesFreeLayoutCanvas, patchCurrentPageNode, persistApplicationDraft, prefetchRuntimeWorkspacePanels, promoteCurrentPageToListShape,
     provisionPendingFormData, readRouteDesignTab, refreshWorkspaceMetadata, relocateNestedPageBlockToContainer, relocateNestedPageBlockToGridCell, relocateNestedPageBlockToTab, requestExitEditing, resizeNestedPageBlock,
     resolveComponentIcon, resolveComponentPickerGroup, resolveEmptyGuideIcon, resolveEntryDesignTab, resolveFormAssetIdForPage, resolveFormLayoutBlockType, resolvePageBlockBackgroundColor, resolvePageBlockMoreOptions,
     resolvePageBlockMoveIntoOptions, resolvePageBlockSwapTarget, resolvePageContextFieldCatalog, resolvePageDesignTab, resolvePageFlowContainerTargetByPageBlock, resolvePageFlowContainerTargetByRect, resolvePageFlowContainerTargetFromElement, resolvePageFlowContainerTargetFromPoint,
     resolvePageFlowGridCellTarget, resolvePageFlowGridCellTargetByPageBlock, resolvePageFlowGridCellTargetByRect, resolvePageFlowGridCellTargetFromElement, resolvePageFlowGridCellTargetFromPoint, resolvePageFlowTabTarget, resolvePageFlowTabTargetFromPoint, resolvePageShapeKey,
-    resolvePageTemplateIcon, resolveResourceNodeBuilderNode, resolveResourceNodeMenuOptions, resolveRuntimeBackLabel, resolveRuntimeBrandEyebrow, resolveRuntimeBrandStatus, resolveRuntimeView, resolveSelectablePageId,
+    resolvePageTemplateIcon, resolveResourceNodeBuilderNode, resolveResourceNodeMenuOptions, resolveRuntimeBackLabel, resolveRuntimeBrandEyebrow, resolveRuntimeHeaderTitle, resolveRuntimeBrandStatus, resolveRuntimeView, resolveSelectablePageId,
     resolveSystemPageIcon, restoreCurrentObjectPageLayout, returnToEditorFromDraftPreview, saveActiveFormDesigner, saveCurrentDesignerSection, saveDraft, saveNavigationDraft, scheduleNavigationSave,
     selectCreatedDesignerPage, selectDesignerResource, selectIntroTemplate, selectNode, selectPageManagementNode, setFormDataProvisionState, snapPageBlockPosition, startComponentButtonMove,
     startPageBlockMove, startPageBlockResize, startRenameApplication, switchPageDesignTab, switchRuntimeView, syncActiveFormAssetForPage, syncCatalogDropActiveClass, toggleGroupExpanded,
@@ -128,7 +135,7 @@ export function applyApplicationRuntimePart2(deps = {}) {
     activeResourceConfigKey, previewableResourceActive, legacyBlockTypeMap, pageBlockResizeAnchors, pageBlockRecommendedColors, groupOptions, navigationActionNode, iconPickerNode,
     navigationIconValue, navigationActionTitle, navigationActionHasChildren, navigationDeleteImpact, navigationDeleteTip, moveGroupOptions, navigationNodes, currentNode,
     currentPage, currentPageLayoutPolluted, currentPageManagementTitle, pageDesignObject, currentGridLayout, pageBlocks, pageFlowStackMode, pageCanvasPadding,
-    pageCanvasPaddingCss, pageCanvasSurface, pageCanvasSurfaceStyle, designerGridLayout, appPageTargetOptions, pageFlowHeight, hasCustomComponentButtonPosition, componentButtonStyle, selectedPageBlock, formAssets, filteredFormAssets,
+    pageCanvasPaddingCss, pageCanvasSurface, pageCanvasSurfaceStyle, pageSurfaceHostStyle, designerGridLayout, appPageTargetOptions, pageFlowHeight, hasCustomComponentButtonPosition, componentButtonStyle, selectedPageBlock, formAssets, filteredFormAssets,
     pageFormAssetOptions, activeFormAsset, activeFormDesignerSchema, activeFormAssetBlock, activeFormDesignerObjectRef, activeFormDesignerContext, activeFormDesignerRelations, activeFormDesignerActions,
     activeFormFields, activeFormDataState, selectedPageBlockFormAssetId, selectedPageBlockFormAsset, selectedPageBlockRuntimeObjectRef, selectedPageBlockIsCrud, selectedPageBlockSupportsDataSource, selectedPageBlockUsesObjectRuntime,
     selectedPageBlockRuntimeObjectId, selectedPageBlockObjectDesignerPanel, selectedPageBlockFormDataState, runtimeObjectFormOptions, pageTemplateOptions, selectedPageBlockFields, selectedPageBlockFormDesignerSchema, applicationGridModelSchema,
@@ -569,7 +576,7 @@ export function applyApplicationRuntimePart2(deps = {}) {
       : null
     const hostId = selected?.id || ''
     let nested = false
-    if (selected && ['card', 'box-layout'].includes(selected.blockType)) {
+    if (selected && ['card', 'panel-box', 'box-layout'].includes(selected.blockType)) {
       nested = !!__impl.appendPageBlockToContainer?.(blockType, hostId)
     }
     else if (selected?.blockType === 'tabs') {
@@ -731,7 +738,7 @@ export function applyApplicationRuntimePart2(deps = {}) {
           pageFlowHeight: height,
           widthMode: block.props?.style?.widthMode || 'full',
           heightMode: block.props?.style?.heightMode
-            || (['grid-layout', 'card', 'box-layout', 'tabs'].includes(blockType) ? 'auto' : 'fixed'),
+            || (['grid-layout', 'card', 'panel-box', 'box-layout', 'tabs', 'AiForm', 'detail-info'].includes(blockType) ? 'auto' : 'fixed'),
           width: '100%',
           height,
         },
@@ -1516,11 +1523,15 @@ export function applyApplicationRuntimePart2(deps = {}) {
     const objectChanged = previousObjectKey !== nextObjectKey
     const configKey = String(object.configKey || '').trim()
     const apiPrefix = configKey ? `/ai/crud/${configKey}` : ''
+    const blockType = selectedPageBlock.value.blockType
     const objectApiProps = apiPrefix
       ? {
           api: apiPrefix,
           listApi: `get@${apiPrefix}/page`,
-          detailApi: `get@${apiPrefix}/:id`,
+          // 详情信息块用 {{ id }}，与地址栏参数模板一致；列表 CRUD 仍用 :id
+          detailApi: blockType === 'detail-info'
+            ? `get@${apiPrefix}/{{ id }}`
+            : `get@${apiPrefix}/:id`,
           createApi: `post@${apiPrefix}`,
           updateApi: `put@${apiPrefix}`,
           deleteApi: `delete@${apiPrefix}/:id`,
@@ -1531,6 +1542,13 @@ export function applyApplicationRuntimePart2(deps = {}) {
     const nextProps = {
       ...(selectedPageBlock.value.props || {}),
       ...objectApiProps,
+      ...(blockType === 'detail-info'
+        ? {
+            dataSourceType: selectedPageBlock.value.props?.dataSourceType || 'remote',
+            paramsText: selectedPageBlock.value.props?.paramsText || '{ "id": "{{ id }}" }',
+            dataPath: selectedPageBlock.value.props?.dataPath || 'data',
+          }
+        : {}),
       objectRef: {
         objectId: String(object.objectId ?? object.id),
         objectCode: object.objectCode || '',
@@ -1715,7 +1733,7 @@ export function applyApplicationRuntimePart2(deps = {}) {
     if (!editing.value || !block?.id)
       return
     selectedPageBlockId.value = block.id
-    nestHostPinnedId.value = ['card', 'box-layout', 'tabs', 'grid-layout'].includes(block.blockType)
+    nestHostPinnedId.value = ['card', 'panel-box', 'box-layout', 'tabs', 'grid-layout'].includes(block.blockType)
       ? block.id
       : ''
     inspectorTab.value = 'properties'
@@ -1853,7 +1871,7 @@ export function applyApplicationRuntimePart2(deps = {}) {
 
   /** 卡片 / 盒子：整块主体就是投放区（对齐栅格 cell 命中） */
   function isSimpleBodyContainer(block = {}) {
-    return ['card', 'box-layout'].includes(block?.blockType)
+    return ['card', 'panel-box', 'box-layout'].includes(block?.blockType)
   }
   __impl.isSimpleBodyContainer = isSimpleBodyContainer
 
@@ -1890,7 +1908,7 @@ export function applyApplicationRuntimePart2(deps = {}) {
       return
     selectedPageBlockId.value = blockId
     const block = findPageBlockInTree(pageBlocks.value, blockId)
-    nestHostPinnedId.value = block && ['card', 'box-layout', 'tabs', 'grid-layout'].includes(block.blockType)
+    nestHostPinnedId.value = block && ['card', 'panel-box', 'box-layout', 'tabs', 'grid-layout'].includes(block.blockType)
       ? block.id
       : ''
     inspectorTab.value = 'properties'
@@ -1908,6 +1926,17 @@ export function applyApplicationRuntimePart2(deps = {}) {
     const block = findPageBlockInTree(pageBlocks.value, blockId)
     if (!block)
       return
+    // 点卡片/面板内的图表等子块时：若容器尚未选中，先选容器（避免右侧一直停在子组件属性）
+    const parent = findDirectParentPageBlock(pageBlocks.value, blockId)
+    if (
+      parent
+      && NEST_CONTENT_HOST_TYPES.includes(parent.blockType)
+      && selectedPageBlockId.value !== parent.id
+      && selectedPageBlockId.value !== blockId
+    ) {
+      openPageBlockConfiguration(parent)
+      return
+    }
     openPageBlockConfiguration(block)
   }
   __impl.handleNestedPageBlockSelect = handleNestedPageBlockSelect
@@ -2044,16 +2073,15 @@ export function applyApplicationRuntimePart2(deps = {}) {
       || activePageFlowTabTarget.value?.blockId
       || '',
     )
-    // 组件库拖入时也显示十字标线，便于对准栅格
+    // 组件库拖入：用过指针的横竖边线对准（与改宽高四边标线同一套）
     const flow = document.querySelector('.application-page-flow')
     const flowRect = flow?.getBoundingClientRect?.()
     if (flowRect) {
+      const cx = Math.round(event.clientX - flowRect.left + (flow.scrollLeft || 0))
+      const cy = Math.round(event.clientY - flowRect.top + (flow.scrollTop || 0))
       pageAlignGuides.value = {
         visible: true,
-        cross: {
-          x: Math.round(event.clientX - flowRect.left + (flow.scrollLeft || 0)),
-          y: Math.round(event.clientY - flowRect.top + (flow.scrollTop || 0)),
-        },
+        edges: { left: cx, right: cx, top: cy, bottom: cy },
         x: [],
         y: [],
       }

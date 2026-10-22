@@ -93,6 +93,49 @@ export const WIDGET_BINDING_SLOTS = {
       { key: 'metaField', label: '系列名', placeholder: 'series / group' },
     ],
   },
+  'area-chart': {
+    kind: 'list',
+    supportsCompose: false,
+    needsContextPath: true,
+    contextPathLabel: '图表数据列表',
+    contextPathHelp: '选「列表循环」时：每行映射分类、数值，可选系列名做多系列。',
+    supportsRenderMode: true,
+    renderModeOptions: [
+      { label: '手动数据', value: 'manual', help: '在属性里填写分类轴与系列数值' },
+      { label: '列表绑定', value: 'list', help: '从数组字段聚合为图表数据' },
+    ],
+    primarySlot: 'valueField',
+    slots: [
+      { key: 'labelField', label: '分类轴', placeholder: 'category / name' },
+      { key: 'valueField', label: '数值', placeholder: 'value / count', primary: true },
+      { key: 'metaField', label: '系列名', placeholder: 'series / group' },
+    ],
+  },
+  'pie-chart': {
+    kind: 'list',
+    supportsCompose: false,
+    needsContextPath: true,
+    contextPathLabel: '饼图数据列表',
+    contextPathHelp: '选「列表循环」时：每行映射扇区名称与数值。',
+    supportsRenderMode: true,
+    renderModeOptions: [
+      { label: '手动数据', value: 'manual', help: '在属性里填写分类与数值' },
+      { label: '列表绑定', value: 'list', help: '从数组字段聚合为饼图扇区' },
+    ],
+    primarySlot: 'valueField',
+    slots: [
+      { key: 'labelField', label: '扇区名', placeholder: 'category / name' },
+      { key: 'valueField', label: '数值', placeholder: 'value / count', primary: true },
+      { key: 'metaField', label: '系列名', placeholder: 'series（可选）' },
+    ],
+  },
+  'detail-info': {
+    kind: 'object',
+    supportsCompose: false,
+    needsContextPath: false,
+    // 字段展示走「配置字段」；此处只统一远程/上下文数据源
+    slots: [],
+  },
   'info-panel': {
     kind: 'object',
     supportsCompose: true,

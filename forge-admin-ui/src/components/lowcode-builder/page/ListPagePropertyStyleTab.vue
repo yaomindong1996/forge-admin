@@ -4,7 +4,7 @@
               <div class="position-control">
                 <div class="position-axis-grid">
                   <label class="position-number-field">
-                    <span>左 X</span>
+                    <span>{{ isTopLevelBlockId(selectedBlock.id) ? '左 X' : '偏移 X' }}</span>
                     <n-input-number
                       :value="selectedBlockFrame.x"
                       :min="0"
@@ -15,7 +15,7 @@
                     <em>px</em>
                   </label>
                   <label class="position-number-field">
-                    <span>上 Y</span>
+                    <span>{{ isTopLevelBlockId(selectedBlock.id) ? '上 Y' : '偏移 Y' }}</span>
                     <n-input-number
                       :value="selectedBlockFrame.y"
                       :min="0"
@@ -26,6 +26,11 @@
                     <em>px</em>
                   </label>
                 </div>
+                <p class="position-axis-hint">
+                  {{ isTopLevelBlockId(selectedBlock.id)
+                    ? '控制组件在画布上的位置（写入 pageFlow 坐标，保存后运行态同步）。'
+                    : '容器内组件的相对偏移；改完后应在父格内立刻移动。' }}
+                </p>
 
                 <div class="position-rule">
                   <div class="position-rule-head">
@@ -340,21 +345,19 @@
                   </div>
                 </div>
               </div>
-              <n-form-item label="内边距 / 外边距">
-                <div class="style-grid">
-                  <n-input
-                    :value="String(selectedBlockStyle.padding ?? 0)"
-                    size="small"
-                    placeholder="内边距，如 12 或 8px 12px"
-                    @update:value="patchBlockStyle(selectedBlock.id, { padding: normalizeSpacingValue($event) })"
-                  />
-                  <n-input
-                    :value="String(selectedBlockStyle.margin ?? 0)"
-                    size="small"
-                    placeholder="外边距，如 12 或 8px 12px"
-                    @update:value="patchBlockStyle(selectedBlock.id, { margin: normalizeSpacingValue($event) })"
-                  />
-                </div>
+              <n-form-item label="内边距">
+                <SpacingBoxControl
+                  :value="selectedBlockStyle.padding ?? 0"
+                  label="内边距"
+                  @update:value="patchBlockStyle(selectedBlock.id, { padding: normalizeSpacingValue($event) })"
+                />
+              </n-form-item>
+              <n-form-item label="外边距">
+                <SpacingBoxControl
+                  :value="selectedBlockStyle.margin ?? 0"
+                  label="外边距"
+                  @update:value="patchBlockStyle(selectedBlock.id, { margin: normalizeSpacingValue($event) })"
+                />
               </n-form-item>
               <n-form-item label="自定义 style">
                 <n-input

@@ -73,7 +73,7 @@ function buildRootGrid({ id, label, cells, gridH = 18 }) {
       columns: 24,
       gutter: 16,
       rowGap: 16,
-      cellMinHeight: 88,
+      cellMinHeight: 160,
       alignItems: 'stretch',
       justifyItems: 'stretch',
       showCellBorder: false,

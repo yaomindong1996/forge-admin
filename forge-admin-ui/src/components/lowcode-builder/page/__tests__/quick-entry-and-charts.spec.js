@@ -47,6 +47,8 @@ vi.mock('../gridBlockRendererLocalComponents.js', async () => {
       PageWidgetRenderer: true,
       ContainerContextMenu: true,
       WorkspaceSummaryMetrics: true,
+      WorkflowTaskListBlock: true,
+      NoticeBoardBlock: true,
       AiCrudPage: true,
       TreeCrudTemplate: true,
       RuntimeListGridFlow: true,
@@ -282,7 +284,8 @@ describe('PageChartBlock', () => {
     expect(option.title.text).toBe('请假类型分布')
     expect(option.xAxis.data).toEqual(['年假', '事假'])
     expect(option.series[0]).toMatchObject({ type: 'bar', name: '申请数', data: [14, 9] })
-    expect(wrapper.find('.page-chart-canvas').attributes('style')).toContain('300px')
+    expect(wrapper.find('.page-chart-canvas').attributes('style')).toContain('height: 100%')
+    expect(wrapper.find('.page-chart-canvas').attributes('style')).toContain('min-height: 0')
     expect(wrapper.find('.page-chart-empty').exists()).toBe(false)
     wrapper.unmount()
   })
@@ -399,7 +402,8 @@ describe('GridBlockRenderer wires props into child blocks', () => {
     expect(barOption.title.text).toBe('分类对比')
     expect(barOption.xAxis.data).toEqual(['X', 'Y'])
     expect(barOption.series[0]).toMatchObject({ type: 'bar', name: '数量', data: [3, 5] })
-    expect(bar.find('.page-chart-canvas').attributes('style')).toContain('240px')
+    expect(bar.find('.page-chart-canvas').attributes('style')).toContain('height: 100%')
+    expect(bar.find('.page-chart-canvas').attributes('style')).toContain('min-height: 0')
     bar.unmount()
 
     echartsMocks.setOption.mockClear()

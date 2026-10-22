@@ -10,9 +10,11 @@
   overflow: visible;
 }
 
-/* 图表：禁止 height:100% 在不定高格子里塌缩，画布按内容撑开并裁切溢出 */
+/* 图表：禁止 height:100% 在不定高格子里塌缩，画布按内容撑开并裁切溢出（圆角靠外壳 overflow 裁切） */
 .grid-block.block-bar-chart,
-.grid-block.block-line-chart {
+.grid-block.block-line-chart,
+.grid-block.block-area-chart,
+.grid-block.block-pie-chart {
   height: auto !important;
   min-height: 200px;
   overflow: hidden;
@@ -357,41 +359,22 @@
   display: grid;
   gap: 10px;
   min-height: 0;
+  width: 100%;
 }
 
-.detail-info-grid {
-  display: grid;
-  gap: 10px 18px;
-  min-height: 0;
+.detail-info-descriptions {
+  width: 100%;
 }
 
-.detail-info-item {
-  min-width: 0;
-  padding: 2px 0 8px;
-  border-bottom: 1px solid #eef2f7;
+.detail-info-descriptions :deep(.n-descriptions-table-content) {
+  word-break: break-word;
 }
 
-.detail-info-item.bordered {
-  padding: 10px 12px;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  background: var(--bg-primary);
-}
-
-.detail-label {
-  margin-bottom: 4px;
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.detail-value {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text-primary);
-  font-size: 13px;
+.detail-info-descriptions :deep(.n-descriptions-header) {
+  margin-bottom: 10px;
+  font-size: 15px;
   font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: var(--text-primary);
 }
 
 .detail-info-state {
@@ -465,7 +448,7 @@
 .layout-grid-cell {
   position: relative;
   min-width: 0;
-  min-height: var(--grid-cell-min-height, 120px);
+  min-height: var(--grid-cell-min-height, 160px);
   padding: 8px;
   border-radius: 6px;
   transition:
@@ -561,12 +544,12 @@
 
 .nested-block-node-overlay {
   position: absolute;
-  /* 下移避开父级 page-block 的拖拽/更多操作条（约 top:6 + 24） */
-  top: 36px;
+  /* 下移避开父级 page-block 的拖拽/更多操作条；子块顶边中心锚点仍在边框上 */
+  top: 28px;
   right: 6px;
   left: 6px;
   z-index: 36;
-  height: 24px;
+  height: 18px;
   /* 仅悬停/选中挂载，挂载即可见；条带本身不抢点击 */
   opacity: 1;
   pointer-events: none;
@@ -581,13 +564,13 @@
 .nested-block-menu-trigger {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 24px;
+  width: 18px;
+  height: 16px;
   border: 1px solid #bfdbfe;
-  border-radius: 5px;
+  border-radius: 4px;
   background: #eff6ff;
   color: #1d4ed8;
-  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.14);
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.16);
   /* 圆角 + 旋转 SVG 在部分浏览器会裁切角上圆点，手柄本身不裁切 */
   overflow: visible;
 }
@@ -606,11 +589,11 @@
 }
 
 .nested-block-drag-handle::before {
-  width: 17px;
-  height: 10px;
-  background-image: radial-gradient(circle at 1.5px 1.5px, currentColor 1.5px, transparent 1.7px);
+  width: 11px;
+  height: 7px;
+  background-image: radial-gradient(circle at 1px 1px, currentColor 1px, transparent 1.15px);
   background-position: 0 0;
-  background-size: 7px 7px;
+  background-size: 4.5px 4.5px;
   content: '';
 }
 
@@ -642,7 +625,7 @@
 
 .nested-resize-anchor {
   position: absolute;
-  z-index: 48;
+  z-index: 62;
   display: block;
   width: 10px;
   height: 10px;
@@ -670,7 +653,7 @@
   top: -7px;
   left: 50%;
   cursor: ns-resize;
-  transform: translateX(-50%);
+  transform: translate(-50%, 0);
 }
 
 .nested-resize-anchor.anchor-top-right {
@@ -723,8 +706,19 @@
 .layout-grid-cell-child.selected {
   z-index: 6;
   overflow: visible;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+  border-color: transparent;
+  box-shadow: none;
+}
+/* 唯一选中框：一层 2px，四边等粗 */
+.layout-grid-cell-child.selected::after {
+  position: absolute;
+  z-index: 60;
+  inset: 0;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  content: '';
+  pointer-events: none;
+  box-sizing: border-box;
 }
 
 /* 选中时抬高格子，避免锚点被相邻格 / overflow 裁切 */
@@ -786,6 +780,14 @@
   gap: 8px;
   min-height: 0;
   overflow: hidden;
+}
+
+/* 数据表单 / 详情：随字段撑开，禁止 overflow 裁成「高度特别小」 */
+.system-component-preview.is-form-grow,
+.detail-info-preview.is-form-grow {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
 }
 
 .ai-crud-preview {
@@ -1449,20 +1451,35 @@
 
 .layout-card {
   position: relative;
-  display: grid;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
+  /* 外层壳锁高时吃满；禁止写死 min-height:96px，否则矮壳时会撑破并盖住底边选中线/锚点 */
   height: 100%;
-  min-height: 96px;
+  min-height: 0;
+  max-height: 100%;
   padding: 12px;
   border: 1px solid var(--border-light);
   border-radius: 8px;
   background: var(--bg-primary);
-  /* 子组件缩放锚点会伸出边框，避免被裁切 */
-  overflow: visible;
+  /* 默认裁切溢出，避免内容盖住 page-block 底边描边；子块选中时再放开锚点 */
+  overflow: hidden;
   transition:
     box-shadow 160ms ease,
     border-color 160ms ease;
+}
+
+/* 外层壳有明确高度时再拉满，方便「填充容器」子块伸展 / 随卡片缩小 */
+.application-page-block[data-page-block-type='card'] .layout-card {
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+}
+
+/* 嵌套子块选中/悬停：放开裁切，缩放锚点可伸出卡片边 */
+.layout-card:has(.container-child-item.selected),
+.layout-card:has(.container-child-item:hover) {
+  overflow: visible;
 }
 
 /* 尺寸变体 */
@@ -1522,15 +1539,72 @@
 .layout-card-title {
   position: relative;
   z-index: 1;
+  color: var(--card-title-color, var(--text-primary));
+  font-size: var(--card-title-size, 14px);
+  font-weight: var(--card-title-weight, 700);
+}
+
+.layout-card--accent .layout-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.layout-card--accent .layout-card-title::before {
+  content: '';
+  flex: 0 0 3px;
+  align-self: stretch;
+  min-height: 1em;
+  border-radius: 2px;
+  background: var(--card-title-accent, var(--primary-color, #2563eb));
+}
+
+.panel-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  box-sizing: border-box;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+.application-page-block[data-page-block-type='panel-box'] .panel-box {
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+}
+
+.panel-box:has(.container-child-item.selected),
+.panel-box:has(.container-child-item:hover) {
+  overflow: visible;
+}
+
+.panel-box.is-drop-active {
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
+}
+
+.panel-box-title {
+  position: relative;
+  z-index: 1;
   color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .layout-card-body {
   position: relative;
   z-index: 1;
-  min-height: 72px;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  max-height: 100%;
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.7;
@@ -1538,22 +1612,28 @@
 }
 
 .layout-card-text {
+  flex: 0 0 auto;
   margin-bottom: 8px;
 }
 
 .container-child-list {
-  display: grid;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   gap: 8px;
   min-height: 0;
   min-width: 0;
   width: 100%;
   max-width: 100%;
+  max-height: 100%;
 }
 
 .container-child-item {
   position: relative;
+  flex: 0 0 auto;
   width: 100%;
   max-width: 100%;
+  max-height: 100%;
   min-width: 0;
   min-height: 72px;
   box-sizing: border-box;
@@ -1567,13 +1647,32 @@
     box-shadow 160ms ease;
 }
 
+/* 仅「填充容器」：吃满卡片剩余高度；min-height:0 允许随锁高卡片缩小（maxHeight:100% 约束下限） */
+.container-child-item.is-fill-height {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  max-height: 100%;
+}
+
 .container-child-item:hover {
   border-color: #93c5fd;
 }
 
 .container-child-item.selected {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.14);
+  border-color: transparent;
+  box-shadow: none;
+}
+/* 唯一选中框：一层 2px；inset:0 不被父级 overflow 裁掉底边 */
+.container-child-item.selected::after {
+  position: absolute;
+  z-index: 60;
+  inset: 0;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  content: '';
+  pointer-events: none;
+  box-sizing: border-box;
 }
 
 .container-child-item.is-moving-source {
@@ -1590,8 +1689,32 @@
   box-sizing: border-box;
 }
 
+/* 填充高度时，内部渲染器吃满子壳；允许随父卡片缩小 */
+.container-child-item.is-fill-height > :deep(.grid-block),
+.tab-pane-child.is-fill-height > :deep(.grid-block) {
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100%;
+}
+
+/* 卡片内图表：覆盖全局 min-height:200，避免缩卡片后仍顶破父壳 */
+.container-child-item > :deep(.grid-block.block-bar-chart),
+.container-child-item > :deep(.grid-block.block-line-chart),
+.container-child-item > :deep(.grid-block.block-area-chart),
+.container-child-item > :deep(.grid-block.block-pie-chart),
+.tab-pane-child > :deep(.grid-block.block-bar-chart),
+.tab-pane-child > :deep(.grid-block.block-line-chart),
+.tab-pane-child > :deep(.grid-block.block-area-chart),
+.tab-pane-child > :deep(.grid-block.block-pie-chart) {
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100%;
+  overflow: hidden;
+}
+
 .tab-pane-child {
   position: relative;
+  flex: 0 0 auto;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -1607,13 +1730,30 @@
     box-shadow 160ms ease;
 }
 
+.tab-pane-child.is-fill-height {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  max-height: 100%;
+}
+
 .tab-pane-child:hover {
   border-color: #93c5fd;
 }
 
 .tab-pane-child.selected {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.14);
+  border-color: transparent;
+  box-shadow: none;
+}
+.tab-pane-child.selected::after {
+  position: absolute;
+  z-index: 60;
+  inset: 0;
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  content: '';
+  pointer-events: none;
+  box-sizing: border-box;
 }
 
 .signature-block-preview,
@@ -1626,12 +1766,44 @@
 .barcode-preview,
 .box-layout-preview {
   position: relative;
-  min-height: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: inherit;
+  width: 100%;
+  min-height: 120px;
   height: 100%;
+  padding: 10px;
+  border: 1px dashed var(--border-light);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  box-sizing: border-box;
+  overflow: visible;
 }
 
-.box-layout-preview {
-  overflow: visible;
+.box-layout-preview.is-drop-active {
+  border-color: #2563eb;
+  border-style: solid;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
+}
+
+.container-drop-empty {
+  display: grid;
+  place-items: center;
+  flex: 1 1 auto;
+  width: 100%;
+  /* 矮卡片时跟壳收缩，避免 min-height 撑破底边描边 */
+  min-height: min(88px, 100%);
+  padding: 12px;
+  border: 1px dashed #c5d0e0;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  pointer-events: none;
+  box-sizing: border-box;
 }
 
 .signature-block-preview,
@@ -1858,13 +2030,6 @@
 .code-invalid {
   color: #dc2626;
   font-size: 12px;
-}
-
-.box-layout-preview {
-  position: relative;
-  min-height: 100%;
-  height: 100%;
-  overflow: visible;
 }
 
 .box-layout-preview > :deep(.grid-block) {

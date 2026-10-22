@@ -252,9 +252,9 @@ describe('bridge Legacy Type Compatibility (存量类型名回归红线)', () =>
     }
   })
 
-  it('toListPageBlockCatalog must match legacy catalog exactly (62 items)', () => {
+  it('toListPageBlockCatalog must match legacy catalog exactly (68 items)', () => {
     const catalog = toListPageBlockCatalog()
-    expect(catalog).toHaveLength(62)
+    expect(catalog).toHaveLength(68)
     const legacyTypes = [
       'AiCrudPage',
       'AiForm',
@@ -266,6 +266,7 @@ describe('bridge Legacy Type Compatibility (存量类型名回归红线)', () =>
       'box-layout',
       'button-group',
       'card',
+      'panel-box',
       'custom-html',
       'data-table',
       'detail-info',
@@ -287,6 +288,11 @@ describe('bridge Legacy Type Compatibility (存量类型名回归红线)', () =>
       'quick-entry',
       'bar-chart',
       'line-chart',
+      'area-chart',
+      'pie-chart',
+      'workflow-task-list',
+      'notice-board',
+      'welcome-banner',
       'step-form',
       'steps',
       'sub-table-tabs',
@@ -355,14 +361,14 @@ describe('bridge Form Palette Compatibility (表单统一面板回归红线)', (
       expect(types.has(widgetType)).toBe(true)
     }
     // 布局/业务（映射后可拖入画布）
-    for (const layoutType of ['grid', 'table', 'card', 'tabs', 'collapse', 'groupTitle', 'formSectionTitle', 'action-button', 'AiCrudPage', 'subTable']) {
+    for (const layoutType of ['grid', 'table', 'card', 'panel', 'tabs', 'collapse', 'groupTitle', 'formSectionTitle', 'action-button', 'AiCrudPage', 'subTable']) {
       expect(types.has(layoutType)).toBe(true)
     }
   })
 
-  it('widget scope change must not break list catalog (62 items)', () => {
-    // 挂件改 F+L 后，列表目录仍应精确 62 项（含快捷入口/柱状图/折线图）
-    expect(toListPageBlockCatalog()).toHaveLength(62)
+  it('widget scope change must not break list catalog (68 items)', () => {
+    // 挂件改 F+L 后，列表目录仍应精确 68 项（含欢迎条/面板容器/图表/待办公告等）
+    expect(toListPageBlockCatalog()).toHaveLength(68)
     const widgetKeys = toPageWidgetComponentKeys()
     expect([...widgetKeys].sort()).toEqual([...EXPECTED_WIDGET_KEYS].sort())
     expect(widgetKeys).toContain('transfer')
@@ -375,9 +381,9 @@ describe('bridge Palette Union (B1/B2 统一合集两侧同显红线)', () => {
   // 两侧设计器面板 scope='ALL' 同显同一份组件合集（仅排除容器内部包装节点），
   // 数量一致是用户验收标准；画布能力差异由接入方 itemDisabledReason 禁用态呈现，不再从面板隐藏。
 
-  it('isPaletteUnionSpec should keep all non-wrapper components (104 items)', () => {
+  it('isPaletteUnionSpec should keep all non-wrapper components (110 items)', () => {
     const union = listAllComponents().filter(isPaletteUnionSpec)
-    expect(union).toHaveLength(104)
+    expect(union).toHaveLength(110)
     // 包装节点（tabPane/collapseItem/col/tableCell）不进面板
     expect(union.map(s => s.group)).not.toContain('包装节点')
   })

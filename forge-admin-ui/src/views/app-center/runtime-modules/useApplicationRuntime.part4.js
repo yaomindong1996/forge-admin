@@ -62,6 +62,7 @@ import {
   createPageShapeBuilder,
   ensureFreeLayoutPageNode,
   isObjectBoundPageLayoutPolluted,
+  pageHasFreeLayoutCompanionBlocks,
   resolvePageShapeFromNode,
   restoreObjectBoundPageLayout,
 } from '../in-app-builder/page-shape-design'
@@ -73,7 +74,7 @@ import {
 } from '../in-app-builder/workbench-page'
 import { inAppPageTemplateCatalog, resolveInAppPageTemplate } from '../in-app-builder/page-template-catalog'
 import { findPageBlockInTree, mapPageBlocksInTree, removePageBlockFromTree, visitPageBlocksInTree } from './page-block-tree'
-import { resolvePageBlockShellStyle as computePageBlockShellStyle, readPageBlockLength, resolveDefaultPageBlockHeight, resolveDefaultPageBlockYFromItems, resolvePageBlockFlowGeometry, resolveRootPageBlockCollisions, applyMeasuredPageBlockHeights, shouldUsePageFlowStack, normalizePagePadding, resolvePagePaddingCss, migratePageFlowToContentCoords, canvasToContentFlowPoint, contentToCanvasFlowPoint, DEFAULT_PAGE_PADDING } from './page-flow-geometry'
+import { resolvePageBlockShellStyle as computePageBlockShellStyle, readPageBlockLength, resolveDefaultPageBlockHeight, resolveDefaultPageBlockYFromItems, resolvePageBlockFlowGeometry, resolveRootPageBlockCollisions, applyMeasuredPageBlockHeights, shouldUsePageFlowStack, normalizePagePadding, resolvePagePaddingCss, migratePageFlowToContentCoords, canvasToContentFlowPoint, contentToCanvasFlowPoint, snapResizeRectToPeers, DEFAULT_PAGE_PADDING } from './page-flow-geometry'
 import { flattenNodes, hasPermission, isNavigationVisible } from './runtime-navigation-utils'
 import { useBuilderHistory } from './use-builder-history'
 import { useRuntimeCrudConfig } from './use-runtime-crud-config'
@@ -129,6 +130,8 @@ export function applyApplicationRuntimePart4(deps = {}) {
     undoBuilder, redoBuilder, handleBuilderShortcut,
   
   } = deps
+  const PAGE_CHART_BLOCK_TYPES = new Set(['bar-chart', 'line-chart', 'area-chart', 'pie-chart'])
+
   function startPageBlockResize(block, event, anchor = 'bottom-right') {
     if (event.button !== 0)
       return
@@ -145,6 +148,7 @@ export function applyApplicationRuntimePart4(deps = {}) {
     const pad = pageCanvasPadding.value
     mut.pageBlockResizeCtx = {
       blockId: block.id,
+      blockType: block.blockType,
       anchor,
       startX: event.clientX,
       startY: event.clientY,
@@ -157,13 +161,37 @@ export function applyApplicationRuntimePart4(deps = {}) {
       canvasPadTop: pad.top,
       widthMode: block.props?.style?.widthMode || 'full',
       canvasWidth: Math.max(240, flowRect.width),
+      shellNode: node,
+      resizeRaf: 0,
+      pendingEvent: null,
+      collisionTick: 0,
+      lastApplied: null,
     }
+    resizeCollisionBlockIds.value = []
     window.addEventListener('pointermove', onPageBlockResize)
     window.addEventListener('pointerup', endPageBlockResize)
+    window.addEventListener('pointercancel', endPageBlockResize)
   }
   __impl.startPageBlockResize = startPageBlockResize
 
   function onPageBlockResize(event) {
+    const ctx = mut.pageBlockResizeCtx
+    if (!ctx)
+      return
+    ctx.pendingEvent = event
+    if (ctx.resizeRaf)
+      return
+    ctx.resizeRaf = window.requestAnimationFrame(() => {
+      ctx.resizeRaf = 0
+      const pending = ctx.pendingEvent
+      ctx.pendingEvent = null
+      if (pending && mut.pageBlockResizeCtx === ctx)
+        applyPageBlockResizeFrame(pending)
+    })
+  }
+  __impl.onPageBlockResize = onPageBlockResize
+
+  function applyPageBlockResizeFrame(event) {
     if (!mut.pageBlockResizeCtx)
       return
     const ctx = mut.pageBlockResizeCtx
@@ -198,20 +226,79 @@ export function applyApplicationRuntimePart4(deps = {}) {
     if (anchor.includes('left') && nextW < width)
       canvasX = Math.max(padLeft, canvasX + (width - nextW))
     nextW = Math.round(Math.min(Math.max(180, nextW), Math.max(180, maxRight - canvasX)))
+    let pageFlowHeight = Math.round(Math.max(40, height))
+    // 缩放边缘吸附其它根级块，并显示对齐标线
+    const peerRects = pageBlocks.value
+      .filter(item => item?.id && item.id !== ctx.blockId)
+      .map((item) => {
+        const style = resolvePageBlockShellStyle(item)
+        return {
+          x: readPageBlockLength(style.left, 0),
+          y: readPageBlockLength(style.top, 0),
+          width: readPageBlockLength(item.props?.style?.pageFlowWidth, style.width)
+            || readPageBlockLength(style.width, nextW),
+          height: readPageBlockLength(item.props?.style?.pageFlowHeight, style.height)
+            || readPageBlockLength(style.height, pageFlowHeight),
+        }
+      })
+    const snapped = snapResizeRectToPeers(
+      { x: canvasX, y: canvasY, width: nextW, height: pageFlowHeight },
+      peerRects,
+      anchor,
+      PAGE_ALIGN_SNAP_PX,
+    )
+    canvasX = Math.max(padLeft, snapped.x)
+    canvasY = Math.max(padTop, snapped.y)
+    nextW = Math.round(Math.min(Math.max(180, snapped.width), Math.max(180, maxRight - canvasX)))
+    pageFlowHeight = Math.round(Math.max(40, snapped.height))
+    const keepFullWidth = !resizingWidth && (ctx.widthMode === 'full' || ctx.widthMode === 'auto')
+    const guideWidth = keepFullWidth
+      ? Math.max(180, canvasWidth - padLeft - padRight)
+      : nextW
+    // 标线与即将写入的壳尺寸同一套数值，避免先跳线后变宽
+    pageAlignGuides.value = {
+      visible: true,
+      edges: {
+        left: Math.round(keepFullWidth ? padLeft : canvasX),
+        right: Math.round((keepFullWidth ? padLeft : canvasX) + guideWidth),
+        top: Math.round(canvasY),
+        bottom: Math.round(canvasY + pageFlowHeight),
+      },
+      x: snapped.lines?.x || [],
+      y: snapped.lines?.y || [],
+    }
+    // 先写 DOM，标线与壳同帧对齐；再写 schema
+    const shellNode = ctx.shellNode
+    if (shellNode?.style) {
+      if (!keepFullWidth) {
+        shellNode.style.width = `${nextW}px`
+        shellNode.style.maxWidth = `${nextW}px`
+      }
+      shellNode.style.height = `${pageFlowHeight}px`
+      shellNode.style.minHeight = `${pageFlowHeight}px`
+      if (!keepFullWidth)
+        shellNode.style.left = `${Math.round(canvasX)}px`
+      shellNode.style.top = `${Math.round(canvasY)}px`
+    }
     const content = canvasToContentFlowPoint(canvasX, canvasY, {
       left: padLeft,
       right: padRight,
       top: padTop,
       bottom: 0,
     })
-    const pageFlowHeight = Math.round(Math.max(40, height))
-    const keepFullWidth = !resizingWidth && (ctx.widthMode === 'full' || ctx.widthMode === 'auto')
-    updateResizeCollisionHighlights(ctx.blockId, {
-      x: canvasX,
-      y: canvasY,
-      width: keepFullWidth ? Math.max(180, canvasWidth - padLeft - padRight) : nextW,
-      height: pageFlowHeight,
-    })
+    ctx.collisionTick = (ctx.collisionTick || 0) + 1
+    if (ctx.collisionTick % 2 === 1) {
+      updateResizeCollisionHighlights(ctx.blockId, {
+        x: keepFullWidth ? padLeft : canvasX,
+        y: canvasY,
+        width: guideWidth,
+        height: pageFlowHeight,
+      })
+    }
+    const appliedKey = `${canvasX},${canvasY},${nextW},${pageFlowHeight},${keepFullWidth ? 1 : 0}`
+    if (ctx.lastApplied === appliedKey)
+      return
+    ctx.lastApplied = appliedKey
     updatePageBlocks(pageBlocks.value.map((item) => {
       if (item.id !== ctx.blockId)
         return item
@@ -237,36 +324,60 @@ export function applyApplicationRuntimePart4(deps = {}) {
         // 仅左右拖且未横向挪位时保持 pageFlowX=0，文档流堆叠下定宽仍生效
         nextStyle.pageFlowX = resizingWidth && Math.abs(content.x) < 1 ? 0 : content.x
       }
-      const nextProps = {
-        ...(item.props || {}),
-        style: nextStyle,
-      }
-      // 图表画布高度跟壳同步，否则拖锚点只变框、图画仍卡在 props.height
-      if (['bar-chart', 'line-chart'].includes(item.blockType))
-        nextProps.height = Math.max(160, pageFlowHeight)
+      // 拖拽过程不写 props.height，避免图表每帧重绘；松手再同步
       return {
         ...item,
-        props: nextProps,
+        props: {
+          ...(item.props || {}),
+          style: nextStyle,
+        },
       }
     }))
   }
-  __impl.onPageBlockResize = onPageBlockResize
+  __impl.applyPageBlockResizeFrame = applyPageBlockResizeFrame
+
+  /** 用画布 DOM 实测矩形做碰撞高亮，避免 full 宽 geo=100000 误判一直黄框 */
+  function readPageBlockCanvasRect(blockId) {
+    const flow = document.querySelector('.application-page-flow')
+    const node = document.querySelector(`[data-page-block-id="${blockId}"]`)
+    const flowRect = flow?.getBoundingClientRect?.()
+    const rect = node?.getBoundingClientRect?.()
+    if (!flowRect || !rect)
+      return null
+    const x = Math.round(rect.left - flowRect.left + (flow.scrollLeft || 0))
+    const y = Math.round(rect.top - flowRect.top + (flow.scrollTop || 0))
+    return {
+      x,
+      y,
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
+      right: x + Math.round(rect.width),
+      bottom: y + Math.round(rect.height),
+    }
+  }
+  __impl.readPageBlockCanvasRect = readPageBlockCanvasRect
 
   function updateResizeCollisionHighlights(blockId, rect = {}) {
-    const pad = 2
-    const left = Number(rect.x) || 0
-    const top = Number(rect.y) || 0
-    const right = left + (Number(rect.width) || 0)
-    const bottom = top + (Number(rect.height) || 0)
+    const gap = 8
+    const moving = {
+      x: Number(rect.x) || 0,
+      y: Number(rect.y) || 0,
+      width: Number(rect.width) || 0,
+      height: Number(rect.height) || 0,
+    }
+    moving.right = moving.x + moving.width
+    moving.bottom = moving.y + moving.height
     const hits = []
-    pageBlocks.value.forEach((item, index) => {
-      if (item.id === blockId)
+    pageBlocks.value.forEach((item) => {
+      if (!item?.id || item.id === blockId)
         return
-      const geo = resolvePageBlockFlowGeometry(item, index, pageBlocks.value)
-      const overlaps = left - pad < geo.right
-        && right + pad > geo.x
-        && top - pad < geo.bottom
-        && bottom + pad > geo.y
+      const peer = readPageBlockCanvasRect(item.id)
+      if (!peer)
+        return
+      const overlaps = moving.x < peer.right + gap
+        && moving.right + gap > peer.x
+        && moving.y < peer.bottom + gap
+        && moving.bottom + gap > peer.y
       if (overlaps)
         hits.push(item.id)
     })
@@ -274,14 +385,84 @@ export function applyApplicationRuntimePart4(deps = {}) {
   }
   __impl.updateResizeCollisionHighlights = updateResizeCollisionHighlights
 
+  /** 拖拽预览避开其它根级块：重叠则下推到对方下方 */
+  function avoidRootOverlapCanvasPosition(blockId, x, y, width, height, gap = 16) {
+    let nextY = Number(y) || 0
+    const nextX = Number(x) || 0
+    const w = Number(width) || 0
+    const h = Number(height) || 0
+    let guard = 0
+    while (guard++ < 48) {
+      let hit = null
+      pageBlocks.value.forEach((item) => {
+        if (!item?.id || item.id === blockId)
+          return
+        const peer = readPageBlockCanvasRect(item.id)
+        if (!peer)
+          return
+        const candidate = {
+          x: nextX,
+          y: nextY,
+          width: w,
+          height: h,
+          right: nextX + w,
+          bottom: nextY + h,
+        }
+        const overlaps = candidate.x < peer.right + gap
+          && candidate.right + gap > peer.x
+          && candidate.y < peer.bottom + gap
+          && candidate.bottom + gap > peer.y
+        if (!overlaps)
+          return
+        if (!hit || peer.bottom > hit.bottom)
+          hit = peer
+      })
+      if (!hit)
+        break
+      nextY = hit.bottom + gap
+    }
+    return { x: nextX, y: nextY }
+  }
+  __impl.avoidRootOverlapCanvasPosition = avoidRootOverlapCanvasPosition
+
   function endPageBlockResize() {
-    const resizedBlockId = mut.pageBlockResizeCtx?.blockId || ''
+    const ctx = mut.pageBlockResizeCtx
+    const resizedBlockId = ctx?.blockId || ''
+    const resizedBlockType = ctx?.blockType || ''
+    if (ctx?.resizeRaf) {
+      window.cancelAnimationFrame(ctx.resizeRaf)
+      ctx.resizeRaf = 0
+    }
+    // 冲掉最后一帧 pending，保证松手尺寸落盘
+    if (ctx?.pendingEvent)
+      applyPageBlockResizeFrame(ctx.pendingEvent)
     mut.pageBlockResizeCtx = null
     resizeCollisionBlockIds.value = []
+    clearPageAlignGuides()
     window.removeEventListener('pointermove', onPageBlockResize)
     window.removeEventListener('pointerup', endPageBlockResize)
-    if (resizedBlockId)
-      updatePageBlocks(pageBlocks.value, { resolveCollisions: true, changedBlockId: resizedBlockId })
+    window.removeEventListener('pointercancel', endPageBlockResize)
+    if (!resizedBlockId)
+      return
+    // 图表：松手一次同步 props.height，壳与画布对齐
+    let nextItems = pageBlocks.value
+    if (PAGE_CHART_BLOCK_TYPES.has(resizedBlockType)) {
+      nextItems = pageBlocks.value.map((item) => {
+        if (item.id !== resizedBlockId)
+          return item
+        const shellH = Number(item.props?.style?.pageFlowHeight) || Number(item.props?.style?.height) || 0
+        if (!(shellH >= 160))
+          return item
+        return {
+          ...item,
+          props: {
+            ...(item.props || {}),
+            height: Math.max(160, Math.round(shellH)),
+          },
+        }
+      })
+    }
+    updatePageBlocks(nextItems, { resolveCollisions: true, changedBlockId: resizedBlockId })
   }
   __impl.endPageBlockResize = endPageBlockResize
 
@@ -331,8 +512,10 @@ export function applyApplicationRuntimePart4(deps = {}) {
     }
     dragPreview.value = { blockId: block.id, x: originX, y: originY, width: rect.width, height: rect.height }
     draggingPageBlockId.value = block.id
+    resizeCollisionBlockIds.value = []
     window.addEventListener('pointermove', onPageBlockMove)
     window.addEventListener('pointerup', endPageBlockMove)
+    window.addEventListener('pointercancel', endPageBlockMove)
   }
   __impl.startPageBlockMove = startPageBlockMove
 
@@ -365,8 +548,26 @@ export function applyApplicationRuntimePart4(deps = {}) {
     const maxRight = (ctx.maxX || 0) + Number(ctx.width || 0)
     if (pageFlowX + Number(ctx.width || 0) > maxRight)
       pageFlowX = Math.max(padLeft, maxRight - Number(ctx.width || 0))
+    // 根级禁止叠放：预览位置若压住其它块则下推（拖入容器另走 tab/grid）
+    const avoided = avoidRootOverlapCanvasPosition(
+      ctx.blockId,
+      pageFlowX,
+      pageFlowY,
+      Number(ctx.width) || 0,
+      Number(ctx.height) || 0,
+      16,
+    )
+    pageFlowX = avoided.x
+    pageFlowY = Math.max(padTop, avoided.y)
     dragPreview.value = { ...dragPreview.value, x: pageFlowX, y: pageFlowY }
     updatePageAlignGuides(ctx, pageFlowX, pageFlowY)
+    // 仍重叠时标橙（理论上避让后应为空）
+    updateResizeCollisionHighlights(ctx.blockId, {
+      x: pageFlowX,
+      y: pageFlowY,
+      width: Number(ctx.width) || 0,
+      height: Number(ctx.height) || 0,
+    })
     ctx.activeTabTarget = resolvePageFlowTabTargetFromPoint(event)
     ctx.activeGridTarget = resolvePageFlowGridCellTargetFromPoint(event)
     // 自由拖放：拖动中不做实时对调，避免其它元素跟着弹跳
@@ -461,9 +662,11 @@ export function applyApplicationRuntimePart4(deps = {}) {
     const height = Number(ctx.height || 0)
     pageAlignGuides.value = {
       visible: true,
-      cross: {
-        x: Math.round(x + width / 2),
-        y: Math.round(y + height / 2),
+      edges: {
+        left: Math.round(x),
+        right: Math.round(x + width),
+        top: Math.round(y),
+        bottom: Math.round(y + height),
       },
       x: ctx._snapLines?.x || [],
       y: ctx._snapLines?.y || [],
@@ -472,7 +675,7 @@ export function applyApplicationRuntimePart4(deps = {}) {
   __impl.updatePageAlignGuides = updatePageAlignGuides
 
   function clearPageAlignGuides() {
-    pageAlignGuides.value = { visible: false, cross: null, x: [], y: [] }
+    pageAlignGuides.value = { visible: false, edges: null, x: [], y: [] }
   }
   __impl.clearPageAlignGuides = clearPageAlignGuides
 
@@ -511,7 +714,7 @@ export function applyApplicationRuntimePart4(deps = {}) {
       const finalX = Math.round(dragPreview.value?.x ?? ctx.originX)
       const finalY = Math.round(dragPreview.value?.y ?? ctx.originY)
       const content = canvasToContentFlowPoint(finalX, finalY, pageCanvasPadding.value)
-      // 直接落到预览位置，不再自动碰撞推挤，避免松手弹一下
+      // 落到预览位置；根级重叠由 resolveCollisions 钉住主动块、下推其它块（嵌入容器除外）
       updatePageBlocks(
         pageBlocks.value.map(item => item.id === ctx.blockId
           ? {
@@ -526,14 +729,17 @@ export function applyApplicationRuntimePart4(deps = {}) {
               },
             }
           : item),
+        { resolveCollisions: true, changedBlockId: ctx.blockId },
       )
     }
     mut.pageBlockMoveCtx = null
     draggingPageBlockId.value = ''
     dragPreview.value = null
+    resizeCollisionBlockIds.value = []
     clearPageAlignGuides()
     window.removeEventListener('pointermove', onPageBlockMove)
     window.removeEventListener('pointerup', endPageBlockMove)
+    window.removeEventListener('pointercancel', endPageBlockMove)
   }
   __impl.endPageBlockMove = endPageBlockMove
 
@@ -642,7 +848,7 @@ export function applyApplicationRuntimePart4(deps = {}) {
     const tabs = Array.isArray(container.props?.tabs) ? container.props.tabs : []
     if (!tabs.some(tab => tab.key === tabKey))
       return false
-    const nested = normalizePageBlockForContainer(source)
+    const nested = normalizePageBlockForContainer(source, 'tabs')
     const withoutSource = pageBlocks.value.filter(item => item.id !== blockId)
     updatePageBlocks(mapPageBlocksInTree(withoutSource, item => item.id === containerId
       ? {
@@ -665,41 +871,54 @@ export function applyApplicationRuntimePart4(deps = {}) {
     const container = findPageBlockInTree(pageBlocks.value, containerId)
     if (!source || !container || source.id === container.id)
       return false
-    if (['card', 'box-layout'].includes(container.blockType)) {
-      if (['grid-layout', 'tabs', 'box-layout', 'card'].includes(source.blockType)) {
-        message.warning('卡片/盒子内请放入普通组件，布局容器请放在画布根级')
+    if (['card', 'panel-box', 'box-layout'].includes(container.blockType)) {
+      // 卡片/盒子允许放入栅格；标签页及其它布局容器仍放根级
+      if (['tabs', 'box-layout', 'card', 'panel-box'].includes(source.blockType)) {
+        message.warning('卡片/盒子内请放入普通组件或栅格，其它布局容器请放在画布根级')
         return false
       }
-      const nested = normalizePageBlockForContainer(source)
+      const nested = normalizePageBlockForContainer(source, container.blockType)
       const withoutSource = pageBlocks.value.filter(item => item.id !== blockId)
-      updatePageBlocks(mapPageBlocksInTree(withoutSource, item => item.id === containerId
-        ? { ...item, children: [...(item.children || []), nested] }
-        : item))
+      updatePageBlocks(mapPageBlocksInTree(withoutSource, (item) => {
+        if (item.id !== containerId)
+          return item
+        return __impl.expandContainerShellForNestedChild(
+          { ...item, children: [...(item.children || []), nested] },
+          nested,
+        )
+      }))
       selectedPageBlockId.value = nested.id
       message.success(container.blockType === 'card' ? '组件已放入卡片' : '组件已放入盒子')
       return true
     }
     if (container.blockType !== 'grid-layout')
       return false
+    if (['grid-layout', 'tabs'].includes(source.blockType)) {
+      message.warning('栅格格子内请放入普通组件，勿再嵌套栅格或标签页')
+      return false
+    }
     const cells = Array.isArray(container.props?.cells) ? container.props.cells : []
     let targetKey = String(cellKey || '')
     if (!cells.some(cell => String(cell.key) === targetKey))
       targetKey = String(cells[0]?.key || '')
     if (!targetKey)
       return false
-    const nested = normalizePageBlockForContainer(source)
+    const nested = normalizePageBlockForContainer(source, 'grid-layout')
     const withoutSource = pageBlocks.value.filter(item => item.id !== blockId)
-    updatePageBlocks(mapPageBlocksInTree(withoutSource, item => item.id === containerId
-      ? {
-          ...item,
-          props: {
-            ...(item.props || {}),
-            cells: (item.props?.cells || []).map(cell => String(cell.key) === targetKey
-              ? { ...cell, children: [...(cell.children || []), nested] }
-              : cell),
-          },
-        }
-      : item))
+    updatePageBlocks(mapPageBlocksInTree(withoutSource, (item) => {
+      if (item.id !== containerId)
+        return item
+      const next = {
+        ...item,
+        props: {
+          ...(item.props || {}),
+          cells: (item.props?.cells || []).map(cell => String(cell.key) === targetKey
+            ? { ...cell, children: [...(cell.children || []), nested] }
+            : cell),
+        },
+      }
+      return __impl.expandContainerShellForNestedChild(next, nested)
+    }))
     selectedPageBlockId.value = nested.id
     message.success('组件已放入栅格')
     return true
@@ -1066,9 +1285,27 @@ export function applyApplicationRuntimePart4(deps = {}) {
       return '页面设计'
     if (isDraftPreviewMode())
       return '草稿预览'
+    if (runtimeViewMode.value === 'process')
+      return '业务流程'
+    if (runtimeViewMode.value === 'enhance')
+      return '增强'
+    if (runtimeViewMode.value === 'settings')
+      return '应用设置'
+    if (runtimeViewMode.value === 'publish')
+      return '应用发布'
     return '页面管理'
   }
   __impl.resolveRuntimeBrandEyebrow = resolveRuntimeBrandEyebrow
+
+  /** 顶栏加粗标题：页面管理看当前页名，其它分区看应用名 */
+  function resolveRuntimeHeaderTitle() {
+    if (editing.value || isDraftPreviewMode())
+      return currentPageManagementTitle.value || application.value?.applicationName || '未命名应用'
+    if (runtimeViewMode.value === 'pages')
+      return currentPageManagementTitle.value || application.value?.applicationName || '未命名应用'
+    return application.value?.applicationName || '未命名应用'
+  }
+  __impl.resolveRuntimeHeaderTitle = resolveRuntimeHeaderTitle
 
   function resolveRuntimeBrandStatus() {
     if (editing.value)
@@ -1078,6 +1315,13 @@ export function applyApplicationRuntimePart4(deps = {}) {
     return currentPageManagementTitle.value
   }
   __impl.resolveRuntimeBrandStatus = resolveRuntimeBrandStatus
+
+  async function openRuntimeWorkbench() {
+    if (runtimeViewMode.value !== 'pages')
+      await switchRuntimeView('pages')
+    selectPageManagementNode(WORKBENCH_PAGE_ID)
+  }
+  __impl.openRuntimeWorkbench = openRuntimeWorkbench
 
   function handleRuntimeBack() {
     if (editing.value) {
@@ -1542,7 +1786,28 @@ export function applyApplicationRuntimePart4(deps = {}) {
   }
   __impl.pageUsesFreeLayoutCanvas = pageUsesFreeLayoutCanvas
 
+  function resolvePageLayoutForDesign(pageId = '') {
+    const id = String(pageId || route.query.pageId || selectedNodeId.value || '').trim()
+    if (!id)
+      return null
+    if (isWorkbenchPageId(id))
+      return builder.value?.pages?.[WORKBENCH_PAGE_ID] || null
+    return builder.value?.pages?.[id] || null
+  }
+
+  /** 节点声明的形态（不受 URL designTab=page 强制成 custom） */
+  function resolveDeclaredPageShape(pageId = '') {
+    const id = String(pageId || route.query.pageId || selectedNodeId.value || '').trim()
+    if (isWorkbenchPageId(id))
+      return 'custom'
+    const node = (builder.value?.nodes || []).find(item => String(item.id) === id)
+    return resolvePageShapeFromNode(node)
+  }
+
   function resolveEntryDesignTab(pageId) {
+    // 与运行态 Portal 对齐：画布有伴生块时先进页面设计，避免只看到对象列表壳
+    if (pageHasFreeLayoutCompanionBlocks(resolvePageLayoutForDesign(pageId)))
+      return 'page'
     const shape = resolvePageShapeKey(pageId)
     if (shape === 'custom')
       return 'page'
@@ -1608,9 +1873,15 @@ export function applyApplicationRuntimePart4(deps = {}) {
       return false
     return editing.value && activePageDesignTab.value === 'form'
   })
-  const showPageDesignTab = computed(() => readRouteDesignTab() === 'page' || currentPageShape.value === 'custom')
-  const showFormDesignTab = computed(() => readRouteDesignTab() !== 'page' && FORM_DESIGN_SHAPES.has(currentPageShape.value))
-  const showListDesignTab = computed(() => readRouteDesignTab() !== 'page' && LIST_DESIGN_SHAPES.has(currentPageShape.value))
+  const showPageDesignTab = computed(() => {
+    if (readRouteDesignTab() === 'page' || currentPageShape.value === 'custom')
+      return true
+    // 对象列表页叠了自由布局伴生块：仍要露出「页面设计」，与运行态所见一致
+    return pageHasFreeLayoutCompanionBlocks(resolvePageLayoutForDesign())
+  })
+  // 表单/列表 Tab 看节点真实形态；designTab=page 时不再隐藏，方便伴生页切回对象设计
+  const showFormDesignTab = computed(() => FORM_DESIGN_SHAPES.has(resolveDeclaredPageShape()))
+  const showListDesignTab = computed(() => LIST_DESIGN_SHAPES.has(resolveDeclaredPageShape()))
   const isPageDesignTabActive = computed(() => showPageDesignTab.value && (activePageDesignTab.value === 'page' || showFreeLayoutCanvas.value))
 
   // —— 自由布局：容器 height:auto 撑开后，把实测高度写回 pageFlowHeight 并碰撞下推 ——
@@ -1794,7 +2065,9 @@ export function applyApplicationRuntimePart4(deps = {}) {
   __impl.isDraftPreviewMode = isDraftPreviewMode
   __impl.resolveRuntimeBackLabel = resolveRuntimeBackLabel
   __impl.resolveRuntimeBrandEyebrow = resolveRuntimeBrandEyebrow
+  __impl.resolveRuntimeHeaderTitle = resolveRuntimeHeaderTitle
   __impl.resolveRuntimeBrandStatus = resolveRuntimeBrandStatus
+  __impl.openRuntimeWorkbench = openRuntimeWorkbench
   __impl.handleRuntimeBack = handleRuntimeBack
   __impl.returnToEditorFromDraftPreview = returnToEditorFromDraftPreview
   __impl.exitToPageManagement = exitToPageManagement

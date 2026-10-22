@@ -28,6 +28,10 @@ import {
 import { collectTreeFilterValues } from '@/components/lowcode-builder/shared/runtime-tree-table'
 import { matchSimpleExpression, resolveRuntimeControl } from '@/components/lowcode-builder/shared/runtime-rules'
 import { resolveDefaultSearchComponentType } from '../fieldDrawerConfig'
+import {
+  DEFAULT_NEST_EXCLUDE_BLOCK_TYPES,
+  GRID_CELL_NEST_EXCLUDE_BLOCK_TYPES,
+} from '../page-block-picker'
 import { useUserStore } from '@/store'
 import { postEncrypt, request } from '@/utils'
 import { applyCrudHookRules, CRUD_HOOK_RULE_TARGETS, normalizeCrudHookRules } from '../crud-hook-rules'
@@ -42,6 +46,8 @@ import {
   hasGridCellChildren,
   resolveFormLayoutBlockType,
   nestedChildShellStyle,
+  isNestedFillHeightChild,
+  resolveSurfaceBackgroundStyle,
   resolveChartBlockHeight,
   normalizeCssSize,
   createLegacyPageTitleContent,
@@ -62,6 +68,8 @@ import {
   extractBlockBoundRows,
   normalizeBlockRow,
   interpolateText,
+  buildRuntimeTemplateContext,
+  interpolateApiUrl,
   getNestedRecordValue,
   parseApiConfigValue,
   extractRuntimeTreeRows,
@@ -83,6 +91,9 @@ const localDataBindableBlockTypes = new Set([
   'quick-entry',
   'bar-chart',
   'line-chart',
+  'area-chart',
+  'pie-chart',
+  'detail-info',
   'info-panel',
   'custom-html',
   'tag-list',
@@ -172,16 +183,60 @@ const blockRuntimeVisible = computed(() => {
     return !explicitlyHidden
   return blockRuntimeControl.value.visible !== false
 })
+function isDetailInfoBindingRemote(binding = {}) {
+  return binding.enabled === true && binding.sourceType === 'remote'
+}
+
+function isDetailInfoBindingContext(binding = {}) {
+  return binding.enabled === true && binding.sourceType === 'context'
+}
+
 const detailInfoRecord = computed(() => {
   if (props.block.blockType !== 'detail-info')
     return props.runtimeRecord || {}
-  const sourceType = props.block.props?.dataSourceType || 'current'
+  const binding = props.block.props?.dataBinding || {}
+  // 统一 dataBinding（与图表远程接口同一路径）
+  if (isDetailInfoBindingRemote(binding)) {
+    const source = remoteBlockBindingData.value
+    if (!source)
+      return {}
+    const dataPath = binding.dataPath
+    if (!dataPath)
+      return source || {}
+    return getNestedRecordValue(source, dataPath) || {}
+  }
+  if (isDetailInfoBindingContext(binding)) {
+    const path = binding.contextPath || props.block.props?.contextPath || ''
+    if (path)
+      return getNestedRecordValue(props.runtimeRecord || {}, path) || {}
+    return props.runtimeRecord || {}
+  }
+  // 存量：仅有 dataSourceType / detailApi
+  const sourceType = props.block.props?.dataSourceType || 'remote'
   if (sourceType === 'remote')
     return remoteDetailInfoRecord.value || {}
   const path = props.block.props?.contextPath || ''
   if (path)
     return getNestedRecordValue(props.runtimeRecord || {}, path) || {}
   return props.runtimeRecord || {}
+})
+
+const detailInfoBusy = computed(() => {
+  if (props.block.blockType !== 'detail-info')
+    return false
+  const binding = props.block.props?.dataBinding || {}
+  if (isDetailInfoBindingRemote(binding))
+    return blockBindingLoading.value
+  return detailInfoLoading.value
+})
+
+const detailInfoFailMessage = computed(() => {
+  if (props.block.blockType !== 'detail-info')
+    return ''
+  const binding = props.block.props?.dataBinding || {}
+  if (isDetailInfoBindingRemote(binding))
+    return blockBindingError.value || ''
+  return detailInfoError.value || ''
 })
 const blockBoundData = computed(() => {
   const binding = props.block.props?.dataBinding || {}
@@ -331,7 +386,7 @@ const quickEntryItems = computed(() => {
 
 const chartSeriesPayload = computed(() => {
   const blockType = props.block.blockType
-  if (!['bar-chart', 'line-chart'].includes(blockType))
+  if (!['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(blockType))
     return { categories: [], series: [] }
   const binding = props.block.props?.dataBinding || {}
   const mode = resolveWidgetRenderMode(binding, blockType)
@@ -445,6 +500,14 @@ const containerMenu = ref({
   cellKey: '',
   tabKey: '',
   childId: '',
+})
+
+/** 右键插入目录：卡片等可出栅格；栅格/标签页内仍禁嵌套栅格与标签页 */
+const containerMenuExcludeBlockTypes = computed(() => {
+  const type = String(props.block?.blockType || '')
+  if (type === 'grid-layout' || type === 'tabs')
+    return [...GRID_CELL_NEST_EXCLUDE_BLOCK_TYPES]
+  return [...DEFAULT_NEST_EXCLUDE_BLOCK_TYPES]
 })
 
 function openContainerMenu(payload = {}) {
@@ -576,19 +639,19 @@ const gridLayoutCells = computed(() => {
 })
 function resolveGridCellPreviewMinHeight(children = []) {
   if (!children.length)
-    return Math.max(24, Number(props.block.props?.cellMinHeight || 120))
+    return Math.max(24, Number(props.block.props?.cellMinHeight || 160))
   return children.reduce((sum, child) => sum + resolvePreviewChildHeight(child), 0) + Math.max(0, children.length - 1) * 8 + 16
 }
 function isActiveDropCell(cell = {}) {
   return props.activeDropCell?.containerId === props.block.id && props.activeDropCell?.cellKey === cell.key
 }
 const isActiveDropContainer = computed(() => {
-  if (!['card', 'box-layout'].includes(props.block.blockType))
+  if (!['card', 'box-layout', 'panel-box'].includes(props.block.blockType))
     return false
   const dropContainerId = props.activeDropContainer?.containerId || props.activeDropContainer?.blockId
   if (dropContainerId === props.block.id)
     return true
-  // 与栅格同一套命中：卡片/盒子挂了 data-grid-cell-key=__body__
+  // 与栅格同一套命中：卡片/盒子/面板挂了 data-grid-cell-key=__body__
   return props.activeDropCell?.containerId === props.block.id
     && String(props.activeDropCell?.cellKey || '') === '__body__'
 })
@@ -761,12 +824,19 @@ const blockStyle = computed(() => {
   // 通栏/自适应：强制跟壳宽走，禁止把历史测量出的 px 宽锁死（小屏缩放后切回大屏会变窄）
   const forceFluidWidth = resolvedWidthMode === 'full' || resolvedWidthMode === 'auto'
   // 文档流 auto 高：内容撑开，禁止默认 100% 把 tabs/日历等裁进视口外
+  // 表单/详情按字段撑开，避免壳 height:auto 时子块仍写 height:100% 导致裁切
   const forceAutoHeight = resolvedHeightMode === 'auto'
+    || ['AiForm', 'detail-info'].includes(props.block.blockType)
+  const forceFillHeight = resolvedHeightMode === 'full'
   const resolvedStyle = {
     width: forceFluidWidth
       ? (resolvedWidthMode === 'auto' ? 'auto' : '100%')
       : toCssSize(style.width, '100%'),
-    height: forceAutoHeight ? 'auto' : toCssSize(style.height, '100%'),
+    height: forceAutoHeight
+      ? 'auto'
+      : forceFillHeight
+        ? '100%'
+        : toCssSize(style.height, '100%'),
     backgroundColor: style.backgroundColor || 'transparent',
     borderColor: style.borderColor || 'transparent',
     borderWidth: toCssSize(style.borderWidth, '0px'),
@@ -793,6 +863,9 @@ const blockStyle = computed(() => {
   }
   if (forceAutoHeight) {
     resolvedStyle.height = 'auto'
+  }
+  else if (forceFillHeight) {
+    resolvedStyle.height = '100%'
   }
   if (props.block.blockType === 'tree-panel' && treePanelCollapsed.value) {
     resolvedStyle.width = '100%'
@@ -1011,6 +1084,40 @@ const blockTableRowHeight = computed(() => `${Math.max(34, 32 + normalizeTableRo
 const detailInfoGridStyle = computed(() => ({
   gridTemplateColumns: `repeat(${Math.max(1, Math.min(4, Number(props.block.props?.columnCount || 2)))}, minmax(0, 1fr))`,
 }))
+const detailInfoLabelStyle = computed(() => {
+  const width = Number(props.block.props?.labelWidth)
+  const style = {}
+  if (Number.isFinite(width) && width > 0)
+    style.width = `${width}px`
+  if (props.block.props?.labelColor)
+    style.color = props.block.props.labelColor
+  return Object.keys(style).length ? style : undefined
+})
+const detailInfoContentStyle = computed(() => {
+  const style = {}
+  if (props.block.props?.contentColor)
+    style.color = props.block.props.contentColor
+  if (props.block.props?.contentWrap === false) {
+    style.overflow = 'hidden'
+    style.textOverflow = 'ellipsis'
+    style.whiteSpace = 'nowrap'
+  }
+  return Object.keys(style).length ? style : undefined
+})
+
+function resolveDetailFieldLabel(field = {}) {
+  const setting = fieldSetting(field.field) || {}
+  return setting.title || setting.label || field.label || field.field || ''
+}
+
+function resolveDetailFieldSpan(field = {}) {
+  const setting = fieldSetting(field.field) || {}
+  const span = Number(setting.span ?? setting.colSpan ?? 1)
+  const columns = Math.max(1, Math.min(4, Number(props.block.props?.columnCount || 2)))
+  if (!Number.isFinite(span) || span < 1)
+    return 1
+  return Math.min(columns, Math.round(span))
+}
 const resolvedApiConfig = computed(() => ({
   list: props.block.props?.listApi || '',
   detail: props.block.props?.detailApi || '',
@@ -1205,6 +1312,51 @@ const boxLayoutStyle = computed(() => ({
   justifyContent: props.block.props?.justifyContent || 'flex-start',
   gap: `${Number(props.block.props?.gap ?? 12)}px`,
 }))
+
+const layoutCardStyle = computed(() => {
+  const p = props.block.props || {}
+  const style = p.style || {}
+  const contentPadding = Number.isFinite(Number(p.contentPadding)) ? Number(p.contentPadding) : undefined
+  const titleAccent = p.showTitleAccent !== false
+  // 样式 Tab 的圆角写在 props.style；卡片表面有独立底色，必须落到 .layout-card 上才看得见
+  const radiusRaw = style.borderRadius != null && style.borderRadius !== ''
+    ? style.borderRadius
+    : (p.borderRadius != null && p.borderRadius !== '' ? p.borderRadius : 8)
+  return {
+    ...resolveSurfaceBackgroundStyle(p),
+    borderRadius: toCssSize(radiusRaw, '8px'),
+    ...(style.boxShadow && style.boxShadow !== 'none' ? { boxShadow: style.boxShadow } : {}),
+    ...(contentPadding != null ? { padding: `${Math.max(0, contentPadding)}px` } : {}),
+    ...(p.titleAccentColor && titleAccent
+      ? { '--card-title-accent': p.titleAccentColor }
+      : {}),
+    ...(p.titleFontSize ? { '--card-title-size': `${Number(p.titleFontSize) || 14}px` } : {}),
+    ...(p.titleFontWeight ? { '--card-title-weight': String(p.titleFontWeight) } : {}),
+    ...(p.titleColor ? { '--card-title-color': p.titleColor } : {}),
+  }
+})
+
+const panelBoxStyle = computed(() => {
+  const p = props.block.props || {}
+  const style = p.style || {}
+  const minH = Number(p.minHeight)
+  const minW = Number(p.minWidth)
+  const pad = p.contentPadding ?? p.padding
+  const radiusRaw = style.borderRadius != null && style.borderRadius !== ''
+    ? style.borderRadius
+    : (p.borderRadius != null && p.borderRadius !== '' ? p.borderRadius : 8)
+  return {
+    ...resolveSurfaceBackgroundStyle(p),
+    minHeight: Number.isFinite(minH) && minH > 0 ? `${minH}px` : '120px',
+    minWidth: Number.isFinite(minW) && minW > 0 ? `${minW}px` : undefined,
+    padding: pad != null && pad !== '' ? toCssSize(pad, '12px') : '12px',
+    borderRadius: toCssSize(radiusRaw, '8px'),
+    borderWidth: p.bordered === false ? '0' : toCssSize(p.borderWidth ?? style.borderWidth ?? 1, '1px'),
+    borderStyle: p.bordered === false ? 'none' : (p.borderStyle || style.borderStyle || 'solid'),
+    borderColor: p.bordered === false ? 'transparent' : (p.borderColor || style.borderColor || 'var(--border-light)'),
+    ...(style.boxShadow && style.boxShadow !== 'none' ? { boxShadow: style.boxShadow } : {}),
+  }
+})
 const spacePreviewStyle = computed(() => ({
   '--space-size': `${Number(props.block.props?.size || 24)}px`,
 }))
@@ -1357,6 +1509,11 @@ function readBoundField(source = {}, fieldKey = 'valueField', defaultField = 'va
   return fallback
 }
 
+function resolveBindingTemplateContext() {
+  // 详情页等组件常从地址栏取 {{ id }}；与详情专用加载共用同一上下文
+  return resolveDetailTemplateContext()
+}
+
 async function loadBlockBindingData() {
   const binding = props.block.props?.dataBinding || {}
   if (!isLocalDataBindableBlock.value || binding.enabled !== true || binding.sourceType !== 'remote') {
@@ -1367,19 +1524,28 @@ async function loadBlockBindingData() {
   }
   if (!binding.api) {
     remoteBlockBindingData.value = null
-    blockBindingError.value = '未配置数据接口'
+    blockBindingError.value = props.block.blockType === 'detail-info'
+      ? '未配置详情接口：请在属性里选「远程接口」填写地址，或点「填入对象接口」'
+      : '未配置数据接口'
     blockBindingLoading.value = false
     return
   }
   blockBindingLoading.value = true
   blockBindingError.value = ''
   try {
+    const ctx = resolveBindingTemplateContext()
     const apiConfig = String(binding.api).includes('@') ? binding.api : `${binding.method || 'get'}@${binding.api}`
     const { method, url } = parseApiConfigValue(apiConfig)
-    const params = normalizeBlockBindingParams(binding.paramsText || '{}')
+    const params = normalizeBlockBindingParams(binding.paramsText || '{}', ctx)
+    const resolvedUrl = interpolateApiUrl(url, ctx)
+    if (!resolvedUrl || /\{\{|\}\}/.test(resolvedUrl) || /\/:[A-Za-z_]/.test(resolvedUrl)) {
+      remoteBlockBindingData.value = null
+      blockBindingError.value = '接口地址未解析完整，请确认地址栏是否带 id 等参数（支持 {{ id }} 与 :id）'
+      return
+    }
     const response = await request({
       method,
-      url: interpolateText(url, props.runtimeRecord || {}),
+      url: resolvedUrl,
       params: method === 'get' ? params : undefined,
       data: method === 'get' ? undefined : params,
       needTip: false,
@@ -1395,14 +1561,15 @@ async function loadBlockBindingData() {
   }
 }
 
-function normalizeBlockBindingParams(value = '{}') {
+function normalizeBlockBindingParams(value = '{}', context = null) {
+  const ctx = context || resolveBindingTemplateContext()
   try {
     const parsed = typeof value === 'string' ? JSON.parse(value || '{}') : value
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
       return {}
     return Object.fromEntries(Object.entries(parsed).map(([key, item]) => [
       key,
-      typeof item === 'string' ? interpolateText(item, props.runtimeRecord || {}) : item,
+      typeof item === 'string' ? interpolateText(item, ctx) : item,
     ]))
   }
   catch {
@@ -1410,27 +1577,59 @@ function normalizeBlockBindingParams(value = '{}') {
   }
 }
 
+function resolveDetailTemplateContext() {
+  return buildRuntimeTemplateContext({
+    record: props.runtimeRecord || {},
+    query: route.query || {},
+    params: route.params || {},
+  })
+}
+
 async function loadDetailInfoRecord() {
-  if (props.block.blockType !== 'detail-info' || props.block.props?.dataSourceType !== 'remote') {
+  if (props.block.blockType !== 'detail-info') {
     remoteDetailInfoRecord.value = {}
     detailInfoError.value = ''
     return
   }
-  const api = props.block.props?.detailApi || ''
+  const binding = props.block.props?.dataBinding || {}
+  // 已走统一 dataBinding 远程时，由 loadBlockBindingData 负责
+  if (isDetailInfoBindingRemote(binding) || isDetailInfoBindingContext(binding)) {
+    remoteDetailInfoRecord.value = {}
+    detailInfoError.value = ''
+    return
+  }
+  const sourceType = props.block.props?.dataSourceType || 'remote'
+  if (sourceType !== 'remote') {
+    remoteDetailInfoRecord.value = {}
+    detailInfoError.value = ''
+    return
+  }
+  const objectRef = props.block.props?.objectRef || props.block.props?.businessObjectRef || {}
+  const objectKey = String(objectRef.configKey || objectRef.objectCode || '').trim()
+  const api = props.block.props?.detailApi
+    || (objectKey ? `get@/ai/crud/${objectKey}/{{ id }}` : '')
   if (!api) {
     remoteDetailInfoRecord.value = {}
-    detailInfoError.value = '未配置详情接口'
+    detailInfoError.value = '未配置详情接口：请到「组件 → 属性」填写详情接口，或到「数据」Tab 绑定业务对象后点「填入对象接口」'
     return
   }
   detailInfoLoading.value = true
   detailInfoError.value = ''
   try {
+    const ctx = resolveDetailTemplateContext()
     const apiConfig = String(api).includes('@') ? api : `${props.block.props?.detailMethod || 'get'}@${api}`
     const { method, url } = parseApiConfigValue(apiConfig)
-    const params = normalizeDetailInfoParams(props.block.props?.paramsText || '{}')
+    const params = normalizeDetailInfoParams(props.block.props?.paramsText || '{}', ctx)
+    const resolvedUrl = interpolateApiUrl(url, ctx)
+    // 仍含 {{ }} 或未替换的 :id 说明地址栏缺参
+    if (!resolvedUrl || /\{\{|\}\}/.test(resolvedUrl) || /\/:[A-Za-z_]/.test(resolvedUrl)) {
+      remoteDetailInfoRecord.value = {}
+      detailInfoError.value = '详情接口地址未解析完整，请确认地址栏是否带 id 等参数（支持 {{ id }} 与 :id）'
+      return
+    }
     const response = await request({
       method,
-      url: interpolateText(url, props.runtimeRecord || {}),
+      url: resolvedUrl,
       params: method === 'get' ? params : undefined,
       data: method === 'get' ? undefined : params,
       needTip: false,
@@ -1447,14 +1646,15 @@ async function loadDetailInfoRecord() {
   }
 }
 
-function normalizeDetailInfoParams(value = '{}') {
+function normalizeDetailInfoParams(value = '{}', context = null) {
+  const ctx = context || resolveDetailTemplateContext()
   try {
     const parsed = typeof value === 'string' ? JSON.parse(value || '{}') : value
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
       return {}
     return Object.fromEntries(Object.entries(parsed).map(([key, item]) => [
       key,
-      typeof item === 'string' ? interpolateText(item, props.runtimeRecord || {}) : item,
+      typeof item === 'string' ? interpolateText(item, ctx) : item,
     ]))
   }
   catch {
@@ -2097,6 +2297,8 @@ watch([
   () => props.block.props?.paramsText,
   () => props.block.props?.dataPath,
   () => props.runtimeRecord,
+  () => route.query,
+  () => route.params,
 ], () => loadDetailInfoRecord())
 
 watch([
@@ -2109,6 +2311,8 @@ watch([
   () => props.block.props?.dataBinding?.dataPath,
   () => props.block.props?.dataBinding?.contextPath,
   () => props.runtimeRecord,
+  () => route.query,
+  () => route.params,
 ], () => loadBlockBindingData())
 
 watch(
@@ -2154,32 +2358,32 @@ function handleContainerDragEnter(event) {
     emit,
     localDataBindableBlockTypes, route, router, userStore, fieldMap, isDataFieldBlock, configuredFieldRefs, resolvedFields,
     shouldShowDataSourceGuide, visibleResolvedFields, previewFormValue, aiFormRef, aiFormSubmitting, signaturePreviewValue, runtimeCrudRef, runtimeTreeLoading,
-    runtimeTreeNodes, runtimeTreeError, runtimeTreeNodeMap, runtimeExpandedTreeKeys, detailInfoLoading, detailInfoError, remoteDetailInfoRecord, blockBindingLoading,
+    runtimeTreeNodes, runtimeTreeError, runtimeTreeNodeMap, runtimeExpandedTreeKeys, detailInfoLoading, detailInfoError, detailInfoBusy, detailInfoFailMessage, remoteDetailInfoRecord, blockBindingLoading,
     blockBindingError, remoteBlockBindingData, previewTreeExpanded, treePanelCollapsed, activeTabKeyByBlockId, runtimeTreeChildrenField, runtimeTreeConfig, runtimeTreeLoadMode,
     hasRuntimeTreeApi, runtimeTreeTotal, runtimeSelectedTreeKeys, runtimeRuleContext, blockRuntimeControl, blockRuntimeVisible, detailInfoRecord, blockBoundData,
     resolveContextObjectSource, isBlockSlotVisible, isLocalDataBindableBlock, showBlockBindingState, statsMetrics, quickEntryItems, chartSeriesPayload, resolveManualMetricValue, boundInfoTitle, boundInfoContent,
     boundInfoType, boundCustomTitle, boundCustomContent, boundTags, boundSteps, boundTimelineTitle, boundTimelineItems, boundEmptyTitle,
     boundEmptyDescription, boundEmptyActionText, boundTextTitle, boundTextSubtitle, boundParagraphContent, boundStatisticTitle, boundStatisticValue, boundStatisticDescription,
     boundStatisticTrend, boundLinkText, boundLinkHref, boundTextTipTitle, boundTextTipContent, boundTextTipType, boundMediaTitle, boundMediaSrc,
-    boundVideoPoster, boundAvatarName, boundAvatarDescription, boundAvatarSrc, resizeAnchors, nestedBlockMenuOptions, hoveredNestedBlockId, showNestedChrome, onNestedPointerEnter, onNestedPointerLeave, containerMenu, openContainerMenu,
+    boundVideoPoster, boundAvatarName, boundAvatarDescription, boundAvatarSrc, resizeAnchors, nestedBlockMenuOptions, hoveredNestedBlockId, showNestedChrome, onNestedPointerEnter, onNestedPointerLeave, containerMenu, containerMenuExcludeBlockTypes, openContainerMenu,
     closeContainerMenu, handleGridCellContextMenu, handleContainerSlotContextMenu, handleChildContextMenu, handleContainerMenuInsert, handleContainerMenuAction, crudPreviewMode, crudPreviewReloadKey,
     gridLayoutCells, resolveGridCellPreviewMinHeight, isActiveDropCell, isActiveDropContainer, shouldShowGridCellEmpty, isCatalogDragEvent, handleGridCellDragOver, handleGridCellDrop,
     handleContainerDragOver, handleContainerDrop, handleTabPaneDragOver, handleTabPaneDragEnter, resolveActiveTabKey, handleTabsValueChange, handleTabPaneDrop, clampGridSpan,
     actionButtonVisible, blockStyle, tableColumns, aiActionColumn, aiTableColumns, hasExplicitSearchFieldRefs, aiSearchSchema, crudSearchTypeRequestParams,
     designerCrudPublicParams, runtimeExtensionHandlers, aiFormSchema, aiFormCreateApi, blockApiConfig, crudPagePresentation, effectiveRuntimeCrudProps, shouldRenderTreeCrudShell,
     shouldRenderRuntimeListGridShell, runtimeListGridModel, shouldSuppressBareCrudFallback,
-    extensionRuntimeApi, designerCrudHookHandlers, livePreviewRecord, blockTableRowHeight, detailInfoGridStyle, resolvedApiConfig, hasConfiguredCrudRequest, shouldRequestCrudPreviewApi,
+    extensionRuntimeApi, designerCrudHookHandlers, livePreviewRecord, blockTableRowHeight, detailInfoGridStyle, detailInfoLabelStyle, detailInfoContentStyle, resolveDetailFieldLabel, resolveDetailFieldSpan, resolvedApiConfig, hasConfiguredCrudRequest, shouldRequestCrudPreviewApi,
     isStaticCrudPreview, staticCrudPreviewMessage, preventStaticCrudSubmit, resolvedDesignerCrudHookHandlers, previewPagination, toolbarCustomActions, transferOptions, transferValue,
     transferSelectedOptions, resolvedTextAlign, resolvedTextFontSize, resolvedTextFontWeight, textContentStyle, pageTitleStyle, pageTitleRichContent, textTitleStyle,
     paragraphStyle, paragraphListTag, paragraphLines, updatePageTitleRichContent, watermarkContent, watermarkProps, avatarInitial, safeIframeSrc,
     qrcodeQrOptions, qrcodeDotsOptions, qrcodeBackgroundOptions, qrcodeCornersSquareOptions, qrcodeCornersDotOptions, barcodeSvgRef, barcodeValid, renderBarcode,
-    boxLayoutStyle, spacePreviewStyle, descriptionGridStyle, sampleRows, normalizeOptionItems, hasAction, fieldAlign, fieldSetting,
+    boxLayoutStyle, layoutCardStyle, panelBoxStyle, spacePreviewStyle, descriptionGridStyle, sampleRows, normalizeOptionItems, hasAction, fieldAlign, fieldSetting,
     renderTableCell, resolveSearchOptionSource, resolveNestedBlockFields, resolveNestedBlockRuntimeCrudProps, resolveNestedBlockRuntimeCrudLoading, resolveNestedBlockDataSourceConfigured, detailValue, normalizeBlockBoundRows,
     boundContentValue, readBoundField, loadBlockBindingData, normalizeBlockBindingParams, loadDetailInfoRecord, normalizeDetailInfoParams, resolveRuntimeTreeApi, loadRuntimeTree,
     loadRuntimeTreeChildren, normalizeRuntimeTreeNodes, expandTree, collapseTree, toggleTreePanel, clearRuntimeTreeSelection, handleRuntimeTreeSelected, emitCrudPreviewState,
     handleCrudPreviewSuccess, handleCrudPreviewError, applyCrudPreviewMode, handleBackClick, handleLinkClick, handleActionButtonClick, handleButtonGroupClick, handleQuickEntrySelect, handleWidgetLinkSelect, handleRuntimeBlockShellClick, resolvePrimaryClickEvent, navigateRuntimeEvent, resolveRuntimeParamValue,
     resolveRuntimeText, resolveSystemRuntimeParam, hasRuntimePermission, handleAiFormSubmit, handleStandaloneAiFormValueUpdate, handleRuntimeEventSuccess,
-    resolvePreviewChildHeight, hasGridCellChildren, shouldShowGridCellDropPreview, handleGridCellDragEnter, handleContainerDragEnter, resolveFormLayoutBlockType, nestedChildShellStyle, resolveChartBlockHeight, createLegacyPageTitleContent,
+    resolvePreviewChildHeight, hasGridCellChildren, shouldShowGridCellDropPreview, handleGridCellDragEnter, handleContainerDragEnter, resolveFormLayoutBlockType, nestedChildShellStyle, isNestedFillHeightChild, resolveChartBlockHeight, createLegacyPageTitleContent,
     loadBarcodeModule, componentType, resolveTitleFontSize, sanitizeIframeSrc, toOptionalNumber, isDefaultAiFormField, toAiFormField, trendClass,
     sampleValue, extractBlockBoundRows, normalizeBlockRow, boundRowField, interpolateText, getNestedRecordValue, parseApiConfigValue, extractRuntimeTreeRows,
     countTreeNodes, collectTreeKeys, normalizeRuntimeTreeConfig, appendRuntimeEventParams, resolveTemplatePlaceholder, matchDisplayCondition, parseRuntimeApiConfig,

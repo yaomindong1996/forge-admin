@@ -148,44 +148,82 @@
       </div>
     </template>
 
-    <!-- 数据列表 -->
+    <!-- 基础列表：绑定业务对象后走真实接口；未绑定时才用示意数据 -->
     <template v-else-if="block.blockType === 'data-table'">
-      <div class="block-header">
-        <strong>{{ block.label || '数据列表' }}</strong>
-        <span class="block-meta">{{ resolvedFields.length }} 列</span>
+      <div v-if="runtimeCrudLoading" class="runtime-crud-loading">
+        <n-skeleton height="32px" :sharp="false" />
+        <n-skeleton text :repeat="4" />
       </div>
-      <n-data-table
-        v-if="resolvedFields.length"
-        :columns="tableColumns"
-        :data="sampleRows"
-        :bordered="false"
-        size="small"
-        class="block-table"
-        :style="{ '--block-table-row-height': blockTableRowHeight }"
+      <AiCrudPage
+        v-else-if="effectiveRuntimeCrudProps"
+        ref="runtimeCrudRef"
+        v-bind="effectiveRuntimeCrudProps"
+        :show-search="block.props?.showSearch !== false"
+        :show-pagination="block.props?.showPagination !== false"
+        :hide-toolbar="block.props?.hideToolbar === true"
+        :hide-add="block.props?.hideAdd === true"
+        :hide-batch-delete="block.props?.hideBatchDelete === true"
+        :table-size="block.props?.tableSize || 'small'"
+        :table-row-gap="normalizeTableRowGap(block.props?.rowGap, 8)"
+        :render-mode="block.props?.renderMode || 'table'"
+        @load-list-success="handleCrudPreviewSuccess"
+        @load-list-error="handleCrudPreviewError"
       />
-      <div v-else class="block-empty">
-        点击右侧"配置字段"按钮添加列表列
-      </div>
+      <template v-else>
+        <div class="block-header">
+          <strong>{{ block.label || block.props?.title || '基础列表' }}</strong>
+          <span class="block-meta">{{ resolvedFields.length ? `${resolvedFields.length} 列示意` : '未绑定数据源' }}</span>
+        </div>
+        <div v-if="!readonly && !dataSourceConfigured" class="data-source-guide">
+          <span class="data-source-guide-icon" aria-hidden="true">
+            <n-icon><CubeOutline /></n-icon>
+          </span>
+          <div class="data-source-guide-copy">
+            <strong>先选择业务对象</strong>
+            <span>在右侧「数据」Tab 绑定对象后，列表会自动对接分页接口</span>
+          </div>
+          <n-button size="small" type="primary" secondary @click.stop="emit('requestDataSource', block.id)">
+            选择数据源
+          </n-button>
+        </div>
+        <n-data-table
+          v-else-if="resolvedFields.length"
+          :columns="tableColumns"
+          :data="sampleRows"
+          :bordered="false"
+          size="small"
+          class="block-table"
+          :style="{ '--block-table-row-height': blockTableRowHeight }"
+        />
+        <div v-else class="block-empty">
+          绑定业务对象或配置字段后，这里会显示列表
+        </div>
+      </template>
     </template>
 
-    <!-- 详情信息 -->
+    <!-- 详情信息（Naive Descriptions） -->
     <template v-else-if="block.blockType === 'detail-info'">
-      <div class="detail-info-preview">
-        <div class="block-header">
-          <strong>{{ block.props?.title || block.label || '详情信息' }}</strong>
-          <span class="block-meta">{{ resolvedFields.length }} 项</span>
-        </div>
-        <div v-if="resolvedFields.length" class="detail-info-grid" :style="detailInfoGridStyle">
-          <div
-            v-for="field in resolvedFields"
-            :key="field.field"
-            class="detail-info-item"
-            :class="{ bordered: block.props?.bordered }"
+      <div class="detail-info-preview is-form-grow">
+        <n-spin :show="detailInfoBusy">
+          <n-descriptions
+            v-if="resolvedFields.length"
+            class="detail-info-descriptions"
+            :title="block.props?.showTitle === false ? undefined : (block.props?.title || block.label || '详情信息')"
+            :column="Math.max(1, Math.min(4, Number(block.props?.columnCount || 2)))"
+            :label-placement="block.props?.labelPlacement || 'left'"
+            :label-align="block.props?.labelAlign || 'left'"
+            :size="block.props?.size || 'medium'"
+            :bordered="block.props?.bordered !== false"
+            :separator="block.props?.separator ?? ':'"
+            :label-style="detailInfoLabelStyle"
+            :content-style="detailInfoContentStyle"
           >
-            <div class="detail-label">
-              {{ field.label || field.field }}
-            </div>
-            <div class="detail-value">
+            <n-descriptions-item
+              v-for="field in resolvedFields"
+              :key="field.field"
+              :label="resolveDetailFieldLabel(field)"
+              :span="resolveDetailFieldSpan(field)"
+            >
               <FieldValueRenderer
                 :value="detailValue(field, 0)"
                 :row="detailInfoRecord"
@@ -193,17 +231,14 @@
                 :setting="fieldSetting(field.field)"
                 :context="runtimeRuleContext"
               />
-            </div>
+            </n-descriptions-item>
+          </n-descriptions>
+          <div v-else class="block-empty">
+            点击右侧「配置字段」添加详情字段
           </div>
-        </div>
-        <div v-else class="block-empty">
-          点击右侧"配置字段"按钮添加详情字段
-        </div>
-        <div v-if="detailInfoLoading" class="detail-info-state">
-          正在加载详情数据...
-        </div>
-        <div v-else-if="detailInfoError" class="detail-info-state error">
-          {{ detailInfoError }}
+        </n-spin>
+        <div v-if="detailInfoFailMessage" class="detail-info-state error">
+          {{ detailInfoFailMessage }}
         </div>
       </div>
     </template>
@@ -214,7 +249,8 @@
         :columns="Math.max(1, Number(block.props?.columns || 24))"
         :gutter="Math.max(0, Number(block.props?.gutter ?? block.props?.gap ?? 16))"
         :row-gap="Math.max(0, Number(block.props?.rowGap ?? 0))"
-        :cell-min-height="Number(block.props?.cellMinHeight || 120)"
+        :cell-min-height="Number(block.props?.cellMinHeight || 160)"
+        :cell-padding="Number(block.props?.cellPadding ?? 8)"
         :align-items="block.props?.alignItems || 'stretch'"
         :justify-items="block.props?.justifyItems || 'stretch'"
         :show-cell-border="!readonly && block.props?.showCellBorder !== false"
@@ -485,7 +521,7 @@
 
     <!-- 系统 AiForm 组件 -->
     <template v-else-if="block.blockType === 'AiForm'">
-      <div class="system-component-preview">
+      <div class="system-component-preview is-form-grow">
         <AiForm
           ref="aiFormRef"
           v-model:value="previewFormValue"
@@ -495,7 +531,7 @@
           :label-width="block.props?.labelWidth || 100"
           :label-align="block.props?.labelAlign || 'right'"
           :x-gap="block.props?.xGap ?? 12"
-          :y-gap="block.props?.yGap ?? 0"
+          :y-gap="block.props?.yGap ?? 12"
           :size="block.props?.size || 'medium'"
           :show-actions="block.props?.showActions !== false"
           :show-submit="block.props?.showSubmit !== false && runtimeInteractive"
@@ -506,7 +542,7 @@
           :reset-text="block.props?.resetText || '重置'"
           :cancel-text="block.props?.cancelText || '取消'"
           :enable-collapse="block.props?.enableCollapse === true"
-          :max-visible-fields="block.props?.maxVisibleFields || 6"
+          :max-visible-fields="block.props?.maxVisibleFields ?? 40"
           :show-feedback="block.props?.showFeedback !== false"
           @update:value="handleStandaloneAiFormValueUpdate"
           @submit="handleAiFormSubmit"
@@ -628,17 +664,17 @@
       />
     </template>
 
-    <!-- 柱状图 / 折线图 -->
-    <template v-else-if="block.blockType === 'bar-chart' || block.blockType === 'line-chart'">
+    <!-- 柱状图 / 折线图 / 面积图 / 饼图 -->
+    <template v-else-if="['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(block.blockType)">
       <PageChartBlock
-        :chart-type="block.blockType === 'line-chart' ? 'line' : 'bar'"
+        :chart-type="block.blockType"
         :title="block.props?.title || ''"
         :categories="chartSeriesPayload.categories"
         :series="chartSeriesPayload.series"
         :height="resolveChartBlockHeight(block)"
         :show-legend="block.props?.showLegend !== false"
         :smooth="block.props?.smooth !== false"
-        :show-area="block.props?.showArea === true"
+        :show-area="block.props?.showArea === true || block.blockType === 'area-chart'"
         :colors="block.props?.colors || []"
         :legend-position="block.props?.legendPosition || 'top-right'"
         :bar-max-width="block.props?.barMaxWidth || 36"
@@ -646,12 +682,103 @@
         :y-axis-name="block.props?.yAxisName || ''"
         :show-split-line="block.props?.showSplitLine !== false"
         :symbol-size="block.props?.symbolSize || 6"
-        :area-opacity="block.props?.areaOpacity ?? 0.12"
+        :area-opacity="block.props?.areaOpacity ?? (block.blockType === 'area-chart' ? 0.22 : 0.12)"
         :grid-left="block.props?.gridLeft ?? 8"
         :grid-right="block.props?.gridRight ?? 12"
         :grid-bottom="block.props?.gridBottom ?? 8"
+        :doughnut="block.props?.doughnut === true || block.props?.pieVariant === 'doughnut'"
+        :pie-variant="block.props?.pieVariant || 'pie'"
+        :inner-radius="block.props?.innerRadius ?? 48"
+        :outer-radius="block.props?.outerRadius ?? 68"
+        :rose-type="block.props?.roseType || 'none'"
+        :show-label="block.props?.showLabel !== false"
+        :show-percent="block.props?.showPercent !== false"
+        :pie-border-radius="block.props?.pieBorderRadius ?? 4"
+        :pie-border-width="block.props?.pieBorderWidth ?? 2"
         :option-overrides="block.props?.optionOverrides || null"
         :data-locked="true"
+      />
+    </template>
+
+    <!-- 待办 / 已办列表 -->
+    <template v-else-if="block.blockType === 'workflow-task-list'">
+      <WorkflowTaskListBlock
+        :title="block.props?.title || '我的待办/已办'"
+        :subtitle="block.props?.subtitle || ''"
+        :mode="block.props?.mode || 'both'"
+        :page-size="block.props?.pageSize || 6"
+        :compact="block.props?.compact === true"
+        :show-header="block.props?.showHeader !== false"
+        :show-tabs="block.props?.showTabs !== false"
+        :show-search="block.props?.showSearch === true"
+        :show-status="block.props?.showStatus !== false"
+        :show-node="block.props?.showNode !== false"
+        :show-applicant="block.props?.showApplicant !== false"
+        :show-time="block.props?.showTime !== false"
+        :show-refresh="block.props?.showRefresh !== false"
+        :show-more-link="block.props?.showMoreLink !== false"
+        :accent-color="block.props?.accentColor || '#2563eb'"
+        :empty-text="block.props?.emptyText || ''"
+        :todo-path="block.props?.todoPath || '/flow/todo'"
+        :done-path="block.props?.donePath || '/flow/done'"
+        :preview-items="block.props?.previewItems || []"
+        :interactive="runtimeInteractive"
+        :auto-load="runtimeInteractive"
+      />
+    </template>
+
+    <!-- 通知公告 -->
+    <template v-else-if="block.blockType === 'notice-board'">
+      <NoticeBoardBlock
+        :title="block.props?.title || '通知公告'"
+        :subtitle="block.props?.subtitle || ''"
+        :page-size="block.props?.pageSize || 6"
+        :compact="block.props?.compact === true"
+        :variant="block.props?.variant || 'list'"
+        :density="block.props?.density || 'comfortable'"
+        :show-header="block.props?.showHeader !== false"
+        :show-filter-tabs="block.props?.showFilterTabs !== false"
+        :show-unread-badge="block.props?.showUnreadBadge !== false"
+        :show-unread-dot="block.props?.showUnreadDot !== false"
+        :show-type-tag="block.props?.showTypeTag !== false"
+        :show-summary="block.props?.showSummary !== false"
+        :show-sender="block.props?.showSender === true"
+        :show-time="block.props?.showTime !== false"
+        :show-refresh="block.props?.showRefresh !== false"
+        :show-mark-all="block.props?.showMarkAll !== false"
+        :show-more-link="block.props?.showMoreLink !== false"
+        :accent-color="block.props?.accentColor || '#2563eb'"
+        :unread-only="block.props?.unreadOnly === true"
+        :empty-text="block.props?.emptyText || ''"
+        :more-path="block.props?.morePath || '/message'"
+        :mark-read-on-open="block.props?.markReadOnOpen !== false"
+        :preview-items="block.props?.previewItems || []"
+        :interactive="runtimeInteractive"
+        :auto-load="runtimeInteractive"
+      />
+    </template>
+
+    <!-- 欢迎条 -->
+    <template v-else-if="block.blockType === 'welcome-banner'">
+      <WelcomeBannerBlock
+        :title="block.props?.title || ''"
+        :subtitle="block.props?.subtitle || ''"
+        :greeting-prefix="block.props?.greetingPrefix || ''"
+        :tone="block.props?.tone || 'primary'"
+        :compact="block.props?.compact === true"
+        :show-avatar="block.props?.showAvatar !== false"
+        :show-date="block.props?.showDate !== false"
+        :show-cta="block.props?.showCta !== false"
+        :cta-text="block.props?.ctaText || '去办理'"
+        :cta-path="block.props?.ctaPath || '/flow/todo'"
+        :background-mode="block.props?.backgroundMode || 'gradient'"
+        :background-color="block.props?.backgroundColor || '#eff6ff'"
+        :gradient-from="block.props?.gradientFrom || '#eff6ff'"
+        :gradient-to="block.props?.gradientTo || '#ffffff'"
+        :gradient-angle="block.props?.gradientAngle ?? 135"
+        :background-image="block.props?.backgroundImage || ''"
+        :background-size="block.props?.backgroundSize || 'cover'"
+        :interactive="runtimeInteractive"
       />
     </template>
 
@@ -1041,12 +1168,19 @@
           data-page-container-type="box-layout"
         />
         <div
+          v-if="!readonly && !(block.children || []).length && !isActiveDropContainer"
+          class="container-drop-empty"
+        >
+          拖入组件到此盒子 · 或右键插入
+        </div>
+        <div
           v-for="child in (block.children || [])"
           :key="child.id"
           class="container-child-item"
           :class="{
             selected: !readonly && child.id === selectedBlockId,
             'is-moving-source': child.id === nestedMovingBlockId,
+            'is-fill-height': isNestedFillHeightChild(child),
           }"
           :style="nestedChildShellStyle(child)"
           :data-grid-child-id="child.id"
@@ -1132,9 +1266,6 @@
         <div v-if="!readonly && isActiveDropContainer" class="layout-grid-cell-drop-preview">
           释放到盒子
         </div>
-        <div v-else-if="!readonly && !(block.children || []).length" class="container-empty">
-          拖入组件 · 右键可插入
-        </div>
       </div>
     </template>
 
@@ -1205,8 +1336,10 @@
           'layout-card--borderless': block.props?.bordered === false,
           'layout-card--embedded': block.props?.embedded,
           'layout-card--hoverable': block.props?.hoverable,
+          'layout-card--accent': block.props?.showTitleAccent !== false && !!block.props?.title,
           'is-drop-active': isActiveDropContainer,
         }"
+        :style="layoutCardStyle"
         :data-page-container-id="block.id"
         data-page-container-type="card"
         :data-grid-container-id="block.id"
@@ -1225,12 +1358,23 @@
           :data-page-container-id="block.id"
           data-page-container-type="card"
         />
-        <div v-if="block.props?.title" class="layout-card-title">
+        <div
+          v-if="block.props?.title"
+          class="layout-card-title"
+          title="选中卡片"
+          @click.stop="emit('childBlockSelect', block.id)"
+        >
           {{ block.props.title }}
         </div>
         <div class="layout-card-body">
           <div v-if="block.props?.content" class="layout-card-text">
             {{ block.props.content }}
+          </div>
+          <div
+            v-if="!readonly && !(block.children || []).length && !isActiveDropContainer && !block.props?.content"
+            class="container-drop-empty"
+          >
+            拖入组件到此卡片 · 或右键插入
           </div>
           <div v-if="block.children?.length" class="container-child-list">
             <div
@@ -1240,6 +1384,7 @@
               :class="{
                 selected: !readonly && child.id === selectedBlockId,
                 'is-moving-source': child.id === nestedMovingBlockId,
+                'is-fill-height': isNestedFillHeightChild(child),
               }"
               :style="nestedChildShellStyle(child)"
               :data-grid-child-id="child.id"
@@ -1326,9 +1471,142 @@
           <div v-if="!readonly && isActiveDropContainer" class="layout-grid-cell-drop-preview">
             释放到卡片
           </div>
-          <div v-else-if="!readonly && !block.children?.length && !block.props?.content" class="container-empty">
-            拖入组件 · 右键可插入
+        </div>
+      </div>
+    </template>
+
+    <!-- 面板容器（类 div：背景 / 尺寸 / 可嵌套） -->
+    <template v-else-if="block.blockType === 'panel-box'">
+      <div
+        class="panel-box"
+        :class="{ 'is-drop-active': isActiveDropContainer }"
+        :style="panelBoxStyle"
+        :data-page-container-id="block.id"
+        data-page-container-type="panel-box"
+        :data-grid-container-id="block.id"
+        data-grid-cell-key="__body__"
+        @dragover.prevent.stop="handleContainerDragOver"
+        @dragenter.prevent.stop="handleContainerDragEnter"
+        @drop.prevent.stop="handleContainerDrop"
+        @contextmenu.prevent.stop="!readonly && handleContainerSlotContextMenu($event, { title: '插入到面板' })"
+      >
+        <div
+          v-if="!readonly && catalogDragBlockType"
+          class="container-catalog-drop-layer"
+          :class="{ 'is-active': isActiveDropContainer }"
+          :data-grid-container-id="block.id"
+          data-grid-cell-key="__body__"
+          :data-page-container-id="block.id"
+          data-page-container-type="panel-box"
+        />
+        <div
+          v-if="block.props?.title"
+          class="panel-box-title"
+          title="选中面板"
+          @click.stop="emit('childBlockSelect', block.id)"
+        >
+          {{ block.props.title }}
+        </div>
+        <div
+          v-if="!readonly && !(block.children || []).length && !isActiveDropContainer"
+          class="container-drop-empty"
+        >
+          拖入组件到此面板 · 或右键插入
+        </div>
+        <div v-if="block.children?.length" class="container-child-list">
+          <div
+            v-for="child in block.children"
+            :key="child.id"
+            class="container-child-item"
+            :class="{
+              selected: !readonly && child.id === selectedBlockId,
+              'is-moving-source': child.id === nestedMovingBlockId,
+              'is-fill-height': isNestedFillHeightChild(child),
+            }"
+            :style="nestedChildShellStyle(child)"
+            :data-grid-child-id="child.id"
+            @pointerenter="onNestedPointerEnter(child.id)"
+            @pointerleave="onNestedPointerLeave(child.id)"
+            @click.stop="emit('childBlockSelect', child.id)"
+            @contextmenu.prevent.stop="!readonly && handleChildContextMenu($event, child, { title: '面板内组件' })"
+          >
+            <div v-if="showNestedChrome(child.id)" class="nested-block-node-overlay">
+              <span
+                class="nested-block-drag-handle"
+                title="拖动组件"
+                @click.stop
+                @pointerdown.stop.prevent="emit('childBlockMoveStart', { block: child, event: $event })"
+              >
+                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M8.25 6.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Zm0 7.25a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Zm1.75 5.5a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 0 3.5ZM14.753 6.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5ZM16.5 12a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 3.5 0Zm-1.747 9a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Z" fill="currentColor" />
+                </svg>
+              </span>
+              <n-dropdown
+                trigger="click"
+                placement="bottom-end"
+                :options="nestedBlockMenuOptions"
+                @select="key => emit('childBlockMenuSelect', { key, block: child })"
+              >
+                <button type="button" class="nested-block-menu-trigger" title="更多操作" @click.stop @mousedown.stop>
+                  <svg width="1em" height="1em" viewBox="0 0 512 512" aria-hidden="true">
+                    <circle cx="256" cy="256" r="32" fill="currentColor" />
+                    <circle cx="416" cy="256" r="32" fill="currentColor" />
+                    <circle cx="96" cy="256" r="32" fill="currentColor" />
+                  </svg>
+                </button>
+              </n-dropdown>
+            </div>
+            <GridBlockRenderer
+              :block="child"
+              :fields="resolveNestedBlockFields(child)"
+              :selected="false"
+              :selected-block-id="selectedBlockId"
+              :readonly="readonly"
+              :runtime-crud-props="resolveNestedBlockRuntimeCrudProps(child)"
+              :runtime-crud-loading="resolveNestedBlockRuntimeCrudLoading(child)"
+              :show-data-source-guide="showDataSourceGuide"
+              :data-source-configured="resolveNestedBlockDataSourceConfigured(child)"
+              :runtime-interactive="runtimeInteractive"
+              :runtime-extension-hooks="runtimeExtensionHooks"
+              :runtime-record="runtimeRecord"
+              :active-drop-cell="activeDropCell"
+              :active-drop-container="activeDropContainer"
+              :nested-moving-block-id="nestedMovingBlockId"
+              :catalog-drag-block-type="catalogDragBlockType"
+              :block-fields-resolver="blockFieldsResolver"
+              :runtime-crud-props-resolver="runtimeCrudPropsResolver"
+              :runtime-crud-loading-resolver="runtimeCrudLoadingResolver"
+              :data-source-configured-resolver="dataSourceConfiguredResolver"
+              :runtime-tree-active-key="runtimeTreeActiveKey"
+              @child-block-select="emit('childBlockSelect', $event)"
+              @child-block-menu-select="emit('childBlockMenuSelect', $event)"
+              @block-props-update="emit('blockPropsUpdate', $event)"
+              @tabs-active-change="emit('tabsActiveChange', $event)"
+              @tab-drop="emit('tabDrop', $event)"
+              @grid-cell-drop="emit('gridCellDrop', $event)"
+              @container-insert="emit('containerInsert', $event)"
+              @container-clear="emit('containerClear', $event)"
+              @child-block-move-start="emit('childBlockMoveStart', $event)"
+              @child-block-drag-end="emit('childBlockDragEnd')"
+              @child-block-resize-start="emit('childBlockResizeStart', $event)"
+              @runtime-tree-select="emit('runtimeTreeSelect', $event)"
+              @request-data-source="emit('requestDataSource', $event)"
+            />
+            <template v-if="!readonly && child.id === selectedBlockId">
+              <button
+                v-for="anchor in resizeAnchors"
+                :key="anchor"
+                type="button"
+                class="nested-resize-anchor"
+                :class="`anchor-${anchor}`"
+                title="调整组件大小"
+                @pointerdown.stop="emit('childBlockResizeStart', { block: child, event: $event, anchor })"
+              />
+            </template>
           </div>
+        </div>
+        <div v-if="!readonly && isActiveDropContainer" class="layout-grid-cell-drop-preview">
+          释放到面板
         </div>
       </div>
     </template>
@@ -1370,7 +1648,10 @@
                 v-for="child in tab.children"
                 :key="child.id"
                 class="tab-pane-child"
-                :class="{ selected: !readonly && child.id === selectedBlockId }"
+                :class="{
+                  selected: !readonly && child.id === selectedBlockId,
+                  'is-fill-height': isNestedFillHeightChild(child),
+                }"
                 :style="nestedChildShellStyle(child)"
                 :data-grid-child-id="child.id"
                 @pointerenter="onNestedPointerEnter(child.id)"
@@ -1482,6 +1763,7 @@
     :y="containerMenu.y"
     :mode="containerMenu.mode"
     :title="containerMenu.title"
+    :exclude-block-types="containerMenuExcludeBlockTypes"
     @update:show="value => !value && closeContainerMenu()"
     @insert="handleContainerMenuInsert"
     @action="handleContainerMenuAction"
