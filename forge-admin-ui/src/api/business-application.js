@@ -351,9 +351,10 @@ export function previewBusinessObjectDatabaseDiff(objectId, designVersion) {
   return request.post(`/ai/business/object/${objectId}/database-diff`, { designVersion }, ENCRYPTED_REQUEST)
 }
 
-export function syncBusinessObjectDatabase(objectId, designVersion) {
+export function syncBusinessObjectDatabase(objectId, designVersion, options = {}) {
   return request.post(`/ai/business/object/${objectId}/database-sync`, {
     designVersion,
     confirmOnlineDdl: true,
+    forceExecute: options.forceExecute === true,
   }, ENCRYPTED_REQUEST)
 }

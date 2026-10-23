@@ -25,7 +25,7 @@ final class LowcodeOnlineDdlPolicy {
         if (isSafeOnlineDdl(ddl)) {
             return;
         }
-        throw new BusinessException("数据库差异包含高风险或非追加式 DDL（如字段类型、长度或必填属性调整），"
+        throw new BusinessException("数据库差异包含高风险或非追加式 DDL（如改类型族、缩短长度），"
                 + "仅允许预览和导出脚本后人工审核执行");
     }
 

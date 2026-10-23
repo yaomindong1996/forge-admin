@@ -106,7 +106,8 @@ public class BusinessObjectDesignerController {
         tableMappingService.syncDatabase(
                 objectId,
                 dto == null ? null : dto.getDesignVersion(),
-                dto != null && Boolean.TRUE.equals(dto.getConfirmOnlineDdl()));
+                dto != null && Boolean.TRUE.equals(dto.getConfirmOnlineDdl()),
+                dto != null && Boolean.TRUE.equals(dto.getForceExecute()));
         return RespInfo.success();
     }
 

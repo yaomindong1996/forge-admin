@@ -223,23 +223,33 @@ final class BusinessObjectDeploymentPublishValidator {
             List<String> ddlStatements = preview.getDdlStatements();
             if (ddlStatements != null && !ddlStatements.isEmpty()) {
                 boolean canOnlineDdl = hasPermission(DDL_PERMISSION);
-                boolean containsUnsafeDdl = ddlService.containsUnsafeOnlineDdl(ddlStatements);
+                int manualReview = preview.getManualReviewDdlCount() == null
+                        ? ddlService.countUnsafeDdl(modelSchema)
+                        : preview.getManualReviewDdlCount();
+                int onlineSafe = preview.getOnlineSafeDdlCount() == null
+                        ? Math.max(0, ddlStatements.size() - manualReview)
+                        : preview.getOnlineSafeDdlCount();
+                boolean onlyHighRisk = onlineSafe <= 0 && manualReview > 0;
                 boolean canExecuteOnlineDdl = canOnlineDdl && runtimeContext.isAllowDdl()
-                        && Boolean.TRUE.equals(preview.getExecutable()) && !containsUnsafeDdl;
-                String itemCode = containsUnsafeDdl
+                        && Boolean.TRUE.equals(preview.getExecutable()) && onlineSafe > 0;
+                String itemCode = onlyHighRisk
                         ? "TABLE_COLUMN_CHANGED" : resolveTableSyncItemCode(ddlStatements);
-                String unavailableMessage = containsUnsafeDdl
-                        ? "数据表差异包含字段类型、长度或必填属性调整，仅允许在数据结构中预览并导出脚本后人工审核执行: "
+                String unavailableMessage = onlyHighRisk
+                        ? "数据表差异均为高风险变更（改类型族/缩长度等），请在数据结构中导出脚本后人工审核: "
                         + summarizeDdlStatements(ddlStatements)
                         : (!runtimeContext.isAllowDdl() ? "目标数据源禁止在线 DDL，需手工同步: "
                         + summarizeDdlStatements(ddlStatements)
                         : "数据表结构与字段配置不一致且当前用户无在线同步权限: "
                         + summarizeDdlStatements(ddlStatements));
+                String syncMessage = manualReview > 0
+                        ? "发布时勾选同步数据表结构后，会在 " + runtimeDatasourceLabel(runtimeContext)
+                        + " 自动执行 " + onlineSafe + " 条安全变更；另有 " + manualReview
+                        + " 条高风险变更需导出人工审核: " + summarizeDdlStatements(ddlStatements)
+                        : "发布时勾选同步数据表结构后，会在 " + runtimeDatasourceLabel(runtimeContext)
+                        + " 自动执行受控变更: " + summarizeDdlStatements(ddlStatements);
                 add(items, itemCode, "TABLE", canExecuteOnlineDdl ? BusinessPublishCheckLevel.WARN : BusinessPublishCheckLevel.BLOCK,
                         "数据表结构未同步",
-                        canExecuteOnlineDdl ? "发布时勾选同步数据表结构后，会在 " + runtimeDatasourceLabel(runtimeContext)
-                                + " 自动执行受控变更: " + summarizeDdlStatements(ddlStatements)
-                                : unavailableMessage,
+                        canExecuteOnlineDdl ? syncMessage : unavailableMessage,
                         null, null, canExecuteOnlineDdl ? "SYNC_TABLE" : "REVIEW_DDL",
                         canExecuteOnlineDdl ? "同步表结构" : "查看数据库差异",
                         canExecuteOnlineDdl ? "publish" : "advanced", 430);

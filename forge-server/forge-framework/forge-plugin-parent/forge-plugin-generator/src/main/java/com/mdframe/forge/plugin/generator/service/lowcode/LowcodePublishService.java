@@ -251,8 +251,8 @@ public class LowcodePublishService {
             if (!SessionHelper.hasPermission(DDL_PERMISSION)) {
                 throw new BusinessException("缺少在线建表发布权限: " + DDL_PERMISSION);
             }
-            // 与业务对象「确认同步数据库」同一套预览门禁：无差异直接过；含高风险 MODIFY 则明确拒绝，
-            // 禁止发布阶段用更严/更松的另一套规则把预览已通过的对象再次打挂。
+            // 与业务对象「确认同步数据库」同一套策略：加列/建表/兼容扩容在线执行；
+            // 高风险变更不阻断已可执行部分，但有残留高风险时仍要求导出人工审核后再发。
             LowcodeDdlPreviewVO preview = ddlService.previewCreateTable(modelSchema);
             if (!Boolean.TRUE.equals(preview.getExecutable())) {
                 throw new BusinessException("当前数据库差异不允许在线执行，请导出迁移脚本后人工审核");
@@ -260,10 +260,21 @@ public class LowcodePublishService {
             if (preview.getDdlStatements() == null || preview.getDdlStatements().isEmpty()) {
                 return;
             }
-            if (ddlService.containsUnsafeOnlineDdl(preview.getDdlStatements())) {
-                throw new BusinessException("数据库差异包含高风险或非追加式 DDL，仅允许预览和导出脚本后人工审核执行");
+            int manualReview = preview.getManualReviewDdlCount() == null
+                    ? ddlService.countUnsafeDdl(modelSchema)
+                    : preview.getManualReviewDdlCount();
+            int onlineSafe = preview.getOnlineSafeDdlCount() == null
+                    ? Math.max(0, preview.getDdlStatements().size() - manualReview)
+                    : preview.getOnlineSafeDdlCount();
+            if (onlineSafe <= 0 && manualReview > 0) {
+                throw new BusinessException("当前差异均为高风险变更（如改类型族、缩短长度），"
+                        + "请导出迁移脚本后人工审核执行");
             }
-            ddlService.executeCreateTable(modelSchema);
+            ddlService.executeSafeDdlOnly(modelSchema);
+            if (manualReview > 0) {
+                throw new BusinessException("已同步安全结构变更，但仍有 " + manualReview
+                        + " 条高风险 DDL 未执行，请导出脚本人工审核后再发布");
+            }
             return;
         }
         // 复用外部已解析的 runtimeContext，避免每个 ddl 校验方法再单独 resolve 一次

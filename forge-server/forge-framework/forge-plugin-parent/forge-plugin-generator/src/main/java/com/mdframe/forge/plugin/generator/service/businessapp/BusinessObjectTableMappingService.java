@@ -137,6 +137,14 @@ public class BusinessObjectTableMappingService {
 
     @Transactional(rollbackFor = Exception.class)
     public void syncDatabase(Long objectId, Integer designVersion, boolean confirmOnlineDdl) {
+        syncDatabase(objectId, designVersion, confirmOnlineDdl, false);
+    }
+
+    /**
+     * @param forceExecute true 时执行预览中的全部 DDL（含高风险 MODIFY），需用户二次确认；仍禁止 DROP/TRUNCATE
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void syncDatabase(Long objectId, Integer designVersion, boolean confirmOnlineDdl, boolean forceExecute) {
         BusinessObjectDesignerService.DesignerContext context = contextProvider.loadContext(objectId);
         assertDesignVersion(context, designVersion);
         if (!confirmOnlineDdl) {
@@ -152,18 +160,46 @@ public class BusinessObjectTableMappingService {
         if (!Boolean.TRUE.equals(preview.getExecutable())) {
             throw new BusinessException("当前数据库差异不允许在线执行，请导出迁移脚本后人工审核");
         }
-        if (ddlService.containsUnsafeOnlineDdl(preview.getDdlStatements())) {
-            throw new BusinessException("数据库差异包含高风险或非追加式 DDL，仅允许预览和导出脚本");
-        }
         if (!hasDdl(preview)) {
             persistSyncResult(context, "IN_SYNC", "数据库结构已是最新版本", 0);
             return;
         }
+        int totalDdl = preview.getDdlStatements().size();
+        if (forceExecute) {
+            try {
+                int executed = ddlService.executePreviewDdl(modelSchema, true);
+                persistSyncResult(context, executed >= totalDdl ? "IN_SYNC" : "PARTIAL",
+                        "已强制执行 " + executed + " 条预览 DDL", executed);
+            } catch (RuntimeException e) {
+                persistSyncResult(context, "FAILED", safeMessage(e), totalDdl);
+                throw e;
+            }
+            return;
+        }
+        int manualReview = preview.getManualReviewDdlCount() == null
+                ? ddlService.countUnsafeDdl(modelSchema)
+                : preview.getManualReviewDdlCount();
+        int onlineSafe = preview.getOnlineSafeDdlCount() == null
+                ? Math.max(0, totalDdl - manualReview)
+                : preview.getOnlineSafeDdlCount();
+        // 仅高风险（改类型族/缩长度等）时才整单拒绝；加列、必填开关与兼容扩容走在线同步
+        if (onlineSafe <= 0 && manualReview > 0) {
+            throw new BusinessException("当前差异均为高风险变更（如改类型族、缩短长度），"
+                    + "可导出脚本，或在预览中确认后强制执行");
+        }
         try {
-            ddlService.executeCreateTable(modelSchema);
-            persistSyncResult(context, "IN_SYNC", "数据库结构同步成功", preview.getDdlStatements().size());
+            int executed = ddlService.executeSafeDdlOnly(modelSchema);
+            if (manualReview > 0) {
+                persistSyncResult(context, "PARTIAL",
+                        "已在线同步 " + executed + " 条安全变更；另有 " + manualReview
+                                + " 条高风险变更可导出脚本或强制执行",
+                        executed);
+                return;
+            }
+            persistSyncResult(context, executed >= totalDdl ? "IN_SYNC" : "PARTIAL",
+                    "数据库结构同步成功", executed);
         } catch (RuntimeException e) {
-            persistSyncResult(context, "FAILED", safeMessage(e), preview.getDdlStatements().size());
+            persistSyncResult(context, "FAILED", safeMessage(e), totalDdl);
             throw e;
         }
     }
@@ -172,7 +208,7 @@ public class BusinessObjectTableMappingService {
      * 为页面表单自动托管的数据存储执行安全追加式同步。
      *
      * <p>该入口只供应用表单聚合服务在元数据事务提交后调用。普通对象仍必须走
-     * {@link #syncDatabase(Long, Integer, boolean)} 的权限、版本和二次确认门禁。</p>
+     * {@link #syncDatabase(Long, Integer, boolean, boolean)} 的权限、版本和二次确认门禁。</p>
      */
     public void syncManagedDatabase(Long objectId, Long applicationId, String formAssetId) {
         BusinessObjectDesignerService.DesignerContext context = contextProvider.loadContext(objectId);
@@ -210,7 +246,7 @@ public class BusinessObjectTableMappingService {
         if (unsafeCount > 0) {
             String detail = describeUnsafeColumnChanges(preview);
             String summary = "已自动同步 " + executed + " 项安全变更；另有 " + unsafeCount
-                    + " 项高风险差异已跳过（缩长度/改类型/收紧必填等）"
+                    + " 项高风险差异已跳过（缩长度/改类型族等）"
                     + (StringUtils.isBlank(detail) ? "" : "：" + detail);
             // 页面表单自动同步：安全变更已落地即可，剩余差异留给高级数据设置，不阻断保存、不弹提示。
             persistSyncResult(context, "PARTIAL", summary, executed);

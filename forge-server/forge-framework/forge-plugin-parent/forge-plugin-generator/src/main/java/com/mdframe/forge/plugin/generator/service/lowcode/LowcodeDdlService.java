@@ -86,6 +86,7 @@ public class LowcodeDdlService {
                 preview.setExecutable(false);
                 preview.getWarnings().add("运行数据源不允许在线DDL，请先在目标库创建数据表");
                 preview.getDdlStatements().addAll(buildCreateTableSql(context, modelSchema, dialect, preview.getWarnings()));
+                enrichOnlineSafetyCounts(preview, modelSchema, context, dialect);
                 return preview;
             }
             preview.getDdlStatements().addAll(buildCreateTableSql(context, modelSchema, dialect, preview.getWarnings()));
@@ -94,12 +95,15 @@ public class LowcodeDdlService {
                     () -> ddlRepository.hasSinglePrimaryKey(context, context.getTableName())))) {
                 preview.setExecutable(false);
                 preview.getWarnings().add("已有表必须包含单字段主键后才能绑定为可写低代码模型");
+                preview.setOnlineSafeDdlCount(0);
+                preview.setManualReviewDdlCount(0);
                 return preview;
             }
             preview.getDdlStatements().addAll(buildAddColumnSql(context, modelSchema, dialect, preview.getWarnings()));
             if (!preview.getDdlStatements().isEmpty() && !context.isAllowDdl()) {
                 preview.setExecutable(false);
                 preview.getWarnings().add("运行数据源不允许在线DDL，请由数据库管理员手工同步表结构");
+                enrichOnlineSafetyCounts(preview, modelSchema, context, dialect);
                 return preview;
             }
         }
@@ -107,11 +111,65 @@ public class LowcodeDdlService {
         if (preview.getDdlStatements().isEmpty()) {
             preview.getWarnings().add("数据表已存在，且没有需要追加的业务字段");
         }
+        enrichOnlineSafetyCounts(preview, modelSchema, context, dialect);
         return preview;
+    }
+
+    /**
+     * 区分可在线执行与需人工审核的语句，供设计器放行「确认同步」而不把兼容扩容误拦成 DBA 流程。
+     */
+    private void enrichOnlineSafetyCounts(LowcodeDdlPreviewVO preview,
+                                          LowcodeModelSchema modelSchema,
+                                          LowcodeRuntimeDataSourceContext context,
+                                          RuntimeDatabaseDialect dialect) {
+        List<String> statements = preview.getDdlStatements();
+        if (statements == null || statements.isEmpty()) {
+            preview.setOnlineSafeDdlCount(0);
+            preview.setManualReviewDdlCount(0);
+            return;
+        }
+        Set<String> compatibleModifies = Boolean.TRUE.equals(preview.getTableExists())
+                ? new LinkedHashSet<>(buildCompatibleModifyStatements(context, modelSchema, dialect))
+                : Set.of();
+        int safe = 0;
+        int manual = 0;
+        for (String statement : statements) {
+            if (StringUtils.isBlank(statement)) {
+                continue;
+            }
+            if (isSafeOnlineDdl(statement) || compatibleModifies.contains(statement)) {
+                safe++;
+            }
+            else {
+                manual++;
+            }
+        }
+        preview.setOnlineSafeDdlCount(safe);
+        preview.setManualReviewDdlCount(manual);
+        if (manual > 0 && safe > 0) {
+            preview.getWarnings().add("其中 " + safe + " 条可在线同步（加列/加表/必填开关/兼容扩容），另有 "
+                    + manual + " 条高风险变更可「强制执行全部」或导出脚本人工审核");
+        }
+        else if (manual > 0) {
+            preview.getWarnings().add("当前差异均为高风险变更（如改类型族、缩短长度），"
+                    + "可「强制执行全部」或导出脚本后人工审核");
+        }
     }
 
     @Transactional(rollbackFor = Exception.class)
     public void executeCreateTable(LowcodeModelSchema modelSchema) {
+        executePreviewDdl(modelSchema, false);
+    }
+
+    /**
+     * 执行当前预览生成的 DDL。
+     *
+     * @param force true 时跳过追加式白名单，执行预览中的全部语句（含改类型/缩长度）；
+     *              仍拒绝 DROP/TRUNCATE 等破坏性语句
+     * @return 实际执行条数
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public int executePreviewDdl(LowcodeModelSchema modelSchema, boolean force) {
         LowcodeDdlPreviewVO preview = previewCreateTable(modelSchema);
         if (!Boolean.TRUE.equals(preview.getExecutable())) {
             throw new BusinessException("DDL预览不可执行");
@@ -120,20 +178,43 @@ public class LowcodeDdlService {
         if (!context.isAllowDdl()) {
             throw new BusinessException("运行数据源不允许在线DDL");
         }
-        for (String ddl : preview.getDdlStatements()) {
-            assertSafeDdl(ddl);
+        List<String> statements = preview.getDdlStatements() == null ? List.of() : preview.getDdlStatements();
+        if (statements.isEmpty()) {
+            return 0;
         }
-        for (String ddl : preview.getDdlStatements()) {
+        for (String ddl : statements) {
+            assertNotDestructiveDdl(ddl);
+            if (!force) {
+                assertSafeDdl(ddl);
+            }
+        }
+        for (String ddl : statements) {
             ddlRepository.executeDdl(context, ddl);
         }
         invalidateStructureCheckCache();
         dynamicCrudRepository.clearTableMetadataCache(context, context.getTableName());
+        return statements.size();
+    }
+
+    /** 强制执行也不允许删表/删列/清空，避免误伤业务数据。 */
+    private void assertNotDestructiveDdl(String ddl) {
+        if (StringUtils.isBlank(ddl)) {
+            throw new BusinessException("DDL 语句为空，无法执行");
+        }
+        String normalized = ddl.trim().toUpperCase(Locale.ROOT).replaceAll("\\s+", " ");
+        if (normalized.startsWith("DROP ")
+                || normalized.contains(" DROP COLUMN ")
+                || normalized.contains(" DROP INDEX ")
+                || normalized.startsWith("TRUNCATE ")
+                || normalized.contains(" TRUNCATE TABLE ")) {
+            throw new BusinessException("拒绝执行破坏性 DDL（DROP/TRUNCATE），请导出脚本后由 DBA 审核");
+        }
     }
 
     /**
      * 仅执行预览结果中的安全在线 DDL：
      * ADD COLUMN / CREATE TABLE / CREATE INDEX，以及兼容的列扩容（同类型加长、放宽可空）。
-     * 缩长度、改类型族、收紧必填等仍跳过，避免一条 unsafe DDL 阻断全部安全变更。
+     * 缩长度、改类型族等仍跳过，避免一条 unsafe DDL 阻断全部安全变更。
      * 返回实际执行的安全语句条数。
      */
     public int executeSafeDdlOnly(LowcodeModelSchema modelSchema) {
@@ -460,6 +541,10 @@ public class LowcodeDdlService {
                     warnings.add("字段 " + fieldLabel(field) + " 长度变小，若历史数据超长数据库可能拒绝执行");
                 }
             }
+            if (requiredChanged && expectedRequired && !currentRequired) {
+                warnings.add("字段 " + fieldLabel(field)
+                        + " 将收紧为必填；若历史数据存在空值，数据库可能拒绝执行");
+            }
             DdlColumn column = typeChanged
                     ? buildColumn(field, false, dialect)
                     : buildExistingColumn(metadata, field, expectedRequired);
@@ -509,17 +594,14 @@ public class LowcodeDdlService {
     }
 
     /**
-     * 可在线自动执行的已有列变更：同类型加长（不缩短），或仅放宽可空；不改类型族、不收紧必填。
+     * 可在线自动执行的已有列变更：同类型加长（不缩短）、必填开关（放宽/收紧）；不改类型族、不缩短长度。
+     * 收紧必填时若历史有空值，执行阶段由数据库报错，预览已提示风险。
      */
     private boolean isCompatibleOnlineModify(LowcodeDdlRepository.ColumnMetadata metadata,
                                              String expectedSqlType,
                                              boolean typeChanged,
                                              boolean currentRequired,
                                              boolean expectedRequired) {
-        if (expectedRequired && !currentRequired) {
-            // 收紧为必填可能因历史空值失败，留给高级数据设置确认。
-            return false;
-        }
         if (!typeChanged) {
             return true;
         }

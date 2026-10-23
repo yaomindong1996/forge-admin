@@ -77,7 +77,7 @@
         <span>设计版本 v{{ mapping?.designVersion || 0 }}</span>
         <span>{{ preview?.ddlStatements?.length || 0 }} 条变更语句</span>
         <span :class="onlineExecutable ? 'safe' : 'manual'">
-          {{ onlineExecutable ? '可在线执行追加式变更' : '仅预览 / 人工审核' }}
+          {{ onlineSyncLabel }}
         </span>
       </div>
       <n-alert v-for="warning in preview?.warnings || []" :key="warning" type="warning" :bordered="false">
@@ -95,6 +95,16 @@
           <n-space>
             <n-button @click="previewVisible = false">
               关闭
+            </n-button>
+            <n-button
+              v-if="canForceExecute"
+              type="warning"
+              secondary
+              :disabled="mapping?.readonly || mapping?.allowDdl === false"
+              :loading="syncing"
+              @click="confirmForceSync"
+            >
+              强制执行全部
             </n-button>
             <n-button
               type="primary"
@@ -260,6 +270,7 @@ const canAlignImportedFields = computed(() => {
   })
 })
 
+/** 有可在线执行的安全变更即可点同步（加列/建表/兼容扩容）；高风险项可并存，同步后仍提示导出。 */
 const onlineExecutable = computed(() => {
   if (!preview.value?.ddlStatements?.length)
     return false
@@ -267,7 +278,36 @@ const onlineExecutable = computed(() => {
     return false
   if (preview.value.executable !== true)
     return false
-  return preview.value.ddlStatements.every(isSafeOnlineDdl)
+  if (typeof preview.value.onlineSafeDdlCount === 'number')
+    return preview.value.onlineSafeDdlCount > 0
+  return preview.value.ddlStatements.some(isSafeOnlineDdl)
+})
+
+const onlineSyncLabel = computed(() => {
+  const safe = Number(preview.value?.onlineSafeDdlCount)
+  const manual = Number(preview.value?.manualReviewDdlCount)
+  if (Number.isFinite(safe) && Number.isFinite(manual)) {
+    if (safe > 0 && manual > 0)
+      return `可在线同步 ${safe} 条，另有 ${manual} 条可强制执行`
+    if (safe > 0)
+      return '可在线执行追加式 / 必填开关 / 兼容扩容'
+    return '含高风险变更，可强制执行或导出审核'
+  }
+  return onlineExecutable.value ? '可在线执行追加式变更' : '仅预览 / 人工审核'
+})
+
+/** 预览里存在高风险 DDL，且数据源允许在线 DDL 时展示强制执行。 */
+const canForceExecute = computed(() => {
+  if (!preview.value?.ddlStatements?.length)
+    return false
+  if (mapping.value?.readonly || mapping.value?.allowDdl === false)
+    return false
+  if (preview.value.executable !== true)
+    return false
+  const manual = Number(preview.value.manualReviewDdlCount)
+  if (Number.isFinite(manual))
+    return manual > 0
+  return !preview.value.ddlStatements.every(isSafeOnlineDdl)
 })
 
 watch(() => props.objectId, loadMapping)
@@ -314,23 +354,58 @@ async function confirmSync() {
   if (!preview.value)
     await previewDiff()
   if (!onlineExecutable.value) {
-    message.warning('当前差异不能在线执行，请导出迁移脚本后人工审核')
+    message.warning(canForceExecute.value
+      ? '当前差异均为高风险变更，请使用「强制执行全部」或导出脚本'
+      : '当前差异不能在线执行，请导出迁移脚本后人工审核')
     return
   }
+  const safe = Number(preview.value?.onlineSafeDdlCount)
+  const manual = Number(preview.value?.manualReviewDdlCount)
+  const hasPartial = Number.isFinite(safe) && Number.isFinite(manual) && safe > 0 && manual > 0
   dialog.warning({
     title: '确认同步数据库结构',
-    content: `将按设计版本 v${mapping.value.designVersion} 执行 ${preview.value.ddlStatements.length} 条受控追加式 DDL。保存设计草稿本身不会执行这些变更。`,
+    content: hasPartial
+      ? `将按设计版本 v${mapping.value.designVersion} 在线执行 ${safe} 条安全 DDL（加列/建表/必填开关/兼容扩容）；另有 ${manual} 条高风险变更不会自动执行，可再点「强制执行全部」。`
+      : `将按设计版本 v${mapping.value.designVersion} 执行 ${safe > 0 ? safe : preview.value.ddlStatements.length} 条受控安全 DDL。保存设计草稿本身不会执行这些变更。`,
     positiveText: '确认同步',
     negativeText: '取消',
-    onPositiveClick: executeSync,
+    onPositiveClick: () => executeSync(false),
   })
 }
 
-async function executeSync() {
+async function confirmForceSync() {
+  if (!preview.value)
+    await previewDiff()
+  if (!canForceExecute.value) {
+    message.warning('当前没有需要强制执行的高风险变更')
+    return
+  }
+  const total = preview.value.ddlStatements.length
+  const manual = Number(preview.value?.manualReviewDdlCount)
+  dialog.error({
+    title: '强制执行全部 DDL',
+    content: `将按设计版本 v${mapping.value.designVersion} 执行预览中的全部 ${total} 条语句`
+      + (Number.isFinite(manual) && manual > 0 ? `（含 ${manual} 条高风险变更，如改类型族、缩短长度）` : '')
+      + '。可能导致数据截断或执行失败，请确认已备份或可接受风险。仍禁止 DROP/TRUNCATE。',
+    positiveText: '确认强制执行',
+    negativeText: '取消',
+    onPositiveClick: () => executeSync(true),
+  })
+}
+
+async function executeSync(forceExecute = false) {
   syncing.value = true
   try {
-    await syncBusinessObjectDatabase(props.objectId, mapping.value.designVersion)
-    message.success('数据库结构同步成功')
+    await syncBusinessObjectDatabase(props.objectId, mapping.value.designVersion, { forceExecute })
+    if (forceExecute)
+      message.success('已强制执行预览中的全部 DDL')
+    else {
+      const manual = Number(preview.value?.manualReviewDdlCount)
+      if (Number.isFinite(manual) && manual > 0)
+        message.warning(`已同步安全变更；仍有 ${manual} 条高风险 DDL，可强制执行或导出脚本`)
+      else
+        message.success('数据库结构同步成功')
+    }
     previewVisible.value = false
     preview.value = null
     await loadMapping()

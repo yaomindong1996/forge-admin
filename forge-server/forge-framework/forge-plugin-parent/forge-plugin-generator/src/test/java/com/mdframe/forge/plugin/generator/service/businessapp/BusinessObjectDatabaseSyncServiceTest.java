@@ -76,10 +76,11 @@ class BusinessObjectDatabaseSyncServiceTest {
     }
 
     @Test
-    @DisplayName("high risk modify statements are preview-only")
+    @DisplayName("high risk modify statements alone remain preview-only")
     void highRiskModifyIsPreviewOnly() {
         StubDdlService ddlService = new StubDdlService(
                 "ALTER TABLE crm_customer MODIFY COLUMN customer_name varchar(32)", true);
+        ddlService.markAllManualReview();
         TestableTableMappingService service = service(ddlService, true);
 
         assertThrows(BusinessException.class, () -> service.syncDatabase(201L, 7, true));
@@ -94,6 +95,34 @@ class BusinessObjectDatabaseSyncServiceTest {
 
         service.syncDatabase(201L, 7, true);
 
+        assertTrue(ddlService.executed);
+    }
+
+    @Test
+    @DisplayName("mixed safe add and high-risk modify still syncs the safe part")
+    void mixedSafeAndHighRiskSyncsSafeOnly() {
+        StubDdlService ddlService = new StubDdlService("ALTER TABLE crm_customer ADD COLUMN level int", true);
+        ddlService.addDdl("ALTER TABLE crm_customer MODIFY COLUMN customer_name varchar(32)");
+        TestableTableMappingService service = service(ddlService, true);
+
+        service.syncDatabase(201L, 7, true);
+
+        assertTrue(ddlService.safeDdlExecuted);
+        assertTrue(ddlService.executed);
+        assertFalse(ddlService.forceExecuted);
+    }
+
+    @Test
+    @DisplayName("force execute runs all preview statements including high-risk modify")
+    void forceExecuteRunsAllPreviewStatements() {
+        StubDdlService ddlService = new StubDdlService(
+                "ALTER TABLE crm_customer MODIFY COLUMN customer_name varchar(32)", true);
+        ddlService.markAllManualReview();
+        TestableTableMappingService service = service(ddlService, true);
+
+        service.syncDatabase(201L, 7, true, true);
+
+        assertTrue(ddlService.forceExecuted);
         assertTrue(ddlService.executed);
     }
 
@@ -237,6 +266,8 @@ class BusinessObjectDatabaseSyncServiceTest {
         private final boolean executable;
         private boolean executed;
         private boolean safeDdlExecuted;
+        private boolean forceExecuted;
+        private boolean forceAllManualReview;
 
         StubDdlService(String ddl, boolean executable) {
             super(null, null, null, null, null);
@@ -248,6 +279,10 @@ class BusinessObjectDatabaseSyncServiceTest {
             this.ddls.add(ddl);
         }
 
+        void markAllManualReview() {
+            this.forceAllManualReview = true;
+        }
+
         @Override
         public LowcodeDdlPreviewVO previewCreateTable(com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeModelSchema modelSchema) {
             LowcodeDdlPreviewVO preview = new LowcodeDdlPreviewVO();
@@ -255,6 +290,11 @@ class BusinessObjectDatabaseSyncServiceTest {
             preview.setTableExists(true);
             preview.setExecutable(executable);
             preview.getDdlStatements().addAll(ddls);
+            int safe = forceAllManualReview ? 0 : (int) ddls.stream()
+                    .filter(ddl -> ddl.contains("ADD COLUMN") || ddl.contains("CREATE TABLE"))
+                    .count();
+            preview.setOnlineSafeDdlCount(safe);
+            preview.setManualReviewDdlCount(ddls.size() - safe);
             return preview;
         }
 
@@ -265,7 +305,7 @@ class BusinessObjectDatabaseSyncServiceTest {
 
         @Override
         public int executeSafeDdlOnly(com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeModelSchema modelSchema) {
-            int safeCount = (int) ddls.stream()
+            int safeCount = forceAllManualReview ? 0 : (int) ddls.stream()
                     .filter(ddl -> ddl.contains("ADD COLUMN") || ddl.contains("CREATE TABLE"))
                     .count();
             if (safeCount > 0) {
@@ -273,6 +313,27 @@ class BusinessObjectDatabaseSyncServiceTest {
                 executed = true;
             }
             return safeCount;
+        }
+
+        @Override
+        public int countUnsafeDdl(com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeModelSchema modelSchema) {
+            if (forceAllManualReview) {
+                return ddls.size();
+            }
+            return (int) ddls.stream()
+                    .filter(ddl -> !(ddl.contains("ADD COLUMN") || ddl.contains("CREATE TABLE")))
+                    .count();
+        }
+
+        @Override
+        public int executePreviewDdl(com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeModelSchema modelSchema,
+                                     boolean force) {
+            if (force) {
+                forceExecuted = true;
+                executed = true;
+                return ddls.size();
+            }
+            return executeSafeDdlOnly(modelSchema);
         }
     }
 }
