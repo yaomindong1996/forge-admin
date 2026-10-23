@@ -172,7 +172,13 @@
                   </n-form-item>
                 </template>
                 <n-collapse v-model:expanded-names="propertyCollapseExpandedNames" class="advanced-config-collapse">
-                  <n-collapse-item v-if="propertySectionVisible(['基础配置', '接口', '基础路径', '行主键', '真实接口预览', '响应字段', '表单布局'])" name="base" title="接口与数据源">
+                  <n-collapse-item v-if="propertySectionVisible(['基础配置', '接口', '基础路径', '行主键', '真实接口预览', '响应字段', '表单布局'])" name="base">
+                    <template #header>
+                      <span class="collapse-section-title">
+                        <i class="i-material-symbols:dns-outline" />
+                        接口与数据源
+                      </span>
+                    </template>
                     <div class="property-search-anchor" data-property-search="基础配置 接口 数据源 基础路径 行主键 真实接口预览 响应字段 表单布局 api list detail create update delete import export" />
                     <template v-if="selectedBlock.blockType === 'AiCrudPage'">
                       <n-form-item label="基础路径 / 行主键" class="copy-form-item">
@@ -362,7 +368,13 @@
                     </template>
                   </n-collapse-item>
 
-                  <n-collapse-item v-if="selectedBlock.blockType === 'AiCrudPage' && propertySectionVisible(['查询与列表字段', '搜索与表格', '搜索', '查询区', '搜索布局', '搜索字段', '表格', '列表字段', '表格列', '列标题', '列宽', '对齐', '固定', '省略', '排序', '分页', '列数', '最大高度', '横向宽度', '边框', '斑马纹', '行按钮', '操作列', '列表行自定义按钮'])" name="search" title="查询与列表字段">
+                  <n-collapse-item v-if="selectedBlock.blockType === 'AiCrudPage' && propertySectionVisible(['查询与列表字段', '搜索与表格', '搜索', '查询区', '搜索布局', '搜索字段', '表格', '列表字段', '表格列', '列标题', '列宽', '对齐', '固定', '省略', '排序', '分页', '列数', '最大高度', '横向宽度', '边框', '斑马纹', '行按钮', '操作列', '列表行自定义按钮'])" name="search">
+                    <template #header>
+                      <span class="collapse-section-title">
+                        <i class="i-material-symbols:table-outline" />
+                        查询与列表字段
+                      </span>
+                    </template>
                     <div class="property-search-anchor" data-property-search="查询与列表字段 搜索与表格 搜索 查询区 搜索布局 搜索字段 表格 列表字段 表格列 列标题 列宽 对齐 固定 省略 排序 分页 列数 最大高度 横向宽度 边框 斑马纹 行按钮 操作列 列表行自定义按钮" />
                     <n-form-item label="显示项">
                       <n-checkbox-group
@@ -798,7 +810,13 @@
                     </n-form-item>
                   </n-collapse-item>
 
-                  <n-collapse-item v-if="selectedBlock.blockType === 'AiCrudPage' && propertySectionVisible(['表单与弹窗', '新增', '编辑', '表单', '弹窗', '抽屉', '详情', '页脚', '打开方式', '标签位置', '标签对齐', '标签宽度', '表单列数'])" name="edit" title="表单与弹窗">
+                  <n-collapse-item v-if="selectedBlock.blockType === 'AiCrudPage' && propertySectionVisible(['表单与弹窗', '新增', '编辑', '表单', '弹窗', '抽屉', '详情', '页脚', '打开方式', '标签位置', '标签对齐', '标签宽度', '表单列数'])" name="edit">
+                    <template #header>
+                      <span class="collapse-section-title">
+                        <i class="i-material-symbols:edit-square-outline" />
+                        表单与弹窗
+                      </span>
+                    </template>
                     <div class="property-search-anchor" data-property-search="表单与弹窗 新增 编辑 表单 弹窗 抽屉 详情 页脚 打开方式 标签位置 标签对齐 标签宽度 表单列数" />
                     <!-- 自由布局 panel-only：区块即表单 chrome 编辑入口；对象列表设计器仍只读摘要 -->
                     <template v-if="panelOnly">
@@ -868,7 +886,13 @@
                     </n-form-item>
                   </n-collapse-item>
 
-                  <n-collapse-item v-if="selectedBlock.blockType === 'AiCrudPage' && propertySectionVisible(['工具栏与导入导出', '工具栏', '导入', '导出', '导出任务', '自定义查询', '自定义操作', '按钮文案', '回调', '参数处理', '提交前', '搜索前', '加载列表前'])" name="toolbar" title="工具栏按钮与导入导出">
+                  <n-collapse-item v-if="selectedBlock.blockType === 'AiCrudPage' && propertySectionVisible(['工具栏与导入导出', '工具栏', '导入', '导出', '导出任务', '自定义查询', '自定义操作', '按钮文案', '回调', '参数处理', '提交前', '搜索前', '加载列表前'])" name="toolbar">
+                    <template #header>
+                      <span class="collapse-section-title">
+                        <i class="i-material-symbols:build-outline" />
+                        工具栏按钮与导入导出
+                      </span>
+                    </template>
                     <div class="property-search-anchor" data-property-search="工具栏与导入导出 工具栏 导入 导出 导出任务 自定义查询 自定义操作 按钮文案 回调 参数处理 提交前 搜索前 加载列表前" />
                     <n-form-item label="工具栏显示项">
                       <div class="toolbar-toggle-list">
@@ -1015,7 +1039,13 @@
                     </n-form-item>
                   </n-collapse-item>
 
-                  <n-collapse-item v-if="selectedBlock.blockType === 'AiTable' && propertySectionVisible(['表格功能', '工具栏', '分页', '刷新', '密度', '列设置', '搜索切换', '全屏', '滚动尺寸'])" name="table" title="表格功能">
+                  <n-collapse-item v-if="selectedBlock.blockType === 'AiTable' && propertySectionVisible(['表格功能', '工具栏', '分页', '刷新', '密度', '列设置', '搜索切换', '全屏', '滚动尺寸'])" name="table">
+                    <template #header>
+                      <span class="collapse-section-title">
+                        <i class="i-material-symbols:grid-on-outline" />
+                        表格功能
+                      </span>
+                    </template>
                     <div class="property-search-anchor" data-property-search="表格功能 工具栏 分页 刷新 密度 列设置 搜索切换 全屏 滚动尺寸 表格样式" />
                     <n-form-item label="功能开关">
                       <n-checkbox-group
@@ -1067,7 +1097,13 @@
                     </n-form-item>
                   </n-collapse-item>
 
-                  <n-collapse-item v-if="selectedBlock.blockType === 'AiForm' && propertySectionVisible(['按钮与折叠', '按钮', '提交', '重置', '取消', '折叠', '校验'])" name="form-actions" title="按钮与折叠">
+                  <n-collapse-item v-if="selectedBlock.blockType === 'AiForm' && propertySectionVisible(['按钮与折叠', '按钮', '提交', '重置', '取消', '折叠', '校验'])" name="form-actions">
+                    <template #header>
+                      <span class="collapse-section-title">
+                        <i class="i-material-symbols:smart-button" />
+                        按钮与折叠
+                      </span>
+                    </template>
                     <div class="property-search-anchor" data-property-search="按钮与折叠 按钮 提交 重置 取消 折叠 校验 操作区 字段折叠 校验反馈 按钮文案" />
                     <n-form-item label="间距">
                       <div class="style-grid">
@@ -1122,7 +1158,13 @@
                     </n-form-item>
                   </n-collapse-item>
 
-                  <n-collapse-item v-if="selectedBlock.blockType === 'AiCrudPage' && propertySectionVisible(['默认参数', '公共参数', 'publicParams', 'publicQuery', '表单默认值', '提交固定参数', '查询默认参数'])" name="default-params" title="默认参数与数据处理">
+                  <n-collapse-item v-if="selectedBlock.blockType === 'AiCrudPage' && propertySectionVisible(['默认参数', '公共参数', 'publicParams', 'publicQuery', '表单默认值', '提交固定参数', '查询默认参数'])" name="default-params">
+                    <template #header>
+                      <span class="collapse-section-title">
+                        <i class="i-material-symbols:data-object" />
+                        默认参数与数据处理
+                      </span>
+                    </template>
                     <div class="property-search-anchor" data-property-search="默认参数 公共参数 publicParams publicQuery 表单默认值 提交固定参数 查询默认参数 数据处理" />
                     <CrudDefaultParamsEditor
                       :model-value="resolveSelectedBlockDefaultParams(selectedBlock)"
@@ -1131,7 +1173,13 @@
                     />
                   </n-collapse-item>
 
-                  <n-collapse-item v-if="propertySectionVisible(['事件回调', '事件', '回调', '点击', '加载完成', '提交成功', '参数处理', '提交前', '搜索前', '加载列表前'])" name="event-help" title="生命周期回调">
+                  <n-collapse-item v-if="propertySectionVisible(['事件回调', '事件', '回调', '点击', '加载完成', '提交成功', '参数处理', '提交前', '搜索前', '加载列表前'])" name="event-help">
+                    <template #header>
+                      <span class="collapse-section-title">
+                        <i class="i-material-symbols:bolt-outline" />
+                        生命周期回调
+                      </span>
+                    </template>
                     <div class="property-search-anchor" data-property-search="生命周期回调 事件回调 事件 回调 点击 加载完成 提交成功 参数处理 提交前 搜索前 加载列表前" />
                     <template v-if="selectedBlock.blockType === 'AiCrudPage'">
                       <CrudHookRulesEditor

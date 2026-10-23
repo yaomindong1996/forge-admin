@@ -101,4 +101,27 @@ describe('resolveControlProps', () => {
       clearable: true,
     })
   })
+
+  it('strips input/select/date-picker slot design props so they cannot leak into Naive controls', () => {
+    expect(resolveControlProps({
+      placeholder: '请输入',
+      prefixIcon: 'search',
+      clearIcon: 'close',
+      inputType: 'password',
+      passwordVisibleIcon: 'eye',
+      dropdownHeader: '头部',
+      arrowIcon: 'chevron-down',
+      dateIcon: 'calendar',
+      dateFooter: '页脚',
+      prevMonthIcon: 'chevron-back',
+      nextYearIcon: 'chevron-forward',
+      clearable: true,
+      pair: true,
+      separator: '-',
+    })).toEqual({
+      placeholder: '请输入',
+      clearable: true,
+      pair: true,
+    })
+  })
 })

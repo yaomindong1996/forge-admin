@@ -75,7 +75,8 @@ const emit = defineEmits(['navigate', 'loaded'])
 
 const route = useRoute()
 const router = useRouter()
-const loading = ref(false)
+// autoLoad 时首屏即 loading，避免指标区先空再刷
+const loading = ref(props.autoLoad !== false)
 const loadError = ref('')
 const summary = ref({
   todoCount: 0,

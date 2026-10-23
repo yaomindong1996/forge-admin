@@ -38,33 +38,42 @@
   gap: 8px;
 }
 
+/* 与表单设计器 form-property-collapse / config-collapse 对齐 */
 .advanced-config-collapse {
   display: grid;
   gap: 6px;
-  margin: 2px 0 12px;
+  margin: 0 0 8px;
 }
 
 .advanced-config-collapse :deep(.n-collapse-item) {
   margin: 0;
   overflow: hidden;
-  border: 1px solid rgba(228, 228, 231, 0.72);
+  border: 1px solid #e8eaed;
   border-radius: 8px;
-  background: var(--bg-primary);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  background: #fff;
+  box-shadow: none;
 }
 
 .advanced-config-collapse :deep(.n-collapse-item__header) {
   min-height: 30px;
-  padding: 0 10px;
-  border-bottom: 1px solid transparent;
-  background: var(--bg-primary);
+  padding: 0 8px;
+  border-bottom: 0;
+  background: #f5f6f8;
+}
+
+.advanced-config-collapse :deep(.n-collapse-item--active > .n-collapse-item__header) {
+  border-bottom: 1px solid #e8eaed;
+}
+
+.advanced-config-collapse :deep(.n-collapse-item__header:hover) {
+  background: #eef0f3;
 }
 
 .advanced-config-collapse :deep(.n-collapse-item__header-main) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--text-secondary);
+  color: #1f2329;
   font-size: 12px;
   font-weight: 650;
 }
@@ -73,17 +82,18 @@
   display: none;
 }
 
-.advanced-config-collapse :deep(.n-collapse-item--active .n-collapse-item__header) {
-  border-bottom-color: #eef2f7;
+.advanced-config-collapse :deep(.n-collapse-item-arrow),
+.advanced-config-collapse :deep(.n-collapse-item__header .n-base-icon) {
+  color: var(--primary-color, #3370ff);
 }
 
 .advanced-config-collapse :deep(.n-collapse-item__content-inner) {
-  padding: 2px 8px 8px;
-  background: var(--bg-primary);
+  padding: 8px 8px 10px;
+  background: #fff;
 }
 
 .advanced-config-collapse :deep(.n-form-item) {
-  margin-bottom: 6px;
+  margin-bottom: 12px;
 }
 
 .advanced-config-collapse :deep(.n-form-item:last-child) {
@@ -91,12 +101,30 @@
 }
 
 .advanced-config-collapse :deep(.n-form-item-label) {
-  min-height: 16px;
-  padding-bottom: 3px;
-  color: var(--text-secondary);
-  font-size: 11px;
+  min-height: 18px;
+  padding-bottom: 4px;
+  color: #646a73;
+  font-size: 12px;
   font-weight: 600;
-  line-height: 16px;
+  line-height: 18px;
+}
+
+.collapse-section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
+}
+
+.collapse-section-title > i,
+.collapse-section-title :deep(.n-icon) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--primary-color, #3370ff);
+  opacity: 1;
 }
 
 .copy-form-item :deep(.n-form-item-blank) {
@@ -1333,37 +1361,47 @@
 
 .list-tree-model-collapse {
   display: grid;
-  gap: 0;
+  gap: 6px;
 }
 
 .list-tree-model-collapse :deep(.n-collapse-item) {
   margin: 0;
   overflow: hidden;
-  border: 1px solid #e4e4e7;
+  border: 1px solid #e8eaed;
   border-radius: 8px;
-  background: var(--bg-primary);
+  background: #fff;
+  box-shadow: none;
 }
 
 .list-tree-model-collapse :deep(.n-collapse-item__header) {
-  min-height: 36px;
-  padding: 0 10px;
-  border-bottom: 1px solid transparent;
-  background: var(--bg-primary);
+  min-height: 30px;
+  padding: 0 8px;
+  border-bottom: 0;
+  background: #f5f6f8;
 }
 
 .list-tree-model-collapse :deep(.n-collapse-item--active > .n-collapse-item__header) {
-  border-bottom-color: #eef2f7;
+  border-bottom: 1px solid #e8eaed;
+}
+
+.list-tree-model-collapse :deep(.n-collapse-item__header:hover) {
+  background: #eef0f3;
 }
 
 .list-tree-model-collapse :deep(.n-collapse-item__header-main) {
-  color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 600;
+  color: #1f2329;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.list-tree-model-collapse :deep(.n-collapse-item-arrow),
+.list-tree-model-collapse :deep(.n-collapse-item__header .n-base-icon) {
+  color: var(--primary-color, #3370ff);
 }
 
 .list-tree-model-collapse :deep(.n-collapse-item__content-inner) {
-  padding: 10px;
-  background: var(--bg-primary);
+  padding: 8px 8px 10px;
+  background: #fff;
 }
 
 .list-tree-model-alert {
@@ -1664,11 +1702,11 @@
   }
 
   .canvas-zoom-stage {
-    padding: 54px 1px 18px;
+    padding: 40px 1px 16px;
   }
 
   .canvas-viewport-dock {
-    top: 54px;
+    top: 8px;
     left: 50%;
   }
 

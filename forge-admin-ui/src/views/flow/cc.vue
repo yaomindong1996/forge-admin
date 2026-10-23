@@ -239,7 +239,7 @@ import { getRowDisplayTitle } from './utils/processDisplay'
 const userStore = useUserStore()
 const { dict, getLabel } = useDict('flow_read_status')
 const { getLabel: getCcStatusLabel } = useDict('flow_cc_status')
-const loading = ref(false)
+const loading = ref(true)
 const loadError = ref(false)
 const dataSource = ref([])
 const activeTab = ref('received')

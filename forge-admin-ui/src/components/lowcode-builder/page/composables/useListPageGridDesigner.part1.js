@@ -1320,19 +1320,16 @@ function listPaletteItemFilter(spec) {
     // 列表画布渲染器暂无分支 / 旧 zone 画布专属 / 表单画布专属 → 隐藏
     return false
   }
+  // 已在画布中 / 当前布局不可用：直接不展示，避免橙色禁用文案占位
+  if (spec.meta?.unique && findExistingBlockByType(blockType))
+    return false
+  if (spec.meta?.onlyFor && !spec.meta.onlyFor.includes(props.layoutType))
+    return false
   return true
 }
 
-/**
- * 列表画布临时禁用原因：只保留用户可理解、可操作的原因（唯一性约束 / 布局限制）。
- * 不再出现"由表单区块承载"/"待流式画布支持"等开发术语。
- */
-function unifiedPaletteDisabledReason(spec) {
-  const blockType = resolveUnifiedBlockType(spec)
-  if (spec.meta?.unique && findExistingBlockByType(blockType))
-    return '已在画布中'
-  if (spec.meta?.onlyFor && !spec.meta.onlyFor.includes(props.layoutType))
-    return '当前布局不可用'
+/** 物料面板已过滤不可用项，保留空实现以兼容旧调用点 */
+function unifiedPaletteDisabledReason() {
   return ''
 }
 

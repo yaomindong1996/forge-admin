@@ -48,17 +48,45 @@
           </div>
         </div>
         <div class="page-tab-list">
-          <button
+          <div
             v-for="page in designerPages"
             :key="page.pageKey"
-            type="button"
-            class="page-tab-button"
-            :class="[{ active: page.pageKey === activePageKey }, `type-${page.pageType || 'custom'}`]"
-            @click="switchActivePage(page.pageKey)"
+            class="page-tab-item"
+            :class="{ active: page.pageKey === activePageKey, protected: isProtectedPage(page.pageKey) }"
           >
-            <span class="page-tab-name">{{ page.pageName || page.pageKey }}</span>
-            <small>{{ pageTypeText(page.pageType) }} · {{ page.pageKey }}</small>
-          </button>
+            <button
+              type="button"
+              class="page-tab-button"
+              :class="[{ active: page.pageKey === activePageKey }, `type-${page.pageType || 'custom'}`]"
+              @click="switchActivePage(page.pageKey)"
+            >
+              <span class="page-tab-name">{{ page.pageName || page.pageKey }}</span>
+              <small>{{ pageTypeText(page.pageType) }} · {{ page.pageKey }}</small>
+            </button>
+            <!-- 列表页不可删；其它页签悬停/选中时显示关闭 -->
+            <n-popconfirm
+              v-if="!isProtectedPage(page.pageKey)"
+              :show-icon="false"
+              positive-text="删除"
+              negative-text="取消"
+              @positive-click="removeDesignerPage(page.pageKey)"
+            >
+              <template #trigger>
+                <button
+                  type="button"
+                  class="page-tab-close"
+                  title="删除页面"
+                  aria-label="删除页面"
+                  @click.stop
+                >
+                  <n-icon :size="12">
+                    <CloseOutline />
+                  </n-icon>
+                </button>
+              </template>
+              删除「{{ page.pageName || page.pageKey }}」及其布局？
+            </n-popconfirm>
+          </div>
           <n-button class="page-tool-button page-icon-button" circle size="small" secondary type="primary" title="新增页面" @click="addDesignerPage">
             <template #icon>
               <n-icon><AddOutline /></n-icon>

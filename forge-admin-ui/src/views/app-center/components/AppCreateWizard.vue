@@ -251,10 +251,38 @@ async function initialize(payload) {
   padding-right: 4px;
 }
 
+.create-mode-tabs :deep(.n-tabs-rail) {
+  padding: 3px;
+  border-radius: 8px;
+  background: #f2f3f5;
+}
+
+/* 选中态与属性面板 segment 一致：主题蓝胶囊 + 白字 */
+.create-mode-tabs :deep(.n-tabs-capsule) {
+  border-radius: 6px;
+  background: var(--primary-color, #3370ff);
+  box-shadow: none;
+}
+
 .create-mode-tabs :deep(.n-tabs-tab) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  color: var(--text-secondary, var(--n-text-color-2));
+  font-weight: 600;
+}
+
+.create-mode-tabs :deep(.n-tabs-tab--active) {
+  --n-tab-text-color-active: #fff;
+  color: #fff !important;
+}
+
+.create-mode-tabs :deep(.n-tabs-tab:not(.n-tabs-tab--active):hover) {
+  color: var(--primary-color, #3370ff);
+}
+
+.create-mode-tabs :deep(.n-tabs-tab .n-icon) {
+  color: inherit;
 }
 
 .create-mode-panel {

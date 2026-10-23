@@ -94,7 +94,7 @@
             v-for="row in suiteTreeRows"
             :key="row.suite.id || row.suite.suiteCode"
             class="suite-row"
-            :style="{ '--suite-indent': `${row.level * 15}px` }"
+            :style="{ '--suite-indent': `${row.level * 12}px` }"
           >
             <button
               v-if="row.hasChildren"
@@ -110,34 +110,39 @@
             </button>
             <span v-else class="suite-toggle-placeholder" />
 
-            <button
-              type="button"
-              class="suite-item"
+            <!-- 分组主体与「更多」同框，避免选中高亮与操作按钮视觉分离 -->
+            <div
+              class="suite-row-main"
               :class="{ active: suiteCode === row.suite.suiteCode }"
-              :title="row.suite.suiteName || row.suite.suiteCode"
-              @click="selectSuite(row.suite)"
             >
-              <span class="suite-icon">
-                <IconRenderer v-if="row.suite.icon" :icon="row.suite.icon" :size="17" />
-                <i v-else class="i-lucide:folder" />
-              </span>
-              <span class="suite-copy">
-                <strong>{{ row.suite.suiteName || row.suite.suiteCode }}</strong>
-                <small>{{ suiteMetaText(row.suite) }}</small>
-              </span>
-            </button>
+              <button
+                type="button"
+                class="suite-item"
+                :title="row.suite.suiteName || row.suite.suiteCode"
+                @click="selectSuite(row.suite)"
+              >
+                <span class="suite-icon">
+                  <IconRenderer v-if="row.suite.icon" :icon="row.suite.icon" :size="17" />
+                  <i v-else class="i-lucide:folder" />
+                </span>
+                <span class="suite-copy">
+                  <strong>{{ row.suite.suiteName || row.suite.suiteCode }}</strong>
+                  <small>{{ suiteMetaText(row.suite) }}</small>
+                </span>
+              </button>
 
-            <n-dropdown
-              trigger="click"
-              :options="suiteActionOptions(row.suite)"
-              @select="key => handleSuiteAction(key, row.suite)"
-            >
-              <n-button quaternary circle size="tiny" class="suite-more" aria-label="分组操作">
-                <template #icon>
-                  <NIcon><EllipsisVertical /></NIcon>
-                </template>
-              </n-button>
-            </n-dropdown>
+              <n-dropdown
+                trigger="click"
+                :options="suiteActionOptions(row.suite)"
+                @select="key => handleSuiteAction(key, row.suite)"
+              >
+                <button type="button" class="suite-more" aria-label="分组操作">
+                  <NIcon :size="16">
+                    <EllipsisVertical />
+                  </NIcon>
+                </button>
+              </n-dropdown>
+            </div>
           </div>
         </div>
       </aside>
@@ -162,7 +167,6 @@
                 v-model:design-status="designStatus"
                 v-model:status="status"
                 class="toolbar-filters"
-                :loading="loadingApplications"
                 @search="applyKeywordFilter"
                 @refresh="loadApplications"
               />
@@ -185,8 +189,33 @@
           </div>
 
           <div class="application-table-region">
+            <!-- 查询/筛选：局部骨架屏，不走全局 loading -->
             <div
-              v-if="groupedApplications.length"
+              v-if="loadingApplications"
+              class="application-list-skeleton"
+              aria-busy="true"
+              aria-label="应用列表加载中"
+            >
+              <div
+                v-for="i in 6"
+                :key="`app-skel-${i}`"
+                class="application-list-skeleton__card"
+              >
+                <div class="application-list-skeleton__head">
+                  <n-skeleton circle :width="40" :height="40" />
+                  <div class="application-list-skeleton__title">
+                    <n-skeleton height="16px" width="58%" :sharp="false" />
+                    <n-skeleton height="12px" width="36%" :sharp="false" />
+                  </div>
+                </div>
+                <n-skeleton height="12px" width="88%" :sharp="false" />
+                <n-skeleton height="12px" width="64%" :sharp="false" />
+                <n-skeleton height="28px" width="100%" :sharp="false" style="margin-top: 8px" />
+              </div>
+            </div>
+
+            <div
+              v-else-if="groupedApplications.length"
               class="table-scroll"
               tabindex="0"
               aria-label="业务应用卡片列表，可纵向滚动"
@@ -218,7 +247,7 @@
             </div>
 
             <IllustratedEmpty
-              v-else-if="!loadingApplications"
+              v-else
               class="application-empty"
               :description="applicationEmptyDescription"
             >
@@ -228,10 +257,6 @@
                 </n-button>
               </template>
             </IllustratedEmpty>
-
-            <div v-if="loadingApplications" class="application-loading-mask" aria-live="polite">
-              <n-spin size="small" description="正在加载应用" />
-            </div>
           </div>
 
           <footer class="panel-pagination">
@@ -312,14 +337,18 @@
 <script setup>
 import {
   AddOutline,
+  CheckmarkCircleOutline,
   ChevronBackOutline,
   ChevronDownOutline,
   ChevronForwardOutline,
   CloudUploadOutline,
+  CreateOutline,
   EllipsisVertical,
+  PauseCircleOutline,
+  TrashOutline,
 } from '@vicons/ionicons5'
 import { NIcon, useMessage } from 'naive-ui'
-import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, h, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   businessSuiteSummary,
@@ -785,13 +814,22 @@ function removeApplication(application) {
   })
 }
 
+function renderSuiteMenuIcon(icon) {
+  return () => h(NIcon, { size: 16 }, { default: () => h(icon) })
+}
+
 function suiteActionOptions(suite) {
+  const enabled = Number(suite.status) === 1
   return [
-    { label: '新增子分组', key: 'create-child' },
-    { label: '编辑分组', key: 'edit' },
-    { label: Number(suite.status) === 1 ? '停用分组' : '启用分组', key: 'toggle' },
+    { label: '新增子分组', key: 'create-child', icon: renderSuiteMenuIcon(AddOutline) },
+    { label: '编辑分组', key: 'edit', icon: renderSuiteMenuIcon(CreateOutline) },
+    {
+      label: enabled ? '停用分组' : '启用分组',
+      key: 'toggle',
+      icon: renderSuiteMenuIcon(enabled ? PauseCircleOutline : CheckmarkCircleOutline),
+    },
     { type: 'divider', key: 'divider' },
-    { label: '删除分组', key: 'delete' },
+    { label: '删除分组', key: 'delete', icon: renderSuiteMenuIcon(TrashOutline) },
   ]
 }
 

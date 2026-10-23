@@ -185,7 +185,7 @@ import { getRowDisplayTitle, getTaskDisplayName, getTaskHandlerName } from './ut
 
 const userStore = useUserStore()
 const { dict, getLabel } = useDict('flow_done_status')
-const loading = ref(false)
+const loading = ref(true)
 const loadError = ref(false)
 const dataSource = ref([])
 const pagination = reactive({

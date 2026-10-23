@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   resolveFieldAffix,
+  resolveFieldIcon,
+  resolveFieldSlotText,
+  resolveInputFieldType,
   resolveNumberFieldPrefix,
   resolveNumberFieldSuffix,
 } from '../aiFormItemUtils'
@@ -20,5 +23,12 @@ describe('field affix helpers', () => {
       { props: { prefix: '￥', currencySymbol: '$' } },
       () => 'money',
     )).toBe('￥')
+  })
+
+  it('reads icon / slot text / password inputType', () => {
+    expect(resolveFieldIcon({ props: { clearIcon: 'close-circle' } }, 'clearIcon')).toBe('close-circle')
+    expect(resolveFieldSlotText({ props: { dropdownHeader: '常用' } }, 'dropdownHeader')).toBe('常用')
+    expect(resolveInputFieldType({ props: { inputType: 'password' } })).toBe('password')
+    expect(resolveInputFieldType({ props: {} })).toBe('text')
   })
 })

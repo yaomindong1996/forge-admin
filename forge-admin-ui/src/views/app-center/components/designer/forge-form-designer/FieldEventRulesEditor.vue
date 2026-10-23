@@ -1,9 +1,9 @@
 <template>
-  <section class="field-event-editor">
-    <div class="field-event-editor__head">
+  <section class="field-event-editor form-automation-block">
+    <div class="form-automation-block__head">
       <div>
         <strong>字段自动查询</strong>
-        <p>字段值变化后，自动查找匹配信息并带回到表单。</p>
+        <p>字段变化或表单打开后，自动查数并回填。</p>
       </div>
       <n-button size="tiny" type="primary" secondary @click="openCreate">
         添加查询
@@ -38,7 +38,9 @@
         </div>
       </article>
     </div>
-    <n-empty v-else size="small" description="还没有字段查询规则" />
+    <div v-else class="form-automation-empty">
+      还没有字段查询规则，点击右上角添加
+    </div>
 
     <n-modal
       v-model:show="modalVisible"
@@ -721,7 +723,6 @@ function clone(value) {
   --n-color-modal: var(--bg-primary);
 }
 
-.field-event-editor__head,
 .field-event-form__section-head,
 .field-event-card,
 .field-event-card__title,
@@ -731,21 +732,18 @@ function clone(value) {
   align-items: center;
 }
 
-.field-event-editor__head,
 .field-event-form__section-head,
 .field-event-card {
   justify-content: space-between;
   gap: 12px;
 }
 
-.field-event-editor__head strong,
 .field-event-form h4 {
   color: var(--n-text-color);
   font-size: 13px;
   font-weight: 600;
 }
 
-.field-event-editor__head p,
 .field-event-form__section-head p,
 .field-event-card p {
   margin: 3px 0 0;
@@ -763,9 +761,9 @@ function clone(value) {
 
 .field-event-card {
   padding: 10px;
-  border: 1px solid var(--n-border-color);
-  border-radius: 6px;
-  background: var(--n-color);
+  border: 1px solid #e8eaed;
+  border-radius: 8px;
+  background: #fafbfc;
 }
 
 .field-event-card__main {

@@ -50,6 +50,9 @@ import {
   resolveSwitchUncheckedValue,
   getPlaceholder,
   resolveFieldAffix,
+  resolveFieldIcon,
+  resolveFieldSlotText,
+  resolveInputFieldType,
   resolveNumberFieldPrefix,
   resolveNumberFieldSuffix,
   resolveDesignerInlineStyle,
@@ -116,6 +119,30 @@ export function useAiFormItem(props, emit) {
   const numberFieldSuffix = computed(() => resolveNumberFieldSuffix(props.field))
   const inputFieldPrefix = computed(() => resolveFieldAffix(props.field, 'prefix'))
   const inputFieldSuffix = computed(() => resolveFieldAffix(props.field, 'suffix'))
+  const inputFieldPrefixIcon = computed(() => resolveFieldIcon(props.field, 'prefixIcon'))
+  const inputFieldSuffixIcon = computed(() => resolveFieldIcon(props.field, 'suffixIcon'))
+  const inputFieldClearIcon = computed(() => resolveFieldIcon(props.field, 'clearIcon'))
+  const inputFieldPasswordVisibleIcon = computed(() => resolveFieldIcon(props.field, 'passwordVisibleIcon'))
+  const inputFieldPasswordInvisibleIcon = computed(() => resolveFieldIcon(props.field, 'passwordInvisibleIcon'))
+  const inputFieldType = computed(() => resolveInputFieldType(props.field))
+  const inputFieldSeparator = computed(() => resolveFieldAffix(props.field, 'separator'))
+  const selectDropdownHeader = computed(() => resolveFieldSlotText(props.field, 'dropdownHeader'))
+  const selectDropdownAction = computed(() => resolveFieldSlotText(props.field, 'dropdownAction'))
+  const selectEmptyText = computed(() => resolveFieldSlotText(props.field, 'emptyText'))
+  const selectArrowIcon = computed(() => resolveFieldIcon(props.field, 'arrowIcon'))
+  const numberFieldPrefixIcon = computed(() => resolveFieldIcon(props.field, 'prefixIcon'))
+  const numberFieldSuffixIcon = computed(() => resolveFieldIcon(props.field, 'suffixIcon'))
+  /** Naive DatePicker：controlProps + Slots 配置合并为单次 v-bind（模板禁止重复 v-bind） */
+  const datePickerBindings = computed(() => ({
+    ...controlProps.value,
+    dateIcon: resolveFieldIcon(props.field, 'dateIcon'),
+    dateFooter: resolveFieldSlotText(props.field, 'dateFooter'),
+    prevYearIcon: resolveFieldIcon(props.field, 'prevYearIcon'),
+    prevMonthIcon: resolveFieldIcon(props.field, 'prevMonthIcon'),
+    nextMonthIcon: resolveFieldIcon(props.field, 'nextMonthIcon'),
+    nextYearIcon: resolveFieldIcon(props.field, 'nextYearIcon'),
+    separator: resolveFieldAffix(props.field, 'separator'),
+  }))
   const switchControlProps = computed(() => {
     const next = { ...controlProps.value }
     delete next.checkedValue
@@ -1857,7 +1884,7 @@ export function useAiFormItem(props, emit) {
   }
   return {
     route, remoteOptions, remoteLoading, dictOptions, sourceDictOptions, recordSelectorVisible, scanLoading, scanFeedback,
-    pickerDefaultTimestamp, remoteRequestSeq, ORG_TREE_SELECT_TYPES, USER_SELECT_TYPES, controlProps, numberFieldValue, numberFieldPrefix, numberFieldSuffix, inputFieldPrefix, inputFieldSuffix, switchControlProps, fieldRuntimeControl,
+    pickerDefaultTimestamp, remoteRequestSeq, ORG_TREE_SELECT_TYPES, USER_SELECT_TYPES, controlProps, numberFieldValue, numberFieldPrefix, numberFieldSuffix, numberFieldPrefixIcon, numberFieldSuffixIcon, inputFieldPrefix, inputFieldSuffix, inputFieldPrefixIcon, inputFieldSuffixIcon, inputFieldClearIcon, inputFieldPasswordVisibleIcon, inputFieldPasswordInvisibleIcon, inputFieldType, inputFieldSeparator, selectDropdownHeader, selectDropdownAction, selectEmptyText, selectArrowIcon, datePickerBindings, switchControlProps, fieldRuntimeControl,
     fieldRuntimeVisible, formItemRef, arrayFieldRef, restoreFixedLabelWidth, registerArrayValidator, disabledHandler, fieldAlign, fieldAlignClass,
     formItemClass, resolvedFormItemStyle, componentControlStyle, componentControlClass, recordSelectorConfig, fieldMultiple, recordSelectorRuntimeContext, relationLabelValueField, recordSelectorDisplayText,
     fieldDescription, fieldLabelTip, fieldBadge, manualFieldEventEnabled, blurFieldEventEnabled, scanFieldEventEnabled, fieldEventState, showFieldEventFeedback,

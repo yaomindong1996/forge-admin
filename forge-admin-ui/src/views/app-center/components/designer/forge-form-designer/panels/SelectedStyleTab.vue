@@ -1,7 +1,13 @@
 <template>
 <n-form label-placement="top" :show-feedback="false" class="property-form">
             <n-collapse :default-expanded-names="['position', 'layout', 'typography', 'appearance']" class="config-collapse style-config-collapse">
-              <n-collapse-item title="位置与尺寸" name="position">
+              <n-collapse-item name="position">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:aspect-ratio-outline" />
+                    位置与尺寸
+                  </span>
+                </template>
                 <section class="panel-item position-control">
                   <div class="position-axis-grid">
                     <label class="position-number-field">
@@ -101,72 +107,72 @@
                 </section>
               </n-collapse-item>
 
-              <n-collapse-item title="布局与边距" name="layout">
+              <n-collapse-item name="layout">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:padding-outline" />
+                    布局与边距
+                  </span>
+                </template>
                 <section class="panel-item">
-                  <div class="spacing-editor">
-                    <div class="spacing-editor-title">
-                      Padding
-                    </div>
-                    <div class="spacing-grid">
-                      <label v-for="item in spacingSides" :key="`component-padding-${item.key}`">
-                        <span>{{ item.label }}</span>
-                        <n-input-number
-                          :value="resolvePxNumber(selectedDesignerStyle.customStyle?.[`padding${item.key}`], 0)"
-                          :min="0"
-                          :max="120"
-                          :show-button="false"
-                          size="small"
-                          @update:value="updateDesignerSpacing(`padding${item.key}`, $event)"
-                        />
-                      </label>
-                    </div>
-                  </div>
-                  <div class="spacing-editor">
-                    <div class="spacing-editor-title">
-                      Margin
-                    </div>
-                    <div class="spacing-grid">
-                      <label v-for="item in spacingSides" :key="`component-margin-${item.key}`">
-                        <span>{{ item.label }}</span>
-                        <n-input-number
-                          :value="resolvePxNumber(selectedDesignerStyle.customStyle?.[`margin${item.key}`], 0)"
-                          :min="-80"
-                          :max="120"
-                          :show-button="false"
-                          size="small"
-                          @update:value="updateDesignerSpacing(`margin${item.key}`, $event)"
-                        />
-                      </label>
-                    </div>
-                  </div>
+                  <n-form-item label="内边距">
+                    <SpacingBoxControl
+                      :value="selectedPaddingBox"
+                      label="内边距"
+                      :min="0"
+                      :max="120"
+                      @update:value="updateDesignerBoxSpacing('padding', $event)"
+                    />
+                  </n-form-item>
+                  <n-form-item label="外边距">
+                    <SpacingBoxControl
+                      :value="selectedMarginBox"
+                      label="外边距"
+                      :min="-80"
+                      :max="120"
+                      @update:value="updateDesignerBoxSpacing('margin', $event)"
+                    />
+                  </n-form-item>
                 </section>
               </n-collapse-item>
 
-              <n-collapse-item title="文字排版" name="typography">
+              <n-collapse-item name="typography">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:text-fields" />
+                    文字排版
+                  </span>
+                </template>
                 <section class="panel-item">
                   <div class="crud-inline-grid">
                     <n-form-item label="字号">
-                      <n-input-number
-                        :value="resolvePxNumber(selectedDesignerStyle.customStyle?.fontSize, 14)"
-                        :min="10"
-                        :max="48"
-                        :show-button="false"
-                        @update:value="updateDesignerSpacing('fontSize', $event)"
-                      />
+                      <div class="appearance-metric-shell">
+                        <span>px</span>
+                        <input
+                          :value="resolvePxNumber(selectedDesignerStyle.customStyle?.fontSize, 14)"
+                          type="number"
+                          min="10"
+                          max="48"
+                          @input="updateDesignerSpacing('fontSize', $event.target.value)"
+                        >
+                      </div>
                     </n-form-item>
                     <n-form-item label="行高">
-                      <n-input
-                        :value="selectedDesignerStyle.customStyle?.lineHeight || ''"
-                        clearable
-                        placeholder="1.5 / 22px"
-                        @update:value="updateDesignerCustomStyle({ lineHeight: $event || undefined })"
-                      />
+                      <div class="appearance-metric-shell">
+                        <span>LH</span>
+                        <input
+                          :value="selectedDesignerStyle.customStyle?.lineHeight || ''"
+                          type="text"
+                          placeholder="1.5 / 22px"
+                          @input="updateDesignerCustomStyle({ lineHeight: $event.target.value || undefined })"
+                        >
+                      </div>
                     </n-form-item>
                   </div>
                   <n-form-item label="文字颜色">
                     <div class="color-control">
                       <n-color-picker
-                        :value="selectedDesignerStyle.customStyle?.color || ''"
+                        :value="selectedDesignerStyle.customStyle?.color || null"
                         :show-alpha="true"
                         :modes="['hex']"
                         :swatches="colorSwatches"
@@ -180,7 +186,13 @@
                 </section>
               </n-collapse-item>
 
-              <n-collapse-item title="外观与装饰" name="appearance">
+              <n-collapse-item name="appearance">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:palette-outline" />
+                    外观与装饰
+                  </span>
+                </template>
                 <section class="panel-item appearance-control">
                   <div class="appearance-field">
                     <label>背景色</label>

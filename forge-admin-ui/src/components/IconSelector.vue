@@ -1,11 +1,14 @@
 <template>
   <div class="icon-selector">
-    <n-button v-if="trigger" ghost :disabled="disabled" style="width: 100%" @click="open">
+    <n-button v-if="trigger" ghost :disabled="disabled" class="icon-selector-trigger" @click="open">
       <template v-if="modelValue">
         <IconRenderer :icon="modelValue" custom-class="icon-preview" />
         <span class="icon-text">{{ formatDisplayName(modelValue) }}</span>
       </template>
-      <span v-else>选择图标</span>
+      <span v-else class="icon-selector-empty">
+        <i class="i-material-symbols:imagesmode-outline" />
+        <span>选择图标</span>
+      </span>
     </n-button>
 
     <n-drawer v-model:show="showDrawer" width="min(720px, calc(100vw - 24px))" placement="right">
@@ -395,6 +398,23 @@ watch(activeTab, () => {
 <style scoped>
 .icon-selector {
   width: 100%;
+}
+
+.icon-selector-trigger {
+  width: 100%;
+}
+
+.icon-selector-empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary, #4e5969);
+}
+
+.icon-selector-empty > i {
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text-tertiary, #8b95a8);
 }
 
 .icon-selector-input {

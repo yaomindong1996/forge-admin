@@ -155,6 +155,7 @@ import { officialMarketUrl } from '@/utils/officialMarket'
 import {
   APPLICATION_TEMPLATE_CATALOG,
   filterApplicationTemplates,
+  resolveApplicationTemplateTone,
 } from './create/app-template-catalog'
 
 const emit = defineEmits(['createTemplate', 'importPackage'])
@@ -204,15 +205,9 @@ function layoutLabel(templateCode) {
   return '单表应用'
 }
 
-/** 按模板稳定映射色相，与应用列表卡片语气一致。 */
+/** 按模板稳定映射色相，与创建向导模板卡共用 catalog.tone。 */
 function templateTone(template) {
-  const tones = {
-    'customer-management': { ink: '#2563eb', wash: '#dbeafe' },
-    'inventory-ledger': { ink: '#7c3aed', wash: '#ede9fe' },
-    'order-management': { ink: '#059669', wash: '#d1fae5' },
-    'project-task': { ink: '#ea580c', wash: '#ffedd5' },
-  }
-  const tone = tones[template.key] || { ink: '#356cde', wash: '#e0e7ff' }
+  const tone = resolveApplicationTemplateTone(template)
   return { '--market-ink': tone.ink, '--market-wash': tone.wash }
 }
 </script>

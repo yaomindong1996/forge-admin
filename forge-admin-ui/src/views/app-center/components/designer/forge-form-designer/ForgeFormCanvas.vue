@@ -212,6 +212,7 @@ import { computed, reactive, ref } from 'vue'
 import { createComponentFromField, insertDesignerComponent, moveDesignerComponent, normalizeFormDesignerSchema } from '../form-first/formDesignerSchema'
 import { clearDesignerDropKey, designerDropError, designerDropKey, setDesignerDropKey } from './designerDragState'
 import { createForgeFieldTemplateComponent, createForgeLayoutComponent } from './designerLayoutFactory'
+import { normalizeFormLayoutColumns } from './formLayoutConfig'
 import ForgeFormCanvasNode from './ForgeFormCanvasNode.vue'
 
 const props = defineProps({
@@ -272,14 +273,26 @@ const canvasPreviewModeOptions = [
 const canvasZoomLabel = computed(() => `${Math.round(canvasZoom.value * 100)}%`)
 const canvasPreviewModeLabel = computed(() => canvasPreviewModeOptions.find(item => item.value === canvasPreviewMode.value)?.label || '桌面')
 const rootTopActive = computed(() => designerDropKey.value === 'root:before')
-const MAX_FORM_GRID_COLUMNS = 24
-const gridColumns = computed(() => Math.max(1, Math.min(MAX_FORM_GRID_COLUMNS, Number(props.schema.layout?.gridColumns || 2))))
-const gridStyle = computed(() => ({
-  ...(isPlainObject(props.schema.layout?.formStyle) ? props.schema.layout.formStyle : {}),
-  gridTemplateColumns: `repeat(${gridColumns.value}, minmax(0, 1fr))`,
-  columnGap: `${resolveGap(props.schema.layout?.columnGap, 16)}px`,
-  rowGap: `${resolveGap(props.schema.layout?.rowGap, 16)}px`,
-}))
+const gridColumns = computed(() => normalizeFormLayoutColumns(props.schema.layout?.gridColumns || 2))
+const gridStyle = computed(() => {
+  const formStyle = isPlainObject(props.schema.layout?.formStyle) ? props.schema.layout.formStyle : {}
+  const textColor = formStyle.color || undefined
+  return {
+    ...formStyle,
+    // 供 Naive 标签/输入继承表单级文字色
+    ...(textColor
+      ? {
+          color: textColor,
+          '--n-text-color': textColor,
+          '--n-label-text-color': textColor,
+          '--forge-form-color': textColor,
+        }
+      : {}),
+    gridTemplateColumns: `repeat(${gridColumns.value}, minmax(0, 1fr))`,
+    columnGap: `${resolveGap(props.schema.layout?.columnGap, 16)}px`,
+    rowGap: `${resolveGap(props.schema.layout?.rowGap, 16)}px`,
+  }
+})
 const canvasStageShellStyle = computed(() => ({
   width: `${Math.round(canvasDesignWidth.value * canvasZoom.value)}px`,
   minWidth: '100%',
@@ -432,7 +445,8 @@ defineExpose({
   height: 100%;
   min-height: 0;
   overflow: auto;
-  padding: 72px 16px 24px;
+  /* 顶部留给悬浮工具条，上下留白大致对称 */
+  padding: 40px 16px 20px;
   overscroll-behavior: contain;
 }
 
@@ -475,16 +489,16 @@ defineExpose({
 .canvas-viewport-dock {
   position: absolute;
   z-index: 8;
-  top: 14px;
+  top: 8px;
   left: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
   width: max-content;
   max-width: calc(100% - 28px);
   margin: 0;
-  padding: 5px 7px;
+  padding: 4px 8px;
   border: 1px solid rgba(228, 228, 231, 0.9);
   border-radius: 999px;
   background: color-mix(in srgb, var(--bg-primary) 94%, transparent);
@@ -498,16 +512,16 @@ defineExpose({
 .viewport-divider {
   flex: 0 0 auto;
   width: 1px;
-  height: 18px;
-  margin: 0 2px;
+  height: 14px;
+  margin: 0 1px;
   background: #e4e4e7;
 }
 
 .viewport-device-group {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding-right: 6px;
+  gap: 1px;
+  padding-right: 4px;
   border-right: 1px solid #e4e4e7;
 }
 
@@ -515,24 +529,29 @@ defineExpose({
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   cursor: pointer;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: var(--text-tertiary);
-  font-size: 16px;
+  font-size: 13px;
   padding: 0;
   transition:
     background-color 160ms ease,
     color 160ms ease;
 }
 
-.viewport-device-button:hover,
-.viewport-device-button.active {
+.viewport-device-button:hover {
   background: #f4f4f5;
   color: var(--text-secondary);
+}
+
+.viewport-device-button.active {
+  background: var(--primary-color, #3370ff);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(51, 112, 255, 0.28);
 }
 
 .canvas-viewport-popover {
@@ -597,8 +616,12 @@ defineExpose({
   --n-text-color-hover: #3153d8 !important;
   --n-text-color-pressed: #253fb2 !important;
   --n-text-color-focus: #3153d8 !important;
-  width: 28px;
-  height: 28px;
+  width: 24px !important;
+  height: 24px !important;
+  --n-height: 24px !important;
+  --n-width: 24px !important;
+  --n-font-size: 12px !important;
+  --n-padding: 0 !important;
   font-weight: 700;
   border-radius: 999px !important;
 }
@@ -616,9 +639,12 @@ defineExpose({
   --n-text-color-hover: #3153d8 !important;
   --n-text-color-pressed: #253fb2 !important;
   --n-text-color-focus: #3153d8 !important;
-  min-width: 72px;
-  height: 28px;
-  padding: 0 8px !important;
+  --n-height: 24px !important;
+  --n-font-size: 11px !important;
+  min-width: 56px;
+  height: 24px !important;
+  padding: 0 6px !important;
+  font-size: 11px;
   font-weight: 700;
   border-radius: 999px !important;
 }
@@ -651,6 +677,11 @@ defineExpose({
   display: grid;
   gap: 10px 12px;
   align-items: start;
+}
+
+/* 表单级文字色落到画布节点 */
+.form-grid :deep(.canvas-node) {
+  color: inherit;
 }
 
 .canvas-empty {
@@ -751,11 +782,11 @@ defineExpose({
   }
 
   .canvas-scroll {
-    padding: 52px 8px 12px;
+    padding: 40px 8px 12px;
   }
 
   .canvas-viewport-dock {
-    top: 10px;
+    top: 8px;
     left: 50%;
     right: auto;
   }

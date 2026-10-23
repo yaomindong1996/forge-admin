@@ -703,6 +703,53 @@ function updateDesignerSpacing(key, value) {
 }
 __impl.updateDesignerSpacing = updateDesignerSpacing
 
+/** 四向间距：与列表 SpacingBoxControl 的 { top,right,bottom,left } | number 对齐 */
+function resolveStyleBox(styleSource, prefix) {
+  const style = styleSource || {}
+  return {
+    top: resolvePxNumber(style[`${prefix}Top`], 0),
+    right: resolvePxNumber(style[`${prefix}Right`], 0),
+    bottom: resolvePxNumber(style[`${prefix}Bottom`], 0),
+    left: resolvePxNumber(style[`${prefix}Left`], 0),
+  }
+}
+__impl.resolveStyleBox = resolveStyleBox
+
+function stylePatchFromBox(prefix, value) {
+  const box = value && typeof value === 'object' && !Array.isArray(value)
+    ? {
+        top: value.top ?? 0,
+        right: value.right ?? 0,
+        bottom: value.bottom ?? 0,
+        left: value.left ?? 0,
+      }
+    : {
+        top: value,
+        right: value,
+        bottom: value,
+        left: value,
+      }
+  return {
+    [`${prefix}Top`]: valueToPx(box.top),
+    [`${prefix}Right`]: valueToPx(box.right),
+    [`${prefix}Bottom`]: valueToPx(box.bottom),
+    [`${prefix}Left`]: valueToPx(box.left),
+  }
+}
+
+function updateDesignerBoxSpacing(prefix, value) {
+  const patch = stylePatchFromBox(prefix, value)
+  const nextCustomStyle = Object.entries(patch).reduce(
+    (style, [key, next]) => applyStyleValue(style, key, next),
+    { ...(selectedDesignerStyle.value.customStyle || {}) },
+  )
+  updateDesignerStyle({
+    customStyle: nextCustomStyle,
+    customStyleText: stringifyStyle(nextCustomStyle),
+  })
+}
+__impl.updateDesignerBoxSpacing = updateDesignerBoxSpacing
+
 function updateDesignerCustomStyle(patch = {}) {
   const nextCustomStyle = Object.entries(patch).reduce((style, [key, value]) => applyStyleValue(style, key, value), {
     ...(selectedDesignerStyle.value.customStyle || {}),
@@ -725,11 +772,19 @@ function updateDesignerTranslate(axis, value) {
 __impl.updateDesignerTranslate = updateDesignerTranslate
 
 function updateFormStyle(stylePatch = {}) {
+  const next = { ...(formStyle.value || {}) }
+  const patch = stylePatch && typeof stylePatch === 'object' && !Array.isArray(stylePatch)
+    ? stylePatch
+    : {}
+  Object.entries(patch).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '')
+      delete next[key]
+    else
+      next[key] = value
+  })
   updateFormLayout({
-    formStyle: {
-      ...formStyle.value,
-      ...stylePatch,
-    },
+    formStyle: next,
+    formStyleText: stringifyStyle(next),
   })
 }
 __impl.updateFormStyle = updateFormStyle
@@ -809,6 +864,19 @@ function updateFormSpacing(key, value) {
   })
 }
 __impl.updateFormSpacing = updateFormSpacing
+
+function updateFormBoxSpacing(prefix, value) {
+  const patch = stylePatchFromBox(prefix, value)
+  const nextStyle = Object.entries(patch).reduce(
+    (style, [key, next]) => applyStyleValue(style, key, next),
+    { ...(formStyle.value || {}) },
+  )
+  updateFormLayout({
+    formStyle: nextStyle,
+    formStyleText: stringifyStyle(nextStyle),
+  })
+}
+__impl.updateFormBoxSpacing = updateFormBoxSpacing
 
 function updateFormTranslate(axis, value) {
   const current = formTranslate.value
@@ -1625,6 +1693,7 @@ onBeforeUnmount(() => {
     updateHeightMode,
     updateComponentStyleText,
     updateDesignerSpacing,
+    updateDesignerBoxSpacing,
     updateDesignerCustomStyle,
     updateDesignerTranslate,
     updateFormStyle,
@@ -1635,6 +1704,7 @@ onBeforeUnmount(() => {
     updateFormAppearanceOpacity,
     updateFormStyleText,
     updateFormSpacing,
+    updateFormBoxSpacing,
     updateFormTranslate,
     updateCrudApiBase,
     updateCrudApiConfig,

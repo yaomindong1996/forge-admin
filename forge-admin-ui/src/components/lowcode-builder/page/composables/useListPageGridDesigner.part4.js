@@ -195,12 +195,10 @@ function patchBlockFrame(id, patch) {
       ...(block.props || {}),
       style: nextStyle,
     }
-    // 锚点拖拽中由 ResizeObserver 跟壳；仅非拖拽（属性面板改高）时立刻同步 props.height
+    // 图表 props.height 与壳高同步：拖锚点时也写，ResizeObserver + setOption 才能跟上
     if (
       ['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(block.blockType)
       && heightChanged
-      && !resizeCtx
-      && !nestedResizeCtx
     ) {
       nextProps.height = Math.max(160, Math.round(next.height))
     }
@@ -618,12 +616,10 @@ function patchBlockStyle(id, patch) {
     ...patch,
   }
   const propsPatch = { style: nextStyle }
-  // 拖拽中只改壳，松手再同步 props.height；属性面板改高仍立刻同步
+  // 图表壳高与 props.height 同步，拖嵌套锚点时画布才能跟着变
   if (
     ['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(source.blockType)
     && patch.height != null
-    && !resizeCtx
-    && !nestedResizeCtx
   ) {
     const h = resolveCssNumber(patch.height, 0)
     if (h > 0)

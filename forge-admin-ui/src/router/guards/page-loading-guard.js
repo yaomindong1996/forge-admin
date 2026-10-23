@@ -49,7 +49,7 @@ export function createPageLoadingGuard(router) {
       appStore.setRouteGuardCompleted(true)
   }
 
-  router.beforeEach((to) => {
+  router.beforeEach((to, from) => {
     // 进入设计态/空壳页时立刻锁布局，避免系统侧栏空内容闪一帧
     pendingShellLayout.value = resolvePendingShellLayout(to)
 
@@ -57,15 +57,24 @@ export function createPageLoadingGuard(router) {
       finishRouteChrome()
       return
     }
+    // 同页仅改 query（筛选/分页/排序）不走全局蒙层与顶栏进度条，避免和局部骨架屏叠两层
+    if (from.matched.length && to.path === from.path && to.name === from.name) {
+      finishRouteLoading()
+      return
+    }
     startRouteLoading()
     $loadingBar.start()
   })
 
-  router.afterEach((to) => {
+  router.afterEach((to, from) => {
     pendingShellLayout.value = resolvePendingShellLayout(to)
 
     if (shouldSkipRouteChrome(to)) {
       finishRouteChrome()
+      return
+    }
+    if (from.matched.length && to.path === from.path && to.name === from.name) {
+      finishRouteLoading()
       return
     }
     // 回到系统壳后清除 pending，避免污染后续普通页

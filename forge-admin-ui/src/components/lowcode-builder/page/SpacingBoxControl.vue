@@ -2,6 +2,7 @@
 /**
  * 四向间距编辑器：方框布局，直观对应上/右/下/左。
  * value 可为数字（四边相同）或 { top, right, bottom, left }。
+ * 中间预览随数值伸缩：内边距挤内容，外边距扩外环。
  */
 import { computed } from 'vue'
 
@@ -53,6 +54,26 @@ const sides = computed(() => {
   return { top: n, right: n, bottom: n, left: n }
 })
 
+/** 将业务 px 映射到预览环宽，保证 0→几乎无环、大值→明显变厚 */
+function scaleBand(px) {
+  const n = Math.abs(toNum(px, 0))
+  if (n <= 0)
+    return 0
+  return Math.min(14, Math.max(2, Math.round(2 + n * 0.16)))
+}
+
+const isMargin = computed(() => /外边距|margin/i.test(props.label || ''))
+
+const previewPadStyle = computed(() => {
+  const s = sides.value
+  return {
+    paddingTop: `${scaleBand(s.top)}px`,
+    paddingRight: `${scaleBand(s.right)}px`,
+    paddingBottom: `${scaleBand(s.bottom)}px`,
+    paddingLeft: `${scaleBand(s.left)}px`,
+  }
+})
+
 function patchSide(side, next) {
   const value = Math.max(props.min, Math.min(props.max, toNum(next, 0)))
   const nextSides = { ...sides.value, [side]: value }
@@ -90,7 +111,13 @@ function patchSide(side, next) {
           @update:value="patchSide('left', $event)"
         />
       </label>
-      <div class="spacing-box__preview" aria-hidden="true">
+      <div
+        class="spacing-box__preview"
+        :class="isMargin ? 'is-margin' : 'is-padding'"
+        :style="previewPadStyle"
+        aria-hidden="true"
+        :title="`${sides.top} / ${sides.right} / ${sides.bottom} / ${sides.left}`"
+      >
         <i />
       </div>
       <label class="spacing-box__side is-right">
@@ -132,7 +159,7 @@ function patchSide(side, next) {
 
 .spacing-box__mid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr);
   gap: 6px;
   align-items: center;
 }
@@ -147,6 +174,7 @@ function patchSide(side, next) {
   color: var(--text-tertiary);
   font-size: 11px;
   line-height: 1;
+  text-align: center;
 }
 
 .spacing-box__side.is-top,
@@ -156,21 +184,61 @@ function patchSide(side, next) {
   margin: 0 auto;
 }
 
+.spacing-box__side.is-left span,
+.spacing-box__side.is-right span {
+  text-align: left;
+}
+
+/* 数字居中，方便扫读四向值 */
+.spacing-box__side :deep(.n-input-number) {
+  width: 100%;
+}
+
+.spacing-box__side :deep(.n-input__input-el) {
+  text-align: center;
+}
+
 .spacing-box__preview {
+  box-sizing: border-box;
   display: grid;
-  place-items: center;
-  height: 40px;
+  height: 48px;
+  min-width: 0;
+  overflow: hidden;
   border: 1px dashed #cbd5e1;
   border-radius: 6px;
-  background: #fff;
+  transition: padding 120ms ease;
 }
 
 .spacing-box__preview i {
   display: block;
-  width: 18px;
-  height: 12px;
-  border: 1px solid #94a3b8;
-  border-radius: 2px;
+  min-width: 6px;
+  min-height: 6px;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+  transition: background-color 120ms ease;
+}
+
+/* 内边距：外环=留白带，中间=内容区（随 padding 变小） */
+.spacing-box__preview.is-padding {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.spacing-box__preview.is-padding i {
+  border: 1px solid #60a5fa;
+  background: #fff;
+}
+
+/* 外边距：外环=外边距带，中间=元素本体（外环随 margin 变厚） */
+.spacing-box__preview.is-margin {
   background: #e2e8f0;
+  border-color: #94a3b8;
+  border-style: dashed;
+}
+
+.spacing-box__preview.is-margin i {
+  border: 1px solid #60a5fa;
+  background: #bfdbfe;
 }
 </style>

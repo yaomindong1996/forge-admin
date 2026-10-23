@@ -1134,6 +1134,8 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
         heightMode: 'fixed',
         height: 300,
         minHeight: 300,
+        // 自由画布坐标同源：一拖进来就有明确壳高，锚点才能改
+        pageFlowHeight: 300,
       },
     }
   }
@@ -1802,6 +1804,8 @@ function resolveBlockMinGridH(blockType, meta = {}) {
     return Math.max(5, Number(meta.defaultH) || 5)
   if (blockType === 'box-layout')
     return Math.max(5, Number(meta.defaultH) || 5)
+  if (['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(blockType))
+    return Math.max(6, Number(meta.defaultH) || 8)
   if (['rich-text', 'transfer', 'step-form', 'video-player', 'iframe', 'markdown', 'descriptions', 'signature-pad'].includes(blockType))
     return Math.max(4, Number(meta.defaultH) || 4)
   return 1

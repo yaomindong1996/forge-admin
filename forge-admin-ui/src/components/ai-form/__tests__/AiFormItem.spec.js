@@ -27,11 +27,60 @@ const NInputNumberStub = {
   template: '<div class="n-input-number-stub"><slot name="prefix" /><input /><slot name="suffix" /></div>',
 }
 
-const NDatePickerStub = {
-  name: 'NDatePicker',
-  props: ['value', 'formattedValue', 'type', 'valueFormat'],
+const NInputStub = {
+  name: 'NInput',
+  props: ['value', 'type', 'clearable', 'showCount'],
+  template: `<div class="n-input-stub" :data-type="type">
+    <slot name="prefix" />
+    <input />
+    <slot name="suffix" />
+    <slot name="clear-icon" />
+    <slot name="password-visible-icon" />
+    <slot name="password-invisible-icon" />
+    <slot name="separator" />
+  </div>`,
+}
+
+const NSelectStub = {
+  name: 'NSelect',
+  props: ['value', 'options'],
+  template: `<div class="n-select-stub">
+    <slot name="header" />
+    <slot name="action" />
+    <slot name="empty" />
+    <slot name="arrow" />
+  </div>`,
+}
+
+const IconRendererStub = {
+  name: 'IconRenderer',
+  props: ['icon', 'size'],
+  template: '<i class="icon-renderer-stub" :data-icon="icon" />',
+}
+
+const AiFormDatePickerStub = {
+  name: 'AiFormDatePicker',
+  props: [
+    'value',
+    'formattedValue',
+    'type',
+    'valueFormat',
+    'dateIcon',
+    'dateFooter',
+    'prevYearIcon',
+    'prevMonthIcon',
+    'nextMonthIcon',
+    'nextYearIcon',
+    'separator',
+  ],
   emits: ['update:formattedValue'],
-  template: '<div class="n-date-picker-stub" />',
+  template: `<div class="n-date-picker-stub" :data-type="type">
+    <i v-if="dateIcon" class="icon-renderer-stub" :data-icon="dateIcon" />
+    <span v-if="dateFooter">{{ dateFooter }}</span>
+    <i v-if="prevMonthIcon" class="icon-renderer-stub" :data-icon="prevMonthIcon" />
+    <i v-if="nextMonthIcon" class="icon-renderer-stub" :data-icon="nextMonthIcon" />
+    <span v-if="separator">{{ separator }}</span>
+  </div>`,
 }
 
 const naiveStubs = Object.fromEntries([
@@ -153,6 +202,123 @@ describe('aiFormItem number field compatibility', () => {
     expect(html).toContain('￥')
     expect(html).toContain('%')
   })
+
+  it('renders input slot icons and password type', () => {
+    const wrapper = mount(AiFormItem, {
+      props: {
+        field: {
+          field: 'pwd',
+          label: '密码',
+          type: 'input',
+          props: {
+            inputType: 'password',
+            prefix: '+86',
+            prefixIcon: 'call',
+            clearIcon: 'close',
+            passwordVisibleIcon: 'eye',
+            passwordInvisibleIcon: 'eye-off',
+            separator: '~',
+            pair: true,
+          },
+        },
+        value: '',
+      },
+      global: {
+        stubs: {
+          ...naiveStubs,
+          NFormItem: NFormItemStub,
+          NInput: NInputStub,
+          IconRenderer: IconRendererStub,
+          AiRecordSelectorModal: true,
+        },
+      },
+    })
+
+    const input = wrapper.findComponent(NInputStub)
+    expect(input.props('type')).toBe('password')
+    const html = wrapper.find('.n-input-stub').html()
+    expect(html).toContain('+86')
+    expect(html).toContain('data-icon="call"')
+    expect(html).toContain('data-icon="close"')
+    expect(html).toContain('data-icon="eye"')
+    expect(html).toContain('~')
+  })
+
+  it('renders select menu slots', () => {
+    const wrapper = mount(AiFormItem, {
+      props: {
+        field: {
+          field: 'status',
+          label: '状态',
+          type: 'select',
+          props: {
+            dropdownHeader: '常用状态',
+            dropdownAction: '管理字典',
+            emptyText: '暂无选项',
+            arrowIcon: 'chevron-down',
+            options: [{ label: '启用', value: '1' }],
+          },
+        },
+        value: null,
+      },
+      global: {
+        stubs: {
+          ...naiveStubs,
+          NFormItem: NFormItemStub,
+          NSelect: NSelectStub,
+          IconRenderer: IconRendererStub,
+          AiRecordSelectorModal: true,
+        },
+      },
+    })
+
+    const html = wrapper.find('.n-select-stub').html()
+    expect(html).toContain('常用状态')
+    expect(html).toContain('管理字典')
+    expect(html).toContain('暂无选项')
+    expect(html).toContain('data-icon="chevron-down"')
+  })
+
+  it('renders date-picker slots via AiFormDatePicker', () => {
+    const wrapper = mount(AiFormItem, {
+      props: {
+        field: {
+          field: 'range',
+          label: '区间',
+          type: 'daterange',
+          props: {
+            dateIcon: 'calendar',
+            dateFooter: '按自然日',
+            prevMonthIcon: 'chevron-back',
+            nextMonthIcon: 'chevron-forward',
+            separator: '至',
+          },
+        },
+        value: null,
+      },
+      global: {
+        stubs: {
+          ...naiveStubs,
+          NFormItem: NFormItemStub,
+          AiFormDatePicker: AiFormDatePickerStub,
+          AiRecordSelectorModal: true,
+        },
+      },
+    })
+
+    const picker = wrapper.findComponent(AiFormDatePickerStub)
+    expect(picker.props()).toMatchObject({
+      dateIcon: 'calendar',
+      dateFooter: '按自然日',
+      prevMonthIcon: 'chevron-back',
+      nextMonthIcon: 'chevron-forward',
+      separator: '至',
+    })
+    const html = wrapper.find('.n-date-picker-stub').html()
+    expect(html).toContain('data-icon="calendar"')
+    expect(html).toContain('按自然日')
+    expect(html).toContain('至')
+  })
 })
 
 describe('aiFormItem formatted date storage', () => {
@@ -166,7 +332,7 @@ describe('aiFormItem formatted date storage', () => {
         stubs: {
           ...naiveStubs,
           NFormItem: NFormItemStub,
-          NDatePicker: NDatePickerStub,
+          AiFormDatePicker: AiFormDatePickerStub,
           AiRecordSelectorModal: true,
         },
       },
@@ -175,7 +341,7 @@ describe('aiFormItem formatted date storage', () => {
 
   it('binds and emits year values as formatted strings', async () => {
     const wrapper = mountDateField({ field: 'year', label: '年份', type: 'year' }, '2026')
-    const picker = wrapper.findComponent(NDatePickerStub)
+    const picker = wrapper.findComponent(AiFormDatePickerStub)
 
     expect(picker.props()).toMatchObject({
       value: undefined,
@@ -192,7 +358,7 @@ describe('aiFormItem formatted date storage', () => {
   it('keeps date ranges as formatted string arrays', async () => {
     const value = ['2026-08-01', '2026-08-31']
     const wrapper = mountDateField({ field: 'period', label: '日期范围', type: 'daterange' }, value)
-    const picker = wrapper.findComponent(NDatePickerStub)
+    const picker = wrapper.findComponent(AiFormDatePickerStub)
 
     expect(picker.props('value')).toBeUndefined()
     expect(picker.props('formattedValue')).toEqual(value)

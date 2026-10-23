@@ -51,10 +51,29 @@ export function resolveControlProps(props = {}) {
     dataSourceType: _dataSourceType,
     labelName: _labelName,
     valueName: _valueName,
-    // 前后缀走 slot，不能当 Naive props 透传
+    // 前后缀 / 图标 / 下拉插槽文案走 slot 或独立绑定，不能当 Naive props 透传
     prefix: _prefix,
     suffix: _suffix,
+    prefixIcon: _prefixIcon,
+    suffixIcon: _suffixIcon,
+    clearIcon: _clearIcon,
+    passwordVisibleIcon: _passwordVisibleIcon,
+    passwordInvisibleIcon: _passwordInvisibleIcon,
+    inputType: _inputType,
     currencySymbol: _currencySymbol,
+    dropdownHeader: _dropdownHeader,
+    dropdownAction: _dropdownAction,
+    emptyText: _emptyText,
+    arrowIcon: _arrowIcon,
+    // DatePicker Slots 配置（走 AiFormDatePicker 插槽）
+    dateIcon: _dateIcon,
+    dateFooter: _dateFooter,
+    prevYearIcon: _prevYearIcon,
+    prevMonthIcon: _prevMonthIcon,
+    nextMonthIcon: _nextMonthIcon,
+    nextYearIcon: _nextYearIcon,
+    // separator 留给 pair 输入 / 日期范围插槽，由 AiFormDatePicker props 显式绑定，勿透传
+    separator: _separator,
     ...rest
   } = source
   // 兜底去掉其它 __ 前缀元数据，避免落到 DOM / 控件未知 props

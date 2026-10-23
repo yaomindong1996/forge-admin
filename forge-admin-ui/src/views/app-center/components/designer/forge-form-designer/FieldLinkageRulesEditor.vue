@@ -1,9 +1,9 @@
 <template>
-  <section class="field-linkage-editor">
-    <div class="field-linkage-editor__head">
+  <section class="field-linkage-editor form-automation-block">
+    <div class="form-automation-block__head">
       <div>
         <strong>字段联动</strong>
-        <p>一个字段变化时自动控制另一个字段：级联字典选项、过滤引用数据、清空内容。</p>
+        <p>字段变化时级联选项、过滤引用或清空目标字段。</p>
       </div>
       <n-button size="tiny" type="primary" secondary @click="openCreate">
         新增联动
@@ -47,10 +47,12 @@
         </div>
       </article>
     </div>
-    <n-empty v-else size="small" description="暂无字段联动" />
+    <div v-else class="form-automation-empty">
+      还没有字段联动，点击右上角添加
+    </div>
 
     <p class="field-linkage-tip">
-      下拉选项的级联（选了上级后自动刷新下级选项）在字段属性的「级联选项」中配置。
+      下拉级联（上级变了刷新下级选项）在字段属性「级联选项」中配置。
     </p>
 
     <n-modal
@@ -351,7 +353,6 @@ function clone(value) {
   gap: 10px;
 }
 
-.field-linkage-editor__head,
 .field-linkage-card,
 .field-linkage-card__title,
 .field-linkage-card__actions {
@@ -359,23 +360,9 @@ function clone(value) {
   align-items: center;
 }
 
-.field-linkage-editor__head,
 .field-linkage-card {
   justify-content: space-between;
   gap: 12px;
-}
-
-.field-linkage-editor__head strong {
-  color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.field-linkage-editor__head p {
-  margin: 3px 0 0;
-  color: var(--text-tertiary);
-  font-size: 11px;
-  line-height: 16px;
 }
 
 .field-linkage-list {
@@ -385,9 +372,9 @@ function clone(value) {
 
 .field-linkage-card {
   padding: 10px;
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  background: var(--bg-primary);
+  border: 1px solid #e8eaed;
+  border-radius: 8px;
+  background: #fafbfc;
 }
 
 .field-linkage-card--disabled {
@@ -443,9 +430,12 @@ function clone(value) {
 
 .field-linkage-tip {
   margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f4f6fa;
   color: var(--text-tertiary);
   font-size: 11px;
-  line-height: 16px;
+  line-height: 1.55;
 }
 
 .field-linkage-form {

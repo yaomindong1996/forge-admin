@@ -276,7 +276,7 @@ function finishDragging() {
   height: 100%;
   min-height: 0;
   padding: 12px;
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
 }
 
 .shelf-head {
@@ -286,7 +286,7 @@ function finishDragging() {
   gap: 10px;
   padding: 0;
   border-bottom: 0;
-  background: var(--bg-secondary);
+  background: transparent;
 }
 
 .shelf-head-main {
@@ -324,14 +324,14 @@ function finishDragging() {
   display: inline-flex;
   align-items: center;
   height: 18px;
-  padding: 0 6px;
-  border: 1px solid #dbeafe;
+  padding: 0 7px;
+  border: 0;
   border-radius: 999px;
-  background: #eff6ff;
-  color: #2563eb;
+  background: #eff4ff;
+  color: var(--primary-color, #3370ff);
   font-size: 11px;
   font-style: normal;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 16px;
 }
 
@@ -340,73 +340,70 @@ function finishDragging() {
   width: 100%;
 }
 
+.shelf-search :deep(.n-input) {
+  --n-border: 1px solid #e8eaed !important;
+  --n-border-hover: 1px solid #d0d3d8 !important;
+  --n-border-focus: 1px solid var(--primary-color, #3370ff) !important;
+  --n-color: #f7f8fa !important;
+  --n-color-focus: var(--bg-primary) !important;
+}
+
 .shelf-mode-tabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 3px;
-  margin: 8px 0 10px;
+  gap: 4px;
+  margin: 10px 0 12px;
   padding: 3px;
-  border: 1px solid #e4e4e7;
-  border-radius: 9px;
-  background: #f4f4f5;
+  border: 0;
+  border-radius: 8px;
+  background: #f2f3f5;
 }
 
 .shelf-mode-tabs button {
   cursor: pointer;
-  height: 28px;
+  height: 30px;
   border: 0;
-  border-radius: 7px;
+  border-radius: 6px;
   background: transparent;
   color: var(--text-tertiary);
   font-size: 12px;
   font-weight: 600;
-  transition:
-    border-color 180ms ease,
-    background 180ms ease,
-    color 180ms ease,
-    box-shadow 180ms ease;
+  transition: background 160ms ease, color 160ms ease;
 }
 
 .shelf-mode-tabs button:hover {
-  background: rgba(228, 228, 231, 0.72);
   color: var(--text-primary);
 }
 
 .shelf-mode-tabs button.active {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  background: var(--primary-color, #3370ff);
+  color: #fff;
+  box-shadow: none;
 }
 
 .component-palette {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 2px 0 0;
-  background: var(--bg-secondary);
+  padding: 0;
+  background: transparent;
 }
 
 .field-item {
   cursor: grab;
-  border: 1px solid #e4e4e7;
-  background: var(--bg-primary);
-  transition:
-    border-color 180ms ease,
-    background 180ms ease,
-    box-shadow 180ms ease,
-    transform 180ms ease;
+  border: 0;
+  background: #f4f5f7;
+  transition: background 160ms ease;
 }
 
 .field-item:hover:not(:disabled) {
-  border-color: #c7d2fe;
-  background: #f8faff;
-  box-shadow: 0 8px 18px rgba(49, 83, 216, 0.08);
+  background: #eef3ff;
+  box-shadow: none;
 }
 
 .field-item.dragging {
-  opacity: 0.48;
-  border-color: #60a5fa;
-  background: #dbeafe;
+  opacity: 0.55;
+  background: #e4ecff;
 }
 
 .field-item:active {
@@ -424,19 +421,19 @@ function finishDragging() {
 .field-tabs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 3px;
+  gap: 4px;
   margin-bottom: 8px;
   padding: 3px;
-  border: 1px solid #e4e4e7;
-  border-radius: 9px;
-  background: #f4f4f5;
+  border: 0;
+  border-radius: 8px;
+  background: #f2f3f5;
 }
 
 .field-tabs button {
   cursor: pointer;
   height: 28px;
   border: 0;
-  border-radius: 7px;
+  border-radius: 6px;
   background: transparent;
   color: var(--text-tertiary);
   font-size: 12px;
@@ -445,15 +442,14 @@ function finishDragging() {
 }
 
 .field-tabs button:hover {
-  background: rgba(228, 228, 231, 0.72);
   color: var(--text-primary);
 }
 
 .field-tabs button.active {
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  background: var(--primary-color, #3370ff);
+  color: #fff;
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  box-shadow: none;
 }
 
 .field-list {
@@ -472,14 +468,14 @@ function finishDragging() {
   align-items: center;
   gap: 8px;
   min-height: 42px;
-  border-radius: 7px;
-  padding: 6px 8px;
+  border-radius: 8px;
+  padding: 8px 10px;
   text-align: left;
 }
 
 .field-item:disabled {
   cursor: not-allowed;
-  background: var(--bg-secondary);
+  background: #f7f7f8;
   color: var(--text-tertiary);
 }
 

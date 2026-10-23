@@ -9,6 +9,19 @@ import {
   updateDesignerLayout,
 } from '@/views/app-center/components/designer/form-first/formDesignerSchema'
 
+function isSameSchemaRefOrContent(left, right) {
+  if (left === right)
+    return true
+  if (!left || !right)
+    return false
+  try {
+    return JSON.stringify(left) === JSON.stringify(right)
+  }
+  catch {
+    return false
+  }
+}
+
 /**
  * 表单设计器共享状态（Pinia 化改造，AGENTS.md 5.14）
  *
@@ -65,9 +78,12 @@ export const useFormDesignerStore = defineStore('formDesigner', () => {
   })
 
   // ---------- actions ----------
-  /** 入口组件桥接：把 props 同步进 store（同引用赋值不会触发额外响应） */
+  /**
+   * 入口组件桥接：把 props 同步进 store。
+   * 内容相同则跳过，避免父级每次 normalize 出新对象时把面板刚写入的列数打回。
+   */
   function syncFromProps(payload = {}) {
-    if (payload.schema !== undefined && payload.schema !== null && payload.schema !== schema.value)
+    if (payload.schema !== undefined && payload.schema !== null && !isSameSchemaRefOrContent(payload.schema, schema.value))
       schema.value = payload.schema
     if (payload.selectedId !== undefined && payload.selectedId !== selectedId.value)
       selectedId.value = payload.selectedId || ''

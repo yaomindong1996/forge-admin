@@ -51,7 +51,8 @@ export function applyFlowTodoPart1() {
   const route = useRoute()
   const router = useRouter()
   const { dict, getLabel } = useDict('flow_todo_status', 'flow_priority')
-  const loading = ref(false)
+  // 首屏即 loading，避免挂载到 loadData 之间空列表闪白
+  const loading = ref(true)
   const loadError = ref(false)
   const dataSource = ref([])
   const pagination = reactive({

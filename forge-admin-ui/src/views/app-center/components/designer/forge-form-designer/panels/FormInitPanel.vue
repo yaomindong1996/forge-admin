@@ -1,15 +1,11 @@
 <template>
-  <section class="panel-item form-init-panel">
-    <p class="form-init-desc">
-      配置表单打开时的初始化行为：把用户信息或地址参数填进字段、自动加载存量数据。
-    </p>
-
+  <section class="form-init-panel">
     <!-- 区块一：初始化默认值（Session / URL 参数 → 表单字段） -->
-    <section class="form-init-block">
-      <div class="form-init-block__head">
+    <section class="form-automation-block">
+      <div class="form-automation-block__head">
         <div>
           <strong>初始化默认值</strong>
-          <p>表单打开时，把登录用户信息或页面地址参数自动填到字段里。</p>
+          <p>打开表单时，把登录用户或地址参数自动填到字段。</p>
         </div>
         <n-button size="tiny" type="primary" secondary @click="addContextDefault">
           添加默认值
@@ -84,15 +80,17 @@
           </div>
         </div>
       </div>
-      <n-empty v-else size="small" description="还没有初始化默认值" />
+      <div v-else class="form-automation-empty">
+        还没有初始化默认值，点击右上角添加
+      </div>
     </section>
 
     <!-- 区块二：打开表单时加载存量数据 -->
-    <section class="form-init-block">
-      <div class="form-init-block__head">
+    <section class="form-automation-block">
+      <div class="form-automation-block__head form-automation-block__head--switch">
         <div>
-          <strong>打开表单时加载存量数据</strong>
-          <p>按地址参数（或上下文）定位记录 ID，自动调用详情接口回填整个表单。</p>
+          <strong>打开时加载存量数据</strong>
+          <p>按地址参数或上下文定位记录，调用详情接口回填整表。</p>
         </div>
         <n-switch
           size="small"
@@ -108,14 +106,14 @@
           @update:value="updateRecordLoad({ keyNames: $event })"
         />
         <p class="form-init-help">
-          依次尝试从页面地址参数和登录上下文取值，命中第一个即加载记录；支持上下文路径，如
-          currentUser.staffId。
+          依次尝试地址参数与登录上下文，命中第一个即加载；支持
+          currentUser.staffId 这类路径。
         </p>
       </div>
     </section>
 
     <p class="form-init-tip">
-      打开表单后要调数据集或外部接口自动查询回填？在上方「字段自动查询」里配置，时机选择「表单打开后」。
+      打开后要调数据集或外部接口回填？在下方「字段自动查询」中配置，时机选「表单打开后」。
     </p>
   </section>
 </template>
@@ -247,42 +245,7 @@ function handleRecordLoadToggle(enabled) {
 .form-init-panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.form-init-desc {
-  margin: 0;
-  color: var(--text-tertiary);
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-.form-init-block {
-  display: flex;
-  flex-direction: column;
   gap: 10px;
-  padding: 12px;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-}
-
-.form-init-block__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.form-init-block__head strong {
-  display: block;
-  font-size: 13px;
-}
-
-.form-init-block__head p {
-  margin: 2px 0 0;
-  color: var(--text-tertiary);
-  font-size: 12px;
-  line-height: 1.5;
 }
 
 .form-init-list {
@@ -295,9 +258,9 @@ function handleRecordLoadToggle(enabled) {
   display: flex;
   gap: 8px;
   padding: 10px;
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  background: var(--bg-secondary);
+  border: 1px solid #e8eaed;
+  border-radius: 8px;
+  background: #fafbfc;
 }
 
 .form-init-card__main {
@@ -315,14 +278,16 @@ function handleRecordLoadToggle(enabled) {
 }
 
 .form-init-card__row label {
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--text-secondary);
 }
 
 .form-init-card__actions {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 6px;
+  padding-top: 2px;
 }
 
 .form-init-delete {
@@ -341,34 +306,36 @@ function handleRecordLoadToggle(enabled) {
 
 .form-init-field-error {
   color: var(--n-error-color, #d03050);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .form-init-record-keys {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding-top: 2px;
 }
 
 .form-init-record-keys label {
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--text-secondary);
 }
 
 .form-init-help {
   margin: 0;
   color: var(--text-tertiary);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.5;
 }
 
 .form-init-tip {
   margin: 0;
   padding: 8px 10px;
-  border-radius: 6px;
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 1.6;
+  border-radius: 8px;
+  background: #f4f6fa;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.55;
 }
 </style>

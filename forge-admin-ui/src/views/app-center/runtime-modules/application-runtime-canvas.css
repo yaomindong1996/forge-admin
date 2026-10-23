@@ -1638,7 +1638,7 @@ body.is-catalog-pointer-dragging .n-popover {
   .runtime-inspector {
     position: fixed;
     z-index: 10;
-    top: 56px;
+    top: 46px;
     right: 0;
     bottom: 0;
     width: min(320px, 88vw);
@@ -1647,9 +1647,9 @@ body.is-catalog-pointer-dragging .n-popover {
   .runtime-header {
     grid-template-columns: 1fr;
     height: auto;
-    min-height: 56px;
-    row-gap: 8px;
-    padding-block: 8px;
+    min-height: 46px;
+    row-gap: 6px;
+    padding-block: 6px;
   }
   .runtime-brand {
     flex-wrap: wrap;

@@ -1,27 +1,51 @@
 <template>
-    <n-tabs v-model:value="formPropertyActiveTab" type="line" size="medium" animated class="property-tabs form-property-tabs">
+    <n-tabs v-model:value="formPropertyActiveTab" type="segment" size="small" :animated="false" class="property-tabs form-property-tabs">
       <n-tab-pane name="basic">
         <template #tab>
           <span class="property-tab-label">
             <n-icon><LayersOutline /></n-icon>
-            表单属性
+            属性
           </span>
         </template>
         <n-form label-placement="top" :show-feedback="false" class="property-form">
           <n-collapse v-model:expanded-names="formBasicExpandedNames" class="form-property-collapse">
-            <n-collapse-item title="多表单管理" name="assets">
+            <n-collapse-item name="assets">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:folder-managed-outline" />
+                    多表单管理
+                  </span>
+                </template>
               <FormAssetsPanel />
             </n-collapse-item>
 
-            <n-collapse-item title="主子表配置" name="subTables">
+            <n-collapse-item name="subTables">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:account-tree-outline" />
+                    主子表配置
+                  </span>
+                </template>
               <FormSubTablePanel />
             </n-collapse-item>
 
-            <n-collapse-item title="表单项配置" name="layout">
+            <n-collapse-item name="layout">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:view-agenda-outline" />
+                    表单项配置
+                  </span>
+                </template>
               <FormLayoutPanel />
             </n-collapse-item>
 
-            <n-collapse-item title="表单权限控制" name="permissions">
+            <n-collapse-item name="permissions">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:lock-outline" />
+                    表单权限控制
+                  </span>
+                </template>
               <section class="panel-item form-permission-panel">
                 <div class="compact-field">
                   <label>查看权限码</label>
@@ -91,7 +115,13 @@
               </section>
             </n-collapse-item>
 
-            <n-collapse-item title="本地草稿与断网提交" name="offline">
+            <n-collapse-item name="offline">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:cloud-off-outline" />
+                    本地草稿与断网提交
+                  </span>
+                </template>
               <section class="panel-item form-offline-panel">
                 <div class="compact-config-row">
                   <label>启用本地草稿</label>
@@ -142,7 +172,13 @@
               </section>
             </n-collapse-item>
 
-            <n-collapse-item title="校验反馈" name="validation">
+            <n-collapse-item name="validation">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:rule-outline" />
+                    校验反馈
+                  </span>
+                </template>
               <section class="panel-item">
                 <div class="switch-list">
                   <label>
@@ -173,7 +209,13 @@
               </section>
             </n-collapse-item>
 
-            <n-collapse-item title="操作按钮" name="actions">
+            <n-collapse-item name="actions">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:smart-button" />
+                    操作按钮
+                  </span>
+                </template>
               <section class="panel-item">
                 <div class="panel-item-title">
                   操作按钮
@@ -245,13 +287,13 @@
         <template #tab>
           <span class="property-tab-label">
             <n-icon><FlashOutline /></n-icon>
-            自动化
+            自动
             <i v-if="formFieldEventRows.length || formFieldLinkageRows.length || formEventRows.length || hasFormInitConfig" class="property-tab-configured-dot" title="已有自动化配置" />
           </span>
         </template>
         <div class="form-event-primary-panel">
           <p class="form-automation-intro">
-            表单的自动行为都在这里配置，按场景分为四类：表单初始化、字段自动查询、字段联动、表单打开或提交时执行动作。
+            配置表单打开、字段变化、提交时的自动行为。
           </p>
           <FormInitPanel />
           <FieldEventRulesEditor
@@ -266,11 +308,11 @@
             @update:model-value="updateFormFieldLinkages"
           />
 
-          <section class="form-lifecycle-panel">
-            <div class="form-lifecycle-panel__head">
+          <section class="form-automation-block form-lifecycle-panel">
+            <div class="form-automation-block__head">
               <div>
-                <strong>打开或提交时自动执行</strong>
-                <p>表单打开前后、提交前后自动执行动作，例如调接口取数并回填、填入默认值。</p>
+                <strong>打开或提交时执行</strong>
+                <p>打开前后、提交前后自动调接口、回填或写入默认值。</p>
               </div>
               <n-button size="tiny" type="primary" secondary @click="addFormEvent">
                 添加动作
@@ -413,7 +455,9 @@
                 </template>
               </div>
             </div>
-            <n-empty v-else size="small" description="还没有自动执行动作" />
+            <div v-else class="form-automation-empty">
+              还没有自动执行动作，点击右上角添加
+            </div>
           </section>
         </div>
       </n-tab-pane>
@@ -427,7 +471,13 @@
         </template>
         <n-form label-placement="top" :show-feedback="false" class="property-form">
           <n-collapse v-model:expanded-names="formStyleExpandedNames" class="form-property-collapse">
-            <n-collapse-item title="位置与尺寸" name="position">
+            <n-collapse-item name="position">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:aspect-ratio-outline" />
+                    位置与尺寸
+                  </span>
+                </template>
               <section class="panel-item position-control">
                 <div class="position-axis-grid">
                   <label class="position-number-field">
@@ -516,78 +566,75 @@
               </section>
             </n-collapse-item>
 
-            <n-collapse-item title="布局与边距" name="spacing">
+            <n-collapse-item name="spacing">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:padding-outline" />
+                    布局与边距
+                  </span>
+                </template>
               <section class="panel-item">
-                <div class="panel-item-title">
-                  布局与边距
-                </div>
-                <div class="spacing-editor">
-                  <div class="spacing-editor-title">
-                    Padding
-                  </div>
-                  <div class="spacing-grid">
-                    <label v-for="item in spacingSides" :key="`form-padding-${item.key}`">
-                      <span>{{ item.label }}</span>
-                      <n-input-number
-                        :value="resolvePxNumber(formStyle[`padding${item.key}`], 0)"
-                        :min="0"
-                        :max="120"
-                        :show-button="false"
-                        size="small"
-                        @update:value="updateFormSpacing(`padding${item.key}`, $event)"
-                      />
-                    </label>
-                  </div>
-                </div>
-                <div class="spacing-editor">
-                  <div class="spacing-editor-title">
-                    Margin
-                  </div>
-                  <div class="spacing-grid">
-                    <label v-for="item in spacingSides" :key="`form-margin-${item.key}`">
-                      <span>{{ item.label }}</span>
-                      <n-input-number
-                        :value="resolvePxNumber(formStyle[`margin${item.key}`], 0)"
-                        :min="-80"
-                        :max="120"
-                        :show-button="false"
-                        size="small"
-                        @update:value="updateFormSpacing(`margin${item.key}`, $event)"
-                      />
-                    </label>
-                  </div>
-                </div>
+                <n-form-item label="内边距">
+                  <SpacingBoxControl
+                    :value="formPaddingBox"
+                    label="内边距"
+                    :min="0"
+                    :max="120"
+                    @update:value="updateFormBoxSpacing('padding', $event)"
+                  />
+                </n-form-item>
+                <n-form-item label="外边距">
+                  <SpacingBoxControl
+                    :value="formMarginBox"
+                    label="外边距"
+                    :min="-80"
+                    :max="120"
+                    @update:value="updateFormBoxSpacing('margin', $event)"
+                  />
+                </n-form-item>
               </section>
             </n-collapse-item>
 
-            <n-collapse-item title="文字排版" name="typography">
+            <n-collapse-item name="typography">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:text-fields" />
+                    文字排版
+                  </span>
+                </template>
               <section class="panel-item">
                 <div class="panel-item-title">
                   文字排版
                 </div>
                 <div class="crud-inline-grid">
                   <n-form-item label="字号">
-                    <n-input-number
-                      :value="resolvePxNumber(formStyle.fontSize, 14)"
-                      :min="10"
-                      :max="48"
-                      :show-button="false"
-                      @update:value="updateFormStyle({ fontSize: valueToPx($event) })"
-                    />
+                    <div class="appearance-metric-shell">
+                      <span>px</span>
+                      <input
+                        :value="resolvePxNumber(formStyle.fontSize, 14)"
+                        type="number"
+                        min="10"
+                        max="48"
+                        @input="updateFormStyle({ fontSize: valueToPx($event.target.value) })"
+                      >
+                    </div>
                   </n-form-item>
                   <n-form-item label="行高">
-                    <n-input
-                      :value="formStyle.lineHeight || ''"
-                      clearable
-                      placeholder="1.5 / 22px"
-                      @update:value="updateFormStyle({ lineHeight: $event || undefined })"
-                    />
+                    <div class="appearance-metric-shell">
+                      <span>LH</span>
+                      <input
+                        :value="formStyle.lineHeight || ''"
+                        type="text"
+                        placeholder="1.5 / 22px"
+                        @input="updateFormStyle({ lineHeight: $event.target.value || undefined })"
+                      >
+                    </div>
                   </n-form-item>
                 </div>
                 <n-form-item label="文字颜色">
                   <div class="color-control">
                     <n-color-picker
-                      :value="formStyle.color || ''"
+                      :value="formStyle.color || null"
                       :show-alpha="true"
                       :modes="['hex']"
                       :swatches="colorSwatches"
@@ -601,7 +648,13 @@
               </section>
             </n-collapse-item>
 
-            <n-collapse-item title="外观与装饰" name="appearance">
+            <n-collapse-item name="appearance">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:palette-outline" />
+                    外观与装饰
+                  </span>
+                </template>
               <section class="panel-item appearance-control">
                 <div class="appearance-field">
                   <label>背景色</label>
@@ -717,7 +770,13 @@
               </section>
             </n-collapse-item>
 
-            <n-collapse-item title="自定义样式" name="custom-style">
+            <n-collapse-item name="custom-style">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:css" />
+                    自定义样式
+                  </span>
+                </template>
               <section class="panel-item">
                 <div class="panel-item-title">
                   自定义样式

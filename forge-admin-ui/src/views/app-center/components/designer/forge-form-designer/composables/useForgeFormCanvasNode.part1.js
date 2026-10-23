@@ -1,5 +1,15 @@
 /** ForgeFormCanvasNode.vue setup part 1. */
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import {
+  CheckboxOutline,
+  ColorFillOutline,
+  DuplicateOutline,
+  MoveOutline,
+  SettingsOutline,
+  SquareOutline,
+  TrashOutline,
+} from '@vicons/ionicons5'
+import { NIcon } from 'naive-ui'
+import { computed, h, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AiCrudPage from '@/components/ai-form/AiCrudPage.vue'
 import AiFormGroupTitle from '@/components/ai-form/AiFormGroupTitle.vue'
 import AiFormItem from '@/components/ai-form/AiFormItem.vue'
@@ -200,7 +210,8 @@ export function applyForgeFormCanvasNodePart1(props, emit) {
     emit('select', isTabPaneLayout.value && props.parentId ? props.parentId : props.component.id)
   }
 
-  const rootColumns = computed(() => Math.max(1, Math.min(MAX_FORM_GRID_COLUMNS, Number(props.schema.layout?.gridColumns || 2))))
+  // 根表单「表单列数」上限 12；嵌套 row/col 的 columns 仍可到 MAX_FORM_GRID_COLUMNS
+  const rootColumns = computed(() => Math.max(1, Math.min(12, Number(props.schema.layout?.gridColumns || 2))))
   const parentGridColumns = computed(() => {
     if (props.component.componentKey !== 'col')
       return rootColumns.value
@@ -226,8 +237,10 @@ export function applyForgeFormCanvasNodePart1(props, emit) {
     const borderWidth = designerBorderHidden.value
       ? '0px'
       : (designerStyle.borderWidth || undefined)
+    const customStyle = designerStyle.customStyle || {}
+    const textColor = customStyle.color || undefined
     const style = {
-      ...(designerStyle.customStyle || {}),
+      ...customStyle,
       width: designerStyle.width || undefined,
       height: designerStyle.height || undefined,
       minHeight: isStructuralSlot.value ? undefined : minHeight,
@@ -247,36 +260,53 @@ export function applyForgeFormCanvasNodePart1(props, emit) {
       style['--forge-node-radius'] = borderRadius
     if (borderWidth)
       style['--forge-node-border-width'] = borderWidth
+    // 节点级文字色：同步到 Naive 变量，配合 canvas CSS 的 color: inherit
+    if (textColor) {
+      style.color = textColor
+      style['--n-text-color'] = textColor
+      style['--n-label-text-color'] = textColor
+    }
     return style
   })
+  function renderNodeMenuIcon(icon) {
+    return h(NIcon, { size: 16 }, { default: () => h(icon) })
+  }
+
   const nodeMenuOptions = computed(() => [
-    { label: '配置', key: 'config' },
-    { label: props.component.validation?.required ? '取消必填' : '设为必填', key: 'required', disabled: !isField.value },
-    { label: '复制', key: 'copy' },
+    { label: '配置', key: 'config', icon: () => renderNodeMenuIcon(SettingsOutline) },
+    {
+      label: props.component.validation?.required ? '取消必填' : '设为必填',
+      key: 'required',
+      disabled: !isField.value,
+      icon: () => renderNodeMenuIcon(CheckboxOutline),
+    },
+    { label: '复制', key: 'copy', icon: () => renderNodeMenuIcon(DuplicateOutline) },
     {
       label: '更换背景色',
       key: 'background',
+      icon: () => renderNodeMenuIcon(ColorFillOutline),
       children: [
-        { label: '恢复默认', key: 'bg-default' },
-        { label: '浅灰', key: 'bg-gray' },
-        { label: '浅蓝', key: 'bg-blue' },
-        { label: '浅绿', key: 'bg-green' },
-        { label: '浅黄', key: 'bg-yellow' },
+        { label: '恢复默认', key: 'bg-default', icon: () => renderNodeMenuIcon(SettingsOutline) },
+        { label: '浅灰', key: 'bg-gray', icon: () => renderNodeMenuIcon(ColorFillOutline) },
+        { label: '浅蓝', key: 'bg-blue', icon: () => renderNodeMenuIcon(ColorFillOutline) },
+        { label: '浅绿', key: 'bg-green', icon: () => renderNodeMenuIcon(ColorFillOutline) },
+        { label: '浅黄', key: 'bg-yellow', icon: () => renderNodeMenuIcon(ColorFillOutline) },
       ],
     },
     {
       label: '背景描边',
       key: 'border',
+      icon: () => renderNodeMenuIcon(SquareOutline),
       children: [
-        { label: '恢复默认', key: 'border-default' },
-        { label: '灰色虚线', key: 'border-dashed' },
-        { label: '蓝色实线', key: 'border-blue' },
-        { label: '隐藏边框', key: 'border-none' },
+        { label: '恢复默认', key: 'border-default', icon: () => renderNodeMenuIcon(SettingsOutline) },
+        { label: '灰色虚线', key: 'border-dashed', icon: () => renderNodeMenuIcon(SquareOutline) },
+        { label: '蓝色实线', key: 'border-blue', icon: () => renderNodeMenuIcon(SquareOutline) },
+        { label: '隐藏边框', key: 'border-none', icon: () => renderNodeMenuIcon(SquareOutline) },
       ],
     },
-    { label: '移入', key: 'move-into', disabled: true },
+    { label: '移入', key: 'move-into', disabled: true, icon: () => renderNodeMenuIcon(MoveOutline) },
     { type: 'divider', key: 'divider' },
-    { label: '删除', key: 'delete' },
+    { label: '删除', key: 'delete', icon: () => renderNodeMenuIcon(TrashOutline) },
   ])
   const childrenGridStyle = computed(() => {
     if (!isGridRow.value && !isTableLayout.value)

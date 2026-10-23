@@ -23,15 +23,16 @@
         type="button"
         class="template-card"
         :class="{ active: selectedKey === template.key }"
+        :style="templateToneStyle(template)"
         @click="selectedKey = template.key"
       >
-        <span class="template-card__icon">
+        <span class="template-card__icon" aria-hidden="true">
           <IconRenderer :icon="template.icon" :size="22" />
         </span>
         <span class="template-card__content">
           <span class="template-card__title">
             <strong>{{ template.name }}</strong>
-            <n-tag size="small" :bordered="false">{{ template.category }}</n-tag>
+            <span class="template-card__tag">{{ template.category }}</span>
           </span>
           <span class="template-card__description">{{ template.description }}</span>
           <small>{{ template.useCount }} 次启用 · {{ layoutLabel(template.templateCode) }}</small>
@@ -58,6 +59,7 @@ import {
   buildTemplateInitializePayload,
   filterApplicationTemplates,
   findApplicationTemplate,
+  templateToneStyle,
 } from './app-template-catalog'
 
 const props = defineProps({
@@ -120,27 +122,45 @@ defineExpose({ getPayload, validate })
 }
 
 .template-card {
+  --template-ink: #356cde;
+  --template-wash: #e0e7ff;
   position: relative;
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr);
   gap: 12px;
   min-width: 0;
   padding: 14px;
-  border: 1px solid var(--n-border-color);
+  border: 1px solid color-mix(in srgb, var(--template-ink) 16%, var(--n-border-color));
   border-radius: 8px;
-  background: var(--n-color);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--template-wash) 55%, #fff) 0%,
+      var(--n-color) 48%
+    );
   color: inherit;
   text-align: left;
   cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
 }
 
-.template-card:hover,
-.template-card.active {
-  border-color: var(--n-primary-color);
+.template-card:hover {
+  border-color: color-mix(in srgb, var(--template-ink) 42%, var(--n-border-color));
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--template-ink) 12%, transparent);
 }
 
 .template-card.active {
-  background: color-mix(in srgb, var(--n-primary-color) 4%, var(--n-color));
+  border-color: var(--template-ink);
+  background:
+    linear-gradient(
+      145deg,
+      var(--template-wash) 0%,
+      color-mix(in srgb, var(--template-wash) 35%, #fff) 100%
+    );
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--template-ink) 28%, transparent);
 }
 
 .template-card__icon {
@@ -148,9 +168,10 @@ defineExpose({ getPayload, validate })
   width: 42px;
   height: 42px;
   place-items: center;
-  border-radius: 8px;
-  color: var(--n-primary-color);
-  background: color-mix(in srgb, var(--n-primary-color) 9%, transparent);
+  border-radius: 10px;
+  color: var(--template-ink);
+  background: var(--template-wash);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--template-ink) 12%, transparent);
 }
 
 .template-card__content {
@@ -165,6 +186,23 @@ defineExpose({ getPayload, validate })
   gap: 8px;
 }
 
+.template-card__title strong {
+  color: #0f172a;
+}
+
+.template-card__tag {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--template-ink) 12%, #fff);
+  color: var(--template-ink);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 18px;
+}
+
 .template-card__description {
   color: var(--n-text-color-2);
   font-size: 13px;
@@ -172,14 +210,14 @@ defineExpose({ getPayload, validate })
 }
 
 .template-card small {
-  color: var(--n-text-color-3);
+  color: color-mix(in srgb, var(--template-ink) 38%, var(--n-text-color-3));
 }
 
 .template-card__check {
   position: absolute;
   top: 9px;
   right: 9px;
-  color: var(--n-primary-color);
+  color: var(--template-ink);
   font-size: 18px;
 }
 

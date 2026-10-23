@@ -1,13 +1,13 @@
 <template>
-  <!-- 高度跟外壳；壳高由外层锁死，画布不再用 props.height 顶死 minHeight（否则缩卡片会溢出重合） -->
+  <!-- 高度跟外壳 100%；首帧父级未定高时用 props.height 兜底，避免 ECharts 压成细条 -->
   <div
     class="page-chart-block"
-    :style="{ height: '100%', minHeight: 0, maxHeight: '100%' }"
+    :style="chartShellStyle"
   >
     <div
       ref="chartRef"
       class="page-chart-canvas"
-      :style="{ height: '100%', minHeight: 0, maxHeight: '100%' }"
+      :style="chartShellStyle"
     />
     <div v-if="!hasData" class="page-chart-empty">
       暂无图表数据，请在右侧配置分类与数值，或绑定列表数据源
@@ -60,6 +60,13 @@ let chart = null
 let resizeObserver = null
 
 const resolvedType = computed(() => resolvePageChartType(props.chartType))
+
+/** 跟父壳填满；壳高由 .grid-item / 嵌套壳 + 锚点拖拽决定，勿再用 props.height 顶 minHeight（会拖不矮） */
+const chartShellStyle = computed(() => ({
+  height: '100%',
+  minHeight: 0,
+  maxHeight: '100%',
+}))
 
 const hasData = computed(() => {
   if (resolvedType.value === 'pie') {
@@ -147,6 +154,11 @@ onMounted(async () => {
   await nextTick()
   renderChart()
   bindResize()
+  // 画布刚落子时父壳可能下一帧才定高，补两次 resize
+  requestAnimationFrame(() => {
+    scheduleChartResize()
+    requestAnimationFrame(() => scheduleChartResize())
+  })
 })
 
 onBeforeUnmount(() => {

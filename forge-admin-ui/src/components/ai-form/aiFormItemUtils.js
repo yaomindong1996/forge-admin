@@ -74,6 +74,27 @@ export function resolveFieldAffix(field = {}, key = 'prefix') {
   return String(raw ?? '').trim()
 }
 
+/** 读取设计器配置的图标 key（IconSelector / IconRenderer 同源） */
+export function resolveFieldIcon(field = {}, key = '') {
+  if (!key)
+    return ''
+  const raw = field?.[key] ?? field?.props?.[key]
+  return String(raw ?? '').trim()
+}
+
+/** 读取下拉菜单等文本插槽配置 */
+export function resolveFieldSlotText(field = {}, key = '') {
+  return resolveFieldAffix(field, key)
+}
+
+/** 单行输入 type：password 时走密码框（开启密码显隐图标槽） */
+export function resolveInputFieldType(field = {}) {
+  const raw = String(field?.inputType ?? field?.props?.inputType ?? '').trim().toLowerCase()
+  if (raw === 'password')
+    return 'password'
+  return 'text'
+}
+
 /**
  * 数字/金额输入前缀：优先 props.prefix；金额字段可回退 currencySymbol（默认 ¥）。
  */

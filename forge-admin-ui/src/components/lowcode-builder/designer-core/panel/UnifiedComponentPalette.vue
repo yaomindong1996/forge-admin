@@ -264,7 +264,7 @@ defineExpose({ total })
       <section v-for="group in visibleGroups" :key="group.key" class="unified-palette-group">
         <div class="unified-palette-group-title">
           <span>{{ group.title }}</span>
-          <em>{{ group.items.length }}</em>
+          <em>{{ group.items.length }} ›</em>
         </div>
         <div class="unified-palette-list">
           <button
@@ -314,22 +314,26 @@ defineExpose({ total })
   gap: 10px;
   overflow-y: auto;
   min-height: 0;
+  padding-right: 2px;
 }
 
 .unified-palette-group-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2px 2px 4px;
+  gap: 8px;
+  padding: 0 2px 4px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .unified-palette-group-title em {
+  flex-shrink: 0;
   font-style: normal;
-  font-weight: 400;
-  opacity: 0.55;
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--text-tertiary);
 }
 
 .unified-palette-list {
@@ -338,28 +342,34 @@ defineExpose({ total })
   gap: 6px;
 }
 
+/* 无描边卡片：用浅底区分格子，避免双边框堆叠 */
 .unified-palette-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border: 1px solid var(--border-light);
+  gap: 5px;
+  min-height: 30px;
+  min-width: 0;
+  padding: 4px 7px;
+  border: 0;
   border-radius: 6px;
-  background: transparent;
+  background: #f4f5f7;
   cursor: grab;
   text-align: left;
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .unified-palette-item:hover:not(.is-disabled) {
-  border-color: var(--n-primary-color, #2080f0);
+  background: #eef3ff;
+}
+
+.unified-palette-item:active:not(.is-disabled) {
+  cursor: grabbing;
+  background: #e4ecff;
 }
 
 .unified-palette-item.is-disabled {
   cursor: not-allowed;
-  background: var(--n-action-color, #fafafa);
+  background: #f7f7f8;
 }
 
 .unified-palette-item.is-disabled .unified-palette-item-title,
@@ -379,8 +389,11 @@ defineExpose({ total })
 .unified-palette-item-icon {
   flex-shrink: 0;
   display: inline-flex;
-  font-size: 16px;
-  color: var(--n-primary-color, #2080f0);
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  font-size: 14px;
+  color: var(--primary-color, #3370ff);
 }
 
 .unified-palette-item-main {
@@ -388,11 +401,13 @@ defineExpose({ total })
   flex-direction: column;
   min-width: 0;
   flex: 1;
+  gap: 0;
 }
 
 .unified-palette-item-title {
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -400,12 +415,7 @@ defineExpose({ total })
 }
 
 .unified-palette-item-desc {
-  font-size: 11px;
-  line-height: 1.3;
-  opacity: 0.55;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: none;
 }
 
 .unified-palette-item-reason {
@@ -416,9 +426,15 @@ defineExpose({ total })
 }
 
 .unified-palette-empty {
-  padding: 24px 0;
+  padding: 28px 0;
   font-size: 12px;
   text-align: center;
-  opacity: 0.55;
+  color: var(--text-tertiary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unified-palette-item {
+    transition: none;
+  }
 }
 </style>

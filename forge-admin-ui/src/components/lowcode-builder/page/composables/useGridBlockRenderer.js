@@ -902,13 +902,17 @@ const blockStyle = computed(() => {
   }
   const resolvedWidthMode = widthMode || 'full'
   const resolvedHeightMode = heightMode || 'fixed'
+  const isChartBlock = ['bar-chart', 'line-chart', 'area-chart', 'pie-chart'].includes(props.block.blockType)
   // 通栏/自适应：强制跟壳宽走，禁止把历史测量出的 px 宽锁死（小屏缩放后切回大屏会变窄）
   const forceFluidWidth = resolvedWidthMode === 'full' || resolvedWidthMode === 'auto'
   // 文档流 auto 高：内容撑开，禁止默认 100% 把 tabs/日历等裁进视口外
   // 表单/详情按字段撑开，避免壳 height:auto 时子块仍写 height:100% 导致裁切
-  const forceAutoHeight = resolvedHeightMode === 'auto'
+  const forceAutoHeight = !isChartBlock && (
+    resolvedHeightMode === 'auto'
     || ['AiForm', 'detail-info'].includes(props.block.blockType)
-  const forceFillHeight = resolvedHeightMode === 'full'
+  )
+  // 图表固定跟画布壳 100% 高，锚点改的是外层 .grid-item / 嵌套壳，不能写死 style.height px
+  const forceFillHeight = isChartBlock || resolvedHeightMode === 'full'
   const resolvedStyle = {
     width: forceFluidWidth
       ? (resolvedWidthMode === 'auto' ? 'auto' : '100%')

@@ -71,7 +71,7 @@
   z-index: 10;
   display: grid;
   gap: 0;
-  padding: 8px 12px;
+  padding: 3px 10px;
   border-bottom: 1px solid #e4e4e7;
   background: color-mix(in srgb, var(--bg-primary) 72%, transparent);
   backdrop-filter: blur(10px);
@@ -87,34 +87,34 @@
 .page-switch-title {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 6px;
   min-width: 0;
   flex: 1 1 auto;
 }
 
 .page-switch-copy {
   display: grid;
-  gap: 2px;
+  gap: 0;
   min-width: 0;
 }
 
 .list-template-trigger {
   display: inline-grid;
   grid-template-columns: auto minmax(0, auto) auto;
-  gap: 5px;
+  gap: 3px;
   align-items: center;
   justify-self: start;
   max-width: 168px;
-  min-height: 24px;
+  min-height: 18px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 5px;
   background: transparent;
   color: var(--text-primary);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  line-height: 16px;
-  padding: 2px 5px;
+  line-height: 15px;
+  padding: 0 3px;
   text-align: left;
   transition:
     background 160ms ease,
@@ -135,7 +135,7 @@
 
 .list-template-trigger :deep(.n-icon) {
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .list-template-trigger:hover :deep(.n-icon) {
@@ -143,19 +143,19 @@
 }
 
 .list-template-trigger .template-chevron {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .page-switch-icon {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   border: 1px solid #dbeafe;
-  border-radius: 7px;
+  border-radius: 5px;
   background: #eef2ff;
   color: #3153d8;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 800;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
 }
@@ -165,8 +165,8 @@
   max-width: 150px;
   overflow: hidden;
   color: var(--text-tertiary);
-  font-size: 10px;
-  line-height: 13px;
+  font-size: 9px;
+  line-height: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -186,7 +186,8 @@
   grid-template-columns: minmax(150px, 0.8fr) minmax(240px, 1.4fr) minmax(260px, 0.9fr);
   align-items: center;
   justify-content: stretch;
-  gap: 12px;
+  gap: 8px;
+  min-height: 28px;
 }
 
 .page-tab-list {
@@ -199,9 +200,9 @@
   max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 3px;
+  padding: 2px;
   border: 1px solid rgba(228, 228, 231, 0.8);
-  border-radius: 8px;
+  border-radius: 6px;
   background: rgba(244, 244, 245, 0.9);
   scrollbar-width: none;
 }
@@ -210,23 +211,75 @@
   display: none;
 }
 
+.page-tab-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 148px;
+  border-radius: 5px;
+}
+
+.page-tab-item.active {
+  background: var(--bg-primary);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.page-tab-item:hover:not(.protected) .page-tab-close,
+.page-tab-item.active:not(.protected) .page-tab-close {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .page-tab-button {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 1px;
-  flex: 0 0 auto;
-  min-width: 76px;
-  max-width: 142px;
-  min-height: 26px;
-  padding: 4px 10px;
+  gap: 0;
+  flex: 1 1 auto;
+  min-width: 56px;
+  max-width: 128px;
+  min-height: 22px;
+  padding: 2px 18px 2px 8px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 5px;
   background: transparent;
   color: var(--text-tertiary);
   text-align: center;
   cursor: pointer;
   transition: all 0.16s ease;
+}
+
+.page-tab-item.protected .page-tab-button {
+  padding-right: 8px;
+}
+
+.page-tab-close {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition: background 0.12s ease, color 0.12s ease, opacity 0.12s ease;
+}
+
+.page-tab-close:hover {
+  background: #fee2e2;
+  color: #dc2626;
 }
 
 .page-tab-button::before {
@@ -259,8 +312,9 @@
 
 .page-tab-name {
   color: inherit;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
+  line-height: 16px;
 }
 
 .page-tab-button small {
@@ -269,20 +323,23 @@
   font-size: 9px;
 }
 
-.page-tab-button:hover,
-.page-tab-button.active {
+.page-tab-item:hover .page-tab-button,
+.page-tab-button:hover {
   border-color: transparent;
-  background: rgba(228, 228, 231, 0.75);
+  background: rgba(228, 228, 231, 0.55);
   box-shadow: none;
 }
 
+.page-tab-item.active .page-tab-button,
 .page-tab-button.active {
-  border-color: #fff;
-  background: var(--bg-primary);
+  border-color: transparent;
+  background: transparent;
   color: var(--text-primary);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  box-shadow: none;
 }
 
+.page-tab-item.active .page-tab-button span,
+.page-tab-item.active .page-tab-button small,
 .page-tab-button.active span,
 .page-tab-button.active small {
   color: inherit;
@@ -292,7 +349,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -303,8 +360,12 @@
 
 .page-icon-button {
   flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
+  width: 24px !important;
+  height: 24px !important;
+  --n-height: 24px !important;
+  --n-width: 24px !important;
+  --n-font-size: 12px !important;
+  --n-padding: 0 !important;
 }
 
 .page-settings-popover {

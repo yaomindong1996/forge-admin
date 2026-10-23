@@ -155,7 +155,7 @@
     box-shadow 180ms ease;
 }
 
-/* 样式面板字号写在节点上；Naive 控件用内联 --n-font-size，需 !important 才能跟节点字号走 */
+/* 样式面板字号/颜色写在节点或表单上；Naive 控件内联变量需 !important 才能跟走 */
 .canvas-node :deep(.n-form-item-label),
 .canvas-node :deep(.n-input),
 .canvas-node :deep(.n-input__input-el),
@@ -172,6 +172,12 @@
 .canvas-node :deep(.n-select),
 .canvas-node :deep(textarea) {
   font-size: inherit !important;
+  color: inherit !important;
+  --n-font-size: inherit !important;
+  --n-text-color: currentColor !important;
+  --n-text-color-focus: currentColor !important;
+  --n-text-color-disabled: currentColor !important;
+  --n-label-text-color: currentColor !important;
 }
 
 .canvas-node:hover,
@@ -608,7 +614,8 @@
 }
 
 .canvas-node :deep(.n-form-item-label) {
-  font-size: 13px;
+  /* 跟随表单/节点字号与颜色，勿写死 13px 覆盖 inherit */
+  font-size: inherit;
 }
 
 .empty-child-zone.active {

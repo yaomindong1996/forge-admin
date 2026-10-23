@@ -30,8 +30,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 56px;
-  padding: 0 16px;
+  height: 46px;
+  padding: 0 12px;
   border-bottom: 1px solid var(--border-light);
   background: var(--bg-primary);
 }
@@ -137,15 +137,15 @@
 }
 .runtime-header {
   flex: 0 0 auto;
-  height: 56px;
+  height: 46px;
   display: grid;
   grid-template-columns: minmax(280px, 1.2fr) auto minmax(200px, 1fr);
   align-items: center;
-  gap: 16px;
-  padding: 0 16px;
+  gap: 12px;
+  padding: 0 12px;
   border-bottom: 1px solid var(--border-light);
   background: var(--bg-primary);
-  box-shadow: 0 1px 0 rgb(31 35 41 / 4%);
+  box-shadow: none;
 }
 .runtime-app-tabs {
   display: flex;
@@ -207,7 +207,61 @@
   justify-content: flex-end;
   justify-self: end;
   min-width: 0;
-  gap: 8px;
+  gap: 6px;
+}
+
+/* 预览 / 发布：原生按钮，避免 Naive 主题变量覆盖 */
+.runtime-action-preview,
+.runtime-action-publish {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.runtime-action-preview {
+  background: #edf3ff;
+  color: var(--primary-color, #3370ff);
+}
+
+.runtime-action-preview:hover:not(:disabled) {
+  background: #e0ebff;
+}
+
+.runtime-action-preview:active:not(:disabled) {
+  background: #d4e2ff;
+}
+
+.runtime-action-preview:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.runtime-action-publish {
+  background: var(--primary-color, #3370ff);
+  color: #fff;
+}
+
+.runtime-action-publish:hover {
+  background: #2a63e0;
+}
+
+.runtime-action-publish:active {
+  background: #1f56e0;
+}
+
+.runtime-header-actions :deep(.runtime-action-save.n-button) {
+  --n-height: 28px;
 }
 .runtime-brand {
   display: flex;

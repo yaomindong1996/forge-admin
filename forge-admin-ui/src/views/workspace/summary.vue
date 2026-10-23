@@ -38,9 +38,14 @@
 <script setup>
 import { computed, defineAsyncComponent, ref } from 'vue'
 import { createDefaultWorkbenchPage, createWorkbenchVirtualNode, WORKBENCH_PAGE_ID } from '@/views/app-center/in-app-builder/workbench-page'
+import SystemPageContentSkeleton from '@/views/app-center/components/portal/SystemPageContentSkeleton.vue'
 import WorkspaceSummaryMetrics from './WorkspaceSummaryMetrics.vue'
 
-const PortalPageRenderer = defineAsyncComponent(() => import('@/views/app-center/components/portal/PortalPageRenderer.vue'))
+const PortalPageRenderer = defineAsyncComponent({
+  delay: 0,
+  loadingComponent: SystemPageContentSkeleton,
+  loader: () => import('@/views/app-center/components/portal/PortalPageRenderer.vue'),
+})
 
 const props = defineProps({
   routeTargets: {

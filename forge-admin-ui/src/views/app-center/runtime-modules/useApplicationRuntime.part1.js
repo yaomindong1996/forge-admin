@@ -31,6 +31,7 @@ import {
   isPageSystemMenuMounted,
 } from '@/views/app-center/components/designer/page-system-menu-mount'
 import ApplicationRuntimeSkeleton from '@/views/app-center/components/portal/ApplicationRuntimeSkeleton.vue'
+import { prefetchPageManagementSystemViews } from '@/views/app-center/components/portal/prefetchPageManagementSystemViews'
 import { buildAutoFieldAssets, createFieldFromComponent } from '@/views/app-center/components/designer/form-first/autoFieldRegistry'
 import { createDefaultFormDesignerSchema, isFieldComponent, normalizeFormDesignerSchema, presentFormDesignerSchema } from '@/views/app-center/components/designer/form-first/formDesignerSchema'
 import { filterNavigationNodesByClient } from '@/views/app-center/components/portal/portal-navigation-runtime'
@@ -117,6 +118,7 @@ export function applyApplicationRuntimePart1() {
   const __impl = {}
   const mut = {
     runtimeWorkspacePanelsPrefetchScheduled: false,
+    runtimeSystemPagesPrefetchScheduled: false,
     catalogPointerDragCtx: null,
     _activeFormDesignerSchemaSignature: '',
     nestedPageBlockMoveCtx: null,
@@ -205,6 +207,7 @@ export function applyApplicationRuntimePart1() {
   const handlePageFlowGridCellDrop = (...args) => __impl.handlePageFlowGridCellDrop(...args)
   const handlePageFlowTabDrop = (...args) => __impl.handlePageFlowTabDrop(...args)
   const handleProcessPanelNavigate = (...args) => __impl.handleProcessPanelNavigate(...args)
+  const openApplicationPublishFromDesign = (...args) => __impl.openApplicationPublishFromDesign(...args)
   const handleResourceNodeAction = (...args) => __impl.handleResourceNodeAction(...args)
   const handleRuntimeBack = (...args) => __impl.handleRuntimeBack(...args)
   const handleRuntimeHeaderMoreSelect = (...args) => __impl.handleRuntimeHeaderMoreSelect(...args)
@@ -441,6 +444,21 @@ export function applyApplicationRuntimePart1() {
       window.setTimeout(run, 800)
   }
   __impl.prefetchRuntimeWorkspacePanels = prefetchRuntimeWorkspacePanels
+
+  /** 运行态预取工作台/待办等系统页 chunk，减少侧栏切换白屏 */
+  function prefetchRuntimeSystemPages() {
+    if (mut.runtimeSystemPagesPrefetchScheduled || typeof window === 'undefined')
+      return
+    mut.runtimeSystemPagesPrefetchScheduled = true
+    const run = () => {
+      void prefetchPageManagementSystemViews()
+    }
+    if (typeof window.requestIdleCallback === 'function')
+      window.requestIdleCallback(run, { timeout: 2000 })
+    else
+      window.setTimeout(run, 400)
+  }
+  __impl.prefetchRuntimeSystemPages = prefetchRuntimeSystemPages
 
   const application = ref(null)
   const objects = ref([])
@@ -1440,12 +1458,18 @@ export function applyApplicationRuntimePart1() {
   function buildRuntimeWarmChunks({ editing: isEditing = false, entryTab = '', pageId = '' } = {}) {
     const safe = loader => loader().catch(() => {})
     if (!isEditing) {
-      return [
+      const chunks = [
+        safe(() => import('@/views/app-center/components/portal/PageManagementSystemView.vue')),
         safe(() => import('@/components/lowcode-builder/page/GridBlockRenderer.vue')),
         safe(() => import('@/components/ai-form/AiCrudPage.vue')),
         safe(() => import('@/components/lowcode-builder/shared/PageWidgetRenderer.vue')),
         safe(() => import('@/components/lowcode-builder/page/RuntimeListGridFlow.vue')),
       ]
+      // 首屏落在系统页时同步预热对应业务 chunk，减少侧栏进页白屏
+      if (isPageManagementSystemPageId(pageId)) {
+        chunks.push(safe(() => prefetchPageManagementSystemViews()))
+      }
+      return chunks
     }
     const tab = String(entryTab || '').trim()
     if (tab === 'form') {
@@ -1557,6 +1581,8 @@ export function applyApplicationRuntimePart1() {
         : Promise.resolve({})
       if (canEditApplication.value)
         prefetchRuntimeWorkspacePanels()
+      if (!editing.value)
+        prefetchRuntimeSystemPages()
       // 编辑态：等对口 chunk，但最多卡 900ms，超时先出壳（慢包后台继续）
       if (editing.value) {
         await Promise.race([
@@ -1930,6 +1956,7 @@ export function applyApplicationRuntimePart1() {
   __impl.selectCreatedDesignerPage = selectCreatedDesignerPage
 
   __impl.prefetchRuntimeWorkspacePanels = prefetchRuntimeWorkspacePanels
+  __impl.prefetchRuntimeSystemPages = prefetchRuntimeSystemPages
   __impl.resolveSystemPageIcon = resolveSystemPageIcon
   __impl.readRouteDesignTab = readRouteDesignTab
   __impl.resolvePageContextFieldCatalog = resolvePageContextFieldCatalog
@@ -1966,9 +1993,9 @@ export function applyApplicationRuntimePart1() {
     handleRuntimeTreeSelect, hydratePageCrudApiPlaceholders, insertComponent, isDraftPreviewMode, isGroupCollapsed, isNavigationGroupDescendant, isPageBlockDataSourceConfigured, isPageBlockRuntimeCrudLoading,
     isPageCatalogDrag, isSimpleBodyContainer, isValidPageBlockObjectRef, itemBorderColorMode, load, markBuilderClean, moveNavigationByOffset, movePageBlockIntoContainer,
     moveRootPageBlockToGridCell, moveRootPageBlockToTab, normalizeContainerDropTarget, normalizePageBlockForContainer, onComponentButtonMove, onNestedPageBlockMove, onPageBlockMove, onPageBlockResize,
-    openBusinessObjectDesign, openCustomPageSelector, openDraftPreview, openEmbeddedObjectActions, openExcelPageImport, openFormAssetDesigner, openFormAssetDesignerForPage, openObjectDesigner,
+    openApplicationPublishFromDesign, openBusinessObjectDesign, openCustomPageSelector, openDraftPreview, openEmbeddedObjectActions, openExcelPageImport, openFormAssetDesigner, openFormAssetDesignerForPage, openObjectDesigner,
     openObjectResourcePreview, openObjectSetup, openPageBlockConfiguration, openPagePropertiesPanel, openPageTypeSelector, openProcessDesigner, openRuntimeWorkbench, openSelectedBlockFormDesigner, openSystemMenuMountDialog, openWorkspace,
-    pageUsesFreeLayoutCanvas, patchCurrentPageNode, patchNavigationNodeMount, persistApplicationDraft, prefetchRuntimeWorkspacePanels, preloadCurrentPageCrudRuntimeProps, preloadPageBlockCrudRuntimeProps, promoteCurrentPageToListShape,
+    pageUsesFreeLayoutCanvas, patchCurrentPageNode, patchNavigationNodeMount, persistApplicationDraft, prefetchRuntimeWorkspacePanels, prefetchRuntimeSystemPages, preloadCurrentPageCrudRuntimeProps, preloadPageBlockCrudRuntimeProps, promoteCurrentPageToListShape,
     provisionPendingFormData, readRouteDesignTab, refreshWorkspaceMetadata, relocateNestedPageBlockToContainer, relocateNestedPageBlockToGridCell, relocateNestedPageBlockToTab, renderNavigationMenuIcon, requestExitEditing,
     resizeNestedPageBlock, resolveActiveDesignerPageId, resolveComponentIcon, resolveComponentPickerGroup, resolveEmptyGuideIcon, resolveEntryDesignTab, resolveFormAssetFields, resolveFormAssetIdForPage,
     resolveFormLayoutBlockType, resolveNavigationMoreOptions, resolveNextNavigationTitle, resolveNextPageBlockStackY, resolvePageBlockBackgroundColor, resolvePageBlockFields, resolvePageBlockMoreOptions, resolvePageBlockMoveIntoOptions,

@@ -8,13 +8,16 @@
         </div>
         <n-space>
           <n-button secondary :loading="saving" :disabled="!dirty" @click="emit('save')">
+            <template #icon>
+              <n-icon><SaveOutline /></n-icon>
+            </template>
             保存当前页面
           </n-button>
           <n-button secondary :disabled="!pageId" @click="emit('preview')">
+            <template #icon>
+              <n-icon><PlayOutline /></n-icon>
+            </template>
             预览页面
-          </n-button>
-          <n-button type="primary" @click="openApplicationPublish">
-            发布应用
           </n-button>
         </n-space>
       </header>
@@ -95,9 +98,9 @@
 </template>
 
 <script setup>
+import { PlayOutline, SaveOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import AppPublishAccess from '../publish/AppPublishAccess.vue'
 import PageSystemMenuMountForm from './PageSystemMenuMountForm.vue'
 import {
@@ -119,32 +122,6 @@ const props = defineProps({
 
 const emit = defineEmits(['save', 'preview', 'update'])
 const message = useMessage()
-const route = useRoute()
-const router = useRouter()
-
-function openApplicationPublish() {
-  const applicationCode = props.application?.applicationCode || route.params.applicationCode
-  if (!applicationCode) {
-    message.warning('缺少应用编码，无法打开发布页')
-    return
-  }
-  // 带上当前设计/预览上下文，发布页返回时可回到原预览或编辑页
-  const query = { fromPageDesign: '1' }
-  const pageId = String(props.pageId || route.query.pageId || '').trim()
-  if (pageId)
-    query.pageId = pageId
-  if (route.query.draft === '1')
-    query.draft = '1'
-  if (route.query.edit === '1')
-    query.edit = '1'
-  if (route.query.returnEdit === '1' || route.query.edit === '1' || route.query.draft === '1')
-    query.returnEdit = '1'
-  router.push({
-    name: 'BusinessApplicationPublish',
-    params: { applicationCode },
-    query,
-  })
-}
 
 const published = computed(() => Boolean(props.application?.lastPublishVersion) && Number(props.application?.status) === 1)
 

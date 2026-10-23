@@ -60,7 +60,7 @@ describe('standalone object designer navigation', () => {
     expect(listDesigner).toContain('const visibleListCustomActions = computed(() => props.defaultViewOnly ? [] : listCustomActions.value)')
     expect(listDesigner).toMatch(/if \(!props\.defaultViewOnly\)\s*\n?\s*await saveBusinessObjectActions/)
     expect(gridDesigner).toContain('customActionsEditable')
-    expect(gridDesigner).toContain('title="工具栏按钮与导入导出"')
+    expect(gridDesigner).toContain('工具栏按钮与导入导出')
     expect(gridDesigner).toContain('自定义操作按钮')
   })
 

@@ -57,7 +57,6 @@
           scope="ALL"
           :keyword="paletteKeyword"
           :item-filter="listPaletteItemFilter"
-          :item-disabled-reason="unifiedPaletteDisabledReason"
           @item-drag-start="handleUnifiedPaletteDragStart"
           @item-click="handleUnifiedPaletteClick"
           @total-change="unifiedPaletteTotal = $event"

@@ -2,10 +2,11 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2px;
+  width: 100%;
   padding: 2px;
-  border: 1px solid rgba(228, 228, 231, 0.72);
+  border: 1px solid #e8eaed;
   border-radius: 6px;
-  background: rgba(244, 244, 245, 0.8);
+  background: #f2f3f5;
 }
 
 .segmented-mini.three {
@@ -13,26 +14,30 @@
 }
 
 .segmented-mini button {
+  width: 100%;
   min-width: 0;
-  height: 25px;
+  height: 28px;
   cursor: pointer;
   border: 1px solid transparent;
   border-radius: 4px;
   background: transparent;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .segmented-mini button:hover {
-  color: var(--text-secondary);
-  background: rgba(228, 228, 231, 0.5);
+  color: var(--primary-color, #3370ff);
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .segmented-mini button.active {
-  border-color: rgba(212, 212, 216, 0.72);
-  background: var(--bg-primary);
-  color: #4f46e5;
+  border-color: transparent;
+  background: #fff;
+  color: var(--primary-color, #3370ff);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
@@ -237,9 +242,9 @@
 }
 
 .empty-config-box {
-  border: 1px dashed #d4d4d8;
+  border: 1px dashed #e5e6eb;
   border-radius: 8px;
-  background: var(--bg-secondary);
+  background: #fafafa;
   color: var(--text-tertiary);
   font-size: 12px;
   line-height: 18px;
@@ -554,10 +559,10 @@
 }
 
 .option-linkage-summary {
-  border: 1px solid #dbeafe;
+  border: 1px solid #eef0f3;
   border-radius: 6px;
-  background: #eff6ff;
-  color: #1e40af;
+  background: #f7f8fa;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.55;
   padding: 7px 10px;
@@ -865,10 +870,10 @@
 
 .option-source-hint {
   padding: 7px 10px;
-  background: #eff6ff;
-  border: 1px solid #dbeafe;
+  background: #f7f8fa;
+  border: 1px solid #eef0f3;
   border-radius: 6px;
-  color: #1e40af;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -1140,9 +1145,9 @@
   gap: 10px;
   align-items: center;
   padding: 9px 10px;
-  border: 1px solid #dbeafe;
+  border: 1px solid #eef0f3;
   border-radius: 8px;
-  background: #eff6ff;
+  background: var(--bg-primary);
 }
 
 .driven-runtime-rule-card div {
@@ -1152,7 +1157,7 @@
 }
 
 .driven-runtime-rule-card strong {
-  color: #1e3a8a;
+  color: var(--text-primary);
   font-size: 12px;
   line-height: 18px;
 }
@@ -1185,11 +1190,10 @@
 .lifecycle-event-card {
   display: grid;
   gap: 10px;
-  border: 1px solid rgba(228, 228, 231, 0.8);
+  border: 1px solid #e8eaed;
   border-radius: 8px;
-  background: var(--bg-secondary);
+  background: #fafbfc;
   padding: 10px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
 }
 
 .field-permission-footer {

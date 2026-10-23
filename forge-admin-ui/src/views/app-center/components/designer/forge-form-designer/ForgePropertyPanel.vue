@@ -39,44 +39,46 @@
     </div>
 
     <template v-if="selectedComponent && !isSubTable">
-      <n-tabs v-model:value="propertyActiveTab" type="line" size="medium" animated class="property-tabs">
-        <n-tab-pane name="basic">
-          <template #tab>
-            <span class="property-tab-label">
-              <n-icon><SettingsOutline /></n-icon>
-              属性
-            </span>
-          </template>
-          <SelectedBasicTab />
-        </n-tab-pane>
-        <n-tab-pane name="style">
-          <template #tab>
-            <span class="property-tab-label">
-              <n-icon><ColorPaletteOutline /></n-icon>
-              样式
-            </span>
-          </template>
-          <SelectedStyleTab />
-        </n-tab-pane>
-        <n-tab-pane v-if="isCrudBlock" name="crud">
-          <template #tab>
-            <span class="property-tab-label">
-              <n-icon><ServerOutline /></n-icon>
-              CRUD
-            </span>
-          </template>
-          <SelectedCrudTab />
-        </n-tab-pane>
-        <n-tab-pane name="interaction">
-          <template #tab>
-            <span class="property-tab-label">
-              <n-icon><FlashOutline /></n-icon>
-              交互
-            </span>
-          </template>
-          <SelectedInteractionTab />
-        </n-tab-pane>
-      </n-tabs>
+      <div class="property-panel-body">
+        <n-tabs v-model:value="propertyActiveTab" type="segment" size="small" :animated="false" class="property-tabs">
+          <n-tab-pane name="basic">
+            <template #tab>
+              <span class="property-tab-label">
+                <n-icon><SettingsOutline /></n-icon>
+                属性
+              </span>
+            </template>
+            <SelectedBasicTab />
+          </n-tab-pane>
+          <n-tab-pane name="style">
+            <template #tab>
+              <span class="property-tab-label">
+                <n-icon><ColorPaletteOutline /></n-icon>
+                样式
+              </span>
+            </template>
+            <SelectedStyleTab />
+          </n-tab-pane>
+          <n-tab-pane v-if="isCrudBlock" name="crud">
+            <template #tab>
+              <span class="property-tab-label">
+                <n-icon><ServerOutline /></n-icon>
+                CRUD
+              </span>
+            </template>
+            <SelectedCrudTab />
+          </n-tab-pane>
+          <n-tab-pane name="interaction">
+            <template #tab>
+              <span class="property-tab-label">
+                <n-icon><FlashOutline /></n-icon>
+                交互
+              </span>
+            </template>
+            <SelectedInteractionTab />
+          </n-tab-pane>
+        </n-tabs>
+      </div>
 
       <SelectedPropertyDrawers />
     </template>
@@ -85,7 +87,9 @@
       <SubTableInlineEditor :component="selectedComponent" />
     </div>
 
-    <FormPropertyTabs v-else />
+    <div v-else class="property-panel-body">
+      <FormPropertyTabs />
+    </div>
 
     <n-modal
       v-model:show="fieldFormulaPanelVisible"

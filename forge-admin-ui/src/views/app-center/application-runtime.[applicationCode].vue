@@ -124,9 +124,10 @@
               class="runtime-app-tab"
               :class="{ active: (editing || isDraftPreviewMode()) && activePageDesignTab === 'publish' }"
               @click="switchPageDesignTab('publish')"
+              title="配置页面访问、菜单挂载与地址"
             >
-              <NIcon size="13"><PaperPlaneOutline /></NIcon>
-              <span>发布</span>
+              <NIcon size="13"><LinkOutline /></NIcon>
+              <span>页面访问</span>
             </button>
           </template>
         </nav>
@@ -141,10 +142,11 @@
             <template #trigger>
               <n-button
                 quaternary
+                size="small"
                 :disabled="!pageBuilderResourceActive"
                 title="页面表单资产"
               >
-                <NIcon><FolderOpenOutline /></NIcon>
+                <NIcon size="14"><FolderOpenOutline /></NIcon>
                 页面资源
               </n-button>
             </template>
@@ -218,23 +220,42 @@
           </n-popover>
           <n-button
             v-if="editing || (canEditApplication && dirty)"
+            class="runtime-action-save"
+            size="small"
             :disabled="!dirty && !embeddedDesignerDirty"
             :loading="saving || embeddedDesignerSaving"
-            title="保存当前设计草稿"
+            title="保存当前设计"
             secondary
             @click="saveCurrentDesignerSection"
           >
             <template #icon>
-              <NIcon><SaveOutline /></NIcon>
+              <NIcon size="14"><SaveOutline /></NIcon>
             </template>
-            保存草稿
+            保存
           </n-button>
-          <n-button v-if="editing" quaternary :disabled="!previewableResourceActive" title="预览草稿" @click="openDraftPreview">
-            <NIcon><EyeOutline /></NIcon>
-            预览
-          </n-button>
+          <button
+            v-if="editing"
+            type="button"
+            class="runtime-action-preview"
+            :disabled="!previewableResourceActive || previewTabLoading"
+            title="预览草稿"
+            @click="openDraftPreview"
+          >
+            <NIcon size="14"><PlayOutline /></NIcon>
+            <span>{{ previewTabLoading ? '打开中…' : '预览' }}</span>
+          </button>
+          <button
+            v-if="editing"
+            type="button"
+            class="runtime-action-publish"
+            title="打开应用发布页"
+            @click="openApplicationPublishFromDesign"
+          >
+            <NIcon size="14"><PaperPlaneOutline /></NIcon>
+            <span>应用发布</span>
+          </button>
           <n-dropdown v-if="editing" trigger="click" placement="bottom-end" :options="runtimeHeaderMoreOptions" @select="handleRuntimeHeaderMoreSelect">
-            <n-button quaternary circle aria-label="更多操作">
+            <n-button quaternary circle size="small" aria-label="更多操作">
               <template #icon>
                 <NIcon><EllipsisHorizontalOutline /></NIcon>
               </template>

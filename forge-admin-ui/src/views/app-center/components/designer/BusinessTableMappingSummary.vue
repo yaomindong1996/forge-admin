@@ -54,9 +54,11 @@
             确认同步数据库
           </n-button>
         </template>
-        <n-button v-else size="small" secondary @click="emit('openStructure')">
+        <n-button v-else size="tiny" quaternary class="structure-link-btn" @click="emit('openStructure')">
           <template #icon>
-            <n-icon><GridOutline /></n-icon>
+            <n-icon :size="13">
+              <GridOutline />
+            </n-icon>
           </template>
           查看数据结构
         </n-button>
@@ -623,10 +625,10 @@ defineExpose({ refresh: loadMapping })
 <style scoped>
 .table-mapping {
   display: grid;
-  gap: 8px;
+  gap: 4px;
   flex: 0 0 auto;
   margin: 0;
-  padding: 8px 12px;
+  padding: 4px 10px;
   border: 0;
   border-bottom: 1px solid var(--border-light);
   border-radius: 0;
@@ -636,7 +638,8 @@ defineExpose({ refresh: loadMapping })
 
 .table-mapping.compact {
   margin: 0;
-  padding: 8px 12px;
+  padding: 3px 10px;
+  min-height: 0;
 }
 
 .mapping-header,
@@ -650,24 +653,30 @@ defineExpose({ refresh: loadMapping })
 .mapping-header,
 .mapping-toolbar {
   justify-content: space-between;
-  gap: 16px;
+  gap: 10px;
+  min-height: 28px;
+}
+
+.table-mapping.compact .mapping-header {
+  min-height: 26px;
 }
 
 .mapping-anchor {
   min-width: 0;
-  gap: 10px;
+  gap: 7px;
 }
 
 .database-mark {
   display: inline-flex;
-  flex: 0 0 32px;
+  flex: 0 0 22px;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 22px;
+  height: 22px;
   border: 1px solid var(--border-light);
-  border-radius: 5px;
+  border-radius: 4px;
   color: var(--n-primary-color);
+  font-size: 12px;
 }
 
 .mapping-anchor > div,
@@ -675,14 +684,17 @@ defineExpose({ refresh: loadMapping })
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 3px;
+  gap: 0;
+  line-height: 1.2;
 }
 
 .mapping-anchor strong,
 .mapping-toolbar strong {
   overflow: hidden;
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 15px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -690,10 +702,11 @@ defineExpose({ refresh: loadMapping })
 .mapping-anchor p {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   margin: 0;
   color: var(--text-tertiary);
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 13px;
 }
 
 .mapping-anchor code {
@@ -703,21 +716,57 @@ defineExpose({ refresh: loadMapping })
 
 .mapping-status {
   flex: 0 0 auto;
-  gap: 12px;
+  gap: 8px;
   color: var(--text-tertiary);
   font-size: 11px;
+  line-height: 1.2;
+}
+
+.table-mapping.compact .mapping-status :deep(.n-button) {
+  --n-height: 22px !important;
+  --n-padding: 0 6px !important;
+  --n-font-size: 11px !important;
+}
+
+/* 「查看数据结构」：图标略小、与文字基线对齐，避免图标偏大偏下 */
+.structure-link-btn {
+  --n-height: 22px !important;
+  --n-padding: 0 4px !important;
+  --n-font-size: 11px !important;
+  --n-icon-size: 13px !important;
+  --n-icon-margin: 4px !important;
+  color: var(--text-secondary) !important;
+}
+
+.structure-link-btn :deep(.n-button__icon) {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 4px !important;
+}
+
+.structure-link-btn :deep(.n-icon) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.structure-link-btn:hover {
+  color: var(--primary-color, #3370ff) !important;
 }
 
 .sync-state {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .sync-state i {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: #bf8700;
 }

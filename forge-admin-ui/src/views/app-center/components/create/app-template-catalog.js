@@ -1,3 +1,6 @@
+/** 模板卡片色相：与应用市场卡片共用，避免创建向导与市场观感不一致。 */
+const DEFAULT_TEMPLATE_TONE = { ink: '#356cde', wash: '#e0e7ff' }
+
 export const APPLICATION_TEMPLATE_CATALOG = [
   {
     key: 'customer-management',
@@ -5,6 +8,7 @@ export const APPLICATION_TEMPLATE_CATALOG = [
     category: '客户经营',
     source: 'official',
     icon: 'ionicons5:PeopleOutline',
+    tone: { ink: '#2563eb', wash: '#dbeafe' },
     description: '客户基础资料、联系方式和状态维护，适合作为 CRM 起点。',
     useCount: 128,
     templateCode: 'SINGLE_CRUD',
@@ -19,6 +23,7 @@ export const APPLICATION_TEMPLATE_CATALOG = [
     category: '进销存',
     source: 'official',
     icon: 'ionicons5:CubeOutline',
+    tone: { ink: '#7c3aed', wash: '#ede9fe' },
     description: '按商品分类管理库存台账，自动生成左树右表页面。',
     useCount: 96,
     templateCode: 'TREE_TABLE',
@@ -39,6 +44,7 @@ export const APPLICATION_TEMPLATE_CATALOG = [
     category: '进销存',
     source: 'official',
     icon: 'ionicons5:ReceiptOutline',
+    tone: { ink: '#059669', wash: '#d1fae5' },
     description: '主订单与多行明细的标准结构，适合采购、销售和出入库单。',
     useCount: 83,
     templateCode: 'MASTER_DETAIL',
@@ -62,6 +68,7 @@ export const APPLICATION_TEMPLATE_CATALOG = [
     category: '项目管理',
     source: 'official',
     icon: 'ionicons5:CheckboxOutline',
+    tone: { ink: '#ea580c', wash: '#ffedd5' },
     description: '用于任务登记、负责人协作和进度跟踪的轻量应用。',
     useCount: 61,
     templateCode: 'SINGLE_CRUD',
@@ -71,6 +78,13 @@ export const APPLICATION_TEMPLATE_CATALOG = [
     },
   },
 ]
+
+export function resolveApplicationTemplateTone(template) {
+  const tone = template?.tone
+  if (tone?.ink && tone?.wash)
+    return tone
+  return DEFAULT_TEMPLATE_TONE
+}
 
 export function filterApplicationTemplates(keyword, source = null) {
   const normalizedKeyword = String(keyword || '').trim().toLowerCase()
@@ -86,6 +100,14 @@ export function filterApplicationTemplates(keyword, source = null) {
 
 export function findApplicationTemplate(templateKey) {
   return APPLICATION_TEMPLATE_CATALOG.find(template => template.key === templateKey) || null
+}
+
+export function templateToneStyle(template) {
+  const tone = resolveApplicationTemplateTone(template)
+  return {
+    '--template-ink': tone.ink,
+    '--template-wash': tone.wash,
+  }
 }
 
 export function buildTemplateInitializePayload(template) {

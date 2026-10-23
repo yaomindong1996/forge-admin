@@ -22,7 +22,9 @@
   font-size: inherit !important;
   color: inherit !important;
   --n-font-size: inherit !important;
-  --n-text-color: inherit !important;
+  --n-text-color: currentColor !important;
+  --n-text-color-focus: currentColor !important;
+  --n-label-text-color: currentColor !important;
 }
 
 .ai-form-item-body {
@@ -242,4 +244,11 @@
     background: rgba(245, 108, 108, 0.1);
     box-shadow: 0 0 0 4px rgba(245, 108, 108, 0.2);
   }
+}
+
+.ai-form-select-slot-text {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--n-text-color-3, #8b95a8);
+  line-height: 1.4;
 }

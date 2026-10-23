@@ -1,7 +1,13 @@
 <template>
 <n-form label-placement="top" :show-feedback="false" class="property-form">
             <n-collapse v-model:expanded-names="selectedBasicExpandedNames" class="config-collapse">
-              <n-collapse-item title="标识" name="identity">
+              <n-collapse-item name="identity">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:badge-outline" />
+                    标识
+                  </span>
+                </template>
                 <section class="panel-item">
                   <n-form-item label="显示名称">
                     <n-input :value="selectedComponent.label" placeholder="请输入" @update:value="updateLabel" />
@@ -532,7 +538,13 @@
                 </section>
               </n-collapse-item>
 
-              <n-collapse-item v-if="isRowLayout || isColumnLayout" title="栅格快捷配置" name="gridQuick">
+              <n-collapse-item v-if="isRowLayout || isColumnLayout" name="gridQuick">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:grid-view-outline" />
+                    栅格快捷配置
+                  </span>
+                </template>
                 <section class="panel-item grid-quick-config">
                   <template v-if="isRowLayout">
                     <!-- 统一栅格属性面板（spec 驱动）：与列表设计器共用同一份 grid spec 渲染。
@@ -597,7 +609,13 @@
               </n-collapse-item>
 
               <SelectedFieldCollapse />
-              <n-collapse-item v-if="isButtonComponent" title="按钮组件" name="button">
+              <n-collapse-item v-if="isButtonComponent" name="button">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:smart-button" />
+                    按钮组件
+                  </span>
+                </template>
                 <section class="panel-item">
                   <n-form-item label="按钮文字">
                     <n-input
@@ -652,7 +670,13 @@
                 </section>
               </n-collapse-item>
 
-              <n-collapse-item v-if="selectedCrudFieldConfig" title="CRUD 字段配置" name="crud-field">
+              <n-collapse-item v-if="selectedCrudFieldConfig" name="crud-field">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:view-column-outline" />
+                    CRUD 字段配置
+                  </span>
+                </template>
                 <section class="panel-item">
                   <div class="crud-field-config-title">
                     查询条件
@@ -775,7 +799,13 @@
                 </section>
               </n-collapse-item>
 
-              <n-collapse-item v-if="isTemporalField" title="日期时间组件" name="temporal">
+              <n-collapse-item v-if="isTemporalField" name="temporal">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:calendar-month-outline" />
+                    日期时间组件
+                  </span>
+                </template>
                 <section class="panel-item">
                   <n-form-item v-if="isDatePickerField" label="选择器类型">
                     <n-select
@@ -845,7 +875,13 @@
                 </section>
               </n-collapse-item>
 
-              <n-collapse-item title="辅助展示" name="assist">
+              <n-collapse-item name="assist">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:info-outline" />
+                    辅助展示
+                  </span>
+                </template>
                 <section class="panel-item">
                   <n-form-item label="说明文本">
                     <n-input
@@ -868,7 +904,13 @@
                 </section>
               </n-collapse-item>
 
-              <n-collapse-item v-if="isTabsLayout" title="标签页" name="tabs">
+              <n-collapse-item v-if="isTabsLayout" name="tabs">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:tab-outline" />
+                    标签页
+                  </span>
+                </template>
                 <section class="panel-item">
                   <!-- tabs 外观属性统一由「更多属性」抽屉的 SpecPropertyPanel 配置（spec 唯一属性源），
                        折叠项只保留页签管理，与列表设计器口径一致 -->
@@ -916,7 +958,13 @@
                 </section>
               </n-collapse-item>
 
-              <n-collapse-item v-if="isField" title="校验规则" name="validation">
+              <n-collapse-item v-if="isField" name="validation">
+                <template #header>
+                  <span class="collapse-section-title">
+                    <i class="i-material-symbols:rule-outline" />
+                    校验规则
+                  </span>
+                </template>
                 <section class="panel-item validation-panel">
                   <div class="switch-line compact">
                     <span>必填项 Required</span>

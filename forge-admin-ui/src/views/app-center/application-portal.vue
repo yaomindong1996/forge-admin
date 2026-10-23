@@ -200,6 +200,7 @@ import UserAvatar from '@/layouts/components/UserAvatar.vue'
 import { useUserStore } from '@/store'
 import ApplicationPortalSkeleton from './components/portal/ApplicationPortalSkeleton.vue'
 import PageManagementSystemView from './components/portal/PageManagementSystemView.vue'
+import { prefetchPageManagementSystemViews } from './components/portal/prefetchPageManagementSystemViews'
 import {
   buildPortalWatermarkStyle,
   buildPortalWatermarkText,
@@ -343,6 +344,8 @@ async function loadPortal(identifier) {
       throw new Error('应用运行配置不存在')
     if (!pageNodes.value.length)
       loadState.value = 'forbidden'
+    else
+      scheduleSystemPagePrefetch()
   }
   catch (error) {
     application.value = null
@@ -357,6 +360,20 @@ async function loadPortal(identifier) {
   finally {
     loading.value = false
   }
+}
+
+let systemPagePrefetchScheduled = false
+function scheduleSystemPagePrefetch() {
+  if (systemPagePrefetchScheduled || typeof window === 'undefined')
+    return
+  systemPagePrefetchScheduled = true
+  const run = () => {
+    void prefetchPageManagementSystemViews()
+  }
+  if (typeof window.requestIdleCallback === 'function')
+    window.requestIdleCallback(run, { timeout: 2000 })
+  else
+    window.setTimeout(run, 400)
 }
 
 function selectPage(pageId) {

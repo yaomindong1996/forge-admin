@@ -7,6 +7,21 @@
 const fieldCommonPrint = { hidden: false, breakAvoid: false }
 const fieldCommonLayout = { defaultSpan: 12 }
 
+/** Naive DatePicker Slots：图标 + 页脚（date / datetime / month / year / 范围共用） */
+const datePickerSlotProps = {
+  dateIcon: { group: '装饰', priority: 'common', type: 'icon', title: '日期图标', desc: '对应 #date-icon' },
+  dateFooter: { group: '装饰', priority: 'common', type: 'string', title: '面板页脚', desc: '对应 #footer' },
+  prevYearIcon: { group: '装饰', priority: 'advanced', type: 'icon', title: '上一年图标', desc: '对应 #prev-year' },
+  prevMonthIcon: { group: '装饰', priority: 'advanced', type: 'icon', title: '上一月图标', desc: '对应 #prev-month' },
+  nextMonthIcon: { group: '装饰', priority: 'advanced', type: 'icon', title: '下一月图标', desc: '对应 #next-month' },
+  nextYearIcon: { group: '装饰', priority: 'advanced', type: 'icon', title: '下一年图标', desc: '对应 #next-year' },
+}
+
+const dateRangeSlotProps = {
+  ...datePickerSlotProps,
+  separator: { group: '装饰', priority: 'common', type: 'string', title: '范围分隔符', desc: '对应 #separator，如 至、~' },
+}
+
 // ─── 输入类（8 个）─────────────────────────────────────────
 
 const input = {
@@ -24,7 +39,7 @@ const input = {
     placeholder: { group: '输入行为', priority: 'common', type: 'string', title: '占位提示' },
     clearable: { group: '输入行为', priority: 'common', type: 'boolean', title: '可清空', default: true },
     maxLength: { group: '输入行为', priority: 'common', type: 'number', title: '最大长度', min: 0 },
-    showCount: { group: '输入行为', priority: 'common', type: 'boolean', title: '显示字数', default: false },
+    showCount: { group: '输入行为', priority: 'common', type: 'boolean', title: '显示字数', default: false, desc: '对应 Naive show-count（#count 默认字数统计）' },
     // 常用 · 外观
     size: { group: '外观', priority: 'common', type: 'select', title: '尺寸', options: [
       { label: '小', value: 'small' },
@@ -39,12 +54,22 @@ const input = {
     ] },
     disabled: { group: '外观', priority: 'common', type: 'boolean', title: '禁用', default: false },
     readonly: { group: '外观', priority: 'common', type: 'boolean', title: '只读', default: false },
-    // 常用 · 装饰（对应 Naive prefix / suffix 插槽）
-    prefix: { group: '装饰', priority: 'common', type: 'string', title: '前缀文本', desc: '如 http://、+86' },
-    suffix: { group: '装饰', priority: 'common', type: 'string', title: '后缀文本', desc: '如 .com、单位' },
+    // 常用 · 装饰（对应 Naive Input Slots：prefix / suffix / clear-icon / password-* / separator）
+    prefix: { group: '装饰', priority: 'common', type: 'string', title: '前缀文本', desc: '如 http://、+86；可与前缀图标并用' },
+    suffix: { group: '装饰', priority: 'common', type: 'string', title: '后缀文本', desc: '如 .com、单位；可与后缀图标并用' },
+    prefixIcon: { group: '装饰', priority: 'common', type: 'icon', title: '前缀图标', desc: '对应 #prefix 插槽内图标' },
+    suffixIcon: { group: '装饰', priority: 'common', type: 'icon', title: '后缀图标', desc: '对应 #suffix 插槽内图标' },
+    clearIcon: { group: '装饰', priority: 'common', type: 'icon', title: '清除图标', desc: '对应 #clear-icon；需开启可清空' },
+    inputType: { group: '输入行为', priority: 'common', type: 'select', title: '输入类型', options: [
+      { label: '文本', value: 'text' },
+      { label: '密码', value: 'password' },
+    ], default: 'text', desc: '密码模式可配显隐图标' },
+    passwordVisibleIcon: { group: '装饰', priority: 'advanced', type: 'icon', title: '密码可见图标', desc: '对应 #password-visible-icon' },
+    passwordInvisibleIcon: { group: '装饰', priority: 'advanced', type: 'icon', title: '密码隐藏图标', desc: '对应 #password-invisible-icon' },
     // 高级
     round: { group: '高级', priority: 'advanced', type: 'boolean', title: '圆角', default: false },
-    pair: { group: '高级', priority: 'advanced', type: 'boolean', title: '成对输入', default: false, desc: '启用后输入框分为左右两部分' },
+    pair: { group: '高级', priority: 'advanced', type: 'boolean', title: '成对输入', default: false, desc: '启用后输入框分为左右两部分；值变为 [左, 右]' },
+    separator: { group: '高级', priority: 'advanced', type: 'string', title: '成对分隔符', desc: 'pair=true 时生效；对应 separator 属性 / #separator' },
     passivelyTriggered: { group: '高级', priority: 'advanced', type: 'boolean', title: '被动触发', default: false, desc: '只在 blur 时触发 update' },
     loading: { group: '高级', priority: 'advanced', type: 'boolean', title: '加载中', default: false },
     autofocus: { group: '高级', priority: 'advanced', type: 'boolean', title: '自动聚焦', default: false },
@@ -154,6 +179,8 @@ const number = {
     // 常用 · 装饰（对应 n-input-number 的 prefix / suffix 插槽，如 ￥、%）
     prefix: { group: '装饰', priority: 'common', type: 'string', title: '前缀文本', desc: '如 ￥、$' },
     suffix: { group: '装饰', priority: 'common', type: 'string', title: '后缀文本', desc: '如 %、元、kg' },
+    prefixIcon: { group: '装饰', priority: 'common', type: 'icon', title: '前缀图标' },
+    suffixIcon: { group: '装饰', priority: 'common', type: 'icon', title: '后缀图标' },
     // 高级
     loading: { group: '高级', priority: 'advanced', type: 'boolean', title: '加载中', default: false },
     clearable: { group: '高级', priority: 'advanced', type: 'boolean', title: '可清空', default: false },
@@ -196,6 +223,8 @@ const money = {
     disabled: { group: '外观', priority: 'common', type: 'boolean', title: '禁用', default: false },
     prefix: { group: '装饰', priority: 'common', type: 'string', title: '前缀文本', desc: '覆盖货币符号；留空则用货币符号' },
     suffix: { group: '装饰', priority: 'common', type: 'string', title: '后缀文本', desc: '如 元' },
+    prefixIcon: { group: '装饰', priority: 'common', type: 'icon', title: '前缀图标' },
+    suffixIcon: { group: '装饰', priority: 'common', type: 'icon', title: '后缀图标' },
     // 高级
     loading: { group: '高级', priority: 'advanced', type: 'boolean', title: '加载中', default: false },
     clearable: { group: '高级', priority: 'advanced', type: 'boolean', title: '可清空', default: false },
@@ -337,6 +366,11 @@ const select = {
       { label: '错误', value: 'error' },
     ] },
     disabled: { group: '外观', priority: 'common', type: 'boolean', title: '禁用', default: false },
+    // 常用 · 菜单插槽（对应 Naive Select Slots：header / action / empty / arrow）
+    dropdownHeader: { group: '装饰', priority: 'common', type: 'string', title: '菜单头部', desc: '对应 #header' },
+    dropdownAction: { group: '装饰', priority: 'common', type: 'string', title: '菜单操作区', desc: '对应 #action，如「管理选项」说明' },
+    emptyText: { group: '装饰', priority: 'common', type: 'string', title: '空数据文案', desc: '对应 #empty；未配时用组件默认空态' },
+    arrowIcon: { group: '装饰', priority: 'common', type: 'icon', title: '下拉箭头图标', desc: '对应 #arrow' },
     // 高级
     maxTagCount: { group: '高级', priority: 'advanced', type: 'number', title: '最大标签数', min: 0, desc: '多选时最多显示的标签数量' },
     tag: { group: '高级', priority: 'advanced', type: 'boolean', title: '可创建选项', default: false, desc: '允许用户创建新选项' },
@@ -700,6 +734,7 @@ const date = {
       { label: '错误', value: 'error' },
     ] },
     disabled: { group: '外观', priority: 'common', type: 'boolean', title: '禁用', default: false },
+    ...datePickerSlotProps,
     // 高级
     shortcuts: { group: '高级', priority: 'advanced', type: 'json', title: '快捷选项', desc: '{ label: string, value: () => number }' },
     firstDayOfWeek: { group: '高级', priority: 'advanced', type: 'select', title: '每周首日', options: [
@@ -742,6 +777,7 @@ const datetime = {
       { label: '错误', value: 'error' },
     ] },
     disabled: { group: '外观', priority: 'common', type: 'boolean', title: '禁用', default: false },
+    ...datePickerSlotProps,
     // 高级
     shortcuts: { group: '高级', priority: 'advanced', type: 'json', title: '快捷选项' },
     defaultTime: { group: '高级', priority: 'advanced', type: 'string', title: '默认时间', desc: '如 12:00:00' },
@@ -782,6 +818,7 @@ const daterange = {
       { label: '错误', value: 'error' },
     ] },
     disabled: { group: '外观', priority: 'common', type: 'boolean', title: '禁用', default: false },
+    ...dateRangeSlotProps,
     // 高级
     shortcuts: { group: '高级', priority: 'advanced', type: 'json', title: '快捷区间' },
     firstDayOfWeek: { group: '高级', priority: 'advanced', type: 'select', title: '每周首日', options: [
@@ -824,6 +861,7 @@ const datetimerange = {
       { label: '错误', value: 'error' },
     ] },
     disabled: { group: '外观', priority: 'common', type: 'boolean', title: '禁用', default: false },
+    ...dateRangeSlotProps,
     // 高级
     shortcuts: { group: '高级', priority: 'advanced', type: 'json', title: '快捷区间' },
     defaultTime: { group: '高级', priority: 'advanced', type: 'json', title: '默认时间', desc: '如 [\'00:00:00\',\'23:59:59\']' },
@@ -862,6 +900,7 @@ const month = {
       { label: '错误', value: 'error' },
     ] },
     disabled: { group: '外观', priority: 'common', type: 'boolean', title: '禁用', default: false },
+    ...datePickerSlotProps,
     // 高级
     actions: { group: '高级', priority: 'advanced', type: 'json', title: '操作按钮', desc: '[\'clear\',\'now\'] 或 null' },
   } },
@@ -898,6 +937,9 @@ const year = {
       { label: '错误', value: 'error' },
     ] },
     disabled: { group: '外观', priority: 'common', type: 'boolean', title: '禁用', default: false },
+    ...datePickerSlotProps,
+    // 高级
+    actions: { group: '高级', priority: 'advanced', type: 'json', title: '操作按钮', desc: '[\'clear\',\'now\'] 或 null' },
   } },
   dataSources: [],
   print: fieldCommonPrint,

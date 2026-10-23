@@ -295,7 +295,7 @@ import { getRowDisplayTitle, getTaskDisplayName } from './utils/processDisplay'
 
 const userStore = useUserStore()
 const { dict, getLabel } = useDict('flow_started_status', 'flow_task_sign_mode', 'flow_task_sign_relation_status')
-const loading = ref(false)
+const loading = ref(true)
 const loadError = ref(false)
 const dataSource = ref([])
 const pagination = reactive({

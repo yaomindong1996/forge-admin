@@ -1297,13 +1297,23 @@ function applyGridColumnsToComponent(component = {}, gridColumns = 2, parentComp
   const parentGridColumns = ['row', 'fcRow'].includes(parentComponent?.componentKey)
     ? clampGridColumns(parentComponent.props?.columns, MAX_FORM_GRID_COLUMNS)
     : gridColumns
-  const nextSpan = componentKey === 'col'
-    ? Math.max(1, Math.min(parentGridColumns, resolveNumber(next.layout?.span ?? next.props?.span, Math.min(6, parentGridColumns))))
-    : (!fieldComponent && !fullRow)
-        ? 1
-        : fullRow
-          ? gridColumns
-          : Math.max(1, Math.min(gridColumns, currentSpan))
+  let nextSpan
+  if (componentKey === 'col') {
+    nextSpan = Math.max(1, Math.min(parentGridColumns, resolveNumber(next.layout?.span ?? next.props?.span, Math.min(6, parentGridColumns))))
+  }
+  else if (fullRow) {
+    // textarea 等始终占满整行
+    nextSpan = gridColumns
+  }
+  else if (fieldComponent) {
+    // 表单列数=N 时普通字段默认占 1 列；若历史数据 span 已占满整行，纠正为 1，避免「显示 2 列却排成单列」
+    nextSpan = currentSpan >= gridColumns
+      ? 1
+      : Math.max(1, Math.min(gridColumns, currentSpan))
+  }
+  else {
+    nextSpan = 1
+  }
   next.label = normalizeDesignerComponentLabel(componentKey, next.label)
   next.layout = {
     ...(next.layout || {}),

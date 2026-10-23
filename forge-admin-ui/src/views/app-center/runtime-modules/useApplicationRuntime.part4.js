@@ -1609,6 +1609,31 @@ export function applyApplicationRuntimePart4(deps = {}) {
   }
   __impl.handleProcessPanelNavigate = handleProcessPanelNavigate
 
+  /** 顶栏「应用发布」：跳转独立发布页（与中间 Tab「页面访问」配置面板区分） */
+  function openApplicationPublishFromDesign() {
+    const applicationCode = application.value?.applicationCode || route.params.applicationCode
+    if (!applicationCode) {
+      message.warning('缺少应用编码，无法打开发布页')
+      return
+    }
+    const query = { fromPageDesign: '1' }
+    const pageId = String(currentNode.value?.id || route.query.pageId || selectedNodeId.value || '').trim()
+    if (pageId)
+      query.pageId = pageId
+    if (route.query.draft === '1')
+      query.draft = '1'
+    if (route.query.edit === '1' || editing.value)
+      query.edit = '1'
+    if (route.query.returnEdit === '1' || route.query.edit === '1' || editing.value || route.query.draft === '1')
+      query.returnEdit = '1'
+    router.push({
+      name: 'BusinessApplicationPublish',
+      params: { applicationCode },
+      query,
+    })
+  }
+  __impl.openApplicationPublishFromDesign = openApplicationPublishFromDesign
+
   async function handleExtensionsChanged() {
     await refreshWorkspaceMetadata()
   }

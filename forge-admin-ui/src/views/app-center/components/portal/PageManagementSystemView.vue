@@ -22,13 +22,39 @@
 </template>
 
 <script setup>
-import MessageList from '@/views/message/message-list.vue'
+import { defineAsyncComponent } from 'vue'
 import { WORKBENCH_PAGE_ID } from '@/views/app-center/in-app-builder/workbench-page'
-import WorkspaceCc from '@/views/workspace/cc.vue'
-import WorkspaceDone from '@/views/workspace/done.vue'
-import WorkspaceStarted from '@/views/workspace/started.vue'
-import WorkspaceSummary from '@/views/workspace/summary.vue'
-import WorkspaceTodo from '@/views/workspace/todo.vue'
+import SystemPageContentSkeleton from './SystemPageContentSkeleton.vue'
+
+const asyncView = {
+  delay: 0,
+  loadingComponent: SystemPageContentSkeleton,
+}
+
+const WorkspaceSummary = defineAsyncComponent({
+  ...asyncView,
+  loader: () => import('@/views/workspace/summary.vue'),
+})
+const WorkspaceTodo = defineAsyncComponent({
+  ...asyncView,
+  loader: () => import('@/views/workspace/todo.vue'),
+})
+const WorkspaceDone = defineAsyncComponent({
+  ...asyncView,
+  loader: () => import('@/views/workspace/done.vue'),
+})
+const WorkspaceStarted = defineAsyncComponent({
+  ...asyncView,
+  loader: () => import('@/views/workspace/started.vue'),
+})
+const WorkspaceCc = defineAsyncComponent({
+  ...asyncView,
+  loader: () => import('@/views/workspace/cc.vue'),
+})
+const MessageList = defineAsyncComponent({
+  ...asyncView,
+  loader: () => import('@/views/message/message-list.vue'),
+})
 
 defineProps({
   view: {
@@ -57,6 +83,7 @@ defineProps({
   applicationId: { type: String, default: '' },
   applicationCode: { type: String, default: '' },
 })
+
 </script>
 
 <style scoped>

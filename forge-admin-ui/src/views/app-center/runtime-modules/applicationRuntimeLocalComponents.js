@@ -33,11 +33,13 @@ import {
   GitNetworkOutline,
   GridOutline,
   InformationCircleOutline,
+  LinkOutline,
   ListOutline,
   MoveOutline,
   NotificationsOutline,
   PaperPlaneOutline,
   PeopleOutline,
+  PlayOutline,
   ReaderOutline,
   RemoveOutline,
   ResizeOutline,
@@ -56,6 +58,7 @@ import DesignerAsyncLoader from '@/views/app-center/components/designer/Designer
 import PageSystemMenuMountDialog from '@/views/app-center/components/designer/PageSystemMenuMountDialog.vue'
 import ApplicationRuntimeSkeleton from '@/views/app-center/components/portal/ApplicationRuntimeSkeleton.vue'
 import PortalPageRenderer from '@/views/app-center/components/portal/PortalPageRenderer.vue'
+import SystemPageContentSkeleton from '@/views/app-center/components/portal/SystemPageContentSkeleton.vue'
 
 /** Options-API shells only resolve tags via `components:{}` — returning async comps from setup is not enough. */
 const asyncPanelLoader = {
@@ -112,7 +115,8 @@ export const PageDesignPublishPanel = defineAsyncComponent({
   loader: () => import('@/views/app-center/components/designer/PageDesignPublishPanel.vue'),
 })
 export const PageManagementSystemView = defineAsyncComponent({
-  ...asyncPanelLoader,
+  delay: 0,
+  loadingComponent: SystemPageContentSkeleton,
   loader: () => import('@/views/app-center/components/portal/PageManagementSystemView.vue'),
 })
 export const GridBlockRenderer = defineAsyncComponent({
@@ -158,11 +162,13 @@ export const applicationRuntimeLocalComponents = {
   GitNetworkOutline,
   GridOutline,
   InformationCircleOutline,
+  LinkOutline,
   ListOutline,
   MoveOutline,
   NotificationsOutline,
   PaperPlaneOutline,
   PeopleOutline,
+  PlayOutline,
   ReaderOutline,
   RemoveOutline,
   ResizeOutline,

@@ -208,17 +208,27 @@ export function applyBusinessListDesignerPart1(props, emit) {
       icon: renderMenuIcon(RefreshOutline),
     },
   ])
-  const pageActionOptions = computed(() => [
-    { label: '按字段生成查询条件', key: 'resetSearchFields', icon: renderMenuIcon(FunnelOutline) },
-    { label: '按字段生成表格列', key: 'resetTableFields', icon: renderMenuIcon(GridOutline) },
-    { type: 'divider', key: 'pageActionDivider1' },
-    { label: '新增空白页面', key: 'addPage', icon: renderMenuIcon(AddOutline) },
-    { type: 'divider', key: 'pageActionDivider2' },
-    { label: '复制页面', key: 'duplicate', icon: renderMenuIcon(CopyOutline) },
-    { label: '整理区块间距', key: 'tidySpacing', icon: renderMenuIcon(SparklesOutline) },
-    { label: '重置布局', key: 'reset', icon: renderMenuIcon(SparklesOutline) },
-    { label: '重置当前列表', key: 'resetListSchema', icon: renderMenuIcon(RefreshOutline) },
-  ])
+  const pageActionOptions = computed(() => {
+    const options = [
+      { label: '按字段生成查询条件', key: 'resetSearchFields', icon: renderMenuIcon(FunnelOutline) },
+      { label: '按字段生成表格列', key: 'resetTableFields', icon: renderMenuIcon(GridOutline) },
+      { type: 'divider', key: 'pageActionDivider1' },
+      { label: '新增空白页面', key: 'addPage', icon: renderMenuIcon(AddOutline) },
+      { type: 'divider', key: 'pageActionDivider2' },
+      { label: '复制页面', key: 'duplicate', icon: renderMenuIcon(CopyOutline) },
+      { label: '整理区块间距', key: 'tidySpacing', icon: renderMenuIcon(SparklesOutline) },
+      { label: '重置布局', key: 'reset', icon: renderMenuIcon(SparklesOutline) },
+      { label: '重置当前列表', key: 'resetListSchema', icon: renderMenuIcon(RefreshOutline) },
+    ]
+    // 列表页（pageKey=list）不可删；附加页在菜单里补删除入口
+    if (!isProtectedPage(activePageKey.value)) {
+      options.push(
+        { type: 'divider', key: 'pageActionDividerRemove' },
+        { label: '删除当前页面', key: 'remove', icon: renderMenuIcon(TrashOutline) },
+      )
+    }
+    return options
+  })
   const designerPages = computed(() => localSchema.value.pages || [])
   // 对象多画布页 + 应用页都要能选：仅 applicationPages 时会丢掉 dialog/list 等 pageKey
   const actionPageOptions = computed(() => {
@@ -642,7 +652,10 @@ export function applyBusinessListDesignerPart1(props, emit) {
     }
     if (key === 'reset') {
       resetActivePageLayout()
+      return
     }
+    if (key === 'remove')
+      removeActivePage()
   }
 
   /** 消除当前页画布块重叠/贴边：按垂直堆叠下推，保留相对左右位置 */
@@ -728,18 +741,26 @@ export function applyBusinessListDesignerPart1(props, emit) {
     activePageKey.value = pageKey
   }
 
-  function removeActivePage() {
-    if (isProtectedPage(activePageKey.value))
+  function removeDesignerPage(pageKey = '') {
+    const key = String(pageKey || '').trim()
+    if (!key || isProtectedPage(key))
       return
-    const removedKey = activePageKey.value
-    const nextPages = (localSchema.value.pages || []).filter(page => page.pageKey !== activePageKey.value)
-    const nextActive = nextPages.find(page => page.pageKey === 'list')?.pageKey || nextPages[0]?.pageKey || 'list'
+    const nextPages = (localSchema.value.pages || []).filter(page => page.pageKey !== key)
+    if (nextPages.length === (localSchema.value.pages || []).length)
+      return
+    const nextActive = activePageKey.value === key
+      ? (nextPages.find(page => page.pageKey === 'list')?.pageKey || nextPages[0]?.pageKey || 'list')
+      : activePageKey.value
     setLocalSchema({
       ...localSchema.value,
       pages: nextPages,
-      removedPageKeys: Array.from(new Set([...(localSchema.value.removedPageKeys || []), removedKey])),
+      removedPageKeys: Array.from(new Set([...(localSchema.value.removedPageKeys || []), key])),
     })
     activePageKey.value = nextActive
+  }
+
+  function removeActivePage() {
+    removeDesignerPage(activePageKey.value)
   }
 
   function resetActivePageLayout() {
@@ -1351,6 +1372,7 @@ export function applyBusinessListDesignerPart1(props, emit) {
   __impl.addDesignerPage = addDesignerPage
   __impl.duplicateActivePage = duplicateActivePage
   __impl.removeActivePage = removeActivePage
+  __impl.removeDesignerPage = removeDesignerPage
   __impl.resetActivePageLayout = resetActivePageLayout
   __impl.clearActivePageLayout = clearActivePageLayout
   __impl.patchActivePage = patchActivePage
@@ -1392,7 +1414,7 @@ export function applyBusinessListDesignerPart1(props, emit) {
     mergePrimaryModelRef, mergeUnmanagedChildRowActions, normalizeActionApiMethod, normalizeActionCode, normalizeActionParams, normalizeDesignerActionPosition, normalizeDesignerActionType, normalizeDesignerActionsForList,
     normalizeDesignerPage, normalizeDesignerPageType, normalizeDesignerRuntimeFieldType, normalizeListActionConfig, normalizeListActionPosition, normalizeListActionType, normalizeListCustomAction, normalizeListCustomActions,
     normalizePageKey, normalizePageParamName, normalizeSchemaForSave, omitTreeRuntimeProps, openLocalPreview, openPrintPreview, pageTypeText, parsePlainObject,
-    patchActivePage, patchPageWatermark, pushHistorySnapshot, redoSchema, removeActivePage, removeActivePageParam, renderMenuIcon, resetActivePageLayout, resetListSchema,
+    patchActivePage, patchPageWatermark, pushHistorySnapshot, redoSchema, removeActivePage, removeDesignerPage, removeActivePageParam, renderMenuIcon, resetActivePageLayout, resetListSchema,
     resetZoneFields, resolveDefaultActionButtonType, resolveDefaultListButtonType, resolveDesignModelSchema, resolveDesignerDefaultApiValues, resolveDesignerFormOpenMode, resolveDesignerModalType, resolveDesignerZoneRefs,
     resolveLayoutModeLabel, resolveListActionRoutePath, resolveSchema, resolveTemplateSelectValue, rewriteBlocksPageEventTargets, rewriteGridLayoutPageEventTargets, rewritePageEventTargets, saveLayout,
     setLocalSchema, switchActivePage, syncDesignerDraft, syncSchemaCustomActions, toDesignerActionParams, toPageField, undoSchema, updateActivePageKey,

@@ -19,7 +19,7 @@ import { COMMON_VALIDATION_PRESETS, getValidationPreset } from '@/utils/validati
 import { FIELD_COMPONENT_DEFAULTS as componentFieldDefaults } from '../../form-first/fieldComponentCatalog'
 import { appendDesignerLayoutChild, cloneValue, findDesignerComponentPath, getDesignerComponent, isFieldComponent, isLayoutComponent, normalizeFormDesignerSchema, updateDesignerComponent } from '../../form-first/formDesignerSchema'
 import { camelToSnake } from '../../form-first/namingUtils'
-import { GRID_COLUMN_MARKS as gridColumnMarks, MAX_FORM_GRID_COLUMNS, normalizeGridCount } from '../formLayoutConfig'
+import { GRID_COLUMN_MARKS as gridColumnMarks, MAX_FORM_GRID_COLUMNS, normalizeFormLayoutColumns, normalizeGridCount } from '../formLayoutConfig'
 import {
   collectChildTableFieldOptions,
   collectChildTableRelationOptions,
@@ -141,6 +141,7 @@ export function useForgePropertyPanelPart1(props, emit, deps = {}) {
   const resolveDefaultCrudDescriptionFields = (...args) => __impl.resolveDefaultCrudDescriptionFields(...args)
   const resolveOptionValueFieldMeta = (...args) => __impl.resolveOptionValueFieldMeta(...args)
   const resolvePxNumber = (...args) => __impl.resolvePxNumber(...args)
+  const resolveStyleBox = (...args) => __impl.resolveStyleBox(...args)
   const resolveSelectedFieldCode = (...args) => __impl.resolveSelectedFieldCode(...args)
   const resolveSelectionLabelValueField = (...args) => __impl.resolveSelectionLabelValueField(...args)
   const resolveTriggerLabel = (...args) => __impl.resolveTriggerLabel(...args)
@@ -171,6 +172,7 @@ export function useForgePropertyPanelPart1(props, emit, deps = {}) {
   const updateDesignerBorderColor = (...args) => __impl.updateDesignerBorderColor(...args)
   const updateDesignerBorderStyle = (...args) => __impl.updateDesignerBorderStyle(...args)
   const updateDesignerCustomStyle = (...args) => __impl.updateDesignerCustomStyle(...args)
+  const updateDesignerBoxSpacing = (...args) => __impl.updateDesignerBoxSpacing(...args)
   const updateDesignerSpacing = (...args) => __impl.updateDesignerSpacing(...args)
   const updateDesignerStyle = (...args) => __impl.updateDesignerStyle(...args)
   const updateDesignerTranslate = (...args) => __impl.updateDesignerTranslate(...args)
@@ -193,6 +195,7 @@ export function useForgePropertyPanelPart1(props, emit, deps = {}) {
   const updateFormLayout = (...args) => __impl.updateFormLayout(...args)
   const updateFormOfflineDraft = (...args) => __impl.updateFormOfflineDraft(...args)
   const updateFormPermission = (...args) => __impl.updateFormPermission(...args)
+  const updateFormBoxSpacing = (...args) => __impl.updateFormBoxSpacing(...args)
   const updateFormSpacing = (...args) => __impl.updateFormSpacing(...args)
   const updateFormStyle = (...args) => __impl.updateFormStyle(...args)
   const updateFormStyleText = (...args) => __impl.updateFormStyleText(...args)
@@ -438,9 +441,15 @@ const switchableComponentOptions = computed(() => {
 })
 const supportsFieldMaxLength = computed(() => ['input', 'textarea', 'barcodeScanner'].includes(selectedComponent.value?.componentKey))
 const supportsFieldNumberRange = computed(() => ['number', 'inputNumber', 'money'].includes(selectedComponent.value?.componentKey))
-/** 单行文本 / 数字 / 金额：右侧主面板可配 Naive prefix / suffix */
+/** 单行文本 / 数字 / 金额：右侧主面板可配 Naive prefix / suffix / 图标插槽 */
 const supportsFieldAffix = computed(() => ['input', 'number', 'inputNumber', 'money'].includes(selectedComponent.value?.componentKey))
 const supportsFieldShowButton = computed(() => ['number', 'inputNumber', 'money'].includes(selectedComponent.value?.componentKey))
+/** 下拉：菜单 header / action / empty / arrow */
+const supportsFieldSelectSlots = computed(() => selectedComponent.value?.componentKey === 'select')
+/** 日期类：DatePicker Slots（date-icon / footer / 导航图标 / separator） */
+const supportsFieldDatePickerSlots = computed(() => (
+  ['date', 'datetime', 'daterange', 'datetimerange', 'month', 'year'].includes(selectedComponent.value?.componentKey)
+))
 const selectedFieldMaxLength = computed(() => {
   const fromProps = normalizePositiveInteger(selectedComponent.value?.props?.maxlength)
   if (fromProps)
@@ -514,6 +523,10 @@ const selectedOpacityPercent = computed(() => Math.round(Number(selectedDesigner
 const formOpacityPercent = computed(() => Math.round(Number(formStyle.value.opacity ?? 1) * 100))
 const selectedDesignerTranslate = computed(() => parseTranslateStyle(selectedDesignerStyle.value.customStyle?.transform))
 const formTranslate = computed(() => parseTranslateStyle(formStyle.value.transform))
+const selectedPaddingBox = computed(() => resolveStyleBox(selectedDesignerStyle.value.customStyle, 'padding'))
+const selectedMarginBox = computed(() => resolveStyleBox(selectedDesignerStyle.value.customStyle, 'margin'))
+const formPaddingBox = computed(() => resolveStyleBox(formStyle.value, 'padding'))
+const formMarginBox = computed(() => resolveStyleBox(formStyle.value, 'margin'))
 const selectedAppearanceBackgroundHex = computed(() => colorToHexInput(selectedDesignerStyle.value.backgroundColor, ''))
 const selectedAppearanceBorderHex = computed(() => colorToHexInput(selectedDesignerStyle.value.borderColor, 'E4E4E7'))
 const selectedAppearanceBackgroundPreview = computed(() => hexInputToColor(selectedAppearanceBackgroundHex.value, 'transparent'))
@@ -533,7 +546,7 @@ const formAppearanceBorderPreview = computed(() => {
   return hexInputToColor(formAppearanceBorderHex.value, '#e4e4e7')
 })
 const maxFormGridColumns = MAX_FORM_GRID_COLUMNS
-const normalizedFormGridColumns = computed(() => normalizeGridCount(props.schema.layout?.gridColumns || 2))
+const normalizedFormGridColumns = computed(() => normalizeFormLayoutColumns(props.schema.layout?.gridColumns || 2))
 const isDatePickerField = computed(() => ['date', 'datetime', 'daterange', 'datetimerange', 'month', 'year', 'quarter'].includes(selectedComponent.value?.componentKey))
 const isTimePickerField = computed(() => ['time', 'timerange'].includes(selectedComponent.value?.componentKey))
 const isTemporalField = computed(() => isDatePickerField.value || isTimePickerField.value)
@@ -1321,11 +1334,36 @@ const specPanelExcludedProps = computed(() => {
   // 选项类组件的选项由"选项来源"统一管理 —— 抽屉只保留主面板没有的属性，避免重复入口
   if (isField.value) {
     const excluded = ['placeholder', 'size', 'clearable', 'showFeedback']
-    // 前缀/后缀/加减按钮已在「字段组件」主面板配置，避免更多属性里重复
-    if (supportsFieldAffix.value)
-      excluded.push('prefix', 'suffix')
+    // 前缀/后缀/图标/加减按钮/下拉插槽已在「字段组件」主面板配置，避免更多属性里重复
+    if (supportsFieldAffix.value) {
+      excluded.push(
+        'prefix',
+        'suffix',
+        'prefixIcon',
+        'suffixIcon',
+        'clearIcon',
+        'inputType',
+        'passwordVisibleIcon',
+        'passwordInvisibleIcon',
+        'pair',
+        'separator',
+      )
+    }
     if (supportsFieldShowButton.value)
       excluded.push('showButton')
+    if (supportsFieldSelectSlots.value)
+      excluded.push('dropdownHeader', 'dropdownAction', 'emptyText', 'arrowIcon')
+    if (supportsFieldDatePickerSlots.value) {
+      excluded.push(
+        'dateIcon',
+        'dateFooter',
+        'prevYearIcon',
+        'prevMonthIcon',
+        'nextMonthIcon',
+        'nextYearIcon',
+        'separator',
+      )
+    }
     if (supportsMultipleSelect.value)
       excluded.push('multiple')
     if (isOptionField.value)
@@ -1559,6 +1597,8 @@ function collectRuntimeRuleFieldOptions(components = []) {
     supportsFieldNumberRange,
     supportsFieldAffix,
     supportsFieldShowButton,
+    supportsFieldSelectSlots,
+    supportsFieldDatePickerSlots,
     selectedFieldMaxLength,
     selectedFormulaConfig,
     selectedFormulaSummary,
@@ -1581,6 +1621,10 @@ function collectRuntimeRuleFieldOptions(components = []) {
     formOpacityPercent,
     selectedDesignerTranslate,
     formTranslate,
+    selectedPaddingBox,
+    selectedMarginBox,
+    formPaddingBox,
+    formMarginBox,
     selectedAppearanceBackgroundHex,
     selectedAppearanceBorderHex,
     selectedAppearanceBackgroundPreview,

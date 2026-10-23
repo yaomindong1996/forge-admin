@@ -104,9 +104,11 @@
           </div>
         </article>
       </div>
-      <div v-else class="task-card-list empty">
+      <!-- loading 中不展示空态，避免白屏感的「暂无数据」闪一下 -->
+      <div v-else-if="!loading" class="task-card-list empty">
         <n-empty class="task-list-empty" :description="emptyText" size="small" />
       </div>
+      <div v-else class="task-card-list task-card-list--loading-placeholder" aria-hidden="true" />
     </n-spin>
 
     <div v-if="pagination && pagination.itemCount > 0" class="task-list-pagination">
@@ -390,6 +392,10 @@ function clearSelection() {
 .task-card-list.empty {
   align-items: center;
   justify-content: center;
+}
+
+.task-card-list--loading-placeholder {
+  min-height: 280px;
 }
 
 .task-card-item {

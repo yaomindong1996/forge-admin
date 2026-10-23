@@ -10,13 +10,14 @@
   overflow: visible;
 }
 
-/* 图表：禁止 height:100% 在不定高格子里塌缩，画布按内容撑开并裁切溢出（圆角靠外壳 overflow 裁切） */
+/* 图表：顶层跟 .grid-item 定高（锚点拖高才能生效）；勿用 height:auto，否则 ECharts 首帧塌成细条 */
 .grid-block.block-bar-chart,
 .grid-block.block-line-chart,
 .grid-block.block-area-chart,
 .grid-block.block-pie-chart {
-  height: auto !important;
-  min-height: 200px;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100%;
   overflow: hidden;
 }
 

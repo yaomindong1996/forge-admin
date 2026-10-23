@@ -93,18 +93,21 @@
           @update:value="handleUpdate"
           v-on="getComponentEvents(field)"
         >
-          <template v-if="numberFieldPrefix" #prefix>
-            {{ numberFieldPrefix }}
+          <template v-if="numberFieldPrefixIcon || numberFieldPrefix" #prefix>
+            <IconRenderer v-if="numberFieldPrefixIcon" :icon="numberFieldPrefixIcon" :size="16" />
+            <span v-if="numberFieldPrefix">{{ numberFieldPrefix }}</span>
           </template>
-          <template v-if="numberFieldSuffix" #suffix>
-            {{ numberFieldSuffix }}
+          <template v-if="numberFieldSuffixIcon || numberFieldSuffix" #suffix>
+            <span v-if="numberFieldSuffix">{{ numberFieldSuffix }}</span>
+            <IconRenderer v-if="numberFieldSuffixIcon" :icon="numberFieldSuffixIcon" :size="16" />
           </template>
         </n-input-number>
 
-        <!-- 输入框 -->
+        <!-- 输入框：Naive Input Slots（prefix/suffix/clear-icon/password-*/separator）；字数用 show-count -->
         <n-input
           v-else-if="field.type === 'input'"
           v-bind="controlProps"
+          :type="inputFieldType"
           :value="value"
           :placeholder="getPlaceholder(field)"
           :disabled="disabledHandler(field)"
@@ -115,11 +118,25 @@
           @update:value="handleUpdate"
           v-on="getComponentEvents(field)"
         >
-          <template v-if="inputFieldPrefix" #prefix>
-            {{ inputFieldPrefix }}
+          <template v-if="inputFieldPrefixIcon || inputFieldPrefix" #prefix>
+            <IconRenderer v-if="inputFieldPrefixIcon" :icon="inputFieldPrefixIcon" :size="16" />
+            <span v-if="inputFieldPrefix">{{ inputFieldPrefix }}</span>
           </template>
-          <template v-if="inputFieldSuffix" #suffix>
-            {{ inputFieldSuffix }}
+          <template v-if="inputFieldSuffixIcon || inputFieldSuffix" #suffix>
+            <span v-if="inputFieldSuffix">{{ inputFieldSuffix }}</span>
+            <IconRenderer v-if="inputFieldSuffixIcon" :icon="inputFieldSuffixIcon" :size="16" />
+          </template>
+          <template v-if="inputFieldClearIcon" #clear-icon>
+            <IconRenderer :icon="inputFieldClearIcon" :size="16" />
+          </template>
+          <template v-if="inputFieldType === 'password' && inputFieldPasswordVisibleIcon" #password-visible-icon>
+            <IconRenderer :icon="inputFieldPasswordVisibleIcon" :size="16" />
+          </template>
+          <template v-if="inputFieldType === 'password' && inputFieldPasswordInvisibleIcon" #password-invisible-icon>
+            <IconRenderer :icon="inputFieldPasswordInvisibleIcon" :size="16" />
+          </template>
+          <template v-if="inputFieldSeparator" #separator>
+            {{ inputFieldSeparator }}
           </template>
         </n-input>
 
@@ -181,7 +198,26 @@
           :virtual-scroll="false"
           @update:value="handleSelectUpdate"
           v-on="getComponentEvents(field)"
-        />
+        >
+          <template v-if="selectDropdownHeader" #header>
+            <div class="ai-form-select-slot-text">
+              {{ selectDropdownHeader }}
+            </div>
+          </template>
+          <template v-if="selectDropdownAction" #action>
+            <div class="ai-form-select-slot-text">
+              {{ selectDropdownAction }}
+            </div>
+          </template>
+          <template v-if="selectEmptyText" #empty>
+            <div class="ai-form-select-slot-text">
+              {{ selectEmptyText }}
+            </div>
+          </template>
+          <template v-if="selectArrowIcon" #arrow>
+            <IconRenderer :icon="selectArrowIcon" :size="16" />
+          </template>
+        </n-select>
 
         <!-- 字典选择器 -->
         <DictSelect
@@ -286,16 +322,16 @@
           </template>
         </n-switch>
 
-        <!-- 日期选择 -->
-        <n-date-picker
+        <!-- 日期选择（AiFormDatePicker 统一接线 Naive DatePicker Slots） -->
+        <AiFormDatePicker
           v-else-if="field.type === 'date'"
+          v-bind="datePickerBindings"
           :value="normalizeTimestampPickerValue(value)"
           :formatted-value="normalizeFormattedPickerValue(value)"
           type="date"
           :placeholder="getPlaceholder(field)"
           :clearable="field.clearable !== false"
           style="width: 100%"
-          v-bind="controlProps"
           :disabled="disabledHandler(field)"
           :default-value="resolvePickerDefaultValue(field)"
           :format="field.props?.format || field.format || 'yyyy-MM-dd'"
@@ -305,15 +341,15 @@
         />
 
         <!-- 日期时间选择 -->
-        <n-date-picker
+        <AiFormDatePicker
           v-else-if="field.type === 'datetime'"
+          v-bind="datePickerBindings"
           :value="normalizeTimestampPickerValue(value)"
           :formatted-value="normalizeFormattedPickerValue(value)"
           type="datetime"
           :placeholder="getPlaceholder(field)"
           :clearable="field.clearable !== false"
           style="width: 100%"
-          v-bind="controlProps"
           :disabled="disabledHandler(field)"
           :default-value="resolvePickerDefaultValue(field)"
           :format="field.props?.format || field.format || 'yyyy-MM-dd HH:mm:ss'"
@@ -323,8 +359,9 @@
         />
 
         <!-- 日期范围选择：起止占位优先 props，再回退公共 placeholder -->
-        <n-date-picker
+        <AiFormDatePicker
           v-else-if="field.type === 'daterange'"
+          v-bind="datePickerBindings"
           :value="normalizeTimestampRangePickerValue(value)"
           :formatted-value="normalizeFormattedRangePickerValue(value)"
           type="daterange"
@@ -333,7 +370,6 @@
           :end-placeholder="field.endPlaceholder || field.props?.endPlaceholder || '结束日期'"
           :clearable="field.clearable !== false"
           style="width: 100%"
-          v-bind="controlProps"
           :disabled="disabledHandler(field)"
           :default-value="resolvePickerDefaultValue(field, true)"
           :format="field.props?.format || field.format || 'yyyy-MM-dd'"
@@ -343,8 +379,9 @@
         />
 
         <!-- 日期时间范围选择：起止占位优先 props，再回退公共 placeholder -->
-        <n-date-picker
+        <AiFormDatePicker
           v-else-if="field.type === 'datetimerange'"
+          v-bind="datePickerBindings"
           :value="normalizeTimestampRangePickerValue(value)"
           :formatted-value="normalizeFormattedRangePickerValue(value)"
           type="datetimerange"
@@ -353,7 +390,6 @@
           :end-placeholder="field.endPlaceholder || field.props?.endPlaceholder || '结束时间'"
           :clearable="field.clearable !== false"
           style="width: 100%"
-          v-bind="controlProps"
           :disabled="disabledHandler(field)"
           :default-value="resolvePickerDefaultValue(field, true)"
           :format="field.props?.format || field.format || 'yyyy-MM-dd HH:mm:ss'"
@@ -363,15 +399,15 @@
         />
 
         <!-- 月份选择 -->
-        <n-date-picker
+        <AiFormDatePicker
           v-else-if="field.type === 'month'"
+          v-bind="datePickerBindings"
           :value="normalizeTimestampPickerValue(value)"
           :formatted-value="normalizeFormattedPickerValue(value)"
           type="month"
           :placeholder="getPlaceholder(field)"
           :clearable="field.clearable !== false"
           style="width: 100%"
-          v-bind="controlProps"
           :disabled="disabledHandler(field)"
           :default-value="resolvePickerDefaultValue(field)"
           :format="field.props?.format || field.format || 'yyyy-MM'"
@@ -381,15 +417,15 @@
         />
 
         <!-- 年份选择 -->
-        <n-date-picker
+        <AiFormDatePicker
           v-else-if="field.type === 'year'"
+          v-bind="datePickerBindings"
           :value="normalizeTimestampPickerValue(value)"
           :formatted-value="normalizeFormattedPickerValue(value)"
           type="year"
           :placeholder="getPlaceholder(field)"
           :clearable="field.clearable !== false"
           style="width: 100%"
-          v-bind="controlProps"
           :disabled="disabledHandler(field)"
           :default-value="resolvePickerDefaultValue(field)"
           :format="field.props?.format || field.format || 'yyyy'"

@@ -1465,6 +1465,11 @@ function isLegacyGroupTitleNode(node = {}) {
   min-width: 0;
 }
 
+/* 表单级 style.color 向下传到字段标签与控件 */
+.ai-form :deep(.ai-form-item) {
+  color: inherit;
+}
+
 .ai-form-body {
   min-width: 0;
 }
