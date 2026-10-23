@@ -88,4 +88,17 @@ describe('resolveControlProps', () => {
       clearable: true,
     })
   })
+
+  it('strips prefix / suffix / currencySymbol so they render via slots instead of props', () => {
+    expect(resolveControlProps({
+      placeholder: '金额',
+      prefix: '￥',
+      suffix: '%',
+      currencySymbol: '¥',
+      clearable: true,
+    })).toEqual({
+      placeholder: '金额',
+      clearable: true,
+    })
+  })
 })

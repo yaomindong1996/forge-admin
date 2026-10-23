@@ -928,6 +928,37 @@
                     :field-asset="selectedFieldAsset"
                     @update="updateComponent({ props: $event })"
                   />
+                  <!-- 对应 Naive n-input / n-input-number 的 prefix / suffix 插槽 -->
+                  <n-form-item v-if="supportsFieldAffix" label="前缀 / 后缀">
+                    <div class="option-editor-row two-columns">
+                      <n-input
+                        :value="selectedComponent.props?.prefix || ''"
+                        clearable
+                        :placeholder="selectedComponent.componentKey === 'money' ? '如 ￥（可空，空则用货币符号）' : '如 ￥、$'"
+                        @update:value="updateComponent({ props: { prefix: $event || undefined } })"
+                      />
+                      <n-input
+                        :value="selectedComponent.props?.suffix || ''"
+                        clearable
+                        placeholder="如 %、元、kg"
+                        @update:value="updateComponent({ props: { suffix: $event || undefined } })"
+                      />
+                    </div>
+                  </n-form-item>
+                  <n-form-item v-if="supportsFieldShowButton" label="加减按钮">
+                    <n-switch
+                      size="small"
+                      :value="selectedComponent.props?.showButton !== false && selectedComponent.props?.controls !== false"
+                      @update:value="updateComponent({ props: { showButton: $event } })"
+                    >
+                      <template #checked>
+                        显示
+                      </template>
+                      <template #unchecked>
+                        隐藏
+                      </template>
+                    </n-switch>
+                  </n-form-item>
                   <n-form-item v-if="selectedComponent.componentKey === 'barcodeScanner'" label="扫码输入设置">
                     <div class="field-constraint-config">
                       <div class="switch-line compact">

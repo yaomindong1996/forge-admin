@@ -92,7 +92,14 @@
           v-bind="controlProps"
           @update:value="handleUpdate"
           v-on="getComponentEvents(field)"
-        />
+        >
+          <template v-if="numberFieldPrefix" #prefix>
+            {{ numberFieldPrefix }}
+          </template>
+          <template v-if="numberFieldSuffix" #suffix>
+            {{ numberFieldSuffix }}
+          </template>
+        </n-input-number>
 
         <!-- 输入框 -->
         <n-input
@@ -107,7 +114,14 @@
           :size="field.size"
           @update:value="handleUpdate"
           v-on="getComponentEvents(field)"
-        />
+        >
+          <template v-if="inputFieldPrefix" #prefix>
+            {{ inputFieldPrefix }}
+          </template>
+          <template v-if="inputFieldSuffix" #suffix>
+            {{ inputFieldSuffix }}
+          </template>
+        </n-input>
 
         <!-- H5/企业微信条码扫描输入框 -->
         <div v-else-if="field.type === 'barcodeScanner'" class="ai-form-barcode-scanner-field">

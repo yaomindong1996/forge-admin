@@ -1,5 +1,16 @@
 /** Auto-split part 2 of ListPageGridDesigner setup. */
-import { computed, nextTick } from 'vue'
+import {
+  ArrowDownCircleOutline,
+  ArrowDownOutline,
+  ArrowUpCircleOutline,
+  ArrowUpOutline,
+  ChevronBackOutline,
+  ChevronForwardOutline,
+  DuplicateOutline,
+  TrashOutline,
+} from '@vicons/ionicons5'
+import { NIcon } from 'naive-ui'
+import { computed, h, nextTick } from 'vue'
 import { businessObjectList } from '@/api/business-app'
 import { colorToHexInput, hexInputToColor } from '@/utils/designer-color'
 import { mapBlocksInTree } from '../blockTree'
@@ -10,6 +21,10 @@ import {
   resolveListPageBlockMeta,
   syncGridLayoutWithModel,
 } from '../page-schema'
+
+function renderBlockMenuIcon(icon) {
+  return h(NIcon, { size: 16 }, { default: () => h(icon) })
+}
 export function useListPageGridDesignerPart2(props, emit, deps = {}) {
   const {
     __impl,
@@ -1056,16 +1071,16 @@ function resolveBlockMoreOptions(block = {}) {
   const index = blocks.value.findIndex(item => item.id === block.id)
   const meta = resolveListPageBlockMeta(block.blockType)
   return [
-    { label: '复制区块', key: 'duplicate', disabled: !!meta?.unique },
-    { label: '上移一行', key: 'moveUp' },
-    { label: '下移一行', key: 'moveDown' },
-    { label: '置顶', key: 'moveTop' },
-    { label: '置底', key: 'moveBottom' },
+    { label: '复制区块', key: 'duplicate', disabled: !!meta?.unique, icon: () => renderBlockMenuIcon(DuplicateOutline) },
+    { label: '上移一行', key: 'moveUp', icon: () => renderBlockMenuIcon(ArrowUpOutline) },
+    { label: '下移一行', key: 'moveDown', icon: () => renderBlockMenuIcon(ArrowDownOutline) },
+    { label: '置顶', key: 'moveTop', icon: () => renderBlockMenuIcon(ArrowUpCircleOutline) },
+    { label: '置底', key: 'moveBottom', icon: () => renderBlockMenuIcon(ArrowDownCircleOutline) },
     { type: 'divider', key: 'divider' },
-    { label: '前移一层', key: 'layerForward', disabled: index >= blocks.value.length - 1 },
-    { label: '后移一层', key: 'layerBackward', disabled: index <= 0 },
+    { label: '前移一层', key: 'layerForward', disabled: index >= blocks.value.length - 1, icon: () => renderBlockMenuIcon(ChevronForwardOutline) },
+    { label: '后移一层', key: 'layerBackward', disabled: index <= 0, icon: () => renderBlockMenuIcon(ChevronBackOutline) },
     { type: 'divider', key: 'dangerDivider' },
-    { label: '删除', key: 'delete' },
+    { label: '删除', key: 'delete', icon: () => renderBlockMenuIcon(TrashOutline) },
   ]
 }
 

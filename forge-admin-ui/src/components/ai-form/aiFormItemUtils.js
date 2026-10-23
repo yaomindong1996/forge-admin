@@ -68,6 +68,30 @@ export function getPlaceholder(field = {}) {
   return `${prefix}${field.label || ''}`
 }
 
+/** 读取字段前后缀文案（支持顶层与 props） */
+export function resolveFieldAffix(field = {}, key = 'prefix') {
+  const raw = field?.[key] ?? field?.props?.[key]
+  return String(raw ?? '').trim()
+}
+
+/**
+ * 数字/金额输入前缀：优先 props.prefix；金额字段可回退 currencySymbol（默认 ¥）。
+ */
+export function resolveNumberFieldPrefix(field = {}, resolveNumberFieldType = () => '') {
+  const explicit = resolveFieldAffix(field, 'prefix')
+  if (explicit)
+    return explicit
+  if (typeof resolveNumberFieldType === 'function' && resolveNumberFieldType(field) === 'money') {
+    const symbol = String(field?.currencySymbol ?? field?.props?.currencySymbol ?? '¥').trim()
+    return symbol || '¥'
+  }
+  return ''
+}
+
+export function resolveNumberFieldSuffix(field = {}) {
+  return resolveFieldAffix(field, 'suffix')
+}
+
 export function cacheAsyncOptions(field, promise) {
   promise.then((options) => {
     field._cachedOptions = options

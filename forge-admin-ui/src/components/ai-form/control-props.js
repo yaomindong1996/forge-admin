@@ -51,6 +51,10 @@ export function resolveControlProps(props = {}) {
     dataSourceType: _dataSourceType,
     labelName: _labelName,
     valueName: _valueName,
+    // 前后缀走 slot，不能当 Naive props 透传
+    prefix: _prefix,
+    suffix: _suffix,
+    currencySymbol: _currencySymbol,
     ...rest
   } = source
   // 兜底去掉其它 __ 前缀元数据，避免落到 DOM / 控件未知 props

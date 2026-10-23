@@ -24,7 +24,7 @@ const NFormItemStub = {
 const NInputNumberStub = {
   name: 'NInputNumber',
   props: ['value', 'min', 'max', 'step'],
-  template: '<input class="n-input-number-stub">',
+  template: '<div class="n-input-number-stub"><slot name="prefix" /><input /><slot name="suffix" /></div>',
 }
 
 const NDatePickerStub = {
@@ -122,6 +122,36 @@ describe('aiFormItem number field compatibility', () => {
     const numberInput = wrapper.findComponent(NInputNumberStub)
     expect(numberInput.exists()).toBe(true)
     expect(numberInput.props('value')).toBe(128.5)
+  })
+
+  it('renders prefix / suffix slots for input-number', () => {
+    const wrapper = mount(AiFormItem, {
+      props: {
+        field: {
+          field: 'rate',
+          label: '费率',
+          type: 'input-number',
+          props: {
+            prefix: '￥',
+            suffix: '%',
+            showButton: false,
+          },
+        },
+        value: 12,
+      },
+      global: {
+        stubs: {
+          ...naiveStubs,
+          NFormItem: NFormItemStub,
+          NInputNumber: NInputNumberStub,
+          AiRecordSelectorModal: true,
+        },
+      },
+    })
+
+    const html = wrapper.find('.n-input-number-stub').html()
+    expect(html).toContain('￥')
+    expect(html).toContain('%')
   })
 })
 

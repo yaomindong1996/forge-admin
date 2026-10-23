@@ -49,6 +49,9 @@ import {
   resolveSwitchCheckedValue,
   resolveSwitchUncheckedValue,
   getPlaceholder,
+  resolveFieldAffix,
+  resolveNumberFieldPrefix,
+  resolveNumberFieldSuffix,
   resolveDesignerInlineStyle,
   cacheAsyncOptions,
   hasEffectiveOptionSource,
@@ -109,6 +112,10 @@ export function useAiFormItem(props, emit) {
   const numberFieldValue = computed(() => (
     isNumberLikeField(props.field) ? coerceNumberFieldValue(props.value) : props.value
   ))
+  const numberFieldPrefix = computed(() => resolveNumberFieldPrefix(props.field, resolveNumberFieldType))
+  const numberFieldSuffix = computed(() => resolveNumberFieldSuffix(props.field))
+  const inputFieldPrefix = computed(() => resolveFieldAffix(props.field, 'prefix'))
+  const inputFieldSuffix = computed(() => resolveFieldAffix(props.field, 'suffix'))
   const switchControlProps = computed(() => {
     const next = { ...controlProps.value }
     delete next.checkedValue
@@ -1850,7 +1857,7 @@ export function useAiFormItem(props, emit) {
   }
   return {
     route, remoteOptions, remoteLoading, dictOptions, sourceDictOptions, recordSelectorVisible, scanLoading, scanFeedback,
-    pickerDefaultTimestamp, remoteRequestSeq, ORG_TREE_SELECT_TYPES, USER_SELECT_TYPES, controlProps, numberFieldValue, switchControlProps, fieldRuntimeControl,
+    pickerDefaultTimestamp, remoteRequestSeq, ORG_TREE_SELECT_TYPES, USER_SELECT_TYPES, controlProps, numberFieldValue, numberFieldPrefix, numberFieldSuffix, inputFieldPrefix, inputFieldSuffix, switchControlProps, fieldRuntimeControl,
     fieldRuntimeVisible, formItemRef, arrayFieldRef, restoreFixedLabelWidth, registerArrayValidator, disabledHandler, fieldAlign, fieldAlignClass,
     formItemClass, resolvedFormItemStyle, componentControlStyle, componentControlClass, recordSelectorConfig, fieldMultiple, recordSelectorRuntimeContext, relationLabelValueField, recordSelectorDisplayText,
     fieldDescription, fieldLabelTip, fieldBadge, manualFieldEventEnabled, blurFieldEventEnabled, scanFieldEventEnabled, fieldEventState, showFieldEventFeedback,

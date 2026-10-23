@@ -438,6 +438,9 @@ const switchableComponentOptions = computed(() => {
 })
 const supportsFieldMaxLength = computed(() => ['input', 'textarea', 'barcodeScanner'].includes(selectedComponent.value?.componentKey))
 const supportsFieldNumberRange = computed(() => ['number', 'inputNumber', 'money'].includes(selectedComponent.value?.componentKey))
+/** 单行文本 / 数字 / 金额：右侧主面板可配 Naive prefix / suffix */
+const supportsFieldAffix = computed(() => ['input', 'number', 'inputNumber', 'money'].includes(selectedComponent.value?.componentKey))
+const supportsFieldShowButton = computed(() => ['number', 'inputNumber', 'money'].includes(selectedComponent.value?.componentKey))
 const selectedFieldMaxLength = computed(() => {
   const fromProps = normalizePositiveInteger(selectedComponent.value?.props?.maxlength)
   if (fromProps)
@@ -1318,6 +1321,11 @@ const specPanelExcludedProps = computed(() => {
   // 选项类组件的选项由"选项来源"统一管理 —— 抽屉只保留主面板没有的属性，避免重复入口
   if (isField.value) {
     const excluded = ['placeholder', 'size', 'clearable', 'showFeedback']
+    // 前缀/后缀/加减按钮已在「字段组件」主面板配置，避免更多属性里重复
+    if (supportsFieldAffix.value)
+      excluded.push('prefix', 'suffix')
+    if (supportsFieldShowButton.value)
+      excluded.push('showButton')
     if (supportsMultipleSelect.value)
       excluded.push('multiple')
     if (isOptionField.value)
@@ -1549,6 +1557,8 @@ function collectRuntimeRuleFieldOptions(components = []) {
     switchableComponentOptions,
     supportsFieldMaxLength,
     supportsFieldNumberRange,
+    supportsFieldAffix,
+    supportsFieldShowButton,
     selectedFieldMaxLength,
     selectedFormulaConfig,
     selectedFormulaSummary,

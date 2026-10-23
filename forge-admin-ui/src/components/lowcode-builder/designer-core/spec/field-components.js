@@ -39,15 +39,15 @@ const input = {
     ] },
     disabled: { group: '外观', priority: 'common', type: 'boolean', title: '禁用', default: false },
     readonly: { group: '外观', priority: 'common', type: 'boolean', title: '只读', default: false },
+    // 常用 · 装饰（对应 Naive prefix / suffix 插槽）
+    prefix: { group: '装饰', priority: 'common', type: 'string', title: '前缀文本', desc: '如 http://、+86' },
+    suffix: { group: '装饰', priority: 'common', type: 'string', title: '后缀文本', desc: '如 .com、单位' },
     // 高级
     round: { group: '高级', priority: 'advanced', type: 'boolean', title: '圆角', default: false },
     pair: { group: '高级', priority: 'advanced', type: 'boolean', title: '成对输入', default: false, desc: '启用后输入框分为左右两部分' },
     passivelyTriggered: { group: '高级', priority: 'advanced', type: 'boolean', title: '被动触发', default: false, desc: '只在 blur 时触发 update' },
     loading: { group: '高级', priority: 'advanced', type: 'boolean', title: '加载中', default: false },
     autofocus: { group: '高级', priority: 'advanced', type: 'boolean', title: '自动聚焦', default: false },
-    // 装饰
-    prefix: { group: '装饰', priority: 'advanced', type: 'string', title: '前缀文本' },
-    suffix: { group: '装饰', priority: 'advanced', type: 'string', title: '后缀文本' },
     inputProps: { group: '装饰', priority: 'advanced', type: 'json', title: '原生 input 属性', desc: '透传给原生 input 元素的属性' },
   } },
   dataSources: [],
@@ -151,14 +151,14 @@ const number = {
     ] },
     disabled: { group: '外观', priority: 'common', type: 'boolean', title: '禁用', default: false },
     readonly: { group: '外观', priority: 'common', type: 'boolean', title: '只读', default: false },
+    // 常用 · 装饰（对应 n-input-number 的 prefix / suffix 插槽，如 ￥、%）
+    prefix: { group: '装饰', priority: 'common', type: 'string', title: '前缀文本', desc: '如 ￥、$' },
+    suffix: { group: '装饰', priority: 'common', type: 'string', title: '后缀文本', desc: '如 %、元、kg' },
     // 高级
     loading: { group: '高级', priority: 'advanced', type: 'boolean', title: '加载中', default: false },
     clearable: { group: '高级', priority: 'advanced', type: 'boolean', title: '可清空', default: false },
     keyboard: { group: '高级', priority: 'advanced', type: 'boolean', title: '键盘操作', default: true, desc: '允许通过键盘上下键调整数值' },
     autofocus: { group: '高级', priority: 'advanced', type: 'boolean', title: '自动聚焦', default: false },
-    // 装饰
-    prefix: { group: '装饰', priority: 'advanced', type: 'string', title: '前缀文本' },
-    suffix: { group: '装饰', priority: 'advanced', type: 'string', title: '后缀文本' },
   } },
   dataSources: [],
   print: fieldCommonPrint,
@@ -178,7 +178,7 @@ const money = {
   propsSchema: { properties: {
     // 常用 · 输入行为
     precision: { group: '输入行为', priority: 'common', type: 'number', title: '精度', default: 2 },
-    currencySymbol: { group: '输入行为', priority: 'common', type: 'string', title: '货币符号', default: '¥' },
+    currencySymbol: { group: '输入行为', priority: 'common', type: 'string', title: '货币符号', default: '¥', desc: '未单独填前缀时，作为金额前缀显示' },
     showChinese: { group: '输入行为', priority: 'common', type: 'boolean', title: '大写金额显示', default: false },
     placeholder: { group: '输入行为', priority: 'common', type: 'string', title: '占位提示' },
     // 常用 · 外观
@@ -194,9 +194,12 @@ const money = {
       { label: '错误', value: 'error' },
     ] },
     disabled: { group: '外观', priority: 'common', type: 'boolean', title: '禁用', default: false },
+    prefix: { group: '装饰', priority: 'common', type: 'string', title: '前缀文本', desc: '覆盖货币符号；留空则用货币符号' },
+    suffix: { group: '装饰', priority: 'common', type: 'string', title: '后缀文本', desc: '如 元' },
     // 高级
     loading: { group: '高级', priority: 'advanced', type: 'boolean', title: '加载中', default: false },
     clearable: { group: '高级', priority: 'advanced', type: 'boolean', title: '可清空', default: false },
+    showButton: { group: '外观', priority: 'common', type: 'boolean', title: '显示加减按钮', default: true },
   } },
   dataSources: [],
   print: fieldCommonPrint,
