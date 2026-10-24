@@ -38,6 +38,8 @@ public class DynamicCrudRepository {
 
     private static final String DEFAULT_PRIMARY_KEY = "id";
     private static final Pattern SAFE_IDENTIFIER = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]{0,63}$");
+    /** 动态 CRUD 查询硬超时，避免 /page 因探库/锁等待一直 pending */
+    private static final int QUERY_TIMEOUT_SECONDS = 15;
 
     public record JoinField(String fieldName, String tableAlias, String columnName) {
     }
@@ -53,6 +55,36 @@ public class DynamicCrudRepository {
     NamedParameterJdbcTemplate jdbc() {
         LowcodeRuntimeDataSourceContext context = LowcodeRuntimeDataSourceContextHolder.get();
         return context == null ? namedJdbcTemplate : jdbcTemplateProvider.namedJdbcTemplate(context);
+    }
+
+    private Long queryForLong(String sql, MapSqlParameterSource params) {
+        Long value = jdbc().execute(sql, params, ps -> {
+            ps.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    long number = rs.getLong(1);
+                    return rs.wasNull() ? null : number;
+                }
+                return null;
+            }
+        });
+        return value;
+    }
+
+    private List<Map<String, Object>> queryForList(String sql, MapSqlParameterSource params) {
+        return jdbc().execute(sql, params, ps -> {
+            ps.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                org.springframework.jdbc.core.ColumnMapRowMapper mapper =
+                        new org.springframework.jdbc.core.ColumnMapRowMapper();
+                List<Map<String, Object>> rows = new java.util.ArrayList<>();
+                int rowNum = 0;
+                while (rs.next()) {
+                    rows.add(mapper.mapRow(rs, rowNum++));
+                }
+                return rows;
+            }
+        });
     }
 
     // ==================== 查询操作 ====================
@@ -85,11 +117,11 @@ public class DynamicCrudRepository {
         appendSearchConditions(whereClause, params, searchParams, allowedSearchFields, searchTypeMap, columnMapping);
 
         String countSql = buildSelectSql("SELECT COUNT(*)", tableName, whereClause);
-        Long total = jdbc().queryForObject(countSql, params, Long.class);
+        Long total = queryForLong(countSql, params);
 
         String dataSql = buildPageDataSql(tableName, whereClause, orderBy, pageNum, pageSize);
 
-        List<Map<String, Object>> records = jdbc().queryForList(dataSql, params);
+        List<Map<String, Object>> records = queryForList(dataSql, params);
 
         Page<Map<String, Object>> page = new Page<>(pageNum, pageSize, total != null ? total : 0);
         page.setRecords(records);
@@ -136,11 +168,11 @@ public class DynamicCrudRepository {
                 .resolveListPlan(mainTableName, selectFields, joins, aggregateChildren);
         String countSql = (joinedSql.distinctMainRows() ? "SELECT COUNT(DISTINCT " + qualifyPrimaryKey("t0") + ") " : "SELECT COUNT(*) ")
                 + joinedSql.fromClause() + buildWhereSql(whereClause);
-        Long total = jdbc().queryForObject(countSql, params, Long.class);
+        Long total = queryForLong(countSql, params);
 
         String dataSql = paginateSql(buildJoinSelectClause(selectFields, joinedSql.distinctMainRows()) + " " + joinedSql.fromClause()
                 + buildWhereSql(whereClause) + buildOrderByClause(orderBy), pageNum, pageSize);
-        List<Map<String, Object>> records = jdbc().queryForList(dataSql, params);
+        List<Map<String, Object>> records = queryForList(dataSql, params);
 
         Page<Map<String, Object>> page = new Page<>(pageNum, pageSize, total != null ? total : 0);
         page.setRecords(records);

@@ -133,11 +133,14 @@ describe('application runtime route loading', () => {
     const runtimeSource = readApplicationRuntimeSource()
     expect(runtimeSource).toContain('businessApplicationRuntimeByCode')
     expect(runtimeSource).toContain('shouldUseApplicationWorkspaceLoad(route, canEditApplication.value)')
-    // 工作台内有编辑权限时走 designPreview：未发布对象可列表/新增；正式门户路由仍只看已发布配置。
+    // 运行态查看不因编辑权限误开 designPreview，避免 /page?designPreview=1 挂死连接。
     // configurable 必须为 false，否则 GridBlockRenderer 会按设计态画虚线边框。
     expect(runtimeSource).toContain(':design-preview="usePortalDesignPreview"')
     expect(runtimeSource).toContain('canEditApplication.value')
     expect(runtimeSource).toContain('const usePortalDesignPreview = computed(() => (')
+    expect(runtimeSource).toContain('editing.value')
+    expect(runtimeSource).toContain('isDraftMode.value')
+    expect(runtimeSource).not.toContain('|| canEditApplication.value\n  ))')
     expect(runtimeSource).not.toContain(':design-preview="editing || isDraftMode || canEditApplication"')
     expect(runtimeSource).toContain(':configurable="false"')
     expect(runtimeSource).toContain(':crud-config-revision="portalCrudConfigRevision"')
@@ -224,6 +227,11 @@ describe('application runtime route loading', () => {
     expect(runtimeSource).toContain('waitForEditSurfaceReady')
     expect(runtimeSource).toContain('.application-form-asset-designer .forge-form-designer')
     expect(portalSource).toContain('seedRuntimeCrudProps')
+    expect(portalSource).toContain('resolveBlocksSignature')
+    expect(portalSource).toContain('resolveSeedSignature')
+    // 禁止对 blocks/seed 做 deep watch，否则运行态列表会反复 preload 卡死
+    expect(portalSource).toMatch(/resolveSeedSignature\(props\.seedRuntimeCrudProps\)[\s\S]*\{\s*immediate:\s*true\s*\}/)
+    expect(portalSource).not.toMatch(/seedRuntimeCrudProps\][\s\S]*\{\s*immediate:\s*true,\s*deep:\s*true\s*\}/)
     expect(portalSource).toContain('portal-content-skeleton')
     expect(rendererSource).toContain('<div v-if="runtimeCrudLoading" class="runtime-crud-loading">')
     expect(rendererSource).toContain('<n-skeleton height="32px" :sharp="false" />')

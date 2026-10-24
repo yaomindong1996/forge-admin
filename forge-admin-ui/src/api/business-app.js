@@ -481,8 +481,14 @@ export function businessDocumentRuntime(objectCode, recordId) {
   return request.get(`/ai/business/document/${objectCode}/${recordId}/runtime`)
 }
 
-export function businessDocumentRuntimeBatch(objectCode, recordIds = []) {
-  return request.post(`/ai/business/document/${objectCode}/runtime/batch`, { recordIds })
+export function businessDocumentRuntimeBatch(objectCode, recordIds = [], options = {}) {
+  // 列表增强接口：失败/超时不能拖死整页；流程服务慢时用短超时快速降级
+  return request.post(`/ai/business/document/${objectCode}/runtime/batch`, { recordIds }, {
+    timeout: 3000,
+    needTip: false,
+    skipGlobalLoading: true,
+    signal: options.signal,
+  })
 }
 
 export function codeRulePage(params) {

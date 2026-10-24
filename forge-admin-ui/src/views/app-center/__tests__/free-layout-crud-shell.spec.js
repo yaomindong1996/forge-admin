@@ -75,6 +75,28 @@ describe('free layout CRUD shell suppress', () => {
     expect(runtime).toContain('pageSurfaceHostStyle')
   })
 
+  it('fill-host inline form keeps constrained height so form body can scroll', () => {
+    const portal = readSource('src/views/app-center/components/portal/PortalPageRenderer.vue')
+    const fillBlockRule = portal.match(
+      /\.portal-page-renderer\.is-fill\s+\.portal-page-block:has\(\.ai-crud-page\.is-inline-form-active\)\s*\{[^}]+\}/,
+    )?.[0] || ''
+    // fill 宿主：块用 height:0 + flex 锁高，滚动交给 .inline-form-panel-body
+    expect(fillBlockRule).toContain('height: 0 !important')
+    expect(fillBlockRule).not.toContain('height: auto')
+    expect(portal).toMatch(
+      /\.portal-page-renderer\.is-fill\s+\.portal-page-block:has\(\.ai-crud-page\.is-inline-form-active\)\s+:deep\(\.inline-form-panel-body\)\s*\{[\s\S]*?overflow:\s*auto/,
+    )
+  })
+
+  it('fill-host formOnly pages scroll on page-surface instead of clipping', () => {
+    const portal = readSource('src/views/app-center/components/portal/PortalPageRenderer.vue')
+    const canvas = readSource('src/views/app-center/runtime-modules/application-runtime-canvas.css')
+    expect(portal).toContain('.portal-page-renderer.is-fill:has(.ai-crud-page.is-form-only)')
+    expect(portal).toMatch(/is-form-only[\s\S]*?overflow:\s*visible\s*!important/)
+    expect(canvas).toContain('.page-surface.is-fill:has(.ai-crud-page.is-form-only)')
+    expect(canvas).toMatch(/\.page-surface\.is-fill:has\(\.ai-crud-page\.is-form-only\)\s*\{[\s\S]*?overflow:\s*auto/)
+  })
+
   it('card surface applies style.borderRadius so appearance panel radius takes effect', () => {
     const renderer = readSource('src/components/lowcode-builder/page/composables/useGridBlockRenderer.js')
     expect(renderer).toMatch(/layoutCardStyle[\s\S]*borderRadius:\s*toCssSize/)

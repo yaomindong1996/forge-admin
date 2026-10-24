@@ -79,6 +79,12 @@ export function applyAiCrudPagePart1(props, emit, deps = {}) {
     offlineDraftSaveTimer: null,
     inlineFormTabSequence: 0,
     formChangeSequence: 0,
+    /** 列表加载序号：用于丢弃过期的 runtime/batch 增强结果 */
+    listLoadSeq: 0,
+    /** 取消上一轮 runtime/batch，避免堆积拖死页签 */
+    runtimeEnrichAbort: null,
+    /** 取消上一轮 /page 列表请求，避免挂死请求占满连接 */
+    listAbort: null,
   }
   const startFlowAction = (...args) => __impl.startFlowAction(...args)
   const resolveDocumentRuntime = (...args) => __impl.resolveDocumentRuntime(...args)

@@ -867,10 +867,6 @@
 .navigation-group-chevron {
   flex: 0 0 auto;
   color: #a0a7b2;
-  transition: transform 0.15s ease;
-}
-.navigation-group.collapsed .navigation-group-chevron {
-  transform: rotate(-90deg);
 }
 .navigation-group-add {
   display: none;

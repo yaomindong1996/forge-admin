@@ -37,6 +37,8 @@ export function crudConfigRender(configKey, designPreview = false, requestOption
     params.applicationId = String(applicationId)
   return request.get(`/ai/crud-config/render/${configKey}`, {
     ...options,
+    // 渲染配置若挂死会占满浏览器 6 连接，后续 /page 一直 Stalled 且不触发 axios 超时
+    timeout: options.timeout ?? 12000,
     params: Object.keys(params).length ? params : undefined,
   })
 }

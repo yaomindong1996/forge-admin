@@ -22,10 +22,14 @@ export function buildRuntimeCrudProps(config = {}, { designPreview = false } = {
   const formOpenMode = resolveFormOpenMode(options, config, designerLayout)
   const governance = resolveDesignerFormGovernance(fdsSource)
   const configKey = String(config.configKey || '').trim()
+  // 已发布对象：列表/详情走正式运行配置，避免 designPreview=1 在后端编译草稿/探库时挂死。
+  // 前端 schema 仍可用 designPreview 的 render 结果（含未发布的默认值改动）。
+  const publishStatus = String(config.publishStatus || '').trim().toUpperCase()
+  const apiDesignPreview = designPreview && publishStatus !== 'PUBLISHED'
   const apiConfig = ensureRuntimeApiConfig(
-    normalizeApiConfig(config.apiConfig, configKey, designPreview),
+    normalizeApiConfig(config.apiConfig, configKey, apiDesignPreview),
     configKey,
-    designPreview,
+    apiDesignPreview,
   )
   const flatEditSchema = mergeDesignerEditSchema(
     normalizeFields(config.editSchema),
@@ -209,7 +213,10 @@ function normalizeApiConfig(apiConfig, configKey, designPreview) {
     : (apiConfig && typeof apiConfig === 'object' && !Array.isArray(apiConfig) ? apiConfig : {})
   return Object.fromEntries(Object.entries(source).map(([key, value]) => {
     const resolved = resolveCurrentConfigPlaceholder(value, configKey)
-    return [key, designPreview ? appendDesignPreviewToApiValue(resolved) : resolved]
+    // 已发布对象必须剥掉配置里自带的 designPreview=1，否则仍会打草稿路径并占死连接
+    return [key, designPreview
+      ? appendDesignPreviewToApiValue(resolved)
+      : stripDesignPreviewFromApiValue(resolved)]
   }))
 }
 
@@ -259,6 +266,31 @@ export function appendDesignPreviewToApiValue(value) {
   const url = atIndex > -1 ? text.slice(atIndex + 1) : text
   const finalUrl = `${url}${url.includes('?') ? '&' : '?'}designPreview=1`
   return method ? `${method}@${finalUrl}` : finalUrl
+}
+
+/**
+ * 去掉 API 配置值上的 designPreview 查询参数（幂等）。
+ * 后端草稿 apiConfig 常自带 designPreview=1，已发布运行态必须剥掉，否则会一直走草稿 /page。
+ */
+export function stripDesignPreviewFromApiValue(value) {
+  const text = String(value || '').trim()
+  if (!text || !text.includes('designPreview='))
+    return text
+  const atIndex = text.indexOf('@')
+  const method = atIndex > -1 ? text.slice(0, atIndex) : ''
+  const rawUrl = atIndex > -1 ? text.slice(atIndex + 1) : text
+  const qIndex = rawUrl.indexOf('?')
+  if (qIndex < 0)
+    return text
+  const path = rawUrl.slice(0, qIndex)
+  const search = rawUrl.slice(qIndex + 1)
+  const kept = search
+    .split('&')
+    .map(part => part.trim())
+    .filter(Boolean)
+    .filter(part => !/^designPreview=/i.test(part))
+  const nextUrl = kept.length ? `${path}?${kept.join('&')}` : path
+  return method ? `${method}@${nextUrl}` : nextUrl
 }
 
 /**

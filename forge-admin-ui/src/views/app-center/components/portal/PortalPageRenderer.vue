@@ -307,8 +307,34 @@ const pageHeight = computed(() => blocks.value.reduce((bottom, block, index) => 
   return Math.max(bottom, top + height + 28)
 }, 620))
 
+/**
+ * 禁止 deep watch blocks/seed：子组件就地改 props 嵌套字段、或 layout 代理写回，
+ * 会反复清空 pageInit / 重跑 preload，列表一直转圈甚至主线程卡死。
+ * 只盯页面范围签名（节点、块身份、预览/修订、seed 的 key 集合）。
+ */
+function resolveBlocksSignature(items = []) {
+  const parts = []
+  visitBlocks(items, (block) => {
+    parts.push(`${block?.id || ''}:${block?.blockType || ''}`)
+  })
+  return parts.join('|')
+}
+
+function resolveSeedSignature(seed) {
+  if (!seed || typeof seed !== 'object')
+    return ''
+  return Object.keys(seed).filter(Boolean).sort().join(',')
+}
+
 watch(
-  () => [props.node?.id, blocks.value, props.designPreview, props.configurable, props.crudConfigRevision, props.seedRuntimeCrudProps],
+  () => [
+    props.node?.id,
+    resolveBlocksSignature(blocks.value),
+    props.designPreview,
+    props.configurable,
+    props.crudConfigRevision,
+    resolveSeedSignature(props.seedRuntimeCrudProps),
+  ],
   (next, prev) => {
     const nextPreview = next?.[2]
     const nextConfigurable = next?.[3]
@@ -331,14 +357,22 @@ watch(
       runtimeTreeActiveKey.value = '__all__'
     }
     applySeedRuntimeCrudProps()
-    // PAGE_INIT 默认值按页隔离
-    pageInitKeys.value = new Set()
-    pageInitDefaultsByObject.value = {}
-    contentBootstrapStarted.value = false
+    // 仅页面范围变化时重置 PAGE_INIT；仅 seed key 补齐时不要打断已在飞的 preload
+    const pageScopeChanged = !prev
+      || next?.[0] !== prev?.[0]
+      || next?.[1] !== prev?.[1]
+      || invalidateAll
+    if (pageScopeChanged) {
+      pageInitKeys.value = new Set()
+      pageInitDefaultsByObject.value = {}
+      contentBootstrapStarted.value = false
+      visitBlocks(blocks.value, preloadRuntimeCrudProps)
+      contentBootstrapStarted.value = true
+      return
+    }
     visitBlocks(blocks.value, preloadRuntimeCrudProps)
-    contentBootstrapStarted.value = true
   },
-  { immediate: true, deep: true },
+  { immediate: true },
 )
 
 function applySeedRuntimeCrudProps() {
@@ -353,7 +387,8 @@ function applySeedRuntimeCrudProps() {
   entries.forEach(([key, value]) => {
     if (!key || next[key])
       return
-    next[key] = value
+    // 浅拷贝切断与 portalCrudSeed 的共享引用，避免运行态改 props 回写 seed
+    next[key] = { ...value }
     changed = true
   })
   if (changed)
@@ -470,8 +505,7 @@ function resolveRuntimeCrudProps(block) {
     return null
   const objectRef = resolveObjectRef(block) || resolveObjectRef(props.node || {})
   const key = resolveObjectKey(objectRef)
-  if (key && !runtimeCrudPropsByKey.value[key] && !loadingKeys.value.has(key) && !unavailableKeys.value.has(key))
-    preloadRuntimeCrudProps(block)
+  // 预加载只走 watch/visitBlocks，禁止在 render 里改 loadingKeys（会触发递归更新）
   const runtimeProps = key ? runtimeCrudPropsByKey.value[key] || null : null
   if (!runtimeProps)
     return null
@@ -1006,9 +1040,12 @@ function readLength(value) {
   height: auto !important;
 }
 
-/* 内联编辑/详情：保持填满高度，由 AiCrudPage 表单区域内部滚动 */
-.portal-page-flow:has(.ai-crud-page.is-inline-form-active) {
+/* 内联编辑/详情（仅 fill 宿主）：外层锁死可视高度，由表单 body 内部滚动。
+ * 禁止 height:auto —— 内容撑开后会被 overflow:hidden 裁切且中间不出滚动条。
+ * 自由布局非 fill 仍走文档流，由外层 page surface / runtime-main 滚动。 */
+.portal-page-renderer.is-fill .portal-page-flow:has(.ai-crud-page.is-inline-form-active) {
   display: flex;
+  height: 100%;
   min-height: 0 !important;
   flex: 1 1 auto;
   flex-direction: column;
@@ -1017,20 +1054,57 @@ function readLength(value) {
   overflow: hidden;
 }
 
-.portal-page-block:has(.ai-crud-page.is-inline-form-active) {
+.portal-page-renderer.is-fill .portal-page-block:has(.ai-crud-page.is-inline-form-active) {
   position: relative !important;
   inset: auto !important;
   width: 100% !important;
   flex: 1 1 auto;
   min-height: 0 !important;
-  height: auto !important;
+  /* flex 子项用 0 + flex:1 拿到确定高度，才能把滚动交给表单 body */
+  height: 0 !important;
   overflow: hidden;
 }
 
-.portal-page-block:has(.ai-crud-page.is-inline-form-active) :deep(.grid-block) {
+.portal-page-renderer.is-fill .portal-page-block:has(.ai-crud-page.is-inline-form-active) :deep(.grid-block),
+.portal-page-renderer.is-fill .portal-page-block:has(.ai-crud-page.is-inline-form-active) :deep(.ai-crud-preview),
+.portal-page-renderer.is-fill .portal-page-block:has(.ai-crud-page.is-inline-form-active) :deep(.ai-crud-page),
+.portal-page-renderer.is-fill .portal-page-block:has(.ai-crud-page.is-inline-form-active) :deep(.ai-crud-main),
+.portal-page-renderer.is-fill .portal-page-block:has(.ai-crud-page.is-inline-form-active) :deep(.ai-crud-inline-form-panel) {
+  display: flex;
+  flex-direction: column;
   height: 100% !important;
   min-height: 0;
   overflow: hidden;
+}
+
+.portal-page-renderer.is-fill .portal-page-block:has(.ai-crud-page.is-inline-form-active) :deep(.inline-form-panel-body) {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+/* 自由布局非 fill：内联表单跟内容增高，外层滚动；勿 overflow:hidden 裁切 */
+.portal-page-renderer:not(.is-fill) .portal-page-flow:has(.ai-crud-page.is-inline-form-active),
+.portal-page-renderer:not(.is-fill) .portal-page-block:has(.ai-crud-page.is-inline-form-active) {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+/* fill 宿主 + formOnly：跟内容增高，交给 .page-surface 滚动（与 AiCrudPage.is-form-only 文档流一致） */
+.portal-page-renderer.is-fill:has(.ai-crud-page.is-form-only),
+.portal-page-renderer.is-fill:has(.ai-crud-page.is-form-only) .portal-page-flow,
+.portal-page-renderer.is-fill:has(.ai-crud-page.is-form-only) .portal-page-block,
+.portal-page-renderer.is-fill:has(.ai-crud-page.is-form-only) .portal-page-block :deep(.grid-block),
+.portal-page-renderer.is-fill:has(.ai-crud-page.is-form-only) .portal-page-block :deep(.ai-crud-preview),
+.portal-page-renderer.is-fill:has(.ai-crud-page.is-form-only) .portal-page-block :deep(.ai-crud-page) {
+  height: auto !important;
+  min-height: 0;
+  overflow: visible !important;
+}
+.portal-page-renderer.is-fill:has(.ai-crud-page.is-form-only) .portal-page-flow {
+  flex: 0 0 auto;
 }
 
 .portal-external-frame {

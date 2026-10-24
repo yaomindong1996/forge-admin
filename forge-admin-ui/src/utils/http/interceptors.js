@@ -7,6 +7,7 @@ import { getSessionKey, initKeyExchange, resetKeyExchange } from '@/utils/crypto
 import { getTenantPageBaseTitle } from '@/utils/page-title'
 import { stripNullRequestBody } from './empty-body'
 import { isAuthErrorCode, resolveResError, shouldSilenceAuthError } from './helpers'
+import { acquireRequestSlot } from './request-concurrency'
 import { maybeRefreshSession } from './session-keepalive'
 
 // 生成 UUID
@@ -299,6 +300,7 @@ export function setupInterceptors(axiosInstance) {
    * 响应成功拦截器
    */
   async function resResolve(response) {
+    response?.config?.__releaseRequestSlot?.()
     finishRequestGlobalLoading(response?.config)
 
     // 先进行解密处理
@@ -380,7 +382,9 @@ export function setupInterceptors(axiosInstance) {
    * 响应失败拦截器 - 统一错误处理入口
    */
   async function resReject(error) {
-    finishRequestGlobalLoading(error?.config || error?.response?.config)
+    const failedConfig = error?.config || error?.response?.config
+    failedConfig?.__releaseRequestSlot?.()
+    finishRequestGlobalLoading(failedConfig)
 
     // 1. 处理已经在 resResolve 中标记了 skipErrorHandler 的错误（解密错误等）
     if (error?.skipErrorHandler) {
@@ -577,12 +581,22 @@ async function reqResolve(config, axiosInstance) {
 
     assertBusinessSelectorRequest(config)
 
+    // 低代码列表/渲染限流：挂死请求占满连接时，后续 /page 会一直 Stalled
+    const releaseSlot = await acquireRequestSlot(config)
+    config.__releaseRequestSlot = releaseSlot
+    if (typeof config.timeout !== 'number') {
+      const url = String(config.url || '')
+      if (url.includes('/ai/crud/') || url.includes('/ai/crud-config/render/'))
+        config.timeout = 15000
+    }
+
     // 加密处理
     config = encryptRequest(config)
 
     return config
   }
   catch (error) {
+    config?.__releaseRequestSlot?.()
     finishRequestGlobalLoading(config)
     if (['ENCRYPT_KEY_MISSING', 'CRYPTO_CONFIG_UNAVAILABLE'].includes(error?.code)) {
       await nextTick()

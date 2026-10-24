@@ -126,6 +126,42 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
     }
 
     tableLoading.value = true
+    // 取消上一轮未完成的 /page，避免挂死请求占满浏览器连接导致一直 pending 且不超时
+    try {
+      mut.listAbort?.abort?.()
+    }
+    catch {
+      // ignore
+    }
+    const listAbort = typeof AbortController !== 'undefined' ? new AbortController() : null
+    mut.listAbort = listAbort
+    const listTimeoutMs = 8000
+    // 墙钟超时：Stalled（连接排队未发出）时 axios timeout 不生效，必须自己 abort
+    const hardTimer = setTimeout(() => {
+      try {
+        listAbort?.abort?.()
+      }
+      catch {
+        // ignore
+      }
+    }, listTimeoutMs)
+    const withHardTimeout = promise => Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        const timer = setTimeout(() => {
+          try {
+            listAbort?.abort?.()
+          }
+          catch {
+            // ignore
+          }
+          const error = new Error(`timeout of ${listTimeoutMs}ms exceeded`)
+          error.code = 'ECONNABORTED'
+          reject(error)
+        }, listTimeoutMs)
+        promise?.finally?.(() => clearTimeout(timer))
+      }),
+    ])
 
     try {
       // 构建请求参数（查询区树本级+子集：用前端展开值覆盖单选值，与左树 field=1,5 一致）
@@ -156,14 +192,16 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
       // 发送请求
       let response
       if (customQueryPayload.value && resolvedCustomQueryConfigKey.value) {
-        response = await customQueryExecute(resolvedCustomQueryConfigKey.value, {
+        response = await withHardTimeout(customQueryExecute(resolvedCustomQueryConfigKey.value, {
           ...resolveDefaultRequestSortParams(),
           ...customQueryPayload.value,
           pageNum: pagination.value.page,
           pageSize: pagination.value.pageSize,
         }, {
           globalLoading: false,
-        })
+          timeout: listTimeoutMs,
+          signal: listAbort?.signal,
+        }))
       }
       else {
         // 嵌入式树表优先打 /tree，避免上游 props 未改写 list 时落到平铺 /page
@@ -183,14 +221,20 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
 
         if (useEncrypt && requestMethod === 'postEncrypt') {
           // 使用加密请求
-          response = await postEncrypt(url, params, { globalLoading: false })
+          response = await withHardTimeout(postEncrypt(url, params, {
+            globalLoading: false,
+            timeout: listTimeoutMs,
+            signal: listAbort?.signal,
+          }))
         }
         else {
-          // 使用普通请求
+          // 使用普通请求 + 墙钟超时（Stalled 时 axios timeout 不管事）
           const requestConfig = {
             method: requestMethod,
             url,
             globalLoading: false,
+            timeout: listTimeoutMs,
+            signal: listAbort?.signal,
           }
 
           if (requestMethod === 'get') {
@@ -201,7 +245,7 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
             requestConfig.params = props.publicQuery
           }
 
-          response = await request(requestConfig)
+          response = await withHardTimeout(request(requestConfig))
         }
       }
 
@@ -216,33 +260,63 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
       // 调用 beforeRenderList 钩子
       list = await callHook('beforeRenderList', list, data => data)
 
-      // 列表动作需要按记录读取流程运行态。否则“发起主流程”只会依赖静态
-      // 配置，流程启动后仍会留在操作列里，也无法正确展示流程状态。
-      list = await enrichDocumentRuntimeRows(list)
-
-      // 更新数据
+      // 先出列表再补流程运行态：runtime/batch 常因流程服务慢而挂起，
+      // 不能挡在 tableLoading 里，否则整页一直转圈甚至页签卡死。
+      const loadSeq = (mut.listLoadSeq = (mut.listLoadSeq || 0) + 1)
       dataSource.value = list
       pagination.value.itemCount = total
       if (isEmbeddedTreeTable.value && effectiveTableProps.value?.defaultExpandAll !== false) {
         expandedRowKeys.value = collectEmbeddedTreeExpandKeys(list)
       }
-
       emit('load-list-success', { list, total })
+      tableLoading.value = false
+
+      // 列表页默认不调 runtime/batch：该接口常挂起且加密体量大，会拖死页签。
+      // 流程操作列在点开行/动作时再按需取运行态。
+      if (props.enableListRuntimeEnrich === true) {
+        try {
+          mut.runtimeEnrichAbort?.abort?.()
+        }
+        catch {
+          // ignore
+        }
+        const enrichAbort = typeof AbortController !== 'undefined' ? new AbortController() : null
+        mut.runtimeEnrichAbort = enrichAbort
+        void enrichDocumentRuntimeRows(list, { signal: enrichAbort?.signal }).then((enriched) => {
+          if (loadSeq !== mut.listLoadSeq)
+            return
+          if (!Array.isArray(enriched) || enriched === list)
+            return
+          dataSource.value = enriched
+        })
+      }
     }
     catch (error) {
+      if (error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError' || error?.name === 'AbortError') {
+        if (/timeout/i.test(String(error?.message || '')) || error?.code === 'ECONNABORTED') {
+          window.$message.error('列表加载超时，请稍后重试')
+          tableLoading.value = false
+          emit('load-list-error', error)
+        }
+        return
+      }
+      const timedOut = error?.code === 'ECONNABORTED' || /timeout/i.test(String(error?.message || ''))
       console.error('加载列表失败:', error)
-      window.$message.error('加载数据失败')
+      window.$message.error(timedOut ? '列表加载超时，请稍后重试' : '加载数据失败')
       emit('load-list-error', error)
+      tableLoading.value = false
     }
     finally {
-      tableLoading.value = false
+      clearTimeout(hardTimer)
     }
   }
 
-  async function enrichDocumentRuntimeRows(list = []) {
+  async function enrichDocumentRuntimeRows(list = [], { signal } = {}) {
     const objectCode = String(props.businessObjectCode || '').trim()
     const rows = Array.isArray(list) ? list : []
     if (!objectCode || !rows.length)
+      return rows
+    if (signal?.aborted)
       return rows
     const childrenField = props.treeConfig?.childrenField || 'children'
     const flatItems = []
@@ -262,7 +336,7 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
     if (!recordIds.length)
       return rows
     try {
-      const response = await businessDocumentRuntimeBatch(objectCode, recordIds)
+      const response = await businessDocumentRuntimeBatch(objectCode, recordIds, { signal })
       const payload = response?.data ?? response ?? {}
       const runtimeMap = payload && typeof payload === 'object' ? payload : {}
       const applyRuntime = (nodes = []) => {
@@ -289,7 +363,7 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
       return applyRuntime(rows)
     }
     catch (error) {
-      // 流程运行态不是列表数据本身，接口异常不能阻断普通 CRUD 列表。
+      // 流程运行态不是列表数据本身，接口异常/超时不能阻断普通 CRUD 列表。
       console.warn('[AiCrudPage] 加载列表流程运行态失败:', error?.message || error)
       return rows
     }

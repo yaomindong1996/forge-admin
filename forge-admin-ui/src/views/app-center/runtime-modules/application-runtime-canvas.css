@@ -304,6 +304,17 @@
   height: 100%;
   overflow: hidden;
 }
+/* formOnly 是文档流增高：fill 宿主若仍 overflow:hidden，长表单底部会被裁掉且无滚动条 */
+.page-surface.is-fill:has(.ai-crud-page.is-form-only) {
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+.page-surface.is-fill:has(.ai-crud-page.is-form-only) > .portal-page-renderer {
+  flex: 0 0 auto;
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
 .object-page-card p {
   margin: 0;
   color: var(--text-tertiary);

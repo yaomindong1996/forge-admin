@@ -42,6 +42,7 @@ describe('runtime CRUD design preview props', () => {
   it('adds the design preview marker to every draft CRUD endpoint', () => {
     const props = buildRuntimeCrudProps({
       configKey: 'crm_customer',
+      publishStatus: 'DRAFT',
       apiConfig: {
         list: 'get@/ai/crud/当前配置/page',
         detail: 'get@/ai/crud/当前配置/:id',
@@ -52,7 +53,7 @@ describe('runtime CRUD design preview props', () => {
     }, { designPreview: true })
 
     expect(props.designPreview).toBe(true)
-    expect(props.apiConfig).toEqual({
+    expect(props.apiConfig).toMatchObject({
       list: 'get@/ai/crud/crm_customer/page?designPreview=1',
       detail: 'get@/ai/crud/crm_customer/:id?designPreview=1',
       create: 'post@/ai/crud/crm_customer?designPreview=1',
@@ -71,6 +72,31 @@ describe('runtime CRUD design preview props', () => {
     expect(published.apiConfig.list).toBe('get@/ai/crud/crm_customer/page')
     expect(appendDesignPreviewToApiValue('get@/ai/crud/crm_customer/page?designPreview=1'))
       .toBe('get@/ai/crud/crm_customer/page?designPreview=1')
+  })
+
+  it('keeps published object APIs without designPreview even in preview mode', () => {
+    const props = buildRuntimeCrudProps({
+      configKey: 'htsystem_apply_q5qx',
+      publishStatus: 'PUBLISHED',
+      apiConfig: { list: 'get@/ai/crud/当前配置/page' },
+    }, { designPreview: true })
+
+    expect(props.designPreview).toBe(true)
+    expect(props.apiConfig.list).toBe('get@/ai/crud/htsystem_apply_q5qx/page')
+  })
+
+  it('strips baked-in designPreview from published object apiConfig', () => {
+    const props = buildRuntimeCrudProps({
+      configKey: 'htsystem_apply_q5qx',
+      publishStatus: 'PUBLISHED',
+      apiConfig: {
+        list: 'get@/ai/crud/htsystem_apply_q5qx/page?designPreview=1&orderByColumn=id',
+        detail: 'get@/ai/crud/htsystem_apply_q5qx/:id?designPreview=1',
+      },
+    }, { designPreview: true })
+
+    expect(props.apiConfig.list).toBe('get@/ai/crud/htsystem_apply_q5qx/page?orderByColumn=id')
+    expect(props.apiConfig.detail).toBe('get@/ai/crud/htsystem_apply_q5qx/:id')
   })
 
   it('adds the design preview marker to a block-level base API', () => {

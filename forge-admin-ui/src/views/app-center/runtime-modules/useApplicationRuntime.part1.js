@@ -691,11 +691,15 @@ export function applyApplicationRuntimePart1() {
   // application-portal.vue 按当前客户端过滤。该权限计算放在导航树之前，
   // 避免导航树首次求值时拿到旧的客户端过滤结果。
   const canEditApplication = computed(() => userStore.isAdmin || hasPermission(userStore.permissions, 'ai:businessApplication:edit') || hasPermission(userStore.apiPermissions, 'ai:businessApplication:edit') || hasPermission(userStore.getDataPermission, 'ai:businessApplication:edit'))
-  /** 编辑/草稿，或应用工作台内有编辑权限时：走草稿 CRUD（含新增），不要求先发布应用 */
+  /**
+   * 仅编辑/草稿走 designPreview。
+   * 有编辑权限但只是在运行态查看时绝不能带 designPreview=1：
+   * 草稿 /page 会挂死连接，后续请求一直 Stalled，axios timeout 也不触发。
+   * 未发布对象请进入编辑/草稿预览；正式查看走已发布配置。
+   */
   const usePortalDesignPreview = computed(() => (
     editing.value
     || isDraftMode.value
-    || canEditApplication.value
   ))
   const activeDesignerObject = computed(() => resolveApplicationDesignerObject(objects.value, activeDesignerResource.value?.objectId))
   // 对象页面（表单页/列表页/数据结构）也应能预览，落到对象自身的 CRUD 运行页。

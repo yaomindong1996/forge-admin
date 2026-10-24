@@ -575,8 +575,9 @@
                     @click="toggleGroupExpanded(item.id)"
                   >
                     <span class="navigation-group-label">{{ item.title }}</span>
-                    <NIcon size="12" class="navigation-group-chevron">
-                      <ArrowDownOutline />
+                    <NIcon size="12" class="navigation-group-chevron" aria-hidden="true">
+                      <ChevronForwardOutline v-if="isGroupCollapsed(item.id)" />
+                      <ChevronDownOutline v-else />
                     </NIcon>
                   </button>
                   <!-- 页面项的编辑按钮（hover 显示） -->
