@@ -2,7 +2,7 @@
 # Forge Admin UI 前端 Dockerfile
 # ============================================
 # 构建上下文为项目根目录，docker compose 中 context 设为 ..
-# vite.config.js / 构建插件依赖仓库根 scripts/ 与发行版本文件，不能只 COPY forge-admin-ui
+# vite / plugin-ui-manifest 依赖仓库根 scripts、POM，不能只 COPY forge-admin-ui
 FROM node:23-alpine AS builder
 WORKDIR /workspace
 
@@ -10,11 +10,12 @@ WORKDIR /workspace
 RUN npm config set registry https://registry.npmmirror.com \
     && npm install -g pnpm@9
 
-# 发行版本与共享脚本（vite 从 ../scripts 引用）
-COPY scripts/forge-shared ./scripts/forge-shared
-COPY scripts/forge-plugin ./scripts/forge-plugin
+# 整份 scripts（含 forge-shared / forge-plugin / forge-create 等）
+COPY scripts ./scripts
 COPY CHANGELOG.md ./
+# 发行版本与宿主 POM（loadProject / pluginReleaseInfo）
 COPY forge-server/pom.xml ./forge-server/pom.xml
+COPY forge-server/forge-admin-server/pom.xml ./forge-server/forge-admin-server/pom.xml
 COPY forge-server/forge-framework/forge-dependencies/pom.xml \
      ./forge-server/forge-framework/forge-dependencies/pom.xml
 
