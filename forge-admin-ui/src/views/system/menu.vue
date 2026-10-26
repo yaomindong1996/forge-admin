@@ -447,7 +447,7 @@
                 :value="value"
                 :options="getAvailableRouteOptions(slotFormData, value)"
                 clearable
-                placeholder="输入或选择页面路由，如 /system/user"
+                :placeholder="slotFormData?.isExternal === 1 ? '外链地址，如 https://example.com' : '输入或选择页面路由，如 /system/user'"
                 :render-label="renderRouteOptionLabel"
                 @update:value="routePath => handleRoutePathChange(routePath, updateValue, slotFormData)"
               />

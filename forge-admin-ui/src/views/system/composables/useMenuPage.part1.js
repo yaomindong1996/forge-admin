@@ -4,7 +4,7 @@ import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'v
 import api from '@/api'
 import { useDict } from '@/composables'
 import { usePermissionStore, useUserStore } from '@/store'
-import { request } from '@/utils'
+import { isExternal, request } from '@/utils'
 import { toNumberDictOptions } from '@/utils/dict-options'
 import { getMenuRouteOptions } from '@/utils/menu-route-options'
 import {
@@ -911,6 +911,7 @@ export function applyMenuPagePart1() {
     pendingClientCode.value = null
     return {
       ...data,
+      path: normalizeRouteInput(data.path, { isExternal: data.isExternal }),
       minUserType: data.minUserType ?? 2,
       ssoEnabled: data.ssoEnabled ?? 0,
       ssoTargetClient: data.ssoTargetClient || '',
@@ -937,7 +938,7 @@ export function applyMenuPagePart1() {
 
     return {
       ...sourceData,
-      path: normalizeRouteInput(sourceData.path),
+      path: normalizeRouteInput(sourceData.path, { isExternal: sourceData.isExternal }),
       component: normalizeComponentValue(sourceData.component),
       resourceType,
       minUserType: sourceData.minUserType !== undefined && sourceData.minUserType !== null ? Number(sourceData.minUserType) : 2,
@@ -1013,10 +1014,26 @@ export function applyMenuPagePart1() {
       || option.component.toLowerCase().includes(value)
   }
 
-  function normalizeRouteInput(routePath) {
-    const value = String(routePath || '').trim()
+  /**
+   * 规范化路由地址。
+   * 内部路由补前导 `/`；外链（http/https/mailto/tel）及「是否外链=是」时不强制加斜杠，
+   * 并修复历史误写成 `/https://...`、`/https:/...` 的数据。
+   */
+  function normalizeRouteInput(routePath, options = {}) {
+    let value = String(routePath || '').trim()
     if (!value)
       return ''
+
+    // 去掉误加在协议前的斜杠，并恢复被压缩坏的 https:/ → https://
+    value = value.replace(/^\/+(?=https?:)/i, '')
+    value = value.replace(/^(https?:)\/(?!\/)/i, '$1//')
+
+    if (isExternal(value) || value.startsWith('//'))
+      return value
+
+    if (Number(options.isExternal) === 1)
+      return value
+
     return value.startsWith('/') ? value.replace(/\/+/g, '/') : `/${value.replace(/\/+/g, '/')}`
   }
 
@@ -1048,7 +1065,7 @@ export function applyMenuPagePart1() {
   }
 
   function handleRoutePathChange(routePath, updateValue, currentFormData) {
-    const normalizedPath = normalizeRouteInput(routePath)
+    const normalizedPath = normalizeRouteInput(routePath, { isExternal: currentFormData?.isExternal })
     if (!currentFormData) {
       updateValue(normalizedPath)
       return

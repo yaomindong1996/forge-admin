@@ -160,9 +160,9 @@ export const usePermissionStore = defineStore('permission', {
           return
         for (const item of items) {
           if (item.resourceType === 1 || item.resourceType === 2) {
-            // 规范化路径，确保以 / 开头
+            // 内部路由补前导 /；外链保持原样
             let normalizedPath = item.path?.trim() || ''
-            if (normalizedPath && !normalizedPath.startsWith('/')) {
+            if (normalizedPath && !normalizedPath.startsWith('/') && !isExternal(normalizedPath)) {
               normalizedPath = `/${normalizedPath}`
             }
             allMenusFlat.push({
