@@ -11,8 +11,10 @@
 forge-admin-ui/node_modules/
 forge-admin-ui/dist/
 
-# Docker 目录自身不需要进入构建上下文
+# Docker 目录自身不需要进入构建上下文（编排目录名为 docker-forge-admin）
 docker/
+docker-forge-admin/.env
+docker-forge-admin/init-sql/
 
 # 其他非必要目录
 .opencode/
