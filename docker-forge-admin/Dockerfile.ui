@@ -7,8 +7,8 @@ FROM node:23-alpine AS builder
 WORKDIR /workspace
 
 # 8G 主机不要用 8192：package.json 的 build 写死了 8G 堆，会把整机打爆。
-# 可通过 --build-arg VITE_BUILD_HEAP_MB=3072 按机器调大。
-ARG VITE_BUILD_HEAP_MB=2048
+# 默认 4096；内存紧张可 --build-arg VITE_BUILD_HEAP_MB=3072，充裕可再调到 6144。
+ARG VITE_BUILD_HEAP_MB=4096
 
 # 国内镜像；注意是 set 不是 get
 RUN npm config set registry https://registry.npmmirror.com \

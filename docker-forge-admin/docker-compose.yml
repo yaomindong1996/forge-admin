@@ -9,8 +9,8 @@
 #
 # 主机内存约 8G 时：不要并行猛打三个镜像，可先只编 UI：
 #   docker compose build forge-ui
-# UI 默认堆 2048MB；内存充裕可：
-#   docker compose build --build-arg VITE_BUILD_HEAP_MB=4096 forge-ui
+# UI 默认堆 4096MB；内存紧张可：
+#   docker compose build --build-arg VITE_BUILD_HEAP_MB=3072 forge-ui
 # ============================================
 
 services:
@@ -147,6 +147,8 @@ services:
     build:
       context: ..
       dockerfile: docker-forge-admin/Dockerfile.ui
+      args:
+        VITE_BUILD_HEAP_MB: ${VITE_BUILD_HEAP_MB:-4096}
     container_name: forge-ui
     restart: unless-stopped
     depends_on:
