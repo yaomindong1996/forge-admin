@@ -1,16 +1,31 @@
 # ============================================
 # Forge Admin 一键部署 Docker Compose 编排
 # ============================================
+# 默认从阿里云 ACR 拉取已构建镜像（linux/arm64）：
+#   REG=crpi-4r4vql6tnfnjwl27.cn-guangzhou.personal.cr.aliyuncs.com/forgelab
+#   forge-admin / forge-flow / forge-ui（默认 tag 1.0.0，可用环境变量覆盖）
+#
 # 使用方式：
 #   cd docker-forge-admin
 #   cp .env.example .env   # 修改配置
-#   docker compose up -d --build
+#   docker compose up -d   # 拉取镜像并启动（无需 --build）
 #   访问 http://localhost/forge  默认账号: admin/123456
 #
-# 主机内存约 8G 时：不要并行猛打三个镜像，可先只编 UI：
-#   docker compose build forge-ui
-# UI 默认堆 4096MB；内存紧张可：
-#   docker compose build --build-arg VITE_BUILD_HEAP_MB=3072 forge-ui
+# 架构注意：公开镜像当前为 linux/arm64（Mac Docker Desktop 构建）。
+# amd64 服务器需自行 buildx --platform linux/amd64 重编推送，或在 arm64 机器上运行。
+#
+# 本地源码构建（改代码时）：Dockerfile.* 仍保留，可临时加回 build，例如：
+#   # build:
+#   #   context: ..
+#   #   dockerfile: docker-forge-admin/Dockerfile.ui
+#   #   args:
+#   #     VITE_BUILD_HEAP_MB: ${VITE_BUILD_HEAP_MB:-4096}
+#   # 或直接：
+#   docker build -f Dockerfile.admin -t forge-admin:local ..
+#   docker build -f Dockerfile.flow -t forge-flow:local ..
+#   docker build -f Dockerfile.ui --build-arg VITE_BUILD_HEAP_MB=4096 -t forge-ui:local ..
+# 主机内存约 8G 时不要并行猛打三个镜像；UI 默认堆 4096MB，内存紧张可：
+#   docker build -f Dockerfile.ui --build-arg VITE_BUILD_HEAP_MB=3072 -t forge-ui:local ..
 # ============================================
 
 services:
@@ -67,9 +82,11 @@ services:
   # Forge Flow 流程服务（需先于 admin 启动）
   # ========================
   forge-flow:
-    build:
-      context: ..
-      dockerfile: docker-forge-admin/Dockerfile.flow
+    image: ${FORGE_FLOW_IMAGE:-crpi-4r4vql6tnfnjwl27.cn-guangzhou.personal.cr.aliyuncs.com/forgelab/forge-flow:1.0.0}
+    # 本地源码构建可临时加回：
+    # build:
+    #   context: ..
+    #   dockerfile: docker-forge-admin/Dockerfile.flow
     container_name: forge-flow
     restart: unless-stopped
     depends_on:
@@ -99,9 +116,11 @@ services:
   # Forge Admin 主服务
   # ========================
   forge-admin:
-    build:
-      context: ..
-      dockerfile: docker-forge-admin/Dockerfile.admin
+    image: ${FORGE_ADMIN_IMAGE:-crpi-4r4vql6tnfnjwl27.cn-guangzhou.personal.cr.aliyuncs.com/forgelab/forge-admin:1.0.0}
+    # 本地源码构建可临时加回：
+    # build:
+    #   context: ..
+    #   dockerfile: docker-forge-admin/Dockerfile.admin
     container_name: forge-admin
     restart: unless-stopped
     depends_on:
@@ -144,11 +163,13 @@ services:
   # 前端 Nginx
   # ========================
   forge-ui:
-    build:
-      context: ..
-      dockerfile: docker-forge-admin/Dockerfile.ui
-      args:
-        VITE_BUILD_HEAP_MB: ${VITE_BUILD_HEAP_MB:-4096}
+    image: ${FORGE_UI_IMAGE:-crpi-4r4vql6tnfnjwl27.cn-guangzhou.personal.cr.aliyuncs.com/forgelab/forge-ui:1.0.0}
+    # 本地源码构建可临时加回：
+    # build:
+    #   context: ..
+    #   dockerfile: docker-forge-admin/Dockerfile.ui
+    #   args:
+    #     VITE_BUILD_HEAP_MB: ${VITE_BUILD_HEAP_MB:-4096}
     container_name: forge-ui
     restart: unless-stopped
     depends_on:
