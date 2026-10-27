@@ -6,6 +6,10 @@
 FROM node:23-alpine AS builder
 WORKDIR /workspace
 
+# 8G 主机不要用 8192：package.json 的 build 写死了 8G 堆，会把整机打爆。
+# 可通过 --build-arg VITE_BUILD_HEAP_MB=3072 按机器调大。
+ARG VITE_BUILD_HEAP_MB=2048
+
 # 国内镜像；注意是 set 不是 get
 RUN npm config set registry https://registry.npmmirror.com \
     && npm install -g pnpm@9
@@ -26,8 +30,8 @@ RUN pnpm config set registry https://registry.npmmirror.com \
     && pnpm install --frozen-lockfile
 
 COPY forge-admin-ui/ .
-ENV NODE_OPTIONS="--max_old_space_size=8192"
-RUN pnpm run build
+# 不要用 pnpm run build（脚本内写死 8192）；按构建参数限制堆内存
+RUN node --max_old_space_size=${VITE_BUILD_HEAP_MB} ./node_modules/vite/bin/vite.js build
 
 FROM nginx:1.25-alpine
 COPY --from=builder /workspace/forge-admin-ui/dist /usr/share/nginx/html/forge

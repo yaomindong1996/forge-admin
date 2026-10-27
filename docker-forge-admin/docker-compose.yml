@@ -4,8 +4,13 @@
 # 使用方式：
 #   cd docker-forge-admin
 #   cp .env.example .env   # 修改配置
-#   docker compose up -d
+#   docker compose up -d --build
 #   访问 http://localhost/forge  默认账号: admin/123456
+#
+# 主机内存约 8G 时：不要并行猛打三个镜像，可先只编 UI：
+#   docker compose build forge-ui
+# UI 默认堆 2048MB；内存充裕可：
+#   docker compose build --build-arg VITE_BUILD_HEAP_MB=4096 forge-ui
 # ============================================
 
 services:
