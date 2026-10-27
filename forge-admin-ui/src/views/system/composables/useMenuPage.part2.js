@@ -5,6 +5,7 @@ import { computed } from 'vue'
 export function applyMenuPagePart2(deps = {}) {
   const {
     __impl,
+    formData,
     getSsoTargetClientOptions,
     normalizeComponentValue,
     resourceTypeOptions,
@@ -141,8 +142,18 @@ export function applyMenuPagePart2(deps = {}) {
       vIf: currentFormData => currentFormData.resourceType === 1 || currentFormData.resourceType === 2,
     },
     {
+      field: 'isExternal',
+      label: '是否外链',
+      type: 'radio',
+      span: 2,
+      defaultValue: 0,
+      props: { options: yesNoOptions.value },
+      vIf: currentFormData => currentFormData.resourceType === 2,
+    },
+    {
       field: 'path',
-      label: '路由地址',
+      // 外链时改名，避免仍显示「路由地址」
+      label: Number(formData?.value?.isExternal) === 1 ? '外链地址' : '路由地址',
       type: 'slot',
       slotName: 'path',
       span: 2,
@@ -154,24 +165,28 @@ export function applyMenuPagePart2(deps = {}) {
       type: 'slot',
       span: 2,
       slotName: 'component',
-      vIf: currentFormData => currentFormData.resourceType === 2,
+      // 外链菜单不需要前端组件
+      vIf: currentFormData => currentFormData.resourceType === 2 && Number(currentFormData.isExternal) !== 1,
     },
     {
       field: 'redirect',
       label: '重定向地址',
       type: 'input',
-      span: 1,
-      props: { placeholder: '重定向地址' },
-      vIf: currentFormData => currentFormData.resourceType === 1 || currentFormData.resourceType === 2,
+      span: 2,
+      props: { placeholder: '目录跳转地址，可留空' },
+      vIf: currentFormData => (currentFormData.resourceType === 1 || currentFormData.resourceType === 2)
+        && Number(currentFormData.isExternal) !== 1,
     },
     {
-      field: 'isExternal',
-      label: '是否外链',
+      field: 'openTarget',
+      label: '打开方式',
       type: 'radio',
       span: 1,
-      defaultValue: 0,
-      props: { options: yesNoOptions.value },
-      vIf: currentFormData => currentFormData.resourceType === 2,
+      defaultValue: '_self',
+      props: { options: openTargetOptions.value },
+      // 外链或 SSO 都需要选择本站嵌入 / 新窗口
+      vIf: currentFormData => currentFormData.resourceType === 2
+        && (Number(currentFormData.isExternal) === 1 || Number(currentFormData.ssoEnabled) === 1),
     },
     {
       field: 'ssoEnabled',
@@ -199,22 +214,13 @@ export function applyMenuPagePart2(deps = {}) {
       vIf: currentFormData => currentFormData.resourceType === 2 && currentFormData.ssoEnabled === 1,
     },
     {
-      field: 'openTarget',
-      label: '打开方式',
-      type: 'radio',
-      span: 1,
-      defaultValue: '_self',
-      props: { options: openTargetOptions.value },
-      vIf: currentFormData => currentFormData.resourceType === 2 && currentFormData.ssoEnabled === 1,
-    },
-    {
       field: 'keepAlive',
       label: '是否缓存',
       type: 'radio',
       span: 1,
       defaultValue: 0,
       props: { options: yesNoOptions.value },
-      vIf: currentFormData => currentFormData.resourceType === 2,
+      vIf: currentFormData => currentFormData.resourceType === 2 && Number(currentFormData.isExternal) !== 1,
     },
     {
       field: 'alwaysShow',

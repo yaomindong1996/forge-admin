@@ -400,61 +400,30 @@
           label-align="right"
           size="small"
         >
+          <!-- 图标：只用 IconSelector 触发器，字体/图片在抽屉内选，避免表单里叠两层预览 -->
           <template #icon="{ value, updateValue }">
-            <n-tabs
-              type="line"
-              size="small"
-              animated
-              :value="formIconTab"
-              @update:value="handleFormIconTabChange"
-            >
-              <n-tab-pane name="font" tab="字体图标">
-                <div class="icon-selector-container">
-                  <IconSelector :model-value="getFontIconValue(value)" @update:model-value="updateValue" />
-                  <n-input
-                    :value="getFontIconValue(value)"
-                    placeholder="或手动输入图标名称，如 i-mdi-home"
-                    clearable
-                    @update:value="updateValue"
-                  >
-                    <template #prefix>
-                      <IconRenderer v-if="getFontIconValue(value)" :icon="getFontIconValue(value)" />
-                    </template>
-                  </n-input>
-                </div>
-              </n-tab-pane>
-              <n-tab-pane name="image" tab="图片图标">
-                <div class="icon-upload-container">
-                  <ImageUpload
-                    :model-value="getImageIconValue(value)"
-                    :limit="1"
-                    :file-size="2"
-                    :file-type="['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg']"
-                    business-type="menu-icon"
-                    :show-tip="true"
-                    value-type="string"
-                    @success="fileData => updateValue(fileData?.fileId || fileData?.filePath || '')"
-                    @update:model-value="updateValue"
-                  />
-                </div>
-              </n-tab-pane>
-            </n-tabs>
+            <div class="menu-icon-field">
+              <IconSelector :model-value="value || ''" @update:model-value="updateValue" />
+              <div class="route-select-hint">
+                点击选择字体图标或图片图标
+              </div>
+            </div>
           </template>
 
           <template #path="{ value, updateValue, formData: slotFormData }">
             <div class="route-select-field">
               <NAutoComplete
                 :value="value"
-                :options="getAvailableRouteOptions(slotFormData, value)"
+                :options="Number(slotFormData?.isExternal) === 1 ? [] : getAvailableRouteOptions(slotFormData, value)"
                 clearable
-                :placeholder="slotFormData?.isExternal === 1 ? '外链地址，如 https://example.com' : '输入或选择页面路由，如 /system/user'"
+                :placeholder="Number(slotFormData?.isExternal) === 1 ? 'https://example.com' : '输入或选择页面路由，如 /system/user'"
                 :render-label="renderRouteOptionLabel"
                 @update:value="routePath => handleRoutePathChange(routePath, updateValue, slotFormData)"
               />
               <div class="route-select-hint">
-                可搜索已有页面路由
+                {{ Number(slotFormData?.isExternal) === 1 ? '填写完整 http/https 地址' : '可搜索已有页面路由' }}
               </div>
-              <div v-if="slotFormData?.component" class="route-select-hint">
+              <div v-if="Number(slotFormData?.isExternal) !== 1 && slotFormData?.component" class="route-select-hint">
                 组件路径：{{ slotFormData.component }}
               </div>
             </div>
@@ -549,7 +518,6 @@ const {
   AiForm,
   IconRenderer,
   IconSelector,
-  ImageUpload,
   MenuResourceDetail,
   NAutoComplete,
   NButton,
@@ -574,7 +542,6 @@ const {
   checkedResourceIds,
   clearCheckedResources,
   clientFilterTabs,
-  clientList,
   collapseNavigationTree,
   contextBreadcrumbs,
   currentClientCode,
@@ -590,13 +557,10 @@ const {
   enterResource,
   expandNavigationTree,
   formData,
-  formIconTab,
   getAvailableComponentOptions,
   getAvailableRouteOptions,
   getClientDisplayName,
   getDisplayLevel,
-  getFontIconValue,
-  getImageIconValue,
   getMoreActionOptions,
   getPrimaryRouteText,
   getRenderableIcon,
@@ -614,7 +578,6 @@ const {
   handleDisplayRowsCheckedChange,
   handleDrawerSubmit,
   handleEdit,
-  handleFormIconTabChange,
   handleInlineUpdate,
   handleMoreAction,
   handleNavigationExpandedKeys,

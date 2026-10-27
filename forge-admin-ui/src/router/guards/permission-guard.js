@@ -4,8 +4,8 @@ import { useAppStore, useAuthStore, usePermissionStore, useTenantStore, useUserS
 import { getPermissions, getUserInfo } from '@/store/helper'
 import { initWebSocketClient, lStorage, request } from '@/utils'
 import { initKeyExchange } from '@/utils/crypto/key-exchange'
-import { applyTenantConfig, ensureTenantBranding } from '@/utils/tenant-config'
 import { SSO_BRIDGE_ROUTE } from '@/utils/sso-target'
+import { applyTenantConfig, ensureTenantBranding } from '@/utils/tenant-config'
 import { canAccessHiddenOpenPlatformTool, normalizeOpenPlatformPath } from '../open-platform-routes'
 import {
   isApplicationPortalPath,
@@ -22,6 +22,8 @@ const AUTH_ROUTE_ALLOWLIST = new Set([
   '/system/notice-list',
   '/mcp-authorize',
   '/403',
+  // 外链本站嵌入：菜单 path 是 https://…，实际跳 /iframe?page=…，不能按菜单 accessRoutes 校验
+  '/iframe',
   // SSO 桥接页：菜单 path 是子系统目标（如 /project/items），实际跳转到此路由，不能按菜单 accessRoutes 校验
   SSO_BRIDGE_ROUTE,
 ])

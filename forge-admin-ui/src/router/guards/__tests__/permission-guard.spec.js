@@ -40,4 +40,11 @@ describe('permission guard route access', () => {
       { accessRoutes: [] },
     )).toBe(true)
   })
+
+  it('allows the iframe embed page without requiring it in accessRoutes', () => {
+    expect(canAccessRoute(
+      { path: '/iframe' },
+      { accessRoutes: [] },
+    )).toBe(true)
+  })
 })

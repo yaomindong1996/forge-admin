@@ -4,7 +4,6 @@ import { AiForm } from '@/components/ai-form'
 import DictTag from '@/components/DictTag.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
 import IconSelector from '@/components/IconSelector.vue'
-import ImageUpload from '@/components/image-upload/index.vue'
 import MenuResourceDetail from './components/MenuResourceDetail.vue'
 
 export const menuPageLocalComponents = {
@@ -17,7 +16,6 @@ export const menuPageLocalComponents = {
   DictTag,
   IconRenderer,
   IconSelector,
-  ImageUpload,
   AiForm,
   MenuResourceDetail,
 }

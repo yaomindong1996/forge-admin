@@ -605,14 +605,17 @@
   color: var(--primary-color, #2f6fed);
 }
 
-.icon-selector-container {
+.menu-icon-field {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
 }
 
-.icon-upload-container {
-  padding: 8px 0;
+.menu-icon-field :deep(.icon-selector-trigger) {
+  min-width: 160px;
+  justify-content: flex-start;
 }
 
 .route-select-field {
@@ -710,7 +713,8 @@
   }
 }
 
-.context-breadcrumbs, .resource-selection-bar {
+.context-breadcrumbs,
+.resource-selection-bar {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -729,8 +733,12 @@
   color: var(--text-secondary);
   cursor: pointer;
 }
-.context-breadcrumbs button:hover { color: var(--primary-color); }
-.context-breadcrumbs [aria-current="page"] { color: var(--text-primary); }
+.context-breadcrumbs button:hover {
+  color: var(--primary-color);
+}
+.context-breadcrumbs [aria-current='page'] {
+  color: var(--text-primary);
+}
 .resource-selection-bar {
   min-height: 36px;
   flex-shrink: 0;
@@ -756,7 +764,9 @@
   gap: 8px;
   margin-top: 4px;
 }
-.resource-name:hover { text-decoration: underline; }
+.resource-name:hover {
+  text-decoration: underline;
+}
 .resource-text-action {
   border: 0;
   background: transparent;
@@ -765,18 +775,39 @@
   font-size: 12px;
   cursor: pointer;
 }
-.resource-text-action.text-primary { color: var(--primary-color); }
-.resource-text-action.text-info { color: #909399; }
-.resource-text-action:hover { text-decoration: underline; }
-.resource-text-action:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
-.resource-name:focus-visible, .context-breadcrumbs button:focus-visible {
+.resource-text-action.text-primary {
+  color: var(--primary-color);
+}
+.resource-text-action.text-info {
+  color: #909399;
+}
+.resource-text-action:hover {
+  text-decoration: underline;
+}
+.resource-text-action:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+.resource-name:focus-visible,
+.context-breadcrumbs button:focus-visible {
   outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
 @media (max-width: 600px) {
-  .resource-list-row { grid-template-columns: 22px minmax(0, 1fr) 40px 28px 100px; }
-  .resource-route-summary { display: none; }
-  .list-filters { flex-wrap: wrap; }
-  .keyword-input { flex: 1; min-width: 120px; }
-  .selection-hint { display: none; }
+  .resource-list-row {
+    grid-template-columns: 22px minmax(0, 1fr) 40px 28px 100px;
+  }
+  .resource-route-summary {
+    display: none;
+  }
+  .list-filters {
+    flex-wrap: wrap;
+  }
+  .keyword-input {
+    flex: 1;
+    min-width: 120px;
+  }
+  .selection-hint {
+    display: none;
+  }
 }

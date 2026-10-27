@@ -1,5 +1,13 @@
 /** menu.vue setup part 1. */
 
+import {
+  AddOutline,
+  ColorPaletteOutline,
+  CopyOutline,
+  KeyOutline,
+  TrashOutline,
+} from '@vicons/ionicons5'
+import { NIcon } from 'naive-ui'
 import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import api from '@/api'
 import { useDict } from '@/composables'
@@ -68,6 +76,17 @@ export function applyMenuPagePart1() {
   const tableIconSelectorRef = ref(null)
   const tableIconEditRow = ref(null)
   const tableIconValue = ref('')
+
+  // 切到外链时清掉组件路径，避免表单隐藏后仍带脏数据提交
+  watch(() => formData.value?.isExternal, (next, prev) => {
+    if (Number(next) !== 1 || Number(prev) === 1 || !formData.value)
+      return
+    formData.value.component = ''
+    formData.value.redirect = ''
+    formData.value.keepAlive = 0
+    if (!formData.value.openTarget)
+      formData.value.openTarget = '_self'
+  })
 
   const publicParams = computed(() => {
     if (currentClientCode.value)
@@ -426,13 +445,37 @@ export function applyMenuPagePart1() {
     await handleInlineUpdate(row, 'sort', value ?? 0)
   }
 
+  function renderMoreActionIcon(icon) {
+    return h(NIcon, { size: 16 }, { default: () => h(icon) })
+  }
+
   function getMoreActionOptions(row) {
     return [
-      { label: '新增子项', key: 'add' },
-      { label: '更换图标', key: 'icon', disabled: Number(row.resourceType) > 2 },
-      { label: '复制路由', key: 'copyPath', disabled: !row.path },
-      { label: '复制权限', key: 'copyPerms', disabled: !row.perms },
-      { label: '删除', key: 'delete' },
+      { label: '新增子项', key: 'add', icon: () => renderMoreActionIcon(AddOutline) },
+      {
+        label: '更换图标',
+        key: 'icon',
+        disabled: Number(row.resourceType) > 2,
+        icon: () => renderMoreActionIcon(ColorPaletteOutline),
+      },
+      {
+        label: '复制路由',
+        key: 'copyPath',
+        disabled: !row.path,
+        icon: () => renderMoreActionIcon(CopyOutline),
+      },
+      {
+        label: '复制权限',
+        key: 'copyPerms',
+        disabled: !row.perms,
+        icon: () => renderMoreActionIcon(KeyOutline),
+      },
+      {
+        label: '删除',
+        key: 'delete',
+        icon: () => renderMoreActionIcon(TrashOutline),
+        props: { style: { color: 'var(--error-color, #d03050)' } },
+      },
     ]
   }
 
@@ -921,9 +964,13 @@ export function applyMenuPagePart1() {
 
   function beforeSubmit(sourceData) {
     const resourceType = sourceData.resourceType !== undefined ? Number(sourceData.resourceType) : sourceData.resourceType
+    const isExternalLink = resourceType === 2 && Number(sourceData.isExternal) === 1
     const ssoEnabled = resourceType === 2 ? Number(sourceData.ssoEnabled || 0) : 0
     const ssoTargetClient = ssoEnabled === 1 ? (sourceData.ssoTargetClient || '').trim() : ''
-    const openTarget = resourceType === 2 && ssoEnabled === 1 ? (sourceData.openTarget || '_self') : '_self'
+    // 外链与 SSO 都保留打开方式；其它菜单统一 _self
+    const openTarget = resourceType === 2 && (ssoEnabled === 1 || isExternalLink)
+      ? (sourceData.openTarget || '_self')
+      : '_self'
 
     if (resourceType === 2 && ssoEnabled === 1) {
       if (!ssoTargetClient) {
@@ -936,10 +983,20 @@ export function applyMenuPagePart1() {
       }
     }
 
+    if (isExternalLink) {
+      const path = String(sourceData.path || '').trim()
+      if (!path || (!isExternal(path) && !path.startsWith('//'))) {
+        window.$message.error('请填写有效的外链地址（http/https）')
+        return false
+      }
+    }
+
     return {
       ...sourceData,
       path: normalizeRouteInput(sourceData.path, { isExternal: sourceData.isExternal }),
-      component: normalizeComponentValue(sourceData.component),
+      component: isExternalLink ? '' : normalizeComponentValue(sourceData.component),
+      redirect: isExternalLink ? '' : (sourceData.redirect || ''),
+      keepAlive: isExternalLink ? 0 : sourceData.keepAlive,
       resourceType,
       minUserType: sourceData.minUserType !== undefined && sourceData.minUserType !== null ? Number(sourceData.minUserType) : 2,
       ssoEnabled,

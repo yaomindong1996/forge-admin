@@ -144,7 +144,21 @@ function buildSsoBridgeRoute(router, { targetClient, redirectPath, baseUrl, menu
 }
 
 function normalizeOpenTarget(openTarget) {
-  return openTarget === '_blank' ? '_blank' : '_self'
+  const value = String(openTarget || '_self').trim().toLowerCase()
+  return value === '_blank' || value === 'blank' ? '_blank' : '_self'
+}
+
+/** 外链本站嵌入：走静态 /iframe，真实地址放 query.page（避免把 https:// 当路由 path） */
+function buildExternalEmbedLocation(originalItem) {
+  const page = String(originalItem?.path || '').trim()
+  const title = originalItem?.resourceName || originalItem?.label || originalItem?.name || ''
+  const menuKey = originalItem?.key ?? originalItem?.id
+  const query = { page }
+  if (title)
+    query.title = title
+  if (menuKey !== undefined && menuKey !== null && menuKey !== '')
+    query.menuKey = String(menuKey)
+  return { path: '/iframe', query }
 }
 
 function stripRouteQuery(path) {
@@ -515,25 +529,26 @@ export function useMenu() {
       return
     }
 
-    if (isExternal(originalItem.path)) {
-      const reportRoute = resolveReportMenuRoute(originalItem.path, originalItem.openTarget)
+    if (isExternal(originalItem.path) || originalItem.meta?.isExternal) {
+      const externalUrl = String(originalItem.path || '').trim()
+      const openTarget = normalizeOpenTarget(originalItem.openTarget || originalItem.meta?.openTarget)
+      const reportRoute = resolveReportMenuRoute(externalUrl, openTarget)
       if (reportRoute) {
-        navigateSsoBridge(router, reportRoute, originalItem.openTarget)
+        navigateSsoBridge(router, reportRoute, openTarget)
         return
       }
 
-      $dialog.confirm({
-        type: 'info',
-        title: '请选择打开方式',
-        positiveText: '外链打开',
-        negativeText: '在本站内嵌打开',
-        confirm() {
-          window.open(originalItem.path)
-        },
-        cancel: () => {
-          router.push(originalItem.path)
-        },
-      })
+      if (!externalUrl || !isExternal(externalUrl)) {
+        window.$message?.warning?.('外链地址无效')
+        return
+      }
+
+      // 菜单已配置打开方式：_blank 新窗口；_self 本站 iframe 嵌入（禁止把 URL 当 vue-router path）
+      if (openTarget === '_blank') {
+        window.open(externalUrl, '_blank', 'noopener,noreferrer')
+        return
+      }
+      router.push(buildExternalEmbedLocation(originalItem))
       return
     }
 

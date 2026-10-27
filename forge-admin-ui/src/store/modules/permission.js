@@ -100,45 +100,48 @@ export const usePermissionStore = defineStore('permission', {
           return
 
         items.forEach((item) => {
-          // 只为菜单类型(非目录)且有 path 和 component 的项生成路由
-          if (item.type === 'menu' && item.path && item.component) {
-            // 确保路径以 "/" 开头
-            let routePath = item.path.trim()
-            if (!routePath.startsWith('/') && !isExternal(routePath)) {
-              routePath = `/${routePath}`
-            }
-            routePath = stripRouteQuery(routePath)
+          // 菜单项：内页需 path+component；外链可无 component，用 iframe 占位路由做鉴权登记
+          if (item.type === 'menu' && item.path) {
+            let routePath = String(item.path || '').trim()
+            const external = !!(item.meta?.isExternal || isExternal(routePath))
+            if (external || item.component) {
+              let componentPath = item.component
+              let originPath = null
+              if (external) {
+                originPath = routePath
+                // vue-router 不能注册 https:// 作为 path，鉴权用内部占位 path
+                routePath = `/iframe/ext/${item.key || item.id}`
+                componentPath = '/src/views/iframe/index.vue'
+              }
+              else {
+                if (!routePath.startsWith('/'))
+                  routePath = `/${routePath}`
+                routePath = stripRouteQuery(routePath)
+              }
 
-            // 处理外链
-            let componentPath = item.component
-            let originPath = null
-            if (item.meta?.isExternal) {
-              originPath = routePath
-              componentPath = '/src/views/iframe/index.vue'
+              routes.push({
+                name: item.key || String(item.id),
+                path: routePath,
+                component: componentPath,
+                meta: {
+                  title: item.label || item.name,
+                  icon: item.icon,
+                  type: item.type,
+                  keepAlive: item.meta?.keepAlive || false,
+                  alwaysShow: item.meta?.alwaysShow || false,
+                  redirect: item.meta?.redirect,
+                  originPath,
+                  isExternal: external,
+                  openTarget: item.openTarget || item.meta?.openTarget || '_self',
+                  perms: item.meta?.perms,
+                },
+              })
             }
-
-            const route = {
-              name: item.key || String(item.id),
-              path: routePath,
-              component: componentPath,
-              meta: {
-                title: item.label || item.name,
-                icon: item.icon,
-                type: item.type,
-                keepAlive: item.meta?.keepAlive || false,
-                alwaysShow: item.meta?.alwaysShow || false,
-                redirect: item.meta?.redirect,
-                originPath,
-                perms: item.meta?.perms,
-              },
-            }
-            routes.push(route)
           }
 
           // 递归处理子菜单
-          if (item.children && item.children.length > 0) {
+          if (item.children && item.children.length > 0)
             extractRoutes(item.children)
-          }
         })
       }
 
