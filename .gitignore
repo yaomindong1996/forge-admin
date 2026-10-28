@@ -95,6 +95,8 @@ yarn.lock
 *.env
 .env
 *.secrets
+.cursor/mcp.json
+
 forge/db/community-export/
 *docs-dist
 !/docs/vendor/

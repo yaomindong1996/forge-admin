@@ -175,6 +175,9 @@ services:
     depends_on:
       - forge-admin
       - forge-flow
+    # 覆盖镜像内 nginx：默认 compose 无 forge-report，旧 conf 会因 DNS 解析失败直接起不来
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
       - "${NGINX_PORT:-80}:80"
     networks:
