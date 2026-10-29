@@ -6,7 +6,7 @@ import { loadRuntimeCryptoConfig } from '@/utils/crypto/crypto-config'
 import { getSessionKey, initKeyExchange, resetKeyExchange } from '@/utils/crypto/key-exchange'
 import { getTenantPageBaseTitle } from '@/utils/page-title'
 import { stripNullRequestBody } from './empty-body'
-import { isAuthErrorCode, resolveResError, shouldSilenceAuthError } from './helpers'
+import { isAuthErrorCode, isCanceledRequest, resolveResError, shouldSilenceAuthError } from './helpers'
 import { acquireRequestSlot } from './request-concurrency'
 import { maybeRefreshSession } from './session-keepalive'
 
@@ -388,6 +388,11 @@ export function setupInterceptors(axiosInstance) {
 
     // 1. 处理已经在 resResolve 中标记了 skipErrorHandler 的错误（解密错误等）
     if (error?.skipErrorHandler) {
+      return Promise.reject(error)
+    }
+
+    // 主动 abort / 换参取消：不弹诊断弹窗（字典数据页 publicParams 变化会取消上一轮 /page）
+    if (isCanceledRequest(error)) {
       return Promise.reject(error)
     }
 

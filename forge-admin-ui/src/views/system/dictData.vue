@@ -56,10 +56,11 @@
 
 <script setup>
 import { NPageHeader, NTag } from 'naive-ui'
-import { computed, h, nextTick, onMounted, ref } from 'vue'
+import { computed, h, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { AiCrudPage } from '@/components/ai-form'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
+import { clearDictCache, getDictData } from '@/composables/useDict'
 import { DICT_TAG_TYPE_OPTIONS } from '@/constants/dict-options'
 import { request } from '@/utils'
 
@@ -684,6 +685,7 @@ async function handleBeforeDelete(rows = []) {
         const res = await request.post('/system/dict/data/removeBatch', dictCodes)
         if (res.code === 200) {
           window.$message.success('删除成功')
+          await invalidateRuntimeDictCache()
           crudRef.value?.clearSelection()
           await loadParentDictOptions()
           crudRef.value?.refresh()
@@ -734,6 +736,7 @@ function handleDelete(row) {
         })
         if (res.code === 200) {
           window.$message.success('删除成功')
+          await invalidateRuntimeDictCache()
           await loadParentDictOptions()
           crudRef.value?.refresh()
         }
@@ -745,27 +748,52 @@ function handleDelete(row) {
   })
 }
 
+async function invalidateRuntimeDictCache() {
+  const dictType = currentDictType.value
+  if (!dictType)
+    return
+  // 先清前端缓存再强制回填，组织管理等已打开页的 useDict 才能收到新选项
+  clearDictCache(dictType)
+  await getDictData(dictType, true)
+}
+
 async function handleSubmitSuccess() {
   pendingParentDictCode.value = ROOT_PARENT_CODE
   editingDictCode.value = null
+  await invalidateRuntimeDictCache()
   await loadParentDictOptions()
+}
+
+function syncDictTypeFromRoute() {
+  const nextType = route.query.dictType ? String(route.query.dictType) : ''
+  const nextName = route.query.dictName ? String(route.query.dictName) : ''
+  const typeChanged = nextType !== currentDictType.value
+  currentDictType.value = nextType
+  dictTypeName.value = nextName
+  return typeChanged
 }
 
 // 初始化
 onMounted(async () => {
-  // 从路由参数获取字典类型
-  if (route.query.dictType) {
-    currentDictType.value = route.query.dictType
-    dictTypeName.value = route.query.dictName || ''
-  }
-
+  syncDictTypeFromRoute()
   await loadParentDictOptions()
-
-  // 延迟加载列表数据，确保 publicParams 已更新
-  nextTick(() => {
-    crudRef.value?.loadList()
-  })
+  // 有 dictType 时靠 publicParams watch 触发 loadList，避免与手动 refresh 叠加重请求被 abort
+  if (!currentDictType.value) {
+    nextTick(() => {
+      crudRef.value?.loadList()
+    })
+  }
 })
+
+watch(
+  () => [route.query.dictType, route.query.dictName],
+  async () => {
+    const typeChanged = syncDictTypeFromRoute()
+    if (!typeChanged)
+      return
+    await loadParentDictOptions()
+  },
+)
 </script>
 
 <style scoped>

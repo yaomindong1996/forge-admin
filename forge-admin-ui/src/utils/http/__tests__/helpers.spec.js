@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { resolveResError, shouldForceReLogin } from '../helpers'
+import { isCanceledRequest, resolveResError, shouldForceReLogin } from '../helpers'
 
 const { authStore } = vi.hoisted(() => ({
   authStore: {
@@ -55,5 +55,15 @@ describe('auth error logout rules', () => {
     resolveResError(401, '执行器认证失败', true, { url: '/system/job/page' })
     expect(authStore.logout).not.toHaveBeenCalled()
     expect(window.$message.error).toHaveBeenCalledWith('执行器认证失败')
+  })
+})
+
+describe('canceled request detection', () => {
+  it('recognizes axios cancel and abort shapes', () => {
+    expect(isCanceledRequest({ code: 'ERR_CANCELED' })).toBe(true)
+    expect(isCanceledRequest({ name: 'CanceledError' })).toBe(true)
+    expect(isCanceledRequest({ name: 'AbortError' })).toBe(true)
+    expect(isCanceledRequest({ error: { name: 'CanceledError' } })).toBe(true)
+    expect(isCanceledRequest({ code: 'NETWORK_ERROR', message: 'canceled' })).toBe(false)
   })
 })

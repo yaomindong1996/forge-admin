@@ -65,6 +65,16 @@ export function isSilentAuthError(error) {
   return Boolean(error?.silentAuthError || (isAuthErrorCode(error?.code) && shouldSilenceAuthError()))
 }
 
+/** AiCrudPage 换参/重复 loadList 会 abort 上一次请求，不应弹「诊断详情」 */
+export function isCanceledRequest(error) {
+  return error?.code === 'ERR_CANCELED'
+    || error?.name === 'CanceledError'
+    || error?.name === 'AbortError'
+    || error?.error?.code === 'ERR_CANCELED'
+    || error?.error?.name === 'CanceledError'
+    || error?.error?.name === 'AbortError'
+}
+
 function resolveErrorTitle(code) {
   switch (code) {
     case 400:
