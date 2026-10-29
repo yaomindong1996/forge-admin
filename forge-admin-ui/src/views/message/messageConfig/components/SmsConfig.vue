@@ -1,6 +1,7 @@
 <template>
   <div class="sms-config">
     <n-spin :show="loading">
+      <div class="sms-config-body">
       <!-- 策略：选路 + Ping 并排铺满 -->
       <div class="config-section">
         <div class="section-toolbar">
@@ -120,6 +121,7 @@
           :bordered="false"
           size="medium"
         />
+      </div>
       </div>
     </n-spin>
 
@@ -477,14 +479,17 @@ onMounted(async () => {
 
 <style scoped>
 .sms-config {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
   width: 100%;
 }
 
+.sms-config-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 .config-section {
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   border: 1px solid var(--border-light);
   border-radius: 8px;
   padding: 16px 20px;
@@ -585,7 +590,7 @@ onMounted(async () => {
 }
 
 .dark .config-section {
-  background: #1e293b;
+  background: var(--bg-primary);
 }
 
 .dark .section-title {
