@@ -1,18 +1,27 @@
 <template>
   <div class="sms-config">
     <n-spin :show="loading">
-      <!-- 选路策略 -->
+      <!-- 策略：选路 + Ping 并排铺满 -->
       <div class="config-section">
-        <div class="section-header">
+        <div class="section-toolbar">
           <div class="section-title">
-            选路策略
+            路由与 Ping 策略
           </div>
-          <div class="section-desc">
-            控制多通道如何选路、验证码是否锁主，以及失败时是否切换
+          <div class="section-actions">
+            <n-button type="primary" :loading="policySaving" @click="savePolicy">
+              保存策略
+            </n-button>
+            <n-button :loading="pingLoading" @click="runPing">
+              立即 Ping
+            </n-button>
           </div>
         </div>
-        <n-form label-placement="left" label-width="120" class="section-form">
-          <div class="field-grid">
+
+        <div class="policy-grid">
+          <n-form label-placement="left" label-width="120" class="policy-pane">
+            <div class="pane-label">
+              选路
+            </div>
             <n-form-item label="选路模式">
               <n-radio-group v-model:value="policy.routeMode">
                 <n-radio value="WEIGHTED_RR">
@@ -23,14 +32,14 @@
                 </n-radio>
               </n-radio-group>
             </n-form-item>
-            <n-form-item label="验证码锁主通道">
+            <n-form-item label="验证码锁主">
               <div class="inline-field">
                 <n-switch
                   v-model:value="policy.captchaLockPrimary"
                   :checked-value="1"
                   :unchecked-value="0"
                 />
-                <span class="hint">开启后登录验证码固定走主通道</span>
+                <span class="hint">验证码固定走主通道</span>
               </div>
             </n-form-item>
             <n-form-item label="失败 Failover">
@@ -47,76 +56,44 @@
                   :disabled="!policy.failoverEnabled"
                   class="attempts-input"
                 />
-                <span class="hint">最大尝试次数（含首次）</span>
+                <span class="hint">最大尝试次数</span>
               </div>
             </n-form-item>
-          </div>
-          <div class="section-actions">
-            <n-button type="primary" :loading="policySaving" @click="savePolicy">
-              保存策略
-            </n-button>
-          </div>
-        </n-form>
-      </div>
+          </n-form>
 
-      <!-- Ping 探活 -->
-      <div class="config-section">
-        <div class="section-header section-header--row">
-          <div>
-            <div class="section-title">
-              通道 Ping
+          <n-form label-placement="left" label-width="120" class="policy-pane">
+            <div class="pane-label pane-label--row">
+              <span>Ping 探活</span>
+              <div class="header-switch">
+                <span class="hint">定时</span>
+                <n-switch
+                  v-model:value="policy.pingEnabled"
+                  :checked-value="1"
+                  :unchecked-value="0"
+                />
+              </div>
             </div>
-            <div class="section-desc">
-              向运维手机号逐通道发探活短信，用于检查通道是否可用
-            </div>
-          </div>
-          <div class="header-switch">
-            <span class="hint">定时 Ping</span>
-            <n-switch
-              v-model:value="policy.pingEnabled"
-              :checked-value="1"
-              :unchecked-value="0"
-            />
-          </div>
-        </div>
-        <n-form label-placement="left" label-width="120" class="section-form">
-          <div class="field-grid field-grid--ping">
             <n-form-item label="运维手机号">
               <n-input
                 v-model:value="policy.pingPhones"
                 placeholder="多个号码用逗号分隔"
-                class="field-control"
               />
             </n-form-item>
             <n-form-item label="Ping Cron">
               <n-input
                 v-model:value="policy.pingCron"
                 placeholder="0 0 */6 * * ?"
-                class="field-control"
               />
             </n-form-item>
-          </div>
-          <div class="section-actions">
-            <n-button type="primary" :loading="policySaving" @click="savePolicy">
-              保存 Ping 配置
-            </n-button>
-            <n-button :loading="pingLoading" @click="runPing">
-              立即 Ping
-            </n-button>
-          </div>
-        </n-form>
+          </n-form>
+        </div>
       </div>
 
-      <!-- 短信通道列表 -->
+      <!-- 短信通道列表：全宽 -->
       <div class="config-section">
-        <div class="section-header section-header--row">
-          <div>
-            <div class="section-title">
-              短信通道
-            </div>
-            <div class="section-desc">
-              可同时启用多厂商通道；主通道用于验证码锁定与仅主模式
-            </div>
+        <div class="section-toolbar">
+          <div class="section-title">
+            短信通道列表
           </div>
           <n-button type="primary" @click="openCreate">
             新增通道
@@ -127,18 +104,14 @@
           :data="rows"
           :bordered="false"
           size="medium"
-          :single-line="false"
         />
       </div>
 
       <!-- Ping 日志 -->
       <div v-if="pingLogs.length" class="config-section">
-        <div class="section-header">
+        <div class="section-toolbar">
           <div class="section-title">
             最近 Ping 日志
-          </div>
-          <div class="section-desc">
-            展示最近探活结果，便于排查通道失败原因
           </div>
         </div>
         <n-data-table
@@ -507,75 +480,78 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 960px;
+  width: 100%;
 }
 
 .config-section {
   background: var(--bg-secondary);
   border: 1px solid var(--border-light);
   border-radius: 8px;
-  padding: 16px 18px;
+  padding: 16px 20px;
 }
 
-.section-header {
-  margin-bottom: 16px;
-}
-
-.section-header--row {
+.section-toolbar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
 .section-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
-  line-height: 1.4;
 }
 
-.section-desc {
-  margin-top: 4px;
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.policy-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 32px;
+}
+
+.policy-pane {
+  min-width: 0;
+}
+
+.policy-pane + .policy-pane {
+  border-left: 1px solid var(--border-light);
+  padding-left: 32px;
+}
+
+.pane-label {
   font-size: 12px;
+  font-weight: 600;
   color: var(--text-secondary);
-  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.pane-label--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .header-switch {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-shrink: 0;
-  padding-top: 2px;
 }
 
-.section-form {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.policy-pane :deep(.n-form-item) {
+  margin-bottom: 12px;
 }
 
-.section-form :deep(.n-form-item) {
-  margin-bottom: 14px;
-}
-
-.section-form :deep(.n-form-item-label) {
+.policy-pane :deep(.n-form-item-label) {
   font-weight: 500;
-}
-
-.field-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0;
-}
-
-.field-grid--ping {
-  grid-template-columns: minmax(240px, 420px);
-}
-
-.field-control {
-  max-width: 420px;
 }
 
 .inline-field {
@@ -592,16 +568,20 @@ onMounted(async () => {
 .hint {
   font-size: 12px;
   color: var(--text-secondary);
-  line-height: 1.4;
 }
 
-.section-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-top: 4px;
-  border-top: 1px solid var(--border-light);
-  margin-top: 4px;
+@media (max-width: 960px) {
+  .policy-grid {
+    grid-template-columns: 1fr;
+    gap: 16px 0;
+  }
+
+  .policy-pane + .policy-pane {
+    border-left: none;
+    border-top: 1px solid var(--border-light);
+    padding-left: 0;
+    padding-top: 16px;
+  }
 }
 
 .dark .config-section {
@@ -612,7 +592,7 @@ onMounted(async () => {
   color: #f1f5f9;
 }
 
-.dark .section-desc,
+.dark .pane-label,
 .dark .hint {
   color: var(--text-tertiary);
 }
