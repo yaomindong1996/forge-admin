@@ -4,8 +4,10 @@
 # 构建上下文为项目根目录，docker compose 中 context 设为 ..
 FROM maven:3.9.16-eclipse-temurin-17 AS builder
 WORKDIR /build
+# 默认使用国内 Maven 镜像（阿里云 public），加速 Docker 本地构建拉依赖
+COPY docker-forge-admin/maven-settings.xml /root/.m2/settings.xml
 COPY ./forge-server .
-RUN mvn clean package -pl forge-admin-server -am -DskipTests -Pprod
+RUN mvn -B -ntp clean package -pl forge-admin-server -am -DskipTests -Pprod
 
 FROM eclipse-temurin:17-jre
 WORKDIR /app
