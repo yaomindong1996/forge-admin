@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.message.mapper.SysSmsPingLogMapper">
+
+    <select id="selectRecent" resultType="com.mdframe.forge.plugin.message.domain.entity.SysSmsPingLog">
+        SELECT
+            id, tenant_id, config_id, supplier, phone, status, error_msg, send_time, create_time
+        FROM sys_sms_ping_log
+        WHERE tenant_id = #{tenantId}
+        ORDER BY create_time DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

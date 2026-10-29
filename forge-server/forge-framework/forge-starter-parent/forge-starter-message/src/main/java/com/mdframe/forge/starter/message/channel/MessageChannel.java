@@ -31,6 +31,10 @@ public interface MessageChannel {
         public java.util.Set<Long> tenantIds;
         public String channel; // 指定渠道
         public String type;    // 系统消息/短信/自定义
+        /** 短信业务场景，如 LOGIN_CAPTCHA / SMS_PING */
+        public String scene;
+        /** 指定短信通道 configId（探活等场景绕过选路） */
+        public String preferredSmsConfigId;
         public Long messageId;
         private List<String> phoneList;
         private List<String> emailList;
@@ -105,6 +109,22 @@ public interface MessageChannel {
         
         public void setType(String type) {
             this.type = type;
+        }
+
+        public String getScene() {
+            return scene;
+        }
+
+        public void setScene(String scene) {
+            this.scene = scene;
+        }
+
+        public String getPreferredSmsConfigId() {
+            return preferredSmsConfigId;
+        }
+
+        public void setPreferredSmsConfigId(String preferredSmsConfigId) {
+            this.preferredSmsConfigId = preferredSmsConfigId;
         }
         
         public Long getMessageId() {

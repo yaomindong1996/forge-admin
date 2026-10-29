@@ -10,6 +10,7 @@
         <result column="access_key_secret" property="accessKeySecret"/>
         <result column="signature" property="signature"/>
         <result column="template_id" property="templateId"/>
+        <result column="scene_templates" property="sceneTemplates"/>
         <result column="weight" property="weight"/>
         <result column="retry_interval" property="retryInterval"/>
         <result column="max_retries" property="maxRetries"/>
@@ -18,6 +19,7 @@
         <result column="daily_limit" property="dailyLimit"/>
         <result column="minute_limit" property="minuteLimit"/>
         <result column="status" property="status"/>
+        <result column="channel_role" property="channelRole"/>
         <result column="tenant_id" property="tenantId"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
@@ -32,8 +34,35 @@
         <if test="tenantId != null">
             AND tenant_id = #{tenantId}
         </if>
-        ORDER BY weight DESC
+        ORDER BY
+            CASE WHEN channel_role = 'PRIMARY' THEN 0 ELSE 1 END,
+            weight DESC,
+            id ASC
         LIMIT 1
+    </select>
+
+    <select id="selectEnabledConfigs" resultMap="BaseResultMap">
+        SELECT * FROM sys_sms_config
+        WHERE status = 1
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        ORDER BY
+            CASE WHEN channel_role = 'PRIMARY' THEN 0 ELSE 1 END,
+            weight DESC,
+            id ASC
+    </select>
+
+    <select id="selectByTenantId" resultMap="BaseResultMap">
+        SELECT * FROM sys_sms_config
+        WHERE 1 = 1
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        ORDER BY
+            CASE WHEN channel_role = 'PRIMARY' THEN 0 ELSE 1 END,
+            weight DESC,
+            id ASC
     </select>
 
 </mapper>

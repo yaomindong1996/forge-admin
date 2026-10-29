@@ -5,6 +5,7 @@ import com.mdframe.forge.starter.core.util.SensitiveDataUtil;
 import com.mdframe.forge.starter.message.channel.ChannelType;
 import com.mdframe.forge.starter.message.channel.MessageChannel;
 import com.mdframe.forge.starter.message.sdk.MessageClient;
+import com.mdframe.forge.starter.message.sms.SmsScene;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -31,6 +32,7 @@ public class MessageSmsCaptchaSender implements SmsCaptchaSender {
         MessageChannel.SendRequest request = new MessageChannel.SendRequest();
         request.setChannel(ChannelType.SMS.name());
         request.setType(ChannelType.SMS.name());
+        request.setScene(SmsScene.LOGIN_CAPTCHA);
         request.setPhoneList(List.of(phone));
         request.setContent(CONTENT_TEMPLATE);
         request.setParams(Map.of(

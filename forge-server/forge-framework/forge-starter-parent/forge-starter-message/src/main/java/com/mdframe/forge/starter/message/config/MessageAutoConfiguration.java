@@ -6,7 +6,9 @@ import com.mdframe.forge.starter.message.channel.SmsMessageChannel;
 import com.mdframe.forge.starter.message.channel.WebMessageChannel;
 import com.mdframe.forge.starter.message.sdk.MessageClient;
 import com.mdframe.forge.starter.message.service.MessageTemplateEngine;
-import org.dromara.sms4j.api.SmsBlend;
+import com.mdframe.forge.starter.message.sms.LocalSmsRouteSequence;
+import com.mdframe.forge.starter.message.sms.SmsRouteSequence;
+import com.mdframe.forge.starter.message.sms.SmsRouter;
 import org.dromara.sms4j.core.factory.SmsFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -18,9 +20,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Configuration
 @EnableConfigurationProperties(MessageProperties.class)
@@ -41,11 +41,30 @@ public class MessageAutoConfiguration {
         return new WebMessageChannel();
     }
     
-    @Bean(name = "smsMessageChannel")
+    @Bean
+    @ConditionalOnMissingBean(SmsRouteSequence.class)
+    public SmsRouteSequence smsRouteSequence() {
+        return new LocalSmsRouteSequence();
+    }
+
+    @Bean
     @ConditionalOnBean(SmsConfigProvider.class)
+    @ConditionalOnMissingBean(SmsRouter.class)
+    public SmsRouter smsRouter(SmsConfigProvider smsConfigProvider, SmsRouteSequence smsRouteSequence) {
+        return new SmsRouter(smsConfigProvider, smsRouteSequence);
+    }
+
+    @Bean(name = "smsMessageChannel")
+    @ConditionalOnBean({SmsConfigProvider.class, SmsRouter.class})
     @ConditionalOnProperty(prefix = "forge.message.channel.sms", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public MessageChannel smsMessageChannel() {
-        return new SmsMessageChannel();
+    public MessageChannel smsMessageChannel(SmsRouter smsRouter, SmsConfigProvider smsConfigProvider) {
+        return new SmsMessageChannel(smsRouter, smsConfigProvider);
+    }
+
+    @Bean
+    @ConditionalOnBean(ReadConfig.class)
+    public SmsBlendRefresher smsBlendRefresher(ReadConfig readConfig) {
+        return new SmsBlendRefresher(readConfig);
     }
     
     @Bean(name = "emailMessageChannel")

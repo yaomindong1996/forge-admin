@@ -48,13 +48,13 @@ public class ReadConfig implements SmsReadConfig {
     public BaseConfig getSupplierConfig(String configId) {
         if (configProvider != null) {
             try {
-                SmsConfigProvider.SmsConfig config = configProvider.getSmsConfig();
-                if (config != null && config.getConfigId().equals(configId)) {
-                    log.info("自动加载短信配置成功: supplier={}", config.getSupplier());
-                    return buildBaseConfig(config);
-                } else {
-                    log.info("未找到已启用的短信配置");
+                for (SmsConfigProvider.SmsConfig config : configProvider.listEnabledSmsConfigs()) {
+                    if (config != null && configId != null && configId.equals(config.getConfigId())) {
+                        log.info("自动加载短信配置成功: configId={}, supplier={}", configId, config.getSupplier());
+                        return buildBaseConfig(config);
+                    }
                 }
+                log.info("未找到短信配置: configId={}", configId);
             } catch (Exception e) {
                 log.warn("自动加载短信配置失败: {}", e.getMessage());
             }
@@ -66,13 +66,12 @@ public class ReadConfig implements SmsReadConfig {
     public List<BaseConfig> getSupplierConfigList() {
         if (configProvider != null) {
             try {
-                SmsConfigProvider.SmsConfig config = configProvider.getSmsConfig();
-                if (config != null) {
-                    log.info("自动加载短信配置成功: supplier={}", config.getSupplier());
-                    return List.of(buildBaseConfig(config));
-                } else {
-                    log.info("未找到已启用的短信配置");
+                List<SmsConfigProvider.SmsConfig> configs = configProvider.listEnabledSmsConfigs();
+                if (configs != null && !configs.isEmpty()) {
+                    log.info("自动加载短信配置成功: count={}", configs.size());
+                    return configs.stream().map(this::buildBaseConfig).toList();
                 }
+                log.info("未找到已启用的短信配置");
             } catch (Exception e) {
                 log.warn("自动加载短信配置失败: {}", e.getMessage());
             }

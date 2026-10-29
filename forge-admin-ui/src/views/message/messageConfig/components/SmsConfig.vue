@@ -1,364 +1,190 @@
 <template>
   <div class="sms-config">
     <n-spin :show="loading">
-      <n-form
-        ref="formRef"
-        :model="formData"
-        :rules="rules"
-        label-placement="left"
-        label-width="120px"
-        class="config-form"
-      >
-        <!-- 基础配置 -->
-        <div class="config-section">
-          <div class="section-header">
-            <div class="section-title">
-              <i class="i-material-symbols:sms-rounded section-icon" />
-              基础配置
-            </div>
-            <div class="section-desc">
-              短信服务厂商与账号配置
-            </div>
-          </div>
-          <div class="section-content">
-            <n-form-item label="状态" path="status">
-              <n-switch v-model:value="formData.status" :checked-value="1" :unchecked-value="0">
-                <template #checked>
-                  启用
-                </template>
-                <template #unchecked>
-                  禁用
-                </template>
-              </n-switch>
-            </n-form-item>
-
-            <n-form-item label="短信厂商" path="supplier">
-              <n-select
-                v-model:value="formData.supplier"
-                :options="supplierOptions"
-                placeholder="请选择短信厂商"
-                @update:value="handleSupplierChange"
-              />
-            </n-form-item>
-
-            <n-form-item label="配置标识" path="configId">
-              <n-input v-model:value="formData.configId" placeholder="请输入配置标识（如：aliyun-sms）" />
-            </n-form-item>
-
-            <n-form-item label="AccessKey ID" path="accessKeyId">
-              <n-input v-model:value="formData.accessKeyId" placeholder="请输入 AccessKey ID" />
-            </n-form-item>
-
-            <n-form-item label="AccessKey Secret" path="accessKeySecret">
-              <n-input
-                v-model:value="formData.accessKeySecret"
-                type="password"
-                show-password-on="click"
-                placeholder="请输入 AccessKey Secret"
-              />
-            </n-form-item>
-
-            <n-form-item label="短信签名" path="signature">
-              <n-input v-model:value="formData.signature" placeholder="请输入短信签名" />
-            </n-form-item>
-
-            <n-form-item label="默认模板ID" path="templateId">
-              <n-input v-model:value="formData.templateId" placeholder="请输入默认模板ID" />
-            </n-form-item>
-          </div>
+      <div class="policy-card">
+        <div class="section-title">
+          路由与 Ping 策略
         </div>
-
-        <!-- 阿里云自定义配置 -->
-        <div v-if="formData.supplier === 'alibaba'" class="config-section">
-          <div class="section-header">
-            <div class="section-title">
-              <i class="i-material-symbols:cloud-outline section-icon" />
-              阿里云自定义配置
-            </div>
+        <n-form label-placement="left" label-width="140" class="policy-form">
+          <n-form-item label="选路模式">
+            <n-radio-group v-model:value="policy.routeMode">
+              <n-radio value="WEIGHTED_RR">
+                权重轮询
+              </n-radio>
+              <n-radio value="PRIMARY_ONLY">
+                仅主通道
+              </n-radio>
+            </n-radio-group>
+          </n-form-item>
+          <n-form-item label="验证码锁主通道">
+            <n-switch v-model:value="policy.captchaLockPrimary" :checked-value="1" :unchecked-value="0" />
+          </n-form-item>
+          <n-form-item label="失败 Failover">
+            <n-switch v-model:value="policy.failoverEnabled" :checked-value="1" :unchecked-value="0" />
+            <n-input-number
+              v-model:value="policy.failoverMaxAttempts"
+              :min="1"
+              :max="5"
+              class="ml-12"
+              style="width: 120px"
+            />
+            <span class="hint">最大尝试次数</span>
+          </n-form-item>
+          <n-form-item label="定时 Ping">
+            <n-switch v-model:value="policy.pingEnabled" :checked-value="1" :unchecked-value="0" />
+          </n-form-item>
+          <n-form-item label="运维手机号">
+            <n-input v-model:value="policy.pingPhones" placeholder="多个号码用逗号分隔" />
+          </n-form-item>
+          <n-form-item label="Ping Cron">
+            <n-input v-model:value="policy.pingCron" placeholder="0 0 */6 * * ?" />
+          </n-form-item>
+          <div class="policy-actions">
+            <n-button type="primary" :loading="policySaving" @click="savePolicy">
+              保存策略
+            </n-button>
+            <n-button :loading="pingLoading" @click="runPing">
+              立即 Ping
+            </n-button>
           </div>
-          <div class="section-content">
-            <n-form-item label="模板变量名称">
-              <n-input v-model:value="extraConfig.alibaba.templateName" placeholder="模板变量名称（可选）" />
-            </n-form-item>
+        </n-form>
+      </div>
 
-            <n-form-item label="请求地址">
-              <n-input v-model:value="extraConfig.alibaba.requestUrl" placeholder="默认: dysmsapi.aliyuncs.com" />
-            </n-form-item>
-
-            <n-form-item label="接口名称">
-              <n-input v-model:value="extraConfig.alibaba.action" placeholder="默认: SendSms" />
-            </n-form-item>
-
-            <n-form-item label="接口版本号">
-              <n-input v-model:value="extraConfig.alibaba.version" placeholder="默认: 2017-05-25" />
-            </n-form-item>
-
-            <n-form-item label="地域信息">
-              <n-input v-model:value="extraConfig.alibaba.regionId" placeholder="默认: cn-hangzhou" />
-            </n-form-item>
-          </div>
+      <div class="list-header">
+        <div class="section-title">
+          短信通道列表
         </div>
+        <n-button type="primary" @click="openCreate">
+          新增通道
+        </n-button>
+      </div>
 
-        <!-- 腾讯云自定义配置 -->
-        <div v-if="formData.supplier === 'tencent'" class="config-section">
-          <div class="section-header">
-            <div class="section-title">
-              <i class="i-material-symbols:cloud-outline section-icon" />
-              腾讯云自定义配置
-            </div>
-          </div>
-          <div class="section-content">
-            <n-form-item label="SDK AppId">
-              <n-input v-model:value="extraConfig.tencent.sdkAppId" placeholder="请输入 SDK AppId" />
-            </n-form-item>
+      <n-data-table :columns="columns" :data="rows" :bordered="false" size="small" />
 
-            <n-form-item label="地域信息">
-              <n-input v-model:value="extraConfig.tencent.territory" placeholder="默认: ap-guangzhou" />
-            </n-form-item>
-
-            <n-form-item label="验证码短信请求地址">
-              <n-input v-model:value="extraConfig.tencent.codeUrl" placeholder="默认: https://api.netease.im/sms/sendcode.action" />
-            </n-form-item>
-
-            <n-form-item label="请求超时时间">
-              <n-input-number v-model:value="extraConfig.tencent.connTimeout" :min="1" placeholder="默认: 60" style="width: 200px" />
-              <span class="ml-8 text-gray-500">秒</span>
-            </n-form-item>
-
-            <n-form-item label="请求地址">
-              <n-input v-model:value="extraConfig.tencent.requestUrl" placeholder="默认: sms.tencentcloudapi.com" />
-            </n-form-item>
-
-            <n-form-item label="接口名称">
-              <n-input v-model:value="extraConfig.tencent.action" placeholder="默认: SendSms" />
-            </n-form-item>
-
-            <n-form-item label="接口版本">
-              <n-input v-model:value="extraConfig.tencent.version" placeholder="默认: 2021-01-11" />
-            </n-form-item>
-
-            <n-form-item label="服务名">
-              <n-input v-model:value="extraConfig.tencent.service" placeholder="默认: sms" />
-            </n-form-item>
-          </div>
+      <div v-if="pingLogs.length" class="ping-logs">
+        <div class="section-title">
+          最近 Ping 日志
         </div>
-
-        <!-- 中国移动云MAS自定义配置 -->
-        <div v-if="formData.supplier === 'mas'" class="config-section">
-          <div class="section-header">
-            <div class="section-title">
-              <i class="i-material-symbols:cloud-outline section-icon" />
-              中国移动云MAS自定义配置
-            </div>
-          </div>
-          <div class="section-content">
-            <n-alert type="info" class="mb-16">
-              <template #header>
-                字段说明
-              </template>
-              <ul class="text-12">
-                <li>SDK AppId = 接口账号用户名</li>
-                <li>AccessKey Secret = 用户密码</li>
-                <li>企业名称 = 企业名称</li>
-                <li>签名编码 = 签名编码</li>
-              </ul>
-            </n-alert>
-
-            <n-form-item label="企业名称">
-              <n-input v-model:value="extraConfig.mas.ecName" placeholder="请输入企业名称" />
-            </n-form-item>
-
-            <n-form-item label="签名编码">
-              <n-input v-model:value="extraConfig.mas.signature" placeholder="请输入签名编码" />
-            </n-form-item>
-
-            <n-form-item label="模板ID">
-              <n-input v-model:value="extraConfig.mas.templateId" placeholder="有模板接口时需要配置" />
-            </n-form-item>
-
-            <n-form-item label="扩展码">
-              <n-input v-model:value="extraConfig.mas.addSerial" placeholder="可为空，总长度不能超过20位" />
-            </n-form-item>
-
-            <n-form-item label="请求方法">
-              <n-select
-                v-model:value="extraConfig.mas.action"
-                :options="masActionOptions"
-                placeholder="选择请求方法"
-              />
-            </n-form-item>
-
-            <n-form-item label="请求地址">
-              <n-input v-model:value="extraConfig.mas.requestUrl" placeholder="HTTP模式默认: http://112.35.1.155:1992/sms/" />
-            </n-form-item>
-          </div>
-        </div>
-
-        <!-- 发送限制 -->
-        <div class="config-section">
-          <div class="section-header">
-            <div class="section-title">
-              <i class="i-material-symbols:counter-1 section-icon" />
-              发送限制
-            </div>
-            <div class="section-desc">
-              控制短信发送频率与数量上限
-            </div>
-          </div>
-          <div class="section-content">
-            <n-form-item label="每日上限" path="dailyLimit">
-              <n-input-number
-                v-model:value="formData.dailyLimit"
-                :min="0"
-                placeholder="每日发送上限"
-                style="width: 200px"
-              />
-              <span class="ml-8 text-gray-500">条/天（0表示不限制）</span>
-            </n-form-item>
-
-            <n-form-item label="每分钟上限" path="minuteLimit">
-              <n-input-number
-                v-model:value="formData.minuteLimit"
-                :min="0"
-                placeholder="每分钟发送上限"
-                style="width: 200px"
-              />
-              <span class="ml-8 text-gray-500">条/分钟（0表示不限制）</span>
-            </n-form-item>
-
-            <n-form-item label="发送上限" path="maximum">
-              <n-input-number
-                v-model:value="formData.maximum"
-                :min="0"
-                placeholder="厂商发送上限"
-                style="width: 200px"
-              />
-              <span class="ml-8 text-gray-500">条（0表示不限制）</span>
-            </n-form-item>
-          </div>
-        </div>
-
-        <!-- 重试配置 -->
-        <div class="config-section">
-          <div class="section-header">
-            <div class="section-title">
-              <i class="i-material-symbols:refresh section-icon" />
-              重试配置
-            </div>
-            <div class="section-desc">
-              发送失败后的重试策略
-            </div>
-          </div>
-          <div class="section-content">
-            <n-form-item label="重试间隔" path="retryInterval">
-              <n-input-number
-                v-model:value="formData.retryInterval"
-                :min="1"
-                placeholder="重试间隔"
-                style="width: 200px"
-              />
-              <span class="ml-8 text-gray-500">秒</span>
-            </n-form-item>
-
-            <n-form-item label="最大重试次数" path="maxRetries">
-              <n-input-number
-                v-model:value="formData.maxRetries"
-                :min="0"
-                placeholder="最大重试次数"
-                style="width: 200px"
-              />
-              <span class="ml-8 text-gray-500">次（0表示不重试）</span>
-            </n-form-item>
-
-            <n-form-item label="权重" path="weight">
-              <n-input-number
-                v-model:value="formData.weight"
-                :min="1"
-                placeholder="权重"
-                style="width: 200px"
-              />
-              <span class="ml-8 text-gray-500">负载均衡权重值</span>
-            </n-form-item>
-
-            <n-form-item label="备注" path="remark">
-              <n-input
-                v-model:value="formData.remark"
-                type="textarea"
-                placeholder="请输入备注"
-                :rows="3"
-              />
-            </n-form-item>
-          </div>
-        </div>
-
-        <!-- 操作按钮 -->
-        <div class="form-footer">
-          <n-button type="primary" :loading="saving" @click="handleSave">
-            <i class="i-material-symbols:save mr-2" />
-            保存配置
-          </n-button>
-          <n-button @click="handleReset">
-            <i class="i-material-symbols:refresh mr-2" />
-            重置
-          </n-button>
-        </div>
-      </n-form>
+        <n-data-table :columns="pingColumns" :data="pingLogs" :bordered="false" size="small" />
+      </div>
     </n-spin>
+
+    <n-drawer v-model:show="drawerVisible" :width="640" placement="right">
+      <n-drawer-content :title="formData.id ? '编辑短信通道' : '新增短信通道'" closable>
+        <n-form ref="formRef" :model="formData" :rules="rules" label-placement="left" label-width="120">
+          <n-form-item label="状态" path="status">
+            <n-switch v-model:value="formData.status" :checked-value="1" :unchecked-value="0" />
+          </n-form-item>
+          <n-form-item label="通道角色" path="channelRole">
+            <n-radio-group v-model:value="formData.channelRole">
+              <n-radio value="PRIMARY">
+                主通道
+              </n-radio>
+              <n-radio value="SECONDARY">
+                一般通道
+              </n-radio>
+            </n-radio-group>
+          </n-form-item>
+          <n-form-item label="短信厂商" path="supplier">
+            <n-select v-model:value="formData.supplier" :options="supplierOptions" placeholder="请选择短信厂商" />
+          </n-form-item>
+          <n-form-item label="配置标识" path="configId">
+            <n-input v-model:value="formData.configId" placeholder="如 tencent-main" />
+          </n-form-item>
+          <n-form-item label="AccessKey ID" path="accessKeyId">
+            <n-input v-model:value="formData.accessKeyId" />
+          </n-form-item>
+          <n-form-item label="AccessKey Secret" path="accessKeySecret">
+            <n-input v-model:value="formData.accessKeySecret" type="password" show-password-on="click" />
+          </n-form-item>
+          <n-form-item label="短信签名" path="signature">
+            <n-input v-model:value="formData.signature" />
+          </n-form-item>
+          <n-form-item label="默认模板ID" path="templateId">
+            <n-input v-model:value="formData.templateId" />
+          </n-form-item>
+          <n-form-item label="验证码模板">
+            <n-input v-model:value="sceneTemplates.LOGIN_CAPTCHA" placeholder="LOGIN_CAPTCHA 场景模板 ID" />
+          </n-form-item>
+          <n-form-item label="Ping 模板">
+            <n-input v-model:value="sceneTemplates.SMS_PING" placeholder="SMS_PING 场景模板 ID" />
+          </n-form-item>
+          <n-form-item label="权重" path="weight">
+            <n-input-number v-model:value="formData.weight" :min="1" />
+            <span class="hint">主:备 = 2:1 即主 weight=2、备=1</span>
+          </n-form-item>
+          <n-form-item v-if="formData.supplier === 'tencent'" label="SdkAppId">
+            <n-input v-model:value="extraConfig.tencent.sdkAppId" />
+          </n-form-item>
+          <n-form-item label="备注">
+            <n-input v-model:value="formData.remark" type="textarea" :rows="2" />
+          </n-form-item>
+        </n-form>
+        <template #footer>
+          <n-space justify="end">
+            <n-button @click="drawerVisible = false">
+              取消
+            </n-button>
+            <n-button type="primary" :loading="saving" @click="handleSave">
+              保存
+            </n-button>
+          </n-space>
+        </template>
+      </n-drawer-content>
+    </n-drawer>
   </div>
 </template>
 
 <script setup>
+import { NButton, NSpace, NTag } from 'naive-ui'
+import { h, onMounted, ref } from 'vue'
 import api from '../api.js'
 
-const formRef = ref(null)
 const loading = ref(false)
 const saving = ref(false)
+const policySaving = ref(false)
+const pingLoading = ref(false)
+const drawerVisible = ref(false)
+const formRef = ref(null)
+const rows = ref([])
+const pingLogs = ref([])
+const supplierOptions = ref([])
 
-const formData = ref({
+const policy = ref({
+  routeMode: 'WEIGHTED_RR',
+  captchaLockPrimary: 1,
+  failoverEnabled: 1,
+  failoverMaxAttempts: 2,
+  pingEnabled: 0,
+  pingPhones: '',
+  pingCron: '0 0 */6 * * ?',
+  pingMode: 'PER_CHANNEL',
+})
+
+const emptyForm = () => ({
   id: null,
-  configId: null,
+  configId: '',
   supplier: null,
-  accessKeyId: null,
-  accessKeySecret: null,
-  signature: null,
-  templateId: null,
+  accessKeyId: '',
+  accessKeySecret: '',
+  signature: '',
+  templateId: '',
   weight: 1,
   retryInterval: 5,
   maxRetries: 0,
-  maximum: null,
-  dailyLimit: null,
-  minuteLimit: null,
-  status: 0,
-  remark: null,
+  status: 1,
+  channelRole: 'SECONDARY',
+  remark: '',
   extraConfig: null,
+  sceneTemplates: null,
 })
 
+const formData = ref(emptyForm())
+const sceneTemplates = ref({ LOGIN_CAPTCHA: '', SMS_PING: '' })
 const extraConfig = ref({
-  alibaba: {
-    templateName: null,
-    requestUrl: 'dysmsapi.aliyuncs.com',
-    action: 'SendSms',
-    version: '2017-05-25',
-    regionId: 'cn-hangzhou',
-  },
-  tencent: {
-    sdkAppId: null,
-    territory: 'ap-guangzhou',
-    codeUrl: 'https://api.netease.im/sms/sendcode.action',
-    connTimeout: 60,
-    requestUrl: 'sms.tencentcloudapi.com',
-    action: 'SendSms',
-    version: '2021-01-11',
-    service: 'sms',
-  },
-  mas: {
-    ecName: null,
-    signature: null,
-    templateId: null,
-    addSerial: null,
-    action: 'tmpsubmit',
-    requestUrl: 'http://112.35.1.155:1992/sms/',
-  },
+  tencent: { sdkAppId: '', territory: 'ap-guangzhou', requestUrl: 'sms.tencentcloudapi.com', action: 'SendSms', version: '2021-01-11', service: 'sms' },
+  alibaba: {},
+  mas: {},
 })
 
 const rules = {
@@ -376,192 +202,260 @@ const rules = {
   },
 }
 
-const supplierOptions = ref([])
+const columns = [
+  { title: '配置标识', key: 'configId' },
+  {
+    title: '厂商',
+    key: 'supplier',
+    render: row => supplierOptions.value.find(i => i.value === row.supplier)?.label || row.supplier,
+  },
+  {
+    title: '角色',
+    key: 'channelRole',
+    render: row => h(NTag, { type: row.channelRole === 'PRIMARY' ? 'success' : 'default', size: 'small' }, {
+      default: () => (row.channelRole === 'PRIMARY' ? '主通道' : '一般'),
+    }),
+  },
+  { title: '权重', key: 'weight', width: 70 },
+  {
+    title: '状态',
+    key: 'status',
+    render: row => h(NTag, { type: row.status === 1 ? 'success' : 'warning', size: 'small' }, {
+      default: () => (row.status === 1 ? '启用' : '禁用'),
+    }),
+  },
+  {
+    title: '操作',
+    key: 'actions',
+    width: 260,
+    render: (row) => {
+      return h(NSpace, { size: 8 }, {
+        default: () => [
+          h('a', { class: 'text-primary cursor-pointer', onClick: () => openEdit(row) }, '编辑'),
+          row.channelRole !== 'PRIMARY'
+            ? h('a', { class: 'text-success cursor-pointer', onClick: () => setPrimary(row) }, '设为主')
+            : null,
+          h('a', {
+            class: 'text-warning cursor-pointer',
+            onClick: () => toggleStatus(row),
+          }, row.status === 1 ? '禁用' : '启用'),
+          h('a', { class: 'text-error cursor-pointer', onClick: () => removeRow(row) }, '删除'),
+        ].filter(Boolean),
+      })
+    },
+  },
+]
 
-const masActionOptions = [
-  { label: 'HTTP-无模板接口(norsubmit)', value: 'norsubmit' },
-  { label: 'HTTP-有模板接口(tmpsubmit)', value: 'tmpsubmit' },
-  { label: 'HTTPS-有模板接口(submit)', value: 'submit' },
+const pingColumns = [
+  { title: '时间', key: 'sendTime' },
+  { title: '通道', key: 'configId' },
+  { title: '厂商', key: 'supplier' },
+  { title: '手机号', key: 'phone' },
+  {
+    title: '结果',
+    key: 'status',
+    render: row => (row.status === 1 ? '成功' : '失败'),
+  },
+  { title: '错误', key: 'errorMsg' },
 ]
 
 async function loadSuppliers() {
-  try {
-    const res = await api.getSmsSuppliers()
-    if (res.code === 200 && res.data) {
-      supplierOptions.value = Object.entries(res.data).map(([value, label]) => ({
-        label,
-        value,
-      }))
-    }
-  }
-  catch (error) {
-    console.error('获取短信厂商列表失败:', error)
+  const res = await api.getSmsSuppliers()
+  if (res.code === 200 && res.data) {
+    supplierOptions.value = Object.entries(res.data).map(([value, label]) => ({ label, value }))
   }
 }
 
-async function loadConfig() {
+async function loadList() {
   loading.value = true
   try {
-    const res = await api.getSmsConfig()
-    if (res.code === 200 && res.data) {
-      Object.assign(formData.value, res.data)
-
-      if (res.data.extraConfig) {
-        try {
-          const extra = JSON.parse(res.data.extraConfig)
-          if (extra.alibaba) {
-            Object.assign(extraConfig.value.alibaba, extra.alibaba)
-          }
-          if (extra.tencent) {
-            Object.assign(extraConfig.value.tencent, extra.tencent)
-          }
-          if (extra.mas) {
-            Object.assign(extraConfig.value.mas, extra.mas)
-          }
-        }
-        catch (e) {
-          console.error('解析额外配置失败:', e)
-        }
-      }
-    }
-  }
-  catch (error) {
-    console.error('获取短信配置失败:', error)
+    const [listRes, policyRes, logRes] = await Promise.all([
+      api.listSmsConfigs(),
+      api.getSmsRoutePolicy(),
+      api.listSmsPingLogs(20),
+    ])
+    if (listRes.code === 200)
+      rows.value = listRes.data || []
+    if (policyRes.code === 200 && policyRes.data)
+      Object.assign(policy.value, policyRes.data)
+    if (logRes.code === 200)
+      pingLogs.value = logRes.data || []
   }
   finally {
     loading.value = false
   }
 }
 
-function handleSupplierChange() {
+function openCreate() {
+  formData.value = emptyForm()
+  sceneTemplates.value = { LOGIN_CAPTCHA: '', SMS_PING: '' }
+  drawerVisible.value = true
+}
+
+function openEdit(row) {
+  formData.value = { ...emptyForm(), ...row }
+  try {
+    const scenes = row.sceneTemplates ? JSON.parse(row.sceneTemplates) : {}
+    sceneTemplates.value = {
+      LOGIN_CAPTCHA: scenes.LOGIN_CAPTCHA || '',
+      SMS_PING: scenes.SMS_PING || '',
+    }
+  }
+  catch {
+    sceneTemplates.value = { LOGIN_CAPTCHA: '', SMS_PING: '' }
+  }
+  try {
+    const extra = row.extraConfig ? JSON.parse(row.extraConfig) : {}
+    if (extra.tencent)
+      Object.assign(extraConfig.value.tencent, extra.tencent)
+  }
+  catch {
+    // ignore
+  }
+  drawerVisible.value = true
 }
 
 async function handleSave() {
+  await formRef.value?.validate()
+  saving.value = true
   try {
-    await formRef.value?.validate()
-    saving.value = true
-
     const submitData = { ...formData.value }
-
-    const currentSupplier = formData.value.supplier
-    if (currentSupplier && extraConfig.value[currentSupplier]) {
-      const extra = {}
-      extra[currentSupplier] = extraConfig.value[currentSupplier]
-      submitData.extraConfig = JSON.stringify(extra)
+    submitData.sceneTemplates = JSON.stringify(sceneTemplates.value)
+    if (submitData.supplier === 'tencent') {
+      submitData.extraConfig = JSON.stringify({ tencent: extraConfig.value.tencent })
     }
-
     const res = await api.saveSmsConfig(submitData)
     if (res.code === 200) {
       window.$message.success('保存成功')
-      loadConfig()
+      drawerVisible.value = false
+      await loadList()
     }
     else {
-      window.$message.error(res.msg || '保存失败')
+      window.$message.error(res.message || res.msg || '保存失败')
     }
-  }
-  catch (error) {
-    console.error('保存短信配置失败:', error)
   }
   finally {
     saving.value = false
   }
 }
 
-function handleReset() {
-  loadConfig()
+async function setPrimary(row) {
+  const res = await api.setSmsPrimary(row.id)
+  if (res.code === 200) {
+    window.$message.success('已设为主通道')
+    await loadList()
+  }
+  else {
+    window.$message.error(res.message || res.msg || '设置失败')
+  }
 }
 
-onMounted(() => {
-  loadSuppliers()
-  loadConfig()
+async function toggleStatus(row) {
+  const next = row.status === 1 ? 0 : 1
+  const res = await api.updateSmsStatus(row.id, next)
+  if (res.code === 200) {
+    window.$message.success('状态已更新')
+    await loadList()
+  }
+  else {
+    window.$message.error(res.message || res.msg || '更新失败')
+  }
+}
+
+async function removeRow(row) {
+  if (!window.confirm(`确定删除短信通道 ${row.configId} 吗？`))
+    return
+  const res = await api.deleteSmsConfig(row.id)
+  if (res.code === 200) {
+    window.$message.success('已删除')
+    await loadList()
+  }
+  else {
+    window.$message.error(res.message || res.msg || '删除失败')
+  }
+}
+
+async function savePolicy() {
+  policySaving.value = true
+  try {
+    const res = await api.saveSmsRoutePolicy(policy.value)
+    if (res.code === 200) {
+      window.$message.success('策略已保存')
+      if (res.data)
+        Object.assign(policy.value, res.data)
+    }
+    else {
+      window.$message.error(res.message || res.msg || '保存失败')
+    }
+  }
+  finally {
+    policySaving.value = false
+  }
+}
+
+async function runPing() {
+  pingLoading.value = true
+  try {
+    const res = await api.pingSmsNow()
+    if (res.code === 200) {
+      window.$message.success(`Ping 完成，成功 ${res.data?.successCount ?? 0} 条`)
+      await loadList()
+    }
+    else {
+      window.$message.error(res.message || res.msg || 'Ping 失败')
+    }
+  }
+  finally {
+    pingLoading.value = false
+  }
+}
+
+onMounted(async () => {
+  await loadSuppliers()
+  await loadList()
 })
 </script>
 
 <style scoped>
 .sms-config {
-  max-width: 800px;
-}
-
-.config-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-/* 配置分组卡片 */
-.config-section {
+.policy-card,
+.list-header,
+.ping-logs {
   background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
   border-radius: 10px;
   padding: 16px;
-  border: 1px solid var(--border-light);
 }
 
-.section-header {
-  margin-bottom: 16px;
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .section-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
+  margin-bottom: 12px;
 }
 
-.section-icon {
-  font-size: 18px;
-  color: #10b981;
+.policy-actions {
+  display: flex;
+  gap: 12px;
 }
 
-.section-desc {
-  font-size: 12px;
+.hint {
+  margin-left: 8px;
   color: var(--text-secondary);
-  margin-top: 4px;
+  font-size: 12px;
 }
 
-.section-content {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.section-content :deep(.n-form-item) {
-  margin-bottom: 0;
-}
-
-.section-content :deep(.n-form-item-label) {
-  font-weight: 500;
-}
-
-/* 表单底部 */
-.form-footer {
-  display: flex;
-  justify-content: end;
-  gap: 12px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-light);
-}
-
-/* 深色模式 */
-.dark .config-section {
-  background: #1e293b;
-  border-color: var(--border-light);
-}
-
-.dark .section-title {
-  color: #f1f5f9;
-}
-
-.dark .section-icon {
-  color: #34d399;
-}
-
-.dark .section-desc {
-  color: var(--text-tertiary);
-}
-
-.dark .form-footer {
-  border-top-color: var(--border-light);
+.ml-12 {
+  margin-left: 12px;
 }
 </style>

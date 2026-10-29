@@ -9,4 +9,8 @@ import org.apache.ibatis.annotations.Param;
 public interface SysSmsConfigMapper extends BaseMapper<SysSmsConfig> {
 
     SysSmsConfig selectEnabledConfig(@Param("tenantId") Long tenantId);
+
+    java.util.List<SysSmsConfig> selectEnabledConfigs(@Param("tenantId") Long tenantId);
+
+    java.util.List<SysSmsConfig> selectByTenantId(@Param("tenantId") Long tenantId);
 }

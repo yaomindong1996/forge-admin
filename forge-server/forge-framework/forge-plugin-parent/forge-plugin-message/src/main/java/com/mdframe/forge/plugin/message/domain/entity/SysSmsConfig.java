@@ -26,6 +26,11 @@ public class SysSmsConfig {
 
     private String templateId;
 
+    /**
+     * 场景模板映射 JSON，如 {"LOGIN_CAPTCHA":"xxx","SMS_PING":"yyy"}。
+     */
+    private String sceneTemplates;
+
     private Integer weight;
 
     private Integer retryInterval;
@@ -41,6 +46,11 @@ public class SysSmsConfig {
     private Integer minuteLimit;
 
     private Integer status;
+
+    /**
+     * PRIMARY / SECONDARY。
+     */
+    private String channelRole;
 
     private Long tenantId;
 

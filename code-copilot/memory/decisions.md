@@ -678,3 +678,17 @@ Forge 缓存统一治理采用自有 `@ForgeCacheConfig`、`@ForgeCacheable`、`
 Controller 写接口的 `@RequestBody` 必须是具体 DTO/VO，禁止用 `Map` 接收固定字段后再 `params.get("xxx")`。允许保留 Map 的只有流程 `variables`、低代码动态记录体和真正动态键值元数据。
 
 Java 生产代码禁止状态/启用硬编码。通用 0/1 开关使用 `EnableStatus.getCode()` / `matches()`；多状态字段使用本模块枚举。实体字段继续用 `Integer`/`String` 对齐数据库。Mapper XML 和测试可以使用字面量，禁止在 XML 绑定 Java 类全名。存量代码不再继续全库清扫，后续开发按本决策执行。
+
+## 76. 领域事件总线统一 BusinessEvent 与 FlowEvent，MQ 延后
+
+**记录日期**：2026-10-28
+
+Forge 不因单体阶段引入 Kafka/Rabbit/RocketMQ。领域异步统一走可插拔 `DomainEventBus`：业务与流程只发布带租户快照的统一信封；默认 LocalAsync（事务提交后），流程跨进程广播继续兼容现有 Redis Pub/Sub。低代码 `BusinessEvent` 与流程 `FlowEventMessage` 同时纳入同一契约与类型映射，禁止两套发布栈并行扩张。
+
+可靠投递（Transactional Outbox + Redis Stream 或扫表中继、幂等消费、死信）作为二期能力，仅在「不可丢的外部副作用 / 多实例抢占消费」出现时启用。真正拆服务后再加 MQ Transport（默认候选 RocketMQ），Bus API 不变。`forge-starter-message` 只做通知 Handler，不当总线。详细事件清单与分期见 `code-copilot/changes/domain-event-bus/spec.md`。
+
+## 77. 短信多通道：权重轮询 + 验证码锁主 + 可选 Ping
+
+**记录日期**：2026-10-29
+
+租户可同时启用多条短信厂商配置。通道角色 PRIMARY/SECONDARY（启用态唯一主通道）。默认路由 `WEIGHTED_RR`（Redis 加权轮询）；`PRIMARY_ONLY` 可选。验证码场景 `LOGIN_CAPTCHA` 默认锁定 PRIMARY，不参与轮询。发送失败可有限次 Failover。场景模板按通道 `scene_templates` JSON 映射。运维 Ping 默认关闭，开启后按 Cron 逐通道探活并写 `sys_sms_ping_log`。继续使用 sms4j，不引入新短信 SDK。详见 `code-copilot/changes/sms-multi-channel-routing/spec.md`。
