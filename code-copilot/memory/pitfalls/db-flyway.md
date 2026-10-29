@@ -228,6 +228,18 @@ Detected resolved migration not applied to database: 1.0.56
 - 不要把本需求占用已存在的 `1.0.171`，也不要用 `flyway repair` 把别人已执行的版本标成删除。
 - 排查时先对照 `forge_schema_history` 和 `forge-server/db/migration/V*`，缺文件就补文件，不要改已落库脚本。
 
+## Pro 能力迁出后社区只留同号占位，禁止把 Pro DDL 拷回社区
+
+**发现日期**: 2026-10-29
+
+**问题描述**:
+表格报表中心迁到 ForgePro 后，社区删了 `V1.0.229`/`V1.0.230`，共享库 `forge_schema_history` 仍保留这两版，Admin 报 `applied migration not resolved locally`。若把 Pro 的建表/菜单 SQL 原样拷回社区，新装社区库会冒出报表菜单与表，违反开源/Pro 边界。
+
+**解决方案**:
+- 社区保留同版本、同文件名 description 的 **空操作占位**（如 `SELECT 1` + 说明注释），不创建 `sys_report_*`、不插报表菜单。
+- 已执行过完整报表脚本的共享库：启动前对 `1.0.229`/`1.0.230` 做 `flyway repair` 刷新 checksum，再跑后续版本（如短信 `1.0.231`）。
+- 禁止用「修 Flyway」当借口把 Pro 功能脚本长期留在社区 `db/migration`。
+
 ## 模板库清理必须在 Flyway 增量之后执行
 
 **发现日期**: 2026-09-30
