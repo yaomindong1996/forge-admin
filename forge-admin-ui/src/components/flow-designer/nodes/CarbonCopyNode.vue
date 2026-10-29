@@ -11,9 +11,10 @@ const props = defineProps({
   selected: Boolean,
   status: { type: String, default: null },
   readonly: Boolean,
+  showAdd: Boolean,
 })
 
-defineEmits(['click', 'delete', 'contextMenu'])
+defineEmits(['click', 'delete', 'contextMenu', 'add', 'connect'])
 
 const subtitle = computed(() => {
   const c = props.node?.config || {}
@@ -44,11 +45,14 @@ const subtitle = computed(() => {
     :selected="selected"
     :status="status"
     :readonly="readonly"
+    :show-add="showAdd"
     icon="i-lucide:copy"
     color-var="teal"
     :subtitle="subtitle"
     @click="$emit('click', $event)"
     @delete="$emit('delete', $event)"
     @context-menu="$emit('contextMenu', $event)"
+    @add="$emit('add', $event)"
+    @connect="$emit('connect')"
   />
 </template>

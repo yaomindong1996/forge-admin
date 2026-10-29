@@ -1258,3 +1258,44 @@ CRUD 详情页的渲染逻辑是“主表 `AiForm` + 子表 `ChildTableEditor`�
 合并只重定向原入边，保留条件与默认边 ID；不能因端点相同就去重互斥网关的不同路由。
 并行/包容不能照此直接折叠，人员相同也不能替代完整审批配置等价校验。
 证据见 `code-copilot/changes/flow-designer-node-merge/`。
+
+## DingFlow 连线消失：UnoCSS 把 SVG opacity="1" 当成 opacity-1
+
+**发现日期**: 2026-10-29
+
+**问题描述**:
+自由画布连线 path 的 `d`、stroke、尺寸都正常，但肉眼看不见；CDP 里 `computedOpacity` 为 `0.01`。`+` 按钮仍在（走 edgePaths 中点），像「线全没了」。
+
+**根因**:
+UnoCSS 属性化工具类生成了 `[opacity~="1"] { opacity: 0.01 }`（对应 `opacity-1` = 1%）。模板写 `:opacity="1"` 会落到 SVG 属性 `opacity="1"`，被该选择器命中。
+
+**解决方案**:
+- 禁止在 SVG 上写 `opacity="1"` / `:opacity="hide ? 0.35 : 1"`；需要淡化时用 `:style="{ opacity: 0.35 }"`，正常态不写 opacity。
+- 设计器连线用几何 polygon 箭头，避免坏 marker 引用；SVG 宽高必须有限（禁止 Infinity）。
+
+## DingFlow 拖线段拐点爆炸成点云
+
+**发现日期**: 2026-10-29
+
+**问题描述**:
+选中连线后拖一段，蓝点手柄密密麻麻、折线变成自由曲线楼梯；截图像手绘点列。
+
+**根因**:
+`moveOrthoSegment` 在首/末段每次调用都 `splice` 插入拐点；`pointermove` 每帧刷新 path 后仍用原 `segIndex===0`，反复插入。弯点拖拽还允许自由坐标，再经 `buildPathWithWaypoints` 正交补点，进一步膨胀。
+
+**解决方案**:
+- 首/末段已展开后幂等改坐标，禁止重复 splice；拖拽中按指针重锚定同向段。
+- `toStoredWaypoints` 简化并硬上限 12；布局读取时 `sanitizeWaypoints` 收敛历史脏数据；选中态用拐点圆 + 线段中点胶囊。
+
+## DingFlow「连线」工具点一下就取消
+
+**发现日期**: 2026-10-29
+
+**问题描述**:
+选「连线」后点源节点，蓝色虚线不跟手或立刻消失，感觉根本连不上。
+
+**根因**:
+`pointerdown` 设了 `connectSourceId`，随后同一次点击的 `click` 又进 `handleConnectClick`，判定「再点同一源」直接取消；且点选模式未挂 `pointermove`，虚线不跟随。
+
+**解决方案**:
+点选连线只在 `pointerdown` 处理，并 `suppressNextNodeClick`；选中源后挂 window `pointermove` 更新虚线；再点目标完成；Esc / 点空白取消。

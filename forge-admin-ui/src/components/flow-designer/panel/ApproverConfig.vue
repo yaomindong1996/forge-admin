@@ -294,7 +294,14 @@ function buildFormRefFromAsset(asset, formMode) {
 
 <template>
   <div class="approver-config">
-    <n-tabs v-model:value="tab" class="approver-config-tabs" type="line" size="medium" animated>
+    <!-- 对齐低代码表单属性面板：segment + 短文案，不用纯图标 -->
+    <n-tabs
+      v-model:value="tab"
+      class="approver-config-tabs property-tabs"
+      type="segment"
+      size="small"
+      :animated="false"
+    >
       <n-tab-pane name="basic" tab="审批办理">
         <BasicConfig
           :node="node"
@@ -421,7 +428,56 @@ function buildFormRefFromAsset(asset, formMode) {
   margin-top: 8px;
 }
 
-.approver-config-tabs :deep(.n-tabs-nav-scroll-wrapper) {
-  overflow-x: auto;
+/* 对齐 forge 表单属性面板：segment 均分文字 + 主题色胶囊 */
+.approver-config-tabs {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.approver-config-tabs :deep(.n-tabs-nav) {
+  flex: none;
+  margin: 0;
+  padding: 8px 12px 6px;
+  border-bottom: none !important;
+  background: var(--bg-primary, #fff);
+}
+.approver-config-tabs :deep(.n-tabs-rail) {
+  width: 100%;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--bg-secondary, #f2f3f5);
+}
+.approver-config-tabs :deep(.n-tabs-capsule) {
+  border-radius: 6px;
+  background: var(--primary-color, #356de0);
+  box-shadow: none;
+}
+.approver-config-tabs :deep(.n-tabs-tab-wrapper) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.approver-config-tabs :deep(.n-tabs-tab) {
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 4px;
+  color: var(--text-secondary, #4e5969);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.approver-config-tabs :deep(.n-tabs-tab--active) {
+  color: #fff !important;
+}
+.approver-config-tabs :deep(.n-tabs-tab:not(.n-tabs-tab--active):hover) {
+  color: var(--primary-color, #356de0);
+}
+.approver-config-tabs :deep(.n-tabs-nav-scroll-wrapper),
+.approver-config-tabs :deep(.n-tabs-nav-scroll-content) {
+  overflow: hidden;
+}
+.approver-config-tabs :deep(.n-tab-pane) {
+  padding: 8px 12px 16px;
 }
 </style>

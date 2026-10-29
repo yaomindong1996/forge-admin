@@ -20,6 +20,8 @@ const props = defineProps({
   edge: { type: Object, required: true },
   position: { type: Object, required: true },
   card: Boolean,
+  /** 并行等场景用窄标签，少占横向空间 */
+  compact: Boolean,
   index: { type: Number, default: 1 },
   gatewayType: { type: String, default: 'condition' },
   fields: { type: Array, default: () => [] },
@@ -34,6 +36,8 @@ const approvalResultLabels = [
   { label: '终止流程', value: 'terminate', expression: '$' + '{approvalResult == \'terminate\'}' },
 ]
 
+const isCompactCard = computed(() => props.card && (props.compact || props.gatewayType === 'parallel'))
+
 const labelText = computed(() => {
   if (props.edge?.isDefault)
     return props.card ? '其他情况' : '默认'
@@ -43,8 +47,11 @@ const labelText = computed(() => {
   const summary = summarizeCondition(props.edge, props.fields)
   if (props.card && summary)
     return summary
-  if (!props.edge?.condition)
-    return props.gatewayType === 'parallel' ? '并行分支' : '配置条件'
+  if (!props.edge?.condition) {
+    if (props.gatewayType === 'parallel')
+      return isCompactCard.value ? `分支 ${props.index}` : '并行分支'
+    return '配置条件'
+  }
   const ruleCount = Array.isArray(props.edge?.conditionRules) ? props.edge.conditionRules.length : 0
   return ruleCount > 1 ? `${ruleCount} 条条件` : '条件已设'
 })
@@ -70,7 +77,7 @@ const subtitle = computed(() => {
   if (props.edge?.isDefault)
     return '默认条件'
   if (props.gatewayType === 'parallel')
-    return `分支 ${props.index} · 同时执行`
+    return isCompactCard.value ? '同时执行' : `分支 ${props.index} · 同时执行`
   return `条件 ${props.index}`
 })
 
@@ -97,7 +104,7 @@ function normalizeConditionExpression(value) {
 <template>
   <button
     type="button" class="branch-header"
-    :class="[colorClass, { 'is-card': card }]"
+    :class="[colorClass, { 'is-card': card, 'is-compact': isCompactCard }]"
     :style="{
       'left': `${position.x}px`,
       'top': `${position.y}px`,
@@ -108,12 +115,12 @@ function normalizeConditionExpression(value) {
     :aria-label="`配置分支：${labelText}`"
     @click.stop="$emit('click', edge)"
   >
-    <span v-if="card" class="branch-header-icon"><i class="i-lucide:git-branch" /></span>
+    <span v-if="card" class="branch-header-icon"><i :class="gatewayType === 'parallel' ? 'i-lucide:split' : 'i-lucide:git-branch'" /></span>
     <span class="branch-header-main">
       <span class="branch-header-text">{{ labelText }}</span>
       <span v-if="card" class="branch-header-subtitle">{{ subtitle }}</span>
     </span>
-    <i v-if="card" class="branch-header-arrow i-lucide:chevron-right" />
+    <i v-if="card && !isCompactCard" class="branch-header-arrow i-lucide:chevron-right" />
   </button>
 </template>
 
@@ -175,9 +182,21 @@ function normalizeConditionExpression(value) {
   background: var(--bg-primary, #fff);
   color: var(--text-primary, #1d2129);
 }
+.branch-header.is-card.is-compact {
+  width: 118px;
+  min-height: 40px;
+  gap: 6px;
+  padding: 6px 8px;
+}
 .branch-header.is-card .branch-header-text {
   font-size: 14px;
   font-weight: 500;
+}
+.branch-header.is-card.is-compact .branch-header-text {
+  font-size: 12px;
+}
+.branch-header.is-card.is-compact .branch-header-main {
+  gap: 1px;
 }
 .branch-header-icon {
   display: flex;
@@ -191,10 +210,19 @@ function normalizeConditionExpression(value) {
   color: var(--branch-color);
   font-size: 22px;
 }
+.branch-header.is-compact .branch-header-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  font-size: 13px;
+}
 .branch-header-subtitle {
   color: var(--text-tertiary, #86909c);
   font-size: 12px;
   font-weight: 400;
+}
+.branch-header.is-compact .branch-header-subtitle {
+  font-size: 10px;
 }
 .branch-header-arrow {
   flex: none;

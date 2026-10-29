@@ -414,12 +414,13 @@ describe('dingFlowDesigner - 网关分支配置', () => {
     w.unmount()
   })
 
-  it('网关本身不显示普通添加按钮，分支节点可继续添加', async () => {
+  it('自由画布不在连线中点放普通添加按钮，条件网关仍保留加分支', async () => {
     const w = mountDesigner()
     w.vm.designer.addNode('StartEvent_1', 'condition')
     await w.vm.$nextTick()
 
-    expect(w.findAll('.add-node-button-wrap')).toHaveLength(3)
+    expect(w.findAll('.add-node-button-wrap')).toHaveLength(0)
+    expect(w.findAll('.branch-add-button-wrap').length).toBeGreaterThan(0)
     w.unmount()
   })
 

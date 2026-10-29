@@ -31,9 +31,11 @@ const props = defineProps({
   readonly: { type: Boolean, default: false },
   allowNavigation: { type: Boolean, default: false },
   contentBounds: { type: Object, default: null },
+  /** 工具模式：pan 时左键拖空白/节点区域都平移画布 */
+  tool: { type: String, default: 'select' },
 })
 
-const emit = defineEmits(['canvasClick', 'canvasDblclick'])
+const emit = defineEmits(['canvasClick', 'canvasDblclick', 'canvasDrop', 'canvasDragOver'])
 
 const containerRef = ref(null)
 const fullscreenTarget = computed(() => containerRef.value?.closest('.model-design-page')
@@ -91,13 +93,18 @@ function handleWheel(event) {
 function handleMouseDown(event) {
   if (!navigationEnabled.value)
     return
-  // 中键 → 平移；空格 + 左键 → 平移；左键点击空白处 → 平移
-  // 左键点击节点/按钮时不拦截（让子组件处理 click）
+  // 中键 → 平移；空格 / 平移工具 / 点击空白 → 平移
   const isBackground = event.target === containerRef.value
     || event.target?.classList?.contains('canvas-transform')
+  const isPanTool = props.tool === 'pan'
   const isPanTrigger = event.button === 1
-    || (event.button === 0 && (isSpaceDown.value || isBackground))
+    || (event.button === 0 && (isSpaceDown.value || isPanTool || isBackground))
   if (!isPanTrigger)
+    return
+  // 平移工具下即使点在节点上也优先拖动画布
+  if (isPanTool && event.button === 0)
+    event.preventDefault()
+  else if (!isPanTool && !isBackground && event.button !== 1 && !isSpaceDown.value)
     return
   event.preventDefault()
   isPanning.value = true
@@ -196,6 +203,14 @@ function handleClick(event) {
   emit('canvasClick', event)
 }
 
+function handleDrop(event) {
+  emit('canvasDrop', event)
+}
+
+function handleDragOver(event) {
+  emit('canvasDragOver', event)
+}
+
 defineExpose({
   resetView,
   fitToScreen,
@@ -213,14 +228,21 @@ defineExpose({
   <div
     ref="containerRef"
     class="flow-canvas relative h-full w-full select-none overflow-hidden"
-    :class="{ 'cursor-grab': navigationEnabled && isSpaceDown && !isPanning, 'cursor-grabbing': isPanning }"
+    :class="{
+      'cursor-grab': navigationEnabled && (isSpaceDown || tool === 'pan') && !isPanning,
+      'cursor-grabbing': isPanning,
+      'cursor-crosshair': tool === 'connect',
+    }"
     @wheel="handleWheel"
     @mousedown="handleMouseDown"
     @click="handleClick"
     @dblclick="handleDblClick"
+    @dragover="handleDragOver"
+    @drop="handleDrop"
     @contextmenu.prevent
   >
     <div class="canvas-transform absolute left-0 top-0" :style="transformStyle">
+      <!-- 连线在下、节点在上：线绝不能盖住卡片；选中边的端点在节点边外仍可拖 -->
       <slot name="edges" />
       <slot name="nodes" />
     </div>
@@ -263,7 +285,11 @@ defineExpose({
 <style scoped>
 .flow-canvas {
   outline: none;
-  background: var(--bg-secondary, #f6f8fb);
+  /* 点阵底略淡，避免和连线抢对比度 */
+  background-color: #f4f6f9;
+  background-image: radial-gradient(circle, #d5dae2 1px, transparent 1.15px);
+  background-size: 20px 20px;
+  background-position: 0 0;
 }
 
 .canvas-toolbar {

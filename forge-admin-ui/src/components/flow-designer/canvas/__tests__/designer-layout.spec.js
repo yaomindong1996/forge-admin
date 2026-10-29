@@ -31,4 +31,26 @@ describe('审批画布展示布局', () => {
     ]
     expect(layoutDesignerFlow(flow).branchCards.size).toBe(0)
   })
+
+  it('自由拖拽冻结坐标后仍保留并行/条件分支卡，不退回空标签', () => {
+    const designer = useFlowDesigner(createEmptyFlow())
+    const gateway = designer.addNode('StartEvent_1', 'parallel')
+    const layoutBefore = layoutDesignerFlow(designer.flowJson.value)
+    expect(layoutBefore.branchCards.size).toBe(2)
+
+    // 模拟拖拽其它节点后冻结全部坐标
+    for (const node of designer.flowJson.value.nodes) {
+      const pos = layoutBefore.nodePositions.get(node.id)
+      if (pos)
+        node.uiPosition = { x: pos.x, y: pos.y }
+    }
+    designer.flowJson.value = { ...designer.flowJson.value }
+
+    const layoutAfter = layoutDesignerFlow(designer.flowJson.value)
+    expect(layoutAfter.branchCards.size).toBe(2)
+    for (const edge of designer.getOutgoingEdges(gateway)) {
+      expect(layoutAfter.branchCards.get(edge.id)).toBeTruthy()
+      expect(layoutAfter.edgePaths.get(edge.id).points.length).toBeGreaterThanOrEqual(3)
+    }
+  })
 })

@@ -4,6 +4,7 @@
  * 职责：
  * - 管理 flowJson reactive 状态
  * - 提供节点 / 边 CRUD（addNode / addBranch / deleteNode / updateNode / moveNodeUp/Down / copyNode）
+ * - 自由画布：placeNode / connectNodes / disconnectEdge / moveNodePosition / freeze|clear uiPosition
  * - 提供查询（getNode / getEdge / getOutgoingEdges / getIncomingEdges / find*Node）
  * - 提供整体加载 / 导出（loadJson / exportJson / reset）
  *
@@ -11,17 +12,46 @@
  * - start / end 节点禁止删除
  * - addNode 在指定节点之后插入：保留原出边的 condition / branchId / isDefault
  * - deleteNode 普通节点：入边 × 出边 笛卡儿重连
- * - deleteNode 网关节点：递归删除分支链直到汇合点
+ * - deleteNode 网关节点：软删，只移除网关并重连，保留分支节点
  */
 
 import { ref, shallowRef } from 'vue'
+import { END_INCOMING_DOCK } from '../canvas/edge-dock.js'
 import { buildNode } from '../constants/default-configs.js'
 import { NODE_TYPE } from '../constants/node-types.js'
 import { mergeApprovalNodes as buildApprovalMerge } from '../utils/approval-node-merge.js'
 import { collectExistingIds, createIdGenerator } from '../utils/id-generator.js'
-import { cloneJson, deleteGateway, deletePlain, makeEdge } from './flow-designer-helpers.js'
+import {
+  cloneJson,
+  deleteGateway,
+  deletePlain,
+  isFreeLayout,
+  makeEdge,
+  markFreeLayout,
+  placeNodeNearAnchor,
+} from './flow-designer-helpers.js'
+
+/** 写入边时：目标为结束节点则强制顶心入边 */
+function normalizeTargetDock(targetNode, dock) {
+  if (targetNode?.nodeType === NODE_TYPE.END || targetNode?.nodeType === 'end')
+    return { ...END_INCOMING_DOCK }
+  return dock ?? null
+}
 
 const GATEWAY_TYPES = new Set([NODE_TYPE.CONDITION, NODE_TYPE.PARALLEL, NODE_TYPE.INCLUSIVE])
+
+/** 结束节点写入紧凑宽高，布局才能识别已校正坐标，避免箭头悬空。 */
+function buildUiPosition(node, position = {}) {
+  const next = {
+    x: Number(position.x),
+    y: Number(position.y),
+  }
+  if (node?.nodeType === NODE_TYPE.END) {
+    next.w = Number.isFinite(position.width) ? Number(position.width) : (Number.isFinite(position.w) ? Number(position.w) : 20)
+    next.h = Number.isFinite(position.height) ? Number(position.height) : (Number.isFinite(position.h) ? Number(position.h) : 20)
+  }
+  return next
+}
 
 export function createEmptyFlow() {
   const start = buildNode(NODE_TYPE.START, { id: 'StartEvent_1', bpmnElementId: 'StartEvent_1', name: '发起人' })
@@ -93,6 +123,11 @@ export function useFlowDesigner(initialJson) {
       next.edges.push(e1, e2)
     }
 
+    if (isFreeLayout(next)) {
+      markFreeLayout(next, true)
+      placeNodeNearAnchor(next, newNode.id, afterId)
+    }
+
     commit(next)
     return newNode.id
   }
@@ -126,6 +161,7 @@ export function useFlowDesigner(initialJson) {
     }))
 
     const defaultBranchIndex = nodeType === NODE_TYPE.PARALLEL ? -1 : 1
+    const branchIds = []
     for (let i = 0; i < 2; i += 1) {
       const branchNode = buildNode(NODE_TYPE.APPROVER, {
         name: `分支${i + 1}审批`,
@@ -133,6 +169,7 @@ export function useFlowDesigner(initialJson) {
       branchNode.id = idGen.nextNodeId()
       branchNode.bpmnElementId = branchNode.id
       next.nodes.push(branchNode)
+      branchIds.push(branchNode.id)
 
       const branchEdgeId = idGen.nextEdgeId()
       const isDefault = i === defaultBranchIndex
@@ -153,6 +190,13 @@ export function useFlowDesigner(initialJson) {
       const mergeTarget = next.nodes.find(n => n.id === mergeTargetId)
       if (mergeTarget)
         mergeTarget.config = { ...(mergeTarget.config || {}), mergeNode: true }
+    }
+
+    if (isFreeLayout(next)) {
+      markFreeLayout(next, true)
+      placeNodeNearAnchor(next, gateway.id, afterId, { x: 0, y: 110 })
+      placeNodeNearAnchor(next, branchIds[0], gateway.id, { x: -180, y: 120 })
+      placeNodeNearAnchor(next, branchIds[1], gateway.id, { x: 180, y: 120 })
     }
 
     commit(next)
@@ -193,6 +237,15 @@ export function useFlowDesigner(initialJson) {
     }
 
     normalizeGatewayDefault(next, gatewayId)
+    if (isFreeLayout(next)) {
+      markFreeLayout(next, true)
+      const outs = next.edges.filter(e => e.source === gatewayId)
+      const idx = Math.max(outs.length - 1, 0)
+      placeNodeNearAnchor(next, branchNode.id, gatewayId, {
+        x: (idx - (outs.length - 1) / 2) * 200,
+        y: 120,
+      })
+    }
     commit(next)
     return { nodeId: branchNode.id, edgeId: branchEdgeId }
   }
@@ -352,8 +405,165 @@ export function useFlowDesigner(initialJson) {
     selectedNodeId.value = targetId
   }
 
-  function reconnect(edgeId, newSource, newTarget) {
-    updateEdge(edgeId, { source: newSource, target: newTarget })
+  function reconnect(edgeId, newSource, newTarget, docks = {}) {
+    if (!edgeId || !newSource || !newTarget || newSource === newTarget)
+      throw new Error('reconnect: 源/目标无效')
+    if (!getNode(newSource) || !getNode(newTarget))
+      throw new Error('reconnect: 节点不存在')
+    if (getOutgoingEdges(newSource).some(e => e.id !== edgeId && e.target === newTarget))
+      throw new Error('reconnect: 连线已存在')
+    const patch = {
+      source: newSource,
+      target: newTarget,
+      uiWaypoints: [],
+    }
+    if (docks.sourceDock !== undefined)
+      patch.uiSourceDock = docks.sourceDock
+    else
+      patch.uiSourceDock = null
+    if (docks.targetDock !== undefined)
+      patch.uiTargetDock = normalizeTargetDock(getNode(newTarget), docks.targetDock)
+    else
+      patch.uiTargetDock = normalizeTargetDock(getNode(newTarget), null)
+    updateEdge(edgeId, patch)
+  }
+
+  function setEdgeWaypoints(edgeId, waypoints) {
+    // toStoredWaypoints 已做简化与上限；此处再滤非法值
+    const list = Array.isArray(waypoints)
+      ? waypoints
+          .filter(p => Number.isFinite(p?.x) && Number.isFinite(p?.y))
+          .slice(0, 12)
+          .map(p => ({ x: Number(p.x), y: Number(p.y) }))
+      : []
+    const next = cloneJson(flowJson.value)
+    const edge = next.edges.find(e => e.id === edgeId)
+    if (!edge)
+      throw new Error(`setEdgeWaypoints: edgeId=${edgeId} 不存在`)
+    edge.uiWaypoints = list
+    markFreeLayout(next, true)
+    commit(next)
+  }
+
+  /** 更新连线在节点边上的锚点（可换边、可非中心） */
+  function setEdgeDock(edgeId, which, dock) {
+    if (!edgeId || (which !== 'source' && which !== 'target'))
+      throw new Error('setEdgeDock: 参数无效')
+    const next = cloneJson(flowJson.value)
+    const edge = next.edges.find(e => e.id === edgeId)
+    if (!edge)
+      throw new Error(`setEdgeDock: edgeId=${edgeId} 不存在`)
+    if (which === 'source') {
+      edge.uiSourceDock = dock || null
+    }
+    else {
+      const target = next.nodes.find(n => n.id === edge.target)
+      edge.uiTargetDock = normalizeTargetDock(target, dock)
+    }
+    markFreeLayout(next, true)
+    commit(next)
+  }
+
+  /** 货架拖入：在画布坐标放置节点，默认不自动串链。 */
+  function placeNode(nodeType, position = {}, override = {}) {
+    if (nodeType === NODE_TYPE.START || nodeType === NODE_TYPE.END)
+      throw new Error('placeNode: start / end 请使用流程已有节点')
+    if (GATEWAY_TYPES.has(nodeType))
+      throw new Error('placeNode: 网关请先选中前置节点，再用底部「＋」添加，以保证分支结构完整')
+
+    const next = cloneJson(flowJson.value)
+    const newNode = buildNode(nodeType, override)
+    newNode.id = idGen.nextNodeId()
+    newNode.bpmnElementId = newNode.id
+    if (Number.isFinite(position.x) && Number.isFinite(position.y))
+      newNode.uiPosition = { x: Number(position.x), y: Number(position.y) }
+    next.nodes.push(newNode)
+    markFreeLayout(next, true)
+    commit(next)
+    return newNode.id
+  }
+
+  function connectNodes(sourceId, targetId, extras = {}) {
+    if (!sourceId || !targetId || sourceId === targetId)
+      throw new Error('connectNodes: 源/目标无效')
+    if (!getNode(sourceId) || !getNode(targetId))
+      throw new Error('connectNodes: 节点不存在')
+    if (getOutgoingEdges(sourceId).some(e => e.target === targetId))
+      throw new Error('connectNodes: 连线已存在')
+
+    const next = cloneJson(flowJson.value)
+    const edge = makeEdge(idGen.nextEdgeId(), sourceId, targetId, {
+      ...extras,
+      uiTargetDock: normalizeTargetDock(getNode(targetId), extras.uiTargetDock),
+    })
+    next.edges.push(edge)
+    commit(next)
+    return edge.id
+  }
+
+  function disconnectEdge(edgeId) {
+    const edge = getEdge(edgeId)
+    if (!edge)
+      throw new Error(`disconnectEdge: edgeId=${edgeId} 不存在`)
+    const next = cloneJson(flowJson.value)
+    next.edges = next.edges.filter(e => e.id !== edgeId)
+    commit(next)
+  }
+
+  function moveNodePosition(nodeId, position) {
+    if (!Number.isFinite(position?.x) || !Number.isFinite(position?.y))
+      throw new Error('moveNodePosition: 需要有效的 x/y')
+    const next = cloneJson(flowJson.value)
+    const node = next.nodes.find(n => n.id === nodeId)
+    if (!node)
+      throw new Error(`moveNodePosition: nodeId=${nodeId} 不存在`)
+    node.uiPosition = buildUiPosition(node, position)
+    markFreeLayout(next, true)
+    commit(next)
+  }
+
+  /** 将当前布局坐标冻结到 uiPosition，避免拖一个节点时其它节点被自动布局重排。 */
+  function freezeLayoutPositions(positions) {
+    if (!positions || typeof positions.get !== 'function')
+      return
+    const next = cloneJson(flowJson.value)
+    let changed = false
+    for (const node of next.nodes) {
+      if (node.uiPosition)
+        continue
+      const pos = positions.get(node.id)
+      if (!pos || !Number.isFinite(pos.x) || !Number.isFinite(pos.y))
+        continue
+      node.uiPosition = buildUiPosition(node, pos)
+      changed = true
+    }
+    if (changed) {
+      markFreeLayout(next, true)
+      commit(next)
+    }
+  }
+
+  function clearNodePositions() {
+    const next = cloneJson(flowJson.value)
+    let changed = false
+    for (const node of next.nodes) {
+      if (!node.uiPosition)
+        continue
+      delete node.uiPosition
+      changed = true
+    }
+    for (const edge of next.edges) {
+      if (!edge.uiWaypoints?.length)
+        continue
+      edge.uiWaypoints = []
+      changed = true
+    }
+    if (next.config?.freeLayout) {
+      markFreeLayout(next, false)
+      changed = true
+    }
+    if (changed)
+      commit(next)
   }
 
   function loadJson(json) {
@@ -376,6 +586,12 @@ export function useFlowDesigner(initialJson) {
     selectedNodeId,
     addNode,
     addBranch,
+    placeNode,
+    connectNodes,
+    disconnectEdge,
+    moveNodePosition,
+    freezeLayoutPositions,
+    clearNodePositions,
     deleteNode,
     updateNode,
     moveNodeUp,
@@ -384,6 +600,8 @@ export function useFlowDesigner(initialJson) {
     mergeApprovalNodes,
     updateEdge,
     reconnect,
+    setEdgeWaypoints,
+    setEdgeDock,
     getNode,
     getEdge,
     getOutgoingEdges,

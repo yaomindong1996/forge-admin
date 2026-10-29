@@ -98,8 +98,11 @@ describe('nodeRenderer - 调度', () => {
           position: { x: 10, y: 20 },
         },
       })
-      // 验证未崩 + 至少含期望关键字
-      expect(w.html()).toContain('flow-node-card')
+      // 结束节点是 compact marker，其它是卡片
+      if (t === 'end')
+        expect(w.html()).toMatch(/flow-end-marker|结束|end/i)
+      else
+        expect(w.html()).toContain('flow-node-card')
     })
   }
 
@@ -120,5 +123,30 @@ describe('nodeRenderer - 调度', () => {
     const wrap = w.find('.node-renderer-wrap')
     expect(wrap.attributes('style')).toContain('left: 100px')
     expect(wrap.attributes('style')).toContain('top: 50px')
+  })
+
+  it('选中普通节点时卡片内显示添加，结束节点不显示', () => {
+    const selected = mount(NodeRenderer, {
+      props: {
+        node: { id: 'A', name: '审批', nodeType: 'approver', config: {} },
+        position: { x: 0, y: 0, width: 200, height: 56 },
+        selected: true,
+      },
+      global: {
+        stubs: {
+          NPopover: { template: '<div class="n-popover-stub"><slot name="trigger" /><slot /></div>' },
+        },
+      },
+    })
+    expect(selected.find('.flow-node-add-btn').exists()).toBe(true)
+
+    const end = mount(NodeRenderer, {
+      props: {
+        node: { id: 'E', name: '结束', nodeType: 'end', config: {} },
+        position: { x: 0, y: 0, width: 20, height: 20 },
+        selected: true,
+      },
+    })
+    expect(end.find('.flow-node-add-btn').exists()).toBe(false)
   })
 })

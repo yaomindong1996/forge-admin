@@ -4,7 +4,7 @@ import { useFlowOverlayTarget } from '../composables/useFlowOverlayTarget.js'
 import { getNodePresentation } from '../constants/node-presentation.js'
 
 defineProps({ processName: { type: String, default: '' }, canUndo: Boolean, canRedo: Boolean, readonly: Boolean })
-defineEmits(['undo', 'redo'])
+defineEmits(['undo', 'redo', 'autoLayout'])
 const legend = ['start', 'approver', 'condition', 'carbonCopy'].map(getNodePresentation)
 const overlayTarget = useFlowOverlayTarget()
 </script>
@@ -24,7 +24,7 @@ const overlayTarget = useFlowOverlayTarget()
     <!-- 撤销/重做与现有历史栈连接，帮助只解释真实已支持的操作 -->
     <div class="flow-canvas-actions">
       <NButton
-        quaternary size="small" aria-label="撤销" title="撤销" :disabled="readonly || !canUndo"
+        quaternary size="small" aria-label="撤销" title="撤销 (Ctrl/⌘+Z)" :disabled="readonly || !canUndo"
         @click="$emit('undo')"
       >
         <template #icon>
@@ -32,11 +32,19 @@ const overlayTarget = useFlowOverlayTarget()
         </template>
       </NButton>
       <NButton
-        quaternary size="small" aria-label="重做" title="重做" :disabled="readonly || !canRedo"
+        quaternary size="small" aria-label="重做" title="重做 (Ctrl/⌘+Shift+Z)" :disabled="readonly || !canRedo"
         @click="$emit('redo')"
       >
         <template #icon>
           <i class="i-lucide:redo-2" />
+        </template>
+      </NButton>
+      <NButton
+        quaternary size="small" aria-label="自动布局" title="自动布局" :disabled="readonly"
+        @click="$emit('autoLayout')"
+      >
+        <template #icon>
+          <i class="i-lucide:layout-dashboard" />
         </template>
       </NButton>
       <span class="flow-canvas-actions__divider" />
@@ -50,10 +58,10 @@ const overlayTarget = useFlowOverlayTarget()
         </template>
         <div class="flow-canvas-help">
           <strong>设计流程</strong>
-          <p>点击连线上的「＋」添加节点；点击节点配置办理人、表单和操作权限。</p>
-          <p>点击条件卡配置对应分支，点击网关可查看全部分支。</p>
-          <p>按住空格拖拽，或直接拖动画布空白处移动；Ctrl / ⌘ + 滚轮缩放。</p>
-          <p>节点确认后，需点击顶部「保存草稿」保存整个流程。</p>
+          <p>左侧拖入节点；左上角工具可切换选择 / 平移 / 连线 / 删除；也可用「连接线」。</p>
+          <p>交互对齐 bpmn.io：悬停节点露出锚点，从锚点拖出虚线接到目标。</p>
+          <p>选中连线后可拖线段/拐角改折线；拖两端蓝点改接到其它节点。</p>
+          <p>也可用左侧「连接线」点两个节点。Delete 删线；Ctrl / ⌘ + Z 撤销。</p>
         </div>
       </NPopover>
     </div>

@@ -17,7 +17,7 @@
  *   - formFieldCatalog 流程动态表单字段目录，条件分支配置时用于生成表达式
  *   - focusEdgeId    从画布分支标签进入时聚焦的分支边 ID
  *   - readonly       只读模式（查看器场景）
- *   - width          抽屉宽度，默认 560，小屏按视口收缩
+ *   - width          抽屉宽度，默认 400，小屏按视口收缩
  *
  * Events:
  *   - update:visible (boolean)
@@ -44,17 +44,17 @@ const props = defineProps({
   formFieldCatalog: { type: Array, default: () => [] },
   focusEdgeId: { type: String, default: '' },
   readonly: { type: Boolean, default: false },
-  width: { type: Number, default: 560 },
+  width: { type: Number, default: 400 },
   mountTo: { type: Object, default: null },
 })
 
 const emit = defineEmits(['update:visible', 'save', 'update:edge'])
 
 const drawerWidth = computed(() => {
-  const preferred = Number(props.width) || 560
+  const preferred = Number(props.width) || 400
   if (typeof window === 'undefined')
     return preferred
-  return Math.min(preferred, Math.max(360, window.innerWidth - 16))
+  return Math.min(preferred, Math.max(320, window.innerWidth - 16))
 })
 
 const draftNode = ref(null)

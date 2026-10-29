@@ -96,6 +96,42 @@ describe('layoutFlow - 分支流程', () => {
       y: gateway.y + gateway.height,
     })
   })
+
+  it('结束节点使用紧凑尺寸，入边接到节点上沿中心', () => {
+    const out = layoutFlow({
+      nodes: [
+        { id: 'S', nodeType: 'start', config: {} },
+        { id: 'E', nodeType: 'end', config: {} },
+      ],
+      edges: [{ id: 'F1', source: 'S', target: 'E' }],
+    })
+    const end = out.nodePositions.get('E')
+    const tip = out.edgePaths.get('F1').points.at(-1)
+    expect(end.width).toBe(20)
+    expect(end.height).toBe(20)
+    expect(tip).toMatchObject({
+      x: end.x + end.width / 2,
+      y: end.y,
+    })
+  })
+
+  it('uiWaypoints 会写入正交路径拐点', () => {
+    const out = layoutFlow({
+      nodes: [
+        { id: 'S', nodeType: 'start', uiPosition: { x: 0, y: 0 }, config: {} },
+        { id: 'A', nodeType: 'approver', uiPosition: { x: 200, y: 200 }, config: {} },
+      ],
+      edges: [{
+        id: 'F1',
+        source: 'S',
+        target: 'A',
+        uiWaypoints: [{ x: 40, y: 160 }],
+      }],
+      config: { freeLayout: true },
+    })
+    const pts = out.edgePaths.get('F1').points
+    expect(pts.some(p => Math.abs(p.x - 40) < 1 && Math.abs(p.y - 160) < 1)).toBe(true)
+  })
 })
 
 describe('layoutFlow - 边界', () => {

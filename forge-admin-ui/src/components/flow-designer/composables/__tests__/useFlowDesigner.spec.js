@@ -230,6 +230,47 @@ describe('useFlowDesigner - copyNode', () => {
   })
 })
 
+describe('useFlowDesigner - 自由画布 API', () => {
+  it('placeNode 放置游离节点并写入 uiPosition，不自动串链', () => {
+    const designer = useFlowDesigner()
+    const edgeCount = designer.flowJson.value.edges.length
+    const id = designer.placeNode('approver', { x: 120, y: 240 })
+    const node = designer.getNode(id)
+    expect(node.uiPosition).toEqual({ x: 120, y: 240 })
+    expect(designer.flowJson.value.edges).toHaveLength(edgeCount)
+  })
+
+  it('connectNodes / disconnectEdge', () => {
+    const designer = useFlowDesigner()
+    const a = designer.placeNode('approver', { x: 0, y: 0 })
+    const edgeId = designer.connectNodes('StartEvent_1', a)
+    expect(designer.getEdge(edgeId).target).toBe(a)
+    expect(() => designer.connectNodes('StartEvent_1', a)).toThrow(/已存在/)
+    designer.disconnectEdge(edgeId)
+    expect(designer.getEdge(edgeId)).toBeNull()
+  })
+
+  it('删除条件网关不级联删除分支审批节点', () => {
+    const designer = useFlowDesigner()
+    const gatewayId = designer.addNode('StartEvent_1', 'condition')
+    const branches = designer.getOutgoingEdges(gatewayId).map(e => e.target)
+    designer.deleteNode(gatewayId)
+    expect(designer.getNode(gatewayId)).toBeNull()
+    for (const id of branches)
+      expect(designer.getNode(id)).not.toBeNull()
+    expect(designer.getOutgoingEdges('StartEvent_1').map(e => e.target).sort())
+      .toEqual([...branches].sort())
+  })
+
+  it('moveNodePosition / clearNodePositions', () => {
+    const designer = useFlowDesigner()
+    designer.moveNodePosition('StartEvent_1', { x: 10, y: 20 })
+    expect(designer.getNode('StartEvent_1').uiPosition).toEqual({ x: 10, y: 20 })
+    designer.clearNodePositions()
+    expect(designer.getNode('StartEvent_1').uiPosition).toBeUndefined()
+  })
+})
+
 describe('useFlowDesigner - loadJson / exportJson / reset', () => {
   it('loadJson 替换内部状态并重置 selectedNodeId', () => {
     const designer = useFlowDesigner()

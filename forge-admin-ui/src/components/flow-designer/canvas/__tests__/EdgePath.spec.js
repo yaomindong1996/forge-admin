@@ -97,7 +97,7 @@ describe('edgeLayer - 渲染', () => {
     const wrapper = mount(EdgeLayer, {
       props: { edges, paths, canvasBounds: { minX: 0, minY: 0, maxX: 200, maxY: 200 } },
     })
-    expect(wrapper.findAll('marker').length).toBe(5)
+    expect(wrapper.findAll('marker').length).toBe(6)
     expect(wrapper.findAllComponents(EdgePath).length).toBe(2)
     const svg = wrapper.find('svg')
     expect(Number(svg.attributes('width'))).toBeGreaterThan(0)
@@ -153,5 +153,22 @@ describe('branchHeader - 条件摘要', () => {
       },
     })
     expect(wrapper.text()).toContain('2 条条件')
+  })
+
+  it('并行分支卡使用紧凑样式', () => {
+    const wrapper = mount(BranchHeader, {
+      props: {
+        edge: { id: 'F1', isDefault: false },
+        position: { x: 100, y: 80 },
+        card: true,
+        compact: true,
+        index: 2,
+        gatewayType: 'parallel',
+      },
+    })
+    expect(wrapper.classes()).toContain('is-compact')
+    expect(wrapper.text()).toContain('分支 2')
+    expect(wrapper.text()).toContain('同时执行')
+    expect(wrapper.find('.branch-header-arrow').exists()).toBe(false)
   })
 })

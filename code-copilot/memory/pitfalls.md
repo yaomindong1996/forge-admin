@@ -208,8 +208,11 @@
 - 177. 业务对象发布不能重置应用入口配置
 - 180. 运行字段基线会掩盖表单组件的结构变更
 
-### [流程 / Flowable / BPMN](pitfalls/flow.md)（68）
+### [流程 / Flowable / BPMN](pitfalls/flow.md)（71）
 
+- DingFlow「连线」工具点一下就取消
+- DingFlow 拖线段拐点爆炸成点云
+- DingFlow 连线消失：UnoCSS 把 SVG opacity="1" 当成 opacity-1
 - 删除网关不能越过分支头处的共享审批
 - 纯净版 dump 不能用 (^|_)version$ 忽略框架 *_version 表
 - 纯净版 SQL 不能只跳过 act_* 而留下 flw_*

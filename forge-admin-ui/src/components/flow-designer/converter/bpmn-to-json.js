@@ -93,8 +93,52 @@ export function convertBpmnToJson(xmlString) {
 
   // Task 4：网关 branchId / default / 汇合节点识别（mutate edges + nodes.config）
   markBranches(flowJson)
+  applyDiagramPositions(doc, flowJson)
 
   return flowJson
+}
+
+/**
+ * 仅在自由布局模式下回填 uiPosition。
+ * 普通自动布局的 Diagram Bounds 不能当成手工坐标，否则保存后再开会整图“散开”。
+ */
+function applyDiagramPositions(doc, flowJson) {
+  if (!flowJson?.config?.freeLayout)
+    return
+  const shapes = collectDiagramShapes(doc)
+  if (!shapes.size)
+    return
+  for (const node of flowJson.nodes) {
+    const bounds = shapes.get(node.id) || shapes.get(node.bpmnElementId)
+    if (!bounds)
+      continue
+    node.uiPosition = { x: bounds.x, y: bounds.y }
+  }
+}
+
+function collectDiagramShapes(doc) {
+  const map = new Map()
+  const root = doc?.documentElement || doc
+  if (!root)
+    return map
+  const stack = [root]
+  while (stack.length) {
+    const cur = stack.pop()
+    const name = getLocalName(cur)
+    if (name === 'BPMNShape') {
+      const bpmnElement = getAttr(cur, 'bpmnElement')
+      const bounds = getChild(cur, 'Bounds')
+      if (bpmnElement && bounds) {
+        const x = Number(getAttr(bounds, 'x'))
+        const y = Number(getAttr(bounds, 'y'))
+        if (Number.isFinite(x) && Number.isFinite(y))
+          map.set(bpmnElement, { x, y })
+      }
+    }
+    for (const child of getChildren(cur))
+      stack.push(child)
+  }
+  return map
 }
 
 function parseProcessConfig(processElement) {
@@ -108,6 +152,10 @@ function parseProcessConfig(processElement) {
     ),
     rejectStrategy: normalizeRejectStrategyAttr(
       getFlowableAttr(processElement, 'rejectStrategy'),
+    ),
+    freeLayout: parseBooleanWithDefault(
+      getFlowableAttr(processElement, 'freeLayout'),
+      false,
     ),
   }
 }

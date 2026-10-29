@@ -210,6 +210,23 @@ export function calculateLayout(flowJson, opts = {}) {
     extraY += cfg.NODE_HEIGHT + cfg.V_GAP
   }
 
+  // 自由画布：覆盖人工拖拽坐标，保证 BPMNDiagram 与设计器一致
+  for (const node of flowJson.nodes) {
+    const ui = node.uiPosition
+    if (!ui || !Number.isFinite(ui.x) || !Number.isFinite(ui.y))
+      continue
+    const prev = result.nodePositions.get(node.id) || {
+      width: cfg.NODE_WIDTH,
+      height: cfg.NODE_HEIGHT,
+    }
+    result.nodePositions.set(node.id, {
+      x: ui.x,
+      y: ui.y,
+      width: prev.width || cfg.NODE_WIDTH,
+      height: prev.height || cfg.NODE_HEIGHT,
+    })
+  }
+
   // 连线 waypoints：source 底中点 → target 顶中点
   for (const edge of flowJson.edges) {
     const s = result.nodePositions.get(edge.source)

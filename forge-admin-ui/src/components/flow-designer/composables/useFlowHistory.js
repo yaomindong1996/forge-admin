@@ -76,6 +76,9 @@ export function useFlowHistory(flowJsonRef, options = {}) {
       const meta = event.metaKey || event.ctrlKey
       if (!meta)
         return
+      // 输入框内保留系统默认撤销，不劫持
+      if (event.target?.closest?.('input, textarea, select, [contenteditable="true"]'))
+        return
       const key = (event.key || '').toLowerCase()
       // Cmd/Ctrl + Shift + Z 或 Cmd/Ctrl + Y → redo
       if ((key === 'z' && event.shiftKey) || key === 'y') {

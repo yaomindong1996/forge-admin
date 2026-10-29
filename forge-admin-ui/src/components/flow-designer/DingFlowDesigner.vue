@@ -13,11 +13,12 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue'
 import { normalizeFlowFieldCatalog, serializeFlowFormPermissions } from '@/utils/flow-field-permissions'
 import { layoutDesignerFlow } from './canvas/designer-layout.js'
+import { pointFromDock } from './canvas/edge-dock.js'
 import FlowCanvasHeader from './canvas/FlowCanvasHeader.vue'
 import {
-  AddNodeButton,
   BranchAddButton,
   BranchHeader,
+  CanvasModeToolbar,
   EdgeLayer,
   FlowCanvas,
   MergeNode,
@@ -26,10 +27,12 @@ import {
 } from './canvas/index.js'
 import { useFlowDesigner, useFlowHistory } from './composables/index.js'
 import { useApprovalNodeMerge } from './composables/useApprovalNodeMerge.js'
+import { useFreeCanvasInteraction } from './composables/useFreeCanvasInteraction.js'
 import { NODE_PRESENTATION } from './constants/node-presentation.js'
 import { convertBpmnToJson, convertJsonToBpmn } from './converter/index.js'
 import ApprovalNodeMergeModal from './panel/ApprovalNodeMergeModal.vue'
 import { NodeConfigDrawer } from './panel/index.js'
+import NodeShelf from './shelf/NodeShelf.vue'
 
 const props = defineProps({
   xml: { type: String, default: '' },
@@ -70,6 +73,120 @@ const { mergeOwnerId, openNodeMerge, confirmNodeMerge } = useApprovalNodeMerge({
 // layoutResult 用 computed 同步求值，避免 ref+watch 异步时序导致新增节点
 // 先用旧位置渲染（position=undefined → 节点堆叠在左上角）的问题
 const layoutResult = computed(() => layoutDesignerFlow(designer.flowJson.value))
+
+const freeCanvas = useFreeCanvasInteraction({
+  designer,
+  history,
+  layoutResult,
+  canvasRef,
+  readonly: toRef(props, 'readonly'),
+  onNodePlaced: (id) => {
+    designer.selectedNodeId.value = id
+    drawerNodeId.value = id
+    drawerFocusEdgeId.value = null
+    drawerVisible.value = true
+  },
+})
+
+/** 预览线 SVG 必须用像素尺寸；width/height=100% 在无高度父级上会变成 0，虚线直接看不见 */
+const linkPreviewSvgSize = computed(() => {
+  const b = layoutResult.value.canvasBounds || { maxX: 1000, maxY: 800, minX: 0, minY: 0 }
+  const w = Math.ceil(Math.max(Number(b.maxX) || 0, Number(b.minX) || 0, 800) + 400)
+  const h = Math.ceil(Math.max(Number(b.maxY) || 0, Number(b.minY) || 0, 600) + 400)
+  return {
+    width: Number.isFinite(w) ? Math.min(Math.max(w, 1200), 20000) : 1200,
+    height: Number.isFinite(h) ? Math.min(Math.max(h, 1200), 20000) : 1200,
+  }
+})
+
+const linkPreview = computed(() => {
+  const state = freeCanvas.linking.value
+  if (!state)
+    return null
+  if (state.mode === 'reconnect') {
+    const fixed = layoutResult.value.nodePositions.get(state.fixedId)
+    if (!fixed)
+      return null
+    const edge = designer.getEdge?.(state.edgeId)
+      || designer.flowJson.value.edges.find(e => e.id === state.edgeId)
+    // 固定端用真实锚点，移动端跟鼠标（与新建连线一致的蓝虚线）
+    const fixedDock = state.which === 'target'
+      ? (edge?.uiSourceDock || null)
+      : (edge?.uiTargetDock || null)
+    const fp = fixedDock
+      ? pointFromDock(fixed, fixedDock)
+      : null
+    const fx = fp?.x ?? (fixed.x + fixed.width / 2)
+    const fy = fp?.y ?? (state.which === 'target' ? fixed.y + fixed.height : fixed.y)
+    if (state.which === 'target') {
+      return {
+        x1: fx,
+        y1: fy,
+        x2: state.x,
+        y2: state.y,
+        tipX: state.x,
+        tipY: state.y,
+      }
+    }
+    return {
+      x1: state.x,
+      y1: state.y,
+      x2: fx,
+      y2: fy,
+      tipX: state.x,
+      tipY: state.y,
+    }
+  }
+  if (!state.sourceId)
+    return null
+  const source = layoutResult.value.nodePositions.get(state.sourceId)
+  if (!source)
+    return null
+  // 从源锚点（指定边或自动底边）拉出蓝虚线
+  let x1 = source.x + source.width / 2
+  let y1 = source.y + source.height
+  if (state.sourceDock?.side) {
+    const p = pointFromDock(source, state.sourceDock)
+    if (p) {
+      x1 = p.x
+      y1 = p.y
+    }
+  }
+  return {
+    x1,
+    y1,
+    x2: state.x,
+    y2: state.y,
+    tipX: state.x,
+    tipY: state.y,
+  }
+})
+
+const reconnectingState = computed(() => {
+  const state = freeCanvas.linking.value
+  if (state?.mode !== 'reconnect')
+    return null
+  return { edgeId: state.edgeId, which: state.which }
+})
+
+/** 普通对象传给 EdgeLayer，避免 Map 作为 prop 时取不到 path */
+const edgePathRecord = computed(() => {
+  const map = layoutResult.value.edgePaths
+  const out = Object.create(null)
+  if (map && typeof map.forEach === 'function') {
+    map.forEach((path, id) => {
+      out[id] = path
+    })
+  }
+  return out
+})
+
+function onDesignerNodeClick(node) {
+  if (freeCanvas.onNodeClick(node))
+    return
+  freeCanvas.clearEdgeSelection()
+  handleNodeClick(node)
+}
 
 // 侧栏展开后按剩余画布重算适配，不让当前节点藏到配置区背后。
 watch(drawerVisible, async () => {
@@ -154,6 +271,11 @@ async function importXml(xml) {
   emit('importStart')
   try {
     const json = convertBpmnToJson(xml)
+    // 未声明自由布局时清掉残留坐标，避免旧 Diagram Bounds 把树状流程拖成蜘蛛网
+    if (!json.config?.freeLayout) {
+      for (const node of json.nodes || [])
+        delete node.uiPosition
+    }
     designer.loadJson(json)
     businessFormBindingChanged = applyDefaultBusinessFormBindings()
     history.clear()
@@ -440,17 +562,75 @@ function handleContextAction(actionId, node) {
   }
 }
 
-function handleAddAfter(afterNodeId, type) {
-  if (props.readonly)
+function openNewNode(newId) {
+  applyDefaultBusinessFormBindings()
+  freeCanvas.clearEdgeSelection()
+  designer.selectedNodeId.value = newId
+  drawerNodeId.value = newId
+  drawerFocusEdgeId.value = null
+  drawerVisible.value = true
+}
+
+/** 底部工具栏「＋」锚点文案：选中可用节点时显示名称 */
+const toolbarAddAnchorLabel = computed(() => {
+  const id = designer.selectedNodeId.value
+  if (!id)
+    return ''
+  const node = designer.getNode(id)
+  if (!node || node.nodeType === 'end')
+    return ''
+  return String(node.name || node.id || '').trim()
+})
+
+/** 卡片内「添加」：固定从该节点后插入 */
+function handleNodeAdd(node, type) {
+  if (props.readonly || !node?.id || !type)
     return
   history.snapshot()
   try {
-    const newId = designer.addNode(afterNodeId, type)
-    applyDefaultBusinessFormBindings()
-    designer.selectedNodeId.value = newId
-    drawerNodeId.value = newId
-    drawerFocusEdgeId.value = null
-    drawerVisible.value = true
+    openNewNode(designer.addNode(node.id, type))
+  }
+  catch (e) {
+    console.warn(e)
+  }
+}
+
+/** 底部工具栏「＋」：有选中节点/边则串入链路，否则放置游离节点（网关仍需锚点） */
+function handleToolbarAddNode(type) {
+  if (props.readonly || !type)
+    return
+  history.snapshot()
+  try {
+    const gatewayTypes = new Set(['condition', 'parallel', 'inclusive'])
+    const selectedId = designer.selectedNodeId.value
+    const selected = selectedId ? designer.getNode(selectedId) : null
+    const edgeId = freeCanvas.selectedEdgeId.value
+    const edge = edgeId
+      ? designer.flowJson.value.edges.find(item => item.id === edgeId)
+      : null
+
+    let newId
+    if (edge?.source) {
+      newId = designer.addNode(edge.source, type)
+    }
+    else if (selected && selected.nodeType !== 'end') {
+      newId = designer.addNode(selected.id, type)
+    }
+    else if (gatewayTypes.has(type)) {
+      const start = designer.flowJson.value.nodes.find(n => n.nodeType === 'start')
+      if (!start)
+        throw new Error('缺少开始节点，无法添加分支')
+      newId = designer.addNode(start.id, type)
+    }
+    else {
+      const b = layoutResult.value.canvasBounds || { minX: 0, minY: 0, maxX: 800, maxY: 600 }
+      newId = designer.placeNode(type, {
+        x: Math.round((b.minX + b.maxX) / 2 - 90),
+        y: Math.round((b.minY + b.maxY) / 2),
+      })
+    }
+
+    openNewNode(newId)
   }
   catch (e) {
     console.warn(e)
@@ -563,43 +743,17 @@ function avoidHeaderCollision(position, placed) {
   return next
 }
 
-const addButtonPositions = computed(() => {
-  const list = []
-  for (const node of designer.flowJson.value.nodes) {
-    if (['condition', 'parallel', 'inclusive', 'end'].includes(node.nodeType))
-      continue
-    const pos = layoutResult.value.nodePositions.get(node.id)
-    if (!pos)
-      continue
-    const targetPos = findNearestDownstreamPosition(node.id, pos)
-    list.push({
-      id: node.id,
-      position: {
-        x: pos.x + pos.width / 2,
-        y: verticalSegmentMidpoint(pos, targetPos),
-      },
-    })
-  }
-  return list
-})
-
-function findNearestDownstreamPosition(nodeId, sourcePos) {
-  if (!sourcePos)
-    return null
-  const sourceBottomY = sourcePos.y + sourcePos.height
-  return designer.getOutgoingEdges(nodeId)
-    .map(edge => layoutResult.value.nodePositions.get(edge.target))
-    .filter(pos => pos && pos.y >= sourceBottomY)
-    .sort((a, b) => a.y - b.y)[0] || null
-}
-
-function verticalSegmentMidpoint(sourcePos, targetPos) {
-  const sourceBottomY = sourcePos.y + sourcePos.height
-  if (!targetPos)
-    return sourceBottomY + 28
-  const targetTopY = targetPos.y
-  const gap = Math.max(targetTopY - sourceBottomY, 44)
-  return sourceBottomY + gap / 2
+/** 选中连线时隐藏两端节点中心端口，避免与线端点圆左右错位叠双圈 */
+function shouldShowNodePorts(nodeId) {
+  if (reconnectingState.value || freeCanvas.tool.value === 'connect' || freeCanvas.linking.value?.mode === 'new')
+    return true
+  const edgeId = freeCanvas.selectedEdgeId.value
+  if (!edgeId)
+    return true
+  const edge = designer.flowJson.value.edges.find(item => item.id === edgeId)
+  if (!edge)
+    return true
+  return edge.source !== nodeId && edge.target !== nodeId
 }
 
 const branchHeaders = computed(() => {
@@ -620,6 +774,7 @@ const branchHeaders = computed(() => {
       out.push({
         edge,
         card: Boolean(cardPosition),
+        compact: node.nodeType === 'parallel',
         index: designer.getOutgoingEdges(node.id).findIndex(item => item.id === edge.id) + 1,
         gatewayType: node.nodeType,
         position: avoidHeaderCollision(position, placed),
@@ -719,6 +874,12 @@ defineExpose({
   history,
 })
 
+async function handleAutoLayout() {
+  freeCanvas.autoLayout()
+  await nextTick()
+  autoFitToScreen()
+}
+
 /** 自动居中：把画布内容 fit 到视口中央 */
 function autoFitToScreen() {
   const canvas = canvasRef.value
@@ -733,14 +894,20 @@ function autoFitToScreen() {
   canvas.fitToScreen(contentW, contentH, container.clientWidth, container.clientHeight, 72, b.minX, b.minY)
 }
 
+let unbindHistoryKeys = null
+
 onMounted(async () => {
   await nextTick()
   autoFitToScreen()
+  if (!props.readonly)
+    unbindHistoryKeys = history.bindKeyboard(window)
   emit('ready')
 })
 
 onBeforeUnmount(() => {
   clearTimeout(emitTimer)
+  unbindHistoryKeys?.()
+  unbindHistoryKeys = null
 })
 </script>
 
@@ -749,22 +916,110 @@ onBeforeUnmount(() => {
     class="ding-flow-designer relative h-full w-full" :class="{ 'is-panel-open': drawerVisible }"
     :style="{ '--flow-branch-color': NODE_PRESENTATION.condition.color }"
   >
-    <FlowCanvas ref="canvasRef" :readonly="readonly" :content-bounds="layoutResult.canvasBounds">
+    <NodeShelf
+      :readonly="readonly"
+      :tool="freeCanvas.tool.value"
+      @connect-tool="freeCanvas.setTool('connect')"
+    />
+    <FlowCanvas
+      ref="canvasRef"
+      :readonly="readonly"
+      :tool="freeCanvas.tool.value"
+      :content-bounds="layoutResult.canvasBounds"
+      @canvas-drop="freeCanvas.onCanvasDrop"
+      @canvas-drag-over="freeCanvas.onCanvasDragOver"
+      @canvas-click="(e) => { if (!e?.target?.closest?.('[data-node-id], .edge-path, .edge-endpoint, .edge-endpoint-group, .edge-bend, .edge-seg-handle')) freeCanvas.clearEdgeSelection() }"
+    >
       <template #overlay>
         <FlowCanvasHeader
           :process-name="processName || designer.flowJson.value.processName"
           :can-undo="history.canUndo.value" :can-redo="history.canRedo.value" :readonly="readonly"
-          @undo="undo" @redo="redo"
+          @undo="undo" @redo="redo" @auto-layout="handleAutoLayout"
+        />
+        <CanvasModeToolbar
+          :tool="freeCanvas.tool.value"
+          :readonly="readonly"
+          :add-anchor-label="toolbarAddAnchorLabel"
+          @update:tool="freeCanvas.setTool"
+          @auto-layout="handleAutoLayout"
+          @add-node="handleToolbarAddNode"
+          @connect="freeCanvas.setTool('connect')"
         />
       </template>
       <template #edges>
         <EdgeLayer
           neutral
+          interactive
           :edges="designer.flowJson.value.edges"
-          :paths="layoutResult.edgePaths"
+          :paths="edgePathRecord"
           :canvas-bounds="layoutResult.canvasBounds"
+          path-type="orthogonal"
+          :selected-edge-id="freeCanvas.selectedEdgeId.value"
+          :reconnecting="reconnectingState"
+          :selected-waypoint-index="freeCanvas.selectedWaypointIndex.value"
           :show-labels="false"
+          @edge-click="freeCanvas.selectEdge"
+          @hit-pointer-down="freeCanvas.onEdgeHitPointerDown"
+          @endpoint-down="freeCanvas.onEndpointDown"
+          @bend-down="freeCanvas.onBendDown"
+          @segment-down="freeCanvas.onSegmentDown"
         />
+        <!-- 蓝虚线预览（新建/改接共用），盖在最上层 -->
+        <svg
+          v-if="linkPreview"
+          class="link-preview pointer-events-none absolute left-0 top-0 overflow-visible"
+          :width="linkPreviewSvgSize.width"
+          :height="linkPreviewSvgSize.height"
+          :viewBox="`0 0 ${linkPreviewSvgSize.width} ${linkPreviewSvgSize.height}`"
+          style="z-index: 50"
+        >
+          <line
+            :x1="linkPreview.x1"
+            :y1="linkPreview.y1"
+            :x2="linkPreview.x2"
+            :y2="linkPreview.y2"
+            stroke="#356de0"
+            stroke-width="2"
+            stroke-dasharray="6 4"
+            stroke-linecap="round"
+          />
+          <circle
+            :cx="linkPreview.x1"
+            :cy="linkPreview.y1"
+            r="3.5"
+            fill="#356de0"
+          />
+          <circle
+            :cx="linkPreview.tipX"
+            :cy="linkPreview.tipY"
+            r="5"
+            fill="#fff"
+            stroke="#356de0"
+            stroke-width="2"
+          />
+        </svg>
+        <!-- 拖拽对齐标线：横/竖对齐或近似直线时出现 -->
+        <svg
+          v-if="freeCanvas.alignmentGuides.value.length"
+          class="alignment-guides pointer-events-none absolute left-0 top-0 overflow-visible"
+          :width="linkPreviewSvgSize.width"
+          :height="linkPreviewSvgSize.height"
+          :viewBox="`0 0 ${linkPreviewSvgSize.width} ${linkPreviewSvgSize.height}`"
+          style="z-index: 45"
+        >
+          <line
+            v-for="(guide, gi) in freeCanvas.alignmentGuides.value"
+            :key="`guide-${guide.orientation}-${gi}`"
+            :x1="guide.orientation === 'v' ? guide.position : guide.start"
+            :y1="guide.orientation === 'v' ? guide.start : guide.position"
+            :x2="guide.orientation === 'v' ? guide.position : guide.end"
+            :y2="guide.orientation === 'v' ? guide.end : guide.position"
+            stroke="#356de0"
+            stroke-width="1"
+            stroke-dasharray="4 3"
+            opacity="0.85"
+          />
+        </svg>
       </template>
       <template #nodes>
         <NodeRenderer
@@ -775,18 +1030,20 @@ onBeforeUnmount(() => {
           :selected="designer.selectedNodeId.value === node.id"
           :readonly="readonly"
           :outgoing-count="designer.getOutgoingEdges(node.id).length"
-          @click="handleNodeClick"
+          :show-ports="shouldShowNodePorts(node.id)"
+          :ports-active="Boolean(reconnectingState) || freeCanvas.tool.value === 'connect' || freeCanvas.linking.value?.mode === 'new'"
+          :reattach-which="reconnectingState?.which || (freeCanvas.linking.value?.mode === 'new' ? 'target' : null)"
+          :connect-source="freeCanvas.linking.value?.mode === 'new' && freeCanvas.linking.value?.sourceId === node.id"
+          @click="onDesignerNodeClick"
           @delete="handleNodeDelete"
           @context-menu="handleContextMenu"
+          @pointer-down="freeCanvas.onNodePointerDown"
+          @port-pointer-down="freeCanvas.startLink"
+          @add="handleNodeAdd"
+          @connect="freeCanvas.setTool('connect')"
         />
 
-        <AddNodeButton
-          v-for="btn in addButtonPositions"
-          :key="`add-${btn.id}`"
-          :position="btn.position"
-          :readonly="readonly"
-          @select="(type) => handleAddAfter(btn.id, type)"
-        />
+        <!-- 选中卡片内「添加」为主；底部「＋」兜底；条件网关另保留加分支 -->
 
         <BranchHeader
           v-for="(bh, idx) in branchHeaders"
@@ -794,6 +1051,7 @@ onBeforeUnmount(() => {
           :edge="bh.edge"
           :position="bh.position"
           :card="bh.card"
+          :compact="bh.compact"
           :index="bh.index"
           :gateway-type="bh.gatewayType"
           :fields="formFieldCatalog"
@@ -853,6 +1111,9 @@ onBeforeUnmount(() => {
   min-height: 0;
   background: var(--bg-secondary, #f6f8fb);
 }
+.link-preview {
+  z-index: 2;
+}
 .ding-flow-designer > :deep(.flow-canvas) {
   flex: 1;
   min-width: 0;
@@ -876,14 +1137,17 @@ onBeforeUnmount(() => {
   border-color: var(--primary-color, #356de0);
 }
 .ding-flow-designer :deep(.branch-add-btn) {
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   border-color: var(--primary-color, #356de0);
   color: var(--primary-color, #356de0);
   background: var(--bg-primary, #fff);
   box-shadow: none;
+  font-size: 12px;
 }
 .is-panel-open .ding-flow-panel-host {
-  width: min(480px, 44%);
+  width: min(400px, 38%);
   border-left: 1px solid var(--border-light, #e5e7eb);
 }
 @media (max-width: 760px) {
@@ -892,7 +1156,7 @@ onBeforeUnmount(() => {
     top: 0;
     right: 0;
     bottom: 0;
-    width: min(480px, 100%);
+    width: min(400px, 100%);
     z-index: 40;
   }
 }

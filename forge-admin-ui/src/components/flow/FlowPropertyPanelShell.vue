@@ -164,7 +164,8 @@ const panelStyle = computed(() => ({
 }
 
 .flow-property-panel-shell__content {
-  min-height: 100%;
+  /* 不要 min-height:100%，否则内容刚好一屏时也容易多出一条竖向滚动条 */
+  min-height: 0;
 }
 
 .flow-property-panel-shell__footer {
@@ -183,37 +184,38 @@ const panelStyle = computed(() => ({
   font-size: 13px;
 }
 
-.flow-property-panel-shell__content :deep(.n-tabs .n-tabs-nav) {
+/* line 型 Tab 才套下划线样式；segment 由业务面板（如 ApproverConfig）自行对齐表单属性面板 */
+.flow-property-panel-shell__content :deep(.n-tabs:not(.n-tabs--segment-type) .n-tabs-nav) {
   min-height: 42px;
   padding: 0;
   border-bottom: 1px solid var(--border-light);
   background: var(--bg-primary);
 }
 
-.flow-property-panel-shell__content :deep(.n-tabs .n-tabs-nav-scroll-wrapper),
-.flow-property-panel-shell__content :deep(.n-tabs .n-tabs-nav-scroll-content) {
+.flow-property-panel-shell__content :deep(.n-tabs:not(.n-tabs--segment-type) .n-tabs-nav-scroll-wrapper),
+.flow-property-panel-shell__content :deep(.n-tabs:not(.n-tabs--segment-type) .n-tabs-nav-scroll-content) {
   overflow-x: auto;
+  overflow-y: hidden;
 }
 
-.flow-property-panel-shell__content :deep(.n-tabs .n-tabs-nav-scroll-content) {
-  min-width: max-content;
-  padding: 0 14px;
+.flow-property-panel-shell__content :deep(.n-tabs:not(.n-tabs--segment-type) .n-tabs-nav-scroll-content) {
+  padding: 0 12px;
 }
 
-.flow-property-panel-shell__content :deep(.n-tabs .n-tabs-tab) {
-  min-height: 42px;
-  padding: 0 10px;
+.flow-property-panel-shell__content :deep(.n-tabs:not(.n-tabs--segment-type) .n-tabs-tab) {
+  min-height: 40px;
+  padding: 0 8px;
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
 
-.flow-property-panel-shell__content :deep(.n-tabs .n-tabs-tab.n-tabs-tab--active) {
+.flow-property-panel-shell__content :deep(.n-tabs:not(.n-tabs--segment-type) .n-tabs-tab.n-tabs-tab--active) {
   color: var(--primary-color, #356de0);
 }
 
-.flow-property-panel-shell__content :deep(.n-tabs .n-tabs-bar) {
+.flow-property-panel-shell__content :deep(.n-tabs:not(.n-tabs--segment-type) .n-tabs-bar) {
   background-color: var(--primary-color, #356de0);
 }
 

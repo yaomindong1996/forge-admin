@@ -122,10 +122,44 @@
       </div>
 
       <div v-else class="settings-workspace">
+        <!-- 左侧设置导航（主从工作台：对象区在左） -->
+        <aside class="settings-tree-nav" aria-label="更多设置导航">
+          <div
+            v-for="group in settingsTreeGroups"
+            :key="group.label"
+            class="settings-tree-group"
+          >
+            <div class="settings-tree-group-title">
+              {{ group.label }}
+            </div>
+            <button
+              v-for="item in group.children"
+              :key="item.key"
+              type="button"
+              class="settings-tree-item"
+              :class="{ active: rightActiveTab === item.key }"
+              @click="openSettingsPanel(item.key)"
+            >
+              <i :class="item.icon" />
+              <span class="settings-tree-item-main">
+                <span class="settings-tree-item-title">{{ item.label }}</span>
+                <span class="settings-tree-item-desc">{{ item.desc }}</span>
+              </span>
+              <span
+                v-if="getSettingsBadge(item.key)"
+                class="settings-tree-badge"
+                :class="getSettingsBadgeClass(item.key)"
+              >
+                {{ getSettingsBadge(item.key) }}
+              </span>
+            </button>
+          </div>
+        </aside>
+
         <div class="settings-detail-pane">
           <div v-if="rightActiveTab === 'flow'" class="settings-section-pane">
             <div class="settings-pane-header">
-              <div>
+              <div class="settings-pane-heading">
                 <div class="settings-pane-title">
                   流程属性
                 </div>
@@ -133,12 +167,14 @@
                   设置流程归属、业务类型和可读说明。
                 </div>
               </div>
-              <NTag :type="statusTag.type" size="small">
-                {{ statusTag.label }}
-              </NTag>
-              <NTag :type="isBusinessDesigner ? 'success' : 'info'" size="small" :bordered="false">
-                {{ designerTypeLabel }}
-              </NTag>
+              <div class="settings-pane-meta">
+                <NTag :type="statusTag.type" size="small" :bordered="false">
+                  {{ statusTag.label }}
+                </NTag>
+                <NTag :type="isBusinessDesigner ? 'success' : 'info'" size="small" :bordered="false">
+                  {{ designerTypeLabel }}
+                </NTag>
+              </div>
             </div>
 
             <label class="settings-field">
@@ -183,7 +219,7 @@
 
           <div v-else-if="rightActiveTab === 'form'" class="settings-section-pane">
             <div class="settings-pane-header">
-              <div>
+              <div class="settings-pane-heading">
                 <div class="settings-pane-title">
                   表单配置
                 </div>
@@ -191,9 +227,11 @@
                   配置流程发起时填写的全局表单。
                 </div>
               </div>
-              <NTag size="small" :type="formConfigStatus.type" :bordered="false">
-                {{ formConfigStatus.label }}
-              </NTag>
+              <div class="settings-pane-meta">
+                <NTag size="small" :type="formConfigStatus.type" :bordered="false">
+                  {{ formConfigStatus.label }}
+                </NTag>
+              </div>
             </div>
 
             <template v-if="businessFormConfigActive">
@@ -309,7 +347,7 @@
 
           <div v-else-if="rightActiveTab === 'approval'" class="settings-section-pane">
             <div class="settings-pane-header">
-              <div>
+              <div class="settings-pane-heading">
                 <div class="settings-pane-title">
                   审批与待办
                 </div>
@@ -317,9 +355,11 @@
                   控制审批退回、提交人撤回、待办跳转，以及同一审批人重复出现时的自动处理规则。
                 </div>
               </div>
-              <NTag size="small" :type="modelInfo.autoApprovalMode === 'none' ? 'default' : 'info'" :bordered="false">
-                {{ autoApprovalModeLabel }}
-              </NTag>
+              <div class="settings-pane-meta">
+                <NTag size="small" :type="modelInfo.autoApprovalMode === 'none' ? 'default' : 'info'" :bordered="false">
+                  {{ autoApprovalModeLabel }}
+                </NTag>
+              </div>
             </div>
 
             <div class="approval-setting-row">
@@ -423,7 +463,7 @@
 
           <div v-else-if="rightActiveTab === 'notification'" class="settings-section-pane notification-settings-pane">
             <div class="settings-pane-header">
-              <div>
+              <div class="settings-pane-heading">
                 <div class="settings-pane-title">
                   通知与推送
                 </div>
@@ -431,9 +471,11 @@
                   按流程配置通知事件、发送渠道和消息模板；未配置时沿用系统默认通知行为。
                 </div>
               </div>
-              <NTag size="small" :type="notificationConfigStatus.type" :bordered="false">
-                {{ notificationConfigStatus.label }}
-              </NTag>
+              <div class="settings-pane-meta">
+                <NTag size="small" :type="notificationConfigStatus.type" :bordered="false">
+                  {{ notificationConfigStatus.label }}
+                </NTag>
+              </div>
             </div>
 
             <n-alert type="info" :show-icon="false">
@@ -532,7 +574,7 @@
 
           <div v-else-if="rightActiveTab === 'description'" class="settings-section-pane">
             <div class="settings-pane-header">
-              <div>
+              <div class="settings-pane-heading">
                 <div class="settings-pane-title">
                   说明
                 </div>
@@ -783,39 +825,6 @@
             </div>
           </div>
         </div>
-
-        <aside class="settings-tree-nav">
-          <div
-            v-for="group in settingsTreeGroups"
-            :key="group.label"
-            class="settings-tree-group"
-          >
-            <div class="settings-tree-group-title">
-              {{ group.label }}
-            </div>
-            <button
-              v-for="item in group.children"
-              :key="item.key"
-              type="button"
-              class="settings-tree-item"
-              :class="{ active: rightActiveTab === item.key }"
-              @click="openSettingsPanel(item.key)"
-            >
-              <i :class="item.icon" />
-              <span class="settings-tree-item-main">
-                <span class="settings-tree-item-title">{{ item.label }}</span>
-                <span class="settings-tree-item-desc">{{ item.desc }}</span>
-              </span>
-              <span
-                v-if="getSettingsBadge(item.key)"
-                class="settings-tree-badge"
-                :class="getSettingsBadgeClass(item.key)"
-              >
-                {{ getSettingsBadge(item.key) }}
-              </span>
-            </button>
-          </div>
-        </aside>
       </div>
     </div>
 

@@ -14,8 +14,32 @@ describe('nodeCard - 基础渲染', () => {
     const w = mount(NodeCard, {
       props: { node: { id: 'A', name: 'X', nodeType: 'approver' }, selected: true },
       slots: { default: 'body' },
+      global: {
+        stubs: {
+          NPopover: { template: '<div class="n-popover-stub"><slot name="trigger" /><slot /></div>' },
+        },
+      },
     })
     expect(w.find('.flow-node-card').classes()).toContain('is-selected')
+  })
+
+  it('showAdd 时卡片内出现纯图标添加按钮', () => {
+    const w = mount(NodeCard, {
+      props: {
+        node: { id: 'A', name: '审批', nodeType: 'approver' },
+        selected: true,
+        showAdd: true,
+      },
+      global: {
+        stubs: {
+          NPopover: { template: '<div class="n-popover-stub"><slot name="trigger" /><slot /></div>' },
+        },
+      },
+    })
+    const btn = w.find('.flow-node-add-btn')
+    expect(btn.exists()).toBe(true)
+    expect(btn.attributes('aria-label')).toBe('在此节点后添加')
+    expect(btn.text().trim()).toBe('')
   })
 
   it('readonly 模式不显示删除按钮', () => {

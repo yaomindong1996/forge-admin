@@ -18,11 +18,32 @@
  */
 
 import { calculateLayout as baseLayout } from '../converter/layout-algorithm.js'
+import { END_INCOMING_DOCK } from './edge-dock.js'
+import { toStoredWaypoints } from './edge-segment-edit.js'
+import { buildOrthogonalPath, buildPathWithWaypoints, recomputeBounds } from './orthogonal-path.js'
+
+/** 收敛历史脏拐点（自由曲线点云 → 少量正交拐点） */
+function sanitizeWaypoints(raw) {
+  const list = (raw || []).filter(p => Number.isFinite(p?.x) && Number.isFinite(p?.y))
+  if (!list.length)
+    return []
+  if (list.length <= 12)
+    return list.map(p => ({ x: Number(p.x), y: Number(p.y) }))
+  // 用假端点走 toStoredWaypoints 抽样+简化
+  return toStoredWaypoints([
+    { x: list[0].x, y: list[0].y },
+    ...list,
+    { x: list[list.length - 1].x, y: list[list.length - 1].y },
+  ])
+}
 
 const DEFAULT_OPTS = {
-  NODE_WIDTH: 224,
-  NODE_HEIGHT: 82,
+  NODE_WIDTH: 200,
+  NODE_HEIGHT: 56,
   GATEWAY_SIZE: 44,
+  /** 结束节点命中盒 = 灰圆，文字溢出绘制，避免线接到空白处 */
+  END_WIDTH: 20,
+  END_HEIGHT: 20,
   V_GAP: 56,
   H_GAP: 72,
   MARGIN_TOP: 56,
@@ -43,71 +64,177 @@ export function layoutFlow(flowJson, opts = {}) {
 
   // 复用 converter 的几何计算
   const base = baseLayout(flowJson, cfg)
+  const hasManual = flowJson.nodes.some(node => hasUiPosition(node))
 
-  // 节点位置直接复用；网关在画布上是菱形锚点，不占用普通任务卡尺寸。
+  // 节点位置直接复用；网关/结束节点用真实可视尺寸，避免连线接到空白盒子边缘。
   for (const [id, pos] of base.nodePositions.entries()) {
     const node = flowJson.nodes.find(item => item.id === id)
     if (GATEWAY_TYPES.has(node?.nodeType)) {
       const size = cfg.GATEWAY_SIZE
-      result.nodePositions.set(id, {
+      const auto = {
         x: pos.x + (pos.width - size) / 2,
         y: pos.y + (pos.height - size) / 2,
         width: size,
         height: size,
-      })
+      }
+      result.nodePositions.set(id, applyUiPosition(node, auto))
       continue
     }
-    result.nodePositions.set(id, {
+    if (node?.nodeType === 'end') {
+      const auto = {
+        x: pos.x + (pos.width - cfg.END_WIDTH) / 2,
+        y: pos.y + (pos.height - cfg.END_HEIGHT) / 2,
+        width: cfg.END_WIDTH,
+        height: cfg.END_HEIGHT,
+      }
+      result.nodePositions.set(id, applyEndPosition(node, auto, cfg))
+      continue
+    }
+    result.nodePositions.set(id, applyUiPosition(node, {
       x: pos.x,
       y: pos.y,
       width: pos.width || cfg.NODE_WIDTH,
       height: pos.height || cfg.NODE_HEIGHT,
-    })
+    }))
   }
 
-  // 边 path：保留布局算法的中间折点，但把起止端点修正到真实节点边界。
+  // 自由布局下：无坐标的新节点贴到前驱实际位置下方，避免和冻结节点“分离”
+  if (hasManual)
+    snapUnplacedToPredecessors(flowJson, result.nodePositions, cfg)
+
+  // 边 path：自由布局用四向端口正交线；树状布局沿用自动折点。
+  // 任意边都必须有 path，避免“数据还在、线看不见”。
+  const sourceLane = new Map()
+  const sourceOutCount = new Map()
+  for (const edge of flowJson.edges)
+    sourceOutCount.set(edge.source, (sourceOutCount.get(edge.source) || 0) + 1)
+
+  const nodesById = new Map(flowJson.nodes.map(n => [n.id, n]))
+
   for (const edge of flowJson.edges) {
+    const sourcePos = result.nodePositions.get(edge.source)
+    const targetPos = result.nodePositions.get(edge.target)
+    const targetNode = nodesById.get(edge.target)
+    const endTarget = targetNode?.nodeType === 'end'
+    // 历史脏数据可能存了上百个自由曲线点：渲染前收敛，避免选中时手柄爆炸
+    const manualBends = Array.isArray(edge.uiWaypoints)
+      ? sanitizeWaypoints(edge.uiWaypoints)
+      : []
+    const dockOpts = {
+      sourceDock: edge.uiSourceDock || null,
+      // 结束节点无视历史 left/bottom dock，强制顶心（与可见锚点一致）
+      targetDock: endTarget ? { ...END_INCOMING_DOCK } : (edge.uiTargetDock || null),
+      endTarget,
+    }
+    if (manualBends.length && sourcePos && targetPos) {
+      const path = buildPathWithWaypoints(sourcePos, targetPos, manualBends, dockOpts)
+      if (path.points.length >= 2) {
+        result.edgePaths.set(edge.id, path)
+        continue
+      }
+    }
+    if (hasManual || !base.edgeWaypoints.get(edge.id)) {
+      const lane = sourceLane.get(edge.source) || 0
+      sourceLane.set(edge.source, lane + 1)
+      const path = buildOrthogonalPath(sourcePos, targetPos, {
+        lane: lane - ((sourceOutCount.get(edge.source) || 1) - 1) / 2,
+        ...dockOpts,
+      })
+      if (path.points.length >= 2) {
+        result.edgePaths.set(edge.id, path)
+        continue
+      }
+    }
     const wp = base.edgeWaypoints.get(edge.id)
-    if (!wp || wp.length < 2)
+    if (wp && wp.length >= 2) {
+      // 树状 layout 的 waypoint 对结束节点也可能绕侧/底：统一改走上方正交
+      if (endTarget && sourcePos && targetPos) {
+        const path = buildOrthogonalPath(sourcePos, targetPos, dockOpts)
+        if (path.points.length >= 2) {
+          result.edgePaths.set(edge.id, path)
+          continue
+        }
+      }
+      const points = normalizeEdgePoints(edge, wp, result.nodePositions)
+      result.edgePaths.set(edge.id, {
+        points,
+        type: points.length === 2 ? 'straight' : 'orthogonal',
+      })
       continue
-    const points = normalizeEdgePoints(edge, wp, result.nodePositions)
-    // 起止 x 一致 → straight；否则按 orthogonal（折线）
-    const type = points.length === 2 ? 'straight' : 'orthogonal'
-    result.edgePaths.set(edge.id, { points, type })
-  }
-
-  // canvasBounds：聚合所有节点 + waypoint
-  let minX = Infinity
-  let minY = Infinity
-  let maxX = -Infinity
-  let maxY = -Infinity
-  for (const pos of result.nodePositions.values()) {
-    if (pos.x < minX)
-      minX = pos.x
-    if (pos.y < minY)
-      minY = pos.y
-    if (pos.x + pos.width > maxX)
-      maxX = pos.x + pos.width
-    if (pos.y + pos.height > maxY)
-      maxY = pos.y + pos.height
-  }
-  for (const path of result.edgePaths.values()) {
-    for (const p of path.points) {
-      if (p.x < minX)
-        minX = p.x
-      if (p.y < minY)
-        minY = p.y
-      if (p.x > maxX)
-        maxX = p.x
-      if (p.y > maxY)
-        maxY = p.y
+    }
+    // 兜底：两点直线，保证不断线
+    if (sourcePos && targetPos) {
+      result.edgePaths.set(edge.id, {
+        type: 'straight',
+        points: [
+          { x: sourcePos.x + sourcePos.width / 2, y: sourcePos.y + sourcePos.height },
+          { x: targetPos.x + targetPos.width / 2, y: targetPos.y },
+        ],
+      })
     }
   }
 
-  if (Number.isFinite(minX))
-    result.canvasBounds = { minX, minY, maxX, maxY }
-
+  result.canvasBounds = recomputeBounds(result.nodePositions, result.edgePaths)
   return result
+}
+
+function hasUiPosition(node) {
+  return Number.isFinite(node?.uiPosition?.x) && Number.isFinite(node?.uiPosition?.y)
+}
+
+function applyUiPosition(node, auto) {
+  if (!hasUiPosition(node))
+    return auto
+  return {
+    ...auto,
+    x: node.uiPosition.x,
+    y: node.uiPosition.y,
+  }
+}
+
+/** 结束点：强制紧凑尺寸；旧数据按大卡左上冻结时，按中心对齐到圆点。 */
+function applyEndPosition(node, auto, cfg) {
+  if (!hasUiPosition(node))
+    return auto
+  const storedW = node.uiPosition.w
+  const storedH = node.uiPosition.h
+  if (Number.isFinite(storedW) && storedW <= cfg.END_WIDTH + 8) {
+    return {
+      x: node.uiPosition.x,
+      y: node.uiPosition.y,
+      width: cfg.END_WIDTH,
+      height: cfg.END_HEIGHT,
+    }
+  }
+  const legacyW = Number.isFinite(storedW) ? storedW : cfg.NODE_WIDTH
+  const legacyH = Number.isFinite(storedH) ? storedH : cfg.NODE_HEIGHT
+  return {
+    x: node.uiPosition.x + (legacyW - cfg.END_WIDTH) / 2,
+    y: node.uiPosition.y + (legacyH - cfg.END_HEIGHT) / 2,
+    width: cfg.END_WIDTH,
+    height: cfg.END_HEIGHT,
+  }
+}
+
+function snapUnplacedToPredecessors(flowJson, positions, cfg) {
+  const gap = cfg.V_GAP || 56
+  for (const edge of flowJson.edges || []) {
+    const targetNode = flowJson.nodes.find(n => n.id === edge.target)
+    if (!targetNode || hasUiPosition(targetNode))
+      continue
+    const sourcePos = positions.get(edge.source)
+    const targetPos = positions.get(edge.target)
+    if (!sourcePos || !targetPos)
+      continue
+    const expectedY = sourcePos.y + sourcePos.height + gap
+    if (Math.abs(targetPos.y - expectedY) <= 160 && Math.abs(targetPos.x - sourcePos.x) <= 320)
+      continue
+    positions.set(edge.target, {
+      ...targetPos,
+      x: sourcePos.x + (sourcePos.width - targetPos.width) / 2,
+      y: expectedY,
+    })
+  }
 }
 
 function normalizeEdgePoints(edge, points, nodePositions) {

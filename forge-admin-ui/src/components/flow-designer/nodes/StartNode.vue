@@ -11,9 +11,10 @@ defineProps({
   selected: Boolean,
   status: { type: String, default: null },
   readonly: Boolean,
+  showAdd: Boolean,
 })
 
-defineEmits(['click', 'delete', 'contextMenu'])
+defineEmits(['click', 'delete', 'contextMenu', 'add', 'connect'])
 
 const subtitle = '系统自动记录发起人'
 </script>
@@ -24,11 +25,14 @@ const subtitle = '系统自动记录发起人'
     :selected="selected"
     :status="status"
     :readonly="readonly"
+    :show-add="showAdd"
     icon="i-lucide:play"
     color-var="success"
     :subtitle="subtitle"
     :deletable="false"
     @click="$emit('click', $event)"
     @context-menu="$emit('contextMenu', $event)"
+    @add="$emit('add', $event)"
+    @connect="$emit('connect')"
   />
 </template>

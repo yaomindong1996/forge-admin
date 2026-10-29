@@ -142,8 +142,9 @@ export function inspectApprovalMerge(flow, sourceId, targetId) {
     return { eligible: false, reason: '审批配置不一致，请先核对人员、表单权限、会签及其他配置', differenceKeys }
   }
   // rawXml 等节点级扩展同样不能因缩成一张卡而被静默覆盖。
+  // uiPosition 仅表示画布布局，合并时忽略。
   const nodeExtras = node => Object.fromEntries(Object.entries(node)
-    .filter(([key]) => !['id', 'bpmnElementId', 'name', 'config'].includes(key)))
+    .filter(([key]) => !['id', 'bpmnElementId', 'name', 'config', 'uiPosition'].includes(key)))
   if (!sameValue(nodeExtras(source.node), nodeExtras(target.node)))
     return { eligible: false, reason: '节点级扩展信息不一致，不能直接合并' }
   return { eligible: true, reason: '', nextId: source.outgoing[0].target }

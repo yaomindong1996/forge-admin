@@ -1,6 +1,12 @@
 <script setup>
-/** 白底双行节点。配置入口与更多操作分离，避免嵌套按钮及仅悬停才可用的操作。 */
-import { computed } from 'vue'
+/**
+ * 白底紧凑双行节点。选中时在卡片内右侧放「添加」，菜单上浮不挡连线。
+ */
+import { useEventListener } from '@vueuse/core'
+import { NPopover } from 'naive-ui'
+import { computed, ref } from 'vue'
+import AddNodePopover from '../canvas/AddNodePopover.vue'
+import { useFlowOverlayTarget } from '../composables/useFlowOverlayTarget.js'
 import { getNodePresentation } from '../constants/node-presentation.js'
 
 const props = defineProps({
@@ -13,17 +19,22 @@ const props = defineProps({
   subtitle: { type: String, default: '' },
   showActions: { type: Boolean, default: true },
   deletable: { type: Boolean, default: true },
-  width: { type: Number, default: 224 },
-  height: { type: Number, default: 82 },
+  /** 选中态在卡片内显示「添加」入口 */
+  showAdd: { type: Boolean, default: false },
+  width: { type: Number, default: 200 },
+  height: { type: Number, default: 56 },
 })
-const emit = defineEmits(['click', 'delete', 'contextMenu'])
+const emit = defineEmits(['click', 'delete', 'contextMenu', 'add', 'connect'])
+
+const addOpen = ref(false)
+const overlayTarget = useFlowOverlayTarget()
 const presentation = computed(() => getNodePresentation(props.node?.nodeType))
 const cardStyle = computed(() => ({
   'width': `${props.width}px`,
   'minHeight': `${props.height}px`,
   '--flow-node-color': presentation.value.color,
 }))
-// 查看器保留运行状态语义，设计态的节点类型颜色与运行状态互不替代。
+
 const STATUS_BADGE = {
   completed: { label: '已完成', class: 'is-completed' },
   running: { label: '审批中', class: 'is-running' },
@@ -32,6 +43,15 @@ const STATUS_BADGE = {
   skipped: { label: '已跳过', class: 'is-pending' },
 }
 const statusBadge = computed(() => STATUS_BADGE[props.status] || null)
+
+useEventListener('resize', () => {
+  addOpen.value = false
+})
+useEventListener('wheel', (event) => {
+  if (!event.target?.closest?.('.n-popover'))
+    addOpen.value = false
+}, { capture: true, passive: true })
+
 function handleContextMenu(event) {
   event.preventDefault()
   const rect = event.currentTarget?.getBoundingClientRect()
@@ -39,6 +59,16 @@ function handleContextMenu(event) {
     ? event
     : { clientX: rect?.left || 0, clientY: rect?.bottom || 0 }
   emit('contextMenu', { event: point, node: props.node })
+}
+
+function handleAddSelect(type) {
+  addOpen.value = false
+  emit('add', type)
+}
+
+function handleConnect() {
+  addOpen.value = false
+  emit('connect')
 }
 </script>
 
@@ -52,7 +82,6 @@ function handleContextMenu(event) {
     @click="$emit('click', node)"
     @contextmenu="handleContextMenu"
   >
-    <!-- 节点主信息 -->
     <button type="button" class="flow-node-open" :aria-label="`配置${node?.name || '节点'}`">
       <span class="flow-node-icon" aria-hidden="true">
         <i :class="presentation.icon || icon" />
@@ -69,7 +98,49 @@ function handleContextMenu(event) {
         <span v-if="$slots.default && !readonly" class="flow-node-extra"><slot /></span>
       </span>
     </button>
-    <!-- 复用已有复制、排序、删除菜单，不更改节点业务操作 -->
+
+    <!-- 选中态：卡片内「添加」，占用原空白区，不在画布外叠层 -->
+    <div
+      v-if="showAdd && !readonly"
+      class="flow-node-add"
+      @pointerdown.stop
+      @click.stop
+    >
+      <NPopover
+        v-model:show="addOpen"
+        trigger="click"
+        placement="bottom-end"
+        :theme-overrides="{ space: '8px' }"
+        :show-arrow="true"
+        :style="{ padding: '12px' }"
+        :animated="false"
+        :to="overlayTarget || undefined"
+      >
+        <template #trigger>
+          <button
+            type="button"
+            class="flow-node-add-btn"
+            :class="{ 'is-open': addOpen }"
+            :aria-expanded="addOpen"
+            aria-label="在此节点后添加"
+            title="添加"
+            @keydown.esc="addOpen = false"
+          >
+            <i class="i-lucide:plus" />
+          </button>
+        </template>
+        <div @keydown.esc="addOpen = false">
+          <AddNodePopover
+            title="在此之后添加"
+            :hint="`插入到「${node?.name || '当前节点'}」之后`"
+            show-connect
+            @select="handleAddSelect"
+            @connect="handleConnect"
+          />
+        </div>
+      </NPopover>
+    </div>
+
     <button
       v-if="showActions && deletable && !readonly"
       type="button" class="flow-node-more" aria-label="节点更多操作" title="节点更多操作"
@@ -85,9 +156,9 @@ function handleContextMenu(event) {
 .flow-node-card {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   box-sizing: border-box;
-  padding: 12px;
+  padding: 8px 10px;
   border: 1px solid var(--border-light, #dfe4ec);
   border-radius: 6px;
   background: var(--bg-primary, #fff);
@@ -109,7 +180,7 @@ function handleContextMenu(event) {
   flex: 1;
   min-width: 0;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   padding: 0;
   border: none;
   background: transparent;
@@ -120,80 +191,91 @@ function handleContextMenu(event) {
 .flow-node-icon {
   display: inline-flex;
   flex: none;
-  width: 38px;
-  height: 38px;
+  width: 28px;
+  height: 28px;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 5px;
   background: color-mix(in srgb, var(--flow-node-color) 14%, var(--bg-primary, #fff));
   color: var(--flow-node-color);
-  font-size: 22px;
+  font-size: 16px;
 }
 .flow-node-main {
   display: flex;
   flex: 1;
   min-width: 0;
   flex-direction: column;
-  gap: 5px;
+  gap: 2px;
 }
 .flow-node-heading {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 .flow-node-name {
   overflow: hidden;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 1.4;
+  line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .flow-node-summary {
   overflow: hidden;
   color: var(--text-tertiary, #86909c);
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 11px;
+  line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .flow-node-extra {
   color: var(--text-secondary, #4e5969);
-  font-size: 12px;
+  font-size: 11px;
 }
+.flow-node-add {
+  flex: none;
+}
+.flow-node-add-btn,
 .flow-node-more {
   display: inline-flex;
   flex: none;
-  width: 26px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   align-items: center;
   justify-content: center;
+  padding: 0;
   border: none;
   border-radius: 4px;
   background: transparent;
   color: var(--text-tertiary, #86909c);
+  font-size: 14px;
+  line-height: 1;
   cursor: pointer;
 }
+.flow-node-add-btn:hover,
+.flow-node-add-btn.is-open,
 .flow-node-more:hover {
   background: var(--bg-secondary, #f6f8fb);
-  color: var(--text-primary, #1d2129);
+  color: var(--primary-color, #356de0);
 }
 .flow-node-chevron {
   flex: none;
+  width: 14px;
   color: var(--text-tertiary, #86909c);
-  font-size: 16px;
+  font-size: 14px;
 }
 .flow-node-open:focus-visible,
-.flow-node-more:focus-visible {
+.flow-node-more:focus-visible,
+.flow-node-add-btn:focus-visible {
   outline: 2px solid var(--primary-color, #356de0);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 .flow-node-status {
   width: fit-content;
-  padding: 2px 5px;
+  padding: 1px 4px;
   border-radius: 3px;
-  font-size: 11px;
+  font-size: 10px;
 }
 .is-completed {
   background: #e8f5ee;

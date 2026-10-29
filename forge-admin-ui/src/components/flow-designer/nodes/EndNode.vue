@@ -1,8 +1,7 @@
 <script setup>
 /**
- * EndNode — 结束节点卡片
- * 配色：灰色代表流程结束
- * 副标题：endType（正常结束 / 强制终止）
+ * EndNode — 结束节点
+ * 命中盒仅灰圆大小，文案溢出画在下方，保证连线贴到圆点。
  */
 import { computed } from 'vue'
 import NodeCard from './NodeCard.vue'
@@ -12,8 +11,8 @@ const props = defineProps({
   selected: Boolean,
   status: { type: String, default: null },
   readonly: Boolean,
-  width: { type: Number, default: 224 },
-  height: { type: Number, default: 82 },
+  width: { type: Number, default: 20 },
+  height: { type: Number, default: 20 },
 })
 
 defineEmits(['click', 'delete', 'contextMenu'])
@@ -39,36 +38,43 @@ const subtitle = computed(() => {
     @context-menu="$emit('contextMenu', $event)"
   />
   <button
-    v-else type="button" class="flow-node-card flow-end-marker"
+    v-else type="button" class="flow-end-marker"
     :class="{ 'is-selected': selected }"
     :style="{ width: `${width}px`, height: `${height}px` }"
     :data-node-id="node.id" data-node-type="end" :aria-label="`配置${node.name || '流程结束'}`"
     :title="subtitle" @click="$emit('click', node)"
   >
     <span class="flow-end-dot" />
-    <span>{{ node.name || '流程结束' }}</span>
+    <span class="flow-end-label">{{ node.name || '结束' }}</span>
   </button>
 </template>
 
 <style scoped>
 .flow-end-marker {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
+  position: relative;
+  display: block;
   padding: 0;
   border: none;
   background: transparent;
-  color: var(--text-tertiary, #86909c);
-  font-size: 12px;
   cursor: pointer;
 }
 .flow-end-dot {
-  width: 18px;
-  height: 18px;
-  margin-top: 1px;
+  display: block;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   background: var(--text-tertiary, #86909c);
+}
+.flow-end-label {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  color: var(--text-tertiary, #86909c);
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
 }
 .flow-end-marker.is-selected .flow-end-dot {
   outline: 2px solid var(--primary-color, #356de0);

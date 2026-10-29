@@ -52,6 +52,8 @@ export function convertJsonToBpmn(flowJson) {
   procAttrs.push(`flowable:allowSubmitterWithdraw="${processConfig.allowSubmitterWithdraw}"`)
   procAttrs.push(`flowable:autoApprovalMode="${escapeXmlAttr(processConfig.autoApprovalMode)}"`)
   procAttrs.push(`flowable:rejectStrategy="${escapeXmlAttr(processConfig.rejectStrategy)}"`)
+  if (processConfig.freeLayout || (flowJson.nodes || []).some(n => Number.isFinite(n?.uiPosition?.x)))
+    procAttrs.push('flowable:freeLayout="true"')
   procAttrs.push('isExecutable="true"')
 
   return [
@@ -81,6 +83,7 @@ function normalizeProcessConfig(config = {}) {
     allowSubmitterWithdraw: config.allowSubmitterWithdraw !== false,
     autoApprovalMode,
     rejectStrategy: normalizeRejectStrategy(config.rejectStrategy),
+    freeLayout: config.freeLayout === true,
   }
 }
 

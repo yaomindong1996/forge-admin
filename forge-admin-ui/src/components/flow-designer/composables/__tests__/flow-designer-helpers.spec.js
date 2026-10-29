@@ -26,16 +26,18 @@ function fixture() {
 }
 
 describe('deleteGateway', () => {
-  it('删除网关 + 全部分支节点，入边接到汇合点 M', () => {
+  it('软删网关：保留分支节点，入边接到原分支入口并保留出边条件元数据', () => {
     const json = fixture()
     const idGen = createIdGenerator({ usedIds: new Set(json.edges.map(e => e.id).concat(json.nodes.map(n => n.id))) })
     deleteGateway(json, 'GW', idGen)
-    // GW / A / B 都应被删除；M 保留
-    const ids = json.nodes.map(n => n.id)
-    expect(ids).toEqual(['S', 'M', 'E'])
-    // S → M 直连
-    expect(json.edges.find(e => e.source === 'S' && e.target === 'M')).toBeTruthy()
-    // M → E 仍在
+    // 只删 GW；A / B / M 保留
+    expect(json.nodes.map(n => n.id)).toEqual(['S', 'A', 'B', 'M', 'E'])
+    expect(json.edges.find(e => e.source === 'S' && e.target === 'A')).toMatchObject({ branchId: 'b1' })
+    expect(json.edges.find(e => e.source === 'S' && e.target === 'B')).toMatchObject({
+      branchId: 'b2',
+      isDefault: true,
+    })
+    expect(json.edges.find(e => e.source === 'A' && e.target === 'M')).toBeTruthy()
     expect(json.edges.find(e => e.source === 'M' && e.target === 'E')).toBeTruthy()
   })
 })

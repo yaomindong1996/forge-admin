@@ -64,8 +64,8 @@ function handleSelect(type) {
 .add-node-button-wrap {
   position: absolute;
   z-index: 20;
-  width: 26px;
-  height: 26px;
+  width: 18px;
+  height: 18px;
   transform: translate(-50%, -50%);
 }
 .add-node-button-wrap.is-open {
@@ -73,8 +73,8 @@ function handleSelect(type) {
 }
 .add-node-btn {
   display: inline-flex;
-  width: 26px;
-  height: 26px;
+  width: 18px;
+  height: 18px;
   align-items: center;
   justify-content: center;
   padding: 0;
@@ -82,7 +82,8 @@ function handleSelect(type) {
   border-radius: 50%;
   background: var(--bg-primary, #fff);
   color: var(--primary-color, #356de0);
-  font-size: 16px;
+  font-size: 12px;
+  line-height: 1;
   cursor: pointer;
   transition: background-color 160ms;
 }

@@ -12,8 +12,9 @@ const props = defineProps({
   selected: Boolean,
   status: { type: String, default: null },
   readonly: Boolean,
+  showAdd: Boolean,
 })
-defineEmits(['click', 'delete', 'contextMenu'])
+defineEmits(['click', 'delete', 'contextMenu', 'add', 'connect'])
 
 const subtitle = computed(() => {
   const t = props.node?.bpmnElementType || 'bpmn:Activity'
@@ -23,9 +24,11 @@ const subtitle = computed(() => {
 
 <template>
   <NodeCard
-    :node="node" :selected="selected" :status="status" :readonly="readonly"
+    :node="node" :selected="selected" :status="status" :readonly="readonly" :show-add="showAdd"
     icon="i-lucide:shield" color-var="warning" :subtitle="subtitle"
     @click="$emit('click', $event)" @delete="$emit('delete', $event)" @context-menu="$emit('contextMenu', $event)"
+    @add="$emit('add', $event)"
+    @connect="$emit('connect')"
   >
     <template #title-extra>
       <span class="shrink-0 rounded bg-orange-100 px-1.5 py-0.5 text-[10px] text-orange-600">

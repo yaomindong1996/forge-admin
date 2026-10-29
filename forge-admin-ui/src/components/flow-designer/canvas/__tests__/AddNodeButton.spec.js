@@ -6,20 +6,27 @@ import AddNodePopover from '../AddNodePopover.vue'
 import BranchAddButton from '../BranchAddButton.vue'
 
 describe('addNodePopover', () => {
-  it('常用节点前置，高级入口默认折叠', () => {
+  it('与节点库一致：基础节点含分支，默认含连接线，高级折叠', () => {
     const wrapper = mount(AddNodePopover)
     expect(wrapper.text()).toContain('添加节点')
-    expect(wrapper.findAll('[data-type]')).toHaveLength(5)
+    expect(wrapper.text()).toContain('基础节点')
+    expect(wrapper.text()).toContain('连接线')
+    expect(wrapper.find('[data-type="condition"]').exists()).toBe(true)
+    expect(wrapper.find('[data-type="connect"]').exists()).toBe(true)
+    // 审批/抄送/三分支 + 连接线
+    expect(wrapper.findAll('[data-type]')).toHaveLength(6)
     expect(wrapper.find('.add-node-advanced-toggle').attributes('aria-expanded')).toBe('false')
     expect(wrapper.text()).not.toContain('服务任务')
   })
 
-  it('展开后保留全部 9 个节点类型并可选中高级节点', async () => {
+  it('展开后含高级节点，点击连接线发出 connect', async () => {
     const wrapper = mount(AddNodePopover)
     await wrapper.find('.add-node-advanced-toggle').trigger('click')
-    expect(wrapper.findAll('[data-type]')).toHaveLength(9)
+    expect(wrapper.findAll('[data-type]')).toHaveLength(10)
     await wrapper.find('[data-type="script"]').trigger('click')
     expect(wrapper.emitted('select')[0]).toEqual(['script'])
+    await wrapper.find('[data-type="connect"]').trigger('click')
+    expect(wrapper.emitted('connect')).toBeTruthy()
   })
 
   it('approver 按钮存在并带 data-type', () => {
@@ -29,12 +36,13 @@ describe('addNodePopover', () => {
     expect(approverBtn.text()).toContain('审批人')
   })
 
-  it('allowTypes 限制可见类型', () => {
+  it('allowTypes 限制可见类型，可关闭连接线', () => {
     const wrapper = mount(AddNodePopover, {
-      props: { allowTypes: ['approver', 'carbonCopy'] },
+      props: { allowTypes: ['approver', 'carbonCopy'], showConnect: false },
     })
-    expect(wrapper.findAll('button').length).toBe(2)
+    expect(wrapper.findAll('[data-type]')).toHaveLength(2)
     expect(wrapper.find('[data-type="carbonCopy"]').exists()).toBe(true)
+    expect(wrapper.find('[data-type="connect"]').exists()).toBe(false)
     expect(wrapper.find('.add-node-advanced-toggle').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('条件分支')
   })
