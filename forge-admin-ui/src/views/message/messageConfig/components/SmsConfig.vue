@@ -1,47 +1,104 @@
 <template>
   <div class="sms-config">
     <n-spin :show="loading">
-      <div class="policy-card">
-        <div class="section-title">
-          路由与 Ping 策略
+      <!-- 选路策略 -->
+      <div class="config-section">
+        <div class="section-header">
+          <div class="section-title">
+            选路策略
+          </div>
+          <div class="section-desc">
+            控制多通道如何选路、验证码是否锁主，以及失败时是否切换
+          </div>
         </div>
-        <n-form label-placement="left" label-width="140" class="policy-form">
-          <n-form-item label="选路模式">
-            <n-radio-group v-model:value="policy.routeMode">
-              <n-radio value="WEIGHTED_RR">
-                权重轮询
-              </n-radio>
-              <n-radio value="PRIMARY_ONLY">
-                仅主通道
-              </n-radio>
-            </n-radio-group>
-          </n-form-item>
-          <n-form-item label="验证码锁主通道">
-            <n-switch v-model:value="policy.captchaLockPrimary" :checked-value="1" :unchecked-value="0" />
-          </n-form-item>
-          <n-form-item label="失败 Failover">
-            <n-switch v-model:value="policy.failoverEnabled" :checked-value="1" :unchecked-value="0" />
-            <n-input-number
-              v-model:value="policy.failoverMaxAttempts"
-              :min="1"
-              :max="5"
-              class="ml-12"
-              style="width: 120px"
-            />
-            <span class="hint">最大尝试次数</span>
-          </n-form-item>
-          <n-form-item label="定时 Ping">
-            <n-switch v-model:value="policy.pingEnabled" :checked-value="1" :unchecked-value="0" />
-          </n-form-item>
-          <n-form-item label="运维手机号">
-            <n-input v-model:value="policy.pingPhones" placeholder="多个号码用逗号分隔" />
-          </n-form-item>
-          <n-form-item label="Ping Cron">
-            <n-input v-model:value="policy.pingCron" placeholder="0 0 */6 * * ?" />
-          </n-form-item>
-          <div class="policy-actions">
+        <n-form label-placement="left" label-width="120" class="section-form">
+          <div class="field-grid">
+            <n-form-item label="选路模式">
+              <n-radio-group v-model:value="policy.routeMode">
+                <n-radio value="WEIGHTED_RR">
+                  权重轮询
+                </n-radio>
+                <n-radio value="PRIMARY_ONLY">
+                  仅主通道
+                </n-radio>
+              </n-radio-group>
+            </n-form-item>
+            <n-form-item label="验证码锁主通道">
+              <div class="inline-field">
+                <n-switch
+                  v-model:value="policy.captchaLockPrimary"
+                  :checked-value="1"
+                  :unchecked-value="0"
+                />
+                <span class="hint">开启后登录验证码固定走主通道</span>
+              </div>
+            </n-form-item>
+            <n-form-item label="失败 Failover">
+              <div class="inline-field">
+                <n-switch
+                  v-model:value="policy.failoverEnabled"
+                  :checked-value="1"
+                  :unchecked-value="0"
+                />
+                <n-input-number
+                  v-model:value="policy.failoverMaxAttempts"
+                  :min="1"
+                  :max="5"
+                  :disabled="!policy.failoverEnabled"
+                  class="attempts-input"
+                />
+                <span class="hint">最大尝试次数（含首次）</span>
+              </div>
+            </n-form-item>
+          </div>
+          <div class="section-actions">
             <n-button type="primary" :loading="policySaving" @click="savePolicy">
               保存策略
+            </n-button>
+          </div>
+        </n-form>
+      </div>
+
+      <!-- Ping 探活 -->
+      <div class="config-section">
+        <div class="section-header section-header--row">
+          <div>
+            <div class="section-title">
+              通道 Ping
+            </div>
+            <div class="section-desc">
+              向运维手机号逐通道发探活短信，用于检查通道是否可用
+            </div>
+          </div>
+          <div class="header-switch">
+            <span class="hint">定时 Ping</span>
+            <n-switch
+              v-model:value="policy.pingEnabled"
+              :checked-value="1"
+              :unchecked-value="0"
+            />
+          </div>
+        </div>
+        <n-form label-placement="left" label-width="120" class="section-form">
+          <div class="field-grid field-grid--ping">
+            <n-form-item label="运维手机号">
+              <n-input
+                v-model:value="policy.pingPhones"
+                placeholder="多个号码用逗号分隔"
+                class="field-control"
+              />
+            </n-form-item>
+            <n-form-item label="Ping Cron">
+              <n-input
+                v-model:value="policy.pingCron"
+                placeholder="0 0 */6 * * ?"
+                class="field-control"
+              />
+            </n-form-item>
+          </div>
+          <div class="section-actions">
+            <n-button type="primary" :loading="policySaving" @click="savePolicy">
+              保存 Ping 配置
             </n-button>
             <n-button :loading="pingLoading" @click="runPing">
               立即 Ping
@@ -50,22 +107,46 @@
         </n-form>
       </div>
 
-      <div class="list-header">
-        <div class="section-title">
-          短信通道列表
+      <!-- 短信通道列表 -->
+      <div class="config-section">
+        <div class="section-header section-header--row">
+          <div>
+            <div class="section-title">
+              短信通道
+            </div>
+            <div class="section-desc">
+              可同时启用多厂商通道；主通道用于验证码锁定与仅主模式
+            </div>
+          </div>
+          <n-button type="primary" @click="openCreate">
+            新增通道
+          </n-button>
         </div>
-        <n-button type="primary" @click="openCreate">
-          新增通道
-        </n-button>
+        <n-data-table
+          :columns="columns"
+          :data="rows"
+          :bordered="false"
+          size="medium"
+          :single-line="false"
+        />
       </div>
 
-      <n-data-table :columns="columns" :data="rows" :bordered="false" size="small" />
-
-      <div v-if="pingLogs.length" class="ping-logs">
-        <div class="section-title">
-          最近 Ping 日志
+      <!-- Ping 日志 -->
+      <div v-if="pingLogs.length" class="config-section">
+        <div class="section-header">
+          <div class="section-title">
+            最近 Ping 日志
+          </div>
+          <div class="section-desc">
+            展示最近探活结果，便于排查通道失败原因
+          </div>
         </div>
-        <n-data-table :columns="pingColumns" :data="pingLogs" :bordered="false" size="small" />
+        <n-data-table
+          :columns="pingColumns"
+          :data="pingLogs"
+          :bordered="false"
+          size="medium"
+        />
       </div>
     </n-spin>
 
@@ -110,8 +191,10 @@
             <n-input v-model:value="sceneTemplates.SMS_PING" placeholder="SMS_PING 场景模板 ID" />
           </n-form-item>
           <n-form-item label="权重" path="weight">
-            <n-input-number v-model:value="formData.weight" :min="1" />
-            <span class="hint">主:备 = 2:1 即主 weight=2、备=1</span>
+            <div class="inline-field">
+              <n-input-number v-model:value="formData.weight" :min="1" />
+              <span class="hint">主:备 = 2:1 即主 weight=2、备=1</span>
+            </div>
           </n-form-item>
           <n-form-item v-if="formData.supplier === 'tencent'" label="SdkAppId">
             <n-input v-model:value="extraConfig.tencent.sdkAppId" />
@@ -212,14 +295,16 @@ const columns = [
   {
     title: '角色',
     key: 'channelRole',
+    width: 100,
     render: row => h(NTag, { type: row.channelRole === 'PRIMARY' ? 'success' : 'default', size: 'small' }, {
       default: () => (row.channelRole === 'PRIMARY' ? '主通道' : '一般'),
     }),
   },
-  { title: '权重', key: 'weight', width: 70 },
+  { title: '权重', key: 'weight', width: 80 },
   {
     title: '状态',
     key: 'status',
+    width: 90,
     render: row => h(NTag, { type: row.status === 1 ? 'success' : 'warning', size: 'small' }, {
       default: () => (row.status === 1 ? '启用' : '禁用'),
     }),
@@ -227,9 +312,9 @@ const columns = [
   {
     title: '操作',
     key: 'actions',
-    width: 260,
+    width: 240,
     render: (row) => {
-      return h(NSpace, { size: 8 }, {
+      return h(NSpace, { size: 12 }, {
         default: () => [
           h('a', { class: 'text-primary cursor-pointer', onClick: () => openEdit(row) }, '编辑'),
           row.channelRole !== 'PRIMARY'
@@ -247,16 +332,17 @@ const columns = [
 ]
 
 const pingColumns = [
-  { title: '时间', key: 'sendTime' },
+  { title: '时间', key: 'sendTime', width: 180 },
   { title: '通道', key: 'configId' },
-  { title: '厂商', key: 'supplier' },
-  { title: '手机号', key: 'phone' },
+  { title: '厂商', key: 'supplier', width: 100 },
+  { title: '手机号', key: 'phone', width: 130 },
   {
     title: '结果',
     key: 'status',
+    width: 80,
     render: row => (row.status === 1 ? '成功' : '失败'),
   },
-  { title: '错误', key: 'errorMsg' },
+  { title: '错误', key: 'errorMsg', ellipsis: { tooltip: true } },
 ]
 
 async function loadSuppliers() {
@@ -421,41 +507,113 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  max-width: 960px;
 }
 
-.policy-card,
-.list-header,
-.ping-logs {
+.config-section {
   background: var(--bg-secondary);
   border: 1px solid var(--border-light);
-  border-radius: 10px;
-  padding: 16px;
+  border-radius: 8px;
+  padding: 16px 18px;
 }
 
-.list-header {
+.section-header {
+  margin-bottom: 16px;
+}
+
+.section-header--row {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
+  gap: 16px;
 }
 
 .section-title {
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 12px;
+  color: var(--text-primary);
+  line-height: 1.4;
 }
 
-.policy-actions {
+.section-desc {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.header-switch {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.section-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.section-form :deep(.n-form-item) {
+  margin-bottom: 14px;
+}
+
+.section-form :deep(.n-form-item-label) {
+  font-weight: 500;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.field-grid--ping {
+  grid-template-columns: minmax(240px, 420px);
+}
+
+.field-control {
+  max-width: 420px;
+}
+
+.inline-field {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.attempts-input {
+  width: 96px;
 }
 
 .hint {
-  margin-left: 8px;
-  color: var(--text-secondary);
   font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
 }
 
-.ml-12 {
-  margin-left: 12px;
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-light);
+  margin-top: 4px;
+}
+
+.dark .config-section {
+  background: #1e293b;
+}
+
+.dark .section-title {
+  color: #f1f5f9;
+}
+
+.dark .section-desc,
+.dark .hint {
+  color: var(--text-tertiary);
 }
 </style>
