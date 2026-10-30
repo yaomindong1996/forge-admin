@@ -72,9 +72,9 @@ const router = useRouter()
 const route = useRoute()
 const crudRef = ref(null)
 
-// 当前字典类型
-const currentDictType = ref('')
-const dictTypeName = ref('')
+// 进页即带上路由里的 dictType，避免先空后赋值触发 AiCrudPage publicParams watch 叠加载
+const currentDictType = ref(route.query.dictType ? String(route.query.dictType) : '')
+const dictTypeName = ref(route.query.dictName ? String(route.query.dictName) : '')
 
 const parentDictOptions = ref([createRootOption()])
 const allDictData = ref([])
@@ -773,16 +773,13 @@ function syncDictTypeFromRoute() {
   return typeChanged
 }
 
-// 初始化
+// 初始化：setup 已带好 dictType；仅在类型未再变化时手动拉一次，避免与 publicParams watch 叠请求被 abort
 onMounted(async () => {
-  syncDictTypeFromRoute()
+  const typeChanged = syncDictTypeFromRoute()
   await loadParentDictOptions()
-  // 有 dictType 时靠 publicParams watch 触发 loadList，避免与手动 refresh 叠加重请求被 abort
-  if (!currentDictType.value) {
-    nextTick(() => {
-      crudRef.value?.loadList()
-    })
-  }
+  await nextTick()
+  if (!typeChanged)
+    crudRef.value?.loadList()
 })
 
 watch(
@@ -792,6 +789,7 @@ watch(
     if (!typeChanged)
       return
     await loadParentDictOptions()
+    // dictType 变化由 AiCrudPage 的 publicParams watch 负责 loadList，此处不再手动 refresh
   },
 )
 </script>

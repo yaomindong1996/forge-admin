@@ -96,6 +96,8 @@ yarn.lock
 .env
 *.secrets
 .cursor/mcp.json
+.trivy-cache/
+scripts/security-scan/reports/
 
 forge/db/community-export/
 *docs-dist

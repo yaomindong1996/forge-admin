@@ -125,6 +125,7 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
       return
     }
 
+    const requestSeq = ++mut.listRequestSeq
     tableLoading.value = true
     // 取消上一轮未完成的 /page，避免挂死请求占满浏览器连接导致一直 pending 且不超时
     try {
@@ -136,8 +137,10 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
     const listAbort = typeof AbortController !== 'undefined' ? new AbortController() : null
     mut.listAbort = listAbort
     const listTimeoutMs = 8000
+    let hardTimedOut = false
     // 墙钟超时：Stalled（连接排队未发出）时 axios timeout 不生效，必须自己 abort
     const hardTimer = setTimeout(() => {
+      hardTimedOut = true
       try {
         listAbort?.abort?.()
       }
@@ -149,6 +152,7 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
       promise,
       new Promise((_, reject) => {
         const timer = setTimeout(() => {
+          hardTimedOut = true
           try {
             listAbort?.abort?.()
           }
@@ -260,6 +264,10 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
       // 调用 beforeRenderList 钩子
       list = await callHook('beforeRenderList', list, data => data)
 
+      // 已被更新一轮 loadList 取代时，丢弃本轮结果，避免旧响应回填/清掉新 loading
+      if (requestSeq !== mut.listRequestSeq)
+        return
+
       // 先出列表再补流程运行态：runtime/batch 常因流程服务慢而挂起，
       // 不能挡在 tableLoading 里，否则整页一直转圈甚至页签卡死。
       const loadSeq = (mut.listLoadSeq = (mut.listLoadSeq || 0) + 1)
@@ -292,15 +300,20 @@ export function applyAiCrudPagePart3(props, emit, deps = {}) {
       }
     }
     catch (error) {
-      if (error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError' || error?.name === 'AbortError') {
-        if (/timeout/i.test(String(error?.message || '')) || error?.code === 'ECONNABORTED') {
-          window.$message.error('列表加载超时，请稍后重试')
-          tableLoading.value = false
-          emit('load-list-error', error)
-        }
+      // 过期请求被主动 abort：交给新一轮处理 loading，不弹失败
+      if (requestSeq !== mut.listRequestSeq)
         return
-      }
-      const timedOut = error?.code === 'ECONNABORTED' || /timeout/i.test(String(error?.message || ''))
+
+      const canceled = error?.code === 'ERR_CANCELED'
+        || error?.name === 'CanceledError'
+        || error?.name === 'AbortError'
+      const timedOut = hardTimedOut
+        || error?.code === 'ECONNABORTED'
+        || /timeout/i.test(String(error?.message || ''))
+
+      if (canceled && !timedOut)
+        return
+
       console.error('加载列表失败:', error)
       window.$message.error(timedOut ? '列表加载超时，请稍后重试' : '加载数据失败')
       emit('load-list-error', error)
