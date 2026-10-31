@@ -35,7 +35,7 @@ describe('data connection form helpers', () => {
     expect(form.driverClassName).toContain('postgresql')
     expect(form.port).toBe('5432')
     expect(form.jdbcUrl).toContain('jdbc:postgresql://')
-    expect(suggestConnectionCode('采购 库')).toMatch(/^conn_/)
+    expect(suggestConnectionCode('采购 库')).toBe('cai_gou_ku')
     expect(suggestConnectionCode('erp prod')).toBe('erp_prod')
   })
 

@@ -124,13 +124,18 @@
               </div>
             </n-form-item-gi>
             <n-form-item-gi label="模型名称" path="modelName" :span="2">
-              <n-input v-model:value="formData.modelName" placeholder="请输入模型名称" />
+              <n-input
+                :value="formData.modelName"
+                placeholder="请输入模型名称"
+                @update:value="onModelNameChange"
+              />
             </n-form-item-gi>
             <n-form-item-gi label="模型Key" path="modelKey" :span="2" class="model-key-form-item">
               <n-input
-                v-model:value="formData.modelKey"
-                placeholder="请输入有意义的模型Key，留空自动生成"
+                :value="formData.modelKey"
+                placeholder="根据名称自动生成，可手动修改；留空提交时随机生成"
                 :disabled="isEdit && [1, 2].includes(Number(formData.status))"
+                @update:value="onModelKeyChange"
               />
               <div class="model-key-help">
                 以字母开头，只能包含字母、数字、下划线或短横线；已发布或挂起模型不能修改。

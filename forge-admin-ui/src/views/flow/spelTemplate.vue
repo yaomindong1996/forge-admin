@@ -19,9 +19,15 @@
 import { computed, defineAsyncComponent, h } from 'vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
+import { createAutoCodeSync } from '@/utils'
 import DesignerAsyncLoader from '@/views/app-center/components/designer/DesignerAsyncLoader.vue'
 
 defineOptions({ name: 'FlowSpelTemplate' })
+
+const templateCodeAuto = createAutoCodeSync({
+  scene: 'templateCode',
+  targetField: 'templateCode',
+})
 
 const FlowSpelCrudLoader = {
   name: 'FlowSpelCrudLoader',
@@ -98,13 +104,16 @@ const editSchema = computed(() => [
     type: 'input',
     rules: [{ required: true, message: '请输入模板名称', trigger: 'blur' }],
     props: { placeholder: '请输入模板名称' },
+    onChange: templateCodeAuto.onSourceChange,
   },
   {
     field: 'templateCode',
     label: '模板编码',
     type: 'input',
     rules: [{ required: true, message: '请输入模板编码', trigger: 'blur' }],
-    props: { placeholder: '请输入唯一编码，如：findDeptManager' },
+    labelTip: '根据名称自动生成，可手动修改',
+    props: { placeholder: '自动生成，如：find_dept_manager' },
+    onChange: templateCodeAuto.onTargetChange,
   },
   {
     field: 'expression',

@@ -50,11 +50,16 @@ import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import UserSelectModal from '@/components/common/UserSelectModal.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
+import { createAutoCodeSync } from '@/utils'
 import { toNumberDictOptions } from '@/utils/dict-options'
 
 defineOptions({ name: 'FlowUserGroup' })
 
 const crudRef = ref(null)
+const groupCodeAuto = createAutoCodeSync({
+  scene: 'groupCode',
+  targetField: 'groupCode',
+})
 const memberModalVisible = ref(false)
 const memberLoading = ref(false)
 const activeGroup = ref(null)
@@ -145,19 +150,6 @@ const editSchema = computed(() => [
     props: { titlePlacement: 'left' },
   },
   {
-    field: 'groupCode',
-    label: '用户组编码',
-    type: 'input',
-    rules: [
-      { required: true, message: '请输入用户组编码', trigger: 'blur' },
-      { pattern: /^\w[\w.:-]*$/, message: '仅支持字母、数字及 _ . : -', trigger: 'blur' },
-    ],
-    props: {
-      placeholder: '如 finance_reviewers',
-    },
-    vIf: formData => !formData.id,
-  },
-  {
     field: 'groupName',
     label: '用户组名称',
     type: 'input',
@@ -165,6 +157,22 @@ const editSchema = computed(() => [
     props: {
       placeholder: '请输入用户组名称',
     },
+    onChange: groupCodeAuto.onSourceChange,
+  },
+  {
+    field: 'groupCode',
+    label: '用户组编码',
+    type: 'input',
+    rules: [
+      { required: true, message: '请输入用户组编码', trigger: 'blur' },
+      { pattern: /^\w[\w.:-]*$/, message: '仅支持字母、数字及 _ . : -', trigger: 'blur' },
+    ],
+    labelTip: '根据名称自动生成，可手动修改；保存后不可改',
+    props: {
+      placeholder: '自动生成，如 finance_reviewers',
+    },
+    vIf: formData => !formData.id,
+    onChange: groupCodeAuto.onTargetChange,
   },
   {
     field: 'status',

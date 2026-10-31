@@ -27,12 +27,16 @@ import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
-import { request } from '@/utils'
+import { createAutoCodeSync, request } from '@/utils'
 import { mapDictOptionValues, toNumberDictOptions } from '@/utils/dict-options'
 
 defineOptions({ name: 'GeneratorDatasource' })
 
 const crudRef = ref(null)
+const datasourceCodeAuto = createAutoCodeSync({
+  scene: 'datasourceCode',
+  targetField: 'datasourceCode',
+})
 const inlineUpdatingMap = ref({})
 const { dict } = useDict(
   'data_db_type',
@@ -201,14 +205,16 @@ const editSchema = computed(() => [
     type: 'input',
     rules: [{ required: true, message: '请输入数据源名称', trigger: 'blur' }],
     props: { placeholder: '如：业务库、报表只读库' },
+    onChange: datasourceCodeAuto.onSourceChange,
   },
   {
     field: 'datasourceCode',
     label: '编码',
     type: 'input',
-    labelTip: '系统内唯一标识，创建后尽量不要改，低代码会按编码引用该数据源。',
+    labelTip: '根据名称自动生成；创建后尽量不要改，低代码会按编码引用该数据源。',
     rules: [{ required: true, message: '请输入数据源编码', trigger: 'blur' }],
-    props: { placeholder: '如：biz_mysql、report_readonly' },
+    props: { placeholder: '自动生成，如：biz_mysql' },
+    onChange: datasourceCodeAuto.onTargetChange,
   },
   {
     field: 'usageScope',

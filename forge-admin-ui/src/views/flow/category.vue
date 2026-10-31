@@ -83,7 +83,11 @@
           <n-input v-model:value="formData.categoryName" placeholder="请输入分类名称" />
         </n-form-item>
         <n-form-item label="分类编码" path="categoryCode">
-          <n-input v-model:value="formData.categoryCode" placeholder="请输入分类编码" :disabled="isEdit" />
+          <n-input
+            v-model:value="formData.categoryCode"
+            placeholder="根据名称自动生成，可手动修改"
+            :disabled="isEdit"
+          />
         </n-form-item>
         <n-form-item label="排序" path="sortOrder">
           <n-input-number v-model:value="formData.sortOrder" :min="0" placeholder="请输入排序" style="width: 100%" />
@@ -118,17 +122,23 @@
 
 <script setup>
 import { NButton, NDropdown, NSpace, NTreeSelect } from 'naive-ui'
-import { computed, h, onMounted, reactive, ref } from 'vue'
+import { computed, h, onMounted, reactive, ref, watch } from 'vue'
 import flowApi from '@/api/flow'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
+import { createAutoCodeSync } from '@/utils'
 import { toNumberDictOptions } from '@/utils/dict-options'
 
 defineOptions({ name: 'FlowCategory' })
 
 const { dict } = useDict('sys_enable_disable')
 const statusOptions = computed(() => toNumberDictOptions(dict.value.sys_enable_disable))
+const categoryCodeAuto = createAutoCodeSync({
+  scene: 'categoryCode',
+  targetField: 'categoryCode',
+  isCreate: () => !isEdit.value,
+})
 
 const queryParams = reactive({
   categoryName: '',
@@ -337,6 +347,7 @@ function resetForm(overrides = {}) {
 function handleAdd() {
   isEdit.value = false
   modalTitle.value = '新增分类'
+  categoryCodeAuto.reset()
   resetForm()
   showModal.value = true
 }
@@ -344,9 +355,22 @@ function handleAdd() {
 function handleAddChild(row) {
   isEdit.value = false
   modalTitle.value = '新增子分类'
+  categoryCodeAuto.reset()
   resetForm({ parentId: row.id })
   showModal.value = true
 }
+
+watch(() => formData.categoryName, (name) => {
+  if (isEdit.value)
+    return
+  categoryCodeAuto.onSourceChange({ value: name, formData })
+})
+
+watch(() => formData.categoryCode, (code) => {
+  if (isEdit.value)
+    return
+  categoryCodeAuto.onTargetChange({ value: code })
+})
 
 function handleEdit(row) {
   isEdit.value = true

@@ -47,13 +47,17 @@ import { computed, h, ref } from 'vue'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
-import { request } from '@/utils'
+import { createAutoCodeSync, request } from '@/utils'
 import { toBooleanDictOptions, toNumberDictOptions } from '@/utils/dict-options'
 
 defineOptions({ name: 'SystemClient' })
 
 const message = window.$message
 const crudRef = ref()
+const clientCodeAuto = createAutoCodeSync({
+  scene: 'clientCode',
+  targetField: 'clientCode',
+})
 const onlineModalVisible = ref(false)
 const onlineUsers = ref([])
 /** 当前在线用户弹窗所属客户端，踢出后按此编码刷新 */
@@ -198,17 +202,6 @@ const editSchema = computed(() => [
     span: 2,
   },
   {
-    field: 'clientCode',
-    label: '客户端编码',
-    type: 'input',
-    rules: [{ required: true, message: '请输入客户端编码', trigger: 'blur' }],
-    // 内置客户端编码由后端锁定；仅编辑内置客户端时禁用（非内置编辑仍可改）
-    disabled: ({ formData, context }) => Boolean((context?.isEdit || formData?.id) && formData?.builtIn),
-    props: {
-      placeholder: '如：pc, app, h5, wechat',
-    },
-  },
-  {
     field: 'clientName',
     label: '客户端名称',
     type: 'input',
@@ -216,6 +209,20 @@ const editSchema = computed(() => [
     props: {
       placeholder: '请输入客户端名称',
     },
+    onChange: clientCodeAuto.onSourceChange,
+  },
+  {
+    field: 'clientCode',
+    label: '客户端编码',
+    type: 'input',
+    rules: [{ required: true, message: '请输入客户端编码', trigger: 'blur' }],
+    // 内置客户端编码由后端锁定；仅编辑内置客户端时禁用（非内置编辑仍可改）
+    disabled: ({ formData, context }) => Boolean((context?.isEdit || formData?.id) && formData?.builtIn),
+    labelTip: '根据名称自动生成，可手动修改',
+    props: {
+      placeholder: '自动生成，如：pc、app、h5',
+    },
+    onChange: clientCodeAuto.onTargetChange,
   },
   {
     field: 'appId',

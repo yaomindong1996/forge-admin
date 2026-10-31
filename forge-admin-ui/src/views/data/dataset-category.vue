@@ -50,7 +50,7 @@ import { useRouter } from 'vue-router'
 import { AiCrudPage } from '@/components/ai-form'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
-import { request } from '@/utils'
+import { createAutoCodeSync, request } from '@/utils'
 
 defineOptions({ name: 'DataDatasetCategory' })
 
@@ -58,6 +58,10 @@ const { dict } = useDict('sys_enable_disable')
 
 const router = useRouter()
 const crudRef = ref(null)
+const categoryCodeAuto = createAutoCodeSync({
+  scene: 'categoryCode',
+  targetField: 'categoryCode',
+})
 const expandAll = ref(true)
 const expandedKeys = ref([])
 const parentCategoryOptions = ref([{ label: '顶级分类', value: null, key: 0 }])
@@ -147,15 +151,6 @@ const editSchema = computed(() => [
     options: () => parentCategoryOptions.value,
   },
   {
-    field: 'categoryCode',
-    label: '分类编码',
-    type: 'input',
-    rules: [{ required: true, message: '请输入分类编码', trigger: 'blur' }],
-    props: {
-      placeholder: '如 sales_assets',
-    },
-  },
-  {
     field: 'categoryName',
     label: '分类名称',
     type: 'input',
@@ -163,6 +158,18 @@ const editSchema = computed(() => [
     props: {
       placeholder: '请输入分类名称',
     },
+    onChange: categoryCodeAuto.onSourceChange,
+  },
+  {
+    field: 'categoryCode',
+    label: '分类编码',
+    type: 'input',
+    rules: [{ required: true, message: '请输入分类编码', trigger: 'blur' }],
+    labelTip: '根据名称自动生成，可手动修改',
+    props: {
+      placeholder: '自动生成，如 sales_assets',
+    },
+    onChange: categoryCodeAuto.onTargetChange,
   },
   {
     field: 'sortOrder',

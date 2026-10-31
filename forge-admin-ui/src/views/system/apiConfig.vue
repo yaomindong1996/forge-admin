@@ -123,11 +123,15 @@ import { AiCrudPage } from '@/components/ai-form'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables'
-import { request } from '@/utils'
+import { createAutoCodeSync, request } from '@/utils'
 
 defineOptions({ name: 'ApiConfig' })
 
 const { dict } = useDict('sys_req_method', 'sys_yes_no', 'sys_normal_disable')
+const apiCodeAuto = createAutoCodeSync({
+  scene: 'apiCode',
+  targetField: 'apiCode',
+})
 
 const reqMethodOptions = computed(() => dict.value.sys_req_method || [])
 const yesNoOptions = computed(() => dict.value.sys_yes_no || [])
@@ -339,15 +343,18 @@ const editSchema = computed(() => [
     props: {
       placeholder: '请输入接口名称，如：查询用户信息',
     },
+    onChange: apiCodeAuto.onSourceChange,
   },
   {
     field: 'apiCode',
     label: '接口编码',
     type: 'input',
     rules: [{ required: true, message: '请输入接口编码', trigger: 'blur' }],
+    labelTip: '根据名称自动生成，可手动修改',
     props: {
-      placeholder: '请输入接口编码，如：user:info:query',
+      placeholder: '自动生成，如：user:info:query',
     },
+    onChange: apiCodeAuto.onTargetChange,
   },
   {
     field: 'reqMethod',

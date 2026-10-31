@@ -618,6 +618,7 @@ export function applyMenuPagePart1() {
     pendingParentId.value = row?.id ?? selectedResourceId.value ?? 0
     pendingClientCode.value = row?.clientCode || currentNode.value?.clientCode || currentClientCode.value || null
     drawerMode.value = 'add'
+    __impl.resetPermsAutoCode?.()
     formData.value = beforeRenderForm(null)
     drawerVisible.value = true
     nextTick(() => formRef.value?.restoreValidation?.())

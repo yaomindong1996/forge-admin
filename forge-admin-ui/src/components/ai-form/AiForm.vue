@@ -686,7 +686,8 @@ async function handleFieldChange(field, value) {
       value,
       field: fieldConfig,
       formData: formValue.value,
-      context: props.context,
+      // 优先带上表单运行时 context（含 patchFormData），便于名称联动自动编码
+      context: itemContext.value || props.context,
     })
     formValue.value = { ...formValue.value }
     emit('update:value', { ...formValue.value })

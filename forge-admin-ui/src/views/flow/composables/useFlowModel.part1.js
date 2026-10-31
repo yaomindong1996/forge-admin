@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { businessFlowFormAssets } from '@/api/business-app'
 import flowApi from '@/api/flow'
 import { useDict } from '@/composables/useDict'
+import { createAutoCodeSync } from '@/utils'
 import { collectInitiatorSelectSelections } from '@/utils/initiatorSelect'
 import DesignerAsyncLoader from '@/views/app-center/components/designer/DesignerAsyncLoader.vue'
 import { buildFlowCategoryTreeOptions, resolveFlowCategoryLabel, resolveFlowCategoryValue } from '../utils/categoryOptions'
@@ -229,10 +230,17 @@ export function applyFlowModelPart1() {
     designerType: { required: true, message: '请选择流程模式', trigger: 'change' },
   }
 
+  const modelKeyAuto = createAutoCodeSync({
+    scene: 'genericCode',
+    targetField: 'modelKey',
+    isCreate: () => !isEdit.value,
+  })
+
   function handleAdd() {
     isEdit.value = false
     modalTitle.value = '新增模型'
-    Object.assign(formData, { id: '', modelName: '', modelKey: generateModelKey(), category: '', flowType: '', designerType: 'approval', formType: 'dynamic', description: '', notifyType: 'redis', webhookUrl: '', todoDetailUrlTemplate: DEFAULT_TODO_DETAIL_URL_TEMPLATE, notifyConfig: null, allowMultiReturn: false })
+    modelKeyAuto.reset()
+    Object.assign(formData, { id: '', modelName: '', modelKey: '', category: '', flowType: '', designerType: 'approval', formType: 'dynamic', description: '', notifyType: 'redis', webhookUrl: '', todoDetailUrlTemplate: DEFAULT_TODO_DETAIL_URL_TEMPLATE, notifyConfig: null, allowMultiReturn: false })
     showModal.value = true
   }
 
@@ -241,9 +249,20 @@ export function applyFlowModelPart1() {
     return `process_${suffix}`
   }
 
+  function onModelNameChange(value) {
+    formData.modelName = value
+    modelKeyAuto.onSourceChange({ value, formData })
+  }
+
+  function onModelKeyChange(value) {
+    formData.modelKey = value
+    modelKeyAuto.onTargetChange({ value })
+  }
+
   function handleEdit(row) {
     isEdit.value = true
     modalTitle.value = '编辑信息'
+    modelKeyAuto.reset()
     Object.assign(formData, row, {
       designerType: normalizeDesignerType(row.designerType),
       category: resolveFlowCategoryValue(row.category, categoryTreeOptions.value),
@@ -258,6 +277,8 @@ export function applyFlowModelPart1() {
     try {
       await formRef.value?.validate()
       submitLoading.value = true
+      if (!isEdit.value && !String(formData.modelKey || '').trim())
+        formData.modelKey = generateModelKey()
       const api = isEdit.value ? flowApi.updateModel : flowApi.createModel
       const res = await api(formData)
       if (res.code === 200) {
@@ -863,6 +884,8 @@ export function applyFlowModelPart1() {
     handleActionSelect,
     handleActivate,
     handleAdd,
+    onModelKeyChange,
+    onModelNameChange,
     handleCopy,
     handleDelete,
     handleDeploy,

@@ -60,6 +60,7 @@
     "ora": "^9.3.0",
     "pinia": "^3.0.3",
     "pinia-plugin-persistedstate": "^4.5.0",
+    "pinyin-pro": "^3.29.5",
     "prismjs": "^1.30.0",
     "qrcode-vue3": "^1.7.1",
     "scp2": "^0.5.0",

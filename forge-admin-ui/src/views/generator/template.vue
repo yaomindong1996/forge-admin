@@ -74,12 +74,16 @@ import { computed, h, nextTick, onUnmounted, ref, watch } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
-import { request } from '@/utils'
+import { createAutoCodeSync, request } from '@/utils'
 import { toNumberDictOptions } from '@/utils/dict-options'
 
 defineOptions({ name: 'GeneratorTemplate' })
 
 const crudRef = ref(null)
+const templateCodeAuto = createAutoCodeSync({
+  scene: 'templateCode',
+  targetField: 'templateCode',
+})
 const templateEditorRef = ref(null)
 const previewEditorRef = ref(null)
 const showPreviewModal = ref(false)
@@ -184,15 +188,18 @@ const editSchema = computed(() => [
     props: {
       placeholder: '请输入模板名称',
     },
+    onChange: templateCodeAuto.onSourceChange,
   },
   {
     field: 'templateCode',
     label: '模板编码',
     type: 'input',
     rules: [{ required: true, message: '请输入模板编码', trigger: 'blur' }],
+    labelTip: '根据名称自动生成，可手动修改',
     props: {
-      placeholder: '请输入模板编码',
+      placeholder: '自动生成模板编码',
     },
+    onChange: templateCodeAuto.onTargetChange,
   },
   {
     field: 'templateType',

@@ -26,7 +26,7 @@ import { AiCrudPage } from '@/components/ai-form'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables'
-import { request } from '@/utils'
+import { createAutoCodeSync, request } from '@/utils'
 
 defineOptions({ name: 'SystemConfig' })
 
@@ -35,6 +35,10 @@ const { dict } = useDict('sys_config_type')
 const configTypeOptions = computed(() => dict.value.sys_config_type || [])
 
 const crudRef = ref(null)
+const configKeyAutoCode = createAutoCodeSync({
+  scene: 'configKey',
+  targetField: 'configKey',
+})
 
 // 搜索表单配置
 const searchSchema = computed(() => [
@@ -147,6 +151,7 @@ const editSchema = computed(() => [
     props: {
       placeholder: '请输入参数名称',
     },
+    onChange: configKeyAutoCode.onSourceChange,
   },
   {
     field: 'configKey',
@@ -155,9 +160,11 @@ const editSchema = computed(() => [
     rules: [{ required: true, message: '请输入参数键名', trigger: 'blur' }],
     disabled: ({ formData, context }) => Boolean(context?.isEdit || formData?.configId)
       && String(formData?.configType || '').toUpperCase() === 'Y',
+    labelTip: '根据参数名称自动生成，可手动修改',
     props: {
-      placeholder: '请输入参数键名，如：sys.login.timeout',
+      placeholder: '自动生成，如：sys.login.timeout',
     },
+    onChange: configKeyAutoCode.onTargetChange,
   },
   {
     field: 'configValue',

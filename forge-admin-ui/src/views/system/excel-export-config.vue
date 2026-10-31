@@ -197,11 +197,17 @@ import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
 import { managedFetch } from '@/composables/useGlobalLoading'
 import { useAuthStore } from '@/store'
+import { createAutoCodeSync } from '@/utils'
 import { request } from '@/utils/request'
 import ExcelConfigStatusSwitch from './components/ExcelConfigStatusSwitch.vue'
 import ExcelColumnConfig from './excel-column-config.vue'
 
 defineOptions({ name: 'ExcelExportConfig' })
+
+const configKeyAuto = createAutoCodeSync({
+  scene: 'exportConfigKey',
+  targetField: 'configKey',
+})
 
 const CONFIG_TYPE_DICT = 'sys_excel_config_type'
 const STATUS_DICT = 'sys_enable_disable'
@@ -475,6 +481,7 @@ const editSchema = computed(() => [
       maxlength: 100,
       showCount: true,
     },
+    onChange: configKeyAuto.onSourceChange,
   },
   {
     field: 'configType',
@@ -494,9 +501,10 @@ const editSchema = computed(() => [
     disabled: formEditing.value,
     rules: [{ required: true, message: '请输入系统标识', trigger: 'blur' }],
     props: {
-      placeholder: '英文、数字或下划线，例如：user_list_export',
+      placeholder: '自动生成，例如：user_list_export',
     },
-    help: '由技术人员提供，保存后不建议修改。',
+    help: '根据方案名称自动生成，可手动修改；保存后不建议修改。',
+    onChange: configKeyAuto.onTargetChange,
   },
   {
     type: 'divider',

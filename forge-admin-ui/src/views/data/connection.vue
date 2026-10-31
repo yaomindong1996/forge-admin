@@ -159,6 +159,7 @@ import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
 import { toNumberDictOptions } from '@/utils/dict-options'
+import { createAutoCodeSync } from '@/utils'
 import {
   applyDbTypeDefaults,
   DRIVER_CLASS_MAP,
@@ -173,6 +174,10 @@ defineOptions({ name: 'DataConnection' })
 
 const { dict } = useDict('data_db_type', 'sys_enable_disable')
 
+const connectionCodeAuto = createAutoCodeSync({
+  scene: 'connectionCode',
+  targetField: 'connectionCode',
+})
 const crudRef = ref(null)
 const tableModalVisible = ref(false)
 const tableModalTitle = ref('数据表')
@@ -382,15 +387,18 @@ const editSchema = computed(() => [
     props: {
       placeholder: '例如：采购业务库',
     },
+    onChange: connectionCodeAuto.onSourceChange,
   },
   {
     field: 'connectionCode',
     label: '连接编码',
     type: 'input',
     rules: [{ required: true, message: '请填写连接编码', trigger: 'blur' }],
-    description: '数据集引用这个编码。不填会按名称生成。',
-    props: { placeholder: '例如：erp_prod' },
+    description: '数据集引用这个编码。根据名称自动生成，可手动修改。',
+    labelTip: '根据名称自动生成，可手动修改；编辑时不可改',
+    props: { placeholder: '自动生成，例如：erp_prod' },
     editDisabled: true,
+    onChange: connectionCodeAuto.onTargetChange,
   },
   {
     field: 'status',

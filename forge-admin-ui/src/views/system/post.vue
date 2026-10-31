@@ -132,9 +132,14 @@ import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
-import { request } from '@/utils'
+import { createAutoCodeSync, request } from '@/utils'
 
 defineOptions({ name: 'SystemPost' })
+
+const postCodeAutoCode = createAutoCodeSync({
+  scene: 'postCode',
+  targetField: 'postCode',
+})
 
 const POST_TYPE_DICT = 'sys_post_type'
 const NORMAL_DISABLE_DICT = 'sys_normal_disable'
@@ -264,15 +269,6 @@ const editSchema = computed(() => [
     span: 2,
   },
   {
-    field: 'postCode',
-    label: '岗位编码',
-    type: 'input',
-    rules: [{ required: true, message: '请输入岗位编码', trigger: 'blur' }],
-    props: {
-      placeholder: '请输入岗位编码',
-    },
-  },
-  {
     field: 'postName',
     label: '岗位名称',
     type: 'input',
@@ -280,6 +276,18 @@ const editSchema = computed(() => [
     props: {
       placeholder: '请输入岗位名称',
     },
+    onChange: postCodeAutoCode.onSourceChange,
+  },
+  {
+    field: 'postCode',
+    label: '岗位编码',
+    type: 'input',
+    rules: [{ required: true, message: '请输入岗位编码', trigger: 'blur' }],
+    labelTip: '根据岗位名称自动生成，可手动修改',
+    props: {
+      placeholder: '自动生成，如：yan_fa_gong_cheng_shi',
+    },
+    onChange: postCodeAutoCode.onTargetChange,
   },
   {
     field: 'orgId',
@@ -407,6 +415,7 @@ function beforeRenderForm(row) {
   if (row) {
     return row
   }
+  postCodeAutoCode.reset()
   return {
     tenantId: resolveSelectedTenantId(),
     orgId: selectedOrgNode.value?.id,

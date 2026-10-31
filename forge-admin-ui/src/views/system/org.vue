@@ -283,7 +283,12 @@ import UserSelectModal from '@/components/common/UserSelectModal.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
-import { request } from '@/utils'
+import { createAutoCodeSync, request } from '@/utils'
+
+const postCodeAutoCode = createAutoCodeSync({
+  scene: 'postCode',
+  targetField: 'postCode',
+})
 
 defineOptions({ name: 'SystemOrg' })
 
@@ -498,15 +503,6 @@ const postEditSchema = computed(() => [
     span: 2,
   },
   {
-    field: 'postCode',
-    label: '岗位编码',
-    type: 'input',
-    rules: [{ required: true, message: '请输入岗位编码', trigger: 'blur' }],
-    props: {
-      placeholder: '请输入岗位编码',
-    },
-  },
-  {
     field: 'postName',
     label: '岗位名称',
     type: 'input',
@@ -514,6 +510,18 @@ const postEditSchema = computed(() => [
     props: {
       placeholder: '请输入岗位名称',
     },
+    onChange: postCodeAutoCode.onSourceChange,
+  },
+  {
+    field: 'postCode',
+    label: '岗位编码',
+    type: 'input',
+    rules: [{ required: true, message: '请输入岗位编码', trigger: 'blur' }],
+    labelTip: '根据岗位名称自动生成，可手动修改',
+    props: {
+      placeholder: '自动生成，如：yan_fa_gong_cheng_shi',
+    },
+    onChange: postCodeAutoCode.onTargetChange,
   },
   {
     field: 'orgId',
@@ -1119,6 +1127,7 @@ function beforeSubmitPost(formData) {
 function beforeRenderPostForm(row) {
   if (row)
     return row
+  postCodeAutoCode.reset()
   return {
     tenantId: resolveSelectedTenantId(),
     orgId: selectedOrgNode.value?.id,
@@ -1130,6 +1139,7 @@ function handleAddPost() {
     window.$message.warning('请选择一个组织后再新增岗位')
     return
   }
+  postCodeAutoCode.reset()
   postCrudRef.value?.showAdd({
     tenantId: resolveSelectedTenantId(),
     orgId: selectedOrgNode.value.id,

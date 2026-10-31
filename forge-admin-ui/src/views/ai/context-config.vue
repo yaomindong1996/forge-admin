@@ -24,12 +24,17 @@ import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
+import { createAutoCodeSync } from '@/utils'
 
 defineOptions({ name: 'AiContextConfig' })
 
 const { dict } = useDict('ai_context_type', 'sys_normal_disable')
 
 const crudRef = ref(null)
+const agentCodeAuto = createAutoCodeSync({
+  scene: 'agentCode',
+  targetField: 'agentCode',
+})
 
 const configTypeOptions = computed(() => dict.value.ai_context_type || [])
 const statusOptions = computed(() => dict.value.sys_normal_disable || [])
@@ -60,18 +65,21 @@ const tableColumns = computed(() => [
 
 const editSchema = computed(() => [
   {
-    field: 'agentCode',
-    label: 'Agent编码',
-    type: 'input',
-    rules: [{ required: true, message: '请输入Agent编码', trigger: 'blur' }],
-    props: { placeholder: '如 codegen_column_advisor' },
-  },
-  {
     field: 'configName',
     label: '配置名称',
     type: 'input',
     rules: [{ required: true, message: '请输入配置名称', trigger: 'blur' }],
     props: { placeholder: '请输入配置名称' },
+    onChange: agentCodeAuto.onSourceChange,
+  },
+  {
+    field: 'agentCode',
+    label: 'Agent编码',
+    type: 'input',
+    rules: [{ required: true, message: '请输入Agent编码', trigger: 'blur' }],
+    labelTip: '根据配置名称自动生成，可手动修改',
+    props: { placeholder: '自动生成，如 codegen_column_advisor' },
+    onChange: agentCodeAuto.onTargetChange,
   },
   {
     field: 'configType',

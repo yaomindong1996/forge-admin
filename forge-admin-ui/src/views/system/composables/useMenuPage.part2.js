@@ -1,6 +1,7 @@
 /** menu.vue setup part 2. */
 
 import { computed } from 'vue'
+import { createAutoCodeSync } from '@/utils'
 
 export function applyMenuPagePart2(deps = {}) {
   const {
@@ -17,7 +18,46 @@ export function applyMenuPagePart2(deps = {}) {
     routeOptions,
     parentResourceOptions,
     clientCodeOptions,
+    allResources,
   } = deps
+
+  const permsAutoCode = createAutoCodeSync({
+    scene: 'perms',
+    targetField: 'perms',
+    buildOptions: (current) => ({
+      parentPerms: findResourcePerms(current?.parentId),
+      resourceType: current?.resourceType,
+    }),
+  })
+
+  function findResourcePerms(parentId) {
+    if (parentId === null || parentId === undefined || Number(parentId) === 0)
+      return ''
+    const walk = (nodes = []) => {
+      for (const node of nodes) {
+        if (Number(node?.id) === Number(parentId))
+          return node?.perms || ''
+        const nested = walk(node?.children || [])
+        if (nested)
+          return nested
+      }
+      return ''
+    }
+    return walk(allResources?.value || [])
+  }
+
+  function maybeSyncPerms(payload = {}) {
+    const current = payload.formData || formData?.value || {}
+    const type = Number(current.resourceType)
+    if (type !== 3 && type !== 4)
+      return
+    permsAutoCode.onSourceChange({
+      ...payload,
+      value: current.resourceName,
+      formData: current,
+    })
+  }
+
   function handleComponentPathChange(componentPath, updateValue, currentFormData) {
     const normalizedComponent = normalizeComponentValue(componentPath)
     updateValue(normalizedComponent)
@@ -54,6 +94,9 @@ export function applyMenuPagePart2(deps = {}) {
         childrenField: 'children',
       },
       options: () => parentResourceOptions.value,
+      onChange: ({ value, formData: current, context }) => {
+        maybeSyncPerms({ formData: { ...current, parentId: value }, context })
+      },
     },
     {
       field: 'resourceName',
@@ -62,6 +105,9 @@ export function applyMenuPagePart2(deps = {}) {
       span: 1,
       rules: [{ required: true, message: '请输入资源名称', trigger: 'blur' }],
       props: { placeholder: '请输入资源名称' },
+      onChange: ({ value, formData: current, context }) => {
+        maybeSyncPerms({ value, formData: { ...current, resourceName: value }, context })
+      },
     },
     {
       field: 'resourceType',
@@ -83,6 +129,9 @@ export function applyMenuPagePart2(deps = {}) {
       ],
       props: {
         options: resourceTypeOptions.value,
+      },
+      onChange: ({ value, formData: current, context }) => {
+        maybeSyncPerms({ formData: { ...current, resourceType: value }, context })
       },
     },
     {
@@ -244,8 +293,10 @@ export function applyMenuPagePart2(deps = {}) {
       label: '权限标识',
       type: 'input',
       span: 1,
-      props: { placeholder: 'sys:user:add' },
+      labelTip: '根据名称与上级自动生成，可手动修改',
+      props: { placeholder: '自动生成，如：system:user:add' },
       vIf: currentFormData => currentFormData.resourceType === 3 || currentFormData.resourceType === 4,
+      onChange: permsAutoCode.onTargetChange,
     },
     {
       field: 'apiMethod',
@@ -297,6 +348,7 @@ export function applyMenuPagePart2(deps = {}) {
     },
   ])
   __impl.handleComponentPathChange = handleComponentPathChange
+  __impl.resetPermsAutoCode = () => permsAutoCode.reset()
 
   return {
     ...deps,

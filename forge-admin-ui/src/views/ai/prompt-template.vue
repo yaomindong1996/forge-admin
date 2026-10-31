@@ -84,11 +84,15 @@ import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
-import { request } from '@/utils'
+import { createAutoCodeSync, request } from '@/utils'
 
 defineOptions({ name: 'AiPromptTemplate' })
 
 const { dict } = useDict('ai_prompt_usage_scene', 'ai_prompt_status', 'ai_prompt_recommended')
+const templateCodeAuto = createAutoCodeSync({
+  scene: 'templateCode',
+  targetField: 'templateCode',
+})
 
 const crudRef = ref(null)
 const previewVisible = ref(false)
@@ -249,13 +253,16 @@ const editSchema = computed(() => [
     span: 1,
     required: true,
     props: { placeholder: '请输入模板名称', maxlength: 128, showCount: true },
+    onChange: templateCodeAuto.onSourceChange,
   },
   {
     field: 'templateCode',
     label: '模板编码',
     type: 'input',
     span: 1,
-    props: { placeholder: '可选，建议英文唯一编码', maxlength: 80, showCount: true },
+    labelTip: '根据名称自动生成，可手动修改',
+    props: { placeholder: '可选，自动生成英文唯一编码', maxlength: 80, showCount: true },
+    onChange: templateCodeAuto.onTargetChange,
   },
   {
     field: 'usageScene',

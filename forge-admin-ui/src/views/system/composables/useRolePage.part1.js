@@ -5,7 +5,7 @@ import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
-import { request } from '@/utils'
+import { createAutoCodeSync, request } from '@/utils'
 import {
   buildRoleUserOrgTreeOptions,
   flattenOrgNodes,
@@ -419,6 +419,11 @@ export function applyRolePagePart1() {
   ])
 
   // 编辑表单配置
+  const roleKeyAutoCode = createAutoCodeSync({
+    scene: 'roleKey',
+    targetField: 'roleKey',
+  })
+
   const editSchema = computed(() => [
     {
       field: 'roleName',
@@ -428,15 +433,18 @@ export function applyRolePagePart1() {
       props: {
         placeholder: '请输入角色名称',
       },
+      onChange: roleKeyAutoCode.onSourceChange,
     },
     {
       field: 'roleKey',
       label: '权限字符',
       type: 'input',
       rules: [{ required: true, message: '请输入权限字符', trigger: 'blur' }],
+      labelTip: '根据角色名称自动生成全拼，可手动修改',
       props: {
-        placeholder: '请输入权限字符，如：admin',
+        placeholder: '自动生成，如：xi_tong_guan_li_yuan',
       },
+      onChange: roleKeyAutoCode.onTargetChange,
     },
     {
       field: 'roleType',
@@ -667,6 +675,7 @@ export function applyRolePagePart1() {
   }
 
   function handleAddRole() {
+    roleKeyAutoCode.reset()
     crudRef.value?.showAdd()
   }
 

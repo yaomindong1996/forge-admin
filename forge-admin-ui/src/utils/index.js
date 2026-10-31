@@ -1,3 +1,4 @@
+export * from './code-from-label'
 export * from './collaboration-runtime'
 export * from './common'
 export * from './crypto'

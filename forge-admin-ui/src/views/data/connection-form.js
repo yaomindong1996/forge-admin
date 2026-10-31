@@ -1,3 +1,5 @@
+import { generateCodeFromLabel } from '@/utils/code-from-label'
+
 export const DRIVER_CLASS_MAP = {
   MYSQL: 'com.mysql.cj.jdbc.Driver',
   ORACLE: 'oracle.jdbc.OracleDriver',
@@ -22,6 +24,9 @@ export const DEFAULT_TEST_SQL_MAP = {
 const MYSQL_DEFAULT_QUERY = 'useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai'
 
 export function suggestConnectionCode(name) {
+  const fromLabel = generateCodeFromLabel(name, 'connectionCode')
+  if (fromLabel)
+    return fromLabel.slice(0, 40)
   const ascii = String(name || '')
     .trim()
     .replace(/\s+/g, '_')

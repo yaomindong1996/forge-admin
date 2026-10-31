@@ -237,12 +237,16 @@ import { AiCrudPage } from '@/components/ai-form'
 import DictTag from '@/components/DictTag.vue'
 import SqlEditor from '@/components/SqlEditor.vue'
 import { useDict } from '@/composables/useDict'
-import { request } from '@/utils'
+import { createAutoCodeSync, request } from '@/utils'
 
 defineOptions({ name: 'DataDimension' })
 
 const { dict } = useDict('data_dimension_source_type', 'sys_enable_disable')
 
+const dimensionCodeAuto = createAutoCodeSync({
+  scene: 'dimensionCode',
+  targetField: 'dimensionCode',
+})
 const crudRef = ref(null)
 const connectionOptions = ref([])
 const itemModalVisible = ref(false)
@@ -349,20 +353,23 @@ const editSchema = computed(() => [
     showFeedback: false,
   },
   {
-    field: 'dimensionCode',
-    label: '维度编码',
-    type: 'input',
-    span: 4,
-    rules: [{ required: true, message: '请输入维度编码', trigger: 'blur' }],
-    props: { placeholder: '如 order_status' },
-  },
-  {
     field: 'dimensionName',
     label: '维度名称',
     type: 'input',
     span: 4,
     rules: [{ required: true, message: '请输入维度名称', trigger: 'blur' }],
     props: { placeholder: '如订单状态' },
+    onChange: dimensionCodeAuto.onSourceChange,
+  },
+  {
+    field: 'dimensionCode',
+    label: '维度编码',
+    type: 'input',
+    span: 4,
+    rules: [{ required: true, message: '请输入维度编码', trigger: 'blur' }],
+    labelTip: '根据名称自动生成，可手动修改',
+    props: { placeholder: '自动生成，如 order_status' },
+    onChange: dimensionCodeAuto.onTargetChange,
   },
   {
     field: 'sourceType',

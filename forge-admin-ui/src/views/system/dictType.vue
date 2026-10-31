@@ -25,11 +25,15 @@ import { NTag } from 'naive-ui'
 import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
-import { closeAndOpen, request } from '@/utils'
+import { closeAndOpen, createAutoCodeSync, request } from '@/utils'
 
 defineOptions({ name: 'DictType' })
 
 const crudRef = ref(null)
+const dictTypeAutoCode = createAutoCodeSync({
+  scene: 'dictType',
+  targetField: 'dictType',
+})
 
 // 字典状态选项
 const statusOptions = [
@@ -180,6 +184,7 @@ const editSchema = [
     props: {
       placeholder: '请输入字典名称',
     },
+    onChange: dictTypeAutoCode.onSourceChange,
   },
   {
     field: 'dictType',
@@ -188,9 +193,11 @@ const editSchema = [
     rules: [{ required: true, message: '请输入字典类型', trigger: 'blur' }],
     // 创建后锁定编码，避免孤儿化 sys_dict_data；优先用 modal 态，兼容仅有 dictId 的回填
     disabled: ({ formData, context }) => Boolean(context?.isEdit || formData?.dictId),
+    labelTip: '根据字典名称自动生成，可手动修改；保存后不可改',
     props: {
-      placeholder: '请输入字典类型，如：sys_user_sex',
+      placeholder: '自动生成，如：sys_user_sex',
     },
+    onChange: dictTypeAutoCode.onTargetChange,
   },
   {
     field: 'dictStatus',
