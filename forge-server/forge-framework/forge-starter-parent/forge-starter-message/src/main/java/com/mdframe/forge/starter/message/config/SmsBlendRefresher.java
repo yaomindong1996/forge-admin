@@ -21,4 +21,18 @@ public class SmsBlendRefresher {
             log.warn("短信通道 Blend 刷新失败: {}", ex.getMessage());
         }
     }
+
+    /**
+     * 只注册指定运行时 configId。找不到配置时 sms4j 会抛异常，调用方应视为该通道不可用并 failover。
+     */
+    public void ensure(String runtimeId) {
+        if (runtimeId == null || runtimeId.isBlank()) {
+            return;
+        }
+        try {
+            SmsFactory.createSmsBlend(readConfig, runtimeId);
+        } catch (Exception ex) {
+            log.warn("按通道注册短信 Blend 失败: runtimeId={}, err={}", runtimeId, ex.getMessage());
+        }
+    }
 }

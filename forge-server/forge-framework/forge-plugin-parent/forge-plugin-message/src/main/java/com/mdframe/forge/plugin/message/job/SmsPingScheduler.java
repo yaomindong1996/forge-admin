@@ -4,6 +4,7 @@ import com.mdframe.forge.plugin.message.mapper.SysSmsRoutePolicyMapper;
 import com.mdframe.forge.plugin.message.service.SmsConfigService;
 import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
 import com.mdframe.forge.starter.job.annotation.ScheduledJob;
+import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -38,7 +39,9 @@ public class SmsPingScheduler {
         }
         for (Long tenantId : tenantIds) {
             try {
-                int success = smsConfigService.runPingNow(tenantId);
+                // 发送链路按当前租户取通道；不切换上下文会落到默认租户，探活打到别人的账号上
+                int success = TenantContextHolder.executeWithTenant(tenantId,
+                        () -> smsConfigService.runPingNow(tenantId));
                 log.info("短信 Ping 完成: tenantId={}, successCount={}", tenantId, success);
             } catch (Exception ex) {
                 log.warn("短信 Ping 失败: tenantId={}, err={}", tenantId, ex.getMessage());

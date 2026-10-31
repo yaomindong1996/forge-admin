@@ -44,8 +44,21 @@ public class SmsRouter {
             return List.of(enabled.get(0));
         }
 
-        SmsConfig chosen = chooseWeighted(enabled, tenantIdHint);
+        SmsConfig chosen = chooseWeighted(enabled, routeTenantId(enabled, tenantIdHint));
         return orderWithFirst(enabled, chosen);
+    }
+
+    /** 未显式传入租户时用通道自身租户，避免全部挤进 forge:sms:wrr:0。 */
+    private Long routeTenantId(List<SmsConfig> enabled, Long tenantIdHint) {
+        if (tenantIdHint != null) {
+            return tenantIdHint;
+        }
+        for (SmsConfig config : enabled) {
+            if (config != null && config.getTenantId() != null) {
+                return config.getTenantId();
+            }
+        }
+        return 0L;
     }
 
     public String resolveTemplateId(SmsConfig config, String scene, String requestTemplate) {

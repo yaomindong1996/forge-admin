@@ -10,6 +10,7 @@ import com.mdframe.forge.starter.message.sms.LocalSmsRouteSequence;
 import com.mdframe.forge.starter.message.sms.SmsRouteSequence;
 import com.mdframe.forge.starter.message.sms.SmsRouter;
 import org.dromara.sms4j.core.factory.SmsFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -57,8 +58,9 @@ public class MessageAutoConfiguration {
     @Bean(name = "smsMessageChannel")
     @ConditionalOnBean({SmsConfigProvider.class, SmsRouter.class})
     @ConditionalOnProperty(prefix = "forge.message.channel.sms", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public MessageChannel smsMessageChannel(SmsRouter smsRouter, SmsConfigProvider smsConfigProvider) {
-        return new SmsMessageChannel(smsRouter, smsConfigProvider);
+    public MessageChannel smsMessageChannel(SmsRouter smsRouter, SmsConfigProvider smsConfigProvider,
+            ObjectProvider<SmsBlendRefresher> smsBlendRefresher) {
+        return new SmsMessageChannel(smsRouter, smsConfigProvider, smsBlendRefresher.getIfAvailable());
     }
 
     @Bean

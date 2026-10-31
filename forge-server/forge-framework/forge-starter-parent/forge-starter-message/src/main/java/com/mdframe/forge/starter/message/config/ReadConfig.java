@@ -2,6 +2,7 @@ package com.mdframe.forge.starter.message.config;
 
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
+import com.mdframe.forge.starter.message.sms.SmsBlendIds;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.sms4j.aliyun.config.AlibabaConfig;
 import org.dromara.sms4j.baidu.config.BaiduConfig;
@@ -30,6 +31,7 @@ import org.dromara.sms4j.zhutong.config.ZhutongConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -49,10 +51,15 @@ public class ReadConfig implements SmsReadConfig {
         if (configProvider != null) {
             try {
                 for (SmsConfigProvider.SmsConfig config : configProvider.listEnabledSmsConfigs()) {
-                    if (config != null && configId != null && configId.equals(config.getConfigId())) {
-                        log.info("自动加载短信配置成功: configId={}, supplier={}", configId, config.getSupplier());
-                        return buildBaseConfig(config);
+                    if (!matchesRequestedId(config, configId)) {
+                        continue;
                     }
+                    BaseConfig built = buildBaseConfig(config);
+                    if (built == null) {
+                        continue;
+                    }
+                    log.info("自动加载短信配置成功: configId={}, supplier={}", configId, config.getSupplier());
+                    return built;
                 }
                 log.info("未找到短信配置: configId={}", configId);
             } catch (Exception e) {
@@ -68,8 +75,15 @@ public class ReadConfig implements SmsReadConfig {
             try {
                 List<SmsConfigProvider.SmsConfig> configs = configProvider.listEnabledSmsConfigs();
                 if (configs != null && !configs.isEmpty()) {
-                    log.info("自动加载短信配置成功: count={}", configs.size());
-                    return configs.stream().map(this::buildBaseConfig).toList();
+                    List<BaseConfig> built = new ArrayList<>();
+                    for (SmsConfigProvider.SmsConfig config : configs) {
+                        BaseConfig item = buildBaseConfig(config);
+                        if (item != null) {
+                            built.add(item);
+                        }
+                    }
+                    log.info("自动加载短信配置成功: count={}", built.size());
+                    return built;
                 }
                 log.info("未找到已启用的短信配置");
             } catch (Exception e) {
@@ -79,18 +93,39 @@ public class ReadConfig implements SmsReadConfig {
         return List.of();
     }
     
+    private boolean matchesRequestedId(SmsConfigProvider.SmsConfig config, String requestedId) {
+        if (config == null || requestedId == null) {
+            return false;
+        }
+        return requestedId.equals(config.getConfigId())
+                || requestedId.equals(SmsBlendIds.runtimeId(config.getTenantId(), config.getConfigId()));
+    }
+
     private BaseConfig buildBaseConfig(SmsConfigProvider.SmsConfig config) {
+        if (config == null) {
+            return null;
+        }
         BaseConfig baseConfig = createConfigBySupplier(config.getSupplier());
-        
+        if (baseConfig == null) {
+            log.warn("跳过无法识别的短信供应商: configId={}, supplier={}",
+                    config.getConfigId(), config.getSupplier());
+            return null;
+        }
+
         baseConfig.setAccessKeyId(config.getAccessKeyId());
         baseConfig.setAccessKeySecret(config.getAccessKeySecret());
         baseConfig.setSignature(config.getSignature());
         baseConfig.setTemplateId(config.getTemplateId());
-        baseConfig.setConfigId(config.getConfigId());
+        // 进程级 Blend 表按 configId 索引，必须带租户，避免同名通道串用密钥
+        baseConfig.setConfigId(SmsBlendIds.runtimeId(config.getTenantId(), config.getConfigId()));
         baseConfig.setWeight(config.getWeight() != null ? config.getWeight() : 1);
         baseConfig.setRetryInterval(config.getRetryInterval() != null ? config.getRetryInterval() : 5);
         baseConfig.setMaxRetries(config.getMaxRetries() != null ? config.getMaxRetries() : 0);
-        baseConfig.setMaximum(config.getMaximum());
+        // maximum 列可空，且新配置页不再采集该字段。直接 unbox 会 NPE，
+        // getSupplierConfigList 捕获后返回空列表，导致全部通道都注册不上。
+        if (config.getMaximum() != null) {
+            baseConfig.setMaximum(config.getMaximum());
+        }
         
         if (StrUtil.isNotBlank(config.getExtraConfig())) {
             try {
