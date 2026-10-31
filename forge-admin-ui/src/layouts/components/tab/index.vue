@@ -325,7 +325,9 @@ async function switchRelativeTab(direction) {
 }
 
 async function handleGlobalKeydown(event) {
-  const key = event.key.toLowerCase()
+  const key = String(event?.key || '').toLowerCase()
+  if (!key)
+    return
   if ((event.ctrlKey || event.metaKey) && key === 'w') {
     const activeTab = getActiveTab()
     if (!isTabClosable(activeTab))

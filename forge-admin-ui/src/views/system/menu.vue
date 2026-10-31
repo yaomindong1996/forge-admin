@@ -48,8 +48,9 @@
 
     <MasterDetailWorkspace
       class="menu-workbench-body"
-      persist-key="system-menu"
-      :aside-width="260"
+      persist-key="system-menu-255"
+      :aside-width="280"
+      :min-aside-width="255"
     >
       <!-- 左侧只负责定位目录和菜单 -->
       <template #aside>

@@ -2,7 +2,7 @@
 
 import { resolveSwitchValuePair } from '@/views/app-center/components/designer/forge-form-designer/field-default-value'
 import { isInputLikeFieldType, isNumberLikeField } from './field-type-utils'
-import { buildTreeFromFlatRows, decorateLazyTreeNodes, resolveFieldCascadeConfig, resolveFirstFilledOptionField, resolveOptionLoadMode, rowsHaveNestedChildren, shouldBuildTreeOptions } from './option-source-runtime'
+import { buildTreeFromFlatRows, decorateLazyTreeNodes, decorateResolvedTreeLeafNodes, resolveFieldCascadeConfig, resolveFirstFilledOptionField, resolveOptionLoadMode, rowsHaveNestedChildren, shouldBuildTreeOptions } from './option-source-runtime'
 import { resolveSelectionLabelFields as buildSelectionLabelFields, ORG_SELECT_FIELD_TYPES, USER_SELECT_FIELD_TYPES } from './selection-label-fields'
 import { serializeSelectionLabels } from './selection-multi-value'
 
@@ -89,9 +89,18 @@ export function resolveFieldSlotText(field = {}, key = '') {
 
 /** 单行输入 type：password 时走密码框（开启密码显隐图标槽） */
 export function resolveInputFieldType(field = {}) {
-  const raw = String(field?.inputType ?? field?.props?.inputType ?? '').trim().toLowerCase()
-  if (raw === 'password')
-    return 'password'
+  const candidates = [
+    field?.inputType,
+    field?.props?.inputType,
+    // 兼容存量 schema：props.type / field.type = password
+    field?.props?.type,
+    field?.type === 'password' ? 'password' : '',
+  ]
+  for (const item of candidates) {
+    const raw = String(item || '').trim().toLowerCase()
+    if (raw === 'password')
+      return 'password'
+  }
   return 'text'
 }
 
@@ -245,6 +254,9 @@ export function finalizeOptionTree(options = [], source = {}, componentType = ''
   }
   if (resolveOptionLoadMode(source) === 'lazy')
     next = decorateLazyTreeNodes(next)
+  else
+    // 全量树：无下级的节点标 isLeaf，去掉空 children，避免 Naive 仍显示展开箭头
+    next = decorateResolvedTreeLeafNodes(next)
   return next
 }
 
@@ -293,12 +305,20 @@ export function normalizeOptionNode(row, source = {}, includeChildren = false) {
     label: label === undefined || label === null || label === '' ? String(value ?? '') : String(label),
   }
   if (includeChildren) {
-    const children = Array.isArray(row[childrenField])
+    const rawChildren = Array.isArray(row[childrenField])
       ? row[childrenField]
       : Array.isArray(row.children)
         ? row.children
         : []
-    option.children = children.map(child => normalizeOptionNode(child, source, true)).filter(Boolean)
+    const children = rawChildren.map(child => normalizeOptionNode(child, source, true)).filter(Boolean)
+    if (children.length > 0) {
+      option.children = children
+      option.isLeaf = false
+    }
+    else {
+      option.isLeaf = true
+      delete option.children
+    }
   }
   return option
 }

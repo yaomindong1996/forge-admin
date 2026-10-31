@@ -158,7 +158,8 @@ export function createUserForm(state, runtime, workspace) {
       type: 'input',
       rules: [{ required: true, message: '请输入密码', trigger: 'blur' }],
       props: {
-        type: 'password',
+        inputType: 'password',
+        showPasswordOn: 'click',
         placeholder: '请输入密码',
       },
       vIf: formData => !formData.id,
@@ -190,6 +191,8 @@ export function createUserForm(state, runtime, workspace) {
       type: 'treeSelect',
       span: 2,
       required: true,
+      multiple: true,
+      filterable: true,
       labelTip: '首个选中组织会自动作为主组织',
       onChange: ({ value, context }) => {
         const orgIds = normalizeNumberList(value)
@@ -199,7 +202,8 @@ export function createUserForm(state, runtime, workspace) {
       },
       optionSource: {
         type: 'tree',
-        api: 'get@/system/org/lazyTree',
+        // 全量树：可搜索，展开可见下级；懒加载树在下拉里展开后经常空白且无法过滤
+        api: 'get@/system/org/tree',
         params: {
           tenantId: FORM_TENANT_ID_EXPR,
         },
@@ -210,12 +214,14 @@ export function createUserForm(state, runtime, workspace) {
         childrenField: 'children',
       },
       props: {
-        placeholder: '请选择所属组织',
+        placeholder: '请选择所属组织（可搜索）',
         multiple: true,
         clearable: true,
         filterable: true,
         cascade: false,
+        checkable: true,
         showPath: false,
+        defaultExpandAll: true,
       },
     },
     {

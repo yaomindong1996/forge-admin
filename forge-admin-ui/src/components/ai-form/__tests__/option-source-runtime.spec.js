@@ -5,6 +5,7 @@ import {
   clampOptionPageSize,
   createDefaultTreeOptionSourcePatch,
   decorateLazyTreeNodes,
+  decorateResolvedTreeLeafNodes,
   DEFAULT_TREE_OPTION_PAGE_SIZE,
   MAX_OPTION_PAGE_SIZE,
   readOptionRowField,
@@ -108,7 +109,28 @@ describe('option-source-runtime', () => {
     expect(rowsHaveNestedChildren([{ value: 1 }])).toBe(false)
     const decorated = decorateLazyTreeNodes([{ value: 1, label: '根' }])
     expect(decorated[0].isLeaf).toBe(false)
+    const leaf = decorateLazyTreeNodes([{ value: 2, hasChildren: false, children: [] }])
+    expect(leaf[0].isLeaf).toBe(true)
+    expect(leaf[0].children).toBeUndefined()
     expect(createDefaultTreeOptionSourcePatch().parentField).toBe('parentId')
+  })
+
+  it('全量树无下级节点标记叶子并去掉空 children', () => {
+    const decorated = decorateResolvedTreeLeafNodes([
+      {
+        value: 1,
+        label: '根',
+        children: [
+          { value: 2, label: '叶子', children: [] },
+          { value: 3, label: '枝', children: [{ value: 4, label: '孙' }] },
+        ],
+      },
+    ])
+    expect(decorated[0].isLeaf).toBe(false)
+    expect(decorated[0].children[0]).toMatchObject({ value: 2, isLeaf: true })
+    expect(decorated[0].children[0].children).toBeUndefined()
+    expect(decorated[0].children[1].isLeaf).toBe(false)
+    expect(decorated[0].children[1].children[0].isLeaf).toBe(true)
   })
 
   it('值字段存储类型严格跟随目标字段 dataType，不靠字段名猜测', () => {

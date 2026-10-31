@@ -240,15 +240,37 @@ export function decorateLazyTreeNodes(nodes = []) {
       return next
     if (next.hasChildren === false || next.leaf === true) {
       next.isLeaf = true
+      delete next.children
       return next
     }
     if (Array.isArray(next.children) && next.children.length > 0) {
       next.children = decorateLazyTreeNodes(next.children)
+      next.isLeaf = false
       return next
     }
     next.isLeaf = false
     if (!Array.isArray(next.children))
       next.children = []
+    return next
+  })
+}
+
+/**
+ * 全量树叶子标记：无下级时 isLeaf=true，并去掉空 children，避免展开箭头空转。
+ */
+export function decorateResolvedTreeLeafNodes(nodes = []) {
+  return (Array.isArray(nodes) ? nodes : []).map((node) => {
+    if (!node || typeof node !== 'object')
+      return node
+    const next = { ...node }
+    const children = Array.isArray(next.children) ? next.children : []
+    if (children.length > 0) {
+      next.children = decorateResolvedTreeLeafNodes(children)
+      next.isLeaf = false
+      return next
+    }
+    next.isLeaf = true
+    delete next.children
     return next
   })
 }

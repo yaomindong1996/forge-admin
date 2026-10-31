@@ -651,7 +651,7 @@
           @update:model-value="handleRegionTreeSelectUpdate(field, $event)"
         />
 
-        <!-- 树形选择 -->
+        <!-- 树形选择：filterable / multiple / cascade / showPath 需兼容 field 与 props，避免覆盖 controlProps -->
         <n-tree-select
           v-else-if="field.type === 'treeSelect'"
           v-bind="controlProps"
@@ -660,10 +660,10 @@
           :options="currentOptions"
           :loading="remoteLoading"
           :clearable="field.clearable !== false"
-          :filterable="field.filterable"
-          :multiple="field.multiple"
-          :cascade="field.cascade !== false"
-          :show-path="field.showPath !== false"
+          :filterable="field.filterable !== false && field.props?.filterable !== false"
+          :multiple="fieldMultiple"
+          :cascade="resolveNaiveTreeCascade(field)"
+          :show-path="field.showPath !== false && field.props?.showPath !== false"
           :on-load="treeSelectLazyLoadHandler"
           :disabled="disabledHandler(field)"
           @update:value="handleTreeSelectUpdate(field, $event)"

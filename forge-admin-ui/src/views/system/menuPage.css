@@ -127,28 +127,46 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   padding: 9px 12px;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-light);
 }
 
+.pane-head > div:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tree-head-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+}
+
 .pane-title,
 .context-title {
   display: block;
+  overflow: hidden;
   color: var(--text-primary);
   font-size: 14px;
   line-height: 1.25;
   font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pane-subtitle,
 .context-subtitle {
   display: block;
   margin-top: 2px;
+  overflow: hidden;
   color: var(--text-tertiary);
   font-size: 12px;
   line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tree-search {

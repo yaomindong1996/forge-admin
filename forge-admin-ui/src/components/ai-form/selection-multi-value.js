@@ -4,6 +4,7 @@ export const MULTI_SELECT_COMPONENT_KEYS = [
   'dictSelect',
   'userSelect',
   'orgTreeSelect',
+  'treeSelect',
   'objectReference',
   'recordSelector',
 ]
