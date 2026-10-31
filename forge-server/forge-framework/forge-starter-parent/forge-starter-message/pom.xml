@@ -28,6 +28,12 @@
             <groupId>org.dromara.sms4j</groupId>
             <artifactId>sms4j-email-jakarta-core</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     
 

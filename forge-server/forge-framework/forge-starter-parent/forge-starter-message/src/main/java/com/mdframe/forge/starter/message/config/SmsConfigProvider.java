@@ -16,6 +16,7 @@ public interface SmsConfigProvider {
     }
 
     class SmsConfig {
+        private Long tenantId;
         private String configId;
         private String supplier;
         private String accessKeyId;
@@ -33,6 +34,8 @@ public interface SmsConfigProvider {
         private Integer status;
         private String channelRole;
 
+        public Long getTenantId() { return tenantId; }
+        public void setTenantId(Long tenantId) { this.tenantId = tenantId; }
         public String getConfigId() { return configId; }
         public void setConfigId(String configId) { this.configId = configId; }
         public String getSupplier() { return supplier; }

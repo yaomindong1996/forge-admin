@@ -62,6 +62,7 @@ public class SmsConfigProviderImpl implements SmsConfigProvider {
 
     private SmsConfig toProviderConfig(SysSmsConfig entity) {
         SmsConfig config = new SmsConfig();
+        config.setTenantId(entity.getTenantId());
         config.setConfigId(entity.getConfigId());
         config.setSupplier(entity.getSupplier());
         config.setAccessKeyId(entity.getAccessKeyId());

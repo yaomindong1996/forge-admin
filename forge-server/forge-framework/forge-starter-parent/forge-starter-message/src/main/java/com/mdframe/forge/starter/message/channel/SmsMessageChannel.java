@@ -2,9 +2,11 @@ package com.mdframe.forge.starter.message.channel;
 
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSONObject;
+import com.mdframe.forge.starter.message.config.SmsBlendRefresher;
 import com.mdframe.forge.starter.message.config.SmsConfigProvider;
 import com.mdframe.forge.starter.message.config.SmsConfigProvider.SmsConfig;
 import com.mdframe.forge.starter.message.config.SmsConfigProvider.SmsRoutePolicy;
+import com.mdframe.forge.starter.message.sms.SmsBlendIds;
 import com.mdframe.forge.starter.message.sms.SmsRouter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +25,7 @@ public class SmsMessageChannel implements MessageChannel {
 
     private final SmsRouter smsRouter;
     private final SmsConfigProvider smsConfigProvider;
+    private final SmsBlendRefresher smsBlendRefresher;
 
     @Override
     public ChannelType key() {
@@ -75,7 +78,7 @@ public class SmsMessageChannel implements MessageChannel {
     }
 
     private SendResult sendWithConfig(SendRequest request, List<String> phones, SmsConfig config) {
-        SmsBlend smsBlend = resolveBlend(config.getConfigId());
+            SmsBlend smsBlend = resolveBlend(config);
         if (smsBlend == null) {
             return SendResult.fail("短信通道未初始化: " + config.getConfigId());
         }
@@ -108,14 +111,16 @@ public class SmsMessageChannel implements MessageChannel {
         }
     }
 
-    private SmsBlend resolveBlend(String configId) {
-        if (StrUtil.isNotBlank(configId)) {
-            SmsBlend blend = SmsFactory.getSmsBlend(configId);
-            if (blend != null) {
-                return blend;
-            }
+    private SmsBlend resolveBlend(SmsConfig config) {
+        if (config == null || StrUtil.isBlank(config.getConfigId())) {
+            return null;
         }
-        return SmsFactory.getSmsBlend();
+        String runtimeId = SmsBlendIds.runtimeId(config.getTenantId(), config.getConfigId());
+        return SmsBlendResolver.resolve(runtimeId, SmsFactory::getSmsBlend, () -> {
+            if (smsBlendRefresher != null) {
+                smsBlendRefresher.ensure(runtimeId);
+            }
+        });
     }
 
     @SuppressWarnings("unchecked")
