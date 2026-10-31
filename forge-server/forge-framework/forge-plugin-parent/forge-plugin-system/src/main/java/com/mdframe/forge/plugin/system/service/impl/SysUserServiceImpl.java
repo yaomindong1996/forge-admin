@@ -317,7 +317,9 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         SysUser user = new SysUser();
         user.setId(userId);
         user.setPassword(PasswordUtil.encrypt(newPassword));
-        user.setForcePasswordChange(true);
+        // 管理员在后台直接指定正式新密码，登录后不应再弹「首次/重新初始化密码」。
+        // 新建用户仍走 insertUser 的 forcePasswordChange=true，要求首次登录自行改密。
+        user.setForcePasswordChange(false);
         return TenantContextHolder.executeIgnore(() -> userMapper.updateById(user) > 0);
     }
 
