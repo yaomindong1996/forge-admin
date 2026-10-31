@@ -234,3 +234,41 @@ Forge AI 中枢的真实 Flyway、Admin/Flow 服务启动、MCP Streamable HTTP 
 真实环境验证需有明确授权后再执行，不能将本地测试通过等同于生产全部功能已验收。
 当前范围记录见 spring-boot4-t6 Spec/Tasks/Report。
 
+## 32. 社区双远程：Gitee `origin` + Cursor Origin `cursor`
+
+**记录日期**：2026-10-31
+
+社区仓 `forge-project` 同时对接两个远端，**禁止改坏日常 Gitee 推送习惯**：
+
+| 远程名 | URL | 用途 |
+|--------|-----|------|
+| `origin` | `https://gitee.com/ForgeLab/forge-admin.git` | 日常推送/拉取；`main` 跟踪 `origin/main` |
+| `cursor` | `https://origin.cursor.com/yao-md/forge-admin` | Cursor Origin 镜像；Agent/PR 可能先合到这里 |
+
+### 拉取
+
+- 「拉取最新」默认：`git fetch origin && git pull --ff-only origin main`（或已跟踪时 `git pull --ff-only`）。
+- **只拉 Gitee 不够**：Cursor Origin 上可能有 Agent/PR 新提交。完整对齐要再：
+  ```bash
+  git fetch cursor
+  git log --oneline HEAD..cursor/main   # 查看仅在 Cursor 的提交
+  git merge --ff-only cursor/main       # 可快进时并入本地
+  ```
+- 若本地相对 `origin/main` 因此超前，需用户明确授权后再 `git push origin main` 回写 Gitee。
+
+### 推送
+
+- 日常：`git push origin main`（或 `git push`，因 upstream 是 `origin/main`）。
+- 同步到 Cursor Origin：`git push cursor main`（或 `git push cursor HEAD`）。
+- **不要**把 `origin` 改成 Cursor Origin URL；**不要**让 `main` 默认跟踪 `cursor/main`（`git push -u cursor` 后若改了 upstream，立刻 `git branch -u origin/main main` 改回）。
+
+### Cursor Origin CLI
+
+- 安装：`curl -fsSL https://downloads.cursor.com/origin/install.sh | sh`（通常装到 `~/.local/bin/origin`）。
+- 已安装则 `origin update`；登录：`origin auth login`（浏览器授权后再继续）。
+- 凭证 helper 指向 `https://origin.cursor.com`；不影响 Gitee 凭据。
+
+### 与 ForgePro 的关系
+
+社区公共修复先落社区（Gitee / 必要时 Cursor），再按 ForgePro 侧「社区→Pro 同步」流程带到 Pro；社区仓不承载 Pro 专属代码。
+
