@@ -48,8 +48,9 @@ Forge Admin 是供日常反复使用的企业管理控制台，不是营销网�
 
 ```vue
 <MasterDetailWorkspace
+  persist-key="system-user"
   :collapsed="collapsed"
-  :aside-width="220"
+  :aside-width="260"
   :collapsed-aside-width="72"
 >
   <template #aside>
@@ -60,10 +61,12 @@ Forge Admin 是供日常反复使用的企业管理控制台，不是营销网�
 </MasterDetailWorkspace>
 ```
 
-- 默认使用连体工作台：一个外框、内部一条细分隔线，避免左树和右表像两张无关卡片。
+- 默认使用连体工作台：一个外框、内部可拖动分隔线，避免左树和右表像两张无关卡片。
 - `aside` 放树、对象列表或筛选导航；默认插槽放表格、详情或页签工作区。
+- 默认允许拖动调整左侧宽度（`minAsideWidth` 200、`maxAsideWidth` 默认取容器 40% 与 480 的较小值）；折叠或窄屏自动禁用拖拽。
+- 传入 `persist-key` 后，拖拽宽度写入 `localStorage`（键前缀 `forge.master-detail.aside-width.`），按页面分别记忆。
 - 仅当两块区域确实无业务关联时，才设置 `:attached="false"`。
-- 窄屏由组件自动上下堆叠；页面不要复制一套响应式列宽逻辑。
+- 窄屏由组件自动上下堆叠；页面不要复制一套响应式列宽逻辑，也不要再各自套 `n-split`。
 
 ### 3.3 三栏工作台
 
@@ -89,10 +92,12 @@ Forge Admin 是供日常反复使用的企业管理控制台，不是营销网�
 
 ### 4.2 `MasterDetailWorkspace`
 
-- Props：`asideWidth`、`collapsedAsideWidth`、`mainWidth`、`collapsed`、`attached`。
+- Props：`asideWidth`、`collapsedAsideWidth`、`mainWidth`、`collapsed`、`attached`、`resizable`、`minAsideWidth`、`maxAsideWidth`、`persistKey`。
 - 插槽：`aside` 仅放主对象区域，默认插槽放从属工作区。
-- 组件必须同时支持亮色、暗色和窄屏上下布局。
+- 组件必须同时支持亮色、暗色和窄屏上下布局；桌面端支持拖拽与左右方向键微调左侧宽度。
+- 可拖拽分隔线需有明确 affordance：默认可见握柄点，悬停/拖拽时主色高亮，并提供「拖动调整左侧宽度」提示。
 - 左右内容区不得向外撑破工作台；内部滚动由各自内容区负责。
+- 用户 / 组织 / 岗位 / 菜单等左树页统一默认 `aside-width="260"`，并配置独立的 `persist-key`。
 
 ### 4.3 `SystemTableCell`
 

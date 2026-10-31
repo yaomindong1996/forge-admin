@@ -17,7 +17,7 @@ export function renderNavigationLabel({ option }) {
     h('span', { 'class': 'nav-tree-icon-shell', 'aria-hidden': true }, [
       h(IconRenderer, { icon: getResourceTypeConfig(option.resourceType).icon, fontSize: 15 }),
     ]),
-    h('span', { class: 'nav-tree-name' }, option.label),
+    h('span', { class: 'nav-tree-name', title: option.label }, option.label),
   ])
 }
 

@@ -2,8 +2,9 @@
   <div class="system-org-page">
     <MasterDetailWorkspace
       class="org-workspace"
+      persist-key="system-org"
       :collapsed="leftOrgPanelCollapsed"
-      :aside-width="220"
+      :aside-width="260"
       :collapsed-aside-width="64"
     >
       <template #aside>

@@ -46,70 +46,76 @@
       </div>
     </div>
 
-    <div class="menu-workbench-body">
+    <MasterDetailWorkspace
+      class="menu-workbench-body"
+      persist-key="system-menu"
+      :aside-width="260"
+    >
       <!-- 左侧只负责定位目录和菜单 -->
-      <aside class="tree-pane">
-        <div class="pane-head">
-          <div>
-            <span class="pane-title">资源结构</span>
-            <span class="pane-subtitle">目录 / 菜单</span>
-          </div>
-          <div class="tree-head-actions">
-            <NButton quaternary size="tiny" @click="expandNavigationTree">
-              <template #icon>
-                <i class="i-material-symbols:unfold-more" />
-              </template>
-              展开
-            </NButton>
-            <NButton quaternary size="tiny" @click="collapseNavigationTree">
-              <template #icon>
-                <i class="i-material-symbols:unfold-less" />
-              </template>
-              折叠
-            </NButton>
-          </div>
-        </div>
-
-        <n-input
-          v-model:value="treeKeyword"
-          size="small"
-          clearable
-          placeholder="筛选左侧结构"
-          class="tree-search"
-        >
-          <template #prefix>
-            <i class="i-material-symbols:search" />
-          </template>
-        </n-input>
-
-        <div class="tree-scroll">
-          <div v-if="loading" class="menu-tree-skeleton">
-            <div
-              v-for="index in 10"
-              :key="index"
-              class="menu-tree-skeleton-row"
-              :style="{ paddingLeft: `${(index % 3) * 16}px` }"
-            >
-              <n-skeleton circle size="small" />
-              <n-skeleton text :width="`${72 - (index % 4) * 8}%`" />
+      <template #aside>
+        <aside class="tree-pane">
+          <div class="pane-head">
+            <div>
+              <span class="pane-title">资源结构</span>
+              <span class="pane-subtitle">目录 / 菜单</span>
+            </div>
+            <div class="tree-head-actions">
+              <NButton quaternary size="tiny" @click="expandNavigationTree">
+                <template #icon>
+                  <i class="i-material-symbols:unfold-more" />
+                </template>
+                展开
+              </NButton>
+              <NButton quaternary size="tiny" @click="collapseNavigationTree">
+                <template #icon>
+                  <i class="i-material-symbols:unfold-less" />
+                </template>
+                折叠
+              </NButton>
             </div>
           </div>
-          <n-tree
-            v-else
-            block-line
-            selectable
-            :data="navigationTreeData"
-            :expanded-keys="navigationExpandedKeys"
-            :selected-keys="navigationSelectedKeys"
-            :render-label="renderNavigationLabel"
-            key-field="key"
-            label-field="label"
-            children-field="children"
-            @update:selected-keys="handleNavigationSelect"
-            @update:expanded-keys="handleNavigationExpandedKeys"
-          />
-        </div>
-      </aside>
+
+          <n-input
+            v-model:value="treeKeyword"
+            size="small"
+            clearable
+            placeholder="筛选左侧结构"
+            class="tree-search"
+          >
+            <template #prefix>
+              <i class="i-material-symbols:search" />
+            </template>
+          </n-input>
+
+          <div class="tree-scroll">
+            <div v-if="loading" class="menu-tree-skeleton">
+              <div
+                v-for="index in 10"
+                :key="index"
+                class="menu-tree-skeleton-row"
+                :style="{ paddingLeft: `${(index % 3) * 16}px` }"
+              >
+                <n-skeleton circle size="small" />
+                <n-skeleton text :width="`${72 - (index % 4) * 8}%`" />
+              </div>
+            </div>
+            <n-tree
+              v-else
+              block-line
+              selectable
+              :data="navigationTreeData"
+              :expanded-keys="navigationExpandedKeys"
+              :selected-keys="navigationSelectedKeys"
+              :render-label="renderNavigationLabel"
+              key-field="key"
+              label-field="label"
+              children-field="children"
+              @update:selected-keys="handleNavigationSelect"
+              @update:expanded-keys="handleNavigationExpandedKeys"
+            />
+          </div>
+        </aside>
+      </template>
 
       <main class="list-pane">
         <!-- 当前层级与查询；低频筛选按需展开 -->
@@ -378,7 +384,7 @@
           </template>
         </div>
       </main>
-    </div>
+    </MasterDetailWorkspace>
     <!-- 按需详情与原有编辑/批量弹层 -->
     <MenuResourceDetail
       :resource="activeResource" :icon="getRenderableIcon(activeResource)"
@@ -518,6 +524,7 @@ const {
   AiForm,
   IconRenderer,
   IconSelector,
+  MasterDetailWorkspace,
   MenuResourceDetail,
   NAutoComplete,
   NButton,

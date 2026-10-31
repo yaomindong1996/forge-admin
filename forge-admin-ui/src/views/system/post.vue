@@ -2,8 +2,9 @@
   <div class="system-post-page">
     <MasterDetailWorkspace
       class="post-layout"
+      persist-key="system-post"
       :collapsed="leftOrgPanelCollapsed"
-      :aside-width="220"
+      :aside-width="260"
       :collapsed-aside-width="72"
     >
       <template #aside>

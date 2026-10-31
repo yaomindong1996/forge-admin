@@ -2,6 +2,7 @@
   <div class="system-role-page">
     <MasterDetailWorkspace
       class="role-workspace"
+      persist-key="system-role"
       :aside-width="260"
       main-width="minmax(0, 1fr)"
     >

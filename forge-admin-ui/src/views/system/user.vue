@@ -3,8 +3,9 @@
     <!-- 左侧组织树 + 右侧用户列表布局 -->
     <MasterDetailWorkspace
       class="user-layout"
+      persist-key="system-user"
       :collapsed="leftOrgPanelCollapsed"
-      :aside-width="220"
+      :aside-width="260"
       :collapsed-aside-width="72"
     >
       <!-- 左侧组织树面板 -->

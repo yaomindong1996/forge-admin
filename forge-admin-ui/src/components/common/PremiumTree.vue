@@ -277,6 +277,7 @@ function findNodeByKey(targetKey, nodes = []) {
 <style scoped>
 .premium-tree {
   width: 100%;
+  min-width: 0;
   padding: 0;
 }
 </style>

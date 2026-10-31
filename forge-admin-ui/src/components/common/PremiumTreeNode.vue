@@ -52,9 +52,19 @@
         <i :class="nodeIcon" />
       </span>
 
-      <span class="premium-tree-copy" :title="nodeTooltip">
-        <span class="premium-tree-title" :title="nodeLabel">{{ nodeLabel }}</span>
-        <small v-if="nodeSubtitle" class="premium-tree-subtitle" :title="nodeSubtitle">{{ nodeSubtitle }}</small>
+      <span class="premium-tree-copy">
+        <n-tooltip placement="top-start" :delay="400" :disabled="!nodeLabel">
+          <template #trigger>
+            <span class="premium-tree-title">{{ nodeLabel }}</span>
+          </template>
+          {{ nodeTooltip || nodeLabel }}
+        </n-tooltip>
+        <n-tooltip v-if="nodeSubtitle" placement="top-start" :delay="400">
+          <template #trigger>
+            <small class="premium-tree-subtitle">{{ nodeSubtitle }}</small>
+          </template>
+          {{ nodeSubtitle }}
+        </n-tooltip>
       </span>
 
       <span v-if="nodeMeta" class="premium-tree-meta">
@@ -417,7 +427,9 @@ function resolveActionDisabled(action) {
 }
 
 .premium-tree-title {
+  display: block;
   min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   color: var(--text-secondary, #4b5563);
   font-size: 12px;
@@ -429,13 +441,26 @@ function resolveActionDisabled(action) {
 }
 
 .premium-tree-subtitle {
+  display: block;
   min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   color: var(--text-tertiary, #9ca3af);
   font-size: 11px;
   line-height: 16px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.premium-tree-copy :deep(.n-tooltip) {
+  max-width: 100%;
+}
+
+.premium-tree-copy :deep(.n-tooltip-trigger) {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .premium-tree-meta {

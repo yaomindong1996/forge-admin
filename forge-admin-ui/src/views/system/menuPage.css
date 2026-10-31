@@ -106,16 +106,11 @@
 .menu-workbench-body {
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: 0;
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  overflow: hidden;
 }
 
 .tree-pane,
 .list-pane {
+  height: 100%;
   min-height: 0;
   min-width: 0;
   background: var(--bg-primary);
@@ -125,7 +120,6 @@
 .tree-pane {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border-light);
 }
 
 .pane-head,
@@ -696,16 +690,8 @@
     justify-content: flex-start;
   }
 
-  .menu-workbench-body {
-    grid-template-columns: 1fr;
-    grid-template-rows: 180px minmax(360px, 1fr);
-    overflow: auto;
-  }
-
   .tree-pane {
     min-height: 0;
-    border-right: 0;
-    border-bottom: 1px solid var(--border-light);
   }
 
   .keyword-input {
