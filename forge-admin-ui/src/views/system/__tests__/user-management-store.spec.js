@@ -52,6 +52,26 @@ describe('用户管理拆分行为契约', () => {
     expect(store.beforeSubmit({ allowedClients: [] }).allowedClients).toBeNull()
   })
 
+  it('多选组织/角色/岗位的逗号串在提交时拆回 ID，避免被当成空列表', () => {
+    const data = store.beforeSubmit({
+      orgIds: '20,30',
+      roleIds: '3,4',
+      postIds: '7, 8',
+      mainOrgId: null,
+    })
+    expect(data.orgIds).toEqual([20, 30])
+    expect(data.roleIds).toEqual([3, 4])
+    expect(data.postIds).toEqual([7, 8])
+    expect(data.mainOrgId).toBe(20)
+
+    const patch = {}
+    store.editSchema.find(item => item.field === 'orgIds').onChange({
+      value: '20,30',
+      context: { patchFormData: next => Object.assign(patch, next) },
+    })
+    expect(patch.mainOrgId).toBe(20)
+  })
+
   it('字典异步更新后 Schema 响应式更新', () => {
     store.setDictionaries({ sys_user_status: [{ value: '1', label: '启用' }] })
     expect(store.searchSchema.find(item => item.field === 'userStatus').props.options).toEqual([{ value: 1, label: '启用' }])
