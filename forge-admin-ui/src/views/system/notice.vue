@@ -24,7 +24,6 @@
       edit-form-class="system-edit-form"
       edit-size="small"
       modal-width="960px"
-      modal-width="1000px"
     >
       <!-- 富文本编辑器插槽 -->
       <template #form-noticeContent="{ value, updateValue }">

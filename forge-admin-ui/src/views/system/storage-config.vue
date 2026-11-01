@@ -42,7 +42,6 @@
         edit-form-class="system-edit-form"
         edit-size="small"
         modal-width="960px"
-        modal-width="900px"
         max-height="var(--storage-table-max-height)"
         :search-y-gap="8"
         :before-submit="normalizeSubmitData"
