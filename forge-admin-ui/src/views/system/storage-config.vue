@@ -34,7 +34,14 @@
         row-key="id"
         add-button-text="新增存储配置"
         :load-detail-on-edit="true"
-        :edit-grid-cols="2"
+        :edit-grid-cols="24"
+        edit-label-placement="top"
+        edit-label-align="left"
+        :edit-x-gap="16"
+        :edit-y-gap="8"
+        edit-form-class="system-edit-form"
+        edit-size="small"
+        modal-width="960px"
         modal-width="900px"
         max-height="var(--storage-table-max-height)"
         :search-y-gap="8"
@@ -114,6 +121,7 @@ const searchSchema = computed(() => [
     field: 'configName',
     label: '配置名称',
     type: 'input',
+    span: 8,
     props: {
       placeholder: '请输入配置名称',
     },
@@ -122,6 +130,7 @@ const searchSchema = computed(() => [
     field: 'storageType',
     label: '存储类型',
     type: 'select',
+    span: 8,
     props: {
       placeholder: '请选择存储类型',
       options: storageTypeOptions.value,
@@ -131,6 +140,7 @@ const searchSchema = computed(() => [
     field: 'enabled',
     label: '状态',
     type: 'select',
+    span: 8,
     props: {
       placeholder: '请选择状态',
       options: [
@@ -233,12 +243,13 @@ const editSchema = computed(() => [
     props: {
       titlePlacement: 'left',
     },
-    span: 2,
+    span: 24,
   },
   {
     field: 'configName',
     label: '配置名称',
     type: 'input',
+    span: 8,
     rules: [{ required: true, message: '请输入配置名称', trigger: 'blur' }],
     props: {
       placeholder: '请输入配置名称，如：阿里云OSS生产环境',
@@ -248,8 +259,14 @@ const editSchema = computed(() => [
     field: 'storageType',
     label: '存储类型',
     type: 'select',
+    span: 8,
     defaultValue: 'local',
     rules: [{ required: true, message: '请选择存储类型', trigger: 'change' }],
+    quickCreate: {
+      preset: 'dictData',
+      dictType: STORAGE_TYPE_DICT,
+      linkLabel: '新增存储类型',
+    },
     props: {
       placeholder: '请选择存储类型',
       options: storageTypeOptions.value,
@@ -259,6 +276,7 @@ const editSchema = computed(() => [
     field: 'enabled',
     label: '启用状态',
     type: 'radio',
+    span: 8,
     defaultValue: true,
     props: {
       options: [
@@ -271,6 +289,7 @@ const editSchema = computed(() => [
     field: 'orderNum',
     label: '排序',
     type: 'number',
+    span: 8,
     defaultValue: 0,
     props: {
       placeholder: '数字越小越靠前',
@@ -285,14 +304,14 @@ const editSchema = computed(() => [
     props: {
       titlePlacement: 'left',
     },
-    span: 2,
+    span: 24,
     vIf: formData => formData.storageType !== 'local',
   },
   {
     field: 'endpoint',
     label: '访问端点',
     type: 'input',
-    span: 2,
+    span: 24,
     rules: [
       {
         required: true,
@@ -315,6 +334,7 @@ const editSchema = computed(() => [
     field: 'bucketName',
     label: '存储桶',
     type: 'input',
+    span: 8,
     rules: [
       {
         required: true,
@@ -337,6 +357,7 @@ const editSchema = computed(() => [
     field: 'region',
     label: '区域',
     type: 'input',
+    span: 8,
     props: {
       placeholder: '如：ap-guangzhou',
     },
@@ -346,6 +367,7 @@ const editSchema = computed(() => [
     field: 'accessKey',
     label: 'AccessKey',
     type: 'input',
+    span: 8,
     rules: [
       {
         required: true,
@@ -368,6 +390,7 @@ const editSchema = computed(() => [
     field: 'secretKey',
     label: 'SecretKey',
     type: 'input',
+    span: 8,
     rules: [
       {
         required: true,
@@ -393,7 +416,7 @@ const editSchema = computed(() => [
     label: '使用HTTPS',
     type: 'switch',
     defaultValue: true,
-    span: 2,
+    span: 24,
     vIf: formData => formData.storageType !== 'local',
   },
 
@@ -404,12 +427,13 @@ const editSchema = computed(() => [
     props: {
       titlePlacement: 'left',
     },
-    span: 2,
+    span: 24,
   },
   {
     field: 'basePath',
     label: '基础路径',
     type: 'input',
+    span: 8,
     props: {
       placeholder: '文件存储的基础路径，如：/upload 或 /files',
     },
@@ -418,6 +442,7 @@ const editSchema = computed(() => [
     field: 'domain',
     label: '访问域名',
     type: 'input',
+    span: 8,
     props: {
       placeholder: '文件访问域名，如：https://cdn.example.com',
     },
@@ -430,12 +455,13 @@ const editSchema = computed(() => [
     props: {
       titlePlacement: 'left',
     },
-    span: 2,
+    span: 24,
   },
   {
     field: 'maxFileSize',
     label: '最大文件(MB)',
     type: 'number',
+    span: 8,
     defaultValue: 100,
     props: {
       placeholder: '单位：MB',
@@ -462,13 +488,13 @@ const editSchema = computed(() => [
         },
       },
     ],
-    span: 2,
+    span: 24,
   },
   {
     field: 'extraConfig',
     label: '扩展配置',
     type: 'textarea',
-    span: 2,
+    span: 24,
     props: {
       placeholder: 'JSON格式的扩展配置（可选）',
       rows: 3,

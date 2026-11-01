@@ -1,0 +1,72 @@
+/**
+ * 平台管理新增/编辑表单统一样式（与用户管理对齐）
+ * 使用：edit-form-class="system-edit-form" 或 AiForm class="system-edit-form"
+ */
+
+.system-edit-form .af-layout-card .n-card-header,
+.ai-crud-edit-form.system-edit-form .af-layout-card .n-card-header {
+  padding: 12px 14px !important;
+}
+
+.system-edit-form .af-layout-card .n-card-content,
+.system-edit-form .af-layout-card .n-card__content,
+.ai-crud-edit-form.system-edit-form .af-layout-card .n-card-content,
+.ai-crud-edit-form.system-edit-form .af-layout-card .n-card__content {
+  padding: 10px 12px 12px !important;
+}
+
+.system-edit-form .n-form-item,
+.ai-crud-edit-form.system-edit-form .n-form-item {
+  align-items: stretch;
+}
+
+.system-edit-form .n-form-item-label,
+.ai-crud-edit-form.system-edit-form .n-form-item-label {
+  box-sizing: border-box;
+  display: flex !important;
+  align-items: center;
+  min-height: 22px !important;
+  height: 22px !important;
+  margin-bottom: 6px !important;
+  padding: 0 !important;
+  line-height: 22px;
+  font-size: 13px;
+}
+
+.system-edit-form .n-form-item-feedback-wrapper,
+.ai-crud-edit-form.system-edit-form .n-form-item-feedback-wrapper {
+  min-height: 18px !important;
+}
+
+.system-edit-form .n-form-item-blank,
+.system-edit-form .ai-form-control,
+.system-edit-form .ai-form-control--radio,
+.system-edit-form .ai-form-control--radioButton,
+.ai-crud-edit-form.system-edit-form .n-form-item-blank,
+.ai-crud-edit-form.system-edit-form .ai-form-control,
+.ai-crud-edit-form.system-edit-form .ai-form-control--radio,
+.ai-crud-edit-form.system-edit-form .ai-form-control--radioButton {
+  min-height: 0;
+}
+
+.system-edit-form .ai-form-radio-with-quick-create,
+.ai-crud-edit-form.system-edit-form .ai-form-radio-with-quick-create {
+  width: auto;
+  max-width: 100%;
+  gap: 6px;
+}
+
+.system-edit-form .ai-form-radio-with-quick-create .ai-form-quick-create-trigger,
+.ai-crud-edit-form.system-edit-form .ai-form-radio-with-quick-create .ai-form-quick-create-trigger {
+  margin-left: 4px;
+}
+
+.system-edit-form .ai-form-radio-with-quick-create .n-space,
+.ai-crud-edit-form.system-edit-form .ai-form-radio-with-quick-create .n-space {
+  gap: 12px !important;
+}
+
+.system-edit-form .n-radio,
+.ai-crud-edit-form.system-edit-form .n-radio {
+  --n-label-padding: 0 0 0 6px;
+}

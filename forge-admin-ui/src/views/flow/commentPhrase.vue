@@ -159,6 +159,11 @@ const editSchema = computed(() => [
     type: 'select',
     defaultValue: 'ALL',
     rules: [{ required: true, message: '请选择适用场景', trigger: 'change' }],
+    quickCreate: {
+      preset: 'dictData',
+      dictType: 'flow_comment_phrase_scene',
+      linkLabel: '新增场景',
+    },
     props: {
       options: sceneOptions.value,
     },
@@ -168,6 +173,11 @@ const editSchema = computed(() => [
     label: '范围',
     type: 'radio',
     defaultValue: 0,
+    quickCreate: {
+      preset: 'dictData',
+      dictType: 'flow_comment_phrase_owner_type',
+      linkLabel: '新增范围',
+    },
     props: {
       options: ownerTypeOptions.value,
     },

@@ -489,6 +489,12 @@ const editSchema = computed(() => [
     type: 'radio',
     defaultValue: 'BOTH',
     rules: [{ required: true, message: '请选择使用方式', trigger: 'change' }],
+    quickCreate: {
+      preset: 'dictData',
+      dictType: CONFIG_TYPE_DICT,
+      linkLabel: '新增方式',
+      allowPlatformDict: true,
+    },
     props: {
       options: configTypeOptions.value,
     },

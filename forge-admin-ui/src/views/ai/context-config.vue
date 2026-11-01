@@ -86,6 +86,11 @@ const editSchema = computed(() => [
     label: '类型',
     type: 'select',
     defaultValue: 'SPEC',
+    quickCreate: {
+      preset: 'dictData',
+      dictType: 'ai_context_type',
+      linkLabel: '新增类型',
+    },
     props: { options: configTypeOptions.value, placeholder: '请选择类型' },
   },
   {

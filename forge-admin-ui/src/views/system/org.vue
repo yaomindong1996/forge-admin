@@ -226,9 +226,14 @@
         :before-load-list="beforeLoadOrgDriverList"
         :before-render-form="beforeRenderOrgForm"
         row-key="id"
-        :edit-grid-cols="2"
+        :edit-grid-cols="24"
+        edit-label-placement="top"
         edit-label-align="left"
-        modal-width="900px"
+        :edit-x-gap="16"
+        :edit-y-gap="8"
+        edit-form-class="system-edit-form"
+        edit-size="small"
+        modal-width="960px"
         :show-search="false"
         :show-pagination="false"
         :hide-toolbar="true"
@@ -257,9 +262,14 @@
         :before-load-list="beforeLoadPostDriverList"
         :before-render-form="beforeRenderPostForm"
         row-key="id"
-        :edit-grid-cols="2"
+        :edit-grid-cols="24"
+        edit-label-placement="top"
         edit-label-align="left"
-        modal-width="800px"
+        :edit-x-gap="16"
+        :edit-y-gap="8"
+        edit-form-class="system-edit-form"
+        edit-size="small"
+        modal-width="960px"
         add-button-text="新增岗位"
         :show-search="false"
         :show-pagination="false"
@@ -283,18 +293,27 @@ import UserSelectModal from '@/components/common/UserSelectModal.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
-import { createAutoCodeSync, request } from '@/utils'
+import { request } from '@/utils'
+import {
+  buildSystemOrgEditSchema,
+  ORG_NORMAL_DISABLE_DICT,
+  ORG_TYPE_DICT,
+  resolveOrgEditSchemaOptions,
+} from '@/views/system/schemas/systemOrgEditSchema'
+import {
+  buildSystemPostEditSchema,
+  createPostCodeAutoCode,
+  POST_NORMAL_DISABLE_DICT,
+  POST_TYPE_DICT,
+  resolvePostEditSchemaOptions,
+} from '@/views/system/schemas/systemPostEditSchema'
+import { toNumberOptions } from '@/views/system/schemas/systemRoleEditSchema'
 
-const postCodeAutoCode = createAutoCodeSync({
-  scene: 'postCode',
-  targetField: 'postCode',
-})
+const postCodeAutoCode = createPostCodeAutoCode()
 
 defineOptions({ name: 'SystemOrg' })
 
-const ORG_TYPE_DICT = 'sys_org_type'
-const NORMAL_DISABLE_DICT = 'sys_normal_disable'
-const POST_TYPE_DICT = 'sys_post_type'
+const NORMAL_DISABLE_DICT = ORG_NORMAL_DISABLE_DICT
 const USER_STATUS_DICT = 'sys_user_status'
 const ALL_POST_KEY = '__all__'
 
@@ -302,6 +321,7 @@ const { dict } = useDict(
   ORG_TYPE_DICT,
   NORMAL_DISABLE_DICT,
   POST_TYPE_DICT,
+  POST_NORMAL_DISABLE_DICT,
   USER_STATUS_DICT,
 )
 
@@ -330,9 +350,6 @@ const selectedPostNode = ref(null)
 const orgWorkspaceTab = ref('members')
 const userSelectVisible = ref(false)
 
-const orgStatusOptions = computed(() => toNumberOptions(dict.value[NORMAL_DISABLE_DICT]))
-const postTypeOptions = computed(() => toNumberOptions(dict.value[POST_TYPE_DICT]))
-const postStatusOptions = computed(() => toNumberOptions(dict.value[NORMAL_DISABLE_DICT]))
 const userStatusOptions = computed(() => toNumberOptions(dict.value[USER_STATUS_DICT]))
 
 const orgTreeSummaryText = computed(() => {
@@ -362,238 +379,19 @@ const postDriverColumns = computed(() => [
   { prop: 'postCode', label: '岗位编码', width: 140 },
 ])
 
-const orgEditSchema = computed(() => [
-  {
-    type: 'divider',
-    label: '基础信息',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
-  },
-  {
-    field: 'parentId',
-    label: '上级组织',
-    type: 'treeSelect',
-    defaultValue: defaultParentId.value,
-    props: {
-      placeholder: '请选择上级组织',
-      clearable: true,
-      filterable: true,
-      defaultExpandAll: true,
-    },
-    options: () => parentOrgOptions.value,
-  },
-  {
-    field: 'orgName',
-    label: '组织名称',
-    type: 'input',
-    rules: [{ required: true, message: '请输入组织名称', trigger: 'blur' }],
-    props: {
-      placeholder: '请输入组织名称',
-    },
-  },
-  {
-    field: 'orgType',
-    label: '组织类型',
-    type: 'select',
-    defaultValue: dict.value[ORG_TYPE_DICT]?.[0]?.value || '2',
-    rules: [{ required: true, message: '请选择组织类型', trigger: 'change' }],
-    props: {
-      placeholder: '请选择组织类型',
-      options: dict.value[ORG_TYPE_DICT] || [],
-    },
-  },
-  {
-    field: 'sort',
-    label: '排序',
-    type: 'number',
-    defaultValue: 0,
-    props: {
-      placeholder: '排序值',
-      min: 0,
-    },
-  },
-  {
-    type: 'divider',
-    label: '负责人信息',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
-  },
-  {
-    field: 'leaderId',
-    label: '负责人',
-    type: 'userSelect',
-    labelField: 'leaderName',
-    clearable: true,
-    props: {
-      placeholder: '请从用户列表选择负责人',
-      title: '选择组织负责人',
-    },
-  },
-  {
-    field: 'phone',
-    label: '联系电话',
-    type: 'input',
-    rules: [
-      { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
-    ],
-    props: {
-      placeholder: '请输入联系电话',
-    },
-  },
-  {
-    field: 'address',
-    label: '地址',
-    type: 'input',
-    span: 2,
-    props: {
-      placeholder: '请输入组织地址',
-    },
-  },
-  {
-    field: 'regionCode',
-    label: '行政区划',
-    type: 'treeSelect',
-    props: {
-      placeholder: '请选择行政区划',
-      clearable: true,
-      filterable: true,
-    },
-    options: () => editRegionOptions.value,
-  },
-  {
-    type: 'divider',
-    label: '状态配置',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
-  },
-  {
-    field: 'orgStatus',
-    label: '组织状态',
-    type: 'radio',
-    defaultValue: 1,
-    props: {
-      options: orgStatusOptions.value,
-    },
-  },
-  {
-    field: 'remark',
-    label: '备注',
-    type: 'textarea',
-    span: 2,
-    props: {
-      placeholder: '请输入备注',
-      rows: 3,
-    },
-  },
-])
+const orgEditSchema = computed(() => buildSystemOrgEditSchema({
+  ...resolveOrgEditSchemaOptions(dict.value),
+  defaultParentId: defaultParentId.value,
+  parentOptions: () => parentOrgOptions.value,
+  regionOptions: () => editRegionOptions.value,
+  withFieldQuickCreate: true,
+}))
 
-const postEditSchema = computed(() => [
-  {
-    type: 'divider',
-    label: '基础信息',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
-  },
-  {
-    field: 'postName',
-    label: '岗位名称',
-    type: 'input',
-    rules: [{ required: true, message: '请输入岗位名称', trigger: 'blur' }],
-    props: {
-      placeholder: '请输入岗位名称',
-    },
-    onChange: postCodeAutoCode.onSourceChange,
-  },
-  {
-    field: 'postCode',
-    label: '岗位编码',
-    type: 'input',
-    rules: [{ required: true, message: '请输入岗位编码', trigger: 'blur' }],
-    labelTip: '根据岗位名称自动生成，可手动修改',
-    props: {
-      placeholder: '自动生成，如：yan_fa_gong_cheng_shi',
-    },
-    onChange: postCodeAutoCode.onTargetChange,
-  },
-  {
-    field: 'orgId',
-    label: '所属组织',
-    type: 'treeSelect',
-    required: true,
-    rules: [{ required: true, type: 'number', message: '请选择所属组织', trigger: 'change' }],
-    optionSource: {
-      type: 'tree',
-      api: 'get@/system/org/tree',
-      // eslint-disable-next-line no-template-curly-in-string
-      params: { tenantId: '${tenantId}' },
-      valueField: 'id',
-      keyField: 'id',
-      labelField: 'orgName',
-      childrenField: 'children',
-    },
-    props: {
-      placeholder: '请选择所属组织',
-      clearable: true,
-      filterable: true,
-      defaultExpandAll: true,
-    },
-  },
-  {
-    field: 'postType',
-    label: '岗位类型',
-    type: 'radio',
-    defaultValue: 2,
-    rules: [{ required: true, type: 'number', message: '请选择岗位类型', trigger: 'change' }],
-    props: {
-      options: postTypeOptions.value,
-    },
-  },
-  {
-    field: 'sort',
-    label: '排序',
-    type: 'number',
-    defaultValue: 0,
-    props: {
-      placeholder: '排序值',
-      min: 0,
-    },
-  },
-  {
-    type: 'divider',
-    label: '状态配置',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
-  },
-  {
-    field: 'postStatus',
-    label: '岗位状态',
-    type: 'radio',
-    defaultValue: 1,
-    props: {
-      options: postStatusOptions.value,
-    },
-  },
-  {
-    field: 'remark',
-    label: '备注',
-    type: 'textarea',
-    span: 2,
-    props: {
-      placeholder: '请输入备注',
-      rows: 3,
-    },
-  },
-])
+const postEditSchema = computed(() => buildSystemPostEditSchema({
+  postCodeAutoCode,
+  ...resolvePostEditSchemaOptions(dict.value),
+  withFieldQuickCreate: true,
+}))
 
 const userSearchSchema = computed(() => [
   {
@@ -699,13 +497,6 @@ onMounted(async () => {
   await loadLeftOrgTree()
   await loadPostList()
 })
-
-function toNumberOptions(options = []) {
-  return (options || []).map(item => ({
-    ...item,
-    value: normalizeSingleNumber(item.value, item.value),
-  }))
-}
 
 function normalizeSingleNumber(value, fallback = null) {
   if (Array.isArray(value)) {

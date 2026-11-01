@@ -104,8 +104,14 @@
           :before-search="beforeSearch"
           :before-render-form="beforeRenderForm"
           row-key="id"
-          :edit-grid-cols="2"
-          modal-width="800px"
+          :edit-grid-cols="24"
+          edit-label-placement="top"
+          edit-label-align="left"
+          :edit-x-gap="16"
+          :edit-y-gap="8"
+          edit-form-class="system-edit-form"
+          edit-size="small"
+          modal-width="960px"
           add-button-text="新增岗位"
           :hide-selection="false"
         >
@@ -132,14 +138,17 @@ import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
-import { createAutoCodeSync, request } from '@/utils'
+import { request } from '@/utils'
+import {
+  buildSystemPostEditSchema,
+  createPostCodeAutoCode,
+  resolvePostEditSchemaOptions,
+} from './schemas/systemPostEditSchema'
+import { toNumberOptions } from './schemas/systemRoleEditSchema'
 
 defineOptions({ name: 'SystemPost' })
 
-const postCodeAutoCode = createAutoCodeSync({
-  scene: 'postCode',
-  targetField: 'postCode',
-})
+const postCodeAutoCode = createPostCodeAutoCode()
 
 const POST_TYPE_DICT = 'sys_post_type'
 const NORMAL_DISABLE_DICT = 'sys_normal_disable'
@@ -258,117 +267,12 @@ const tableColumns = computed(() => [
   },
 ])
 
-// 编辑表单配置
-const editSchema = computed(() => [
-  {
-    type: 'divider',
-    label: '基础信息',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
-  },
-  {
-    field: 'postName',
-    label: '岗位名称',
-    type: 'input',
-    rules: [{ required: true, message: '请输入岗位名称', trigger: 'blur' }],
-    props: {
-      placeholder: '请输入岗位名称',
-    },
-    onChange: postCodeAutoCode.onSourceChange,
-  },
-  {
-    field: 'postCode',
-    label: '岗位编码',
-    type: 'input',
-    rules: [{ required: true, message: '请输入岗位编码', trigger: 'blur' }],
-    labelTip: '根据岗位名称自动生成，可手动修改',
-    props: {
-      placeholder: '自动生成，如：yan_fa_gong_cheng_shi',
-    },
-    onChange: postCodeAutoCode.onTargetChange,
-  },
-  {
-    field: 'orgId',
-    label: '所属组织',
-    type: 'treeSelect',
-    required: true,
-    rules: [{ required: true, type: 'number', message: '请选择所属组织', trigger: 'change' }],
-    optionSource: {
-      type: 'tree',
-      api: 'get@/system/org/tree',
-      // eslint-disable-next-line no-template-curly-in-string
-      params: { tenantId: '${tenantId}' },
-      valueField: 'id',
-      keyField: 'id',
-      labelField: 'orgName',
-      childrenField: 'children',
-    },
-    props: {
-      placeholder: '请选择所属组织',
-      clearable: true,
-      filterable: true,
-      defaultExpandAll: true,
-    },
-  },
-  {
-    field: 'postType',
-    label: '岗位类型',
-    type: 'radio',
-    defaultValue: 2,
-    rules: [{ required: true, type: 'number', message: '请选择岗位类型', trigger: 'change' }],
-    props: {
-      options: postTypeOptions.value,
-    },
-  },
-  {
-    field: 'sort',
-    label: '排序',
-    type: 'number',
-    defaultValue: 0,
-    props: {
-      placeholder: '排序值',
-      min: 0,
-    },
-  },
-
-  // 状态配置
-  {
-    type: 'divider',
-    label: '状态配置',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
-  },
-  {
-    field: 'postStatus',
-    label: '岗位状态',
-    type: 'radio',
-    defaultValue: 1,
-    props: {
-      options: postStatusOptions.value,
-    },
-  },
-  {
-    field: 'remark',
-    label: '备注',
-    type: 'textarea',
-    span: 2,
-    props: {
-      placeholder: '请输入备注',
-      rows: 3,
-    },
-  },
-])
-
-function toNumberOptions(options = []) {
-  return options.map(item => ({
-    ...item,
-    value: Number(item.value),
-  }))
-}
+// 编辑表单配置（与快捷新增 systemPost 预设共用 schema 工厂）
+const editSchema = computed(() => buildSystemPostEditSchema({
+  postCodeAutoCode,
+  ...resolvePostEditSchemaOptions(dict.value),
+  withFieldQuickCreate: true,
+}))
 
 onMounted(() => {
   loadLeftOrgTree()

@@ -82,6 +82,59 @@
   text-align: right;
 }
 
+/* 快捷新增按钮视觉样式见 FormQuickCreateTrigger.vue（scoped），避免 AiFormItem scoped 无法穿透子组件 */
+
+.ai-form-item-body.has-quick-create-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 6px;
+}
+
+.ai-form-item-body.has-quick-create-inline > .ai-form-control {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.ai-form-item-body.has-quick-create-inline > .ai-form-field-event,
+.ai-form-item-body.has-quick-create-inline > .ai-form-item-description {
+  width: 100%;
+}
+
+.ai-form-radio-with-quick-create {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  width: auto;
+}
+
+/* radio 紧凑占位；快捷新增紧跟选项右侧，不要 margin-left:auto 拉到行尾 */
+.ai-form-radio-with-quick-create > :deep(.n-radio-group) {
+  flex: 0 1 auto;
+  min-width: 0;
+  width: auto;
+}
+
+.ai-form-radio-with-quick-create :deep(.n-space) {
+  flex-wrap: nowrap !important;
+  gap: 12px !important;
+}
+
+.ai-form-radio-with-quick-create :deep(.n-radio),
+.ai-form-radio-with-quick-create :deep(.n-radio__label) {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ai-form-radio-with-quick-create :deep(.ai-form-quick-create-trigger) {
+  flex: 0 0 auto;
+  margin-left: 4px;
+}
+
 .ai-form-item-label__badge {
   display: inline-flex;
   align-items: center;

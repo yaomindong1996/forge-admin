@@ -5,7 +5,13 @@ import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
-import { createAutoCodeSync, request } from '@/utils'
+import { request } from '@/utils'
+import {
+  buildSystemRoleEditSchema,
+  createRoleKeyAutoCode,
+  resolveRoleEditSchemaOptions,
+  toNumberOptions,
+} from '../schemas/systemRoleEditSchema'
 import {
   buildRoleUserOrgTreeOptions,
   flattenOrgNodes,
@@ -418,110 +424,14 @@ export function applyRolePagePart1() {
     },
   ])
 
-  // 编辑表单配置
-  const roleKeyAutoCode = createAutoCodeSync({
-    scene: 'roleKey',
-    targetField: 'roleKey',
-  })
+  // 编辑表单配置（与快捷新增 systemRole 预设共用 schema 工厂）
+  const roleKeyAutoCode = createRoleKeyAutoCode()
 
-  const editSchema = computed(() => [
-    {
-      field: 'roleName',
-      label: '角色名称',
-      type: 'input',
-      rules: [{ required: true, message: '请输入角色名称', trigger: 'blur' }],
-      props: {
-        placeholder: '请输入角色名称',
-      },
-      onChange: roleKeyAutoCode.onSourceChange,
-    },
-    {
-      field: 'roleKey',
-      label: '权限字符',
-      type: 'input',
-      rules: [{ required: true, message: '请输入权限字符', trigger: 'blur' }],
-      labelTip: '根据角色名称自动生成全拼，可手动修改',
-      props: {
-        placeholder: '自动生成，如：xi_tong_guan_li_yuan',
-      },
-      onChange: roleKeyAutoCode.onTargetChange,
-    },
-    {
-      field: 'roleType',
-      label: '角色类型',
-      type: 'select',
-      defaultValue: 1,
-      rules: [{ required: true, type: 'number', message: '请选择角色类型', trigger: 'change' }],
-      props: {
-        placeholder: '请选择角色类型',
-        options: roleTypeOptions.value,
-      },
-    },
-    {
-      field: 'dataScope',
-      label: '数据范围',
-      type: 'select',
-      defaultValue: 2,
-      rules: [{ required: true, type: 'number', message: '请选择数据范围', trigger: 'change' }],
-      props: {
-        placeholder: '请选择数据范围',
-        options: manageableDataScopeOptions.value,
-      },
-    },
-    {
-      field: 'sort',
-      label: '排序',
-      type: 'number',
-      defaultValue: 0,
-      props: {
-        placeholder: '排序值',
-        min: 0,
-      },
-    },
-    {
-      type: 'divider',
-      label: '状态配置',
-      props: {
-        titlePlacement: 'left',
-      },
-      span: 2,
-    },
-    {
-      field: 'roleStatus',
-      label: '角色状态',
-      type: 'radio',
-      defaultValue: 1,
-      props: {
-        options: roleStatusOptions.value,
-      },
-    },
-    {
-      field: 'isSystem',
-      label: '系统角色',
-      type: 'radio',
-      defaultValue: 0,
-      props: {
-        options: yesNoOptions.value,
-      },
-    },
-    {
-      field: 'remark',
-      label: '备注',
-      type: 'textarea',
-      span: 2,
-      props: {
-        placeholder: '请输入备注',
-        rows: 3,
-      },
-    },
-  ])
-
-  function toNumberOptions(options = []) {
-    return options.map(item => ({
-      ...item,
-      value: Number(item.value),
-    }))
-  }
+  const editSchema = computed(() => buildSystemRoleEditSchema({
+    roleKeyAutoCode,
+    ...resolveRoleEditSchemaOptions(userStore, dict.value),
+    withFieldQuickCreate: true,
+  }))
 
   function resolveOptionLabel(options = [], value, fallback = '') {
     const matched = options.find(option => String(option?.value) === String(value))

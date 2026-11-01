@@ -22,6 +22,7 @@
           v-model:value="form.objectRole"
           dict-type="ai_business_application_object_role"
           :clearable="false"
+          quick-create
         />
       </n-form-item>
       <n-alert type="info" :bordered="false">

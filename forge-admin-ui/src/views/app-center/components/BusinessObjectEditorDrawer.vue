@@ -24,7 +24,7 @@
               <n-input v-model:value="form.objectCode" disabled placeholder="系统引用编码" />
             </n-form-item-gi>
             <n-form-item-gi label="对象类型" path="objectType">
-              <DictSelect v-model:value="form.objectType" dict-type="ai_business_object_type" />
+              <DictSelect v-model:value="form.objectType" dict-type="ai_business_object_type" quick-create />
             </n-form-item-gi>
             <n-form-item-gi label="图标">
               <IconSelector v-model="form.icon" />

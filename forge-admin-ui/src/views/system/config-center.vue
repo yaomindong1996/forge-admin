@@ -79,7 +79,7 @@
                     <i class="i-material-symbols:passkey-outline" />
                     验证码类型
                   </div>
-                  <DictSelect v-model:value="configForms.login.captchaType" dict-type="captcha_type" class="config-select" />
+                  <DictSelect v-model:value="configForms.login.captchaType" dict-type="captcha_type" class="config-select" quick-create />
                 </div>
                 <div class="config-item">
                   <div class="config-copy">
@@ -660,7 +660,7 @@
                     <i class="i-material-symbols:functions-outline" />
                     加密算法
                   </div>
-                  <n-select v-model:value="configForms.crypto.algorithm" :options="cryptoAlgorithmOptions" class="config-select" />
+                  <DictSelect v-model:value="configForms.crypto.algorithm" dict-type="sys_crypto_algorithm" class="config-select" :clearable="false" quick-create />
                 </div>
                 <div class="config-item">
                   <div class="config-label">
@@ -816,7 +816,7 @@
                   <i class="i-material-symbols:person-outline" />
                   同账号登录策略
                 </div>
-                <n-select v-model:value="configForms.auth.sameAccountLoginStrategy" :options="sameAccountLoginStrategyOptions" class="config-select-full" />
+                <DictSelect v-model:value="configForms.auth.sameAccountLoginStrategy" dict-type="sys_same_account_login_strategy" class="config-select-full" :clearable="false" quick-create />
               </div>
               <div class="config-item">
                 <div class="config-label">
@@ -996,9 +996,7 @@ import { initKeyExchange } from '@/utils/crypto/key-exchange'
 import { request } from '@/utils/http'
 
 const activeTab = ref('login')
-const { dict } = useDict('sys_crypto_algorithm', 'sys_same_account_login_strategy', 'sys_enable_disable')
-const cryptoAlgorithmOptions = computed(() => dict.value.sys_crypto_algorithm || [])
-const sameAccountLoginStrategyOptions = computed(() => dict.value.sys_same_account_login_strategy || [])
+const { dict } = useDict('sys_enable_disable')
 const enableDisableOptions = computed(() => dict.value.sys_enable_disable || [])
 const saveAllLoading = ref(false)
 

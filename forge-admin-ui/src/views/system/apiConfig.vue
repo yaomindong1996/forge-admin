@@ -16,7 +16,14 @@
       row-key="id"
       add-button-text="新增接口配置"
       :load-detail-on-edit="true"
-      :edit-grid-cols="2"
+      :edit-grid-cols="24"
+      edit-label-placement="top"
+      edit-label-align="left"
+      :edit-x-gap="16"
+      :edit-y-gap="8"
+      edit-form-class="system-edit-form"
+      edit-size="small"
+      modal-width="960px"
       modal-width="900px"
       :before-render-detail="handleBeforeRenderDetail"
       :before-submit="handleBeforeSubmit"
@@ -149,6 +156,7 @@ const searchSchema = computed(() => [
     field: 'apiName',
     label: '接口名称',
     type: 'input',
+    span: 8,
     props: {
       placeholder: '请输入接口名称',
     },
@@ -157,6 +165,7 @@ const searchSchema = computed(() => [
     field: 'apiCode',
     label: '接口编码',
     type: 'input',
+    span: 8,
     props: {
       placeholder: '请输入接口编码',
     },
@@ -165,6 +174,7 @@ const searchSchema = computed(() => [
     field: 'reqMethod',
     label: '请求方式',
     type: 'select',
+    span: 8,
     props: {
       placeholder: '请选择',
       options: reqMethodOptions.value,
@@ -175,6 +185,7 @@ const searchSchema = computed(() => [
     field: 'urlPath',
     label: '请求路径',
     type: 'input',
+    span: 8,
     props: {
       placeholder: '请输入请求路径',
     },
@@ -183,6 +194,7 @@ const searchSchema = computed(() => [
     field: 'moduleCode',
     label: '业务模块',
     type: 'input',
+    span: 8,
     props: {
       placeholder: '请输入业务模块',
     },
@@ -191,6 +203,7 @@ const searchSchema = computed(() => [
     field: 'status',
     label: '状态',
     type: 'select',
+    span: 8,
     props: {
       placeholder: '请选择',
       options: statusOptions.value,
@@ -333,12 +346,13 @@ const editSchema = computed(() => [
     props: {
       titlePlacement: 'left',
     },
-    span: 2,
+    span: 24,
   },
   {
     field: 'apiName',
     label: '接口名称',
     type: 'input',
+    span: 8,
     rules: [{ required: true, message: '请输入接口名称', trigger: 'blur' }],
     props: {
       placeholder: '请输入接口名称，如：查询用户信息',
@@ -349,6 +363,7 @@ const editSchema = computed(() => [
     field: 'apiCode',
     label: '接口编码',
     type: 'input',
+    span: 8,
     rules: [{ required: true, message: '请输入接口编码', trigger: 'blur' }],
     labelTip: '根据名称自动生成，可手动修改',
     props: {
@@ -360,7 +375,13 @@ const editSchema = computed(() => [
     field: 'reqMethod',
     label: '请求方式',
     type: 'select',
+    span: 8,
     rules: [{ required: true, message: '请选择请求方式', trigger: 'change' }],
+    quickCreate: {
+      preset: 'dictData',
+      dictType: 'sys_req_method',
+      linkLabel: '新增方法',
+    },
     props: {
       options: reqMethodOptions.value,
       placeholder: '请选择请求方式',
@@ -370,7 +391,7 @@ const editSchema = computed(() => [
     field: 'urlPath',
     label: '请求路径',
     type: 'input',
-    span: 2,
+    span: 24,
     rules: [{ required: true, message: '请输入请求路径', trigger: 'blur' }],
     props: {
       placeholder: '请输入请求路径，支持Ant风格，如 /api/user/**',
@@ -380,6 +401,7 @@ const editSchema = computed(() => [
     field: 'apiVersion',
     label: '版本号',
     type: 'input',
+    span: 8,
     props: {
       placeholder: '请输入版本号，如：v1.0',
     },
@@ -388,6 +410,7 @@ const editSchema = computed(() => [
     field: 'moduleCode',
     label: '业务模块',
     type: 'input',
+    span: 8,
     props: {
       placeholder: '请输入业务模块，如：sys, order, pay',
     },
@@ -396,7 +419,7 @@ const editSchema = computed(() => [
     field: 'serviceId',
     label: '微服务ID',
     type: 'input',
-    span: 2,
+    span: 24,
     props: {
       placeholder: '请输入微服务ID（微服务架构时使用）',
     },
@@ -407,12 +430,13 @@ const editSchema = computed(() => [
     props: {
       titlePlacement: 'left',
     },
-    span: 2,
+    span: 24,
   },
   {
     field: 'authFlag',
     label: '需认证/鉴权',
     type: 'select',
+    span: 8,
     defaultValue: '1',
     props: {
       options: yesNoOptions.value,
@@ -423,6 +447,7 @@ const editSchema = computed(() => [
     field: 'encryptFlag',
     label: '需报文加解密',
     type: 'select',
+    span: 8,
     defaultValue: '0',
     props: {
       options: yesNoOptions.value,
@@ -433,6 +458,7 @@ const editSchema = computed(() => [
     field: 'tenantFlag',
     label: '启用租户隔离',
     type: 'select',
+    span: 8,
     defaultValue: '0',
     props: {
       options: yesNoOptions.value,
@@ -443,6 +469,7 @@ const editSchema = computed(() => [
     field: 'limitFlag',
     label: '开启限流',
     type: 'select',
+    span: 8,
     defaultValue: '0',
     props: {
       options: yesNoOptions.value,
@@ -453,7 +480,7 @@ const editSchema = computed(() => [
     field: 'sensitiveFields',
     label: '脱敏字段',
     type: 'textarea',
-    span: 2,
+    span: 24,
     props: {
       placeholder: '请输入需脱敏字段，JSON数组格式，如 ["phone", "id_card"]',
       rows: 2,
@@ -465,12 +492,13 @@ const editSchema = computed(() => [
     props: {
       titlePlacement: 'left',
     },
-    span: 2,
+    span: 24,
   },
   {
     field: 'status',
     label: '状态',
     type: 'select',
+    span: 8,
     defaultValue: '1',
     props: {
       options: statusOptions.value,
@@ -481,7 +509,7 @@ const editSchema = computed(() => [
     field: 'remark',
     label: '备注说明',
     type: 'textarea',
-    span: 2,
+    span: 24,
     props: {
       placeholder: '请输入备注说明',
       rows: 3,

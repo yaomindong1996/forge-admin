@@ -14,12 +14,15 @@
     :show-render-mode-switch="false"
     :table-props="{ showRefresh: false }"
     :load-detail-on-edit="true"
-    :edit-grid-cols="1"
-    edit-label-placement="left"
+    :edit-grid-cols="24"
+    edit-label-placement="top"
     edit-label-align="left"
-    edit-label-width="96px"
+    :edit-x-gap="16"
+    :edit-y-gap="8"
+    edit-form-class="system-edit-form"
+    edit-size="small"
     form-open-mode="drawer"
-    :modal-width="isNarrow ? '100vw' : '680px'"
+    :modal-width="isNarrow ? '100vw' : '960px'"
     :hide-form-section-nav="true"
     :hide-selection="true"
     :hide-batch-delete="true"
@@ -231,40 +234,59 @@ function renderMobileActions(row) {
 }
 
 const editSchema = computed(() => [
-  { type: 'divider', label: '适用页面', span: 1, props: { titlePlacement: 'left' } },
   {
-    field: 'resourceCode',
-    label: '选择页面',
-    type: 'slot',
-    slotName: 'resourceCode',
-    rules: [{ required: true, message: '请选择适用页面', trigger: 'change' }],
+    type: 'card',
+    nodeType: 'card',
+    label: '适用页面',
+    props: { icon: 'forge:monitor', bordered: true },
+    children: [
+      {
+        field: 'resourceCode',
+        label: '选择页面',
+        type: 'slot',
+        slotName: 'resourceCode',
+        span: 24,
+        rules: [{ required: true, message: '请选择适用页面', trigger: 'change' }],
+      },
+      {
+        field: 'resourceName',
+        label: '显示名称',
+        type: 'input',
+        span: 24,
+        rules: [{ required: true, message: '请输入显示名称', trigger: 'blur' }],
+        props: { placeholder: '如：用户管理' },
+      },
+    ],
   },
   {
-    field: 'resourceName',
-    label: '显示名称',
-    type: 'input',
-    rules: [{ required: true, message: '请输入显示名称', trigger: 'blur' }],
-    props: { placeholder: '如：用户管理' },
-  },
-  { type: 'divider', label: '支持的限制范围', span: 1, props: { titlePlacement: 'left' } },
-  {
-    field: 'scopeRules',
-    label: '过滤规则',
-    type: 'slot',
-    slotName: 'scopeRules',
-    showLabel: false,
-  },
-  {
-    field: 'remark',
-    label: '备注',
-    type: 'textarea',
-    props: { rows: 2, maxlength: 500, placeholder: '说明规则的用途，方便其他管理员理解' },
-  },
-  {
-    field: 'technicalConfig',
-    type: 'slot',
-    slotName: 'technicalConfig',
-    showLabel: false,
+    type: 'card',
+    nodeType: 'card',
+    label: '支持的限制范围',
+    props: { icon: 'forge:actions', bordered: true },
+    children: [
+      {
+        field: 'scopeRules',
+        label: '过滤规则',
+        type: 'slot',
+        slotName: 'scopeRules',
+        span: 24,
+        showLabel: false,
+      },
+      {
+        field: 'remark',
+        label: '备注',
+        type: 'textarea',
+        span: 24,
+        props: { rows: 2, maxlength: 500, placeholder: '说明规则的用途，方便其他管理员理解' },
+      },
+      {
+        field: 'technicalConfig',
+        type: 'slot',
+        slotName: 'technicalConfig',
+        span: 24,
+        showLabel: false,
+      },
+    ],
   },
 ])
 

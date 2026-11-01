@@ -26,7 +26,9 @@
     ref="formItemRef"
     :label="field.label"
     :path="field.field"
+    :label-placement="field.labelPlacement"
     :label-width="field.labelWidth"
+    :label-align="field.labelAlign"
     :show-label="field.showLabel !== false"
     :show-feedback="field.showFeedback !== false"
     :required="isFieldRequired"
@@ -47,7 +49,10 @@
       </span>
     </template>
 
-    <div class="ai-form-item-body">
+    <div
+      class="ai-form-item-body"
+      :class="{ 'has-quick-create-inline': showQuickCreateInline }"
+    >
       <div
         class="ai-form-control"
         :style="componentControlStyle"
@@ -204,6 +209,7 @@
               {{ selectDropdownHeader }}
             </div>
           </template>
+          <!-- 快捷新增仅字段旁 Trigger；不下发到下拉 #action，避免面板底部重复入口 -->
           <template v-if="selectDropdownAction" #action>
             <div class="ai-form-select-slot-text">
               {{ selectDropdownAction }}
@@ -236,25 +242,34 @@
         />
 
         <!-- 单选框 -->
-        <n-radio-group
-          v-else-if="field.type === 'radio'"
-          :value="resolveOptionValue(value)"
-          :disabled="disabledHandler(field)"
-          v-bind="controlProps"
-          @update:value="handleUpdate"
-          v-on="getComponentEvents(field)"
-        >
-          <n-space :vertical="field.props?.direction === 'vertical'">
-            <n-radio
-              v-for="option in currentOptions"
-              :key="option.value"
-              :value="option.value"
-              :disabled="option.disabled"
+        <template v-else-if="field.type === 'radio'">
+          <div class="ai-form-radio-with-quick-create">
+            <n-radio-group
+              :value="resolveOptionValue(value)"
+              :disabled="disabledHandler(field)"
+              v-bind="controlProps"
+              @update:value="handleUpdate"
+              v-on="getComponentEvents(field)"
             >
-              {{ option.label }}
-            </n-radio>
-          </n-space>
-        </n-radio-group>
+              <n-space :size="12" :vertical="field.props?.direction === 'vertical'">
+                <n-radio
+                  v-for="option in currentOptions"
+                  :key="option.value"
+                  :value="option.value"
+                  :disabled="option.disabled"
+                >
+                  {{ option.label }}
+                </n-radio>
+              </n-space>
+            </n-radio-group>
+            <FormQuickCreateTrigger
+              v-if="showQuickCreateTrigger"
+              :label="quickCreateTooltipLabel"
+              :disabled="quickCreateDisabled"
+              @click="openQuickCreate"
+            />
+          </div>
+        </template>
 
         <!-- 单选按钮组 -->
         <n-radio-group
@@ -792,6 +807,12 @@
           v-on="getComponentEvents(field)"
         />
       </div>
+      <FormQuickCreateTrigger
+        v-if="showQuickCreateInline"
+        :label="quickCreateTooltipLabel"
+        :disabled="quickCreateDisabled"
+        @click="openQuickCreate"
+      />
       <div v-if="showFieldEventFeedback" class="ai-form-field-event">
         <n-button
           v-if="scanFieldEventEnabled && field.type !== 'barcodeScanner'"
@@ -865,6 +886,15 @@
     :filter-fields="recordSelectorConfig.filterFields"
     :runtime-context="recordSelectorRuntimeContext"
     @confirm="handleRecordSelectorConfirm"
+  />
+
+  <FormQuickCreateHost
+    v-if="quickCreateDefinition"
+    v-model:show="quickCreateVisible"
+    :definition="quickCreateDefinition"
+    :parent-form-data="formData || {}"
+    :field="field"
+    @success="handleQuickCreateSuccess"
   />
 </template>
 

@@ -135,6 +135,11 @@ const editSchema = computed(() => [
     field: 'category',
     label: '分类',
     type: 'select',
+    quickCreate: {
+      preset: 'dictData',
+      dictType: 'flow_spel_category',
+      linkLabel: '新增分类',
+    },
     props: { options: categoryOptions.value, placeholder: '请选择分类' },
   },
   {

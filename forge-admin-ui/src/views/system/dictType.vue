@@ -15,6 +15,14 @@
       :columns="tableColumns"
       :edit-schema="editSchema"
       row-key="dictId"
+      :edit-grid-cols="24"
+      edit-label-placement="top"
+      edit-label-align="left"
+      :edit-x-gap="16"
+      :edit-y-gap="8"
+      edit-form-class="system-edit-form"
+      edit-size="small"
+      modal-width="960px"
       add-button-text="新增字典类型"
     />
   </div>
@@ -26,6 +34,7 @@ import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import { closeAndOpen, createAutoCodeSync, request } from '@/utils'
+import { buildSystemEditCards } from './schemas/systemEditLayout'
 
 defineOptions({ name: 'DictType' })
 
@@ -166,60 +175,47 @@ const tableColumns = computed(() => [
   },
 ])
 
-// 编辑表单配置
-const editSchema = [
+// 编辑表单配置（与用户管理同款：卡片 + 24 栅格 span8）
+const editSchema = buildSystemEditCards([
   {
-    type: 'divider',
     label: '基础信息',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
+    icon: 'forge:module',
+    fields: [
+      {
+        field: 'dictName',
+        label: '字典名称',
+        type: 'input',
+        rules: [{ required: true, message: '请输入字典名称', trigger: 'blur' }],
+        props: { placeholder: '请输入字典名称' },
+        onChange: dictTypeAutoCode.onSourceChange,
+      },
+      {
+        field: 'dictType',
+        label: '字典类型',
+        type: 'input',
+        rules: [{ required: true, message: '请输入字典类型', trigger: 'blur' }],
+        disabled: ({ formData, context }) => Boolean(context?.isEdit || formData?.dictId),
+        labelTip: '根据字典名称自动生成，可手动修改；保存后不可改',
+        props: { placeholder: '自动生成，如：sys_user_sex' },
+        onChange: dictTypeAutoCode.onTargetChange,
+      },
+      {
+        field: 'dictStatus',
+        label: '状态',
+        type: 'radio',
+        defaultValue: 1,
+        rules: [{ required: true, type: 'number', message: '请选择状态', trigger: 'change' }],
+        props: { options: statusOptions },
+      },
+      {
+        field: 'remark',
+        label: '备注',
+        type: 'textarea',
+        props: { placeholder: '请输入备注', rows: 3 },
+      },
+    ],
   },
-  {
-    field: 'dictName',
-    label: '字典名称',
-    type: 'input',
-    rules: [{ required: true, message: '请输入字典名称', trigger: 'blur' }],
-    props: {
-      placeholder: '请输入字典名称',
-    },
-    onChange: dictTypeAutoCode.onSourceChange,
-  },
-  {
-    field: 'dictType',
-    label: '字典类型',
-    type: 'input',
-    rules: [{ required: true, message: '请输入字典类型', trigger: 'blur' }],
-    // 创建后锁定编码，避免孤儿化 sys_dict_data；优先用 modal 态，兼容仅有 dictId 的回填
-    disabled: ({ formData, context }) => Boolean(context?.isEdit || formData?.dictId),
-    labelTip: '根据字典名称自动生成，可手动修改；保存后不可改',
-    props: {
-      placeholder: '自动生成，如：sys_user_sex',
-    },
-    onChange: dictTypeAutoCode.onTargetChange,
-  },
-  {
-    field: 'dictStatus',
-    label: '状态',
-    type: 'radio',
-    defaultValue: 1,
-    rules: [{ required: true, type: 'number', message: '请选择状态', trigger: 'change' }],
-    props: {
-      options: statusOptions,
-    },
-  },
-  {
-    field: 'remark',
-    label: '备注',
-    type: 'textarea',
-    span: 2,
-    props: {
-      placeholder: '请输入备注',
-      rows: 3,
-    },
-  },
-]
+])
 </script>
 
 <style scoped>

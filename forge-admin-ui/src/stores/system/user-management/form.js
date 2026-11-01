@@ -1,6 +1,6 @@
 import { computed, h } from 'vue'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
-import { FORM_MAIN_ORG_ID_EXPR, FORM_TENANT_ID_EXPR, isSystemAdminUser, normalizeNumberList, normalizeSingleNumber, renderDictTag, resolveOptionLabel, resolveUserAccountLabel, resolveUserDisplayName, splitTableCellValues } from './utils'
+import { FORM_MAIN_ORG_ID_EXPR, FORM_TENANT_ID_EXPR, isSystemAdminUser, normalizeNumberList, normalizeSingleNumber, renderDictTag, resolveOptionLabel, resolveUserAccountLabel, resolveUserDisplayName, splitTableCellValues, USER_SEX_DICT, USER_STATUS_DICT, USER_TYPE_DICT } from './utils'
 
 // 共享状态由 Pinia 创建；跨领域调用通过同一工作台实例协调。
 export function createUserForm(state, runtime, workspace) {
@@ -63,6 +63,7 @@ export function createUserForm(state, runtime, workspace) {
         subtitle: resolveUserAccountLabel(row),
         interactive: true,
         avatar: true,
+        avatarSrc: row.avatar || '',
         tooltip: `查看用户详情：${row.username || '-'}`,
         onActivate: () => crudRef.value?.showDetail(row),
       }),
@@ -125,266 +126,315 @@ export function createUserForm(state, runtime, workspace) {
     },
   ])
 
+  // 分区卡片 + 顶标签；24 栅格，常规每行 3 项各 span=8，label 对齐
   const editSchema = computed(() => [
     {
-      type: 'divider',
+      type: 'card',
+      nodeType: 'card',
       label: '基础信息',
       props: {
-        titlePlacement: 'left',
+        icon: 'forge:module',
+        bordered: true,
       },
-      span: 2,
+      children: [
+        {
+          field: 'avatar',
+          label: '头像',
+          type: 'slot',
+          slotName: 'avatar',
+          span: 8,
+          showFeedback: false,
+          labelTip: '支持 JPG/PNG，建议 200×200 以上，不超过 2MB',
+        },
+        {
+          field: 'username',
+          label: '用户名',
+          type: 'input',
+          span: 8,
+          rules: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+          labelTip: '建议使用英文、数字或下划线，不建议使用中文',
+          props: {
+            placeholder: '建议英文/数字，如 zhangsan',
+          },
+        },
+        {
+          field: 'realName',
+          label: '真实姓名',
+          type: 'input',
+          span: 8,
+          rules: [{ required: true, message: '请输入真实姓名', trigger: 'blur' }],
+          labelTip: '用于列表展示与通讯录显示的姓名',
+          props: {
+            placeholder: '请输入真实姓名',
+          },
+        },
+        {
+          field: 'password',
+          label: '密码',
+          type: 'input',
+          span: 8,
+          rules: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+          labelTip: '仅新建时填写；编辑用户请使用「重置密码」',
+          props: {
+            inputType: 'password',
+            showPasswordOn: 'click',
+            placeholder: '请输入密码',
+          },
+          vIf: formData => !formData.id,
+        },
+        {
+          field: 'gender',
+          label: '性别',
+          type: 'radio',
+          span: 8,
+          defaultValue: 0,
+          labelTip: '可选；用于个人资料展示',
+          quickCreate: {
+            preset: 'dictData',
+            dictType: USER_SEX_DICT,
+            linkLabel: '新增性别',
+          },
+          props: {
+            size: 'small',
+            options: workspace.genderOptions.value,
+          },
+        },
+        {
+          field: 'userType',
+          label: '用户类型',
+          type: 'radio',
+          span: 8,
+          defaultValue: 2,
+          rules: [{ required: true, type: 'number', message: '请选择用户类型', trigger: 'change' }],
+          labelTip: '普通用户不能绑定【本租户数据】及以上数据范围的角色；租户管理员不能绑定【全部数据】范围的角色',
+          quickCreate: {
+            preset: 'dictData',
+            dictType: USER_TYPE_DICT,
+            linkLabel: '新增类型',
+          },
+          props: {
+            size: 'small',
+            options: workspace.userTypeOptions.value,
+            disabled: !userStore.isAdmin,
+          },
+        },
+        {
+          field: 'phone',
+          label: '手机号',
+          type: 'input',
+          span: 8,
+          rules: [
+            { required: true, message: '请输入手机号', trigger: 'blur' },
+            { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
+          ],
+          labelTip: '用于登录找回与消息通知，须为有效中国大陆手机号',
+          props: {
+            placeholder: '请输入手机号',
+          },
+        },
+        {
+          field: 'email',
+          label: '邮箱',
+          type: 'input',
+          span: 8,
+          rules: [
+            { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' },
+          ],
+          labelTip: '可选；用于邮件通知与账号找回',
+          props: {
+            placeholder: '请输入邮箱',
+          },
+        },
+        {
+          field: 'idCard',
+          label: '身份证号',
+          type: 'input',
+          span: 8,
+          rules: [
+            { pattern: /(^\d{15}$)|(^\d{18}$)|(^\d{17}([\dX])$)/i, message: '请输入正确的身份证号', trigger: 'blur' },
+          ],
+          labelTip: '可选；用于实名信息校验，请填写 15 或 18 位证件号',
+          props: {
+            placeholder: '请输入身份证号',
+          },
+        },
+        {
+          // 行政区划为主数据树（sys_region_code），非字典项；不提供快捷新增，需在区划管理维护
+          field: 'regionCode',
+          label: '行政区划',
+          type: 'treeSelect',
+          span: 8,
+          labelTip: '用户所属行政区划；虚拟组织节点请在区划管理维护',
+          props: {
+            placeholder: '请选择行政区划',
+            clearable: true,
+            filterable: true,
+          },
+          options: () => editRegionOptions.value,
+        },
+        {
+          field: 'userStatus',
+          label: '用户状态',
+          type: 'radio',
+          span: 8,
+          defaultValue: 1,
+          labelTip: '停用后用户将无法登录系统',
+          vIf: formData => !workspace.isRestrictedCurrentUser(formData.id) && !isSystemAdminUser(formData),
+          quickCreate: {
+            preset: 'dictData',
+            dictType: USER_STATUS_DICT,
+            linkLabel: '新增状态',
+          },
+          props: {
+            options: workspace.userStatusOptions.value,
+          },
+        },
+      ],
     },
     {
-      field: 'username',
-      label: '用户名',
-      type: 'input',
-      rules: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-      props: {
-        placeholder: '请输入用户名',
-      },
-    },
-    {
-      field: 'realName',
-      label: '真实姓名',
-      type: 'input',
-      rules: [{ required: true, message: '请输入真实姓名', trigger: 'blur' }],
-      props: {
-        placeholder: '请输入真实姓名',
-      },
-    },
-    {
-      field: 'password',
-      label: '密码',
-      type: 'input',
-      rules: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-      props: {
-        inputType: 'password',
-        showPasswordOn: 'click',
-        placeholder: '请输入密码',
-      },
-      vIf: formData => !formData.id,
-    },
-    {
-      field: 'userType',
-      label: '用户类型',
-      type: 'select',
-      defaultValue: 2,
-      rules: [{ required: true, type: 'number', message: '请选择用户类型', trigger: 'change' }],
-      labelTip: '普通用户不能绑定【本租户数据】及以上数据范围的角色；租户管理员不能绑定【全部数据】范围的角色',
-      props: {
-        placeholder: '请选择用户类型',
-        options: workspace.userTypeOptions.value,
-        disabled: !userStore.isAdmin,
-      },
-    },
-    {
-      type: 'divider',
+      type: 'card',
+      nodeType: 'card',
       label: '组织与授权',
       props: {
-        titlePlacement: 'left',
+        icon: 'forge:layers',
+        bordered: true,
       },
-      span: 2,
-    },
-    {
-      field: 'orgIds',
-      label: '所属组织',
-      type: 'treeSelect',
-      span: 2,
-      required: true,
-      multiple: true,
-      filterable: true,
-      labelTip: '首个选中组织会自动作为主组织',
-      onChange: ({ value, context }) => {
-        const orgIds = normalizeNumberList(value)
-        context?.patchFormData?.({
-          mainOrgId: orgIds[0] || null,
-        })
-      },
-      optionSource: {
-        type: 'tree',
-        // 全量树：可搜索，展开可见下级；懒加载树在下拉里展开后经常空白且无法过滤
-        api: 'get@/system/org/tree',
-        params: {
-          tenantId: FORM_TENANT_ID_EXPR,
+      children: [
+        {
+          field: 'orgIds',
+          label: '所属组织',
+          type: 'treeSelect',
+          span: 24,
+          required: true,
+          multiple: true,
+          filterable: true,
+          labelTip: '勾选父级会联动勾选全部下级；首个选中组织会自动作为主组织',
+          quickCreate: {
+            preset: 'systemOrg',
+          },
+          onChange: ({ value, context }) => {
+            const orgIds = normalizeNumberList(value)
+            context?.patchFormData?.({
+              mainOrgId: orgIds[0] || null,
+            })
+          },
+          optionSource: {
+            type: 'tree',
+            // 全量树：可搜索，展开可见下级；懒加载树在下拉里展开后经常空白且无法过滤
+            api: 'get@/system/org/tree',
+            params: {
+              tenantId: FORM_TENANT_ID_EXPR,
+            },
+            valueField: 'id',
+            keyField: 'id',
+            labelField: 'orgName',
+            fallbackLabelFields: ['name'],
+            childrenField: 'children',
+          },
+          props: {
+            placeholder: '请选择所属组织（可搜索）',
+            multiple: true,
+            clearable: true,
+            filterable: true,
+            // 父子勾选联动：选父级自动勾选全部子级
+            cascade: true,
+            checkable: true,
+            checkStrategy: 'all',
+            showPath: false,
+            defaultExpandAll: true,
+            // 超出后折叠为 +N
+            maxTagCount: 3,
+          },
         },
-        valueField: 'id',
-        keyField: 'id',
-        labelField: 'orgName',
-        fallbackLabelFields: ['name'],
-        childrenField: 'children',
-      },
-      props: {
-        placeholder: '请选择所属组织（可搜索）',
-        multiple: true,
-        clearable: true,
-        filterable: true,
-        cascade: false,
-        checkable: true,
-        showPath: false,
-        defaultExpandAll: true,
-      },
-    },
-    {
-      field: 'roleIds',
-      label: '角色',
-      type: 'select',
-      span: 1,
-      labelTip: '不选组织时展示全部角色，选组织后会按主组织刷新',
-      optionSource: {
-        api: 'get@/system/role/page',
-        params: {
-          tenantId: FORM_TENANT_ID_EXPR,
-          orgId: FORM_MAIN_ORG_ID_EXPR,
-          pageNum: 1,
-          pageSize: 200,
+        {
+          field: 'roleIds',
+          label: '角色',
+          type: 'select',
+          span: 8,
+          labelTip: '不选组织时展示全部角色，选组织后会按主组织刷新',
+          optionSource: {
+            api: 'get@/system/role/page',
+            params: {
+              tenantId: FORM_TENANT_ID_EXPR,
+              orgId: FORM_MAIN_ORG_ID_EXPR,
+              pageNum: 1,
+              pageSize: 200,
+            },
+            valueField: 'id',
+            labelField: 'roleName',
+            recordsField: 'data.list',
+          },
+          quickCreate: {
+            preset: 'systemRole',
+          },
+          props: {
+            placeholder: '请选择角色',
+            multiple: true,
+            clearable: true,
+            filterable: true,
+          },
         },
-        valueField: 'id',
-        labelField: 'roleName',
-        recordsField: 'data.list',
-      },
-      props: {
-        placeholder: '请选择角色',
-        multiple: true,
-        clearable: true,
-        filterable: true,
-      },
-    },
-    {
-      field: 'postIds',
-      label: '岗位',
-      type: 'select',
-      span: 1,
-      optionSource: {
-        api: 'get@/system/post/list',
-        params: {
-          tenantId: FORM_TENANT_ID_EXPR,
+        {
+          field: 'postIds',
+          label: '岗位',
+          type: 'select',
+          span: 8,
+          labelTip: '可为用户同时分配多个岗位；主岗位取首个',
+          quickCreate: {
+            preset: 'systemPost',
+            defaultsFromForm: {
+              orgId: '$form.mainOrgId',
+            },
+          },
+          optionSource: {
+            api: 'get@/system/post/list',
+            params: {
+              tenantId: FORM_TENANT_ID_EXPR,
+            },
+            valueField: 'id',
+            labelField: 'postName',
+          },
+          props: {
+            placeholder: '请选择岗位',
+            multiple: true,
+            clearable: true,
+            filterable: true,
+          },
         },
-        valueField: 'id',
-        labelField: 'postName',
-      },
-      props: {
-        placeholder: '请选择岗位',
-        multiple: true,
-        clearable: true,
-        filterable: true,
-      },
-    },
-    {
-      field: 'allowedClients',
-      label: '允许客户端',
-      type: 'select',
-      span: 2,
-      labelTip: '不选则默认所有客户端均可登录',
-      optionSource: {
-        api: 'get@/system/client/list',
-        valueField: 'clientCode',
-        labelField: 'clientName',
-        recordsField: 'data',
-      },
-      props: {
-        placeholder: '请选择允许登录的客户端（不选则不限制）',
-        multiple: true,
-        clearable: true,
-        filterable: true,
-      },
-    },
-    {
-      type: 'divider',
-      label: '联系信息',
-      props: {
-        titlePlacement: 'left',
-      },
-      span: 2,
-    },
-    {
-      field: 'phone',
-      label: '手机号',
-      type: 'input',
-      rules: [
-        { required: true, message: '请输入手机号', trigger: 'blur' },
-        { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
+        {
+          field: 'allowedClients',
+          label: '允许客户端',
+          type: 'select',
+          span: 8,
+          labelTip: '不选则默认所有客户端均可登录',
+          quickCreate: {
+            preset: 'systemClient',
+          },
+          optionSource: {
+            api: 'get@/system/client/list',
+            valueField: 'clientCode',
+            labelField: 'clientName',
+            recordsField: 'data',
+          },
+          props: {
+            placeholder: '请选择允许登录的客户端（不选则不限制）',
+            multiple: true,
+            clearable: true,
+            filterable: true,
+          },
+        },
+        {
+          field: 'remark',
+          label: '备注',
+          type: 'textarea',
+          span: 24,
+          labelTip: '可选；记录该用户的补充说明',
+          props: {
+            placeholder: '请输入备注',
+            rows: 3,
+          },
+        },
       ],
-      props: {
-        placeholder: '请输入手机号',
-      },
-    },
-    {
-      field: 'email',
-      label: '邮箱',
-      type: 'input',
-      rules: [
-        { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' },
-      ],
-      props: {
-        placeholder: '请输入邮箱',
-      },
-    },
-    {
-      field: 'idCard',
-      label: '身份证号',
-      type: 'input',
-      rules: [
-        { pattern: /(^\d{15}$)|(^\d{18}$)|(^\d{17}([\dX])$)/i, message: '请输入正确的身份证号', trigger: 'blur' },
-      ],
-      props: {
-        placeholder: '请输入身份证号',
-      },
-    },
-    {
-      field: 'gender',
-      label: '性别',
-      type: 'radio',
-      defaultValue: 0,
-      props: {
-        options: workspace.genderOptions.value,
-      },
-    },
-    {
-      type: 'divider',
-      label: '行政区划',
-      props: {
-        titlePlacement: 'left',
-      },
-      span: 2,
-    },
-    {
-      field: 'regionCode',
-      label: '行政区划',
-      type: 'treeSelect',
-      props: {
-        placeholder: '请选择行政区划',
-        clearable: true,
-        filterable: true,
-      },
-      options: () => editRegionOptions.value,
-    },
-    {
-      type: 'divider',
-      label: '状态配置',
-      props: {
-        titlePlacement: 'left',
-      },
-      span: 2,
-    },
-    {
-      field: 'userStatus',
-      label: '用户状态',
-      type: 'radio',
-      defaultValue: 1,
-      vIf: formData => !workspace.isRestrictedCurrentUser(formData.id) && !isSystemAdminUser(formData),
-      props: {
-        options: workspace.userStatusOptions.value,
-      },
-    },
-    {
-      field: 'remark',
-      label: '备注',
-      type: 'textarea',
-      span: 2,
-      props: {
-        placeholder: '请输入备注',
-        rows: 3,
-      },
     },
   ])
 

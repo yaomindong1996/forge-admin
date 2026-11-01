@@ -16,7 +16,14 @@
       row-key="noticeId"
       add-button-text="新增公告"
       :load-detail-on-edit="true"
-      :edit-grid-cols="1"
+      :edit-grid-cols="24"
+      edit-label-placement="top"
+      edit-label-align="left"
+      :edit-x-gap="16"
+      :edit-y-gap="8"
+      edit-form-class="system-edit-form"
+      edit-size="small"
+      modal-width="960px"
       modal-width="1000px"
     >
       <!-- 富文本编辑器插槽 -->
@@ -120,6 +127,7 @@
 import { NStatistic, NTag } from 'naive-ui'
 import { computed, h, onMounted, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
+import { buildSystemEditCards, SYSTEM_EDIT_FULL_SPAN } from './schemas/systemEditLayout'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
 import { request } from '@/utils'
@@ -149,6 +157,7 @@ const searchSchema = computed(() => [
     field: 'noticeTitle',
     label: '公告标题',
     type: 'input',
+    span: 8,
     props: {
       placeholder: '请输入公告标题',
     },
@@ -157,6 +166,7 @@ const searchSchema = computed(() => [
     field: 'noticeType',
     label: '公告类型',
     type: 'select',
+    span: 8,
     props: {
       placeholder: '请选择公告类型',
       options: noticeTypeOptions.value,
@@ -278,6 +288,11 @@ const editSchema = computed(() => [
     type: 'select',
     defaultValue: 'NOTICE',
     rules: [{ required: true, message: '请选择公告类型', trigger: 'change' }],
+    quickCreate: {
+      preset: 'dictData',
+      dictType: NOTICE_TYPE_DICT,
+      linkLabel: '新增类型',
+    },
     props: {
       placeholder: '请选择公告类型',
       options: noticeTypeOptions.value,
@@ -288,6 +303,7 @@ const editSchema = computed(() => [
     label: '公告内容',
     type: 'slot',
     slotName: 'noticeContent',
+    span: 24,
     rules: [{ required: true, message: '请输入公告内容', trigger: 'blur' }],
   },
   {
@@ -302,6 +318,7 @@ const editSchema = computed(() => [
     label: '发布范围',
     type: 'slot',
     slotName: 'publishScope',
+    span: 8,
     defaultValue: 0,
     props: {
       placeholder: '请选择发布范围',
@@ -312,6 +329,7 @@ const editSchema = computed(() => [
     label: '指定组织',
     type: 'slot',
     slotName: 'orgIds',
+    span: 16,
     vIf: formData => formData.publishScope === 1,
     rules: [
       {
@@ -326,6 +344,7 @@ const editSchema = computed(() => [
     field: 'attachmentIds',
     label: '附件',
     type: 'fileUpload',
+    span: 24,
     props: {
       multiple: true,
       limit: 10,
@@ -339,6 +358,7 @@ const editSchema = computed(() => [
     field: 'effectiveTime',
     label: '生效时间',
     type: 'datetime',
+    span: 8,
     props: {
       placeholder: '请选择生效时间',
       type: 'datetime',
@@ -349,6 +369,7 @@ const editSchema = computed(() => [
     field: 'expirationTime',
     label: '失效时间',
     type: 'datetime',
+    span: 8,
     props: {
       placeholder: '请选择失效时间',
       type: 'datetime',
@@ -359,6 +380,7 @@ const editSchema = computed(() => [
     field: 'isTop',
     label: '是否置顶',
     type: 'radio',
+    span: 8,
     defaultValue: 0,
     props: {
       options: isTopOptions.value,
@@ -368,6 +390,7 @@ const editSchema = computed(() => [
     field: 'topSort',
     label: '置顶排序',
     type: 'number',
+    span: 8,
     defaultValue: 0,
     props: {
       placeholder: '数字越大越靠前',

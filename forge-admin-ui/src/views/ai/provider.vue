@@ -303,6 +303,11 @@ const editSchema = computed(() => [
     label: '供应商类型',
     type: 'select',
     rules: [{ required: true, message: '请选择供应商类型', trigger: 'change' }],
+    quickCreate: {
+      preset: 'dictData',
+      dictType: 'ai_provider_type',
+      linkLabel: '新增类型',
+    },
     props: { placeholder: '请选择供应商类型', options: providerTypeOptions.value },
     // 选择已知类型且 Base URL 为空时自动补默认地址，无需手动填写
     // （用 onChange：在表单重建后拿到活对象，赋值才能保留并随表单提交）

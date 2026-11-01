@@ -206,6 +206,11 @@ const editSchema = computed(() => [
     label: '模板类型',
     type: 'select',
     rules: [{ required: true, message: '请选择模板类型', trigger: 'change' }],
+    quickCreate: {
+      preset: 'dictData',
+      dictType: 'gen_template_type',
+      linkLabel: '新增类型',
+    },
     props: {
       placeholder: '请选择模板类型',
       options: templateTypeOptions.value,
@@ -217,6 +222,11 @@ const editSchema = computed(() => [
     type: 'select',
     defaultValue: 'VELOCITY',
     rules: [{ required: true, message: '请选择模板引擎', trigger: 'change' }],
+    quickCreate: {
+      preset: 'dictData',
+      dictType: 'gen_template_engine',
+      linkLabel: '新增引擎',
+    },
     props: {
       placeholder: '请选择模板引擎',
       options: templateEngineOptions.value,

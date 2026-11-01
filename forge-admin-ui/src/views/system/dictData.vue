@@ -30,7 +30,14 @@
       :before-delete="handleBeforeDelete"
       :before-render-form="handleBeforeRenderForm"
       :before-render-detail="handleBeforeRenderDetail"
-      :edit-grid-cols="2"
+      :edit-grid-cols="24"
+      edit-label-placement="top"
+      edit-label-align="left"
+      :edit-x-gap="16"
+      :edit-y-gap="8"
+      edit-form-class="system-edit-form"
+      edit-size="small"
+      modal-width="960px"
       :show-pagination="!isTreeMode"
       :table-props="tableProps"
       :lazy="true"
@@ -63,6 +70,7 @@ import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import { clearDictCache, getDictData } from '@/composables/useDict'
 import { DICT_TAG_TYPE_OPTIONS } from '@/constants/dict-options'
 import { request } from '@/utils'
+import { buildSystemEditCards } from './schemas/systemEditLayout'
 
 defineOptions({ name: 'DictData', title: '字典数据' })
 
@@ -266,125 +274,104 @@ const tableColumns = computed(() => [
   },
 ])
 
-// 编辑表单配置
-const editSchema = computed(() => [
+// 编辑表单配置（与用户管理同款布局）
+const editSchema = computed(() => buildSystemEditCards([
   {
-    type: 'divider',
     label: '基础信息',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
+    icon: 'forge:module',
+    fields: [
+      {
+        field: 'parentDictCode',
+        label: '上级节点',
+        type: 'treeSelect',
+        defaultValue: ROOT_PARENT_CODE,
+        props: {
+          placeholder: '请选择上级节点',
+          clearable: true,
+          filterable: true,
+          defaultExpandAll: true,
+        },
+        options: () => parentDictOptions.value,
+      },
+      {
+        field: 'dictType',
+        label: '字典类型',
+        type: 'input',
+        rules: [{ required: true, message: '字典类型不能为空', trigger: 'blur' }],
+        defaultValue: currentDictType.value,
+        props: {
+          placeholder: '字典类型',
+          disabled: true,
+          readonly: true,
+        },
+      },
+      {
+        field: 'dictLabel',
+        label: '字典标签',
+        type: 'input',
+        rules: [{ required: true, message: '请输入字典标签', trigger: 'blur' }],
+        props: { placeholder: '请输入字典标签' },
+      },
+      {
+        field: 'dictValue',
+        label: '字典键值',
+        type: 'input',
+        rules: [{ required: true, message: '请输入字典键值', trigger: 'blur' }],
+        props: { placeholder: '请输入字典键值' },
+      },
+      {
+        field: 'dictSort',
+        label: '排序',
+        type: 'number',
+        defaultValue: 0,
+        props: { placeholder: '排序值', min: 0 },
+      },
+      {
+        field: 'dictStatus',
+        label: '状态',
+        type: 'radio',
+        defaultValue: 1,
+        rules: [{ required: true, type: 'number', message: '请选择状态', trigger: 'change' }],
+        props: { options: statusOptions },
+      },
+      {
+        field: 'isDefault',
+        label: '是否默认',
+        type: 'radio',
+        defaultValue: 'N',
+        props: { options: isDefaultOptions },
+      },
+    ],
   },
   {
-    field: 'parentDictCode',
-    label: '上级节点',
-    type: 'treeSelect',
-    defaultValue: ROOT_PARENT_CODE,
-    props: {
-      placeholder: '请选择上级节点',
-      clearable: true,
-      filterable: true,
-      defaultExpandAll: true,
-    },
-    options: () => parentDictOptions.value,
-  },
-  {
-    field: 'dictType',
-    label: '字典类型',
-    type: 'input',
-    rules: [{ required: true, message: '字典类型不能为空', trigger: 'blur' }],
-    defaultValue: currentDictType.value,
-    props: {
-      placeholder: '字典类型',
-      disabled: true,
-      readonly: true,
-    },
-  },
-  {
-    field: 'dictLabel',
-    label: '字典标签',
-    type: 'input',
-    rules: [{ required: true, message: '请输入字典标签', trigger: 'blur' }],
-    props: {
-      placeholder: '请输入字典标签',
-    },
-  },
-  {
-    field: 'dictValue',
-    label: '字典键值',
-    type: 'input',
-    rules: [{ required: true, message: '请输入字典键值', trigger: 'blur' }],
-    props: {
-      placeholder: '请输入字典键值',
-    },
-  },
-  {
-    field: 'dictSort',
-    label: '排序',
-    type: 'number',
-    defaultValue: 0,
-    props: {
-      placeholder: '排序值',
-      min: 0,
-    },
-  },
-  {
-    field: 'dictStatus',
-    label: '状态',
-    type: 'radio',
-    defaultValue: 1,
-    rules: [{ required: true, type: 'number', message: '请选择状态', trigger: 'change' }],
-    props: {
-      options: statusOptions,
-    },
-  },
-  {
-    field: 'isDefault',
-    label: '是否默认',
-    type: 'radio',
-    defaultValue: 'N',
-    props: {
-      options: isDefaultOptions,
-    },
-  },
-  {
-    type: 'divider',
     label: '扩展信息',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
+    icon: 'forge:actions',
+    fields: [
+      {
+        field: 'listClass',
+        label: '标签类型',
+        type: 'select',
+        defaultValue: 'default',
+        props: {
+          placeholder: '请选择标签类型',
+          options: DICT_TAG_TYPE_OPTIONS,
+        },
+      },
+      {
+        field: 'cssClass',
+        label: '样式属性',
+        type: 'input',
+        props: { placeholder: '请输入样式属性（可选）' },
+      },
+      {
+        field: 'remark',
+        label: '备注',
+        type: 'textarea',
+        props: { placeholder: '请输入备注', rows: 3 },
+      },
+    ],
   },
-  {
-    field: 'listClass',
-    label: '标签类型',
-    type: 'select',
-    defaultValue: 'default',
-    props: {
-      placeholder: '请选择标签类型',
-      options: DICT_TAG_TYPE_OPTIONS,
-    },
-  },
-  {
-    field: 'cssClass',
-    label: '样式属性',
-    type: 'input',
-    props: {
-      placeholder: '请输入样式属性（可选）',
-    },
-  },
-  {
-    field: 'remark',
-    label: '备注',
-    type: 'textarea',
-    span: 2,
-    props: {
-      placeholder: '请输入备注',
-      rows: 3,
-    },
-  },
-])
+]))
 
 async function loadParentDictOptions(currentDictCode = null) {
   if (!currentDictType.value) {

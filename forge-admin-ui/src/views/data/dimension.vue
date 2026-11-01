@@ -377,6 +377,11 @@ const editSchema = computed(() => [
     type: 'radio',
     span: 4,
     defaultValue: 'MANUAL',
+    quickCreate: {
+      preset: 'dictData',
+      dictType: 'data_dimension_source_type',
+      linkLabel: '新增方式',
+    },
     props: { options: sourceTypeOptions },
     onChange: ({ value, formData }) => handleSourceTypeChange(value, formData),
   },

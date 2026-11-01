@@ -191,6 +191,11 @@ const editSchema = computed(() => [
     label: '模型类型',
     type: 'select',
     rules: [{ required: true, message: '请选择模型类型', trigger: 'change' }],
+    quickCreate: {
+      preset: 'dictData',
+      dictType: 'ai_model_type',
+      linkLabel: '新增类型',
+    },
     props: { placeholder: '请选择模型类型', options: modelTypeOptions.value },
   },
   {
