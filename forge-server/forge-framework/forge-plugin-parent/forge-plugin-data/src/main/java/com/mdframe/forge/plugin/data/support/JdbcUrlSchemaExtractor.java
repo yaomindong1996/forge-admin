@@ -1,10 +1,14 @@
 package com.mdframe.forge.plugin.data.support;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+
 /**
- * 从 JDBC URL 解析库名/schema 段（MySQL/Postgres 等 path 形态）。
+ * 解析拉表/列元数据用的库名（MySQL catalog / 其它库 schema）。
  * <p>
- * 不能用整串 {@code indexOf('?')}：账号密码里若含 {@code ?}，会早于库名前的 {@code /}，
- * 导致 {@code substring(begin, end)} 起止颠倒抛 {@link StringIndexOutOfBoundsException}。
+ * 优先级：连接上显式配置的 Schema → 已打开连接的 {@link Connection#getCatalog()} /
+ * {@link Connection#getSchema()} → 最后才从 JDBC URL 字符串兜底。
+ * URL 截取不可靠（如 {@code serverTimezone=Asia/Shanghai} 含 {@code /}），仅作兜底。
  */
 public final class JdbcUrlSchemaExtractor {
 
@@ -12,7 +16,42 @@ public final class JdbcUrlSchemaExtractor {
     }
 
     /**
-     * @return 库名；无法解析时返回 null
+     * @param configuredSchema 连接配置里的 schemaName，可空
+     * @param connection       已打开的 JDBC 连接，可空（空则跳过 catalog/schema）
+     * @param jdbcUrl          JDBC URL，可空
+     */
+    public static String resolve(String configuredSchema, Connection connection, String jdbcUrl) {
+        if (configuredSchema != null && !configuredSchema.isBlank()) {
+            return configuredSchema.trim();
+        }
+        if (connection != null) {
+            try {
+                String catalog = connection.getCatalog();
+                if (catalog != null && !catalog.isBlank()) {
+                    return catalog.trim();
+                }
+            }
+            catch (SQLException ignored) {
+                // 部分驱动不支持，继续尝试 schema / URL
+            }
+            try {
+                String schema = connection.getSchema();
+                if (schema != null && !schema.isBlank()) {
+                    return schema.trim();
+                }
+            }
+            catch (SQLException ignored) {
+                // fall through
+            }
+        }
+        return extract(jdbcUrl);
+    }
+
+    /**
+     * 从 JDBC URL 解析库名/schema 段（MySQL/Postgres 等 path 形态）。仅作兜底。
+     * <p>
+     * 不能用整串 {@code indexOf('?')} / {@code lastIndexOf('/')}：
+     * 查询参数里的 {@code Asia/Shanghai} 或密码里的 {@code ?} 会导致截取错乱甚至越界。
      */
     public static String extract(String jdbcUrl) {
         if (jdbcUrl == null || jdbcUrl.isBlank()) {

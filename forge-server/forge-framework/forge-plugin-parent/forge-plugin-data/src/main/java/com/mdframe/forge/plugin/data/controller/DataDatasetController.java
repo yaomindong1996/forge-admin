@@ -467,13 +467,11 @@ public class DataDatasetController {
 
     private List<DataConnectionFieldVO> queryTableFields(DataConnection connection, String tableName) {
         List<DataConnectionFieldVO> fields = new ArrayList<>();
-        String schemaName = connection.getSchemaName();
-        if (schemaName == null || schemaName.isEmpty()) {
-            schemaName = extractSchemaFromUrl(connection.getJdbcUrl());
-        }
         try {
             Connection conn = dataSourceProvider.getConnection(connection);
             try {
+                String schemaName = JdbcUrlSchemaExtractor.resolve(
+                        connection.getSchemaName(), conn, connection.getJdbcUrl());
                 String sql = dialectFactory.getDialect(connection.getDbType()).getColumnQuerySql(schemaName, tableName);
                 PreparedStatement ps = conn.prepareStatement(sql);
                 try {
@@ -664,7 +662,4 @@ public class DataDatasetController {
             || upper.contains("DOUBLE") || upper.contains("NUMERIC");
     }
 
-    private String extractSchemaFromUrl(String jdbcUrl) {
-        return JdbcUrlSchemaExtractor.extract(jdbcUrl);
-    }
 }

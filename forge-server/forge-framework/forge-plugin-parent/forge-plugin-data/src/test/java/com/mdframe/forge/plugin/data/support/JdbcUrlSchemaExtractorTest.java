@@ -2,9 +2,52 @@ package com.mdframe.forge.plugin.data.support;
 
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Proxy;
+import java.sql.Connection;
+import java.util.concurrent.atomic.AtomicReference;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class JdbcUrlSchemaExtractorTest {
+
+    @Test
+    void prefersConfiguredSchemaThenCatalogThenUrl() {
+        AtomicReference<String> catalog = new AtomicReference<>("from_catalog");
+        AtomicReference<String> schema = new AtomicReference<>("from_schema");
+        Connection connection = stubConnection(catalog, schema);
+        String url = "jdbc:mysql://127.0.0.1:3306/from_url?serverTimezone=Asia/Shanghai";
+
+        assertThat(JdbcUrlSchemaExtractor.resolve("configured", connection, url)).isEqualTo("configured");
+        assertThat(JdbcUrlSchemaExtractor.resolve("  ", connection, url)).isEqualTo("from_catalog");
+        catalog.set(null);
+        assertThat(JdbcUrlSchemaExtractor.resolve(null, connection, url)).isEqualTo("from_schema");
+        schema.set(null);
+        assertThat(JdbcUrlSchemaExtractor.resolve(null, connection, url)).isEqualTo("from_url");
+    }
+
+    private static Connection stubConnection(AtomicReference<String> catalog, AtomicReference<String> schema) {
+        return (Connection) Proxy.newProxyInstance(
+                Connection.class.getClassLoader(),
+                new Class<?>[] {Connection.class},
+                (proxy, method, args) -> {
+                    if ("getCatalog".equals(method.getName())) {
+                        return catalog.get();
+                    }
+                    if ("getSchema".equals(method.getName())) {
+                        return schema.get();
+                    }
+                    if ("hashCode".equals(method.getName())) {
+                        return System.identityHashCode(proxy);
+                    }
+                    if ("equals".equals(method.getName())) {
+                        return proxy == args[0];
+                    }
+                    if ("toString".equals(method.getName())) {
+                        return "stub-connection";
+                    }
+                    return null;
+                });
+    }
 
     @Test
     void extractsDatabaseFromMysqlUrlWithQuery() {

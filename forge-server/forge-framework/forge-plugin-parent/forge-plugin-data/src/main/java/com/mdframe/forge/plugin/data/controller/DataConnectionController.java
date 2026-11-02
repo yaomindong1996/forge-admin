@@ -269,13 +269,10 @@ public class DataConnectionController {
 
     private List<DataConnectionTableVO> queryTables(DataConnection connection, String keyword) {
         List<DataConnectionTableVO> tables = new ArrayList<>();
-        String schemaName = connection.getSchemaName();
-        if (schemaName == null || schemaName.isEmpty()) {
-            schemaName = extractSchemaFromUrl(connection.getJdbcUrl());
-        }
         try {
             Connection conn = dataSourceProvider.getConnection(connection);
             try {
+                String schemaName = resolveSchemaName(connection, conn);
                 String sql = dialectFactory.getDialect(connection.getDbType()).getTableQuerySql(schemaName, keyword);
                 PreparedStatement ps = conn.prepareStatement(sql);
                 try {
@@ -302,13 +299,10 @@ public class DataConnectionController {
 
     private List<DataConnectionFieldVO> queryFields(DataConnection connection, String tableName) {
         List<DataConnectionFieldVO> fields = new ArrayList<>();
-        String schemaName = connection.getSchemaName();
-        if (schemaName == null || schemaName.isEmpty()) {
-            schemaName = extractSchemaFromUrl(connection.getJdbcUrl());
-        }
         try {
             Connection conn = dataSourceProvider.getConnection(connection);
             try {
+                String schemaName = resolveSchemaName(connection, conn);
                 String sql = dialectFactory.getDialect(connection.getDbType()).getColumnQuerySql(schemaName, tableName);
                 PreparedStatement ps = conn.prepareStatement(sql);
                 try {
@@ -335,7 +329,10 @@ public class DataConnectionController {
         return fields;
     }
 
-    private String extractSchemaFromUrl(String jdbcUrl) {
-        return JdbcUrlSchemaExtractor.extract(jdbcUrl);
+    /**
+     * 显式 Schema → 连接 catalog/schema（URL 里已指定的库名，由驱动给出）→ URL 字符串兜底。
+     */
+    private String resolveSchemaName(DataConnection connection, Connection conn) {
+        return JdbcUrlSchemaExtractor.resolve(connection.getSchemaName(), conn, connection.getJdbcUrl());
     }
 }
