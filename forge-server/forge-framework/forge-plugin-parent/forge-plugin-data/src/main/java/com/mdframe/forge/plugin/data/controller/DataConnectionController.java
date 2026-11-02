@@ -7,6 +7,7 @@ import com.mdframe.forge.plugin.data.entity.DataConnection;
 import com.mdframe.forge.plugin.data.service.DataConnectionService;
 import com.mdframe.forge.plugin.data.support.DbDialectFactory;
 import com.mdframe.forge.plugin.data.support.JdbcDataSourceProvider;
+import com.mdframe.forge.plugin.data.support.JdbcUrlSchemaExtractor;
 import com.mdframe.forge.plugin.data.vo.DataConnectionDetailVO;
 import com.mdframe.forge.plugin.data.vo.DataConnectionFieldVO;
 import com.mdframe.forge.plugin.data.vo.DataConnectionTableVO;
@@ -335,17 +336,6 @@ public class DataConnectionController {
     }
 
     private String extractSchemaFromUrl(String jdbcUrl) {
-        if (jdbcUrl == null) {
-            return null;
-        }
-        int start = jdbcUrl.lastIndexOf('/');
-        if (start < 0) {
-            return null;
-        }
-        int end = jdbcUrl.indexOf('?');
-        if (end < 0) {
-            end = jdbcUrl.length();
-        }
-        return jdbcUrl.substring(start + 1, end);
+        return JdbcUrlSchemaExtractor.extract(jdbcUrl);
     }
 }

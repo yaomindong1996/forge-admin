@@ -22,6 +22,7 @@ import com.mdframe.forge.plugin.data.support.DataDatasetFieldViewAssembler;
 import com.mdframe.forge.plugin.data.support.DbDialect;
 import com.mdframe.forge.plugin.data.support.DbDialectFactory;
 import com.mdframe.forge.plugin.data.support.JdbcDataSourceProvider;
+import com.mdframe.forge.plugin.data.support.JdbcUrlSchemaExtractor;
 import com.mdframe.forge.plugin.data.support.SqlParameterBinder;
 import com.mdframe.forge.starter.core.enums.EnableStatus;
 import com.mdframe.forge.plugin.data.support.SqlSafetyValidator;
@@ -664,17 +665,6 @@ public class DataDatasetController {
     }
 
     private String extractSchemaFromUrl(String jdbcUrl) {
-        if (jdbcUrl == null) {
-            return null;
-        }
-        int start = jdbcUrl.lastIndexOf('/');
-        if (start < 0) {
-            return null;
-        }
-        int end = jdbcUrl.indexOf('?');
-        if (end < 0) {
-            end = jdbcUrl.length();
-        }
-        return jdbcUrl.substring(start + 1, end);
+        return JdbcUrlSchemaExtractor.extract(jdbcUrl);
     }
 }
