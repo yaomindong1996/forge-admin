@@ -4,7 +4,7 @@
     :title="modalTitle"
     preset="card"
     class="form-quick-create-modal"
-    :style="{ width: formLayout.modalWidth || (isDictManage ? '640px' : '640px') }"
+    :style="{ width: formLayout.modalWidth || (isDictManage ? '720px' : '640px') }"
     :mask-closable="false"
     transform-origin="center"
   >

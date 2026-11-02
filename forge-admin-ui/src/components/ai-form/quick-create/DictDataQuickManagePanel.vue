@@ -1,10 +1,16 @@
 <!--
-  本类型字典项管理：列表 + 按权限新增/修改/删除/上下移排序（编辑不改键值）。
+  本类型字典项管理：列表 + 按权限新增/修改/删除；支持拖拽与上下移排序（编辑不改键值）。
 -->
 <template>
   <div class="dict-quick-manage">
+    <!-- 工具栏 -->
     <div class="dict-quick-manage__toolbar">
-      <span class="dict-quick-manage__type">{{ dictType }}</span>
+      <div class="dict-quick-manage__toolbar-main">
+        <span class="dict-quick-manage__type" :title="dictType">{{ dictType }}</span>
+        <span v-if="canEdit && rows.length > 1" class="dict-quick-manage__hint">
+          拖动手柄或使用箭头调整排序
+        </span>
+      </div>
       <n-button
         v-if="canAdd"
         type="primary"
@@ -18,67 +24,114 @@
       </n-button>
     </div>
 
-    <n-spin :show="loading">
+    <!-- 列表 -->
+    <n-spin :show="loading || sorting">
       <n-empty v-if="!loading && !rows.length" description="暂无字典项，可新增后使用" />
-      <div v-else class="dict-quick-manage__list">
-        <div
-          v-for="(row, index) in rows"
-          :key="String(row.dictCode || row.value)"
-          class="dict-quick-manage__row"
-        >
-          <div class="dict-quick-manage__meta">
-            <strong>{{ row.label }}</strong>
-            <span class="dict-quick-manage__value">{{ row.value }}</span>
-            <n-tag size="small" :type="isEnabled(row) ? 'success' : 'default'" :bordered="false">
-              {{ isEnabled(row) ? '正常' : '禁用' }}
-            </n-tag>
+      <draggable
+        v-else
+        v-model="rows"
+        class="dict-quick-manage__list"
+        item-key="rowKey"
+        handle=".dict-quick-manage__drag"
+        :animation="180"
+        :disabled="!canEdit || sorting || loading"
+        ghost-class="dict-quick-manage__row--ghost"
+        chosen-class="dict-quick-manage__row--chosen"
+        drag-class="dict-quick-manage__row--drag"
+        @end="onDragEnd"
+      >
+        <template #item="{ element: row, index }">
+          <div
+            class="dict-quick-manage__row"
+            :class="{ 'dict-quick-manage__row--disabled': !isEnabled(row) }"
+          >
+            <!-- 拖拽手柄 -->
+            <button
+              v-if="canEdit"
+              type="button"
+              class="dict-quick-manage__drag"
+              :disabled="sorting || rows.length < 2"
+              title="拖动排序"
+              aria-label="拖动排序"
+            >
+              <i class="i-lucide:grip-vertical" />
+            </button>
+            <span v-else class="dict-quick-manage__drag-spacer" aria-hidden="true" />
+
+            <span class="dict-quick-manage__index" aria-hidden="true">{{ index + 1 }}</span>
+
+            <div class="dict-quick-manage__meta">
+              <strong class="dict-quick-manage__label">{{ row.label }}</strong>
+              <span class="dict-quick-manage__value">{{ row.value }}</span>
+              <n-tag
+                size="small"
+                :type="isEnabled(row) ? 'success' : 'default'"
+                :bordered="false"
+              >
+                {{ isEnabled(row) ? '正常' : '禁用' }}
+              </n-tag>
+            </div>
+
+            <div class="dict-quick-manage__actions">
+              <!-- 排序：图标按钮 -->
+              <div v-if="canEdit" class="dict-quick-manage__sort">
+                <n-button
+                  text
+                  type="primary"
+                  size="tiny"
+                  class="dict-quick-manage__icon-btn"
+                  :disabled="index === 0 || sorting"
+                  title="上移"
+                  aria-label="上移"
+                  @click="moveRow(index, -1)"
+                >
+                  <i class="i-lucide:chevron-up" />
+                </n-button>
+                <n-button
+                  text
+                  type="primary"
+                  size="tiny"
+                  class="dict-quick-manage__icon-btn"
+                  :disabled="index >= rows.length - 1 || sorting"
+                  title="下移"
+                  aria-label="下移"
+                  @click="moveRow(index, 1)"
+                >
+                  <i class="i-lucide:chevron-down" />
+                </n-button>
+              </div>
+
+              <n-button
+                v-if="canEdit"
+                text
+                type="primary"
+                size="tiny"
+                @click="openEdit(row)"
+              >
+                <template #icon>
+                  <i class="i-lucide:pencil" />
+                </template>
+                修改
+              </n-button>
+              <n-button
+                v-if="canRemove"
+                text
+                type="error"
+                size="tiny"
+                @click="confirmRemove(row)"
+              >
+                <template #icon>
+                  <i class="i-lucide:trash-2" />
+                </template>
+                删除
+              </n-button>
+            </div>
           </div>
-          <div class="dict-quick-manage__actions">
-            <n-button
-              v-if="canEdit"
-              text
-              type="primary"
-              size="tiny"
-              :disabled="index === 0 || sorting"
-              aria-label="上移"
-              @click="moveRow(index, -1)"
-            >
-              上移
-            </n-button>
-            <n-button
-              v-if="canEdit"
-              text
-              type="primary"
-              size="tiny"
-              :disabled="index >= rows.length - 1 || sorting"
-              aria-label="下移"
-              @click="moveRow(index, 1)"
-            >
-              下移
-            </n-button>
-            <n-button
-              v-if="canEdit"
-              text
-              type="primary"
-              size="tiny"
-              @click="openEdit(row)"
-            >
-              修改
-            </n-button>
-            <n-button
-              v-if="canRemove"
-              text
-              type="error"
-              size="tiny"
-              @click="confirmRemove(row)"
-            >
-              删除
-            </n-button>
-          </div>
-        </div>
-      </div>
+        </template>
+      </draggable>
     </n-spin>
 
+    <!-- 新增 / 修改弹窗 -->
     <n-modal
       v-model:show="formVisible"
       preset="card"
@@ -114,6 +167,7 @@
 
 <script setup>
 import { computed, defineAsyncComponent, ref, watch } from 'vue'
+import draggable from 'vuedraggable'
 import { getDictData } from '@/composables/useDict'
 import { useUserStore } from '@/store'
 import { hasQuickCreatePermission } from './permissions'
@@ -174,6 +228,10 @@ const formSchema = computed(() => {
   return props.definition.buildSchema?.(ctx.value) || []
 })
 
+function rowKey(row) {
+  return String(row?.dictCode ?? row?.raw?.dictCode ?? row?.value ?? '')
+}
+
 function isEnabled(row) {
   const status = row.status !== undefined ? row.status : row.raw?.dictStatus
   return Number(status) === 1
@@ -185,12 +243,27 @@ function rowSort(row, fallbackIndex = 0) {
   return Number.isFinite(num) ? num : fallbackIndex
 }
 
+function normalizeRows(list = []) {
+  return (list || []).map((row, index) => ({
+    ...row,
+    rowKey: rowKey(row) || `row-${index}`,
+    dictSort: rowSort(row, index),
+  }))
+}
+
+function buildSortPayload(row, dictSort) {
+  return {
+    ...props.definition.buildEditInitialValues?.(row, ctx.value),
+    dictSort,
+  }
+}
+
 async function reload() {
   if (!dictType.value)
     return
   loading.value = true
   try {
-    rows.value = await getDictData(dictType.value, true)
+    rows.value = normalizeRows(await getDictData(dictType.value, true))
   }
   finally {
     loading.value = false
@@ -243,41 +316,59 @@ async function saveForm() {
   }
 }
 
+/** 按当前列表顺序写回 dictSort（仅提交有变化的项） */
+async function persistCurrentOrder() {
+  if (!canEdit.value || typeof props.definition.update !== 'function')
+    return false
+  const payloads = rows.value
+    .map((row, index) => ({
+      row,
+      index,
+      changed: rowSort(row, index) !== index,
+    }))
+    .filter(item => item.changed)
+  if (!payloads.length)
+    return false
+
+  sorting.value = true
+  try {
+    for (const item of payloads) {
+      await props.definition.update(buildSortPayload(item.row, item.index), ctx.value)
+    }
+    await reload()
+    emit('changed', { action: 'sorted' })
+    return true
+  }
+  catch (error) {
+    window.$message?.error(error?.message || '排序失败')
+    await reload()
+    return false
+  }
+  finally {
+    sorting.value = false
+  }
+}
+
+async function onDragEnd(evt) {
+  if (!canEdit.value || sorting.value)
+    return
+  if (evt?.oldIndex == null || evt?.newIndex == null || evt.oldIndex === evt.newIndex)
+    return
+  await persistCurrentOrder()
+}
+
 async function moveRow(index, delta) {
   if (!canEdit.value || sorting.value || typeof props.definition.update !== 'function')
     return
   const target = index + delta
   if (target < 0 || target >= rows.value.length)
     return
-  const current = rows.value[index]
-  const neighbor = rows.value[target]
-  let currentSort = rowSort(current, index)
-  let neighborSort = rowSort(neighbor, target)
-  if (currentSort === neighborSort) {
-    currentSort = index
-    neighborSort = target
-  }
-  const currentPayload = {
-    ...props.definition.buildEditInitialValues?.(current, ctx.value),
-    dictSort: neighborSort,
-  }
-  const neighborPayload = {
-    ...props.definition.buildEditInitialValues?.(neighbor, ctx.value),
-    dictSort: currentSort,
-  }
-  sorting.value = true
-  try {
-    await props.definition.update(currentPayload, ctx.value)
-    await props.definition.update(neighborPayload, ctx.value)
-    await reload()
-    emit('changed', { action: 'sorted' })
-  }
-  catch (error) {
-    window.$message?.error(error?.message || '排序失败')
-  }
-  finally {
-    sorting.value = false
-  }
+
+  const next = rows.value.slice()
+  const [moved] = next.splice(index, 1)
+  next.splice(target, 0, moved)
+  rows.value = next
+  await persistCurrentOrder()
 }
 
 function confirmRemove(row) {
@@ -309,53 +400,141 @@ function confirmRemove(row) {
 <style scoped>
 .dict-quick-manage__toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
 }
 
+.dict-quick-manage__toolbar-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
 .dict-quick-manage__type {
-  color: var(--text-secondary, #8c8c8c);
+  color: var(--text-tertiary, #8c8c8c);
   font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   word-break: break-all;
+}
+
+.dict-quick-manage__hint {
+  color: var(--text-tertiary, #8c8c8c);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .dict-quick-manage__list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   max-height: min(52vh, 420px);
   overflow: auto;
+  min-height: 0;
+  padding: 2px;
 }
 
 .dict-quick-manage__row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, #262626 8%, transparent);
-  border-radius: 4px;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-light, color-mix(in srgb, #262626 8%, transparent));
+  border-radius: 6px;
   background: var(--bg-primary, #fff);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.dict-quick-manage__row:hover {
+  border-color: color-mix(in srgb, var(--primary-color, #1890ff) 35%, transparent);
+}
+
+.dict-quick-manage__row--disabled {
+  background: color-mix(in srgb, var(--bg-secondary, #f0f2f5) 65%, #fff);
+}
+
+.dict-quick-manage__row--ghost {
+  opacity: 0.45;
+  border-style: dashed;
+}
+
+.dict-quick-manage__row--chosen {
+  border-color: var(--primary-color, #1890ff);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary-color, #1890ff) 25%, transparent);
+}
+
+.dict-quick-manage__row--drag {
+  opacity: 0.95;
+  cursor: grabbing;
+}
+
+.dict-quick-manage__drag,
+.dict-quick-manage__drag-spacer {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dict-quick-manage__drag {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary, #8c8c8c);
+  cursor: grab;
+  touch-action: none;
+}
+
+.dict-quick-manage__drag:hover:not(:disabled) {
+  color: var(--primary-color, #1890ff);
+  background: color-mix(in srgb, var(--primary-color, #1890ff) 8%, transparent);
+}
+
+.dict-quick-manage__drag:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.dict-quick-manage__drag:active:not(:disabled) {
+  cursor: grabbing;
+}
+
+.dict-quick-manage__drag i {
+  font-size: 16px;
+}
+
+.dict-quick-manage__index {
+  flex: 0 0 20px;
+  width: 20px;
+  color: var(--text-tertiary, #8c8c8c);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 .dict-quick-manage__meta {
   display: flex;
+  flex: 1 1 auto;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   min-width: 0;
 }
 
-.dict-quick-manage__meta strong {
-  color: #262626;
+.dict-quick-manage__label {
+  color: var(--text-primary, #262626);
   font-size: 13px;
   font-weight: 600;
 }
 
 .dict-quick-manage__value {
-  color: #8c8c8c;
+  color: var(--text-tertiary, #8c8c8c);
   font-size: 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
@@ -363,8 +542,28 @@ function confirmRemove(row) {
 .dict-quick-manage__actions {
   display: inline-flex;
   flex: 0 0 auto;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
   justify-content: flex-end;
-  gap: 4px;
+  gap: 2px;
+}
+
+.dict-quick-manage__sort {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 4px;
+  line-height: 1;
+}
+
+.dict-quick-manage__icon-btn {
+  width: 22px;
+  min-width: 22px;
+  height: 16px;
+  padding: 0 !important;
+}
+
+.dict-quick-manage__icon-btn i {
+  font-size: 15px;
 }
 </style>
