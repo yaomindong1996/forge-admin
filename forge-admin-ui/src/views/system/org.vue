@@ -210,6 +210,7 @@
     <div class="crud-driver" aria-hidden="true">
       <AiCrudPage
         ref="orgCrudRef"
+        biz-form-object-type="ORG"
         api="/system/org"
         :api-config="{
           list: 'get@/system/org/lazyTree',
@@ -247,6 +248,7 @@
 
       <AiCrudPage
         ref="postCrudRef"
+        biz-form-object-type="POST"
         api="/system/post"
         :api-config="{
           list: 'get@/system/post/page',

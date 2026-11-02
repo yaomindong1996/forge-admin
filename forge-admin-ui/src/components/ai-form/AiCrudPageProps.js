@@ -4,7 +4,10 @@
  * @version 1.0.0
  */
 
+import { controlledCrudProps } from './crud/composables/useControlledCrudList'
+
 export const aiCrudPageProps = {
+  ...controlledCrudProps,
   // ========== 搜索相关 ==========
   /**
    * 搜索表单配置
@@ -299,6 +302,15 @@ export const aiCrudPageProps = {
   },
 
   /**
+   * 业务表单对象类型（如 PROJECT/CUSTOMER/USER）。设置后启用「配置表单」与方案驱动 editSchema。
+   * @type {string}
+   */
+  bizFormObjectType: {
+    type: String,
+    default: '',
+  },
+
+  /**
    * 主子表模板下的子表编辑配置。
    * @type {Array<object>}
    */
@@ -522,12 +534,12 @@ export const aiCrudPageProps = {
   },
 
   /**
-   * 是否隐藏编辑/详情表单顶部的分组导航（默认隐藏；需要时显式传 false）
+   * 是否隐藏编辑/详情表单顶部的分组导航（分组≥3时默认显示）
    * @type {boolean}
    */
   hideFormSectionNav: {
     type: Boolean,
-    default: true,
+    default: false,
   },
 
   /**
@@ -605,12 +617,14 @@ export const aiCrudPageProps = {
   },
 
   /**
-   * 是否启用自定义查询
+   * 是否启用自定义查询（工具栏「自定义查询」）。
+   * 默认开启；仅当能解析到 configKey（显式传入或 /ai/crud/:code/page）时才渲染入口。
+   * CRM 手写列表若无动态对象编码，不会出现该按钮。
    * @type {boolean}
    */
   enableCustomQuery: {
     type: Boolean,
-    default: false,
+    default: true,
   },
 
   /**

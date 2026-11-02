@@ -92,6 +92,7 @@
         </NDropdown>
       </div>
       <AiCrudPage
+      biz-form-object-type="JOB_CONFIG"
         ref="crudRef"
         :api-config="{ list: 'get@/job/config/page' }"
         :search-schema="searchSchema"

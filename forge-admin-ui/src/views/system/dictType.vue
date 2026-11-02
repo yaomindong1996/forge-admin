@@ -1,6 +1,7 @@
 <template>
   <div class="dict-type-page">
     <AiCrudPage
+      biz-form-object-type="DICT_TYPE"
       ref="crudRef"
       api="/system/dict/type"
       :api-config="{

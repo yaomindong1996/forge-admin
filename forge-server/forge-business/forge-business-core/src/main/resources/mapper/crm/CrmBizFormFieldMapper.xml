@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.business.core.crm.formtpl.mapper.CrmBizFormFieldMapper">
+
+  <sql id="SettingColumns">
+    f.id AS fieldId,
+    f.field_code AS fieldCode,
+    f.field_kind AS fieldKind,
+    f.field_label AS fieldLabel,
+    f.component_type AS componentType,
+    f.dict_type AS dictType,
+    f.options_json AS optionsJson,
+    f.section_code AS sectionCode,
+    f.locked AS locked,
+    tf.id AS templateFieldId,
+    COALESCE(tf.enabled, f.default_enabled) AS enabled,
+    COALESCE(tf.required, f.default_required) AS required,
+    COALESCE(tf.list_visible, 0) AS listVisible,
+    COALESCE(tf.list_sortable, 0) AS listSortable,
+    COALESCE(tf.commonly_used, 0) AS commonlyUsed,
+    tf.display_label AS displayLabel,
+    COALESCE(tf.sort_order, f.sort_order) AS sortOrder
+  </sql>
+
+  <select id="selectTemplateFieldSettings"
+          resultType="com.mdframe.forge.business.core.crm.formtpl.vo.CrmBizFormFieldSettingVO">
+    SELECT <include refid="SettingColumns"/>
+    FROM crm_biz_form_field f
+    LEFT JOIN crm_biz_form_template_field tf
+      ON tf.field_id = f.id AND tf.template_id = #{templateId}
+     AND tf.tenant_id = #{tenantId} AND tf.del_flag = 0
+    WHERE f.tenant_id = #{tenantId}
+      AND f.del_flag = 0
+      AND f.object_type = (SELECT object_type FROM crm_biz_form_template
+                          WHERE id = #{templateId} AND tenant_id = #{tenantId} AND del_flag = 0 LIMIT 1)
+    ORDER BY COALESCE(tf.sort_order, f.sort_order) ASC, f.id ASC
+  </select>
+
+  <select id="selectSchemeFields"
+          resultType="com.mdframe.forge.business.core.crm.formtpl.vo.CrmBizFormFieldSettingVO">
+    SELECT <include refid="SettingColumns"/>
+    FROM crm_biz_form_field f
+    INNER JOIN crm_biz_form_template_field tf
+      ON tf.field_id = f.id AND tf.template_id = #{templateId}
+     AND tf.tenant_id = #{tenantId} AND tf.del_flag = 0
+    WHERE f.tenant_id = #{tenantId}
+      AND f.del_flag = 0
+      AND tf.enabled = 1
+    ORDER BY tf.sort_order ASC, f.id ASC
+  </select>
+
+  <select id="selectByObjectAndCode"
+          resultType="com.mdframe.forge.business.core.crm.formtpl.domain.CrmBizFormField">
+    SELECT id, tenant_id, object_type, field_code, field_kind, field_label, component_type, dict_type,
+           options_json, section_code, locked, default_enabled, default_required, sort_order, remark,
+           create_by, create_time, update_by, update_time, del_flag
+    FROM crm_biz_form_field
+    WHERE tenant_id = #{tenantId}
+      AND object_type = #{objectType}
+      AND LOWER(field_code) = LOWER(#{fieldCode})
+      AND del_flag = 0
+    LIMIT 1
+  </select>
+</mapper>

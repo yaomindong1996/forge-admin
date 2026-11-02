@@ -20,6 +20,7 @@
     <!-- 存储配置列表 -->
     <div class="storage-content">
       <AiCrudPage
+      biz-form-object-type="STORAGE_CONFIG"
         ref="crudRef"
         :api-config="{
           list: 'get@/system/storage/config/page',

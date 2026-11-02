@@ -5,6 +5,7 @@ import UserSelectPicker from '@/components/common/UserSelectPicker.vue'
 import DataAuditRecordPanel from '@/components/data-audit/DataAuditRecordPanel.vue'
 import DictTag from '@/components/DictTag.vue'
 import ChildTableEditor from '@/components/page-templates/ChildTableEditor.vue'
+import BizFormConfigModal from '@/views/crm/components/BizFormConfigModal.vue'
 import AiCrudFlowDetail from './AiCrudFlowDetail.vue'
 import AiCrudImportModal from './AiCrudImportModal.vue'
 import AiCrudRowExpand from './AiCrudRowExpand.vue'
@@ -32,6 +33,7 @@ export const aiCrudPageLocalComponents = {
   DataAuditRecordPanel,
   DictTag,
   ChildTableEditor,
+  BizFormConfigModal,
   AiCrudFlowDetail,
   AiCrudImportModal,
   AiCrudRowExpand,

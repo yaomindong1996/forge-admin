@@ -219,6 +219,7 @@
     <div class="crud-driver" aria-hidden="true">
       <AiCrudPage
         ref="crudRef"
+        biz-form-object-type="ROLE"
         api="/system/role"
         :api-config="{
           list: 'get@/system/role/page',

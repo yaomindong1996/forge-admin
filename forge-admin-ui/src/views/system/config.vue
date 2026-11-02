@@ -1,6 +1,7 @@
 <template>
   <div class="system-config-page">
     <AiCrudPage
+      biz-form-object-type="CONFIG"
       ref="crudRef"
       api="/system/config"
       :api-config="{

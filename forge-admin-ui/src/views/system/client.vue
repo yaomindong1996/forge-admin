@@ -1,6 +1,7 @@
 <template>
   <div class="client-management-page">
     <AiCrudPage
+      biz-form-object-type="CLIENT"
       ref="crudRef"
       api="/system/client"
       :api-config="{

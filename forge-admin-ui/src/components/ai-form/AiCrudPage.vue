@@ -63,6 +63,17 @@
     <div v-else-if="formOnly" class="ai-crud-form-only">
       <header class="form-only-head">
         <h2>{{ resolvedFormOnlyTitle }}</h2>
+        <n-button
+          v-if="bizFormEnabled && canConfigBizForm"
+          size="small"
+          quaternary
+          @click="openBizFormConfig"
+        >
+          <template #icon>
+            <i class="i-lucide:settings-2" />
+          </template>
+          配置表单
+        </n-button>
       </header>
       <div class="form-only-body">
         <AiForm
@@ -94,10 +105,10 @@
           </template>
         </AiForm>
         <ChildTableEditor
-          v-if="hasBottomChildrenConfig"
+          v-if="hasChildrenConfig"
           ref="childFormRef"
           v-model:value="childFormData"
-          :children-config="bottomChildrenConfig"
+          :children-config="visibleChildrenConfig"
           :readonly="isDetailMode"
           :parent-form-data="formData"
           :context="formContext"
@@ -117,20 +128,23 @@
       </footer>
     </div>
 
+    <slot v-if="!formOnly && showInlineListPane" name="search-before" />
     <!-- 搜索表单区域 -->
     <div v-if="!formOnly && showInlineListPane && hasSearchSchema && searchPanelVisible" class="ai-crud-search">
       <AiSearch
         ref="searchRef"
         v-model="searchParams"
         :schema="normalizedSearchSchema"
+        search-text="查询"
         :grid-cols="searchGridCols"
         :label-width="searchLabelWidth"
         :enable-collapse="searchEnableCollapse"
         :max-visible-fields="searchMaxVisibleFields"
         :y-gap="searchYGap"
+        :loading="listLoading"
         :before-reset="beforeRenderReset"
-        @search="handleSearch"
-        @reset="handleReset"
+        @search="onListSearch"
+        @reset="onListReset"
       >
         <!-- 透传搜索表单插槽 -->
         <template v-for="slotName in searchSlots" #[slotName]="slotProps">
@@ -195,6 +209,7 @@
         </button>
       </div>
 
+      <slot v-if="showInlineListPane" name="list-before" />
       <!-- 数据表格区域 -->
       <div v-show="showInlineListPane" class="ai-crud-table">
         <AiTable
@@ -202,9 +217,9 @@
           v-model:checked-row-keys="selectedKeys"
           v-model:expanded-row-keys="expandedRowKeys"
           :columns="tableColumns"
-          :data-source="dataSource"
-          :loading="tableLoading"
-          :pagination="paginationConfig"
+          :data-source="listRows"
+          :loading="listLoading"
+          :pagination="listPagination"
           :row-key="tableRowKeyFn"
           :hide-selection="hideSelection"
           :striped="striped"
@@ -222,12 +237,15 @@
           :empty-title="resolvedEmptyTitle"
           :empty-description="resolvedEmptyDescription"
           v-bind="effectiveTableProps"
-          @page-change="handlePageChange"
-          @page-size-change="handlePageSizeChange"
-          @refresh="handleRefresh"
+          @page-change="onListPage"
+          @page-size-change="onListPageSize"
+          @refresh="onListRefresh"
           @search-toggle="handleSearchToggle"
           @render-mode-change="handleRenderModeChange"
         >
+          <template v-if="$slots['list-view']" #body>
+            <slot name="list-view" />
+          </template>
           <template #toolbar-left>
             <!-- 工具栏区域 -->
             <div v-if="!hideToolbar" class="ai-crud-toolbar">
@@ -425,7 +443,7 @@
                     v-if="showDefaultDetailChildren"
                     ref="childFormRef"
                     v-model:value="childFormData"
-                    :children-config="bottomChildrenConfig"
+                    :children-config="visibleChildrenConfig"
                     :readonly="isDetailMode"
                     :parent-form-data="formData"
                     :context="formContext"
@@ -492,7 +510,7 @@
                   v-if="showDefaultDetailChildren"
                   ref="childFormRef"
                   v-model:value="childFormData"
-                  :children-config="bottomChildrenConfig"
+                  :children-config="visibleChildrenConfig"
                   :readonly="isDetailMode"
                   :parent-form-data="formData"
                   :context="formContext"
@@ -553,10 +571,21 @@
       :mask-closable="false"
       @after-leave="handleModalClose"
     >
-      <template v-if="isDetailMode && visibleDetailActions.length" #header-extra>
+      <template v-if="(bizFormEnabled && canConfigBizForm && !isDetailMode) || (isDetailMode && visibleDetailActions.length)" #header-extra>
         <n-space>
           <n-button
-            v-for="action in visibleDetailActions"
+            v-if="bizFormEnabled && canConfigBizForm && !isDetailMode"
+            size="small"
+            quaternary
+            @click="openBizFormConfig"
+          >
+            <template #icon>
+              <i class="i-lucide:settings-2" />
+            </template>
+            配置表单
+          </n-button>
+          <n-button
+            v-for="action in (isDetailMode ? visibleDetailActions : [])"
             :key="`modal-head-${action.key || action.label}`"
             size="small"
             :quaternary="isPrintRuntimeAction(action)"
@@ -618,7 +647,7 @@
               v-if="showDefaultDetailChildren"
               ref="childFormRef"
               v-model:value="childFormData"
-              :children-config="bottomChildrenConfig"
+              :children-config="visibleChildrenConfig"
               :readonly="isDetailMode"
               :parent-form-data="formData"
               :context="formContext"
@@ -686,7 +715,7 @@
             v-if="showDefaultDetailChildren"
             ref="childFormRef"
             v-model:value="childFormData"
-            :children-config="bottomChildrenConfig"
+            :children-config="visibleChildrenConfig"
             :readonly="isDetailMode"
             :parent-form-data="formData"
             :context="formContext"
@@ -744,10 +773,21 @@
       @after-leave="handleModalClose"
     >
       <n-drawer-content :title="modalTitle" :closable="true">
-        <template v-if="isDetailMode && visibleDetailActions.length" #header-extra>
+        <template v-if="(bizFormEnabled && canConfigBizForm && !isDetailMode) || (isDetailMode && visibleDetailActions.length)" #header-extra>
           <n-space>
             <n-button
-              v-for="action in visibleDetailActions"
+              v-if="bizFormEnabled && canConfigBizForm && !isDetailMode"
+              size="small"
+              quaternary
+              @click="openBizFormConfig"
+            >
+              <template #icon>
+                <i class="i-lucide:settings-2" />
+              </template>
+              配置表单
+            </n-button>
+            <n-button
+              v-for="action in (isDetailMode ? visibleDetailActions : [])"
               :key="`drawer-head-${action.key || action.label}`"
               size="small"
               :quaternary="isPrintRuntimeAction(action)"
@@ -798,10 +838,10 @@
             </template>
           </AiForm>
           <ChildTableEditor
-            v-if="hasBottomChildrenConfig"
+            v-if="hasChildrenConfig"
             ref="childFormRef"
             v-model:value="childFormData"
-            :children-config="bottomChildrenConfig"
+            :children-config="visibleChildrenConfig"
             :readonly="isDetailMode"
             :parent-form-data="formData"
             :context="formContext"
@@ -967,6 +1007,13 @@
       </n-drawer-content>
     </n-drawer>
 
+    <BizFormConfigModal
+      v-if="bizFormEnabled"
+      v-model:show="bizFormConfigVisible"
+      :object-type="bizFormObjectType"
+      @saved="reloadBizFormScheme"
+    />
+
     <n-modal
       v-model:show="flowStartApproverModalVisible"
       preset="card"
@@ -1008,6 +1055,7 @@
 import { aiCrudPageLocalComponents } from './aiCrudPageLocalComponents'
 import { aiCrudPageProps } from './AiCrudPageProps'
 import { useAiCrudPage } from './crud/composables/useAiCrudPage'
+import { useControlledCrudList } from './crud/composables/useControlledCrudList'
 
 export default {
   name: 'AiCrudPage',
@@ -1027,12 +1075,19 @@ export default {
     'modal-close',
     'render-mode-change',
     'custom-action',
+    'search',
+    'reset',
+    'refresh',
+    'page-change',
+    'page-size-change',
   ],
   setup(props, { emit, expose }) {
     const api = useAiCrudPage(props, emit)
-    if (api.aiCrudPageExposeApi)
-      expose(api.aiCrudPageExposeApi)
-    return api
+    const list = useControlledCrudList(props, emit, api)
+    if (api.aiCrudPageExposeApi) {
+      expose({ ...api.aiCrudPageExposeApi, getTableData: () => list.listRows.value, search: list.onListSearch })
+    }
+    return { ...api, ...list }
   },
 }
 </script>
