@@ -67,12 +67,16 @@ export function resolveQuickCreateDefinition(field = {}) {
   const permission = overrides.permission || preset.permission
   if (!permission)
     return null
+  const managePermissions = overrides.managePermissions || preset.managePermissions || (
+    Array.isArray(permission) ? permission : undefined
+  )
   return {
     ...preset,
     ...overrides,
     preset: presetKey,
     dictType,
     permission,
+    managePermissions,
     linkLabel: overrides.linkLabel || preset.linkLabel,
     modalTitle: overrides.modalTitle || preset.modalTitle,
   }

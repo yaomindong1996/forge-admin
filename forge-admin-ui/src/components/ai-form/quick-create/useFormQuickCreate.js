@@ -6,6 +6,16 @@ import { hasQuickCreatePermission } from './permissions'
 import { mergeQuickCreateSelection } from './selectionBackfill'
 import { resolveQuickCreateDefinition } from './registry'
 
+function normalizePermissionList(definition) {
+  if (!definition)
+    return null
+  if (Array.isArray(definition.managePermissions) && definition.managePermissions.length)
+    return definition.managePermissions
+  if (Array.isArray(definition.permission))
+    return definition.permission
+  return definition.permission || null
+}
+
 export function useFormQuickCreate(options = {}) {
   const {
     field,
@@ -27,12 +37,13 @@ export function useFormQuickCreate(options = {}) {
 
   const quickCreateAllowed = computed(() => {
     const definition = quickCreateDefinition.value
-    if (!definition?.permission)
+    const permission = normalizePermissionList(definition)
+    if (!permission)
       return false
-    return hasQuickCreatePermission(userStore, definition.permission)
+    return hasQuickCreatePermission(userStore, permission)
   })
 
-  /** Tooltip / aria 文案：完整「新增角色」等，不含「+」前缀 */
+  /** Tooltip / aria：字典管理入口用「管理字典项」 */
   const quickCreateTooltipLabel = computed(() => {
     const definition = quickCreateDefinition.value
     if (!definition)
@@ -59,9 +70,9 @@ export function useFormQuickCreate(options = {}) {
   function openQuickCreate() {
     if (!showQuickCreateTrigger.value)
       return
-    if (!hasQuickCreatePermission(userStore, quickCreateDefinition.value?.permission))
-      return
     const definition = quickCreateDefinition.value
+    if (!hasQuickCreatePermission(userStore, normalizePermissionList(definition)))
+      return
     const gate = definition.beforeOpen?.({
       userStore,
       parentFormData: formData.value || formData,
@@ -69,32 +80,85 @@ export function useFormQuickCreate(options = {}) {
       field: field.value || field,
     })
     if (gate && gate.ok === false) {
-      window.$message?.warning(gate.message || '当前无法快捷新增')
+      window.$message?.warning(gate.message || '当前无法管理字典项')
       return
     }
     quickCreateVisible.value = true
   }
 
-  async function handleQuickCreateSuccess({ record, submitted } = {}) {
-    const definition = quickCreateDefinition.value
-    const currentField = field.value || field
-    if (!definition)
-      return
-    const valueField = definition.valueField || 'id'
-    const labelField = definition.labelField || 'label'
-    let createdId = record?.[valueField] ?? record?.id ?? submitted?.[valueField]
-    const createdLabel = record?.[labelField] ?? record?.label ?? submitted?.[labelField]
+  function applyValue(nextValue) {
+    if (typeof handleUpdate === 'function')
+      handleUpdate(nextValue)
+    else if (typeof handleSelectUpdate === 'function')
+      handleSelectUpdate(nextValue)
+  }
+
+  function readCurrentValue() {
+    return typeof value === 'function' ? value() : value?.value ?? value
+  }
+
+  function readMultiple() {
+    return typeof fieldMultiple === 'function'
+      ? fieldMultiple()
+      : fieldMultiple?.value ?? fieldMultiple
+  }
+
+  async function refreshDictOptions(definition, currentField) {
     const dictType = definition.dictType
       || currentField?.quickCreate?.dictType
       || currentField?.dictType
       || currentField?.props?.dictType
-    const isDictQuickCreate = definition.preset === 'dictData' && dictType
+    if (!(definition.preset === 'dictData' && dictType))
+      return dictType
+    await getDictData(dictType, true)
+    if (currentField?.type === 'dictSelect' && typeof loadDictOptions === 'function')
+      await loadDictOptions(dictType)
+    return dictType
+  }
+
+  async function handleQuickCreateSuccess({ record, submitted, action, dictValue } = {}) {
+    const definition = quickCreateDefinition.value
+    const currentField = field.value || field
+    if (!definition)
+      return
+
+    const resolvedAction = action
+      || (definition.preset === 'dictData' && definition.manageMode !== false ? 'managed' : 'created')
+    const valueField = definition.valueField || 'id'
+    const labelField = definition.labelField || 'label'
+    let createdId = record?.[valueField] ?? record?.id ?? submitted?.[valueField]
+    const createdLabel = record?.[labelField] ?? record?.label ?? submitted?.[labelField]
+    const isDictQuickCreate = definition.preset === 'dictData'
     const isDictSelectField = currentField?.type === 'dictSelect'
 
-    if (isDictQuickCreate) {
-      await getDictData(dictType, true)
-      if (isDictSelectField && typeof loadDictOptions === 'function')
-        await loadDictOptions(dictType)
+    if (isDictQuickCreate)
+      await refreshDictOptions(definition, currentField)
+
+    // 管理面板：改/删后只刷新选项；删掉当前选中则清空
+    if (isDictQuickCreate && definition.manageMode !== false) {
+      if (resolvedAction === 'deleted') {
+        const deleted = dictValue ?? record?.[valueField] ?? submitted?.[valueField]
+        const currentRaw = readCurrentValue()
+        const multiple = readMultiple()
+        if (multiple && Array.isArray(currentRaw)) {
+          const next = currentRaw.filter(item => !isSameOptionValue(item, deleted))
+          if (next.length !== currentRaw.length)
+            applyValue(next)
+        }
+        else if (isSameOptionValue(currentRaw, deleted)) {
+          applyValue(null)
+          window.$message?.info?.('原选项已删除，请重新选择')
+        }
+      }
+      else if (resolvedAction === 'created' && createdId !== undefined && createdId !== null && createdId !== '') {
+        if (currentField?.type === 'radio' && typeof createdId !== 'number') {
+          const optionSample = currentField?.props?.options?.[0]
+          if (optionSample && typeof optionSample.value === 'number')
+            createdId = Number(createdId)
+        }
+        applyValue(mergeQuickCreateSelection(readCurrentValue(), createdId, readMultiple()))
+      }
+      return
     }
 
     if (currentField?.type === 'radio' && createdId !== undefined && createdId !== null && createdId !== '') {
@@ -121,20 +185,8 @@ export function useFormQuickCreate(options = {}) {
     if (!isDictQuickCreate && !isDictSelectField && source && typeof loadRemoteOptions === 'function')
       await loadRemoteOptions(source)
 
-    const applyValue = (nextValue) => {
-      if (typeof handleUpdate === 'function')
-        handleUpdate(nextValue)
-      else if (typeof handleSelectUpdate === 'function')
-        handleSelectUpdate(nextValue)
-    }
-
     if (createdId !== undefined && createdId !== null && createdId !== '') {
-      const currentRaw = typeof value === 'function' ? value() : value?.value ?? value
-      const multiple = typeof fieldMultiple === 'function'
-        ? fieldMultiple()
-        : fieldMultiple?.value ?? fieldMultiple
-      const nextValue = mergeQuickCreateSelection(currentRaw, createdId, multiple)
-      applyValue(nextValue)
+      applyValue(mergeQuickCreateSelection(readCurrentValue(), createdId, readMultiple()))
       quickCreateVisible.value = false
       window.$message?.success('新增成功')
       return

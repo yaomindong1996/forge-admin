@@ -210,7 +210,7 @@ export function createUserForm(state, runtime, workspace) {
           quickCreate: {
             preset: 'dictData',
             dictType: USER_TYPE_DICT,
-            linkLabel: '新增类型',
+            linkLabel: '管理字典项',
           },
           props: {
             size: 'small',

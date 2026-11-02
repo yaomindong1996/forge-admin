@@ -27,6 +27,15 @@ describe('quickCreate permissions', () => {
     expect(hasQuickCreatePermission({ isAdmin: true, permissions: [] }, 'system:dict:add')).toBe(true)
     expect(hasQuickCreatePermission({ permissions: ['system:role:*'] }, 'system:role:add')).toBe(true)
     expect(hasQuickCreatePermission({ permissions: ['system:dict:add'] }, 'system:dict:add')).toBe(true)
+    expect(hasQuickCreatePermission({ permissions: ['system:dict:edit'] }, [
+      'system:dict:add',
+      'system:dict:edit',
+      'system:dict:remove',
+    ])).toBe(true)
+    expect(hasQuickCreatePermission({ permissions: ['system:user:add'] }, [
+      'system:dict:add',
+      'system:dict:edit',
+    ])).toBe(false)
     expect(hasQuickCreatePermission({ permissions: ['*:*:*'] }, 'system:post:add')).toBe(true)
   })
 })
@@ -109,7 +118,7 @@ describe('quickCreate registry', () => {
     expect(schema.find(item => item.field === 'roleStatus')?.quickCreate).toBeUndefined()
     expect(schema.find(item => item.field === 'isSystem')?.quickCreate).toBeUndefined()
     expect(resolveQuickCreateDefinition(schema.find(item => item.field === 'roleType'))?.permission)
-      .toBe('system:dict:add')
+      .toEqual(['system:dict:add', 'system:dict:edit', 'system:dict:remove'])
   })
 
   it('解析 dictData 预设并继承 dictType', () => {
@@ -120,7 +129,9 @@ describe('quickCreate registry', () => {
     expect(def?.preset).toBe('dictData')
     expect(def?.dictType).toBe('crm_customer_level')
     expect(def?.valueField).toBe('dictValue')
-    expect(def?.permission).toBe('system:dict:add')
+    expect(def?.manageMode).toBe(true)
+    expect(def?.permission).toEqual(['system:dict:add', 'system:dict:edit', 'system:dict:remove'])
+    expect(def?.linkLabel).toBe('管理字典项')
   })
 
   it('平台字典未入白名单时 resolve 为 null', () => {

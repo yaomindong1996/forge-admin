@@ -144,6 +144,13 @@
   width: 100%;
 }
 
+/* radio 旁字典快捷入口勿强制 100% 宽，否则挤进邻列盖住点击 */
+.ai-crud-edit-form :deep(.ai-form-control > .ai-form-radio-with-quick-create) {
+  width: auto;
+  max-width: 100%;
+}
+
+
 .ai-crud-edit-form :deep(.ai-form-control--radio),
 .ai-crud-edit-form :deep(.ai-form-control--radioButton),
 .ai-crud-edit-form :deep(.ai-form-control--checkbox) {

@@ -45,5 +45,6 @@ export function hasQuickCreatePermission(userStore, permission) {
   const grants = collectUserPermissionCodes(userStore)
   if (hasWildcard(grants))
     return true
-  return matchesPermission(grants, permission)
+  const targets = Array.isArray(permission) ? permission : [permission]
+  return targets.some(target => matchesPermission(grants, target))
 }
