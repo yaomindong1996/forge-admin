@@ -14,7 +14,6 @@
     </NPageHeader>
 
     <AiCrudPage
-      biz-form-object-type="DICT_DATA"
       ref="crudRef"
       api="/system/dict/data"
       :api-config="apiConfig"

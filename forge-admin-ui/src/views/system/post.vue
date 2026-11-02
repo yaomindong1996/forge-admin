@@ -87,7 +87,6 @@
 
       <section class="post-list-panel">
         <AiCrudPage
-      biz-form-object-type="POST"
           ref="crudRef"
           api="/system/post"
           :api-config="{

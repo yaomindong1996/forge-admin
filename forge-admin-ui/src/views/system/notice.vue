@@ -1,7 +1,6 @@
 <template>
   <div class="system-notice-page">
     <AiCrudPage
-      biz-form-object-type="NOTICE"
       ref="crudRef"
       api="/system/notice"
       :api-config="{

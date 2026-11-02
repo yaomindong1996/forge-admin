@@ -70,22 +70,14 @@ import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import AiCrudRowExpand from '../../AiCrudRowExpand.vue'
 import AiForm from '../../AiForm.vue'
-import { applyAiCrudBizForm } from './useAiCrudBizForm.js'
 import { applyAiCrudPagePart1 } from './useAiCrudPage.part1.js'
 import { applyAiCrudPagePart2 } from './useAiCrudPage.part2.js'
 import { applyAiCrudPagePart3 } from './useAiCrudPage.part3.js'
 
 export function useAiCrudPage(props, emit) {
-  const submitSuccessHook = { current: null }
-  const trackingEmit = (event, payload) => {
-    emit(event, payload)
-    if (event === 'submit-success' && typeof submitSuccessHook.current === 'function')
-      submitSuccessHook.current(payload)
-  }
-  let api = applyAiCrudPagePart1(props, trackingEmit)
-  api = applyAiCrudPagePart2(props, trackingEmit, api)
-  api = applyAiCrudPagePart3(props, trackingEmit, api)
-  api = applyAiCrudBizForm(props, trackingEmit, api, { onSubmitSuccessRef: submitSuccessHook })
+  let api = applyAiCrudPagePart1(props, emit)
+  api = applyAiCrudPagePart2(props, emit, api)
+  api = applyAiCrudPagePart3(props, emit, api)
   // Strip cross-part plumbing so Vue setup() does not expose internal keys.
   const { __impl, mut, props: _props, emit: _emit, ...publicApi } = api
   return publicApi

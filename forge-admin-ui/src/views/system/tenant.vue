@@ -1,7 +1,6 @@
 <template>
   <div class="system-tenant-page">
     <AiCrudPage
-      biz-form-object-type="TENANT"
       ref="crudRef"
       api="/system/tenant"
       :api-config="{

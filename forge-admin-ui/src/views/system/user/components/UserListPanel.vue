@@ -1,7 +1,6 @@
 <template>
   <section class="user-list-panel">
     <AiCrudPage
-      biz-form-object-type="USER"
       :ref="store.attachList"
       api="/system/user"
       :api-config="{
