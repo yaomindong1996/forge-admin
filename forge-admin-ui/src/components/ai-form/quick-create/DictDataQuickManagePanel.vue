@@ -73,58 +73,50 @@
             </div>
 
             <div class="dict-quick-manage__actions">
-              <!-- 排序：图标按钮 -->
+              <!-- 排序：原生图标按钮，避开 n-button primary 实心底 -->
               <div v-if="canEdit" class="dict-quick-manage__sort">
-                <n-button
-                  text
-                  type="primary"
-                  size="tiny"
-                  class="dict-quick-manage__icon-btn"
+                <button
+                  type="button"
+                  class="dict-quick-manage__action dict-quick-manage__action--icon"
                   :disabled="index === 0 || sorting"
                   title="上移"
                   aria-label="上移"
                   @click="moveRow(index, -1)"
                 >
                   <i class="i-lucide:chevron-up" />
-                </n-button>
-                <n-button
-                  text
-                  type="primary"
-                  size="tiny"
-                  class="dict-quick-manage__icon-btn"
+                </button>
+                <button
+                  type="button"
+                  class="dict-quick-manage__action dict-quick-manage__action--icon"
                   :disabled="index >= rows.length - 1 || sorting"
                   title="下移"
                   aria-label="下移"
                   @click="moveRow(index, 1)"
                 >
                   <i class="i-lucide:chevron-down" />
-                </n-button>
+                </button>
               </div>
 
-              <n-button
+              <button
                 v-if="canEdit"
-                text
-                type="primary"
-                size="tiny"
+                type="button"
+                class="dict-quick-manage__action dict-quick-manage__action--primary"
+                :disabled="sorting"
                 @click="openEdit(row)"
               >
-                <template #icon>
-                  <i class="i-lucide:pencil" />
-                </template>
-                修改
-              </n-button>
-              <n-button
+                <i class="i-lucide:pencil" />
+                <span>修改</span>
+              </button>
+              <button
                 v-if="canRemove"
-                text
-                type="error"
-                size="tiny"
+                type="button"
+                class="dict-quick-manage__action dict-quick-manage__action--error"
+                :disabled="sorting"
                 @click="confirmRemove(row)"
               >
-                <template #icon>
-                  <i class="i-lucide:trash-2" />
-                </template>
-                删除
-              </n-button>
+                <i class="i-lucide:trash-2" />
+                <span>删除</span>
+              </button>
             </div>
           </div>
         </template>
@@ -545,25 +537,58 @@ function confirmRemove(row) {
   flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 2px;
+  gap: 4px;
 }
 
 .dict-quick-manage__sort {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  margin-right: 4px;
+  margin-right: 2px;
   line-height: 1;
 }
 
-.dict-quick-manage__icon-btn {
-  width: 22px;
-  min-width: 22px;
-  height: 16px;
-  padding: 0 !important;
+.dict-quick-manage__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--primary-color, #2f6fed);
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
 }
 
-.dict-quick-manage__icon-btn i {
+.dict-quick-manage__action i {
+  font-size: 14px;
+}
+
+.dict-quick-manage__action--icon {
+  width: 20px;
+  height: 14px;
+  padding: 0;
+}
+
+.dict-quick-manage__action--icon i {
   font-size: 15px;
+}
+
+.dict-quick-manage__action--error {
+  color: var(--error-color, #dc2626);
+}
+
+.dict-quick-manage__action:hover:not(:disabled) {
+  opacity: 0.82;
+  background: transparent;
+}
+
+.dict-quick-manage__action:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 </style>
