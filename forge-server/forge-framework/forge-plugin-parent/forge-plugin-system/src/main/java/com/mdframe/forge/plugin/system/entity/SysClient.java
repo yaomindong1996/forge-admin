@@ -45,5 +45,7 @@ public class SysClient extends BaseEntity {
     
     private Integer status;
     private String description;
+    /** 前端入口地址（SSO 跳转 baseUrl），如 http://host/forge-report */
+    private String homeUrl;
     private Long tenantId;
 }

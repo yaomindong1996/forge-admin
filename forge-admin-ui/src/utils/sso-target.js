@@ -101,6 +101,74 @@ export function parseExternalSsoTarget(rawTarget, targetClient = DEFAULT_SSO_TAR
   }
 }
 
+/** 运行时来自「客户端配置」homeUrl，优先于构建期环境变量 */
+const runtimeClientHomeUrlMap = Object.create(null)
+let clientHomeUrlsLoaded = false
+let clientHomeUrlLoadPromise = null
+
+export function setRuntimeClientHomeUrls(clients = []) {
+  Object.keys(runtimeClientHomeUrlMap).forEach((key) => {
+    delete runtimeClientHomeUrlMap[key]
+  })
+  ;(Array.isArray(clients) ? clients : []).forEach((item) => {
+    const clientCode = trimString(item?.clientCode)
+    const homeUrl = normalizeSsoBaseUrl(item?.homeUrl)
+    if (clientCode && homeUrl) {
+      runtimeClientHomeUrlMap[clientCode] = homeUrl
+    }
+  })
+  clientHomeUrlsLoaded = true
+}
+
+export function getRuntimeClientHomeUrl(targetClient) {
+  const clientCode = trimString(targetClient)
+  return clientCode ? (runtimeClientHomeUrlMap[clientCode] || '') : ''
+}
+
+/**
+ * 拉取启用客户端列表并缓存 homeUrl，供 SSO 跳转使用。
+ * @param {() => Promise<{ data?: Array }>} listClients 默认请求 /system/client/list
+ */
+export async function ensureClientHomeUrlsLoaded(listClients) {
+  if (clientHomeUrlsLoaded) {
+    return runtimeClientHomeUrlMap
+  }
+  if (clientHomeUrlLoadPromise) {
+    return clientHomeUrlLoadPromise
+  }
+
+  clientHomeUrlLoadPromise = Promise.resolve()
+    .then(async () => {
+      if (typeof listClients === 'function') {
+        const res = await listClients()
+        setRuntimeClientHomeUrls(res?.data || res || [])
+        return runtimeClientHomeUrlMap
+      }
+      const { request } = await import('@/utils')
+      const res = await request.get('/system/client/list')
+      setRuntimeClientHomeUrls(res?.data || [])
+      return runtimeClientHomeUrlMap
+    })
+    .catch((error) => {
+      console.warn('[SSO] 加载客户端入口地址失败:', error)
+      return runtimeClientHomeUrlMap
+    })
+    .finally(() => {
+      clientHomeUrlLoadPromise = null
+    })
+
+  return clientHomeUrlLoadPromise
+}
+
+/** 客户端配置变更后强制重新拉取 */
+export function invalidateClientHomeUrlCache() {
+  Object.keys(runtimeClientHomeUrlMap).forEach((key) => {
+    delete runtimeClientHomeUrlMap[key]
+  })
+  clientHomeUrlsLoaded = false
+  clientHomeUrlLoadPromise = null
+}
+
 export function getConfiguredSsoTargetBaseUrls() {
   const envMap = parseEnvJsonMap(import.meta.env.VITE_SSO_TARGET_BASE_URLS)
   const normalizedMap = Object.entries(envMap).reduce((acc, [key, value]) => {
@@ -120,10 +188,19 @@ export function getConfiguredSsoTargetBaseUrls() {
   return normalizedMap
 }
 
+/**
+ * 解析子系统 baseUrl。
+ * 优先级：菜单显式完整 URL → 客户端配置 homeUrl → 构建期环境变量兜底。
+ */
 export function resolveSsoTargetBaseUrl({ targetClient = DEFAULT_SSO_TARGET_CLIENT, preferredBaseUrl = '' } = {}) {
   const normalizedPreferredBaseUrl = normalizeSsoBaseUrl(preferredBaseUrl)
   if (normalizedPreferredBaseUrl) {
     return normalizedPreferredBaseUrl
+  }
+
+  const runtimeHomeUrl = getRuntimeClientHomeUrl(targetClient)
+  if (runtimeHomeUrl) {
+    return runtimeHomeUrl
   }
 
   const configuredBaseUrls = getConfiguredSsoTargetBaseUrls()

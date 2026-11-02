@@ -56,6 +56,7 @@ import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
 import { request } from '@/utils'
 import { toBooleanDictOptions, toNumberDictOptions } from '@/utils/dict-options'
+import { invalidateClientHomeUrlCache } from '@/utils/sso-target'
 import {
   buildSystemClientEditSchema,
   CLIENT_AUTH_METHOD_DICT,
@@ -136,6 +137,15 @@ const tableColumns = computed(() => [
     prop: 'appId',
     label: 'AppId',
     width: 180,
+  },
+  {
+    prop: 'homeUrl',
+    label: '前端入口',
+    minWidth: 220,
+    render: row => h(SystemTableCell, {
+      title: row.homeUrl || '-',
+      tooltip: row.homeUrl || '未配置，SSO 将回退环境变量',
+    }),
   },
   {
     prop: 'tokenTimeout',
@@ -266,6 +276,11 @@ function beforeSubmit(formData) {
   if (Array.isArray(formData.authTypes)) {
     formData.authTypes = formData.authTypes.join(',')
   }
+  if (typeof formData.homeUrl === 'string') {
+    formData.homeUrl = formData.homeUrl.trim().replace(/\/+$/, '')
+  }
+  // 保存后下次 SSO 重新拉取客户端 homeUrl
+  invalidateClientHomeUrlCache()
 
   return formData
 }
@@ -311,6 +326,7 @@ async function handleKickoutUser(row) {
 async function handleReloadCache(row) {
   try {
     await request.post(`/system/client/reload-cache/${row.clientCode}`)
+    invalidateClientHomeUrlCache()
     message.success('缓存已刷新')
   }
   catch {

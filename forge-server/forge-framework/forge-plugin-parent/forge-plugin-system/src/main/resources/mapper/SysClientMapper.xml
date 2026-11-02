@@ -26,6 +26,7 @@
         <result column="captcha_type" property="captchaType"/>
         <result column="status" property="status"/>
         <result column="description" property="description"/>
+        <result column="home_url" property="homeUrl"/>
         <result column="tenant_id" property="tenantId"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
@@ -57,6 +58,7 @@
         captcha_type,
         status,
         description,
+        home_url,
         tenant_id,
         create_by,
         create_time,
@@ -134,6 +136,7 @@
             <if test="client.captchaType != null">captcha_type = #{client.captchaType},</if>
             <if test="client.status != null">status = #{client.status},</if>
             <if test="client.description != null">description = #{client.description},</if>
+            home_url = #{client.homeUrl},
             <if test="client.tenantId != null">tenant_id = #{client.tenantId},</if>
             update_time = CURRENT_TIMESTAMP
         </set>

@@ -100,6 +100,15 @@ export function buildSystemClientEditSchema({
           props: { placeholder: '应用ID' },
         },
         {
+          field: 'homeUrl',
+          label: '前端入口地址',
+          type: 'input',
+          labelTip: '子系统前端根地址，用于单点跳转（如 AI大屏 → forge_report）。留空则回退构建期环境变量。',
+          props: {
+            placeholder: '如：http://www.example.com:8084/forge-report',
+          },
+        },
+        {
           field: 'clientAuthMethod',
           label: '客户端认证方式',
           type: 'radio',

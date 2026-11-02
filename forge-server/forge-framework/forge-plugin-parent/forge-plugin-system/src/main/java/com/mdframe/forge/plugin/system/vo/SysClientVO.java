@@ -34,6 +34,8 @@ public class SysClientVO {
     
     private Integer status;
     private String description;
+    /** 前端入口地址（SSO 跳转 baseUrl） */
+    private String homeUrl;
     private Long tenantId;
     /** 模板内置客户端（pc/app/h5/forge_report），前端据此隐藏删除并锁定编码 */
     private Boolean builtIn;

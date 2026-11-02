@@ -140,6 +140,7 @@ public class SysClientController {
         vo.setId(client.getId());
         vo.setClientCode(client.getClientCode());
         vo.setClientName(client.getClientName());
+        vo.setHomeUrl(client.getHomeUrl());
         vo.setStatus(client.getStatus());
         vo.setBuiltIn(SysClientAccessPolicy.isBuiltIn(client));
         return vo;
