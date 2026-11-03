@@ -22,6 +22,7 @@ import com.mdframe.forge.plugin.data.support.DataDatasetFieldViewAssembler;
 import com.mdframe.forge.plugin.data.support.DbDialect;
 import com.mdframe.forge.plugin.data.support.DbDialectFactory;
 import com.mdframe.forge.plugin.data.support.JdbcDataSourceProvider;
+import com.mdframe.forge.plugin.data.support.JdbcUrlSchemaExtractor;
 import com.mdframe.forge.plugin.data.support.SqlParameterBinder;
 import com.mdframe.forge.starter.core.enums.EnableStatus;
 import com.mdframe.forge.plugin.data.support.SqlSafetyValidator;
@@ -466,13 +467,11 @@ public class DataDatasetController {
 
     private List<DataConnectionFieldVO> queryTableFields(DataConnection connection, String tableName) {
         List<DataConnectionFieldVO> fields = new ArrayList<>();
-        String schemaName = connection.getSchemaName();
-        if (schemaName == null || schemaName.isEmpty()) {
-            schemaName = extractSchemaFromUrl(connection.getJdbcUrl());
-        }
         try {
             Connection conn = dataSourceProvider.getConnection(connection);
             try {
+                String schemaName = JdbcUrlSchemaExtractor.resolve(
+                        connection.getSchemaName(), conn, connection.getJdbcUrl());
                 String sql = dialectFactory.getDialect(connection.getDbType()).getColumnQuerySql(schemaName, tableName);
                 PreparedStatement ps = conn.prepareStatement(sql);
                 try {
@@ -663,18 +662,4 @@ public class DataDatasetController {
             || upper.contains("DOUBLE") || upper.contains("NUMERIC");
     }
 
-    private String extractSchemaFromUrl(String jdbcUrl) {
-        if (jdbcUrl == null) {
-            return null;
-        }
-        int start = jdbcUrl.lastIndexOf('/');
-        if (start < 0) {
-            return null;
-        }
-        int end = jdbcUrl.indexOf('?');
-        if (end < 0) {
-            end = jdbcUrl.length();
-        }
-        return jdbcUrl.substring(start + 1, end);
-    }
 }

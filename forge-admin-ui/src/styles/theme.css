@@ -683,6 +683,53 @@
   font-weight: 500 !important;
 }
 
+/*
+ * text + primary/error 等同色类并存时，单类 .n-button--primary-type / --error-type
+ * 会把底色和白字盖回来；提高选择器权重，保证操作列始终无底色。
+ */
+.n-button--text-type.n-button--primary-type,
+.n-button--text-type.n-button--error-type,
+.n-button--text-type.n-button--success-type,
+.n-button--text-type.n-button--warning-type,
+.n-button--text-type.n-button--info-type {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.n-button--text-type.n-button--primary-type {
+  color: var(--primary-color, #4242f7) !important;
+}
+
+.n-button--text-type.n-button--error-type {
+  color: var(--error-color, #dc2626) !important;
+}
+
+.n-button--text-type.n-button--success-type {
+  color: var(--success-color, #059669) !important;
+}
+
+.n-button--text-type.n-button--warning-type {
+  color: var(--warning-color, #d97706) !important;
+}
+
+.n-button--text-type.n-button--info-type {
+  color: var(--info-color, #0284c7) !important;
+}
+
+.n-button--text-type.n-button--primary-type .n-button__content,
+.n-button--text-type.n-button--primary-type .n-button__icon,
+.n-button--text-type.n-button--error-type .n-button__content,
+.n-button--text-type.n-button--error-type .n-button__icon,
+.n-button--text-type.n-button--success-type .n-button__content,
+.n-button--text-type.n-button--success-type .n-button__icon,
+.n-button--text-type.n-button--warning-type .n-button__content,
+.n-button--text-type.n-button--warning-type .n-button__icon,
+.n-button--text-type.n-button--info-type .n-button__content,
+.n-button--text-type.n-button--info-type .n-button__icon {
+  color: currentColor !important;
+}
+
 .n-button--small-type.n-button--text-type {
   height: 28px !important;
   padding: 0 10px !important;
@@ -694,8 +741,17 @@
 }
 
 .n-button--text-type:hover:not(:disabled) {
-  color: var(--primary-600) !important;
-  background: color-mix(in srgb, var(--primary-color, #4242f7) 6%, transparent) !important;
+  background: transparent !important;
+}
+
+.n-button--text-type.n-button--primary-type:hover:not(:disabled) {
+  color: var(--primary-600, var(--primary-color, #4242f7)) !important;
+  background: transparent !important;
+}
+
+.n-button--text-type.n-button--error-type:hover:not(:disabled) {
+  color: var(--error-hover-color, #b91c1c) !important;
+  background: transparent !important;
 }
 
 /* 可选样式类统一收敛为扁平按钮，避免局部类带回装饰效果 */

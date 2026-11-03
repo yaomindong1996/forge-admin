@@ -399,12 +399,14 @@
         <AiForm
           ref="formRef"
           v-model:value="formData"
+          class="system-edit-form"
           :schema="editSchema"
-          :grid-cols="2"
+          :grid-cols="24"
+          :x-gap="16"
+          :y-gap="8"
           :show-actions="false"
-          label-placement="left"
-          label-width="120"
-          label-align="right"
+          label-placement="top"
+          label-align="left"
           size="small"
         >
           <!-- 图标：只用 IconSelector 触发器，字体/图片在抽屉内选，避免表单里叠两层预览 -->

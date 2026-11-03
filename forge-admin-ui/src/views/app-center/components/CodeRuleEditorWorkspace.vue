@@ -64,19 +64,22 @@
                     <n-input v-model:value="draft.ruleName" placeholder="如 采购单号" />
                   </n-form-item>
                   <n-form-item label="编码分类" required>
-                    <n-select
+                    <DictSelect
                       v-model:value="draft.category"
-                      :options="categoryOptions"
+                      dict-type="sys_code_rule_category"
                       :disabled="isBuiltin"
+                      :clearable="false"
+                      quick-create
                     />
                   </n-form-item>
                   <n-form-item label="适用场景">
                     <div class="form-field-with-help">
-                      <n-select
+                      <DictSelect
                         v-model:value="draft.scene"
-                        :options="sceneOptions"
+                        dict-type="sys_code_rule_scene"
                         placeholder="请选择适用场景"
                         :disabled="isBuiltin"
+                        quick-create
                       />
                       <span>用于兼容旧调用方的场景筛选；低代码字段的精确范围由业务对象绑定控制。</span>
                     </div>
@@ -353,6 +356,7 @@
 <script setup>
 import { useMessage } from 'naive-ui'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import DictSelect from '@/components/DictSelect.vue'
 import {
   addSystemCodeRule,
   editSystemCodeRule,

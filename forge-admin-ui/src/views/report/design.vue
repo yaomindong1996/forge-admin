@@ -60,6 +60,7 @@ import { useRoute } from 'vue-router'
 import { createSsoTicket } from '@/api/auth-sso'
 import {
   DEFAULT_SSO_TARGET_CLIENT,
+  ensureClientHomeUrlsLoaded,
   normalizeSsoRedirectPath,
   resolveSsoTargetBaseUrl,
 } from '@/utils/sso-target'
@@ -79,17 +80,19 @@ const pageTitle = computed(() => {
   return queryTitle || '子系统'
 })
 const redirectPath = computed(() => normalizeSsoRedirectPath(route.query.redirect, targetClient.value))
-const targetBaseUrl = computed(() => {
+const displayMode = computed(() => route.query.display === 'redirect' ? 'redirect' : 'embed')
+
+async function resolveTargetBaseUrl() {
+  await ensureClientHomeUrlsLoaded()
   const queryBaseUrl = typeof route.query.baseUrl === 'string' ? route.query.baseUrl : ''
   return resolveSsoTargetBaseUrl({
     targetClient: targetClient.value,
     preferredBaseUrl: queryBaseUrl,
   })
-})
-const displayMode = computed(() => route.query.display === 'redirect' ? 'redirect' : 'embed')
+}
 
-function buildSsoUrl(ticket) {
-  return `${targetBaseUrl.value}/#/sso-login?ticket=${encodeURIComponent(ticket)}&redirect=${encodeURIComponent(redirectPath.value)}`
+function buildSsoUrl(baseUrl, ticket) {
+  return `${baseUrl}/#/sso-login?ticket=${encodeURIComponent(ticket)}&redirect=${encodeURIComponent(redirectPath.value)}`
 }
 
 async function loadFrame() {
@@ -97,8 +100,9 @@ async function loadFrame() {
   errorMessage.value = ''
 
   try {
-    if (!targetBaseUrl.value) {
-      throw new Error(`未配置目标子系统地址：${targetClient.value}`)
+    const baseUrl = await resolveTargetBaseUrl()
+    if (!baseUrl) {
+      throw new Error(`未配置目标子系统地址：${targetClient.value}（请在「系统管理 → 客户端」填写前端入口地址）`)
     }
 
     const res = await createSsoTicket({
@@ -111,7 +115,7 @@ async function loadFrame() {
       throw new Error(res?.message || '未获取到 SSO 票据')
     }
 
-    frameSrc.value = buildSsoUrl(ticket)
+    frameSrc.value = buildSsoUrl(baseUrl, ticket)
     if (displayMode.value === 'redirect') {
       window.location.replace(frameSrc.value)
     }
@@ -127,8 +131,9 @@ async function loadFrame() {
 async function openInNewTab() {
   // SSO 票据一次性消费：iframe 已换票后不可再复用同一 URL，新窗口必须重新出票。
   try {
-    if (!targetBaseUrl.value) {
-      throw new Error(`未配置目标子系统地址：${targetClient.value}`)
+    const baseUrl = await resolveTargetBaseUrl()
+    if (!baseUrl) {
+      throw new Error(`未配置目标子系统地址：${targetClient.value}（请在「系统管理 → 客户端」填写前端入口地址）`)
     }
     const res = await createSsoTicket({
       targetClient: targetClient.value,
@@ -138,7 +143,7 @@ async function openInNewTab() {
     if (!ticket) {
       throw new Error(res?.message || '未获取到 SSO 票据')
     }
-    const url = buildSsoUrl(ticket)
+    const url = buildSsoUrl(baseUrl, ticket)
     window.open(url, '_blank', 'noopener,noreferrer')
   }
   catch (error) {

@@ -6,7 +6,17 @@
     :title="tooltip || title || '-'"
     @click="emit('activate')"
   >
-    <span v-if="avatar" class="system-table-cell__avatar" aria-hidden="true">{{ avatarInitial }}</span>
+    <span v-if="avatar" class="system-table-cell__avatar" :class="{ 'has-image': Boolean(avatarSrc) }" aria-hidden="true">
+      <AuthImage
+        v-if="avatarSrc"
+        :src="avatarSrc"
+        :alt="title || '头像'"
+        :lazy="false"
+        img-class="system-table-cell__avatar-img"
+        :img-style="{ width: '28px', height: '28px', objectFit: 'cover', borderRadius: '999px' }"
+      />
+      <template v-else>{{ avatarInitial }}</template>
+    </span>
     <span class="system-table-cell__identity">
       <span class="system-table-cell__primary">{{ title || '-' }}</span>
       <span v-if="subtitle" class="system-table-cell__secondary">{{ subtitle }}</span>
@@ -31,6 +41,7 @@
 <script setup>
 import { NPopover } from 'naive-ui'
 import { computed } from 'vue'
+import AuthImage from '@/components/common/AuthImage.vue'
 
 defineOptions({ name: 'SystemTableCell' })
 
@@ -62,6 +73,11 @@ const props = defineProps({
   },
   /** 实体标识文字，默认取主标题首字符。 */
   avatarText: {
+    type: String,
+    default: '',
+  },
+  /** 头像 fileId / URL；有值时优先展示真实头像。 */
+  avatarSrc: {
     type: String,
     default: '',
   },
@@ -121,12 +137,27 @@ const avatarInitial = computed(() => {
   flex: 0 0 28px;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   border-radius: 8px;
   color: var(--primary-color, #2563eb);
   background: color-mix(in srgb, var(--primary-color, #2563eb) 12%, transparent);
   font-size: 12px;
   font-weight: 600;
   line-height: 1;
+}
+
+.system-table-cell__avatar.has-image {
+  border-radius: 999px;
+  background: transparent;
+}
+
+.system-table-cell__avatar :deep(.system-table-cell__avatar-img),
+.system-table-cell__avatar :deep(img) {
+  width: 28px;
+  height: 28px;
+  display: block;
+  object-fit: cover;
+  border-radius: inherit;
 }
 
 .system-table-cell__primary {

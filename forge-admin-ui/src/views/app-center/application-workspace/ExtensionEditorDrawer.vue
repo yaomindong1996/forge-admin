@@ -203,12 +203,14 @@
                       v-model:value="condition.operator"
                       dict-type="ai_business_extension_rule_operator"
                       :clearable="false"
+                      quick-create
                     />
                     <DictSelect
                       v-if="conditionValueKind(condition) === 'DICT' && operatorNeedsValue(condition.operator)"
                       v-model:value="condition.value"
                       :dict-type="conditionField(condition)?.dictType"
                       clearable
+                      quick-create
                     />
                     <n-select
                       v-else-if="conditionValueKind(condition) === 'BOOLEAN' && operatorNeedsValue(condition.operator)"
@@ -257,6 +259,7 @@
                       v-model:value="action.actionType"
                       dict-type="ai_business_extension_rule_action"
                       :clearable="false"
+                      quick-create
                     />
                     <n-select
                       v-if="action.actionType === 'SET_FIELD'"
@@ -272,6 +275,7 @@
                       v-model:value="action.value"
                       :dict-type="actionField(action)?.dictType"
                       clearable
+                      quick-create
                     />
                     <n-select
                       v-else-if="action.actionType === 'SET_FIELD' && actionValueKind(action) === 'BOOLEAN'"
@@ -540,6 +544,7 @@
                   v-model:value="form.failurePolicy"
                   dict-type="ai_business_extension_failure_policy"
                   :clearable="false"
+                  quick-create
                 />
               </n-form-item>
               <n-form-item label="风险级别" path="riskLevel">
@@ -547,6 +552,7 @@
                   v-model:value="form.riskLevel"
                   dict-type="ai_business_extension_risk_level"
                   :clearable="false"
+                  quick-create
                 />
               </n-form-item>
               <n-form-item label="本次变更说明" class="form-grid__wide">

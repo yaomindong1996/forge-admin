@@ -21,8 +21,14 @@
       :before-render-detail="beforeRenderUserDetail"
       :load-detail-on-edit="true"
       row-key="id"
-      :edit-grid-cols="2"
-      modal-width="900px"
+      :edit-grid-cols="24"
+      edit-label-placement="top"
+      edit-label-align="left"
+      :edit-x-gap="16"
+      :edit-y-gap="8"
+      edit-form-class="system-edit-form user-edit-form"
+      edit-size="small"
+      modal-width="1080px"
       add-button-text="新增用户"
       :show-import="true"
       import-api="/system/user/import"
@@ -32,6 +38,13 @@
       export-file-name="用户列表.xlsx"
       @selection-change="handleUserSelectionChange"
     >
+      <template #form-avatar="{ value, formData, updateValue }">
+        <UserAvatarField
+          :model-value="value || formData?.avatar || ''"
+          :name-hint="formData?.realName || formData?.username || ''"
+          @update:model-value="next => updateValue?.(next)"
+        />
+      </template>
       <!-- 自定义工具栏提示 -->
       <template #toolbar-start>
         <div v-if="selectedOrgNode && !isShowAllUsers" class="org-filter-tip">
@@ -64,6 +77,7 @@ import { NTag } from 'naive-ui'
 import { storeToRefs } from 'pinia'
 import { AiCrudPage } from '@/components/ai-form'
 import { useUserManagementStore } from '@/stores/system/userManagementStore'
+import UserAvatarField from './UserAvatarField.vue'
 
 const store = useUserManagementStore()
 const { selectedUserIds, selectedOrgNode, isShowAllUsers, searchSchema, tableColumns, editSchema, userBatchActionOptions } = storeToRefs(store)

@@ -897,12 +897,13 @@ export function applyAiCrudPagePart1(props, emit, deps = {}) {
   })
 
   /**
-   * 表单插槽名称
+   * 表单插槽名称（含 card/tabs 等布局子节点内的 slot 字段）
    */
   const formSlots = computed(() => {
-    return props.editSchema
+    return flattenRuntimeFormFields(props.editSchema || [])
       .filter(field => field.type === 'slot')
       .map(field => field.slotName || field.field)
+      .filter(Boolean)
   })
 
   const isDetailMode = computed(() => modalStatus.value === 'detail')

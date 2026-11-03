@@ -95,7 +95,8 @@ export function applyMenuPagePart1() {
   })
 
   const drawerTitle = computed(() => drawerMode.value === 'edit' ? '编辑资源' : '新增资源')
-  const drawerWidth = computed(() => Math.min(860, Math.max(640, Math.floor(window.innerWidth * 0.58))))
+  // 三列顶标签表单需要更宽抽屉，避免字段挤成一列
+  const drawerWidth = computed(() => Math.min(1080, Math.max(920, Math.floor(window.innerWidth * 0.72))))
 
   const clientCodeOptions = computed(() => {
     return clientList.value.map(client => ({

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22.4 16V9.2a1.5 1.5 0 0 0-.44-1.06l-5.5-5.5a1.5 1.5 0 0 0-1.06-.44H6.1a2.9 2.9 0 0 0-2.9 2.9v21a2.9 2.9 0 0 0 2.9 2.9h12.7"/>
+    <path d="M16 2.5v4.8a1.5 1.5 0 0 0 1.5 1.5h4.4"/>
+    <path d="m26.1 24.9 1.8 1.8-3.3 3.1-1.5-1.9"/>
+  </g>
+  <g class="quick-create-icon__accent" stroke="#2680FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m18.4 16.6 6.5 3.1 1.2 4.6-3.5 2.8-3-2.2-1.2-8.3Z"/>
+    <path d="m18.4 16.6 3.4 4.5"/>
+  </g>
+  <circle class="quick-create-icon__accent-dot" cx="21.8" cy="21.1" r=".9" fill="#2680FF"/>
+</svg>

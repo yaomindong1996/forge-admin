@@ -101,8 +101,8 @@
                     </n-form-item>
                     <n-form-item label="用在哪">
                       <div class="field-row">
-                        <n-select v-model:value="form.type" :options="messageTypeOptions" placeholder="消息类型" />
-                        <n-select v-model:value="form.defaultChannel" :options="channelOptions" placeholder="发送渠道" />
+                        <DictSelect v-model:value="form.type" dict-type="sys_message_type" placeholder="消息类型" quick-create />
+                        <DictSelect v-model:value="form.defaultChannel" dict-type="sys_message_channel" placeholder="发送渠道" quick-create />
                       </div>
                       <p class="field-hint">
                         {{ styleGuide }}
@@ -309,7 +309,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import messageApi from '@/api/message'
 import MasterDetailWorkspace from '@/components/common/MasterDetailWorkspace.vue'
-import { useDict } from '@/composables/useDict'
+import DictSelect from '@/components/DictSelect.vue'
 import { copy } from '@/utils/clipboard'
 import {
   buildHttpTemplateExample,
@@ -332,7 +332,6 @@ import {
 defineOptions({ name: 'MessageTemplate' })
 
 const router = useRouter()
-const { dict } = useDict('sys_message_type', 'sys_message_channel')
 const list = ref([])
 const listLoading = ref(false)
 const saving = ref(false)
@@ -348,8 +347,6 @@ const templateCursorMap = ref({
   contentTemplate: null,
 })
 
-const messageTypeOptions = computed(() => dict.value.sys_message_type || [])
-const channelOptions = computed(() => dict.value.sys_message_channel || [])
 const filteredList = computed(() => {
   const query = keyword.value.trim().toLowerCase()
   if (!query)

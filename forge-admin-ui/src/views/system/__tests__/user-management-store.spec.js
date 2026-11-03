@@ -28,6 +28,17 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+function findSchemaField(schema, field) {
+  for (const item of schema || []) {
+    if (item?.field === field)
+      return item
+    const nested = findSchemaField(item?.children, field)
+    if (nested)
+      return nested
+  }
+  return undefined
+}
+
 describe('用户管理拆分行为契约', () => {
   it('组织选择、全部用户与筛选清除联动列表', () => {
     store.leftOrgTreeData = [{ id: 10, orgName: '测试组织' }]
@@ -65,7 +76,7 @@ describe('用户管理拆分行为契约', () => {
     expect(data.mainOrgId).toBe(20)
 
     const patch = {}
-    store.editSchema.find(item => item.field === 'orgIds').onChange({
+    findSchemaField(store.editSchema, 'orgIds').onChange({
       value: '20,30',
       context: { patchFormData: next => Object.assign(patch, next) },
     })
@@ -84,7 +95,7 @@ describe('用户管理拆分行为契约', () => {
     for (const key of ['resetPwd', 'relation', 'disable', 'enable', 'delete']) {
       expect(actions.find(action => action.key === key).visible({ id: '9', userStatus: 1 })).toBe(false)
     }
-    expect(store.editSchema.find(item => item.field === 'userStatus').vIf({ id: '9' })).toBe(false)
+    expect(findSchemaField(store.editSchema, 'userStatus').vIf({ id: '9' })).toBe(false)
     store.handleUserSelectionChange({ keys: ['8', '9'] })
     await store.handleSubmitBatchAuth()
     expect(mocks.post).not.toHaveBeenCalled()
@@ -99,7 +110,7 @@ describe('用户管理拆分行为契约', () => {
     expect(actions.find(action => action.key === 'disable').visible({ id: '9', userStatus: 1 })).toBe(true)
     expect(actions.find(action => action.key === 'enable').visible({ id: '9', userStatus: 0 })).toBe(true)
     expect(actions.find(action => action.key === 'delete').visible({ id: '9', userStatus: 1 })).toBe(true)
-    expect(store.editSchema.find(item => item.field === 'userStatus').vIf({ id: '9' })).toBe(true)
+    expect(findSchemaField(store.editSchema, 'userStatus').vIf({ id: '9' })).toBe(true)
     // 系统管理员（userType=0）禁用/删除保护，不依赖硬编码 id
     expect(actions.find(action => action.key === 'disable').visible({ id: 1, userType: 0, userStatus: 1 })).toBe(false)
     expect(actions.find(action => action.key === 'delete').visible({ id: 1, userType: 0, userStatus: 1 })).toBe(false)

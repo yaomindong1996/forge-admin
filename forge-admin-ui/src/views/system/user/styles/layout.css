@@ -56,3 +56,94 @@
 .dark :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal) .empty-state {
   background: #0f172a;
 }
+
+/* 用户新增/编辑表单：行距紧凑，但卡片头上下 padding 要够（普通 CSS，不用 :deep） */
+.ai-crud-edit-form.user-edit-form .af-layout-card .n-card-header {
+  padding: 12px 14px !important;
+}
+
+.ai-crud-edit-form.user-edit-form .af-layout-card .n-card-content,
+.ai-crud-edit-form.user-edit-form .af-layout-card .n-card__content {
+  padding: 10px 12px 12px !important;
+}
+
+/* 头像：label 在上，控件仅圆角方图；与用户名/姓名顶对齐 */
+.ai-crud-edit-form.user-edit-form .user-avatar-field {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  width: auto;
+  min-height: 0;
+}
+
+.ai-crud-edit-form.user-edit-form .user-avatar-field__preview-wrap,
+.ai-crud-edit-form.user-edit-form .user-avatar-field__face {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+}
+
+.ai-crud-edit-form.user-edit-form .user-avatar-field__tips {
+  display: none;
+}
+
+.ai-crud-edit-form.user-edit-form .user-avatar-field__initial {
+  font-size: 20px;
+}
+
+.ai-crud-edit-form.user-edit-form .n-form-item[data-ai-field="avatar"] .n-form-item-blank {
+  min-height: 34px;
+  align-items: flex-start;
+}
+
+/* 统一 label 行高，同行三列顶对齐，避免头像/输入高度差导致 label 看起来错位 */
+.ai-crud-edit-form.user-edit-form .n-form-item {
+  align-items: stretch;
+}
+
+.ai-crud-edit-form.user-edit-form .n-form-item-label {
+  box-sizing: border-box;
+  display: flex !important;
+  align-items: center;
+  min-height: 22px !important;
+  height: 22px !important;
+  margin-bottom: 6px !important;
+  padding: 0 !important;
+  line-height: 22px;
+  font-size: 13px;
+}
+
+.ai-crud-edit-form.user-edit-form .n-form-item-feedback-wrapper {
+  min-height: 18px !important;
+}
+
+.ai-crud-edit-form.user-edit-form .n-form-item-blank,
+.ai-crud-edit-form.user-edit-form .ai-form-control,
+.ai-crud-edit-form.user-edit-form .ai-form-control--radio,
+.ai-crud-edit-form.user-edit-form .ai-form-control--radioButton {
+  min-height: 0;
+}
+
+/* radio 单行更紧；快捷新增紧跟选项 */
+.ai-crud-edit-form.user-edit-form .ai-form-radio-with-quick-create {
+  width: auto;
+  max-width: 100%;
+  gap: 6px;
+}
+
+.ai-crud-edit-form.user-edit-form .ai-form-radio-with-quick-create .ai-form-quick-create-trigger {
+  margin-left: 4px;
+}
+
+.ai-crud-edit-form.user-edit-form .ai-form-radio-with-quick-create .n-space {
+  gap: 12px !important;
+}
+
+.ai-crud-edit-form.user-edit-form .n-radio {
+  --n-label-padding: 0 0 0 6px;
+}
+
+.ai-crud-edit-form.user-edit-form .ai-form-item-body {
+  gap: 4px;
+}

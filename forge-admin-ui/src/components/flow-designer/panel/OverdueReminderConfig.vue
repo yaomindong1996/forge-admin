@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import messageApi from '@/api/message'
-import { useDict } from '@/composables/useDict'
+import DictSelect from '@/components/DictSelect.vue'
 
 const props = defineProps({
   config: { type: Object, required: true },
@@ -9,8 +9,6 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:config'])
-
-const { dict, loading: dictLoading } = useDict('sys_message_channel', 'sys_flow_overdue_repeat_mode')
 
 const templateOptions = ref([])
 const templateLoading = ref(false)
@@ -33,16 +31,6 @@ const dueDateDays = computed({
 
 const dueDateHours = useNumberField('dueDateHours', 0)
 
-const channelOptions = computed(() => normalizeDictOptions(dict.value.sys_message_channel))
-const repeatModeOptions = computed(() => {
-  const options = normalizeDictOptions(dict.value.sys_flow_overdue_repeat_mode)
-  return options.length
-    ? options
-    : [
-        { label: '仅一次', value: 'once' },
-        { label: '按间隔重复', value: 'interval' },
-      ]
-})
 const mergedTemplateOptions = computed(() => mergeTemplateOptions(templateOptions.value, templateCode.value))
 const reminderFieldsDisabled = computed(() => props.readonly || !enabled.value)
 const isIntervalRepeat = computed(() => repeatMode.value === 'interval')
@@ -114,16 +102,6 @@ function handleRepeatModeChange(value) {
   if (patch.overdueReminderRepeatMode === 'once')
     patch.overdueReminderMaxTimes = 1
   emit('update:config', patch)
-}
-
-function normalizeDictOptions(items = []) {
-  return (items || [])
-    .filter(item => item?.status === undefined || String(item.status) === '1')
-    .map(item => ({
-      label: item.label,
-      value: item.value,
-    }))
-    .filter(item => item.label && item.value)
 }
 
 function resolveRecords(data) {
@@ -222,24 +200,25 @@ function normalizeNumber(value, fallback) {
         </n-form-item>
 
         <n-form-item label="推送方式">
-          <n-select
+          <DictSelect
             v-model:value="channels"
-            :options="channelOptions"
-            :loading="dictLoading"
+            dict-type="sys_message_channel"
             :disabled="reminderFieldsDisabled"
             placeholder="请选择推送方式"
             multiple
             clearable
+            quick-create
           />
         </n-form-item>
 
         <n-form-item label="重复策略">
-          <n-select
+          <DictSelect
             :value="repeatMode"
-            :options="repeatModeOptions"
-            :loading="dictLoading"
+            dict-type="sys_flow_overdue_repeat_mode"
             :disabled="reminderFieldsDisabled"
             placeholder="请选择重复策略"
+            :clearable="false"
+            quick-create
             @update:value="handleRepeatModeChange"
           />
         </n-form-item>

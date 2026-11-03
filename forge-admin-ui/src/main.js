@@ -17,7 +17,14 @@ import '@/styles/global.css'
 import '@/styles/theme.css'
 import '@/styles/layout-chrome.css'
 import '@/styles/responsive-vars.css'
+import '@/views/system/styles/system-edit-form.css'
+import { ensureSystemEditCardIconsMounted, SYSTEM_EDIT_CARD_ICONS } from '@/views/system/styles/system-edit-card-icons.js'
 import 'uno.css'
+
+// 引用完整类名数组，避免 Uno 未扫到 schema 动态字符串导致卡片头空图标
+void SYSTEM_EDIT_CARD_ICONS
+if (typeof window !== 'undefined')
+  ensureSystemEditCardIconsMounted()
 
 // 用户在发布期间保持旧页面打开时，懒加载路由可能仍引用已被替换的旧 hash chunk。
 // 尽早监听 Vite 的预加载异常，以便刷新到最新 index.html。

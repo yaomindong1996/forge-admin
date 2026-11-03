@@ -223,6 +223,11 @@ const editSchema = computed(() => [
     defaultValue: 'LOWCODE_RUNTIME',
     labelTip: '决定这个库能用在哪里：低代码运行、开发导入表结构，或两者都可。',
     rules: [{ required: true, message: '请选择用途', trigger: 'change' }],
+    quickCreate: {
+      preset: 'dictData',
+      dictType: 'gen_datasource_usage_scope',
+      linkLabel: '新增用途',
+    },
     props: {
       placeholder: '请选择用途',
       options: usageScopeOptions.value,
@@ -234,6 +239,11 @@ const editSchema = computed(() => [
     type: 'select',
     defaultValue: 'LOW',
     labelTip: '高风险库会默认改为只读，并关闭写数据与改表结构，避免误操作生产库。',
+    quickCreate: {
+      preset: 'dictData',
+      dictType: 'gen_datasource_risk_level',
+      linkLabel: '新增等级',
+    },
     props: {
       placeholder: '请选择风险等级',
       options: riskLevelOptions.value,
@@ -259,6 +269,11 @@ const editSchema = computed(() => [
     type: 'select',
     defaultValue: 'MySQL',
     rules: [{ required: true, message: '请选择数据库类型', trigger: 'change' }],
+    quickCreate: {
+      preset: 'dictData',
+      dictType: 'data_db_type',
+      linkLabel: '新增数据库类型',
+    },
     props: {
       placeholder: '请选择数据库类型',
       options: dbTypeOptions.value,

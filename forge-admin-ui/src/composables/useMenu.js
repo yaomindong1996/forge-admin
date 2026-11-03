@@ -10,6 +10,7 @@ import { findMenuIdByPath, findMenuItem, isSameMenuPath, processMenuData } from 
 import {
   DEFAULT_REPORT_BASE_URL,
   DEFAULT_SSO_TARGET_CLIENT,
+  ensureClientHomeUrlsLoaded,
   getDefaultSsoRedirectPath,
   normalizeSsoBaseUrl,
   normalizeSsoRedirectPath,
@@ -472,7 +473,7 @@ export function useMenu() {
    * 处理菜单选择，支持外链和内嵌iframe
    * @param {string} key - 菜单项key
    */
-  function handleMenuSelect(key, fallbackPath) {
+  async function handleMenuSelect(key, fallbackPath) {
     let originalItem = findMenuItem(permissionStore.menus, key)
 
     if (!originalItem && typeof key === 'string') {
@@ -485,6 +486,9 @@ export function useMenu() {
     if (!originalItem && typeof key === 'number') {
       originalItem = findMenuItem(permissionStore.menus, String(key))
     }
+
+    // SSO 优先读客户端 homeUrl，点菜单前确保已加载
+    await ensureClientHomeUrlsLoaded()
 
     if (!originalItem) {
       if (fallbackPath) {
@@ -512,7 +516,7 @@ export function useMenu() {
       }
       const firstMenu = findFirstMenuWithPath(originalItem)
       if (firstMenu?.path) {
-        handleMenuSelect(firstMenu.key || firstMenu.id, firstMenu.path)
+        await handleMenuSelect(firstMenu.key || firstMenu.id, firstMenu.path)
       }
       return
     }

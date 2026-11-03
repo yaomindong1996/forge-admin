@@ -59,11 +59,25 @@
       <n-card
         v-else-if="isCardNode(node)"
         size="small"
-        :title="node.label || node.props?.header || undefined"
+        :title="resolveCardPlainTitle(node)"
         :bordered="node.props?.bordered !== false"
         :style="resolveLayoutStyle(node)"
         :class="resolveLayoutClass(node, 'af-layout-card')"
       >
+        <template v-if="resolveCardHeaderIcon(node)" #header>
+          <div class="af-layout-card__header">
+            <span class="af-layout-card__icon" aria-hidden="true">
+              <!-- 卡片头只用 forge: 符号（ForgeSymbol SVG），不走 Uno 动态 class，避免空方块 -->
+              <IconRenderer
+                :icon="resolveCardHeaderIcon(node)"
+                :size="14"
+                custom-class=""
+                color="var(--primary-color, #2f6fed)"
+              />
+            </span>
+            <span class="af-layout-card__title">{{ resolveCardTitleText(node) }}</span>
+          </div>
+        </template>
         <div v-if="!hasVisibleChildren(node)" class="af-layout-empty-placeholder">
           暂无内容
         </div>
@@ -554,6 +568,64 @@ function isCardNode(node = {}) {
   return ['card', 'elCard'].includes(resolveNodeType(node))
 }
 
+function resolveCardTitleText(node = {}) {
+  return String(node.label || node.props?.header || node.props?.title || '').trim()
+}
+
+/** 卡片头图标：统一落到 forge: 白名单符号，禁止 Uno 动态 material-symbols class */
+function resolveCardHeaderIcon(node = {}) {
+  const raw = String(node.props?.icon || node.icon || '').trim()
+  if (!raw)
+    return 'forge:module'
+  if (raw.startsWith('forge:') || raw.startsWith('forge-color:'))
+    return raw.startsWith('forge-color:') ? `forge:${raw.slice(12)}` : raw
+  // 兼容旧 schema 里的 i-material-symbols:*，映射到系统 forge 符号
+  const mapped = CARD_ICON_FALLBACK[raw] || CARD_ICON_FALLBACK[raw.replace(/^i-material-symbols:/, '')]
+  return mapped || 'forge:module'
+}
+
+const CARD_ICON_FALLBACK = {
+  'i-material-symbols:assignment-ind': 'forge:platform',
+  'i-material-symbols:account-tree': 'forge:layers',
+  'i-material-symbols:account-tree-rounded': 'forge:layers',
+  'i-material-symbols:shield-outline-rounded': 'forge:shield',
+  'i-material-symbols:settings-suggest': 'forge:actions',
+  'i-material-symbols:work-outline-rounded': 'forge:apps',
+  'i-material-symbols:person-add-rounded': 'forge:collaboration',
+  'i-material-symbols:business-center': 'forge:module',
+  'i-material-symbols:password': 'forge:connection',
+  'i-material-symbols:passkey-outline': 'forge:connection',
+  'i-material-symbols:imagesmode-outline': 'forge:builder',
+  'i-material-symbols:cloud-upload-rounded': 'forge:database',
+  'i-material-symbols:checklist-rounded': 'forge:approval',
+  'i-material-symbols:visibility': 'forge:monitor',
+  'i-material-symbols:tune': 'forge:actions',
+  'i-material-symbols:badge': 'forge:shield',
+  'assignment-ind': 'forge:platform',
+  'account-tree': 'forge:layers',
+  'account-tree-rounded': 'forge:layers',
+  'shield-outline-rounded': 'forge:shield',
+  'settings-suggest': 'forge:actions',
+  'work-outline-rounded': 'forge:apps',
+  'person-add-rounded': 'forge:collaboration',
+  'business-center': 'forge:module',
+  'password': 'forge:connection',
+  'passkey-outline': 'forge:connection',
+  'imagesmode-outline': 'forge:builder',
+  'cloud-upload-rounded': 'forge:database',
+  'checklist-rounded': 'forge:approval',
+  'visibility': 'forge:monitor',
+  'tune': 'forge:actions',
+  'badge': 'forge:shield',
+}
+
+/** 有自定义图标头时禁用 n-card 纯文本 title，避免双标题 */
+function resolveCardPlainTitle(node = {}) {
+  if (resolveCardHeaderIcon(node))
+    return undefined
+  return resolveCardTitleText(node) || undefined
+}
+
 function isTabsNode(node = {}) {
   return ['tabs', 'elTabs'].includes(resolveNodeType(node))
 }
@@ -1027,8 +1099,116 @@ function isLegacyGroupTitleNode(node = {}) {
   width: 100%;
 }
 
+.af-layout-card {
+  border-radius: 6px;
+  border-color: var(--border-light, #e8eaef);
+  background: var(--bg-primary, #fff);
+  box-shadow: none;
+}
+
+.af-layout-card :deep(.n-card-header) {
+  padding: 12px 14px !important;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-light, #e8eaef);
+}
+
+/* Naive UI 2.x 实际类名是 n-card-content */
+.af-layout-card :deep(.n-card-content),
 .af-layout-card :deep(.n-card__content) {
-  padding-top: 12px;
+  padding: 10px 12px !important;
+}
+
+/* 卡片内表单项更紧：缩小 label 与控件、反馈区间距（覆盖 page.css 的 32px label） */
+.af-layout-card :deep(.n-form-item) {
+  --n-feedback-height: 14px;
+  --n-feedback-padding: 0 0 0 0;
+  --n-label-padding: 0 0 2px 0;
+}
+
+.af-layout-card :deep(.n-form-item-label) {
+  min-height: 0 !important;
+  height: auto;
+  margin-bottom: 0;
+  padding: 0 0 2px !important;
+  line-height: 18px;
+  font-size: 13px;
+}
+
+.af-layout-card :deep(.n-form-item-blank) {
+  min-height: 0;
+}
+
+.af-layout-card :deep(.n-form-item-feedback-wrapper) {
+  min-height: 14px !important;
+  margin-top: 0;
+}
+
+/* 输入保持白净浅边，避免深色填充块感（含浏览器自动填充） */
+.af-layout-card :deep(.n-input) {
+  --n-color: #fff;
+  --n-color-focus: #fff;
+  --n-border: 1px solid #e5e7eb;
+  --n-border-hover: 1px solid #c9ced6;
+}
+
+.af-layout-card :deep(.n-input .n-input__input-el),
+.af-layout-card :deep(.n-input .n-input__textarea-el) {
+  background-color: transparent !important;
+}
+
+.af-layout-card :deep(input:-webkit-autofill),
+.af-layout-card :deep(input:-webkit-autofill:hover),
+.af-layout-card :deep(input:-webkit-autofill:focus) {
+  -webkit-box-shadow: 0 0 0 40px #fff inset !important;
+  box-shadow: 0 0 0 40px #fff inset !important;
+  -webkit-text-fill-color: inherit !important;
+  caret-color: inherit;
+}
+
+.af-layout-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.af-layout-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  border-radius: 6px;
+  /* 参考：浅蓝底 #E6F7FF + 主色图标，禁止深蓝实底 */
+  background: #e6f7ff;
+  color: var(--primary-color, #2f6fed);
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* 勿强制 background-color:currentColor：mask 未生成时会变成实心蓝块 */
+.af-layout-card__icon > i,
+.af-layout-card__icon :deep(.icon-renderer),
+.af-layout-card__icon :deep(i),
+.af-layout-card__icon :deep(svg) {
+  display: inline-block !important;
+  color: var(--primary-color, #2f6fed) !important;
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.af-layout-card__title {
+  overflow: hidden;
+  color: var(--text-primary, #1f2937);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .af-layout-empty-placeholder {

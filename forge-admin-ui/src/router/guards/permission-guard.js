@@ -4,7 +4,7 @@ import { useAppStore, useAuthStore, usePermissionStore, useTenantStore, useUserS
 import { getPermissions, getUserInfo } from '@/store/helper'
 import { initWebSocketClient, lStorage, request } from '@/utils'
 import { initKeyExchange } from '@/utils/crypto/key-exchange'
-import { SSO_BRIDGE_ROUTE } from '@/utils/sso-target'
+import { ensureClientHomeUrlsLoaded, SSO_BRIDGE_ROUTE } from '@/utils/sso-target'
 import { applyTenantConfig, ensureTenantBranding } from '@/utils/tenant-config'
 import { canAccessHiddenOpenPlatformTool, normalizeOpenPlatformPath } from '../open-platform-routes'
 import {
@@ -220,6 +220,7 @@ export function createPermissionGuard(router) {
             else {
               console.error('菜单数据获取失败或格式不正确:', res)
             }
+            void ensureClientHomeUrlsLoaded()
           }
 
           // 在成功获取用户信息和权限后初始化 WebSocket 客户端
@@ -295,6 +296,7 @@ export function createPermissionGuard(router) {
           else {
             console.error('重新获取菜单数据失败或格式不正确:', res)
           }
+          void ensureClientHomeUrlsLoaded()
         }
         catch (error) {
           console.error('重新获取用户信息或菜单数据失败:', error)

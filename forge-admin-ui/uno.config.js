@@ -5,6 +5,7 @@ import presetRemToPx from '@unocss/preset-rem-to-px'
 import { defineConfig, presetAttributify, presetIcons, presetWind3 } from 'unocss'
 import { getIcons } from './build/index.js'
 import { NODE_PRESENTATION } from './src/components/flow-designer/constants/node-presentation.js'
+import { SYSTEM_EDIT_CARD_ICONS } from './src/views/system/styles/system-edit-card-icons.js'
 // 统一的响应式字体插件，集成了静态和动态规则
 import { responsiveFontUnifiedPreset } from './src/plugins/responsive-font-unified.js'
 
@@ -66,6 +67,12 @@ export default defineConfig({
     'i-line-md-menu-unfold-left',
     'i-line-md:menu-fold-left',
     'i-line-md:menu-unfold-left',
+    // AiForm 分区卡片 header：schema 动态 class 必须 safelist（含 mask 变体）
+    ...SYSTEM_EDIT_CARD_ICONS,
+    ...SYSTEM_EDIT_CARD_ICONS.map(icon => `${icon}?mask`),
+    'i-material-symbols:badge-outline',
+    'i-material-symbols:account-tree-outline',
+    'ai-icon:briefcase',
   ],
   shortcuts: [
     ['wh-full', 'w-full h-full'],

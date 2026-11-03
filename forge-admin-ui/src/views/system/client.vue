@@ -16,8 +16,14 @@
       :before-submit="beforeSubmit"
       :before-render-detail="beforeRenderDetail"
       row-key="id"
-      :edit-grid-cols="2"
-      modal-width="900px"
+      :edit-grid-cols="24"
+      edit-label-placement="top"
+      edit-label-align="left"
+      :edit-x-gap="16"
+      :edit-y-gap="8"
+      edit-form-class="system-edit-form"
+      edit-size="small"
+      modal-width="960px"
       add-button-text="新增客户端"
     />
 
@@ -47,33 +53,40 @@ import { computed, h, ref } from 'vue'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
-import { createAutoCodeSync, request } from '@/utils'
+import { request } from '@/utils'
 import { toBooleanDictOptions, toNumberDictOptions } from '@/utils/dict-options'
+import { invalidateClientHomeUrlCache } from '@/utils/sso-target'
+import {
+  buildSystemClientEditSchema,
+  CLIENT_AUTH_METHOD_DICT,
+  CLIENT_CAPTCHA_TYPE_DICT,
+  CLIENT_ENABLE_DISABLE_DICT,
+  CLIENT_LOGIN_AUTH_TYPE_DICT,
+  CLIENT_YES_NO_DICT,
+  createClientCodeAutoCode,
+  resolveClientEditSchemaOptions,
+} from '@/views/system/schemas/systemClientEditSchema'
 
 defineOptions({ name: 'SystemClient' })
 
 const message = window.$message
 const crudRef = ref()
-const clientCodeAuto = createAutoCodeSync({
-  scene: 'clientCode',
-  targetField: 'clientCode',
-})
+const clientCodeAuto = createClientCodeAutoCode()
 const onlineModalVisible = ref(false)
 const onlineUsers = ref([])
 /** 当前在线用户弹窗所属客户端，踢出后按此编码刷新 */
 const currentOnlineClientCode = ref('')
 const { dict } = useDict(
-  'sys_client_auth_method',
-  'sys_enable_disable',
-  'sys_yes_no',
-  'sys_client_login_auth_type',
-  'sys_client_captcha_type',
+  CLIENT_AUTH_METHOD_DICT,
+  CLIENT_ENABLE_DISABLE_DICT,
+  CLIENT_YES_NO_DICT,
+  CLIENT_LOGIN_AUTH_TYPE_DICT,
+  CLIENT_CAPTCHA_TYPE_DICT,
 )
-const clientAuthMethodOptions = computed(() => dict.value.sys_client_auth_method || [])
-const statusOptions = computed(() => toNumberDictOptions(dict.value.sys_enable_disable))
-const booleanOptions = computed(() => toBooleanDictOptions(dict.value.sys_yes_no))
-const authTypeOptions = computed(() => dict.value.sys_client_login_auth_type || [])
-const captchaTypeOptions = computed(() => dict.value.sys_client_captcha_type || [])
+const statusOptions = computed(() => toNumberDictOptions(dict.value[CLIENT_ENABLE_DISABLE_DICT]))
+const booleanOptions = computed(() => toBooleanDictOptions(dict.value[CLIENT_YES_NO_DICT]))
+const authTypeOptions = computed(() => dict.value[CLIENT_LOGIN_AUTH_TYPE_DICT] || [])
+const captchaTypeOptions = computed(() => dict.value[CLIENT_CAPTCHA_TYPE_DICT] || [])
 
 // 搜索配置
 const searchSchema = computed(() => [
@@ -123,6 +136,15 @@ const tableColumns = computed(() => [
     prop: 'appId',
     label: 'AppId',
     width: 180,
+  },
+  {
+    prop: 'homeUrl',
+    label: '前端入口',
+    minWidth: 220,
+    render: row => h(SystemTableCell, {
+      title: row.homeUrl || '-',
+      tooltip: row.homeUrl || '未配置，SSO 将回退环境变量',
+    }),
   },
   {
     prop: 'tokenTimeout',
@@ -191,164 +213,12 @@ const tableColumns = computed(() => [
   },
 ])
 
-// 编辑表单配置
-const editSchema = computed(() => [
-  {
-    type: 'divider',
-    label: '基础信息',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
-  },
-  {
-    field: 'clientName',
-    label: '客户端名称',
-    type: 'input',
-    rules: [{ required: true, message: '请输入客户端名称', trigger: 'blur' }],
-    props: {
-      placeholder: '请输入客户端名称',
-    },
-    onChange: clientCodeAuto.onSourceChange,
-  },
-  {
-    field: 'clientCode',
-    label: '客户端编码',
-    type: 'input',
-    rules: [{ required: true, message: '请输入客户端编码', trigger: 'blur' }],
-    // 内置客户端编码由后端锁定；仅编辑内置客户端时禁用（非内置编辑仍可改）
-    disabled: ({ formData, context }) => Boolean((context?.isEdit || formData?.id) && formData?.builtIn),
-    labelTip: '根据名称自动生成，可手动修改',
-    props: {
-      placeholder: '自动生成，如：pc、app、h5',
-    },
-    onChange: clientCodeAuto.onTargetChange,
-  },
-  {
-    field: 'appId',
-    label: 'AppId',
-    type: 'input',
-    rules: [{ required: true, message: '请输入AppId', trigger: 'blur' }],
-    props: {
-      placeholder: '应用ID',
-    },
-  },
-  {
-    field: 'clientAuthMethod',
-    label: '客户端认证方式',
-    type: 'radio',
-    defaultValue: 'client_secret',
-    rules: [{ required: true, message: '请选择客户端认证方式', trigger: 'change' }],
-    props: {
-      options: clientAuthMethodOptions.value,
-    },
-  },
-  {
-    field: 'appSecret',
-    label: 'AppSecret',
-    type: 'input',
-    props: {
-      type: 'password',
-      placeholder: '新增时必填；编辑留空表示不轮换',
-    },
-    vIf: formData => formData.clientAuthMethod === 'client_secret',
-  },
-  {
-    type: 'divider',
-    label: 'Token配置',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
-  },
-  {
-    field: 'tokenTimeout',
-    label: 'Token有效期(秒)',
-    type: 'number',
-    defaultValue: 7200,
-    rules: [{ required: true, message: '请输入Token有效期' }],
-    props: {
-      placeholder: '如：86400(1天), 2592000(30天)',
-      min: 60,
-      step: 3600,
-    },
-  },
-  {
-    field: 'tokenActivityTimeout',
-    label: 'Token活跃超时(秒)',
-    type: 'number',
-    defaultValue: -1,
-    props: {
-      placeholder: '-1表示不限制',
-    },
-  },
-  {
-    field: 'concurrentLogin',
-    label: '允许并发登录',
-    type: 'radio',
-    defaultValue: false,
-    props: {
-      options: booleanOptions.value,
-    },
-  },
-  {
-    field: 'shareToken',
-    label: '共享Token',
-    type: 'radio',
-    defaultValue: false,
-    props: {
-      options: booleanOptions.value,
-    },
-  },
-  {
-    field: 'authTypes',
-    label: '支持的认证方式',
-    type: 'select',
-    props: {
-      placeholder: '请选择支持的认证方式',
-      options: authTypeOptions.value,
-      multiple: true,
-    },
-  },
-  {
-    field: 'captchaType',
-    label: '验证码覆盖',
-    type: 'select',
-    defaultValue: '',
-    props: {
-      placeholder: '为空时继承全局登录配置',
-      options: captchaTypeOptions.value,
-    },
-  },
-  {
-    type: 'divider',
-    label: '状态配置',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
-  },
-  {
-    field: 'status',
-    label: '状态',
-    type: 'radio',
-    defaultValue: 1,
-    disabled: ({ formData, context }) => Boolean((context?.isEdit || formData?.id) && formData?.builtIn),
-    props: {
-      options: statusOptions.value,
-    },
-  },
-  {
-    field: 'description',
-    label: '描述',
-    type: 'textarea',
-    span: 2,
-    props: {
-      placeholder: '请输入客户端描述',
-      rows: 3,
-    },
-  },
-])
+// 编辑表单配置（与快捷新增 systemClient 预设共用 schema 工厂）
+const editSchema = computed(() => buildSystemClientEditSchema({
+  clientCodeAuto,
+  ...resolveClientEditSchemaOptions(dict.value),
+  withFieldQuickCreate: true,
+}))
 
 /** 在线用户列宽合计，避免无 scroll-x 时撑破弹窗 */
 const ONLINE_TABLE_SCROLL_X = 860
@@ -405,6 +275,11 @@ function beforeSubmit(formData) {
   if (Array.isArray(formData.authTypes)) {
     formData.authTypes = formData.authTypes.join(',')
   }
+  if (typeof formData.homeUrl === 'string') {
+    formData.homeUrl = formData.homeUrl.trim().replace(/\/+$/, '')
+  }
+  // 保存后下次 SSO 重新拉取客户端 homeUrl
+  invalidateClientHomeUrlCache()
 
   return formData
 }
@@ -450,6 +325,7 @@ async function handleKickoutUser(row) {
 async function handleReloadCache(row) {
   try {
     await request.post(`/system/client/reload-cache/${row.clientCode}`)
+    invalidateClientHomeUrlCache()
     message.success('缓存已刷新')
   }
   catch {

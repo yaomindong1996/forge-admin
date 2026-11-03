@@ -5,7 +5,6 @@ import { useRoute } from 'vue-router'
 import { queryBusinessRecordSelector } from '@/api/business-app'
 import { executeLowcodeQuerySource } from '@/api/lowcode-query-source'
 import UserSelectPicker from '@/components/common/UserSelectPicker.vue'
-import DictSelect from '@/components/DictSelect.vue'
 import FileUpload from '@/components/file-upload/index.vue'
 import ImageUpload from '@/components/image-upload/index.vue'
 import FieldValueRenderer from '@/components/lowcode-builder/shared/FieldValueRenderer.vue'
@@ -28,6 +27,7 @@ import {
   isNumberLikeField,
   resolveNumberFieldType,
 } from '../field-type-utils'
+import { useFormQuickCreate } from '../quick-create/useFormQuickCreate'
 import {
   buildQuerySourceDisplayFields,
   buildTreeFromFlatRows,
@@ -1882,6 +1882,35 @@ export function useAiFormItem(props, emit) {
       })
     }
   }
+
+  const {
+    quickCreateVisible,
+    quickCreateDefinition,
+    quickCreateLinkLabel,
+    quickCreateTooltipLabel,
+    showQuickCreateTrigger,
+    quickCreateDisabled,
+    openQuickCreate,
+    handleQuickCreateSuccess,
+  } = useFormQuickCreate({
+    field: computed(() => props.field),
+    formData: computed(() => props.formData),
+    value: computed(() => props.value),
+    fieldMultiple,
+    remoteOptions,
+    remoteOptionSource,
+    loadRemoteOptions,
+    loadDictOptions,
+    handleSelectUpdate,
+    handleUpdate,
+    disabledHandler,
+  })
+
+  /** select / dictSelect / treeSelect 等：字段旁图标；radio 走组内同行 Trigger */
+  const showQuickCreateInline = computed(() =>
+    showQuickCreateTrigger.value && props.field?.type !== 'radio',
+  )
+
   return {
     route, remoteOptions, remoteLoading, dictOptions, sourceDictOptions, recordSelectorVisible, scanLoading, scanFeedback,
     pickerDefaultTimestamp, remoteRequestSeq, ORG_TREE_SELECT_TYPES, USER_SELECT_TYPES, controlProps, numberFieldValue, numberFieldPrefix, numberFieldSuffix, numberFieldPrefixIcon, numberFieldSuffixIcon, inputFieldPrefix, inputFieldSuffix, inputFieldPrefixIcon, inputFieldSuffixIcon, inputFieldClearIcon, inputFieldPasswordVisibleIcon, inputFieldPasswordInvisibleIcon, inputFieldType, inputFieldSeparator, selectDropdownHeader, selectDropdownAction, selectEmptyText, selectArrowIcon, datePickerBindings, switchControlProps, fieldRuntimeControl,
@@ -1900,6 +1929,7 @@ export function useAiFormItem(props, emit) {
     getComponentEvents, handleUpdate, shouldSyncOptionLabels, handleFieldFocusout, handleFieldKeyup, handleScanFieldEvent, setScanFeedback, handleManualFieldEvent,
     openRecordSelector, clearRecordSelectorValue, handleRecordSelectorConfirm, handleRuntimePageWidgetUpdate, resolvePickerDefaultValue, handleRangeUpdate, handleUploadChange, handleCopy,
     handleUploadSuccess, handleUploadError, handleUploadRemove, CopyOutline, resolveSwitchCheckedValue, resolveSwitchUncheckedValue, getPlaceholder, isOrgTreeSelectField,
+    quickCreateVisible, quickCreateDefinition, quickCreateLinkLabel, quickCreateTooltipLabel, showQuickCreateTrigger, showQuickCreateInline, quickCreateDisabled, openQuickCreate, handleQuickCreateSuccess,
     isUserSelectField, resolveFormattedRangeValue, normalizeTimestampPickerValue, normalizeFormattedPickerValue, normalizeTimestampRangePickerValue, normalizeFormattedRangePickerValue,
     isNumberLikeField, resolveNumberFieldType,
   }

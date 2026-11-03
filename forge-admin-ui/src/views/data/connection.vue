@@ -33,15 +33,6 @@
       search-label-width="72px"
       @modal-close="handleModalClose"
     >
-      <template #form-dbType="{ formData }">
-        <n-select
-          :value="formData.dbType"
-          :options="dbTypeOptions"
-          placeholder="请选择数据库类型"
-          @update:value="value => handleDbTypeChange(formData, value)"
-        />
-      </template>
-
       <template #form-host="{ formData }">
         <n-input
           :value="formData.host"
@@ -417,9 +408,18 @@ const editSchema = computed(() => [
   {
     field: 'dbType',
     label: '数据库',
-    type: 'slot',
-    slotName: 'dbType',
+    type: 'select',
     rules: [{ required: true, message: '请选择数据库类型', trigger: 'change' }],
+    quickCreate: {
+      preset: 'dictData',
+      dictType: 'data_db_type',
+      linkLabel: '新增数据库类型',
+    },
+    props: {
+      placeholder: '请选择数据库类型',
+      options: dbTypeOptions.value,
+    },
+    onChange: ({ value, formData }) => handleDbTypeChange(formData, value),
   },
   {
     field: 'host',

@@ -32,5 +32,7 @@ public class SysClientDTO {
     
     private Integer status;
     private String description;
+    /** 前端入口地址（SSO 跳转 baseUrl） */
+    private String homeUrl;
     private Long tenantId;
 }

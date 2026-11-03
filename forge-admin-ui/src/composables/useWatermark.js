@@ -77,60 +77,63 @@ function formatDate(date, format) {
 }
 
 /**
- * 创建水印
+ * 创建水印瓦片。
+ * 必须先按「全部行」量宽高，再算旋转后 AABB，否则多行/时间戳会被 canvas 裁切。
  */
 function createWatermarkCanvas(config) {
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')
 
-  // 计算文本尺寸
-  const font = `${config.fontSize}px Arial`
-  ctx.font = font
-  const textMetrics = ctx.measureText(config.content)
-  const textWidth = textMetrics.width
-  const textHeight = config.fontSize
+  const fontSize = Number(config.fontSize) || 16
+  const gapX = Number(config.gapX) || 0
+  const gapY = Number(config.gapY) || 0
+  const offsetX = Number(config.offsetX) || 0
+  const offsetY = Number(config.offsetY) || 0
+  const rotate = Number(config.rotate) || 0
+  const lineHeight = fontSize * 1.2
+  const font = `${fontSize}px Arial`
 
-  // 计算旋转后的画布尺寸
-  const angle = (config.rotate * Math.PI) / 180
+  let displayContent = String(config.content || '')
+  if (config.showTimestamp) {
+    displayContent += `\n${formatDate(new Date(), config.timestampFormat || 'yyyy-MM-dd HH:mm:ss')}`
+  }
+  const lines = displayContent.split('\n').filter(line => line.length > 0)
+
+  // 先量字再定画布；canvas 尺寸变更会重置 context，测量放在 resize 前
+  ctx.font = font
+  let textWidth = 0
+  for (const line of lines) {
+    textWidth = Math.max(textWidth, ctx.measureText(line).width)
+  }
+  const textHeight = Math.max(lineHeight * Math.max(lines.length, 1), fontSize)
+  // 留白：measureText 偏紧 + 抗锯齿，避免旋转后贴边被裁
+  const pad = Math.ceil(fontSize * 0.6)
+  const contentW = textWidth + pad * 2
+  const contentH = textHeight + pad * 2
+
+  const angle = (rotate * Math.PI) / 180
   const sin = Math.abs(Math.sin(angle))
   const cos = Math.abs(Math.cos(angle))
+  const rotatedW = contentW * cos + contentH * sin
+  const rotatedH = contentW * sin + contentH * cos
 
-  // 画布尺寸 = 文本尺寸 + 间距
-  const canvasWidth = textWidth * cos + textHeight * sin + config.gapX
-  const canvasHeight = textWidth * sin + textHeight * cos + config.gapY
+  canvas.width = Math.ceil(rotatedW + gapX)
+  canvas.height = Math.ceil(rotatedH + gapY)
 
-  canvas.width = canvasWidth
-  canvas.height = canvasHeight
-
-  // 绘制水印文本
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
   ctx.font = font
-  ctx.fillStyle = config.fontColor
-  ctx.globalAlpha = config.opacity
+  ctx.fillStyle = config.fontColor || '#cccccc'
+  ctx.globalAlpha = Number(config.opacity) || 0.1
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
 
-  // 保存上下文状态
   ctx.save()
-
-  // 移动到画布中心并旋转
-  const centerX = (textWidth * cos + textHeight * sin) / 2 + config.offsetX
-  const centerY = (textWidth * sin + textHeight * cos) / 2 + config.offsetY
-  ctx.translate(centerX, centerY)
+  ctx.translate(rotatedW / 2 + offsetX, rotatedH / 2 + offsetY)
   ctx.rotate(angle)
-
-  // 绘制文本
-  let displayContent = config.content
-  if (config.showTimestamp) {
-    const timestamp = formatDate(new Date(), config.timestampFormat)
-    displayContent += `\n${timestamp}`
-  }
-
-  const lines = displayContent.split('\n')
   lines.forEach((line, index) => {
-    const yOffset = (index - (lines.length - 1) / 2) * config.fontSize * 1.2
+    const yOffset = (index - (lines.length - 1) / 2) * lineHeight
     ctx.fillText(line, 0, yOffset)
   })
-
   ctx.restore()
 
   return canvas.toDataURL('image/png')

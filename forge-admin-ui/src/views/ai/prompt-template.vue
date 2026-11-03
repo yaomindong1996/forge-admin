@@ -270,6 +270,11 @@ const editSchema = computed(() => [
     type: 'select',
     defaultValue: 'dashboard_generate',
     required: true,
+    quickCreate: {
+      preset: 'dictData',
+      dictType: 'ai_prompt_usage_scene',
+      linkLabel: '新增场景',
+    },
     props: { placeholder: '请选择适用场景', options: usageSceneOptions },
   },
   {

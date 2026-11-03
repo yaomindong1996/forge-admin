@@ -58,6 +58,7 @@
             dict-type="ai_business_application_object_role"
             :clearable="false"
             :disabled="saving"
+            quick-create
             @update:value="value => changeRole(item, value)"
           />
           <div class="database-anchor">
