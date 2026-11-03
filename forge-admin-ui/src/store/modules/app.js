@@ -120,7 +120,8 @@ export const useAppStore = defineStore('app', {
   },
   persist: {
     key: `${import.meta.env.VITE_TENANT || 'default'}_app`,
-    pick: ['collapsed', 'layout', 'primaryColor', 'naiveThemeOverrides', 'themeConfig'],
+    // 配色不落会话：永久以租户管理为准；布局抽屉内改色只作用于当前内存，刷新后回租户默认。
+    pick: ['collapsed', 'layout'],
     storage: sessionStorage,
   },
 })

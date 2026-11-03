@@ -27,10 +27,13 @@
           </n-tab-pane>
           <n-tab-pane name="theme" tab="配色">
             <AppearanceThemeEditor v-model="theme" :layout="layout" />
+            <p class="setting-note">
+              此处配色仅临时预览当前会话，刷新后仍以租户管理中的品牌配色为准；永久生效请到「租户管理」保存。
+            </p>
           </n-tab-pane>
         </n-tabs>
         <p class="setting-note">
-          租户默认布局和品牌配色请在租户管理中保存。
+          租户默认布局和品牌配色请在租户管理中保存；可用底部「恢复租户外观」立即回到租户配置。
         </p>
         <template #footer>
           <AppearanceRestoreActions />

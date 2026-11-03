@@ -1,7 +1,7 @@
 // 导航只有三个基础色；其余颜色由表面和品牌色推导，避免每个布局分别维护一套配色。
 export const navigationPresets = [
   { key: 'clean', name: '清爽白', primary: '#4242F7', header: '#FFFFFF', side: '#FFFFFF' },
-  { key: 'forge-blue', name: '品牌蓝', primary: '#4242F7', header: '#4242F7', side: '#FFFFFF' },
+  { key: 'forge-blue', name: '协作蓝', primary: '#4242F7', header: '#4242F7', side: '#FFFFFF' },
   { key: 'mist', name: '雾蓝', primary: '#2F6FED', header: '#EEF4FF', side: '#EEF4FF' },
   { key: 'mist-teal', name: '雾青', primary: '#0E8F7E', header: '#E7F6F3', side: '#E7F6F3' },
   { key: 'mist-violet', name: '雾紫', primary: '#6D5EF6', header: '#F1EEFF', side: '#F1EEFF' },
@@ -10,6 +10,10 @@ export const navigationPresets = [
   { key: 'graphite', name: '石墨', primary: '#334155', header: '#1F2937', side: '#FFFFFF' },
   { key: 'enterprise-red', name: '企业红', primary: '#D12723', header: '#B91C1C', side: '#FFFFFF' },
   { key: 'teal', name: '松石绿', primary: '#0E8F7E', header: '#0F766E', side: '#FFFFFF' },
+  // CRM / ERP 常见后台主色：客户蓝、业资深蓝、供应链青绿
+  { key: 'crm-sky', name: '客户蓝', primary: '#1890FF', header: '#185ABD', side: '#FFFFFF' },
+  { key: 'erp-navy', name: '业资深蓝', primary: '#0B5FFF', header: '#0A2540', side: '#F4F7FA' },
+  { key: 'erp-teal', name: '供应链青', primary: '#0F766E', header: '#134E4A', side: '#FFFFFF' },
 ]
 
 function channels(value) {
@@ -87,6 +91,7 @@ export function createNavigationTheme({ primary = '#4242F7', header = '#FFFFFF',
       borderColor: mixColor(headerText, headerBg, 0.14),
     },
     topMenu: {
+      // 不写 activeBarColor：保留调用方/租户已配置的横条，空值表示跟随品牌主色。
       textColor: headerText,
       textColorHover: headerAccent,
       textColorActive: headerAccent,
@@ -188,6 +193,11 @@ export function resolveNavigationTheme(config, defaults, isDark = false) {
       theme[group] = { ...theme[group], ...generated[group] }
     }
   }
+  // 自动推导不得冲掉已保存的顶部选中横条（含租户配置）；空字符串仍表示跟随主色。
+  const sourceTop = source[`topMenu${suffix}`] || {}
+  if (Object.prototype.hasOwnProperty.call(sourceTop, 'activeBarColor')) {
+    theme.topMenu.activeBarColor = sourceTop.activeBarColor
+  }
   // 旧 JSON 保留配置，只有不可读的前景色在运行时兜底，不改数据库中的原值。
   return protectThemeSurfaces(theme)
 }
@@ -202,7 +212,12 @@ export function updateNavigationBases(config, patch, isDark = false) {
   // 深色编辑只更新对应分组，不能把深色背景写进浅色配置。
   const next = { ...updateNavigationMode(config, 'auto', isDark), primaryColor: generated.primaryColor }
   for (const group of ['header', 'topMenu', 'sideMenu']) {
-    next[group + suffix] = { ...config[group + suffix], ...generated[group] }
+    const key = group + suffix
+    next[key] = { ...config[key], ...generated[group] }
+    // 显式保留横条：扩展运算后若 generated 未带该字段，仍以原配置为准。
+    if (group === 'topMenu' && Object.prototype.hasOwnProperty.call(config[key] || {}, 'activeBarColor')) {
+      next[key].activeBarColor = config[key].activeBarColor
+    }
   }
   return next
 }

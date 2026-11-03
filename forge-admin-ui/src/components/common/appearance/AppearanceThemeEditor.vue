@@ -77,9 +77,9 @@
           </label>
         </div>
         <TopMenuIndicatorControl v-if="hasTopMenu" v-model="model" :dark="advancedDark" />
-        <div class="manual-mode">
+        <div class="manual-mode" @click.stop>
           <span>手动配置文字和状态色</span>
-          <n-switch :value="manualMode" @update:value="setManualMode" />
+          <n-switch :value="manualMode" aria-label="手动配置文字和状态色" @update:value="setManualMode" />
         </div>
         <p class="theme-guidance">
           浅色与深色独立设置。修改背景只对当前模式启用自动配色；低对比颜色在显示时自动保护。
@@ -410,6 +410,8 @@ function updateCustom(path, value) {
   color: var(--sample-active-text);
 }
 .manual-mode {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;

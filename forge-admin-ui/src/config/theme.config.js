@@ -149,8 +149,12 @@ function applyMenuVariables(root, prefix, properties) {
 }
 
 function applyTopMenuConfig(root, menu, primary) {
+  // 横条空值跟随品牌主色；有值时写成实色，避免仍引用 --primary-color 看起来“改了不生效”。
+  const activeBar = String(menu?.activeBarColor || '').trim()
+    ? solidColor(menu.activeBarColor, primary)
+    : solidColor(primary, '#4242F7')
   applyMenuVariables(root, 'top-menu', {
-    'active-bar-color': solidColor(menu.activeBarColor, primary),
+    'active-bar-color': activeBar,
     'text-color': menu.textColor,
     'text-color-hover': menu.textColorHover || menu.textColorActive || menu.textColor,
     'text-color-active': menu.textColorActive,

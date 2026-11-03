@@ -3,14 +3,22 @@
   <section class="indicator-control" aria-label="顶部菜单选中横条">
     <div class="indicator-heading">
       <span>顶部菜单选中横条</span>
-      <label>
+      <!-- 不用 label 包 n-switch，避免点击被原生 label 吞掉导致“没反应” -->
+      <div class="indicator-follow" @click.stop>
         <span>跟随品牌主色</span>
-        <n-switch :value="followPrimary" aria-label="横条跟随品牌主色" @update:value="setFollowPrimary" />
-      </label>
+        <n-switch
+          :value="followPrimary"
+          aria-label="横条跟随品牌主色"
+          @update:value="setFollowPrimary"
+        />
+      </div>
     </div>
-    <div role="group" aria-label="顶部菜单选中横条颜色">
+    <div role="group" aria-label="顶部菜单选中横条颜色" @click.stop>
       <n-color-picker
-        :value="color" :disabled="followPrimary" :show-alpha="false" :modes="['hex']"
+        :value="color"
+        :disabled="followPrimary"
+        :show-alpha="false"
+        :modes="['hex']"
         @update:value="setColor"
       />
     </div>
@@ -24,13 +32,18 @@ import { solidColor } from '@/utils/navigation-theme'
 const props = defineProps({ dark: Boolean })
 const model = defineModel({ type: Object, required: true })
 const group = computed(() => props.dark ? 'topMenuDark' : 'topMenu')
-const followPrimary = computed(() => !model.value[group.value]?.activeBarColor)
-const color = computed(() => solidColor(model.value[group.value]?.activeBarColor, model.value.primaryColor))
+const followPrimary = computed(() => !String(model.value?.[group.value]?.activeBarColor || '').trim())
+const color = computed(() => solidColor(model.value?.[group.value]?.activeBarColor, model.value?.primaryColor))
 
 function setColor(value) {
+  const key = group.value
+  const nextBar = value == null ? '' : String(value).trim()
   model.value = {
     ...model.value,
-    [group.value]: { ...model.value[group.value], activeBarColor: value },
+    [key]: {
+      ...(model.value?.[key] || {}),
+      activeBarColor: nextBar,
+    },
   }
 }
 function setFollowPrimary(enabled) {
@@ -41,6 +54,8 @@ function setFollowPrimary(enabled) {
 
 <style scoped>
 .indicator-control {
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: 8px;
   margin-bottom: 12px;
@@ -50,7 +65,7 @@ function setFollowPrimary(enabled) {
   font-size: 12px;
 }
 .indicator-heading,
-.indicator-heading label {
+.indicator-follow {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -58,5 +73,9 @@ function setFollowPrimary(enabled) {
 .indicator-heading {
   justify-content: space-between;
   flex-wrap: wrap;
+}
+.indicator-follow {
+  position: relative;
+  z-index: 2;
 }
 </style>
