@@ -58,14 +58,18 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { createSsoTicket } from '@/api/auth-sso'
+import { resolveOwnedMenuSsoBaseUrl } from '@/composables/useMenu'
+import { usePermissionStore } from '@/store'
 import {
   DEFAULT_SSO_TARGET_CLIENT,
   ensureClientHomeUrlsLoaded,
   normalizeSsoRedirectPath,
   resolveSsoTargetBaseUrl,
+  selectTrustedSsoBaseUrl,
 } from '@/utils/sso-target'
 
 const route = useRoute()
+const permissionStore = usePermissionStore()
 
 const loading = ref(true)
 const errorMessage = ref('')
@@ -85,10 +89,20 @@ const displayMode = computed(() => route.query.display === 'redirect' ? 'redirec
 async function resolveTargetBaseUrl() {
   await ensureClientHomeUrlsLoaded()
   const queryBaseUrl = typeof route.query.baseUrl === 'string' ? route.query.baseUrl : ''
-  return resolveSsoTargetBaseUrl({
-    targetClient: targetClient.value,
-    preferredBaseUrl: queryBaseUrl,
+  const configured = resolveSsoTargetBaseUrl({ targetClient: targetClient.value })
+  const menuBaseUrl = resolveOwnedMenuSsoBaseUrl(
+    permissionStore.menus,
+    route.query.menuKey,
+    targetClient.value,
+  )
+  const baseUrl = selectTrustedSsoBaseUrl({
+    requestedBaseUrl: queryBaseUrl,
+    allowedBaseUrls: [menuBaseUrl, configured],
   })
+  // 地址栏可以伪造 baseUrl。不匹配时不要改跳已配置入口，否则仍会把票据带出当前页。
+  if (queryBaseUrl && !baseUrl)
+    throw new Error('目标子系统地址不在允许范围内')
+  return baseUrl
 }
 
 function buildSsoUrl(baseUrl, ticket) {

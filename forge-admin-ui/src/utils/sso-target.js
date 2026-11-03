@@ -206,3 +206,74 @@ export function resolveSsoTargetBaseUrl({ targetClient = DEFAULT_SSO_TARGET_CLIE
   const configuredBaseUrls = getConfiguredSsoTargetBaseUrls()
   return configuredBaseUrls[targetClient] || ''
 }
+
+/**
+ * 只接受可导航的 http(s) 绝对地址。
+ * 拒绝 javascript:、协议相对地址和带 userinfo 的 URL，避免票据被带到非预期来源。
+ */
+export function normalizeHttpSsoBaseUrl(value) {
+  const trimmed = normalizeSsoBaseUrl(value)
+  if (!trimmed || trimmed.startsWith('//'))
+    return ''
+
+  let url
+  try {
+    url = new URL(trimmed)
+  }
+  catch {
+    return ''
+  }
+  if (url.username || url.password)
+    return ''
+  if (url.protocol !== 'http:' && url.protocol !== 'https:')
+    return ''
+  return normalizeSsoBaseUrl(`${url.origin}${url.pathname}`)
+}
+
+function isNestedHttpBase(candidate, allowedBase) {
+  const left = normalizeHttpSsoBaseUrl(candidate)
+  const right = normalizeHttpSsoBaseUrl(allowedBase)
+  if (!left || !right)
+    return false
+  if (left === right)
+    return true
+
+  const candidateUrl = new URL(left)
+  const allowedUrl = new URL(right)
+  if (candidateUrl.origin !== allowedUrl.origin)
+    return false
+  const allowedPath = allowedUrl.pathname.endsWith('/')
+    ? allowedUrl.pathname
+    : `${allowedUrl.pathname}/`
+  return candidateUrl.pathname.startsWith(allowedPath)
+}
+
+function matchesReportHostFallback(candidate) {
+  if (!REPORT_HOST_FALLBACK)
+    return false
+  const normalized = normalizeHttpSsoBaseUrl(candidate)
+  if (!normalized)
+    return false
+  return new URL(normalized).host === REPORT_HOST_FALLBACK
+}
+
+/**
+ * 桥接页只能跳到已配置入口、当前用户菜单里的入口，或报表宿主本机兜底。
+ * 查询参数里的任意 baseUrl 不能单独放行，否则会把 SSO 票据交给攻击者站点。
+ * 显式传入但不在允许范围内时返回空串，调用方不得继续出票。
+ */
+export function selectTrustedSsoBaseUrl({ requestedBaseUrl = '', allowedBaseUrls = [] } = {}) {
+  const allowed = (Array.isArray(allowedBaseUrls) ? allowedBaseUrls : [])
+    .map(item => normalizeHttpSsoBaseUrl(item))
+    .filter(Boolean)
+  const requestedRaw = trimString(requestedBaseUrl)
+  if (!requestedRaw)
+    return allowed[0] || ''
+
+  const requested = normalizeHttpSsoBaseUrl(requestedRaw)
+  const trusted = Boolean(requested) && (
+    allowed.some(base => isNestedHttpBase(requested, base))
+    || matchesReportHostFallback(requested)
+  )
+  return trusted ? requested : ''
+}

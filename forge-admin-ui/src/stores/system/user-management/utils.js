@@ -49,8 +49,19 @@ export function normalizeSingleNumber(value, fallback = null) {
 export function normalizeNumberList(value) {
   const list = Array.isArray(value) ? value : (value === null || value === undefined || value === '' ? [] : [value])
   return Array.from(new Set(list
+    .flatMap(expandCommaSeparatedIds)
     .map(item => normalizeSingleNumber(item))
     .filter(item => item !== null)))
+}
+
+/**
+ * 多选下拉/树选择把 ID 序列化成 "1,2"。整段丢给 Number() 会得到 NaN，
+ * 提交前被滤成空数组：新建用户丢组织，编辑时角色会被同步成空并清空授权。
+ */
+function expandCommaSeparatedIds(value) {
+  if (typeof value !== 'string' || !value.includes(','))
+    return [value]
+  return value.split(',').map(item => item.trim()).filter(Boolean)
 }
 
 export function flattenOrgNodes(list = []) {
