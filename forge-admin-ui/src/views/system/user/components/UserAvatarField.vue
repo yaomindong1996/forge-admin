@@ -33,9 +33,10 @@
         </span>
       </button>
       <button
+        v-if="!disabled"
         type="button"
         class="user-avatar-field__camera"
-        :disabled="disabled || uploading"
+        :disabled="uploading"
         title="上传头像"
         @click="triggerPick"
       >
@@ -53,8 +54,8 @@
       </button>
     </div>
 
-    <!-- 右侧仅保留说明；点击左侧圆/相机角标即可上传 -->
-    <p class="user-avatar-field__tips">
+    <!-- 右侧仅保留说明；详情只读不展示上传提示 -->
+    <p v-if="!disabled" class="user-avatar-field__tips">
       <span>支持 JPG、PNG 格式</span>
       <span>建议尺寸 200x200px 以上，大小不超过 {{ maxSizeMb }}MB</span>
     </p>

@@ -71,6 +71,17 @@ export function readableColor(background, preferred) {
   return contrastRatio('#1D2129', background) >= contrastRatio('#FFFFFF', background) ? '#1D2129' : '#FFFFFF'
 }
 
+/** 空横条跟随主色；主色与顶栏太接近时改用可读对比色，避免「协作蓝」等深色顶栏上看不见横条。 */
+export function resolveTopMenuActiveBarColor(activeBarColor, primary, headerBackground) {
+  const brand = solidColor(primary, '#4242F7')
+  const configured = String(activeBarColor || '').trim()
+  if (configured) {
+    return solidColor(configured, brand)
+  }
+  const header = solidColor(headerBackground, '#FFFFFF')
+  return solidColor(contrastRatio(brand, header) >= 1.8 ? brand : readableColor(header, brand))
+}
+
 export function createNavigationTheme({ primary = '#4242F7', header = '#FFFFFF', side = '#FFFFFF' } = {}) {
   const brand = solidColor(primary, '#4242F7')
   const headerBg = solidColor(header)

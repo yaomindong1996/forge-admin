@@ -125,13 +125,19 @@ describe('租户外观保存兼容', () => {
 
 describe('顶部菜单选中横条', () => {
   it.each([false, true])('模式 %s 未设置时跟随品牌主色，与可读文字色独立', (dark) => {
-    const source = updateNavigationBases(defaultThemeConfig, { primary: '#2F6FED', header: '#2F6FED' }, dark)
+    const source = updateNavigationBases(defaultThemeConfig, { primary: '#2F6FED', header: '#FFFFFF' }, dark)
     const rendered = resolveNavigationTheme(source, defaultThemeConfig, dark)
-    expect(rendered.topMenu.textColorActive).not.toBe(rendered.primaryColor)
+    expect(rendered.topMenu.textColorActive).not.toBe(rendered.header.backgroundColor)
     applyThemeConfig(source, dark)
     expect(document.documentElement.style.getPropertyValue('--top-menu-active-bar-color')).toBe('#2f6fed')
-    applyThemeConfig({ ...source, primaryColor: '#B91C1C' }, dark)
+    applyThemeConfig({ ...source, primaryColor: '#B91C1C', header: { ...source.header, backgroundColor: '#FFFFFF' } }, dark)
     expect(document.documentElement.style.getPropertyValue('--top-menu-active-bar-color')).toBe('#b91c1c')
+  })
+
+  it.each([false, true])('模式 %s 顶栏与主色同色时横条自动改对比色', (dark) => {
+    const source = updateNavigationBases(defaultThemeConfig, { primary: '#2F6FED', header: '#2F6FED' }, dark)
+    applyThemeConfig(source, dark)
+    expect(document.documentElement.style.getPropertyValue('--top-menu-active-bar-color')).toBe('#ffffff')
   })
 
   it.each(['auto', 'custom'])('%s 配色保留独立浅/深横条，基础色与预设更新不覆盖它', (mode) => {

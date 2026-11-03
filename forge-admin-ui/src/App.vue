@@ -36,10 +36,8 @@
             </KeepAlive>
           </component>
 
-          <LayoutSetting
-            v-if="showLayoutSetting" :show-trigger="!['business-workbench', 'side-flyout'].includes(appStore.layout)"
-            class="fixed right-12 top-1/2 z-999"
-          />
+          <!-- 抽屉统一挂根级；触发按钮放各布局顶栏 HeaderTools，不再侧边悬浮 -->
+          <LayoutSetting v-if="showLayoutSetting" :show-trigger="false" />
         </router-view>
 
         <!-- 全局水印 -->

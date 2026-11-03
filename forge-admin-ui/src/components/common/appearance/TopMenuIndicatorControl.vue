@@ -27,13 +27,18 @@
 
 <script setup>
 import { computed } from 'vue'
-import { solidColor } from '@/utils/navigation-theme'
+import { resolveTopMenuActiveBarColor, solidColor } from '@/utils/navigation-theme'
 
 const props = defineProps({ dark: Boolean })
 const model = defineModel({ type: Object, required: true })
 const group = computed(() => props.dark ? 'topMenuDark' : 'topMenu')
+const headerGroup = computed(() => props.dark ? 'headerDark' : 'header')
 const followPrimary = computed(() => !String(model.value?.[group.value]?.activeBarColor || '').trim())
-const color = computed(() => solidColor(model.value?.[group.value]?.activeBarColor, model.value?.primaryColor))
+const color = computed(() => resolveTopMenuActiveBarColor(
+  model.value?.[group.value]?.activeBarColor,
+  model.value?.primaryColor,
+  model.value?.[headerGroup.value]?.backgroundColor,
+))
 
 function setColor(value) {
   const key = group.value

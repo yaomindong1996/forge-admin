@@ -55,16 +55,17 @@ describe('布局主题覆盖与工具接入契约', () => {
     expect(content).toContain('<HeaderTools')
     expect(content).not.toContain('<MenuSearch')
   })
-  it('工作台共用工具区保留身份入口，全屏不再藏进单项浮层', () => {
+  it('工作台共用工具区保留身份入口，布局外观入口在顶栏而非侧边悬浮', () => {
     const content = source('layouts/components/HeaderTools.vue')
     expect(content).toContain('<TenantSwitcher />')
     expect(content).toContain('<OrgSwitcher />')
     expect(content).toContain('<Fullscreen />')
+    expect(content).toContain('aria-label="布局与外观"')
     expect(content).not.toContain('aria-label="更多工具"')
     expect(content).not.toContain('<n-popover')
     expect(content).toContain('v-if="isCompact" placement="bottom-end"')
-    expect(source('layouts/business-workbench/components/WorkbenchHeader.vue')).toContain('show-appearance')
-    expect(source('layouts/side-flyout/components/SideFlyoutHeader.vue')).toContain('show-appearance')
+    expect(source('App.vue')).toContain(':show-trigger="false"')
+    expect(source('App.vue')).not.toContain('fixed right-12 top-1/2')
   })
 
   it('无顶栏布局收纳账户与工具，便当盒不再另写注销/全屏逻辑', () => {

@@ -6,7 +6,7 @@
 /**
  * 默认主题配置
  */
-import { resolveNavigationTheme, solidColor } from '@/utils/navigation-theme'
+import { resolveNavigationTheme, resolveTopMenuActiveBarColor, solidColor } from '@/utils/navigation-theme'
 
 export const defaultThemeConfig = {
   navigationMode: 'auto',
@@ -148,11 +148,9 @@ function applyMenuVariables(root, prefix, properties) {
   }
 }
 
-function applyTopMenuConfig(root, menu, primary) {
-  // 横条空值跟随品牌主色；有值时写成实色，避免仍引用 --primary-color 看起来“改了不生效”。
-  const activeBar = String(menu?.activeBarColor || '').trim()
-    ? solidColor(menu.activeBarColor, primary)
-    : solidColor(primary, '#4242F7')
+function applyTopMenuConfig(root, menu, primary, headerBackground) {
+  // 横条空值跟随品牌主色；与顶栏同色时自动换对比色，避免深色顶栏上看不见。
+  const activeBar = resolveTopMenuActiveBarColor(menu?.activeBarColor, primary, headerBackground)
   applyMenuVariables(root, 'top-menu', {
     'active-bar-color': activeBar,
     'text-color': menu.textColor,
@@ -244,7 +242,7 @@ export function applyThemeConfig(config, isDark = false) {
   // 4. 应用顶部菜单配置
   const topMenuConfig = config.topMenu
   if (topMenuConfig) {
-    applyTopMenuConfig(root, topMenuConfig, config.primaryColor)
+    applyTopMenuConfig(root, topMenuConfig, config.primaryColor, headerConfig?.backgroundColor)
   }
 
   // 5. 应用侧边菜单配置

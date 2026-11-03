@@ -10,15 +10,15 @@ const components = { NCollapse, NCollapseItem, NColorPicker, NSwitch }
 const source = () => structuredClone(defaultThemeConfig)
 
 describe('顶部菜单横条编辑', () => {
-  it.each(['top-menu', 'top-side-menu', 'business-workbench'])('%s 高级区可设置横条且不关闭自动文字配色', async (layout) => {
+  it.each(['top-menu', 'top-side-menu', 'business-workbench'])('%s 首屏可设置横条且不关闭自动文字配色', async (layout) => {
     const model = source()
     const original = JSON.stringify(model)
     const wrapper = mount(AppearanceThemeEditor, { props: { modelValue: model, layout }, global: { components } })
     try {
-      expect(wrapper.findAllComponents(NColorPicker)).toHaveLength(3)
-      expect(wrapper.findComponent(TopMenuIndicatorControl).exists()).toBe(false)
-      await wrapper.find('.n-collapse-item__header-main').trigger('click')
+      // 基础三色 + 横条；不必先展开高级自定义
+      expect(wrapper.findAllComponents(NColorPicker)).toHaveLength(4)
       const indicator = wrapper.findComponent(TopMenuIndicatorControl)
+      expect(indicator.exists()).toBe(true)
       expect(indicator.findComponent(NColorPicker).props('disabled')).toBe(true)
       await indicator.findComponent(NSwitch).vm.$emit('update:value', false)
       const custom = wrapper.emitted('update:modelValue').at(-1)[0]
@@ -74,7 +74,8 @@ describe('顶部菜单横条编辑', () => {
       expect(next.topMenu.activeBarColor).toBe('')
       expect(next.topMenuDark.activeBarColor).toBe('')
       await wrapper.setProps({ modelValue: next })
-      await wrapper.findAll('.custom-theme-mode button')[1].trigger('click')
+      // 预览切深色时，首屏横条控件跟着改深色分组
+      await wrapper.findAll('.preview-modes button')[1].trigger('click')
       expect(wrapper.findComponent(TopMenuIndicatorControl).props('dark')).toBe(true)
       expect(wrapper.emitted('update:modelValue')).toHaveLength(1)
     }

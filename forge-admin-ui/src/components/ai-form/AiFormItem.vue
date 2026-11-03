@@ -785,13 +785,15 @@
           </n-button>
         </div>
 
-        <!-- 自定义插槽 -->
+        <!-- 自定义插槽：透传详情只读，避免业务槽位在查看态仍可编辑 -->
         <slot
           v-else-if="field.type === 'slot'"
           :name="field.slotName || field.field"
           :value="value"
           :field="field"
           :form-data="formData"
+          :disabled="disabledHandler(field)"
+          :readonly="isFormDetailReadonly() || field.readonly === true"
           :update-value="handleUpdate"
         />
 

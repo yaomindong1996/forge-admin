@@ -1914,7 +1914,7 @@ export function useAiFormItem(props, emit) {
   return {
     route, remoteOptions, remoteLoading, dictOptions, sourceDictOptions, recordSelectorVisible, scanLoading, scanFeedback,
     pickerDefaultTimestamp, remoteRequestSeq, ORG_TREE_SELECT_TYPES, USER_SELECT_TYPES, controlProps, numberFieldValue, numberFieldPrefix, numberFieldSuffix, numberFieldPrefixIcon, numberFieldSuffixIcon, inputFieldPrefix, inputFieldSuffix, inputFieldPrefixIcon, inputFieldSuffixIcon, inputFieldClearIcon, inputFieldPasswordVisibleIcon, inputFieldPasswordInvisibleIcon, inputFieldType, inputFieldSeparator, selectDropdownHeader, selectDropdownAction, selectEmptyText, selectArrowIcon, datePickerBindings, switchControlProps, fieldRuntimeControl,
-    fieldRuntimeVisible, formItemRef, arrayFieldRef, restoreFixedLabelWidth, registerArrayValidator, disabledHandler, fieldAlign, fieldAlignClass,
+    fieldRuntimeVisible, formItemRef, arrayFieldRef, restoreFixedLabelWidth, registerArrayValidator, disabledHandler, isFormDetailReadonly, fieldAlign, fieldAlignClass,
     formItemClass, resolvedFormItemStyle, componentControlStyle, componentControlClass, recordSelectorConfig, fieldMultiple, recordSelectorRuntimeContext, relationLabelValueField, recordSelectorDisplayText,
     fieldDescription, fieldLabelTip, fieldBadge, manualFieldEventEnabled, blurFieldEventEnabled, scanFieldEventEnabled, fieldEventState, showFieldEventFeedback,
     isSectionTitleField, isGroupTitleField, isFieldRequired, fieldDictType, cascadeConfig, dictCascadeConfig, remoteOptionSource, remoteOptionSourceKey,

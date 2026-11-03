@@ -1,22 +1,6 @@
+/* 高级关系维护改为标准 card 弹窗，不再强制双栏工作台高度 */
 .user-relation-modal .n-card {
-  display: flex;
-  flex-direction: column;
-  height: min(78vh, 760px);
-  max-height: calc(100vh - 32px);
-  overflow: hidden;
-  border-radius: 12px;
-}
-
-.user-relation-modal .n-card-header {
-  display: none;
-}
-
-.user-relation-modal .n-card__content {
-  flex: 1;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  padding: 0 !important;
+  border-radius: 6px;
 }
 
 :where(.system-user-page, .user-relation-modal, .user-batch-auth-modal, .user-batch-tenant-modal) .relation-workbench {

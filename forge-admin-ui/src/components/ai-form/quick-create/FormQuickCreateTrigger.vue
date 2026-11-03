@@ -73,8 +73,8 @@ defineEmits(['click'])
   justify-content: center;
   align-self: center;
   box-sizing: border-box;
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   margin: 0;
   padding: 0;
   border: none;
@@ -90,8 +90,8 @@ defineEmits(['click'])
 
 .ai-form-quick-create-trigger__icon {
   display: block;
-  width: 20px;
-  height: 20px;
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
 }
 

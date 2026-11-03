@@ -1,4 +1,3 @@
-import { NTooltip } from 'naive-ui'
 import { computed, h, watch } from 'vue'
 import { request } from '@/utils'
 import { orderRolesWithCurrentFirst } from '@/views/system/user-role-order'
@@ -76,32 +75,28 @@ export function createUserRoles(state, runtime, workspace) {
     {
       title: '操作',
       key: 'action',
-      width: 112,
+      width: 100,
       fixed: 'right',
+      // 文字链操作：避免动态 material-symbols class 未进 safelist 导致空图标
       render: row => h(
-        NTooltip,
+        'a',
         {
-          trigger: 'hover',
-          placement: 'top',
+          class: 'text-primary cursor-pointer hover:text-primary-hover',
+          role: 'button',
+          tabindex: 0,
+          onClick: (event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            handleRolePermission(row)
+          },
+          onKeydown: (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              handleRolePermission(row)
+            }
+          },
         },
-        {
-          trigger: () => h(
-            'button',
-            {
-              'type': 'button',
-              'class': 'role-permission-action-icon',
-              'aria-label': '权限配置',
-              'onClick': (event) => {
-                event.stopPropagation()
-                handleRolePermission(row)
-              },
-            },
-            [
-              h('i', { class: 'i-material-symbols:admin-panel-settings-rounded' }),
-            ],
-          ),
-          default: () => '权限配置',
-        },
+        '权限配置',
       ),
     },
   ])

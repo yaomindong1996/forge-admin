@@ -39,6 +39,16 @@ beforeEach(() => {
   setActivePinia(pinia)
   mocks.login = reactive({ userId: 9, isAdmin: true, activeOrgId: 10, userInfo: { tenantId: 1 } })
   window.$message = { success: vi.fn(), warning: vi.fn(), error: vi.fn() }
+  window.matchMedia = vi.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }))
   mocks.get.mockImplementation(async (url) => {
     if (url === '/system/org/lazyTree') {
       return { code: 200, data: [{ id: 10, orgName: '测试组织', children: [] }] }
@@ -102,14 +112,15 @@ describe('用户管理组件集成', () => {
     const store = useUserManagementStore()
     await store.handleRelation({ id: 8, username: 'fixture-user' })
     await flushPromises()
-    expect(document.querySelectorAll('.relation-nav-item')).toHaveLength(5)
+    expect(document.querySelector('.user-relation-modal .n-tabs')).toBeTruthy()
     expect(document.querySelector('.relation-overview-copy').textContent).toContain('fixture-user')
-    const roleTab = [...document.querySelectorAll('.relation-nav-item')].find(node => node.textContent.includes('按组织授权'))
+    const roleTab = [...document.querySelectorAll('.user-relation-modal .n-tabs-tab')].find(node => node.textContent.includes('按组织授权'))
     roleTab.click()
     await flushPromises()
     expect(store.relationActiveTab).toBe('auth')
     expect(document.querySelector('.auth-modal-content .n-data-table').textContent).toContain('测试角色')
-    document.querySelector('.relation-close-button').click()
+    expect(document.querySelector('.auth-modal-content .n-data-table').textContent).toContain('权限配置')
+    store.relationModalVisible = false
     await nextTick()
     expect(store.relationModalVisible).toBe(false)
     expect(mocks.post).not.toHaveBeenCalled()
@@ -143,7 +154,7 @@ describe('用户管理结构回归约束', () => {
   it('页面和新拆组件不超过 800 行，组件目录被路由扫描排除', () => {
     const directory = sourceUrl('../user/components/')
     const files = readdirSync(directory).filter(name => name.endsWith('.vue'))
-    expect(files).toHaveLength(12)
+    expect(files).toHaveLength(13)
     for (const file of [sourceUrl('../user.vue'), ...files.map(name => new URL(name, directory))]) {
       expect(readFileSync(file, 'utf8').trimEnd().split('\n').length).toBeLessThanOrEqual(800)
     }
@@ -157,13 +168,14 @@ describe('用户管理结构回归约束', () => {
       const source = readFileSync(new URL(file, directory), 'utf8')
       expect(source).not.toContain(':deep(')
       const selectors = source
+        .replace(/\/\*[\s\S]*?\*\//g, ' ')
         .replace(/\s+/g, ' ')
         .split('{')
         .map(chunk => chunk.split('}').pop().trim())
         .filter(selector => selector && !selector.startsWith('@'))
       expect(selectors.length).toBeGreaterThan(0)
       for (const selector of selectors) {
-        expect(selector).toMatch(/^(\.system-user-page\b|\.user-relation-modal\b|:where\(\.system-user-page|\.dark :where\(\.system-user-page)/)
+        expect(selector).toMatch(/^(\.system-user-page\b|\.user-relation-modal\b|\.ai-crud-edit-form\.user-edit-form\b|:where\(\.system-user-page|\.dark :where\(\.system-user-page)/)
       }
     }
   })

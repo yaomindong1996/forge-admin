@@ -38,10 +38,11 @@
       export-file-name="用户列表.xlsx"
       @selection-change="handleUserSelectionChange"
     >
-      <template #form-avatar="{ value, formData, updateValue }">
+      <template #form-avatar="{ value, formData, updateValue, disabled, readonly }">
         <UserAvatarField
           :model-value="value || formData?.avatar || ''"
           :name-hint="formData?.realName || formData?.username || ''"
+          :disabled="Boolean(disabled || readonly)"
           @update:model-value="next => updateValue?.(next)"
         />
       </template>

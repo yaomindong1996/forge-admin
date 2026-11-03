@@ -53,6 +53,8 @@
         <span>内容工作区</span>
       </div>
     </div>
+    <!-- 横条提到折叠外：有顶部菜单的布局首屏就能改，不必先点开高级自定义 -->
+    <TopMenuIndicatorControl v-if="hasTopMenu" v-model="model" :dark="previewDark" />
     <n-collapse v-if="layout !== 'empty'" class="advanced-theme" :default-expanded-names="[]">
       <n-collapse-item name="advanced" title="高级自定义">
         <!-- 深色独立配置不占首屏，选择模式只调整本地预览 -->
@@ -76,7 +78,6 @@
             />
           </label>
         </div>
-        <TopMenuIndicatorControl v-if="hasTopMenu" v-model="model" :dark="advancedDark" />
         <div class="manual-mode" @click.stop>
           <span>手动配置文字和状态色</span>
           <n-switch :value="manualMode" aria-label="手动配置文字和状态色" @update:value="setManualMode" />
@@ -105,6 +106,7 @@ import {
   navigationPresets,
   resolveNavigationMode,
   resolveNavigationTheme,
+  resolveTopMenuActiveBarColor,
   solidColor,
   updateNavigationBases,
   updateNavigationMode,
@@ -163,7 +165,11 @@ const sampleStyle = computed(() => ({
   '--sample-header': rendered.value.header.backgroundColor,
   '--sample-header-text': rendered.value.header.textColor,
   '--sample-top-menu-text': rendered.value.topMenu.textColorActive,
-  '--sample-active-bar': solidColor(rendered.value.topMenu.activeBarColor, rendered.value.primaryColor),
+  '--sample-active-bar': resolveTopMenuActiveBarColor(
+    rendered.value.topMenu.activeBarColor,
+    rendered.value.primaryColor,
+    rendered.value.header.backgroundColor,
+  ),
   '--sample-side': rendered.value.sideMenu.backgroundColor,
   '--sample-side-text': rendered.value.sideMenu.textColor,
   '--sample-active': rendered.value.sideMenu.backgroundColorActive,

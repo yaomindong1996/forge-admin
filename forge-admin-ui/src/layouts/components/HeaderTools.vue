@@ -10,7 +10,7 @@
       <TenantSwitcher />
       <OrgSwitcher />
       <button
-        v-if="showAppearance" id="layout-setting" class="chrome-icon-button" type="button"
+        id="layout-setting" class="chrome-icon-button" type="button"
         title="布局与外观" aria-label="布局与外观" @click="appStore.appearanceOpen = true"
       >
         <i class="i-lucide:panels-top-left" />
@@ -34,7 +34,8 @@ import OrgSwitcher from './OrgSwitcher.vue'
 import TenantSwitcher from './TenantSwitcher.vue'
 import UserAvatar from './UserAvatar.vue'
 
-defineProps({ showAppearance: Boolean })
+// showAppearance 保留兼容旧调用；布局入口统一在顶栏，默认始终展示。
+defineProps({ showAppearance: { type: Boolean, default: true } })
 const appStore = useAppStore()
 const isCompact = useMediaQuery('(max-width: 480px)')
 </script>
