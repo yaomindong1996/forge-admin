@@ -251,6 +251,30 @@ function buildConfiguredSsoTarget(originalItem) {
   }
 }
 
+/**
+ * 按当前用户已加载的菜单重算 SSO 入口。
+ * 桥接页只信任这个结果，不信任地址栏里单独传来的 baseUrl。
+ */
+export function resolveOwnedMenuSsoBaseUrl(menus, menuKey, targetClient = DEFAULT_SSO_TARGET_CLIENT) {
+  const key = Array.isArray(menuKey) ? menuKey[0] : menuKey
+  if (key === undefined || key === null || String(key).trim() === '')
+    return ''
+
+  const item = findMenuItem(menus, key)
+  if (!item)
+    return ''
+
+  const configured = buildConfiguredSsoTarget(item)
+  if (configured?.baseUrl && configured.targetClient === targetClient)
+    return configured.baseUrl
+
+  const combinedTarget = `${item.subAppURL || ''}${item.path || ''}`
+  const reportTarget = parseReportMenuTarget(item.path)
+    || parseReportMenuTarget(item.subAppURL)
+    || parseReportMenuTarget(combinedTarget)
+  return reportTarget?.baseUrl || ''
+}
+
 function isNoMatchRoute(resolvedRoute) {
   if (!resolvedRoute) {
     return true
@@ -326,7 +350,7 @@ export function useMenu() {
   const router = useRouter()
   const permissionStore = usePermissionStore()
 
-  function resolveReportMenuRoute(rawTarget, openTarget = '_self') {
+  function resolveReportMenuRoute(rawTarget, openTarget = '_self', menuKey) {
     const reportTarget = parseReportMenuTarget(rawTarget)
     if (!reportTarget) {
       return ''
@@ -336,6 +360,7 @@ export function useMenu() {
       targetClient: DEFAULT_SSO_TARGET_CLIENT,
       baseUrl: reportTarget.baseUrl,
       redirectPath: reportTarget.redirectPath,
+      menuKey,
       display: buildSsoBridgeDisplay(openTarget),
     })
   }
@@ -536,7 +561,7 @@ export function useMenu() {
     if (isExternal(originalItem.path) || originalItem.meta?.isExternal) {
       const externalUrl = String(originalItem.path || '').trim()
       const openTarget = normalizeOpenTarget(originalItem.openTarget || originalItem.meta?.openTarget)
-      const reportRoute = resolveReportMenuRoute(externalUrl, openTarget)
+      const reportRoute = resolveReportMenuRoute(externalUrl, openTarget, originalItem.key || originalItem.id)
       if (reportRoute) {
         navigateSsoBridge(router, reportRoute, openTarget)
         return
@@ -558,7 +583,11 @@ export function useMenu() {
 
     if (originalItem.openMode === 'iframe' && originalItem.subAppURL) {
       const iframeTarget = `${originalItem.subAppURL}${originalItem.path || ''}`
-      const reportRoute = resolveReportMenuRoute(iframeTarget, originalItem.openTarget)
+      const reportRoute = resolveReportMenuRoute(
+        iframeTarget,
+        originalItem.openTarget,
+        originalItem.key || originalItem.id,
+      )
       if (reportRoute) {
         navigateSsoBridge(router, reportRoute, originalItem.openTarget)
         return
@@ -570,7 +599,11 @@ export function useMenu() {
 
     if (originalItem.path) {
       const targetPath = normalizeLocalPath(originalItem.path)
-      const reportRoute = resolveReportMenuRoute(targetPath, originalItem.openTarget)
+      const reportRoute = resolveReportMenuRoute(
+        targetPath,
+        originalItem.openTarget,
+        originalItem.key || originalItem.id,
+      )
       if (reportRoute) {
         navigateSsoBridge(router, reportRoute, originalItem.openTarget)
         return
