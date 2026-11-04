@@ -57,6 +57,36 @@ describe('统一导航主题', () => {
     expect(theme.topMenu.textColorActive).toBe('#FFFFFF')
   })
 
+  it('手动模式保留未达 4.5 但可辨识的导航文字/图标色', () => {
+    const theme = resolveNavigationTheme({
+      navigationMode: 'custom',
+      sideMenu: {
+        backgroundColor: '#FFFFFF',
+        textColor: '#94A3B8',
+        iconColor: '#94A3B8',
+        textColorActive: '#64748B',
+        backgroundColorActive: '#F1F5F9',
+        iconColorActive: '#64748B',
+      },
+    }, defaultThemeConfig)
+    expect(theme.sideMenu.textColor).toBe('#94a3b8')
+    expect(theme.sideMenu.iconColor).toBe('#94a3b8')
+    expect(theme.sideMenu.textColorActive).toBe('#64748b')
+    expect(theme.sideMenu.iconColorActive).toBe('#64748b')
+  })
+
+  it('自动模式仍会把低对比导航文字提升到可读色', () => {
+    const theme = resolveNavigationTheme({
+      navigationMode: 'auto',
+      primaryColor: '#4242F7',
+      header: { backgroundColor: '#FFFFFF' },
+      sideMenu: { backgroundColor: '#FFFFFF', textColor: '#94A3B8', iconColor: '#94A3B8' },
+    }, defaultThemeConfig)
+    // auto 会按基础色重算，结果必须可读，不能停留在用户塞进来的浅灰
+    expect(contrastRatio(theme.sideMenu.textColor, theme.sideMenu.backgroundColor)).toBeGreaterThanOrEqual(4.5)
+    expect(theme.sideMenu.textColor.toLowerCase()).not.toBe('#94a3b8')
+  })
+
   it('非法主色不触发调色板错误，暗色有独立表面', () => {
     const theme = resolveNavigationTheme({ ...defaultThemeConfig, primaryColor: 'light' }, defaultThemeConfig, true)
     expect(theme.primaryColor).toBe(defaultThemeConfig.primaryColor.toLowerCase())
@@ -86,10 +116,10 @@ describe('统一导航主题', () => {
     applyThemeConfig(config)
     const style = document.documentElement.style
     expect(style.getPropertyValue('--layout-header-bg-color')).toBe('#171717')
-    expect(style.getPropertyValue('--layout-header-text-color')).toBe('#FFFFFF')
-    expect(style.getPropertyValue('--brand-title-text-color')).toBe('#FFFFFF')
+    expect(style.getPropertyValue('--layout-header-text-color')).toBe('#ffffff')
+    expect(style.getPropertyValue('--brand-title-text-color')).toBe('#ffffff')
     expect(style.getPropertyValue('--side-menu-bg-color')).toBe('#eef4ff')
-    expect(style.getPropertyValue('--top-menu-text-color')).toBe('#FFFFFF')
+    expect(style.getPropertyValue('--top-menu-text-color')).toBe('#ffffff')
   })
 })
 

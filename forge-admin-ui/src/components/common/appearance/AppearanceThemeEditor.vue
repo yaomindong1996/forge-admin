@@ -83,7 +83,7 @@
           <n-switch :value="manualMode" aria-label="手动配置文字和状态色" @update:value="setManualMode" />
         </div>
         <p class="theme-guidance">
-          浅色与深色独立设置。修改背景只对当前模式启用自动配色；低对比颜色在显示时自动保护。
+          浅色与深色独立设置。修改背景只对当前模式启用自动配色；手动模式下保留所选文字色，仅接近不可见时才兜底。
         </p>
         <div v-if="manualMode" class="theme-color-fields">
           <label v-for="field in advancedFields" :key="field.path">

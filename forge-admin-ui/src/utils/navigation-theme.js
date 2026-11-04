@@ -131,14 +131,24 @@ export function createNavigationTheme({ primary = '#4242F7', header = '#FFFFFF',
   }
 }
 
-function protectThemeSurfaces(theme) {
+function protectForeground(background, preferred, soft = false) {
+  const color = solidColor(preferred, '#1D2129')
+  const surface = solidColor(background, '#FFFFFF')
+  // 手动配色：只挡“几乎贴着背景看不见”的颜色，避免选了灰蓝却被改成纯黑/纯白。
+  if (soft && contrastRatio(color, surface) >= 1.5) {
+    return color
+  }
+  return readableColor(surface, color)
+}
+
+function protectThemeSurfaces(theme, { soft = false } = {}) {
   const header = theme.header
   const top = theme.topMenu
   const side = theme.sideMenu
   header.backgroundColor = solidColor(header.backgroundColor)
   side.backgroundColor = solidColor(side.backgroundColor)
   for (const field of ['textColor', 'brandTitleTextColor']) {
-    header[field] = readableColor(header.backgroundColor, header[field])
+    header[field] = protectForeground(header.backgroundColor, header[field], soft)
   }
   const topStates = {
     textColor: 'backgroundColor',
@@ -152,10 +162,10 @@ function protectThemeSurfaces(theme) {
   for (const [field, state] of Object.entries(topStates)) {
     const rgb = channels(top[state])
     const background = rgb ? mixColor(top[state], header.backgroundColor, rgb[3] ?? 1) : header.backgroundColor
-    top[field] = readableColor(background, top[field])
+    top[field] = protectForeground(background, top[field], soft)
   }
   for (const field of ['textColor', 'iconColor']) {
-    side[field] = readableColor(side.backgroundColor, side[field])
+    side[field] = protectForeground(side.backgroundColor, side[field], soft)
   }
   const states = [
     ['textColorHover', 'backgroundColorHover'],
@@ -165,7 +175,7 @@ function protectThemeSurfaces(theme) {
   ]
   for (const [text, bg] of states) {
     side[bg] = solidColor(side[bg], side.backgroundColor)
-    side[text] = readableColor(side[bg], side[text])
+    side[text] = protectForeground(side[bg], side[text], soft)
   }
   return theme
 }
@@ -209,8 +219,8 @@ export function resolveNavigationTheme(config, defaults, isDark = false) {
   if (Object.prototype.hasOwnProperty.call(sourceTop, 'activeBarColor')) {
     theme.topMenu.activeBarColor = sourceTop.activeBarColor
   }
-  // 旧 JSON 保留配置，只有不可读的前景色在运行时兜底，不改数据库中的原值。
-  return protectThemeSurfaces(theme)
+  // 自动模式严格保证可读；手动模式尊重用户选色，仅对接近不可见的值兜底。原始 JSON 不改写。
+  return protectThemeSurfaces(theme, { soft: resolveNavigationMode(source, isDark) === 'custom' })
 }
 
 export function updateNavigationBases(config, patch, isDark = false) {
