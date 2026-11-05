@@ -220,8 +220,12 @@ export function applyBusinessFormDesignerPart2(props, emit, expose, deps = {}) {
     if (!fieldCode)
       return
     const normalizedPayload = normalizeBusinessFieldAsset(payload)
+    // 基于完整 props.fields 合并，避免只回写业务字段时把系统字段从 draft 里冲掉
+    const sourceFields = Array.isArray(props.fields) && props.fields.length
+      ? props.fields
+      : primaryBusinessFieldAssets.value
     let matched = false
-    const nextFields = primaryBusinessFieldAssets.value.map((field) => {
+    const nextFields = sourceFields.map((field) => {
       const code = field.fieldCode || field.field
       if (code !== fieldCode)
         return field

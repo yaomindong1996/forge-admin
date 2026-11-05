@@ -300,6 +300,30 @@ function handleFieldAssetSave(payload = {}) {
     return
   const formulaConfig = payload.formulaConfig ?? null
   updateComponent(buildFieldAssetComponentPatch(payload, formulaConfig, fieldCode))
+  // 先就地合并 store.fields，避免等父级 fieldsUpdated 回传前属性面板仍显示「未启用公式」
+  const currentFields = Array.isArray(designerStore.fields) ? designerStore.fields : []
+  let matched = false
+  const nextFields = currentFields.map((field) => {
+    const code = field?.fieldCode || field?.field
+    if (code !== fieldCode)
+      return field
+    matched = true
+    return {
+      ...field,
+      fieldCode: field.fieldCode || fieldCode,
+      field: field.field || fieldCode,
+      formulaConfig,
+    }
+  })
+  if (!matched && fieldCode) {
+    nextFields.push({
+      field: fieldCode,
+      fieldCode,
+      fieldName: payload.fieldName || selectedComponent.value?.label || fieldCode,
+      formulaConfig,
+    })
+  }
+  designerStore.syncFromProps({ fields: nextFields })
   emit('fieldAssetUpdated', {
     ...payload,
     fieldCode,

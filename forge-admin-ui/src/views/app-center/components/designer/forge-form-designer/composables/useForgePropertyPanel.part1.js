@@ -250,19 +250,27 @@ const fields = computed(() => designerStore.fields)
 const relations = computed(() => designerStore.relations)
 const objectCode = computed(() => designerStore.objectCode)
 
-watch(
-  () => [props.schema, props.selectedId, props.fields, props.relations, props.objectCode],
-  () => {
-    designerStore.syncFromProps({
-      schema: props.schema,
-      selectedId: props.selectedId,
-      fields: props.fields,
-      relations: props.relations,
-      objectCode: props.objectCode,
-    })
-  },
-  { immediate: true },
-)
+// 必须按字段分别同步：fieldsUpdated 常比 schema 回传更早到达。
+// 若捆在一起 sync，会用尚未带上 formulaConfig 的旧 schema 覆盖 store，导致刚保存的公式被冲掉。
+watch(() => props.schema, (schema) => {
+  designerStore.syncFromProps({ schema })
+}, { immediate: true })
+
+watch(() => props.selectedId, (selectedId) => {
+  designerStore.syncFromProps({ selectedId })
+}, { immediate: true })
+
+watch(() => props.fields, (fields) => {
+  designerStore.syncFromProps({ fields })
+}, { immediate: true })
+
+watch(() => props.relations, (relations) => {
+  designerStore.syncFromProps({ relations })
+}, { immediate: true })
+
+watch(() => props.objectCode, (objectCode) => {
+  designerStore.syncFromProps({ objectCode })
+}, { immediate: true })
 
 // KeepAlive 缓存页切回时 props 未必变化，但 store 可能已被其它设计器实例覆盖，需强制重新同步
 onActivated(() => {
@@ -394,7 +402,11 @@ const selectedFieldCode = computed(() => String(
 const selectedFieldAsset = computed(() => {
   if (!isField.value || !selectedFieldCode.value)
     return null
-  const matched = (props.fields || []).find((field) => {
+  // 优先 store.fields：公式保存会先就地合并，再等父级 props.fields 回传
+  const fieldList = (Array.isArray(designerStore.fields) && designerStore.fields.length
+    ? designerStore.fields
+    : props.fields) || []
+  const matched = fieldList.find((field) => {
     const code = field?.fieldCode || field?.field
     return code === selectedFieldCode.value
   })
@@ -456,7 +468,16 @@ const selectedFieldMaxLength = computed(() => {
     return fromProps
   return normalizePositiveInteger(selectedFieldAsset.value?.length)
 })
-const selectedFormulaConfig = computed(() => selectedFieldAsset.value?.formulaConfig || null)
+const selectedFormulaConfig = computed(() => {
+  const assetConfig = selectedFieldAsset.value?.formulaConfig
+  if (assetConfig?.type)
+    return assetConfig
+  const component = selectedComponent.value
+  const componentConfig = component?.props?.formulaConfig || component?.advancedProps?.formulaConfig || null
+  if (componentConfig?.type)
+    return componentConfig
+  return assetConfig || componentConfig || null
+})
 const selectedFormulaSummary = computed(() => {
   const config = selectedFormulaConfig.value
   if (!config?.type)
@@ -469,7 +490,9 @@ const selectedFormulaSummary = computed(() => {
 })
 const formulaPanelFields = computed(() => {
   const current = selectedFieldAsset.value
-  const fields = Array.isArray(props.fields) ? props.fields : []
+  const fields = (Array.isArray(designerStore.fields) && designerStore.fields.length
+    ? designerStore.fields
+    : (Array.isArray(props.fields) ? props.fields : []))
   if (!current)
     return fields
   let matched = false
