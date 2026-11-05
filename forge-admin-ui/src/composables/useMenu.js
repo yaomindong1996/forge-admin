@@ -51,26 +51,46 @@ function getUrlPathname(value) {
   }
 }
 
-function isReportBaseUrl(baseUrl) {
-  if (!baseUrl) {
+function sameReportHost(baseUrl, host) {
+  try {
+    return new URL(`${baseUrl}/`).host === host
+  }
+  catch {
     return false
   }
+}
+
+/** 前缀必须是完整路径段，避免 /forge-report 命中 /forge-report-evil。 */
+function pathnameMatchesPrefix(pathname, prefix) {
+  const normalized = String(prefix || '').replace(/\/+$/, '')
+  if (!normalized || normalized === '/')
+    return false
+  return pathname === normalized || pathname.startsWith(`${normalized}/`)
+}
+
+function isReportBaseUrl(baseUrl) {
+  if (!baseUrl)
+    return false
 
   const normalizedBaseUrl = normalizeSsoBaseUrl(baseUrl)
   const reportBaseUrls = collectReportBaseUrls()
-  if (reportBaseUrls.includes(normalizedBaseUrl)) {
+  if (reportBaseUrls.includes(normalizedBaseUrl))
     return true
-  }
 
   try {
     const url = new URL(`${normalizedBaseUrl}/`)
+    // 只认配置的报表主机。其它站点即使路径前缀相同，也不能附带 SSO 票据。
+    if (REPORT_HOST_FALLBACK && url.host === REPORT_HOST_FALLBACK)
+      return true
+
+    if (!reportBaseUrls.some(base => sameReportHost(base, url.host)))
+      return false
+
     const reportPathPrefixes = [
       REPORT_PATH_PREFIX,
       ...reportBaseUrls.map(getUrlPathname),
     ].filter(prefix => prefix && prefix !== '/')
-
-    return (REPORT_HOST_FALLBACK && url.host === REPORT_HOST_FALLBACK)
-      || reportPathPrefixes.some(prefix => url.pathname.startsWith(prefix))
+    return reportPathPrefixes.some(prefix => pathnameMatchesPrefix(url.pathname, prefix))
   }
   catch {
     return false

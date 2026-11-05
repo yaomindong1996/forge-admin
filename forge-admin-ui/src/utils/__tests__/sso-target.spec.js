@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { resolveOwnedMenuSsoBaseUrl } from '@/composables/useMenu'
 import {
+  DEFAULT_REPORT_BASE_URL,
   normalizeHttpSsoBaseUrl,
   REPORT_HOST_FALLBACK,
   selectTrustedSsoBaseUrl,
@@ -65,5 +66,20 @@ describe('sso 跳转地址白名单', () => {
 
   it('未知菜单不能提供入口地址', () => {
     expect(resolveOwnedMenuSsoBaseUrl([], 'missing', 'forge_report')).toBe('')
+  })
+
+  it('路径前缀相同但主机不同的外链不能作为 SSO 入口', () => {
+    expect(resolveOwnedMenuSsoBaseUrl([
+      { key: 'evil', path: 'https://evil.example/forge-report' },
+    ], 'evil', 'forge_report')).toBe('')
+    expect(resolveOwnedMenuSsoBaseUrl([
+      { key: 'lookalike', path: 'https://evil.example/forge-report-evil' },
+    ], 'lookalike', 'forge_report')).toBe('')
+
+    if (!DEFAULT_REPORT_BASE_URL)
+      return
+    expect(resolveOwnedMenuSsoBaseUrl([
+      { key: 'ok', path: `${DEFAULT_REPORT_BASE_URL}/#/project/items` },
+    ], 'ok', 'forge_report')).toBe(DEFAULT_REPORT_BASE_URL)
   })
 })
