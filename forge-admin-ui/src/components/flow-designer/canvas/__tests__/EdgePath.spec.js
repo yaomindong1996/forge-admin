@@ -108,6 +108,62 @@ describe('edgeLayer - 渲染', () => {
     expect(wrapper.findAllComponents(EdgePath).length).toBe(0)
   })
 
+  it('选中边的 chrome 层绘制描边与段把手，且层级高于节点', async () => {
+    const edges = [{ id: 'F1', source: 'A', target: 'B' }]
+    const paths = new Map([
+      ['F1', {
+        points: [
+          { x: 100, y: 40 },
+          { x: 100, y: 100 },
+          { x: 220, y: 100 },
+          { x: 220, y: 160 },
+        ],
+        type: 'orthogonal',
+      }],
+    ])
+    const wrapper = mount(EdgeLayer, {
+      props: {
+        edges,
+        paths,
+        canvasBounds: { minX: 0, minY: 0, maxX: 400, maxY: 400 },
+        interactive: true,
+        neutral: true,
+        selectedEdgeId: 'F1',
+      },
+    })
+    const chrome = wrapper.find('.edge-layer--chrome')
+    expect(chrome.exists()).toBe(true)
+    const chromePath = chrome.findComponent(EdgePath)
+    expect(chromePath.props('renderMode')).toBe('chrome')
+    // 悬停出蓝块：在 chrome 层触发 pointermove
+    const hit = chrome.find('.edge-hit')
+    expect(hit.exists()).toBe(true)
+    Object.defineProperty(SVGElement.prototype, 'createSVGPoint', {
+      configurable: true,
+      value() {
+        return {
+          x: 0,
+          y: 0,
+          matrixTransform() {
+            return { x: 160, y: 100 }
+          },
+        }
+      },
+    })
+    Object.defineProperty(SVGSVGElement.prototype, 'getScreenCTM', {
+      configurable: true,
+      value() {
+        return {
+          inverse() {
+            return {}
+          },
+        }
+      },
+    })
+    await hit.trigger('pointermove')
+    expect(chrome.find('.edge-seg-handle').exists()).toBe(true)
+  })
+
   it('showLabels=false 时不在 SVG 连线层渲染条件标签', () => {
     const edges = [
       { id: 'F1', source: 'GW', target: 'A', condition: `${DOLLAR}{amount > 1000}`, isDefault: false },
@@ -137,7 +193,8 @@ describe('branchHeader - 条件摘要', () => {
     })
     expect(wrapper.text()).toContain('条件已设')
     expect(wrapper.text()).not.toContain(`${DOLLAR}{amount`)
-    expect(wrapper.attributes('title')).toBe(`${DOLLAR}{amount > 1000}`)
+    expect(wrapper.find('button').attributes('aria-label')).toContain('条件已设')
+    expect(wrapper.find('button').attributes('title')).toBe(`${DOLLAR}{amount > 1000}`)
   })
 
   it('多条规则展示规则数量', () => {
@@ -155,20 +212,28 @@ describe('branchHeader - 条件摘要', () => {
     expect(wrapper.text()).toContain('2 条条件')
   })
 
-  it('并行分支卡使用紧凑样式', () => {
+  it('并行分支用线旁胶囊而不是大卡片', () => {
     const wrapper = mount(BranchHeader, {
       props: {
         edge: { id: 'F1', isDefault: false },
         position: { x: 100, y: 80 },
-        card: true,
-        compact: true,
         index: 2,
         gatewayType: 'parallel',
       },
     })
-    expect(wrapper.classes()).toContain('is-compact')
+    expect(wrapper.classes()).not.toContain('is-card')
     expect(wrapper.text()).toContain('分支 2')
-    expect(wrapper.text()).toContain('同时执行')
-    expect(wrapper.find('.branch-header-arrow').exists()).toBe(false)
+    expect(wrapper.find('.branch-header-icon').exists()).toBe(true)
+  })
+
+  it('默认分支显示短标签「默认」', () => {
+    const wrapper = mount(BranchHeader, {
+      props: {
+        edge: { id: 'F1', isDefault: true },
+        position: { x: 100, y: 80 },
+      },
+    })
+    expect(wrapper.text()).toContain('默认')
+    expect(wrapper.text()).not.toContain('其他情况')
   })
 })

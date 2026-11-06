@@ -120,11 +120,22 @@ const hoverSeg = ref(null)
 const segDrag = ref(null)
 let segDragMove = null
 let segDragUp = null
-/** full=线+把手；stroke=线+热区+蓝块（压在节点下）；chrome=端点/拐点（抬到节点上） */
-const showStroke = computed(() => props.renderMode !== 'chrome')
-const showHit = computed(() => props.renderMode !== 'chrome' && Boolean(props.interactive))
-const showSegHandle = computed(() => props.renderMode !== 'chrome' && props.selected && props.interactive)
-const showEndpointChrome = computed(() => props.renderMode !== 'stroke' && props.selected && props.interactive)
+/**
+ * full=底层完整边；stroke=选中边底层占位（不描边，避免与上层叠粗）；
+ * chrome=选中边抬到节点之上：描边+热区+蓝块+端点/拐点，避免被节点/分支卡挡住无法拖段。
+ */
+const showStroke = computed(() => props.renderMode === 'full' || props.renderMode === 'chrome')
+const showHit = computed(() => {
+  if (!props.interactive)
+    return false
+  if (props.renderMode === 'chrome')
+    return props.selected
+  if (props.renderMode === 'stroke')
+    return false
+  return true
+})
+const showSegHandle = computed(() => props.renderMode === 'chrome' && props.selected && props.interactive)
+const showEndpointChrome = computed(() => props.renderMode === 'chrome' && props.selected && props.interactive)
 
 watch(() => props.selected, (v) => {
   if (!v) {

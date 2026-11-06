@@ -14,9 +14,12 @@ describe('审批画布展示布局', () => {
       const card = layout.branchCards.get(edge.id)
       const target = layout.nodePositions.get(edge.target)
       const path = layout.edgePaths.get(edge.id).points
+      const junctionY = path[1].y
+      const chipTop = card.y - 12
       expect(card.x).toBe(target.x + target.width / 2)
-      expect(card.y + 32).toBeLessThan(target.y)
-      expect(path[1].y).toBeLessThan(card.y - 32)
+      expect(card.y + 12).toBeLessThan(target.y)
+      // 横线与条件标注至少留出空隙，不能默认贴死
+      expect(junctionY).toBeLessThan(chipTop - 8)
     }
     expect(JSON.stringify(designer.flowJson.value)).toBe(before)
   })
@@ -52,5 +55,51 @@ describe('审批画布展示布局', () => {
       expect(layoutAfter.branchCards.get(edge.id)).toBeTruthy()
       expect(layoutAfter.edgePaths.get(edge.id).points.length).toBeGreaterThanOrEqual(3)
     }
+  })
+
+  it('自由布局横线与条件卡也保持空隙', () => {
+    const designer = useFlowDesigner(createEmptyFlow())
+    const gateway = designer.addNode('StartEvent_1', 'condition')
+    const layoutBefore = layoutDesignerFlow(designer.flowJson.value)
+    for (const node of designer.flowJson.value.nodes) {
+      const pos = layoutBefore.nodePositions.get(node.id)
+      if (pos)
+        node.uiPosition = { x: pos.x, y: pos.y }
+    }
+    // 拉开网关与后继，模拟自由拖拽后仍有分叉空间
+    for (const edge of designer.getOutgoingEdges(gateway)) {
+      const target = designer.getNode(edge.target)
+      if (target?.uiPosition)
+        target.uiPosition.y += 120
+    }
+    designer.flowJson.value = { ...designer.flowJson.value }
+    const layout = layoutDesignerFlow(designer.flowJson.value)
+    for (const edge of designer.getOutgoingEdges(gateway)) {
+      const card = layout.branchCards.get(edge.id)
+      const path = layout.edgePaths.get(edge.id).points
+      expect(card).toBeTruthy()
+      expect(path[1].y).toBeLessThan(card.y - 12 - 8)
+    }
+  })
+
+  it('用户拖过的分支折线不被条件卡模板覆盖', () => {
+    const designer = useFlowDesigner(createEmptyFlow())
+    const gateway = designer.addNode('StartEvent_1', 'condition')
+    const layoutBefore = layoutDesignerFlow(designer.flowJson.value)
+    for (const node of designer.flowJson.value.nodes) {
+      const pos = layoutBefore.nodePositions.get(node.id)
+      if (pos)
+        node.uiPosition = { x: pos.x, y: pos.y }
+    }
+    const edge = designer.getOutgoingEdges(gateway)[0]
+    edge.uiWaypoints = [
+      { x: 120, y: 180 },
+      { x: 260, y: 180 },
+    ]
+    designer.flowJson.value = { ...designer.flowJson.value }
+    const layout = layoutDesignerFlow(designer.flowJson.value)
+    const points = layout.edgePaths.get(edge.id).points
+    expect(points.some(p => p.y === 180)).toBe(true)
+    expect(layout.branchCards.get(edge.id)).toBeTruthy()
   })
 })
