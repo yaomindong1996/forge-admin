@@ -273,8 +273,10 @@ public class DataConnectionController {
             Connection conn = dataSourceProvider.getConnection(connection);
             try {
                 String schemaName = resolveSchemaName(connection, conn);
-                String sql = dialectFactory.getDialect(connection.getDbType()).getTableQuerySql(schemaName, keyword);
+                var dialect = dialectFactory.getDialect(connection.getDbType());
+                String sql = dialect.getTableQuerySql(schemaName, keyword);
                 PreparedStatement ps = conn.prepareStatement(sql);
+                dialect.bindTableQuery(ps, schemaName, keyword);
                 try {
                     ResultSet rs = ps.executeQuery();
                     while (rs.next()) {
@@ -303,8 +305,10 @@ public class DataConnectionController {
             Connection conn = dataSourceProvider.getConnection(connection);
             try {
                 String schemaName = resolveSchemaName(connection, conn);
-                String sql = dialectFactory.getDialect(connection.getDbType()).getColumnQuerySql(schemaName, tableName);
+                var dialect = dialectFactory.getDialect(connection.getDbType());
+                String sql = dialect.getColumnQuerySql(schemaName, tableName);
                 PreparedStatement ps = conn.prepareStatement(sql);
+                dialect.bindColumnQuery(ps, schemaName, tableName);
                 try {
                     ResultSet rs = ps.executeQuery();
                     while (rs.next()) {
