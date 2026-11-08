@@ -472,8 +472,10 @@ public class DataDatasetController {
             try {
                 String schemaName = JdbcUrlSchemaExtractor.resolve(
                         connection.getSchemaName(), conn, connection.getJdbcUrl());
-                String sql = dialectFactory.getDialect(connection.getDbType()).getColumnQuerySql(schemaName, tableName);
+                var dialect = dialectFactory.getDialect(connection.getDbType());
+                String sql = dialect.getColumnQuerySql(schemaName, tableName);
                 PreparedStatement ps = conn.prepareStatement(sql);
+                dialect.bindColumnQuery(ps, schemaName, tableName);
                 try {
                     ResultSet rs = ps.executeQuery();
                     while (rs.next()) {
