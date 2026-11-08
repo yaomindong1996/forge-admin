@@ -393,6 +393,9 @@ export function useFreeCanvasInteraction({
       })
     }
     const onUp = () => {
+      // 拖过再松手时吞掉随后的 click，避免误开配置抽屉 / 分支条件面板
+      if (dragOrigin?.moved)
+        suppressNextNodeClick = true
       draggingNodeId.value = null
       alignmentGuides.value = []
       dragOrigin = null
@@ -401,6 +404,27 @@ export function useFreeCanvasInteraction({
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
+  }
+
+  /** 分支条件卡：拖动时带动该分支首个目标节点（卡位跟目标走） */
+  function onBranchHeaderPointerDown(event, edge) {
+    if (isReadonly() || !edge?.target || event.button !== 0)
+      return
+    if (tool.value === 'pan' || tool.value === 'connect' || tool.value === 'delete')
+      return
+    if (isReconnectDragging())
+      return
+    const target = designer.getNode(edge.target)
+    if (!target)
+      return
+    onNodePointerDown(event, target)
+  }
+
+  function consumePointerClickSuppress() {
+    if (!suppressNextNodeClick)
+      return false
+    suppressNextNodeClick = false
+    return true
   }
 
   function onNodeClick(node) {
@@ -940,6 +964,8 @@ export function useFreeCanvasInteraction({
     selectedWaypointIndex,
     isReconnectDragging,
     onNodePointerDown,
+    onBranchHeaderPointerDown,
+    consumePointerClickSuppress,
     onNodeClick,
     startLink,
     onEndpointDown,

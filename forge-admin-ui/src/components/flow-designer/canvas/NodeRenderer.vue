@@ -154,7 +154,7 @@ function handleConnect() {
 <style scoped>
 .node-renderer-wrap {
   position: relative;
-  /* 高于连线层(z=1)，保证卡片始终压在线上 */
+  /* 高于未选中连线(1)与分支卡(3)；选中连线 chrome(8)仍在节点之上以便拖段 */
   z-index: 4;
 }
 .node-renderer-wrap.is-selected {

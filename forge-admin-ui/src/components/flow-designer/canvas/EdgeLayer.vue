@@ -184,8 +184,11 @@ function onSegment(edge, index, event) {
       :hide-endpoint="reconnecting?.edgeId === selectedEdge.id ? reconnecting.which : null"
       :active-endpoint="reconnecting?.edgeId === selectedEdge.id ? reconnecting.which : null"
       :selected-waypoint-index="selectedWaypointIndex"
+      @click="onEdgeClick(selectedEdge)"
+      @hit-pointer-down="(event) => onHit(selectedEdge, event)"
       @endpoint-down="(which, event) => onEndpoint(selectedEdge, which, event)"
       @bend-down="(index, event) => onBend(selectedEdge, index, event)"
+      @segment-down="(index, event) => onSegment(selectedEdge, index, event)"
     />
   </svg>
 </template>
@@ -195,11 +198,13 @@ function onSegment(edge, index, event) {
   position: absolute;
   top: 0;
   left: 0;
+  /* 未选中描边在节点下；选中 chrome 层再抬到节点/分支卡之上 */
   z-index: 1;
   overflow: visible;
   pointer-events: none;
 }
 .edge-layer--chrome {
-  z-index: 6;
+  /* 高于节点(4/5)与分支卡(3)，保证横竖段蓝块可点、选中线不被挡住 */
+  z-index: 8;
 }
 </style>

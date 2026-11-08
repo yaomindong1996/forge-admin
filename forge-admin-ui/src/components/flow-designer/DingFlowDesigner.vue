@@ -488,8 +488,14 @@ function handleNodeClick(node, options = {}) {
 }
 
 function handleBranchHeaderClick(edge) {
+  if (freeCanvas.consumePointerClickSuppress())
+    return
   const gatewayNode = designer.getNode(edge.source)
   handleNodeClick(gatewayNode, { focusEdgeId: edge.id })
+}
+
+function handleBranchHeaderPointerDown(event, edge) {
+  freeCanvas.onBranchHeaderPointerDown(event, edge)
 }
 
 function handleDrawerVisibleUpdate(visible) {
@@ -773,8 +779,9 @@ const branchHeaders = computed(() => {
       const position = cardPosition || branchHeaderPosition(edge, gwPos, targetPos)
       out.push({
         edge,
-        card: Boolean(cardPosition),
-        compact: node.nodeType === 'parallel',
+        // 条件/并行出口只是线的标注，不用大卡片冒充节点
+        card: false,
+        compact: true,
         index: designer.getOutgoingEdges(node.id).findIndex(item => item.id === edge.id) + 1,
         gatewayType: node.nodeType,
         position: avoidHeaderCollision(position, placed),
@@ -1055,6 +1062,7 @@ onBeforeUnmount(() => {
           :index="bh.index"
           :gateway-type="bh.gatewayType"
           :fields="formFieldCatalog"
+          @pointer-down="handleBranchHeaderPointerDown"
           @click="handleBranchHeaderClick"
         />
 
