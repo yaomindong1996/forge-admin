@@ -2,6 +2,9 @@
 
 Forge Admin is an enterprise-level mid-to-back-end management system built on Spring Boot and Vue 3, adopting a frontend-backend separation architecture. It provides comprehensive enterprise-grade features including user permission management, multi-tenancy, and system monitoring.
 
+- Official website: [http://www.dlforgelab.com/](http://www.dlforgelab.com/)
+- Online demo (port `:8084`): see the Chinese README demo section
+
 ## Project Overview
 
 Forge Admin is a modern enterprise-grade admin system designed to serve as a foundational framework for rapid development and business expansion. The system employs a microkernel + plugin-based architecture, where core functionalities exist as plugins, enabling on-demand integration and extensibility.

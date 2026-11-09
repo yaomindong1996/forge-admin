@@ -16,6 +16,7 @@
 </p>
 
 <p align="center">
+  <a href="http://www.dlforgelab.com/"><b>官网</b></a> ·
   <a href="#-在线演示">在线演示</a> ·
   <a href="#-项目亮点">项目亮点</a> ·
   <a href="#-系统截图">系统截图</a> ·
@@ -29,6 +30,8 @@
 ## ✨ 项目简介
 
 **Forge Admin** 是一套面向企业后台、SaaS 管理端、数据可视化平台和内部低代码工具的中后台框架。它不只提供常见的用户、角色、菜单、字典、文件、日志等基础能力，还把 **AI 代码生成**、**AI 数据大屏**、**AI 智能体管理**、**Flowable 工作流**、**多租户隔离** 做成可持续扩展的工程体系。
+
+官网：**[http://www.dlforgelab.com/](http://www.dlforgelab.com/)**（产品介绍与对外入口；下方 `:8084` 为在线演示环境，请区分使用）
 
 如果你正在搭建一个长期演进的后台系统，Forge Admin 更关注三件事：
 
@@ -67,7 +70,7 @@
 
 ## 🏛️ 系统架构
 
-![系统架构图.jpeg](images/%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E5%9B%BE.jpeg)
+![Forge 系统架构](images/forge-architecture.svg)
 
 后端采用 `forge-framework` + `forge-plugin-parent` + `forge-starter-parent` 的分层方式：Starter 负责认证、缓存、ORM、多租户、数据权限、加解密、日志、文件、Excel 等底层能力；Plugin 负责系统管理、代码生成、任务调度、消息中心、流程和 AI 等业务能力；应用服务按场景聚合插件并对外提供接口。
 
@@ -75,16 +78,24 @@
 
 ## 📺 在线演示
 
-| 入口     | 地址 |
-|--------|------|
-| 后台管理   | http://www.dlforgelab.com:8084/forge/login |
-| 移动端 H5  | http://www.dlforgelab.com:8084/forge-h5/ |
-| 项目文档   | http://www.dlforgelab.com:8084/forge-docs/ |
-| 大屏设计器  | http://www.dlforgelab.com:8084/forge-report/|
-| Gitee  | https://gitee.com/ForgeLab/forge-admin |
-| GitHub | https://github.com/yaomindong1996/forge-admin |
+官网与演示请区分：
+
+| 入口 | 地址 | 说明 |
+|------|------|------|
+| **官网** | [http://www.dlforgelab.com/](http://www.dlforgelab.com/) | 对外产品官网 |
+| 后台管理 | http://www.dlforgelab.com:8084/forge/login | 在线演示 |
+| 移动端 H5 | http://www.dlforgelab.com:8084/forge-h5/ | 在线演示 |
+| 项目文档 | http://www.dlforgelab.com:8084/forge-docs/ | 在线演示 |
+| 大屏设计器 | http://www.dlforgelab.com:8084/forge-report/ | 在线演示 |
 
 默认体验账号：`admin` / `123456` ｜ H5 体验账号：`h5_admin` / `123456`
+
+## 🔗 仓库地址
+
+| 平台 | 地址 |
+|------|------|
+| Gitee | https://gitee.com/ForgeLab/forge-admin |
+| GitHub | https://github.com/yaomindong1996/forge-admin |
 
 ---
 
@@ -94,11 +105,11 @@
 
 | 登录页 | 工作台首页 | 用户管理 |
 |:---:|:---:|:---:|
-| ![登录页](images/%E7%99%BB%E5%BD%95%E9%A1%B5.png) | ![工作台首页](images/%E6%96%B0%E9%A6%96%E9%A1%B5.png) | ![用户管理](images/user-management.png) |
+| ![登录页](images/登录页.png) | ![工作台首页](images/新首页.png) | ![用户管理](images/user-management.png) |
 | **登录页**<br>账号密码 + 验证码统一认证入口 | **工作台首页**<br>待办任务、审批中心、快捷入口与公告 | **用户管理**<br>组织架构树 + 用户列表联动、批量授权 |
-| ![菜单管理](images/%E8%8F%9C%E5%8D%95%E7%AE%A1%E7%90%86.png) | ![统一配置中心](images/%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86.png) | ![消息管理](images/%E6%B6%88%E6%81%AF%E7%AE%A1%E7%90%86.png) |
+| ![菜单管理](images/菜单管理.png) | ![统一配置中心](images/配置管理.png) | ![消息管理](images/消息管理.png) |
 | **菜单管理**<br>动态路由、按钮权限、资源绑定 | **统一配置中心**<br>登录 / 水印 / 安全 / 加解密 / 认证 / 日志 | **消息管理**<br>站内信、系统通知、消息模板 |
-| ![流程设计](images/%E6%B5%81%E7%A8%8B%E8%AE%BE%E8%AE%A1.png) | ![我的待办](images/%E6%88%91%E7%9A%84%E5%BE%85%E5%8A%9E.png) | ![服务监控](images/%E6%9C%8D%E5%8A%A1%E7%9B%91%E6%8E%A7.png) |
+| ![流程设计](images/流程设计.png) | ![我的待办](images/我的待办.png) | ![服务监控](images/服务监控.png) |
 | **流程设计**<br>Flowable 在线建模、AI 生成、发布部署 | **我的待办**<br>待办 / 已办 / 我发起的 / 抄送我集中审批 | **服务监控**<br>CPU / 内存 / JVM / 磁盘运行指标 |
 
 > 更多截图：流程模型、流程时间轴、文件管理、数据权限配置、Excel 导出配置等见 `images/` 目录。
@@ -132,7 +143,7 @@ Forge Admin 内置 **AI 智能体引擎**，提供开箱即用的 AI 能力。�
 
 ---
 
-## 🤖 AI 数据可视化大屏
+## 📊 AI 数据可视化大屏
 
 **Forge AI** 是项目内置的 AI 数据可视化低代码平台。你可以先用自然语言描述业务目标，让 AI 生成大屏草稿，再通过可视化编辑器调整组件、数据源、主题和交互，最后发布为可访问页面。
 
@@ -151,10 +162,10 @@ Forge Admin 内置 **AI 智能体引擎**，提供开箱即用的 AI 能力。�
 
 | 页面 | 截图 |
 |------|------|
-| **登录页** | ![登录页](images/report/login-page.png) |
-| **项目列表** | ![项目列表](images/report/project-home.png) |
-| **画布编辑器** | ![画布编辑器](images/report/canvas-editor.png) |
-| **AI 供应商配置** | ![AI供应商配置](images/report/AI%E4%BE%9B%E5%BA%94%E5%95%86%E9%85%8D%E7%BD%AE.png) |
+| **登录页** | ![登录页](images/report/登录页.png) |
+| **项目列表** | ![项目列表](images/report/项目列表.png) |
+| **画布编辑器** | ![画布编辑器](images/report/画布.png) |
+| **AI 供应商配置** | ![AI 供应商配置](images/report/AI供应商配置.png) |
 
 ### 内置组件
 
@@ -192,19 +203,29 @@ Forge Admin 提供独立的移动端 H5 入口，基于 **uni-app 3 + Vue 3** �
 
 Forge Admin 的代码生成能力面向真实后台研发流程：可以通过 AI 辅助生成表单和 CRUD 页面，也可以通过模板市场进行个性化配置。简单业务可以 0 代码上线，复杂业务可以下载代码包继续二次开发。
 
+### AI 表单生成
+
+| AI 表单生成 | AI 表单生成列表 |
+|:---:|:---:|
+| ![AI 表单生成](images/AI代码生成/AI表单生成.png) | ![AI 表单生成列表](images/AI代码生成/AI表单生成列表.png) |
+
+| 模版配置 | 表单编辑 |
+|:---:|:---:|
+| ![模版配置](images/AI代码生成/模版配置.png) | ![表单编辑](images/AI代码生成/表单编辑.png) |
+
 ### AI 数据模型设计
 
-![数据模型设计.png](images/%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B%E8%AE%BE%E8%AE%A1.png)
+![数据模型设计](images/数据模型设计.png)
 
 ### 低代码应用中心
 
-![低代码应用中心](images/%E4%BD%8E%E4%BB%A3%E7%A0%81%E5%BA%94%E7%94%A8%E4%B8%AD%E5%BF%83.png)
+![低代码应用中心](images/低代码应用中心.png)
 
 应用中心是低代码的统一入口：智能创建 / 模板 / Excel / 空白四种方式建应用，进入页面管理拖字段即可完成表单、列表页面设计，再经业务流程画布编排审批与自动化，一键发布到独立门户。
 
 ### 低代码页面管理
 
-![低代码页面管理](images/%E4%BD%8E%E4%BB%A3%E7%A0%81%E9%A1%B5%E9%9D%A2%E7%AE%A1%E7%90%86.png)
+![低代码页面管理](images/低代码页面管理.png)
 
 ---
 
