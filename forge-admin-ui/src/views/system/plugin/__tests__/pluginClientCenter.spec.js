@@ -48,6 +48,17 @@ let wrapper
 beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
+  // MasterDetailWorkspace 详情态依赖 matchMedia，jsdom 默认未实现
+  window.matchMedia = vi.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }))
   user = reactive({ isAdmin: true, userId: 'test-user', tenantId: '1', permissions: ['*:*:*'] })
   auth = reactive({ accessToken: 'unit-session' })
   api.listRuntimePlugins.mockResolvedValue({ code: 200, data: { records, total: 32 } })
@@ -156,9 +167,9 @@ describe('a 首页与 B 详情真实组件', () => {
     await flushPromises()
     expect(wrapper.find('.plugin-card--skeleton').exists()).toBe(false)
     const card = wrapper.find('article.plugin-card')
-    expect(card.find('.plugin-card__body .plugin-illustration').attributes('style')).toContain('width: 36px')
-    expect(card.find('.plugin-card__identity h3').attributes('title')).toBe('系统管理')
-    expect(card.find('.plugin-card__identity code').text()).toBe('plugin-system')
+    expect(card.find('.plugin-card__header .plugin-illustration').attributes('style')).toContain('width: 32px')
+    expect(card.find('.plugin-card__header h3').attributes('title')).toBe('系统管理')
+    expect(card.find('.plugin-card__header code').text()).toBe('plugin-system')
     expect(card.find('.plugin-card__summary').attributes('title')).toBe('用户、角色与权限，统一管理')
     expect(card.find('.forge-symbol').attributes('data-symbol')).toBe('shield')
     expect(card.findAll('.plugin-card__capabilities span')).toHaveLength(2)

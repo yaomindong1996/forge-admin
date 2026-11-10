@@ -5,7 +5,7 @@
       <div v-for="index in 6" :key="index" class="plugin-card--skeleton">
         <div class="plugin-card__body">
           <div class="plugin-card__content">
-            <NSkeleton width="36px" height="36px" />
+            <NSkeleton width="32px" height="32px" />
             <NSkeleton text width="55%" />
           </div>
           <NSkeleton text :repeat="2" />
@@ -47,33 +47,32 @@ const { dict } = useDict('sys_plugin_origin')
 <style scoped>
 .plugin-gallery__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 12px;
   width: 100%;
 }
 
 .plugin-card--skeleton {
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-light, #e5e7eb);
   border-radius: 4px;
-  background: #fff;
-  box-shadow: 0 4px 14px rgb(15 23 42 / 4%);
+  background: var(--bg-primary, #fff);
 }
 
 .plugin-card__body {
-  padding: 16px;
+  padding: 16px 16px 12px;
 }
 
 .plugin-card__content {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .plugin-card__footer {
-  padding: 10px 16px;
-  border-top: 1px solid #f1f5f9;
-  background: #fafcff;
+  padding: 8px 16px;
+  border-top: 1px solid var(--border-light, #f1f5f9);
+  background: var(--bg-secondary, #f8fafc);
 }
 </style>
