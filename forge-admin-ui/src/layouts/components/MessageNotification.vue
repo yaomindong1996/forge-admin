@@ -1,6 +1,7 @@
 <template>
   <div class="message-notification-wrapper">
     <NBadge
+      type="error"
       :value="totalUnreadCount"
       :max="99"
       :show="totalUnreadCount > 0"
@@ -461,19 +462,22 @@ defineExpose({
   font-size: 22px;
 }
 
-:deep(.n-badge-sup) {
-  right: 2px;
-  top: 2px;
-  font-size: 12px;
-  font-weight: 700;
-  min-width: 20px;
-  height: 20px;
-  line-height: 20px;
-  padding: 0 6px;
+/* 顶栏自定义配色时 Naive 角标变量可能变浅；强制红底白字保证可读 */
+:deep(.n-badge .n-badge-sup) {
+  right: 2px !important;
+  top: 2px !important;
+  z-index: 2;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid color-mix(in srgb, var(--bg-primary, #fff) 70%, transparent);
   border-radius: 999px;
-  background: var(--error-color);
-  color: #fff;
-  box-shadow: none;
+  background: var(--error-color, #e34d59) !important;
+  color: #fff !important;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--error-color, #e34d59) 35%, transparent);
 }
 
 :deep(.message-center-drawer .n-drawer-content) {

@@ -1227,11 +1227,16 @@ onBeforeUnmount(() => {
   gap: 16px;
 }
 
-/* 左侧个人信息卡片 — 极淡蓝紫渐变 */
+/* 左侧个人信息卡片：跟随主题表面色，避免暗黑下白底浅字 */
 .profile-info-card {
   border-radius: 12px;
   text-align: center;
-  background: linear-gradient(150deg, #f5f6ff 0%, #fafaff 100%) !important;
+  background:
+    linear-gradient(
+      150deg,
+      color-mix(in srgb, var(--primary-color, #356de0) 6%, var(--bg-primary, #fff)) 0%,
+      var(--bg-primary, #fff) 100%
+    ) !important;
 }
 
 .profile-avatar {
@@ -1655,19 +1660,35 @@ onBeforeUnmount(() => {
   color: var(--n-text-color-3);
 }
 
-/* 右侧卡片 */
+/* 右侧卡片：同样跟随主题，暗黑不再强制浅色渐变 */
 .settings-card {
   border-radius: 12px;
+  background: var(--bg-primary, #fff) !important;
 }
 
-/* 安全设置 — 极淡蓝灰 */
 .settings-card:first-child {
-  background: linear-gradient(150deg, #fafbfd 0%, #fdfdfe 100%) !important;
+  background:
+    linear-gradient(
+      150deg,
+      color-mix(in srgb, var(--primary-color, #356de0) 4%, var(--bg-primary, #fff)) 0%,
+      var(--bg-primary, #fff) 100%
+    ) !important;
 }
 
-/* 第三方账号 — 极淡绿灰 */
 .settings-card:last-child {
-  background: linear-gradient(150deg, #f8faf7 0%, #fcfdfb 100%) !important;
+  background:
+    linear-gradient(
+      150deg,
+      color-mix(in srgb, var(--success-color, #18a058) 4%, var(--bg-primary, #fff)) 0%,
+      var(--bg-primary, #fff) 100%
+    ) !important;
+}
+
+:global(.dark) .profile-info-card,
+:global(.dark) .settings-card,
+:global(.dark) .settings-card:first-child,
+:global(.dark) .settings-card:last-child {
+  background: var(--bg-primary, #1a1a1a) !important;
 }
 
 .card-title {
