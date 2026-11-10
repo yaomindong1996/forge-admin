@@ -4,10 +4,13 @@ Forge Admin is an enterprise-level mid-to-back-end management system built on Sp
 
 - Official website: [http://www.dlforgelab.com/](http://www.dlforgelab.com/)
 - Online demo (port `:8084`): see the Chinese README demo section
+- Lightweight sibling: **[Forge Lite](https://gitee.com/ForgeLab/forge-lite)** — RuoYi-style basics only (no flow / AI / low-code / print / dashboard)
 
 ## Project Overview
 
 Forge Admin is a modern enterprise-grade admin system designed to serve as a foundational framework for rapid development and business expansion. The system employs a microkernel + plugin-based architecture, where core functionalities exist as plugins, enabling on-demand integration and extensibility.
+
+Repositories: [Forge Admin (full)](https://gitee.com/ForgeLab/forge-admin) · [Forge Lite (slim)](https://gitee.com/ForgeLab/forge-lite)
 
 ### Core Features
 

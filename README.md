@@ -31,6 +31,8 @@
 
 **Forge Admin** 是一套面向企业后台、SaaS 管理端、数据可视化平台和内部低代码工具的中后台框架。它不只提供常见的用户、角色、菜单、字典、文件、日志等基础能力，还把 **AI 代码生成**、**AI 数据大屏**、**AI 智能体管理**、**Flowable 工作流**、**多租户隔离** 做成可持续扩展的工程体系。
 
+只想要若依风格的基础中后台（用户权限、字典、任务、代码生成等），可用精简姊妹项目 **[Forge Lite](https://gitee.com/ForgeLab/forge-lite)**，不含流程 / AI / 低代码 / 打印 / 大屏等重模块。
+
 官网：**[http://www.dlforgelab.com/](http://www.dlforgelab.com/)**（产品介绍与对外入口；下方 `:8084` 为在线演示环境，请区分使用）
 
 如果你正在搭建一个长期演进的后台系统，Forge Admin 更关注三件事：
@@ -92,10 +94,12 @@
 
 ## 🔗 仓库地址
 
-| 平台 | 地址 |
-|------|------|
-| Gitee | https://gitee.com/ForgeLab/forge-admin |
-| GitHub | https://github.com/yaomindong1996/forge-admin |
+| 产品 | 说明 | 地址 |
+|------|------|------|
+| **Forge Admin**（本仓库） | 完整社区版：系统管理 + 流程 / AI / 低代码 / 大屏等 | [Gitee](https://gitee.com/ForgeLab/forge-admin) · [GitHub](https://github.com/yaomindong1996/forge-admin) |
+| **[Forge Lite](https://gitee.com/ForgeLab/forge-lite)** | 轻量版：若依风格基础中后台，模块更少、上手更快 | [https://gitee.com/ForgeLab/forge-lite](https://gitee.com/ForgeLab/forge-lite) |
+
+按需选型：要全家桶选本仓库；只要登录鉴权、组织用户角色菜单、字典、定时任务、消息与代码生成，优先 Lite。
 
 ---
 
