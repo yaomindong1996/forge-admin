@@ -41,7 +41,8 @@ services:
       MYSQL_DATABASE: ${MYSQL_DB:-forge_admin}
       TZ: ${TZ:-Asia/Shanghai}
     ports:
-      - "${MYSQL_PORT:-3306}:3306"
+      # Host publish port is separate from in-network MYSQL_PORT (always 3306 inside).
+      - "${MYSQL_HOST_PORT:-${MYSQL_PORT:-3306}}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./init-sql:/docker-entrypoint-initdb.d
@@ -130,6 +131,9 @@ services:
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-forge123456}
+      FORGE_FLYWAY_ENABLED: ${FORGE_FLYWAY_ENABLED:-true}
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: ${SPRING_FLYWAY_VALIDATE_ON_MIGRATE:-false}
+      SPRING_FLYWAY_IGNORE_MIGRATION_PATTERNS: ${SPRING_FLYWAY_IGNORE_MIGRATION_PATTERNS:-*:checksum}
       JAVA_OPTS: ${JAVA_OPTS:--Xms256m -Xmx512m}
     volumes:
       - ./application-datasource.yml:/app/application-prod.yml
@@ -167,6 +171,10 @@ services:
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-forge123456}
       FLOW_CLIENT_URL: ${FLOW_CLIENT_URL:-http://forge-flow:8081}
+      # 全量库历史 checksum 常为 0，本地跳过 Flyway 校验以免阻断启动
+      FORGE_FLYWAY_ENABLED: ${FORGE_FLYWAY_ENABLED:-true}
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: ${SPRING_FLYWAY_VALIDATE_ON_MIGRATE:-false}
+      SPRING_FLYWAY_IGNORE_MIGRATION_PATTERNS: ${SPRING_FLYWAY_IGNORE_MIGRATION_PATTERNS:-*:checksum}
       FORGE_CRYPTO_BOOTSTRAP_ENABLED: ${FORGE_CRYPTO_BOOTSTRAP_ENABLED:-true}
       FORGE_CRYPTO_BOOTSTRAP_FILE: ${FORGE_CRYPTO_BOOTSTRAP_FILE:-/var/lib/forge/secrets/crypto.properties}
       FORGE_CRYPTO_SECRET_KEY: "${FORGE_CRYPTO_SECRET_KEY:-}"

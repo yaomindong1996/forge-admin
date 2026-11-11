@@ -19,6 +19,11 @@ spring:
         idleTimeout: 600000
         maxLifetime: 1800000
         keepaliveTime: 30000
+  # 全量初始化 SQL 写入的 forge_schema_history.checksum 常为 0，与镜像内脚本不一致；本地 Docker 跳过校验。
+  flyway:
+    enabled: ${FORGE_FLYWAY_ENABLED:true}
+    validate-on-migrate: ${SPRING_FLYWAY_VALIDATE_ON_MIGRATE:false}
+    ignore-migration-patterns: "*:checksum"
 
 spring.data:
   redis:
