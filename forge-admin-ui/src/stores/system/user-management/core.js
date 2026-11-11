@@ -106,8 +106,10 @@ export function createUserCore(state, runtime, workspace) {
     return workspace.tenantSelectOptions.value[0]?.value || null
   }
 
-  function buildTenantParams() {
-    const resolvedTenantId = userStore.userInfo?.tenantId
+  // 必须吃入操作租户；忽略参数会导致高级关系维护始终读写管理员登录租户，
+  // 在目标租户看起来「已授权」却登录无菜单，删默认租户后概览也会误显示关系全空。
+  function buildTenantParams(tenantId) {
+    const resolvedTenantId = tenantId ?? userStore.userInfo?.tenantId
     return resolvedTenantId ? { tenantId: resolvedTenantId } : {}
   }
 
