@@ -30,6 +30,12 @@ public class PostgreSqlRuntimeDatabaseDialect implements RuntimeDatabaseDialect 
         return "\"" + StringUtils.defaultString(identifier).replace("\"", "\"\"") + "\"";
     }
 
+    /** PG 侧统一小写标识符，避免未引用时被折叠成小写导致大小写漂移。 */
+    @Override
+    public String ddlIdentifier(String identifier) {
+        return quote(normalizeObjectName(identifier));
+    }
+
     @Override
     public String tableExistsSql() {
         return """
@@ -123,6 +129,7 @@ public class PostgreSqlRuntimeDatabaseDialect implements RuntimeDatabaseDialect 
             case "bigint" -> "bigint";
             case "tinyint" -> "smallint";
             case "decimal" -> "numeric(" + decimalPrecision + ")";
+            case "json" -> "jsonb";
             default -> throw new IllegalArgumentException("不支持的数据类型: " + dataType);
         };
     }

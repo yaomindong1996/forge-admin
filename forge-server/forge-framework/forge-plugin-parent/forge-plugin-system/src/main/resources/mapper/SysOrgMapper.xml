@@ -174,7 +174,16 @@
     <select id="selectOrgAndChildrenIds" resultType="java.lang.Long">
         SELECT id FROM sys_org
         WHERE del_flag = 0
-          AND (id = #{orgId} OR FIND_IN_SET(#{orgId}, ancestors) > 0)
+          AND (id = #{orgId} OR
+            <choose>
+              <when test="_databaseId == 'postgresql'">
+                #{orgId}::text = ANY (string_to_array(ancestors, ','))
+              </when>
+              <otherwise>
+                FIND_IN_SET(#{orgId}, ancestors) &gt; 0
+              </otherwise>
+            </choose>
+          )
     </select>
 
     <select id="selectOrgAndChildrenIdsByTenant" resultType="java.lang.Long">
@@ -183,7 +192,16 @@
         WHERE tenant_id = #{tenantId}
           AND del_flag = 0
           AND org_status = 1
-          AND (id = #{orgId} OR FIND_IN_SET(#{orgId}, ancestors) > 0)
+          AND (id = #{orgId} OR
+            <choose>
+              <when test="_databaseId == 'postgresql'">
+                #{orgId}::text = ANY (string_to_array(ancestors, ','))
+              </when>
+              <otherwise>
+                FIND_IN_SET(#{orgId}, ancestors) &gt; 0
+              </otherwise>
+            </choose>
+          )
         ORDER BY sort ASC, id ASC
     </select>
 

@@ -17,10 +17,16 @@
             <artifactId>forge-starter-plugin</artifactId>
         </dependency>
         
-        <!-- Mysql驱动包 -->
+        <!-- Mysql驱动包（社区默认） -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
+        </dependency>
+        <!-- PostgreSQL 驱动（业务库 / 低代码运行库 / 可选主库） -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
         </dependency>
         
         <dependency>
@@ -159,6 +165,10 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-mysql</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -228,6 +238,15 @@
                                 <resource>
                                     <directory>${project.basedir}/../db/migration</directory>
                                     <targetPath>db/migration</targetPath>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>*.sql</include>
+                                    </includes>
+                                </resource>
+                                <!-- PostgreSQL 平行增量：classpath:db/migration/postgresql -->
+                                <resource>
+                                    <directory>${project.basedir}/../db/migration/postgresql</directory>
+                                    <targetPath>db/migration/postgresql</targetPath>
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>*.sql</include>

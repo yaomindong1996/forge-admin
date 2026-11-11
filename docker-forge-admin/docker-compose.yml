@@ -59,6 +59,33 @@ services:
       - forge-network
 
   # ========================
+  # PostgreSQL（可选：docker compose --profile postgres up -d）
+  # 业务库 / 低代码 / 可选主库双栈；默认社区编排仍用上方 mysql。
+  # ========================
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["postgres"]
+    container_name: forge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-forge_admin}
+      POSTGRES_USER: ${POSTGRES_USER:-forge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-forge123456}
+      TZ: ${TZ:-Asia/Shanghai}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../forge-server/db/postgresql/全量初始化SQL.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-forge} -d ${POSTGRES_DB:-forge_admin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - forge-network
+
+  # ========================
   # Redis 缓存
   # ========================
   redis:
@@ -188,6 +215,8 @@ services:
 # ========================
 volumes:
   mysql_data:
+    driver: local
+  postgres_data:
     driver: local
   redis_data:
     driver: local

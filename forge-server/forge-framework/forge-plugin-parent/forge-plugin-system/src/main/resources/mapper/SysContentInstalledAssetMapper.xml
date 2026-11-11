@@ -45,7 +45,7 @@
           AND (
             asset_name LIKE CONCAT('%', #{keyword}, '%')
             OR asset_key LIKE CONCAT('%', #{keyword}, '%')
-            OR IFNULL(source_file_name, '') LIKE CONCAT('%', #{keyword}, '%')
+            OR COALESCE(source_file_name, '') LIKE CONCAT('%', #{keyword}, '%')
           )
         </if>
     </sql>

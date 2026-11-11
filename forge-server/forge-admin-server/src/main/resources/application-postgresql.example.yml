@@ -1,0 +1,38 @@
+# PostgreSQL 可选运行示例：复制为 application-postgresql.yml 或通过 spring.profiles.include=postgresql 启用。
+# 默认社区安装仍使用 MySQL（application-local / application-dev）。
+#
+# 初始化：
+#   bash forge-server/scripts/db/init-db-pg.sh --database forge_admin --recreate
+# Flyway 增量目录：classpath:db/migration/postgresql
+spring:
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    dynamic:
+      primary: master
+      strict: true
+      datasource:
+        master:
+          type: ${spring.datasource.type}
+          driverClassName: org.postgresql.Driver
+          url: jdbc:postgresql://${FORGE_PG_HOST:127.0.0.1}:${FORGE_PG_PORT:5432}/${FORGE_PG_DB:forge_admin}
+          username: ${FORGE_PG_USERNAME:forge}
+          password: ${FORGE_PG_PASSWORD:forge123456}
+        lowcode:
+          type: ${spring.datasource.type}
+          driverClassName: org.postgresql.Driver
+          url: jdbc:postgresql://${FORGE_PG_HOST:127.0.0.1}:${FORGE_PG_PORT:5432}/${FORGE_PG_DB:forge_admin}
+          username: ${FORGE_PG_USERNAME:forge}
+          password: ${FORGE_PG_PASSWORD:forge123456}
+  flyway:
+    enabled: ${FORGE_FLYWAY_ENABLED:true}
+    locations: ${FORGE_FLYWAY_LOCATIONS:classpath:db/migration/postgresql}
+    table: forge_schema_history
+    baseline-on-migrate: true
+    baseline-version: ${FORGE_FLYWAY_BASELINE_VERSION:1.0.233}
+
+config:
+  datasource:
+    url: ${spring.datasource.dynamic.datasource.master.url}
+    username: ${spring.datasource.dynamic.datasource.master.username}
+    password: ${spring.datasource.dynamic.datasource.master.password}
+    driverClassName: ${spring.datasource.dynamic.datasource.master.driverClassName}

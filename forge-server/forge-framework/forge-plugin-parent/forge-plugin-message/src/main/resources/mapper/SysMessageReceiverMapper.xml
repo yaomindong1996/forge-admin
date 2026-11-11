@@ -100,7 +100,7 @@
     <update id="updateDeliveryResult">
         UPDATE sys_message_receiver
         SET delivery_status = #{deliveryStatus},
-            delivery_attempts = IFNULL(delivery_attempts, 0) + 1,
+            delivery_attempts = COALESCE(delivery_attempts, 0) + 1,
             external_id = #{externalId},
             last_error_code = #{lastErrorCode},
             last_attempt_time = #{lastAttemptTime},

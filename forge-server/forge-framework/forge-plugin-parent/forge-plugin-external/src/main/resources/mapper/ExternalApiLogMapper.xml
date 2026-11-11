@@ -53,12 +53,12 @@
     <select id="selectLogSummary" resultType="com.mdframe.forge.plugin.external.vo.ExternalApiLogSummary">
         SELECT
             COUNT(1) AS totalCount,
-            IFNULL(SUM(CASE WHEN call_status = 1 THEN 1 ELSE 0 END), 0) AS successCount,
-            IFNULL(SUM(CASE WHEN call_status = 0 THEN 1 ELSE 0 END), 0) AS failureCount,
-            IFNULL(SUM(CASE WHEN debug_flag = 1 THEN 1 ELSE 0 END), 0) AS debugCount,
-            IFNULL(ROUND(SUM(CASE WHEN call_status = 1 THEN 1 ELSE 0 END) * 100 / NULLIF(COUNT(1), 0), 2), 0) AS successRate,
-            IFNULL(ROUND(AVG(duration_ms), 2), 0) AS avgDurationMs,
-            IFNULL(MAX(duration_ms), 0) AS maxDurationMs
+            COALESCE(SUM(CASE WHEN call_status = 1 THEN 1 ELSE 0 END), 0) AS successCount,
+            COALESCE(SUM(CASE WHEN call_status = 0 THEN 1 ELSE 0 END), 0) AS failureCount,
+            COALESCE(SUM(CASE WHEN debug_flag = 1 THEN 1 ELSE 0 END), 0) AS debugCount,
+            COALESCE(ROUND(SUM(CASE WHEN call_status = 1 THEN 1 ELSE 0 END) * 100 / NULLIF(COUNT(1), 0), 2), 0) AS successRate,
+            COALESCE(ROUND(AVG(duration_ms), 2), 0) AS avgDurationMs,
+            COALESCE(MAX(duration_ms), 0) AS maxDurationMs
         FROM sys_external_api_log
         <include refid="LogWhere"/>
     </select>

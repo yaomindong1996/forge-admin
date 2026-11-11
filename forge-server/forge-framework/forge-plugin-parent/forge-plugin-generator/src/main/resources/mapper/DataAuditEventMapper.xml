@@ -84,7 +84,7 @@
                       f.field_code = #{query.fieldCode}
                       OR f.column_name = #{query.fieldCode}
                       OR LOWER(REPLACE(f.field_code, '_', '')) = LOWER(REPLACE(#{query.fieldCode}, '_', ''))
-                      OR LOWER(REPLACE(IFNULL(f.column_name, ''), '_', '')) = LOWER(REPLACE(#{query.fieldCode}, '_', ''))
+                      OR LOWER(REPLACE(COALESCE(f.column_name, ''), '_', '')) = LOWER(REPLACE(#{query.fieldCode}, '_', ''))
                   )
             )
         </if>

@@ -118,7 +118,15 @@
                      AND tc.candidate_value = #{userId}
                      AND tc.status = 1
                )
-               OR FIND_IN_SET(#{userId}, candidate_users) &gt; 0)
+               OR
+               <choose>
+                 <when test="_databaseId == 'postgresql'">
+                   #{userId}::text = ANY (string_to_array(COALESCE(candidate_users, ''), ','))
+                 </when>
+                 <otherwise>
+                   FIND_IN_SET(#{userId}, candidate_users) &gt; 0
+                 </otherwise>
+               </choose>)
     </select>
 
     <select id="selectActiveTaskSummaries" resultType="java.util.HashMap">
@@ -366,10 +374,21 @@
                     (
                     t.candidate_users IS NOT NULL
                     AND t.candidate_users != ''
-                    AND FIND_IN_SET(
-                        REPLACE(REPLACE(REPLACE(REPLACE(#{userId}, ';', ','), '；', ','), '，', ','), ' ', ''),
-                        REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_users, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
-                    ) > 0
+                    AND
+                    <choose>
+                      <when test="_databaseId == 'postgresql'">
+                        REPLACE(REPLACE(REPLACE(REPLACE(#{userId}, ';', ','), '；', ','), '，', ','), ' ', '')
+                          = ANY (string_to_array(
+                            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_users, ';', ','), '；', ','), '，', ','), '、', ','), ' ', ''),
+                            ','))
+                      </when>
+                      <otherwise>
+                        FIND_IN_SET(
+                            REPLACE(REPLACE(REPLACE(REPLACE(#{userId}, ';', ','), '；', ','), '，', ','), ' ', ''),
+                            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_users, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
+                        ) &gt; 0
+                      </otherwise>
+                    </choose>
                     )
                     <if test="candidateGroupValues != null and candidateGroupValues.size() > 0">
                     OR (
@@ -377,10 +396,19 @@
                         AND t.candidate_groups != ''
                         AND (
                             <foreach collection="candidateGroupValues" item="groupValue" separator=" OR ">
-                              FIND_IN_SET(
-                                  #{groupValue},
-                                  REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
-                              ) > 0
+                              <choose>
+                                <when test="_databaseId == 'postgresql'">
+                                  #{groupValue} = ANY (string_to_array(
+                                    REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', ''),
+                                    ','))
+                                </when>
+                                <otherwise>
+                                  FIND_IN_SET(
+                                      #{groupValue},
+                                      REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
+                                  ) &gt; 0
+                                </otherwise>
+                              </choose>
                             </foreach>
                         )
                     )
@@ -525,10 +553,21 @@
                     OR (
                         t.candidate_users IS NOT NULL
                         AND t.candidate_users != ''
-                        AND FIND_IN_SET(
-                            REPLACE(REPLACE(REPLACE(REPLACE(#{userId}, ';', ','), '；', ','), '，', ','), ' ', ''),
-                            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_users, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
-                        ) &gt; 0
+                        AND
+                        <choose>
+                          <when test="_databaseId == 'postgresql'">
+                            REPLACE(REPLACE(REPLACE(REPLACE(#{userId}, ';', ','), '；', ','), '，', ','), ' ', '')
+                              = ANY (string_to_array(
+                                REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_users, ';', ','), '；', ','), '，', ','), '、', ','), ' ', ''),
+                                ','))
+                          </when>
+                          <otherwise>
+                            FIND_IN_SET(
+                                REPLACE(REPLACE(REPLACE(REPLACE(#{userId}, ';', ','), '；', ','), '，', ','), ' ', ''),
+                                REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_users, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
+                            ) &gt; 0
+                          </otherwise>
+                        </choose>
                     )
                 )
                 </if>
@@ -549,10 +588,21 @@
                     OR (
                         t.candidate_groups IS NOT NULL
                         AND t.candidate_groups != ''
-                        AND FIND_IN_SET(
-                            REPLACE(REPLACE(REPLACE(REPLACE(#{groupId}, ';', ','), '；', ','), '，', ','), ' ', ''),
-                            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
-                        ) &gt; 0
+                        AND
+                        <choose>
+                          <when test="_databaseId == 'postgresql'">
+                            REPLACE(REPLACE(REPLACE(REPLACE(#{groupId}, ';', ','), '；', ','), '，', ','), ' ', '')
+                              = ANY (string_to_array(
+                                REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', ''),
+                                ','))
+                          </when>
+                          <otherwise>
+                            FIND_IN_SET(
+                                REPLACE(REPLACE(REPLACE(REPLACE(#{groupId}, ';', ','), '；', ','), '，', ','), ' ', ''),
+                                REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
+                            ) &gt; 0
+                          </otherwise>
+                        </choose>
                     )
                 )
                 </if>

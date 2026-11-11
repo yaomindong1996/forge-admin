@@ -10,7 +10,8 @@ java -version
 
 推荐：
 
-- MySQL 8+
+- MySQL 8+（社区默认）
+- 可选 PostgreSQL 14+（业务库 / 低代码 / 可选主库双栈，见下文「PostgreSQL」）
 - Node.js 20+
 - JDK 17+
 
@@ -65,6 +66,38 @@ bash forge-server/scripts/db/init-db.sh \
 
 - 密码建议用 `MYSQL_PWD=*** bash ...` 传入。脚本内部通过临时 defaults 文件把密码交给 mysql，不会出现在进程参数里。
 - 全量 SQL 只能导入空库。库里已经有表时脚本会直接失败；要重建请加 `--recreate`，执行前会要求输入库名确认。
+
+  ---
+3.0 PostgreSQL（可选双栈）
+
+社区默认仍是 MySQL。若业务库 / 低代码运行库 / 主库使用 PostgreSQL：
+
+1. 刷新全量（从 MySQL 全量转换，可重复执行）：
+
+```bash
+python3 forge-server/scripts/db/convert-mysql-full-to-pg.py \
+  --input forge-server/db/全量初始化SQL.sql \
+  --output forge-server/db/postgresql/全量初始化SQL.sql
+```
+
+2. 空库初始化：
+
+```bash
+PGPASSWORD=*** bash forge-server/scripts/db/init-db-pg.sh \
+  --database forge_admin --recreate
+```
+
+3. 增量目录：`forge-server/db/migration/postgresql/`，与 MySQL `V1.0.x` 平行版本号；全量冻结 baseline=`1.0.233`。成对检查：
+
+```bash
+node forge-server/scripts/db/check-pg-migration-pairs.mjs
+```
+
+4. 后端示例配置：`forge-admin-server/src/main/resources/application-postgresql.example.yml`。
+
+5. Docker 可选：`docker compose --profile postgres up -d`（见 `docker-forge-admin/docker-compose.yml`）。
+
+详情：`db/postgresql/README.md`、`db/migration/postgresql/README.md`、`code-copilot/changes/postgresql-business-lowcode/spec.md`。
 
   ---
 3.1 初始化一个干净的模板库（新项目推荐）
