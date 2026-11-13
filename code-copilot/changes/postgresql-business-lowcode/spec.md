@@ -17,7 +17,7 @@
 | JSON | `jsonb` |
 | 时间 | `timestamp`；无 `ON UPDATE`，靠 MetaObjectHandler |
 | 主键 | 应用雪花，不依赖 IDENTITY |
-| Flyway baseline | `1.0.233` |
+| Flyway baseline | `1.0.234` |
 | Flowable 表 | 全量跳过 `act_*`/`flw_*` |
 
 ## 成对增量治理

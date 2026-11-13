@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Fail if a new MySQL migration under db/mysql/migration lacks a same-version
- * sibling under db/postgresql/migration (after baseline 1.0.233).
+ * sibling under db/postgresql/migration (after baseline 1.0.234).
  *
  * Usage: node forge-server/scripts/db/check-pg-migration-pairs.mjs
  */
@@ -13,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const forgeDir = path.resolve(__dirname, '../..')
 const mysqlDir = path.join(forgeDir, 'db/mysql/migration')
 const pgDir = path.join(forgeDir, 'db/postgresql/migration')
-const BASELINE = [1, 0, 233]
+const BASELINE = [1, 0, 234]
 
 function parseVersion(fileName) {
   const match = /^V(\d+)\.(\d+)\.(\d+)__/.exec(fileName)
@@ -50,4 +50,4 @@ if (missing.length) {
   process.exit(1)
 }
 
-console.log('OK: all MySQL migrations after 1.0.233 have PostgreSQL twins (or none yet).')
+console.log('OK: all MySQL migrations after 1.0.234 have PostgreSQL twins (or none yet).')

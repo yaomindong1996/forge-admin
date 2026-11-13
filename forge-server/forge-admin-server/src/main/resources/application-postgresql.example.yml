@@ -28,7 +28,7 @@ spring:
     locations: ${FORGE_FLYWAY_LOCATIONS:classpath:db/postgresql/migration}
     table: forge_schema_history
     baseline-on-migrate: true
-    baseline-version: ${FORGE_FLYWAY_BASELINE_VERSION:1.0.233}
+    baseline-version: ${FORGE_FLYWAY_BASELINE_VERSION:1.0.234}
 
 config:
   datasource:

@@ -72,7 +72,7 @@ PGPASSWORD=*** bash forge-server/scripts/db/init-db-pg.sh \
   --database forge_admin --recreate
 ```
 
-增量目录：`db/postgresql/migration/`，与 MySQL `V1.0.x` 平行版本号；全量冻结 baseline=`1.0.233`。
+增量目录：`db/postgresql/migration/`，与 MySQL `V1.0.x` 平行版本号；全量冻结 baseline=`1.0.234`。
 
 成对检查：
 

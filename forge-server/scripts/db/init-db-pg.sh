@@ -113,7 +113,7 @@ if [[ "$MIGRATE" == "true" ]]; then
       -Dflyway.locations="filesystem:$FORGE_DIR/db/postgresql/migration" \
       -Dflyway.table="forge_schema_history" \
       -Dflyway.baselineOnMigrate=true \
-      -Dflyway.baselineVersion=1.0.233
+      -Dflyway.baselineVersion=1.0.234
   )
 fi
 

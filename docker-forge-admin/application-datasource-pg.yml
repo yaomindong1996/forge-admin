@@ -30,7 +30,7 @@ spring:
     locations: classpath:db/postgresql/migration
     table: forge_schema_history
     baseline-on-migrate: true
-    baseline-version: 1.0.233
+    baseline-version: 1.0.234
     validate-on-migrate: false
 
 spring.data:
