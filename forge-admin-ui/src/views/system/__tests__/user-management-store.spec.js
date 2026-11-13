@@ -143,8 +143,14 @@ describe('用户管理拆分行为契约', () => {
     store.rolePagination = { page: 2, pageSize: 20, itemCount: 0 }
     mocks.get.mockResolvedValueOnce({ code: 200, data: { records: [{ id: 3 }], total: 21 } })
     await store.loadRoleList()
-    expect(mocks.get).toHaveBeenCalledWith('/system/role/page', { params: { pageNum: 2, pageSize: 20, roleName: undefined, orgId: 10, prioritizedUserId: 8, tenantId: 1 } })
+    expect(mocks.get).toHaveBeenCalledWith('/system/role/page', { params: { pageNum: 2, pageSize: 20, roleName: undefined, orgId: 10, prioritizedUserId: 8, tenantId: 2 } })
     expect(store.rolePagination.itemCount).toBe(21)
+  })
+
+  it('buildTenantParams 优先使用传入的操作租户，而不是管理员登录租户', () => {
+    expect(store.buildTenantParams(99)).toEqual({ tenantId: 99 })
+    expect(store.buildTenantParams()).toEqual({ tenantId: 1 })
+    expect(store.buildTenantParams(null)).toEqual({ tenantId: 1 })
   })
 
   it('批量授权追加现有角色而非覆盖，成功清选择并刷新', async () => {

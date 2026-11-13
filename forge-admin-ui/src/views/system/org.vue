@@ -523,8 +523,8 @@ function resolveOptionLabel(options = [], value) {
   return match?.label
 }
 
-function buildTenantParams() {
-  const resolvedTenantId = userStore.userInfo?.tenantId
+function buildTenantParams(tenantId) {
+  const resolvedTenantId = tenantId ?? userStore.userInfo?.tenantId
   return resolvedTenantId ? { tenantId: resolvedTenantId } : {}
 }
 
