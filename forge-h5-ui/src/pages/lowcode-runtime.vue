@@ -331,6 +331,7 @@ async function refreshListByPull() {
 onLoad(async query => {
   runtimeStore.initializeRoute(query || {})
   documentFlow.setCreateSubmit(query?.flow === '1')
+  documentFlow.setCreateProcess(query?.process)
   await loadRuntime()
 })
 

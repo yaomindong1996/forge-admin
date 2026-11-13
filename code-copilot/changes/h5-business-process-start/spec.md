@@ -61,6 +61,36 @@ PC 端 `AiCrudPage` 已能发起。H5 目前只读取单据运行态里的 `STAR
 
 `pages/lowcode-runtime.vue` 已超 600 行，逻辑全部放 composable / store，页面只透传。
 
+## 阶段二：「发起审批」目录列出业务流程
+
+### 现状
+
+`GET /ai/business/flow/startable-objects`（`BusinessStartableObjectMapper.selectStartableObjects`）只返回绑定了
+对象主流程（`ai_business_binding` FLOW）的对象；只配置业务流程的应用在 H5「发起审批」页看不到入口。
+
+### 后端
+
+- `BusinessStartableObjectMapper.xml` 新增 `selectStartableProcesses`：当前租户、启用且已发布
+  （`published_version` 对应启用版本）的业务流程，所属应用、应用对象关系、主体对象均有效且对象有 `config_key`；
+  连接条件与 `BusinessProcessVersionMapper.selectCurrentPublishedByApplication` 一致。
+- `BusinessStartableObjectService` 用 `BusinessProcessRuntimeActionCompiler.compileSchema` 解析已发布版本，
+  只保留含「手动开始」节点的流程，目录文案取编译后的按钮文案（与页面按钮一致）。
+- `BusinessStartableObjectVO` 新增 `processCode`、`processName`；对象主流程条目两字段为空。
+  仍只返回展示元数据，不返回流程 JSON；接口保持登录可用 + 加解密，发起时由各自接口校验权限。
+
+### H5
+
+- `utils/startable-objects.js`：业务流程条目文案取 `processName`，跳转
+  `lowcode-runtime?configKey&mode=create&process=<processCode>`；主流程条目沿用 `flow=1`。
+  主流程条目需 `FLOW_PERMISSIONS.start`，业务流程条目需 `FLOW_PERMISSIONS.processStart`；搜索同时匹配流程名称。
+- `pages/approval/start.vue`：两种权限任一具备即加载目录。
+- 新建页带 `process` 参数时，页脚只展示该业务流程按钮：先校验并保存，再走阶段一的发起流程。
+
+### 验收（阶段二）
+
+1. 单测：目录 SQL 契约、只收录手动开始流程、H5 分组/链接/权限过滤。
+2. 部署后：H5「发起审批」出现「报销审批」，点开新建 → 填写 → 发起 → 审批通过。
+
 ## 风险与约束
 
 - 鉴权以后端 `@SaCheckPermission("ai:businessProcess:start")` 为准，前端权限判断仅控制展示。

@@ -56,15 +56,21 @@ export function useLowcodeDocumentFlow({ getContext, validate, persist, reloadDe
     return store.runtime
   }
 
+  // 新建页初始化表单时也会调用：此时渲染配置已加载，指定了业务流程的新建页在这里同步按钮。
   function reset() {
     loadSeq += 1
     loadedRecordKey = ''
     store.reset()
+    if (store.createProcessCode && getContext().mode === 'create') syncProcessActions()
   }
 
   function setCreateSubmit(enabled) {
     store.createSubmit = Boolean(enabled)
     syncPermissions()
+  }
+
+  function setCreateProcess(processCode) {
+    store.createProcessCode = String(processCode || '').trim()
   }
 
   function syncPermissions() {
@@ -236,5 +242,5 @@ export function useLowcodeDocumentFlow({ getContext, validate, persist, reloadDe
     await reloadDetail(recordId)
   }
 
-  return { load, reset, run, setCreateSubmit }
+  return { load, reset, run, setCreateSubmit, setCreateProcess }
 }

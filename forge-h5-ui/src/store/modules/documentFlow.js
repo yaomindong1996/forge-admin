@@ -17,6 +17,8 @@ export const useDocumentFlowStore = defineStore('documentFlow', {
     loadingKey: '',
     // 仅从「发起审批」进入新建页时展示提交审批；其它入口新建后在详情页按运行态提交。
     createSubmit: false,
+    // 从「发起审批」目录的业务流程条目进入新建页时，只展示该流程的发起按钮。
+    createProcessCode: '',
     // 键与 FLOW_PERMISSIONS 一致，由 useLowcodeDocumentFlow 按当前用户权限写入。
     permissions: { start: false, withdraw: false, processStart: false },
     // 渲染配置投影的业务流程启动动作，已按当前记录过滤显示条件
@@ -43,7 +45,10 @@ export const useDocumentFlowStore = defineStore('documentFlow', {
     footerButtons() {
       return mode => {
         if (mode !== 'create') return this.buttons
-        if (!this.createSubmit) return []
+        const processButtons = this.createProcessCode
+          ? this.processButtonState.buttons.filter(button => button.processCode === this.createProcessCode)
+          : []
+        if (!this.createSubmit) return processButtons
         const createButtons = this.permissions.start
           ? [{
               key: CREATE_SUBMIT_KEY,
@@ -54,7 +59,7 @@ export const useDocumentFlowStore = defineStore('documentFlow', {
               disabledReason: '',
             }]
           : []
-        return [...createButtons, ...this.processButtonState.buttons]
+        return [...createButtons, ...processButtons]
       }
     },
   },

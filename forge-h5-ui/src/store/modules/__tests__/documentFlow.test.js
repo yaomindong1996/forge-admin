@@ -82,3 +82,13 @@ test('disabled reason surfaces and reset clears runtime and loading', () => {
   assert.equal(store.runtime, null)
   assert.equal(store.loadingKey, '')
 })
+
+test('create page entered for a business process only offers that process', () => {
+  const store = createStore({ start: true, withdraw: true, processStart: true })
+  store.setProcessActions([reimburseProcess, { ...reimburseProcess, key: 'startProcess:other', processCode: 'other' }])
+  assert.deepEqual(store.footerButtons('create'), [])
+  store.createProcessCode = 'reimburse'
+  assert.deepEqual(store.footerButtons('create').map(button => button.key), ['START_PROCESS:reimburse'])
+  store.createSubmit = true
+  assert.deepEqual(store.footerButtons('create').map(button => button.key), [CREATE_SUBMIT_KEY, 'START_PROCESS:reimburse'])
+})

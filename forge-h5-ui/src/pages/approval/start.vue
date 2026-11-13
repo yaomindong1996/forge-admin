@@ -52,9 +52,11 @@ const objects = ref([])
 const loading = ref(true)
 const failed = ref(false)
 
-const canStart = computed(() => authStore.hasPermission(FLOW_PERMISSIONS.start))
+// 目录同时含对象主流程与应用业务流程，两类发起权限分别过滤
+const can = key => authStore.hasPermission(FLOW_PERMISSIONS[key])
+const canStart = computed(() => authStore.hasPermission(FLOW_PERMISSIONS.start) || can('processStart'))
 const menuIndex = computed(() => indexMenusByConfigKey(flattenMobileMenus(authStore.menus)))
-const groups = computed(() => buildStartableGroups(objects.value, menuIndex.value, keyword.value))
+const groups = computed(() => buildStartableGroups(objects.value, menuIndex.value, keyword.value, can))
 const emptyTitle = computed(() => {
   if (failed.value) return '加载失败'
   return keyword.value.trim() ? '没有匹配的审批' : '暂无可发起的审批'
@@ -65,7 +67,7 @@ const emptyDescription = computed(() => {
 })
 
 onLoad(async () => {
-  // 没有提交审批权限时不请求目录，直接显示空状态。
+  // 两类发起权限都没有时不请求目录，直接显示空状态。
   if (!canStart.value) { loading.value = false; return }
   try {
     const response = await api.getStartableObjects()

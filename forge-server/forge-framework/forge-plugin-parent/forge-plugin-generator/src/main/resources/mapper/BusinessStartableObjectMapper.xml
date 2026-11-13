@@ -39,4 +39,51 @@
                  a.id, a.application_name, a.icon, ao.sort_order
         ORDER BY a.id IS NULL, a.id, sortOrder, o.object_name
     </select>
+
+    <!-- 应用已发布的业务流程（当前发布版本）；是否含手动开始节点由服务端解析 schema_json 判断 -->
+    <select id="selectStartableProcesses"
+            resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessStartableProcessRow">
+        SELECT o.object_code AS objectCode,
+               o.object_name AS objectName,
+               o.icon AS objectIcon,
+               o.config_key AS configKey,
+               a.id AS applicationId,
+               a.application_code AS applicationCode,
+               a.application_name AS applicationName,
+               a.icon AS applicationIcon,
+               COALESCE(ao.sort_order, o.sort_order) AS sortOrder,
+               p.process_code AS processCode,
+               p.process_name AS processName,
+               v.schema_json AS schemaJson
+        FROM ai_business_process p
+        INNER JOIN ai_business_process_version v
+          ON v.tenant_id = p.tenant_id
+         AND v.process_id = p.id
+         AND v.version_no = p.published_version
+         AND v.status = 1
+         AND v.del_flag = 0
+        INNER JOIN ai_business_application a
+          ON a.tenant_id = p.tenant_id
+         AND a.id = p.application_id
+         AND a.status = 1
+         AND a.del_flag = 0
+        INNER JOIN ai_business_application_object ao
+          ON ao.tenant_id = p.tenant_id
+         AND ao.application_id = p.application_id
+         AND ao.object_id = p.subject_object_id
+         AND ao.del_flag = 0
+        INNER JOIN ai_business_object o
+          ON o.tenant_id = p.tenant_id
+         AND o.id = p.subject_object_id
+         AND o.object_code = p.subject_object_code
+         AND o.status = 1
+         AND o.del_flag = 0
+        WHERE p.tenant_id = #{tenantId}
+          AND p.status = 1
+          AND p.del_flag = 0
+          AND p.published_version IS NOT NULL
+          AND o.config_key IS NOT NULL
+          AND o.config_key != ''
+        ORDER BY a.id, sortOrder, p.process_name
+    </select>
 </mapper>
