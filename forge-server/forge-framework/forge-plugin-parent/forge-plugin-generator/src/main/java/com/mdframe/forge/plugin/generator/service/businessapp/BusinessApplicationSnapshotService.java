@@ -154,8 +154,24 @@ public class BusinessApplicationSnapshotService {
         Map<String, Object> application = map(snapshot.get("application"));
         String applicationCode = StringUtils.trimToNull(stringValue(application.get("applicationCode")));
         snapshot.put("runtimeActions", new BusinessProcessRuntimeActionCompiler(objectMapper)
-                .compileSnapshots(processSnapshots, applicationCode));
+                .compileSnapshots(processSnapshots, applicationCode, processNames(snapshot.get("processes"))));
         return bundle(snapshot);
+    }
+
+    private Map<String, String> processNames(Object processes) {
+        Map<String, String> names = new LinkedHashMap<>();
+        if (!(processes instanceof List<?> list)) {
+            return names;
+        }
+        for (Object item : list) {
+            Map<String, Object> process = map(item);
+            String code = StringUtils.trimToNull(stringValue(process.get("processCode")));
+            String name = StringUtils.trimToNull(stringValue(process.get("processName")));
+            if (code != null && name != null) {
+                names.put(code, name);
+            }
+        }
+        return names;
     }
 
     public SnapshotBundle finalizePublished(String candidateJson,

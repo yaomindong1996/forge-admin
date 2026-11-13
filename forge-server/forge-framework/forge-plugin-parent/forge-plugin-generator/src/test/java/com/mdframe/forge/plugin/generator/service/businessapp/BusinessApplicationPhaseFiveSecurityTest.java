@@ -12,6 +12,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("BusinessApplication Phase 5 security contract")
@@ -68,6 +69,34 @@ class BusinessApplicationPhaseFiveSecurityTest {
         assertTrue(bundle.json().contains("2900000000000001001"));
         assertTrue(bundle.json().contains("deployment-2"));
         assertTrue(bundle.snapshot().containsKey("runtimeActions"));
+    }
+
+    @Test
+    @DisplayName("snapshot runtime actions label default start nodes with the process name")
+    void snapshotRuntimeActionsUseProcessName() {
+        BusinessApplicationSnapshotService service = new BusinessApplicationSnapshotService(
+                new ObjectMapper(), null, null, null, null, null, null, null, null, null);
+        BusinessProcessSnapshot process = new BusinessProcessSnapshot(
+                "1900000000000001001", "2900000000000001001", "approval_qsxf", 1, 1, "1.0", "a".repeat(64),
+                Map.of("schemaVersion", "1.0",
+                        "processCode", "approval_qsxf",
+                        "nodes", List.of(Map.of(
+                                "id", "start_manual",
+                                "type", "START_MANUAL",
+                                "name", "手动开始",
+                                "config", Map.of("positions", List.of("DETAIL"))))),
+                Map.of());
+        String candidate = """
+                {"application":{"applicationCode":"hr_e2_e"},
+                 "processes":[{"processCode":"approval_qsxf","processName":"报销审批"}]}
+                """;
+
+        BusinessApplicationSnapshotService.SnapshotBundle bundle
+                = service.finalizeProcesses(candidate, List.of(process));
+
+        List<?> actions = assertInstanceOf(List.class, bundle.snapshot().get("runtimeActions"));
+        Map<?, ?> first = assertInstanceOf(Map.class, actions.get(0));
+        assertEquals("报销审批", first.get("label"));
     }
 
     @Test

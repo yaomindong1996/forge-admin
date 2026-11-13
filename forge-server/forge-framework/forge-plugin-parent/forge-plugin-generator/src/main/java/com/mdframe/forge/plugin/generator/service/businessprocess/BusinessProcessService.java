@@ -609,7 +609,7 @@ public class BusinessProcessService {
         BusinessProcessNode start = new BusinessProcessNode();
         start.setId("start_manual");
         start.setType("START_MANUAL");
-        start.setName("手动开始");
+        start.setName(BusinessProcessRuntimeActionCompiler.DEFAULT_START_NODE_NAME);
         start.setConfig(new LinkedHashMap<>(Map.of(
                 "positions", List.of("ROW", "DETAIL"),
                 "permission", "ai:businessProcess:start")));

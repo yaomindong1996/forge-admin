@@ -25,24 +25,32 @@ public class BusinessProcessRuntimeActionCompiler {
 
     public static final String ACTION_TYPE = "START_PROCESS";
     public static final String DEFAULT_PERMISSION = "ai:businessProcess:start";
+    /** 新建业务流程时开始节点的默认名称，不代表业务含义，不能作为按钮文案。 */
+    public static final String DEFAULT_START_NODE_NAME = "手动开始";
 
     private static final Set<String> START_TYPES = Set.of("START_MANUAL");
     private static final List<String> DEFAULT_POSITIONS = List.of("ROW", "DETAIL");
 
     private final ObjectMapper objectMapper;
 
+    /**
+     * @param processNames 流程编码 → 流程名称；缺失时以流程编码兜底
+     */
     public List<Map<String, Object>> compileSnapshots(
             Collection<BusinessProcessSnapshot> snapshots,
-            String applicationCode) {
+            String applicationCode,
+            Map<String, String> processNames) {
         if (snapshots == null || snapshots.isEmpty() || StringUtils.isBlank(applicationCode)) {
             return List.of();
         }
+        Map<String, String> names = processNames == null ? Map.of() : processNames;
         List<Map<String, Object>> actions = new ArrayList<>();
         for (BusinessProcessSnapshot snapshot : snapshots) {
             if (snapshot == null) {
                 continue;
             }
-            actions.addAll(compileActions(snapshot, applicationCode, snapshot.processCode()));
+            String processName = firstText(names.get(snapshot.processCode()), snapshot.processCode());
+            actions.addAll(compileActions(snapshot, applicationCode, processName));
         }
         return List.copyOf(actions);
     }
@@ -77,7 +85,7 @@ public class BusinessProcessRuntimeActionCompiler {
         String objectCode = schema.getSubject() == null ? null : StringUtils.trimToNull(schema.getSubject().getObjectCode());
         // 手动开始节点的流程名称用于流程画布/时间线；运行时按钮文案单独配置，避免改按钮时污染节点语义。
         // 兼容历史草稿：未配置 buttonLabel 时继续使用原来的节点名称回退链路。
-        String label = firstText(text(config.get("buttonLabel")), start.getName(), processName, processCode, "启动流程");
+        String label = firstText(text(config.get("buttonLabel")), meaningfulStartName(start), processName, processCode, "启动流程");
         String permission = firstText(text(config.get("permission")), DEFAULT_PERMISSION);
         String confirmText = text(config.get("confirmText"));
         String visibleCondition = compileDisplayCondition(config.get("visibleCondition"));
@@ -225,6 +233,11 @@ public class BusinessProcessRuntimeActionCompiler {
                 .filter(node -> node != null && START_TYPES.contains(upper(node.getType())))
                 .findFirst()
                 .orElse(null);
+    }
+
+    private String meaningfulStartName(BusinessProcessNode start) {
+        String name = text(start.getName());
+        return DEFAULT_START_NODE_NAME.equals(name) ? "" : name;
     }
 
     private Set<String> normalizePositions(Object raw) {
