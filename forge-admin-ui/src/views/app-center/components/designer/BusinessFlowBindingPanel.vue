@@ -313,7 +313,7 @@
     <n-modal
       v-model:show="flowDesignerVisible"
       class="flow-designer-modal"
-      :mask-closable="false"
+      :mask-closable="false" :close-on-esc="false"
       :auto-focus="false"
     >
       <section class="flow-designer-modal-shell">

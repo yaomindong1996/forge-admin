@@ -80,6 +80,10 @@
         <n-alert v-if="!datasourceLoading && !datasourceOptions.length" type="warning" :bordered="false">
           还没有可用的低代码运行数据源。请先在代码生成 / 数据源中配置 LOWCODE_RUNTIME 数据源。
         </n-alert>
+        <!-- 数据源能力不足时提前拦截，避免设计完表单后保存才失败 -->
+        <n-alert v-else-if="!datasourceLoading && selectedDatasourceIssue" type="warning" :bordered="false">
+          所选运行数据源{{ selectedDatasourceIssue }}，表单保存时会被拒绝。请改选其他数据源，或在「应用中心 / 应用数据源」中开启运行写入{{ form.dataSourceMode === PAGE_DATA_SOURCE_EXISTING_TABLE ? '' : '与自动建表' }}。
+        </n-alert>
         <div v-if="importedFields.length" class="page-table-summary">
           <code>{{ selectedTableLabel }}</code>
           <span>已读取 {{ importedFields.length }} 个字段，将自动生成表单并推断字段类型。</span>
@@ -271,10 +275,28 @@ const rules = computed(() => {
       : undefined,
   }
 })
-const datasourceOptions = computed(() => datasourceList.value.map(item => ({
-  label: `${item.datasourceName || item.datasourceCode || '未命名数据源'}${Number(item.isDefault) === 1 ? '（默认）' : ''} / ${item.dbType || '-'}`,
-  value: item.datasourceId,
-})))
+const datasourceOptions = computed(() => datasourceList.value.map((item) => {
+  const reason = datasourceBlockReason(item)
+  return {
+    label: `${item.datasourceName || item.datasourceCode || '未命名数据源'}${Number(item.isDefault) === 1 ? '（默认）' : ''} / ${item.dbType || '-'}${reason ? ` · ${reason}` : ''}`,
+    value: item.datasourceId,
+    disabled: Boolean(reason),
+  }
+}))
+const selectedDatasourceIssue = computed(() => datasourceBlockReason(
+  datasourceList.value.find(item => String(item.datasourceId) === String(form.runtimeDatasourceId)),
+))
+
+// 与后端 resolveRuntimeDatasource 保持一致：必须允许运行写入且非只读，新建数据表还要允许自动建表
+function datasourceBlockReason(item, mode = form.dataSourceMode) {
+  if (!item)
+    return ''
+  if (Number(item.allowRuntimeWrite) !== 1 || Number(item.readonly) === 1)
+    return '不允许写入业务数据'
+  if (mode !== PAGE_DATA_SOURCE_EXISTING_TABLE && Number(item.allowRuntimeDdl) !== 1)
+    return '未开启自动建表'
+  return ''
+}
 const tableOptions = computed(() => tableList.value.map(item => ({
   label: item.tableComment ? `${item.tableName}（${item.tableComment}）` : item.tableName,
   value: item.tableName,
@@ -345,6 +367,8 @@ function handleObjectNameChange(value) {
 async function handleDataSourceModeChange() {
   form.importTableName = ''
   importedFields.value = []
+  if (selectedDatasourceIssue.value)
+    selectDefaultDatasource(true)
   if (form.dataSourceMode === PAGE_DATA_SOURCE_EXISTING_TABLE)
     await loadTables(form.runtimeDatasourceId)
   else
@@ -406,13 +430,18 @@ async function loadDatasources() {
   }
 }
 
-function selectDefaultDatasource() {
-  if (form.runtimeDatasourceId && datasourceList.value.some(
+function selectDefaultDatasource(force = false) {
+  if (!force && form.runtimeDatasourceId && datasourceList.value.some(
     item => String(item.datasourceId) === String(form.runtimeDatasourceId),
   )) {
     return
   }
-  const datasource = datasourceList.value.find(item => Number(item.isDefault) === 1) || datasourceList.value[0]
+  const usable = datasourceList.value.filter(item => !datasourceBlockReason(item))
+  // 优先默认且可写的数据源；都不可用时仍回填默认项，让弹窗直接提示原因
+  const datasource = usable.find(item => Number(item.isDefault) === 1)
+    || usable[0]
+    || datasourceList.value.find(item => Number(item.isDefault) === 1)
+    || datasourceList.value[0]
   form.runtimeDatasourceId = datasource?.datasourceId ?? null
 }
 
@@ -439,6 +468,10 @@ async function confirmSelection() {
     await formRef.value?.validate()
   else if (!String(form.pageName || '').trim())
     return formRef.value?.validate()
+  if (form.pageType !== 'custom' && selectedDatasourceIssue.value) {
+    message.warning(`所选运行数据源${selectedDatasourceIssue.value}，请改选或先在应用数据源中开启`)
+    return
+  }
   if (form.pageType !== 'custom' && form.dataSourceMode === PAGE_DATA_SOURCE_EXISTING_TABLE) {
     if (fieldLoading.value) {
       message.warning('正在读取数据表字段，请稍候')

@@ -50,8 +50,8 @@
         update_time
     </sql>
 
-    <sql id="Application_VO_Select">
-        SELECT a.id AS id,
+    <sql id="Application_VO_Base_Columns">
+               a.id AS id,
                a.application_code AS applicationCode,
                a.portal_slug AS portalSlug,
                a.application_name AS applicationName,
@@ -63,9 +63,25 @@
                a.design_status AS designStatus,
                a.last_publish_version AS lastPublishVersion,
                a.last_publish_time AS lastPublishTime,
+    </sql>
+
+    <!-- 应用列表卡片只用摘要字段；options 等设计态 JSON 单条可达数十 KB，只在详情类查询返回 -->
+    <sql id="Application_VO_Summary_Select">
+        SELECT
+        <include refid="Application_VO_Base_Columns"/>
+        <include refid="Application_VO_Stats_From"/>
+    </sql>
+
+    <sql id="Application_VO_Select">
+        SELECT
+        <include refid="Application_VO_Base_Columns"/>
                a.options AS options,
                a.portal_config AS portalConfig,
                a.ai_assistant_config AS aiAssistantConfig,
+        <include refid="Application_VO_Stats_From"/>
+    </sql>
+
+    <sql id="Application_VO_Stats_From">
                COALESCE(object_stats.object_count, 0) AS objectCount,
                COALESCE(entry_stats.entry_count, 0) AS entryCount,
                COALESCE(entry_stats.active_entry_count, 0) AS activeEntryCount,
@@ -187,7 +203,7 @@
     </sql>
 
     <select id="selectApplicationPage" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationVO">
-        <include refid="Application_VO_Select"/>
+        <include refid="Application_VO_Summary_Select"/>
         <include refid="Application_Query_Where"/>
         ORDER BY a.update_time DESC, a.id DESC
     </select>

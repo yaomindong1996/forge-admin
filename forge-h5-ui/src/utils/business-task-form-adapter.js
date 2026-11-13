@@ -6,6 +6,7 @@
 import { parseJson, resolveChildRows, resolveChildTitle } from './lowcode-runtime.js'
 import { normalizeMobileComponentType, resolveMobileComponent } from '../components/lowcode/mobile-component-registry.js'
 import { normalizeMobileFieldContract } from './mobile-field-contract.js'
+import { completePageSectionFields } from './page-section-fields.js'
 
 /**
  * 将后端 context.fields 转换为 LowcodeForm 所需的 mainFields 格式
@@ -189,6 +190,10 @@ export function buildDefaultPageSections(fields = [], children = [], configuredS
         }
       })
     : []
+  if (sections.length) {
+    const completed = completePageSectionFields(sections, fields)
+    sections.splice(0, sections.length, ...completed)
+  }
   if (!sections.length && fields.length) {
     sections.push({
       sectionId: 'main',

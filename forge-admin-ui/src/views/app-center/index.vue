@@ -696,7 +696,7 @@ function openTemplateCreate({ deliveryMode = 'ONLINE', template } = {}) {
 }
 
 async function handleApplicationCreated(result) {
-  await Promise.all([loadSuites(), loadApplications()])
+  void Promise.allSettled([loadSuites(), loadApplications()])
   const application = result?.application
   if (!application?.applicationCode)
     return

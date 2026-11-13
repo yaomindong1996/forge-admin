@@ -33,11 +33,12 @@
         </div>
       </div>
       <div class="publish-access-body is-h5">
-        <n-qr-code :value="h5Url" :size="120" :color="themeColor" />
+        <!-- 应用级没有可解析的移动端运行页时不画空二维码，引导到页面访问获取具体页面地址 -->
+        <n-qr-code v-if="h5Url" :value="h5Url" :size="120" :color="themeColor" />
         <div class="publish-access-copy">
           <span>移动端</span>
-          <strong>{{ h5Url }}</strong>
-          <p>扫码在手机打开 H5 运行页，和旧访问入口同一套地址。</p>
+          <strong>{{ h5Url || '暂无应用级移动端地址' }}</strong>
+          <p>{{ h5Url ? '扫码在手机打开 H5 运行页，和旧访问入口同一套地址。' : '移动端按页面打开，请在页面设计的「页面访问」中复制具体页面的移动端链接。' }}</p>
           <n-space>
             <n-button secondary :disabled="!h5Url" @click="copyLink(h5Url, '移动端')">
               <template #icon>

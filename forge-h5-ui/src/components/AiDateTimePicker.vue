@@ -43,6 +43,7 @@
     :clearable="clearable"
     :min-date="minTimestamp"
     :max-date="maxTimestamp"
+    :default-value="defaultPickerValue"
     :z-index="10010"
     root-portal
     @confirm="handleConfirm"
@@ -98,6 +99,10 @@ const rangeEndTimestamp = computed(() => toBoundary(rangeEndValue.value, 0) || 0
 
 const minTimestamp = computed(() => toBoundary(props.min, new Date(1970, 0, 1).getTime()))
 const maxTimestamp = computed(() => toBoundary(props.max, new Date(2100, 11, 31, 23, 59, 59).getTime()))
+// 空值时面板默认定位到今天（限制在可选范围内），否则组件会停在最小日期 1970 年
+const defaultPickerValue = computed(() => (pickerType.value === 'time'
+  ? ''
+  : Math.min(Math.max(Date.now(), minTimestamp.value), maxTimestamp.value)))
 
 function toPickerValue(value) {
   if (Array.isArray(value)) return value.map(toPickerScalar)

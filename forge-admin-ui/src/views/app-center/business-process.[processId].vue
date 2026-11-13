@@ -723,6 +723,7 @@ function notify(type, message) {
     <n-modal
       v-model:show="flowDesignerVisible"
       :mask-closable="false"
+      :close-on-esc="false"
       :auto-focus="false"
       class="embedded-flow-designer-modal"
     >

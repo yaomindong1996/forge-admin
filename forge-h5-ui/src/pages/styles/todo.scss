@@ -213,6 +213,7 @@
 .status-tag.status-running { color: var(--forge-tone-blue); background: var(--forge-tone-blue-bg); }
 .status-tag.status-done { color: var(--forge-tone-green); background: var(--forge-tone-green-bg); }
 .status-tag.status-neutral { color: var(--forge-text-secondary); background: var(--forge-surface-muted); }
+.status-tag.status-rejected { color: var(--forge-tone-red); background: var(--forge-tone-red-bg); }
 
 .task-card__body {
   display: flex;

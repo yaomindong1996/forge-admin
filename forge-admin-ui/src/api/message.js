@@ -43,7 +43,8 @@ export default {
    * 查询未读消息统计
    */
   getUnreadCount: () =>
-    request.get('/api/message/unread/count'),
+    // 角标后台请求，失败由调用方兜底，不弹全局错误框打断当前操作
+    request.get('/api/message/unread/count', { needTip: false }),
 
   /**
    * 发送消息

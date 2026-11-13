@@ -1597,6 +1597,10 @@ export function applyApplicationRuntimePart4(deps = {}) {
 
   async function handleEmbeddedProcessDesignerSaved() {
     embeddedProcessDesignerVisible.value = false
+    // 流程列表面板自行加载数据，弹窗内发布后需通知其重载，否则仍显示旧的草稿/未发布状态
+    window.dispatchEvent(new CustomEvent('forge:business-process-changed', {
+      detail: { processId: embeddedProcessDesignerId.value },
+    }))
     await refreshWorkspaceMetadata()
   }
   __impl.handleEmbeddedProcessDesignerSaved = handleEmbeddedProcessDesignerSaved

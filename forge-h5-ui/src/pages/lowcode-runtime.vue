@@ -42,7 +42,7 @@
         <template v-for="zone in runtimePageZones" :key="zone.zoneId">
           <PageSectionRenderer
             v-if="zone.zoneType === 'form' && runtimeZoneHasSections(zone)"
-            :sections="runtimeZoneFormSchema(zone).pageSections"
+            :sections="runtimeZonePageSections(zone)"
             :main-fields="runtimeZoneMainFields(zone)"
             :main-data="mainData"
             :children="allChildren"
@@ -193,7 +193,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { onLoad, onUnload } from '@dcloudio/uni-app'
+import { onLoad, onShow, onUnload } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import AiButton from '@/components/AiButton.vue'
 import AiFeedbackHost from '@/components/feedback/AiFeedbackHost.vue'
@@ -332,6 +332,17 @@ onLoad(async query => {
   await loadRuntime()
 })
 
+// 从审批详情等页面返回时审批状态可能已变化；首次展示由 onLoad 负责，不重复加载
+let pageShownOnce = false
+onShow(() => {
+  if (!pageShownOnce) {
+    pageShownOnce = true
+    return
+  }
+  if (mode.value === 'detail' && currentId.value && !loading.value)
+    loadDetail(currentId.value).catch(handleError)
+})
+
 onUnload(() => {
   documentFlow.reset()
   initiatorSelectStore.cancel()
@@ -348,6 +359,7 @@ function runtimeZoneFormSchema(zone) { return runtimeStore.runtimeZoneFormSchema
 function runtimeZoneMainFields(zone) { return runtimeStore.runtimeZoneMainFields(zone) }
 function runtimeZoneNodes(zone) { return runtimeStore.runtimeZoneNodes(zone) }
 function runtimeZoneHasSections(zone) { return runtimeStore.runtimeZoneHasSections(zone) }
+function runtimeZonePageSections(zone) { return runtimeStore.runtimeZonePageSections(zone) }
 function runtimeZoneBottomBar(zone) { return runtimeStore.runtimeZoneBottomBar(zone) }
 function runtimeZoneFieldLinkages(zone) { return runtimeStore.runtimeZoneFieldLinkages(zone) }
 

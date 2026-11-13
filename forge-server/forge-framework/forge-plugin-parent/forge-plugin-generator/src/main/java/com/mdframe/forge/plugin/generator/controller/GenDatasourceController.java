@@ -1,5 +1,6 @@
 package com.mdframe.forge.plugin.generator.controller;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.generator.domain.entity.GenDatasource;
 import com.mdframe.forge.plugin.generator.domain.entity.GenTable;
@@ -47,7 +48,21 @@ public class GenDatasourceController {
      */
     @GetMapping("/enabled")
     public RespInfo<List<GenDatasource>> enabledList(@RequestParam(required = false) String usageScope) {
-        return RespInfo.success(genDatasourceService.selectEnabledDatasources(usageScope));
+        List<GenDatasource> datasources = genDatasourceService.selectEnabledDatasources(usageScope);
+        return RespInfo.success(datasources == null ? List.of() : datasources.stream()
+                .map(GenDatasourceController::withoutConnectionSecrets)
+                .toList());
+    }
+
+    /**
+     * 启用列表只供各类下拉选择，连接地址、账号与密码不能下发到浏览器。
+     */
+    static GenDatasource withoutConnectionSecrets(GenDatasource source) {
+        GenDatasource safe = BeanUtil.copyProperties(source, GenDatasource.class);
+        safe.setUrl(null);
+        safe.setUsername(null);
+        safe.setPassword(null);
+        return safe;
     }
 
     /**
