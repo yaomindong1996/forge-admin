@@ -3,7 +3,7 @@ import { flattenOrgNodes, isSameKey, NORMAL_DISABLE_DICT, normalizeNumberList, n
 
 // 共享状态由 Pinia 创建；跨领域调用通过同一工作台实例协调。
 export function createUserCore(state, runtime, workspace) {
-  const { selectedUserIds, currentUser, dict } = state
+  const { selectedUserIds, currentUser, dict, checkedTenantKeys, defaultTenantId, relationOperationTenantId } = state
   const { userStore, crudRef } = runtime
   function resolvePreferredOrgIdFromTree(list = []) {
     const flat = flattenOrgNodes(list)
@@ -113,10 +113,58 @@ export function createUserCore(state, runtime, workspace) {
     return resolvedTenantId ? { tenantId: resolvedTenantId } : {}
   }
 
+  function resolveMemberTenantIds(row = currentUser.value) {
+    if (checkedTenantKeys.value.length > 0) {
+      return checkedTenantKeys.value
+    }
+    return resolveTenantIds(row)
+  }
+
+  // 解析高级关系维护应读写的租户：弹窗内显式选择 > 当前工作台（用户属于该租户时）
+  // > 用户默认租户 > 行上 tenantId > 搜索条件 > 登录租户。
+  // 多租户用户关系常落在非默认租户；若仍只用行上默认 tenantId，概览会假空、授权会写错租户。
   function resolveOperationTenantId(row = currentUser.value) {
-    return row?.tenantId
-      || (userStore.isAdmin ? crudRef.value?.getSearchParams?.()?.tenantId : null)
-      || userStore.userInfo?.tenantId
+    const explicitTenantId = normalizeSingleNumber(relationOperationTenantId.value)
+    if (explicitTenantId !== null) {
+      return explicitTenantId
+    }
+
+    const memberTenantIds = resolveMemberTenantIds(row)
+    const workspaceTenantId = normalizeSingleNumber(userStore.userInfo?.tenantId)
+    if (workspaceTenantId !== null && memberTenantIds.includes(workspaceTenantId)) {
+      return workspaceTenantId
+    }
+
+    const preferredDefaultTenantId = normalizeSingleNumber(defaultTenantId.value)
+    if (preferredDefaultTenantId !== null && (memberTenantIds.length === 0 || memberTenantIds.includes(preferredDefaultTenantId))) {
+      return preferredDefaultTenantId
+    }
+
+    const rowTenantId = normalizeSingleNumber(row?.tenantId)
+    if (rowTenantId !== null) {
+      return rowTenantId
+    }
+
+    const searchTenantId = userStore.isAdmin
+      ? normalizeSingleNumber(crudRef.value?.getSearchParams?.()?.tenantId)
+      : null
+    if (searchTenantId !== null) {
+      return searchTenantId
+    }
+
+    return workspaceTenantId
+  }
+
+  function syncRelationOperationTenant(row = currentUser.value) {
+    const memberTenantIds = resolveMemberTenantIds(row)
+    const current = normalizeSingleNumber(relationOperationTenantId.value)
+    if (current !== null && (memberTenantIds.length === 0 || memberTenantIds.includes(current))) {
+      return current
+    }
+    relationOperationTenantId.value = null
+    const resolved = resolveOperationTenantId(row)
+    relationOperationTenantId.value = resolved
+    return resolved
   }
 
   const userTypeOptions = computed(() => toNumberOptions(dict.value[USER_TYPE_DICT]))
@@ -131,5 +179,5 @@ export function createUserCore(state, runtime, workspace) {
 
   const normalDisableOptions = computed(() => toNumberOptions(dict.value[NORMAL_DISABLE_DICT]))
 
-  return { resolvePreferredOrgIdFromTree, resolveSingleTenantId, normalizeUserFormData, isCurrentLoginUser, isRestrictedCurrentUser, getSelectedBatchUserIds, resolveDefaultBatchTenantId, buildTenantParams, resolveOperationTenantId, userTypeOptions, userStatusOptions, genderOptions, roleTypeOptions, roleDataScopeOptions, normalDisableOptions }
+  return { resolvePreferredOrgIdFromTree, resolveSingleTenantId, normalizeUserFormData, isCurrentLoginUser, isRestrictedCurrentUser, getSelectedBatchUserIds, resolveDefaultBatchTenantId, buildTenantParams, resolveOperationTenantId, syncRelationOperationTenant, resolveMemberTenantIds, userTypeOptions, userStatusOptions, genderOptions, roleTypeOptions, roleDataScopeOptions, normalDisableOptions }
 }

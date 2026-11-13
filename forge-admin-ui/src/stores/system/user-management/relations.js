@@ -3,7 +3,7 @@ import { formatTenantNameList, isSameKey, normalizeSingleNumber, splitTableCellV
 
 // 工作台编排仅协调各关系领域，不直接承载接口实现。
 export function createUserRelations(state, runtime, workspace) {
-  const { relationModalVisible, relationActiveTab, relationSubmitLoading, currentUser, roleSearchKeyword, checkedRoleKeys, authOrgId, currentUserOrgBindings, rolePagination, mainOrgId, checkedOrgKeys, postList, checkedPostKeys, mainPostId, tenantOptions, checkedTenantKeys, defaultTenantId } = state
+  const { relationModalVisible, relationActiveTab, relationSubmitLoading, currentUser, roleSearchKeyword, checkedRoleKeys, authOrgId, currentUserOrgBindings, rolePagination, mainOrgId, checkedOrgKeys, postList, checkedPostKeys, mainPostId, tenantOptions, checkedTenantKeys, defaultTenantId, relationOperationTenantId } = state
   const { userStore } = runtime
   const relationTabItems = computed(() => [
     {
@@ -105,11 +105,37 @@ export function createUserRelations(state, runtime, workspace) {
     }))
   })
 
+  const relationOperationTenantOptions = computed(() => {
+    const selected = new Set(checkedTenantKeys.value.map(id => String(id)))
+    return (tenantOptions.value || [])
+      .filter(item => selected.has(String(item.id)))
+      .map(item => ({
+        label: item.tenantName || String(item.id),
+        value: normalizeSingleNumber(item.id),
+      }))
+  })
+
   async function handleRelation(row) {
     currentUser.value = row
     relationModalVisible.value = true
     relationActiveTab.value = 'overview'
+    relationOperationTenantId.value = null
+    checkedTenantKeys.value = []
+    defaultTenantId.value = null
     await loadRelationTab('overview', row)
+  }
+
+  async function ensureRelationTenantsLoaded(user) {
+    if (!userStore.isAdmin) {
+      return
+    }
+    if (tenantOptions.value.length === 0) {
+      await workspace.loadTenantOptions()
+    }
+    if (checkedTenantKeys.value.length === 0) {
+      await workspace.loadUserTenants(user.id)
+    }
+    workspace.syncRelationOperationTenant(user)
   }
 
   async function loadRelationTab(tab, row) {
@@ -121,6 +147,7 @@ export function createUserRelations(state, runtime, workspace) {
       await loadRelationOverview(user)
     }
     else if (tab === 'auth') {
+      await ensureRelationTenantsLoaded(user)
       roleSearchKeyword.value = ''
       rolePagination.value.page = 1
       checkedRoleKeys.value = []
@@ -133,12 +160,14 @@ export function createUserRelations(state, runtime, workspace) {
       }
     }
     else if (tab === 'org') {
+      await ensureRelationTenantsLoaded(user)
       mainOrgId.value = null
       checkedOrgKeys.value = []
       await workspace.loadOrgTree(workspace.resolveOperationTenantId(user))
       await workspace.loadUserOrgs(user.id)
     }
     else if (tab === 'post') {
+      await ensureRelationTenantsLoaded(user)
       checkedPostKeys.value = []
       mainPostId.value = null
       await workspace.loadPostList(workspace.resolveOperationTenantId(user))
@@ -151,24 +180,43 @@ export function createUserRelations(state, runtime, workspace) {
         await workspace.loadTenantOptions()
       }
       await workspace.loadUserTenants(user.id)
+      workspace.syncRelationOperationTenant(user)
     }
   }
 
   async function loadRelationOverview(user) {
     currentUserOrgBindings.value = []
     checkedPostKeys.value = []
-    checkedTenantKeys.value = []
-    defaultTenantId.value = null
 
-    await workspace.loadUserOrgBindings(user.id, workspace.resolveOperationTenantId(user))
-    await workspace.loadPostList(workspace.resolveOperationTenantId(user))
-    await workspace.loadUserPosts(user.id)
+    // 先加载租户成员，再定操作租户；否则多租户用户会按行上默认租户读空。
+    // 不在此处清空 relationOperationTenantId，以便「操作租户」下拉切换后仍保留选择。
     if (userStore.isAdmin) {
       if (tenantOptions.value.length === 0) {
         await workspace.loadTenantOptions()
       }
-      await workspace.loadUserTenants(user.id)
+      if (checkedTenantKeys.value.length === 0) {
+        await workspace.loadUserTenants(user.id)
+      }
     }
+    const operationTenantId = workspace.syncRelationOperationTenant(user)
+    const memberTenantIds = workspace.resolveMemberTenantIds(user)
+    const tenantIdsToLoad = memberTenantIds.length > 0 ? memberTenantIds : [operationTenantId].filter(id => id != null)
+
+    // 概览合并各成员租户的组织绑定，避免「关系在非默认租户却显示全空」
+    const mergedBindings = []
+    for (const tenantId of tenantIdsToLoad) {
+      await workspace.loadUserOrgBindings(user.id, tenantId)
+      mergedBindings.push(...(currentUserOrgBindings.value || []))
+    }
+    currentUserOrgBindings.value = mergedBindings
+
+    await workspace.loadPostList(operationTenantId)
+    await workspace.loadUserPosts(user.id)
+  }
+
+  async function handleRelationOperationTenantChange(tenantId) {
+    relationOperationTenantId.value = normalizeSingleNumber(tenantId)
+    await loadRelationTab(relationActiveTab.value, currentUser.value)
   }
 
   async function handleRelationTabChange(tab) {
@@ -200,5 +248,5 @@ export function createUserRelations(state, runtime, workspace) {
     }
   }
 
-  return { relationTabItems, currentRelationTabMeta, relationOrgSummaryItems, relationRoleSummaryItems, relationPostSummaryItems, relationTenantSummaryItems, handleRelation, loadRelationTab, loadRelationOverview, handleRelationTabChange, handleRelationSubmit }
+  return { relationTabItems, currentRelationTabMeta, relationOrgSummaryItems, relationRoleSummaryItems, relationPostSummaryItems, relationTenantSummaryItems, relationOperationTenantOptions, handleRelation, loadRelationTab, loadRelationOverview, handleRelationOperationTenantChange, handleRelationTabChange, handleRelationSubmit }
 }

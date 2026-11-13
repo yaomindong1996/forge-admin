@@ -19,6 +19,21 @@
             {{ currentUser.username ? `@${currentUser.username}` : '仅用于多组织 / 多租户等复杂维护' }}
           </small>
         </div>
+        <!-- 多租户时显式选择操作租户，读写组织/角色/岗位才不会落到错误租户 -->
+        <div
+          v-if="relationOperationTenantOptions.length > 1"
+          class="relation-tenant-switch"
+        >
+          <span class="relation-tenant-switch__label">操作租户</span>
+          <n-select
+            :value="relationOperationTenantId"
+            :options="relationOperationTenantOptions"
+            size="small"
+            :consistent-menu-width="false"
+            style="width: 160px"
+            @update:value="handleRelationOperationTenantChange"
+          />
+        </div>
       </div>
 
       <n-tabs
@@ -88,8 +103,10 @@ const {
   currentUser,
   relationTabItems,
   currentRelationTabMeta,
+  relationOperationTenantId,
+  relationOperationTenantOptions,
 } = storeToRefs(store)
-const { handleRelationTabChange, handleRelationSubmit } = store
+const { handleRelationTabChange, handleRelationSubmit, handleRelationOperationTenantChange } = store
 </script>
 
 <style scoped>
@@ -104,6 +121,19 @@ const { handleRelationTabChange, handleRelationSubmit } = store
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.relation-tenant-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.relation-tenant-switch__label {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .relation-user-avatar {
