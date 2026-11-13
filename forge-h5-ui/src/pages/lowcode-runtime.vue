@@ -299,6 +299,8 @@ const documentFlow = useLowcodeDocumentFlow({
     objectCode: config.value.objectCode,
     recordId: mainData.id || mainData[config.value.rowKey || 'id'] || currentId.value,
     mode: mode.value,
+    config: config.value,
+    record: mainData,
   }),
   validate: () => validateForms(),
   persist: options => persistRecord(options),

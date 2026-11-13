@@ -7,15 +7,21 @@ import {
   useInitiatorSelectStore,
 } from '@/store'
 import { showConfirmDialog } from '@/utils/dialog'
-import { DOCUMENT_FLOW_ACTION } from '@/utils/document-flow-actions'
+import {
+  DOCUMENT_FLOW_ACTION,
+  collectProcessStartActions,
+  resolveProcessRunFailure,
+} from '@/utils/document-flow-actions'
 import { normalizeInitiatorSelectNodes } from '@/utils/initiator-select'
+import { actionVisible } from '@/utils/lowcode-runtime'
 import { buildFlowTaskDetailUrl } from '@/utils/message-flow-navigation'
 import { toast } from '@/utils/notify'
 import { FLOW_PERMISSIONS } from '@/utils/permission'
 
 /**
  * 低代码单据审批：按钮来自后端运行态 runtimeActions，前端只负责交互编排。
- * getContext 返回 { objectCode, recordId, mode }；persist 复用页面保存逻辑并返回保存结果。
+ * getContext 返回 { objectCode, recordId, mode, config, record }；persist 复用页面保存逻辑并返回保存结果。
+ * config 中投影的业务流程启动动作（START_PROCESS）与对象主流程并存，按记录显示条件过滤。
  */
 export function useLowcodeDocumentFlow({ getContext, validate, persist, reloadDetail, handleError }) {
   const store = useDocumentFlowStore()
@@ -23,14 +29,18 @@ export function useLowcodeDocumentFlow({ getContext, validate, persist, reloadDe
   const initiatorStore = useInitiatorSelectStore()
   const badgeStore = useBadgeStore()
   let loadSeq = 0
+  let loadedRecordKey = ''
 
   // —— 运行态加载 ——
   async function load() {
     const { objectCode, recordId } = getContext()
     const seq = ++loadSeq
-    // 先清空，避免切换记录时按钮仍指向上一条单据的流程实例。
-    store.setRuntime(null)
+    // 切换记录时先清空，避免按钮仍指向上一条单据的流程实例；同一记录刷新保留旧状态，避免状态卡闪烁。
+    const recordKey = `${objectCode || ''}:${recordId || ''}`
+    if (recordKey !== loadedRecordKey) store.setRuntime(null)
+    loadedRecordKey = recordKey
     syncPermissions()
+    syncProcessActions()
     if (!objectCode || !recordId || !authStore.hasPermission(FLOW_PERMISSIONS.runtime)) {
       store.setRuntime(null)
       return null
@@ -48,6 +58,7 @@ export function useLowcodeDocumentFlow({ getContext, validate, persist, reloadDe
 
   function reset() {
     loadSeq += 1
+    loadedRecordKey = ''
     store.reset()
   }
 
@@ -60,7 +71,13 @@ export function useLowcodeDocumentFlow({ getContext, validate, persist, reloadDe
     store.permissions = {
       start: authStore.hasPermission(FLOW_PERMISSIONS.start),
       withdraw: authStore.hasPermission(FLOW_PERMISSIONS.withdraw),
+      processStart: authStore.hasPermission(FLOW_PERMISSIONS.processStart),
     }
+  }
+
+  function syncProcessActions() {
+    const { config, record } = getContext()
+    store.setProcessActions(collectProcessStartActions(config).filter(action => actionVisible(action, record || {})))
   }
 
   // —— 动作分发 ——
@@ -76,6 +93,7 @@ export function useLowcodeDocumentFlow({ getContext, validate, persist, reloadDe
       else if (button.actionType === DOCUMENT_FLOW_ACTION.START) await submitExisting()
       else if (button.actionType === DOCUMENT_FLOW_ACTION.RESUBMIT) await resubmit()
       else if (button.actionType === DOCUMENT_FLOW_ACTION.WITHDRAW) await withdraw()
+      else if (button.actionType === DOCUMENT_FLOW_ACTION.START_PROCESS) await startProcess(button)
     }
     catch (error) {
       handleError(error)
@@ -135,6 +153,42 @@ export function useLowcodeDocumentFlow({ getContext, validate, persist, reloadDe
     }
     await api.startBusinessDocumentFlow({ objectCode, recordId, variables })
     await afterSuccess('已提交审批', recordId)
+  }
+
+  // 应用级业务流程：与管理端共用 start-config / start 接口，新建页同样先保存再发起。
+  async function startProcess(button) {
+    const editing = getContext().mode !== 'detail'
+    if (editing && !validate()) return
+    const description = button.confirmText
+      || (editing ? `将先保存当前填写内容，再发起「${button.label}」，确认继续吗？` : `确认发起「${button.label}」吗？`)
+    if (!await confirm(button.label, description)) return
+    if (!await saveIfEditing()) return
+    const { objectCode, recordId } = getContext()
+    const configResponse = await api.getBusinessProcessStartConfig(button.applicationCode, button.processCode)
+    const nodes = configResponse?.data?.initiatorSelectNodes || []
+    let variables = {}
+    if (normalizeInitiatorSelectNodes(nodes).length) {
+      const selections = await initiatorStore.open(nodes)
+      if (!selections) {
+        toast(editing ? '已取消发起，单据已保存' : '已取消发起', { type: 'info' })
+        await reloadDetail(recordId)
+        return
+      }
+      variables = { PROCESS_START_USER: selections }
+    }
+    const response = await api.startBusinessProcess(button.applicationCode, button.processCode, {
+      recordId: String(recordId),
+      objectCode: button.objectCode || objectCode,
+      variables,
+    })
+    // 失败的运行不计入已发起，按钮保留以便处理原因后重试（与管理端一致）
+    const failure = resolveProcessRunFailure(response?.data)
+    if (failure) {
+      toast(`业务流程启动失败：${failure}`, { type: 'warning' })
+      await reloadDetail(recordId)
+      return
+    }
+    await afterSuccess('业务流程已启动', recordId)
   }
 
   async function resubmit() {

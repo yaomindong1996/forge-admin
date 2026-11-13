@@ -42,6 +42,37 @@ test('create footer offers submit only when entered from approval start with per
   assert.deepEqual(store.footerButtons('create'), [])
 })
 
+const reimburseProcess = {
+  key: 'startProcess:reimburse',
+  actionType: 'START_PROCESS',
+  label: '报销审批',
+  applicationCode: 'hr_e2_e',
+  processCode: 'reimburse',
+  objectCode: 'apply_kdcp',
+}
+
+test('business process buttons show on non-document objects and hide once started', () => {
+  const store = createStore({ start: true, withdraw: true, processStart: true })
+  store.setProcessActions([reimburseProcess])
+  store.setRuntime({ documentEnabled: false, activeProcessCodes: [], startedProcessCodes: [] })
+  assert.equal(store.visible, false)
+  assert.deepEqual(store.footerButtons('detail').map(button => button.key), ['START_PROCESS:reimburse'])
+  store.setRuntime({ documentEnabled: false, activeProcessCodes: ['reimburse'] })
+  assert.deepEqual(store.buttons, [])
+})
+
+test('business process buttons merge after document flow buttons and respect permission', () => {
+  const store = createStore({ start: true, withdraw: true, processStart: false })
+  store.setProcessActions([reimburseProcess])
+  store.setRuntime({ documentEnabled: true, runtimeActions: [{ actionType: 'START_FLOW' }] })
+  assert.deepEqual(store.buttons.map(button => button.actionType), ['START_FLOW'])
+  assert.equal(store.hint, '暂无发起业务流程权限，请联系管理员')
+  store.permissions = { start: true, withdraw: true, processStart: true }
+  assert.deepEqual(store.buttons.map(button => button.actionType), ['START_FLOW', 'START_PROCESS'])
+  store.reset()
+  assert.deepEqual(store.buttons, [])
+})
+
 test('disabled reason surfaces and reset clears runtime and loading', () => {
   const store = createStore()
   store.setRuntime({ runtimeActions: [{ actionType: 'HANDLE_TASK', disabled: true, disabledReason: '任务已被他人处理' }] })

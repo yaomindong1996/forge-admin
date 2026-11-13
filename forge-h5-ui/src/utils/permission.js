@@ -2,6 +2,7 @@ export const ALL_PERMISSION = '*:*:*'
 
 export const FLOW_PERMISSIONS = Object.freeze({
   start: 'ai:businessFlow:start',
+  processStart: 'ai:businessProcess:start',
   runtime: 'ai:businessDocument:view',
   withdraw: 'ai:businessDocument:withdraw',
   remind: 'flow:task:remind',
