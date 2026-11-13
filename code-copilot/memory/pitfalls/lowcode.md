@@ -1057,10 +1057,10 @@ No value provided for placeholder: ${yyyyMMddHHmmss}. Check your configuration!
 - Flyway 脚本中的内置模板优先使用 `{field}` 这类不触发 Flyway placeholder 的格式；运行时模板引擎可以兼容 `{field}` 和历史 `${field}`。
 - 如果业务必须保留 `${...}` 入库，SQL 原文不要出现连续的 `${`，用 SQL 拼接生成最终值，例如 `CONCAT('WL', '$', '{yyyyMMddHHmmss}', '$', '{seq:3}')`。
 - 不建议为单个业务模板关闭或修改全局 Flyway placeholder 行为，避免影响现有配置约定。
-- Flyway 脚本变更后必须执行静态检查：`rg -n '\$\{[^}]+\}' forge-server/db/migration`，结果应为空。
+- Flyway 脚本变更后必须执行静态检查：`rg -n '\$\{[^}]+\}' forge-server/db/mysql/migration`，结果应为空。
 
 **影响范围**:
-- `forge-server/db/migration/` 中所有包含 JSON、消息模板、流程标题模板、编码规则模板的 SQL 脚本
+- `forge-server/db/mysql/migration/` 中所有包含 JSON、消息模板、流程标题模板、编码规则模板的 SQL 脚本
 - 触发器动作配置、消息模板、流程变量标题模板、编码规则初始化脚本
 
 ## 50. form-create 随机字段 ID 未同步导致低代码页面引用不存在字段
@@ -1204,7 +1204,7 @@ flow server 侧为管理端专属桥接点提供明确 no-op/fallback 实现，�
 **影响范围**:
 - 应用中心运行态、对象详情、对象设计器、引擎中心入口。
 - 所有 `src/router/index.js` 手写路由和 `unplugin-vue-router` 动态参数路由。
-- `forge-server/db/migration/` 中系统菜单和权限资源脚本。
+- `forge-server/db/mysql/migration/` 中系统菜单和权限资源脚本。
 
 ## 69. 低代码字段编码和数据库列名不能共用 camelCase
 

@@ -340,7 +340,7 @@ forge-admin-ui/src/
 - 下拉选项、状态标签 **必须使用字典组件**（`DictSelect` / `DictTag` / `useDict`）
 - Schema 必须定义为 `computed`，确保字典异步加载后响应式更新
 - 业务枚举和可配置枚举必须维护到 `sys_dict_type` + `sys_dict_data`，禁止在前端页面写死 `options` 或标签映射
-- 新增内置字典必须通过 `forge-server/db/migration/` 的 Flyway 脚本写入，脚本需具备 `NOT EXISTS` 防重复保护，`tenant_id` 必须为 `1`
+- 新增内置字典必须通过 `forge-server/db/mysql/migration/` 的 Flyway 脚本写入，脚本需具备 `NOT EXISTS` 防重复保护，`tenant_id` 必须为 `1`
 - 字典类型命名使用小写下划线，系统级字典建议使用 `sys_` 前缀；文件存储类型统一使用 `sys_file_storage_type`
 - 前端读取字典时使用 `useDict('<dict_type>')`，表格回显优先使用 `DictTag`，下拉选项使用 `computed(() => dict.value.<dict_type> || [])`
 - 字典数据的 `dict_value` 必须与后端枚举/存储策略/业务状态值保持一致，`dict_label` 只负责展示文案，`list_class` 负责标签样式
@@ -436,10 +436,10 @@ forge-admin-ui/src/
 
 | 目录 | 用途 |
 |------|------|
-| `forge-server/db/migration/` | Flyway 版本化迁移脚本，放表结构、索引、字段、系统资源等正式变更 |
-| `forge-server/db/seed/required/` | 系统运行必需初始化数据 |
-| `forge-server/db/seed/demo/` | 演示数据，默认不导入 |
-| `forge-server/db/seed/optional/` | 可选模块数据 |
+| `forge-server/db/mysql/migration/` | MySQL Flyway 增量（表结构、索引、系统资源等） |
+| `forge-server/db/mysql/全量初始化SQL.sql` | MySQL 空库全量 |
+| `forge-server/db/postgresql/migration/` | PostgreSQL Flyway 增量（与 MySQL 平行版本号） |
+| `forge-server/db/postgresql/全量初始化SQL.sql` | PostgreSQL 空库全量 |
 
 #### Flyway 命名规范
 
@@ -457,8 +457,8 @@ forge-admin-ui/src/
 
 ```bash
 # 社区模板
-ls forge-server/db/migration/V*.sql | sed 's/__.*//' | sort | uniq -d
-# 改名工程（如 ForgePro）把路径换成 <prefix>-server/db/migration/
+ls forge-server/db/mysql/migration/V*.sql | sed 's/__.*//' | sort | uniq -d
+# 改名工程（如 ForgePro）把路径换成 <prefix>-server/db/mysql/migration/
 ```
 
 有输出即冲突，按下列顺序处理（细则见 `code-copilot/memory/pitfalls/db-flyway.md`）：
@@ -466,7 +466,7 @@ ls forge-server/db/migration/V*.sql | sed 's/__.*//' | sort | uniq -d
 1. 查 `forge_schema_history`：已落地的版本与 description **保留文件名不动**
 2. 冲突的另一方改名为当前目录**最大版本号 + 1**（如 `V1.0.224__…`），禁止改已执行脚本内容
 3. 同步更新契约测试 / 文档里写死的旧文件名
-4. 再跑一遍查重为空后才允许提交；同步 ForgePro 时同样检查产品侧 `db/migration`
+4. 再跑一遍查重为空后才允许提交；同步 ForgePro 时同样检查产品侧 `db/mysql/migration`
 
 #### SQL 编写规则
 
@@ -479,8 +479,8 @@ ls forge-server/db/migration/V*.sql | sed 's/__.*//' | sort | uniq -d
 
 #### 启动与验证
 
-- `forge-admin-server` 启动时由 Flyway 执行 `forge-server/db/migration` 脚本；`forge-report-server` 单独启动不会执行这些迁移
-- 默认读取 `classpath:db/migration`；Admin POM 用 `maven-resources-plugin` 的 `copy-resources`（勿写进默认 `<resources>`，否则 3.3+ 会拒绝对 `../db/migration` 的跨模块路径）把源 SQL 原样拷到 classes/JAR，不依赖启动目录
+- `forge-admin-server` 启动时由 Flyway 执行 `forge-server/db/mysql/migration` 脚本；`forge-report-server` 单独启动不会执行这些迁移
+- 默认读取 `classpath:db/mysql/migration`；Admin POM 用 `maven-resources-plugin` 的 `copy-resources`（勿写进默认 `<resources>`，否则 3.3+ 会拒绝对 `../db/mysql/migration` 的跨模块路径）把源 SQL 原样拷到 classes/JAR，不依赖启动目录
 - `fail-on-missing-locations=true`；IDE 启动前刷新 Maven 并构建资源，禁止回退扫描服务器残留 SQL
 - 若设置了 `FORGE_FLYWAY_LOCATIONS` 或 `FORGE_FLYWAY_ENABLED`，会覆盖默认配置；迁移未执行时优先检查这两个环境变量
 - 验证迁移结果：
@@ -599,7 +599,7 @@ ORDER BY installed_rank DESC;
 ```bash
 # 1. 数据库
 mysql -u root -p -e "CREATE DATABASE forge_admin DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"
-mysql -u root -p forge_admin < forge-server/db/全量初始化SQL.sql
+mysql -u root -p forge_admin < forge-server/db/mysql/全量初始化SQL.sql
 
 # 2. 后端配置
 cp forge-server/forge-admin-server/src/main/resources/application-dev.example.yml \

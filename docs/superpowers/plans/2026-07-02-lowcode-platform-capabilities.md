@@ -63,7 +63,7 @@
 - Create: `forge-server/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/controller/BusinessActionExecutionController.java`
 - Create: `forge-server/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessActionExecutionService.java`
 - Modify: `forge-server/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessObjectActionService.java`
-- Create SQL: `forge-server/db/migration/V1.0.xx__add_business_action_execution_log.sql`
+- Create SQL: `forge-server/db/mysql/migration/V1.0.xx__add_business_action_execution_log.sql`
 
 **Behavior:**
 - Add `POST /ai/business/action/execute`.
@@ -201,7 +201,7 @@
 ### Task 6: Add Stock Tables And Domain Service
 
 **Files:**
-- Create SQL: `forge-server/db/migration/V1.0.xx__add_business_stock_engine.sql`
+- Create SQL: `forge-server/db/mysql/migration/V1.0.xx__add_business_stock_engine.sql`
 - Create: `forge-server/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/domain/entity/AiBusinessStockBalance.java`
 - Create: `forge-server/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/domain/entity/AiBusinessStockLedger.java`
 - Create: `forge-server/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/domain/entity/AiBusinessStockLock.java`
@@ -272,7 +272,7 @@
 ### Task 8: Add Rule-Based Reminder Profiles
 
 **Files:**
-- Create SQL: `forge-server/db/migration/V1.0.xx__add_business_reminder_profile.sql`
+- Create SQL: `forge-server/db/mysql/migration/V1.0.xx__add_business_reminder_profile.sql`
 - Create: `BusinessReminderProfileService.java`
 - Modify: `BusinessTriggerSchedulerService.java`
 - Create frontend component: `forge-admin-ui/src/views/app-center/components/designer/BusinessReminderRulePanel.vue`
@@ -301,7 +301,7 @@
 ### Task 9: Add Supplier Price Version Support
 
 **Files:**
-- Create SQL: `forge-server/db/migration/V1.0.xx__add_supplier_price_version_template.sql`
+- Create SQL: `forge-server/db/mysql/migration/V1.0.xx__add_supplier_price_version_template.sql`
 - Add app-center template metadata in existing lowcode seed script for supplier price object.
 - Modify selector mapping docs/examples in `BusinessFormDesigner.vue`.
 

@@ -1,0 +1,72 @@
+spring:
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    dynamic:
+      primary: master
+      strict: true
+      datasource:
+        master:
+          type: ${spring.datasource.type}
+          driverClassName: org.postgresql.Driver
+          url: jdbc:postgresql://${POSTGRES_HOST:postgres}:${POSTGRES_PORT:5432}/${POSTGRES_DB:forge_admin}
+          username: ${POSTGRES_USER:forge}
+          password: ${POSTGRES_PASSWORD:forge123456}
+        lowcode:
+          type: ${spring.datasource.type}
+          driverClassName: org.postgresql.Driver
+          url: jdbc:postgresql://${POSTGRES_HOST:postgres}:${POSTGRES_PORT:5432}/${POSTGRES_DB:forge_admin}
+          username: ${POSTGRES_USER:forge}
+          password: ${POSTGRES_PASSWORD:forge123456}
+      hikari:
+        maxPoolSize: 20
+        minIdle: 10
+        connectionTimeout: 30000
+        validationTimeout: 5000
+        idleTimeout: 600000
+        maxLifetime: 1800000
+        keepaliveTime: 30000
+  flyway:
+    enabled: false
+    locations: classpath:db/postgresql/migration
+    table: forge_schema_history
+    baseline-on-migrate: true
+    baseline-version: 1.0.233
+    validate-on-migrate: false
+
+spring.data:
+  redis:
+    host: ${REDIS_HOST:redis}
+    port: ${REDIS_PORT:6379}
+    database: 0
+    password: ${REDIS_PASSWORD:forge123456}
+    timeout: 10s
+    ssl.enabled: false
+    redisson:
+      config: |
+        singleServerConfig:
+          address: "redis://${REDIS_HOST:redis}:${REDIS_PORT:6379}"
+          database: 0
+          password: ${REDIS_PASSWORD:forge123456}
+          connectTimeout: 10000
+          timeout: 3000
+          retryAttempts: 3
+          retryInterval: 1500
+          connectionPoolSize: 64
+          connectionMinimumIdleSize: 10
+        threads: 16
+        nettyThreads: 32
+
+config:
+  datasource:
+    url: ${spring.datasource.dynamic.datasource.master.url}
+    username: ${spring.datasource.dynamic.datasource.master.username}
+    password: ${spring.datasource.dynamic.datasource.master.password}
+    driverClassName: ${spring.datasource.dynamic.datasource.master.driverClassName}
+
+flowable:
+  database-schema-update: true
+  async-executor-activate: true
+  history-level: full
+  activity-font-name: 宋体
+  label-font-name: 宋体
+  annotation-font-name: 宋体

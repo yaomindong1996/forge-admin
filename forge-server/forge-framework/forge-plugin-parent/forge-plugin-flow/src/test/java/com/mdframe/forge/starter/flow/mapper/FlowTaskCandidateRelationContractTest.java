@@ -23,14 +23,21 @@ class FlowTaskCandidateRelationContractTest {
         assertTrue(xml.contains("tc.tenant_id = t.tenant_id"));
         assertTrue(xml.contains("tc.candidate_type = 'USER'"));
         assertTrue(xml.contains("tc.status = 1"));
-        assertTrue(xml.contains("FIND_IN_SET"), "old rows must remain readable during migration");
+        assertTrue(xml.contains("CsvTokenContains"),
+                "CSV fallback must use portable CONCAT+LIKE fragment");
+        assertFalse(xml.contains("FIND_IN_SET"), "must not use MySQL-only FIND_IN_SET");
+        assertFalse(xml.contains("string_to_array"), "must not use PG-only string_to_array");
+        assertFalse(xml.contains("_databaseId"), "FlowTaskMapper CSV predicates must not branch by databaseId");
     }
 
     @Test
-    void candidateRelationWritesMustSupportActivationAndDeactivation() throws IOException {
+    void candidateRelationWritesMustStayDialectFree() throws IOException {
         String xml = Files.readString(CANDIDATE_MAPPER);
-        assertTrue(xml.contains("<insert id=\"insertIgnore\""));
-        assertTrue(xml.contains("ON DUPLICATE KEY UPDATE"));
+        assertTrue(xml.contains("<insert id=\"insertPlain\""));
+        assertTrue(xml.contains("<update id=\"updateUpsertByUniqueKey\""));
+        assertFalse(xml.contains("ON DUPLICATE KEY"), "upsert dialect belongs in DuplicateKeyActions");
+        assertFalse(xml.contains("ON CONFLICT"), "upsert dialect belongs in DuplicateKeyActions");
+        assertFalse(xml.contains("_databaseId"));
         assertTrue(xml.contains("<update id=\"activate\""));
         assertTrue(xml.contains("<update id=\"deactivate\""));
         assertTrue(xml.contains("tenant_id = #{tenantId}"));
@@ -43,7 +50,10 @@ class FlowTaskCandidateRelationContractTest {
         String select = xml.substring(start, xml.indexOf("</select>", start));
         assertTrue(select.contains("AS targetUserName"));
         assertTrue(select.contains("LEFT JOIN sys_user target_user"));
-        assertTrue(select.contains("tc.candidate_value REGEXP '^[0-9]+$'"));
+        assertTrue(select.contains("CONCAT(target_user.id, '') = NULLIF(tc.candidate_value, '')"),
+                "user join must stay portable (no MySQL REGEXP / UNSIGNED)");
+        assertFalse(select.contains("REGEXP"), "must not use MySQL-only REGEXP");
+        assertFalse(select.contains("UNSIGNED"), "must not use MySQL-only UNSIGNED cast");
         assertTrue(select.contains("target_user.del_flag = 0"));
         assertTrue(select.contains("target_membership.tenant_id = tc.tenant_id"));
         assertTrue(select.contains("tc.tenant_id = #{tenantId}"));

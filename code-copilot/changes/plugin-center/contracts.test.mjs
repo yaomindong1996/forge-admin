@@ -28,7 +28,7 @@ test('全部 JAR 业务插件拥有稳定构建声明，聚合 POM 不伪装成�
 })
 
 test('资源/字典只追加，四类字典与页面协议一致，未放开普通角色权限', async () => {
-  const sql = await read('forge-server/db/migration/V1.0.210__add_plugin_center.sql')
+  const sql = await read('forge-server/db/mysql/migration/V1.0.210__add_plugin_center.sql')
   assert.doesNotMatch(sql, /\$\{[^}]+\}|DELETE\s+FROM|INSERT\s+INTO\s+sys_role_resource|UPDATE\s+sys_resource/i)
   assert.equal((sql.match(/NOT EXISTS/g) || []).length, 4)
   for (const code of ['origin', 'edition', 'load_state', 'feature_state'])
@@ -51,7 +51,7 @@ test('页面没有未实现的安装操作，详情不是可独立访问的假�
 })
 
 test('一级插件菜单迁移只调整导航与图标，不扩大权限，图标已加入本地构建', async () => {
-  const sql = await read('forge-server/db/migration/V1.0.217__promote_plugin_center_to_top_level.sql')
+  const sql = await read('forge-server/db/mysql/migration/V1.0.217__promote_plugin_center_to_top_level.sql')
   assert.doesNotMatch(sql, /\$\{[^}]+\}|DELETE\s+FROM|INSERT\s+INTO|ALTER\s+TABLE/i)
   const changes = sql.match(/UPDATE\s+sys_resource\s+SET([\s\S]+?)WHERE/i)[1]
     .split(',').map(item => item.trim().split('=')[0].trim())

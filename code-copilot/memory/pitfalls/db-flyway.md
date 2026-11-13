@@ -14,7 +14,7 @@
 FlywayValidateException: Migration checksum mismatch for migration version 1.0.1
 ```
 
-典型表现是 `forge_schema_history` 中已经记录了 `V1.0.1` 的 checksum，但本地 `forge/db/migration/V1.0.1__*.sql` 又被修改，Flyway 在执行新版本前先做校验，因此后续 `V1.0.2` 不会继续执行。
+典型表现是 `forge_schema_history` 中已经记录了 `V1.0.1` 的 checksum，但本地 `forge/db/mysql/migration/V1.0.1__*.sql` 又被修改，Flyway 在执行新版本前先做校验，因此后续 `V1.0.2` 不会继续执行。
 
 **根本原因**:
 Flyway 的版本化 migration 是不可变变更记录。脚本一旦在任意数据库执行成功并写入 `forge_schema_history`，后续改文件内容就会造成数据库记录的 checksum 与本地解析出的 checksum 不一致。
@@ -26,7 +26,7 @@ Flyway 的版本化 migration 是不可变变更记录。脚本一旦在任意�
 - 排查“新脚本不执行”时，先看启动日志是否有 `Validate failed`，它通常说明卡在旧版本校验，不是 `locations` 没扫到新脚本。
 
 **影响范围**:
-- `forge/db/migration` 下所有 Flyway 版本化 SQL
+- `forge/db/mysql/migration` 下所有 Flyway 版本化 SQL
 - 所有启动时依赖 `forge-admin-server` 自动迁移的本地、测试、生产数据库
 
 ## 23. 菜单活跃项函数签名不一致导致选中状态停留
@@ -64,7 +64,7 @@ Migration checksum mismatch for migration version 1.0.33
 ```
 
 **根本原因**:
-数据库 `forge_schema_history` 已经记录过对应版本的 checksum，但本地 `forge/db/migration/V1.0.32__*.sql` 或 `V1.0.33__*.sql` 内容后来被修改、重新生成或复用了同一个版本号。Flyway 会把它视为历史迁移被篡改，启动阶段直接失败。
+数据库 `forge_schema_history` 已经记录过对应版本的 checksum，但本地 `forge/db/mysql/migration/V1.0.32__*.sql` 或 `V1.0.33__*.sql` 内容后来被修改、重新生成或复用了同一个版本号。Flyway 会把它视为历史迁移被篡改，启动阶段直接失败。
 
 **解决方案**:
 - 已落库的 Flyway 脚本禁止修改，新增修正必须使用下一个版本号。
@@ -72,7 +72,7 @@ Migration checksum mismatch for migration version 1.0.33
 - `flyway repair` 只更新 schema history checksum，不会重新执行脚本；如果脚本内容包含新的 seed/update 数据，优先重跑迁移或新增后续版本脚本。
 
 **影响范围**:
-- 所有 `forge/db/migration/V*.sql` 版本化脚本
+- 所有 `forge/db/mysql/migration/V*.sql` 版本化脚本
 - 远程共享开发库、测试库和生产库的 Flyway 启动校验
 
 ## 43. Flyway 迁移 tenant_id 0 归一化前必须先处理唯一键重复
@@ -226,7 +226,7 @@ Detected resolved migration not applied to database: 1.0.56
 - Flyway 校验要求：库里已经成功执行的每个版本，当前工作区都必须有同版本、同内容的脚本。
 - 共享库被别的分支跑到更高版本时，把对方的 `V1.0.171`–`V1.0.174` 原样放到本分支；本需求新脚本用下一个空号（如 `V1.0.175`）。
 - 不要把本需求占用已存在的 `1.0.171`，也不要用 `flyway repair` 把别人已执行的版本标成删除。
-- 排查时先对照 `forge_schema_history` 和 `forge-server/db/migration/V*`，缺文件就补文件，不要改已落库脚本。
+- 排查时先对照 `forge_schema_history` 和 `forge-server/db/mysql/migration/V*`，缺文件就补文件，不要改已落库脚本。
 
 ## Pro 能力迁出后社区只留同号占位，禁止把 Pro DDL 拷回社区
 
@@ -238,7 +238,7 @@ Detected resolved migration not applied to database: 1.0.56
 **解决方案**:
 - 社区保留同版本、同文件名 description 的 **空操作占位**（如 `SELECT 1` + 说明注释），不创建 `sys_report_*`、不插报表菜单。
 - 已执行过完整报表脚本的共享库：启动前对 `1.0.229`/`1.0.230` 做 `flyway repair` 刷新 checksum，再跑后续版本（如短信 `1.0.231`）。
-- 禁止用「修 Flyway」当借口把 Pro 功能脚本长期留在社区 `db/migration`。
+- 禁止用「修 Flyway」当借口把 Pro 功能脚本长期留在社区 `db/mysql/migration`。
 
 ## 模板库清理必须在 Flyway 增量之后执行
 
@@ -267,12 +267,12 @@ Detected resolved migration not applied to database: 1.0.56
 **发现日期**: 2026-09-30
 
 **问题描述**:
-`docker-forge-admin/init-sql/01-init.sql` 与 `forge-server/db/全量初始化SQL.sql` 相差 677 行：
+`docker-forge-admin/init-sql/01-init.sql` 与 `forge-server/db/mysql/全量初始化SQL.sql` 相差 677 行：
 - 混入了其它生成项目的包名 `com.craken`（Quartz 任务类、数据权限 Mapper 方法、流程服务类）；
 - Quartz 用小写 `qrtz_*` 表，而配置的 `tablePrefix: QRTZ_` 是大写。Linux 上 MySQL 表名区分大小写，docker 部署后 Quartz 会找不到表，已保留的任务类也不存在。
 
 **解决方案**:
-- docker 的初始化 SQL 必须与全量 SQL 字节一致；更新全量 SQL 后执行 `cp forge-server/db/全量初始化SQL.sql docker-forge-admin/init-sql/01-init.sql`。
+- docker 的初始化 SQL 必须与全量 SQL 字节一致；更新全量 SQL 后执行 `cp forge-server/db/mysql/全量初始化SQL.sql docker-forge-admin/init-sql/01-init.sql`。
 - `forge:create` 生成项目时直接用生成后的全量 SQL 覆盖 docker 的 `01-init.sql`。
 - 不要从改过名的生成项目反向拷贝 SQL 回模板仓库。
 
@@ -295,7 +295,7 @@ Detected resolved migration not applied to database: 1.0.56
 
 **问题描述**:
 System 完整回归中 ClientCredentialSurfaceContractTest 报 NoSuchFileException，仍读取
-forge-admin-server/sql/初始化脚本.sql；副本已在 d2c4f0ee 移除，当前入口使用 db/全量初始化SQL.sql。
+forge-admin-server/sql/初始化脚本.sql；副本已在 d2c4f0ee 移除，当前入口使用 db/mysql/全量初始化SQL.sql。
 
 **解决方案**:
 契约测试读取现用权威 SQL，并同时验证 init-db.sh 对该文件的声明和执行入口。保留敏感路径和
@@ -314,23 +314,23 @@ forge-admin-server/sql/初始化脚本.sql；副本已在 d2c4f0ee 移除，当�
 - 迁移限定当前数据库与目标列，保留字符集/排序规则；重复执行和已有更大文本/JSON 列时不缩列。
 - 仅提交代码不会修复已部署数据库；确认迁移成功后再验证真实保存。应用回滚不要求缩列。
 
-## maven-resources-plugin 拒绝拷贝项目外的 db/migration
+## maven-resources-plugin 拒绝拷贝项目外的 db/mysql/migration
 
 **发现日期**: 2026-10-20
 
 **问题描述**:
 Windows / 较新 Maven 构建 `forge-admin-server` 时报：
-`Access ".../forge-admin-server/../db/migration" directory outside of project base directory`
+`Access ".../forge-admin-server/../db/mysql/migration" directory outside of project base directory`
 （`maven-resources-plugin:3.3.1:resources`）。
 
 **根本原因**:
-把 `forge-server/db/migration` 写进子模块 `<build><resources>` 的 `<directory>`，
+把 `forge-server/db/mysql/migration` 写进子模块 `<build><resources>` 的 `<directory>`，
 默认 `resources` 目标不允许访问 `${project.basedir}` 之外的路径。
 
 **解决方案**:
-- SQL 仍统一放在 `forge-server/db/migration/`（不要整目录搬进 admin-server）。
+- SQL 仍统一放在 `forge-server/db/mysql/migration/`（不要整目录搬进 admin-server）。
 - Admin POM 用 `maven-resources-plugin` 的 `copy-resources`（`copy-flyway-sql`）
-  在 `process-resources` 拷到 `classpath:db/migration`。
+  在 `process-resources` 拷到 `classpath:db/mysql/migration`。
 - 不要把跨模块路径继续写回默认 `<resources>`。
 
 ## 独立 JAR 正确但 filesystem 仍读取服务器残留旧迁移
@@ -339,14 +339,14 @@ Windows / 较新 Maven 构建 `forge-admin-server` 时报：
 
 **问题描述**:
 Admin 本地启动正常，生产同一项目打包后出现大量 checksum mismatch。生产 JAR 中迁移与数据库
-217 条历史全部一致，但工作目录中的旧 `db/migration` 被默认 filesystem 路径读取。
+217 条历史全部一致，但工作目录中的旧 `db/mysql/migration` 被默认 filesystem 路径读取。
 因此报错中的 `Resolved locally` 指实际扫描到的服务器脚本，不一定是 JAR 内资源。
 
 **解决方案**:
 
 - 先核对 systemd 工作目录、启动脚本、EnvironmentFile、活动 profile，再核对实际迁移来源。
-- 新版默认 `classpath:db/migration` 并启用目录缺失失败；旧版可设置
-  `FORGE_FLYWAY_LOCATIONS=classpath:db/migration`。升级时核对已有覆盖项，不混扫旧目录。
+- 新版默认 `classpath:db/mysql/migration` 并启用目录缺失失败；旧版可设置
+  `FORGE_FLYWAY_LOCATIONS=classpath:db/mysql/migration`。升级时核对已有覆盖项，不混扫旧目录。
   IDE 需刷新 Maven 并构建资源；示例见 `forge-server/scripts/deployment/`。
 - 修改前比较全部迁移与历史，确认 pending；保留 JAR、历史表和外部 SQL，不 repair、不关闭校验。
 - 服务器存在未激活的 profile 文件，不代表其配置正在生效；不要误改其数据源或历史表。
@@ -359,13 +359,13 @@ Admin 本地启动正常，生产同一项目打包后出现大量 checksum mism
 启动报 `Migration checksum mismatch for migration version 1.0.226`，日志里 Applied / Resolved 对不上；同时感觉「少了 227」。例如 Applied=`1421982953`（内容资产脚本）、Resolved=`-746902544`（流程发布状态字典脚本）。
 
 **根本原因**:
-历史上曾把流程字典与内容资产抢成同号 `1.0.226`，后又改名对齐（最终：`V1.0.226__add_content_installed_asset`、`V1.0.228__add_flow_model_publication_state_dict`，中间临时的 `1.0.227` 不再需要）。`maven-resources-plugin` 的 `copy-resources` **只拷贝不删除**：`forge-admin-server/target/classes/db/migration/` 里仍残留旧名 `V1.0.226__add_flow_model_publication_state_dict.sql`。IDE / 上次编译的 classpath 读到的是残留文件，校验就对不上已入库的内容资产 checksum。版本号允许跳号，库里没执行过 `1.0.227` 时本地也不需要这个文件。
+历史上曾把流程字典与内容资产抢成同号 `1.0.226`，后又改名对齐（最终：`V1.0.226__add_content_installed_asset`、`V1.0.228__add_flow_model_publication_state_dict`，中间临时的 `1.0.227` 不再需要）。`maven-resources-plugin` 的 `copy-resources` **只拷贝不删除**：`forge-admin-server/target/classes/db/mysql/migration/` 里仍残留旧名 `V1.0.226__add_flow_model_publication_state_dict.sql`。IDE / 上次编译的 classpath 读到的是残留文件，校验就对不上已入库的内容资产 checksum。版本号允许跳号，库里没执行过 `1.0.227` 时本地也不需要这个文件。
 
 **解决方案**:
-1. 对照 `forge_schema_history`：`description`/`checksum` 与源码 `forge-server/db/migration/V1.0.226__*.sql` 是否一致。
-2. 删除或重建 `forge-admin-server/target/classes/db/migration`（`mvn -pl forge-admin-server process-resources` 或 `clean compile`），确认 classpath 里 226 文件名与源码一致、不再残留旧 description。
+1. 对照 `forge_schema_history`：`description`/`checksum` 与源码 `forge-server/db/mysql/migration/V1.0.226__*.sql` 是否一致。
+2. 删除或重建 `forge-admin-server/target/classes/db/mysql/migration`（`mvn -pl forge-admin-server process-resources` 或 `clean compile`），确认 classpath 里 226 文件名与源码一致、不再残留旧 description。
 3. 禁止对已执行版本做 `flyway repair` 来“换脚本内容”；本场景是 classpath 脏，不是库坏了。
-4. Admin POM 在 copy 前先清空 classpath 下的 `db/migration`，避免改名残留再次踩坑。
+4. Admin POM 在 copy 前先清空 classpath 下的 `db/mysql/migration`，避免改名残留再次踩坑。
 
 **影响范围**:
 - 本地 IDE 启动、未 `clean` 的增量编译
@@ -390,8 +390,8 @@ Admin 本地启动正常，生产同一项目打包后出现大量 checksum mism
 
 1. 合并 / `forge:upstream apply` 后、提交前查重：
    ```bash
-   ls forge-server/db/migration/V*.sql | sed 's/__.*//' | sort | uniq -d
-   # ForgePro 等改名工程：ls <prefix>-server/db/migration/V*.sql | …
+   ls forge-server/db/mysql/migration/V*.sql | sed 's/__.*//' | sort | uniq -d
+   # ForgePro 等改名工程：ls <prefix>-server/db/mysql/migration/V*.sql | …
    ```
 2. 对照库表决定保留谁：
    ```sql
@@ -404,5 +404,5 @@ Admin 本地启动正常，生产同一项目打包后出现大量 checksum mism
 5. 禁止：删已执行脚本、改已执行脚本内容、或把两个脚本压成一个同号文件。
 
 **影响范围**:
-- `forge-server/db/migration`（社区）与改名工程 `<prefix>-server/db/migration`
+- `forge-server/db/mysql/migration`（社区）与改名工程 `<prefix>-server/db/mysql/migration`
 - 所有依赖 Admin 启动时 Flyway 的环境；`forge:upstream` 升级提交清单

@@ -1,0 +1,59 @@
+# 临时 PG 双栈冒烟：用本分支构建的 jar + PostgreSQL
+# 用法：docker compose --profile postgres -f docker-compose.yml -f docker-compose.pg-test.yml up -d forge-flow forge-admin
+services:
+  forge-flow:
+    image: eclipse-temurin:17-jre
+    working_dir: /app
+    volumes:
+      - ../forge-server/forge-flow/forge-flow-server/target/forge-flow-server.jar:/app/app.jar:ro
+      - ./application-datasource-pg.yml:/app/application-prod.yml:ro
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: forge_admin
+      POSTGRES_USER: forge
+      POSTGRES_PASSWORD: forge123456
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: forge123456
+      FORGE_FLYWAY_ENABLED: "false"
+      JAVA_OPTS: ${JAVA_OPTS:--Xms256m -Xmx512m}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    entrypoint: ["sh", "-c", "java $${JAVA_OPTS} -Dspring.profiles.active=prod -jar /app/app.jar"]
+
+  forge-admin:
+    image: eclipse-temurin:17-jre
+    working_dir: /app
+    volumes:
+      - ../forge-server/forge-admin-server/target/forge-admin-server.jar:/app/app.jar:ro
+      - ./application-datasource-pg.yml:/app/application-prod.yml:ro
+      - crypto_secrets:/var/lib/forge/secrets
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: forge_admin
+      POSTGRES_USER: forge
+      POSTGRES_PASSWORD: forge123456
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: forge123456
+      FLOW_CLIENT_URL: http://forge-flow:8081
+      FORGE_FLYWAY_ENABLED: "false"
+      FORGE_CRYPTO_BOOTSTRAP_ENABLED: "true"
+      FORGE_CRYPTO_BOOTSTRAP_FILE: /var/lib/forge/secrets/crypto.properties
+      FORGE_AUTH_LEGACY_CLIENT_SECRET_READ_ENABLED: "true"
+      JAVA_OPTS: ${JAVA_OPTS:--Xms256m -Xmx512m}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      forge-flow:
+        condition: service_started
+    entrypoint: ["sh", "-c", "java $${JAVA_OPTS} -Dspring.profiles.active=prod -Dforge.flow.client.url=$${FLOW_CLIENT_URL} -jar /app/app.jar"]

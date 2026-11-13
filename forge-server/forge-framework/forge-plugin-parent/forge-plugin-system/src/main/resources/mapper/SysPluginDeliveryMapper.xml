@@ -11,11 +11,15 @@
     artifact_manifest_sha256, cos_verified, runtime_verified, failure_code, backup_reference,
     migrations_reviewed, backward_compatible, note, del_flag, create_by, create_time, create_dept,
     update_by, update_time, reconcile_note, reconciled_by, reconciled_time</sql>
-  <insert id="ensureTarget">
+  <insert id="insertTarget">
     INSERT INTO sys_plugin_delivery_target (id, tenant_id, target_id, create_time, update_time, del_flag)
     VALUES (#{id}, #{tenant}, #{target}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0)
-    ON DUPLICATE KEY UPDATE target_id = VALUES(target_id)
   </insert>
+  <update id="touchTarget">
+    UPDATE sys_plugin_delivery_target
+    SET update_time = CURRENT_TIMESTAMP
+    WHERE tenant_id = #{tenant} AND target_id = #{target} AND del_flag = 0
+  </update>
   <select id="lockTarget" resultType="com.mdframe.forge.plugin.system.vo.PluginDeliveryTargetVO">
     SELECT target_id AS id, NULL AS name, NULL AS repository_id, current_release_id,
       previous_release_id, active_task_id, unverified_release_id

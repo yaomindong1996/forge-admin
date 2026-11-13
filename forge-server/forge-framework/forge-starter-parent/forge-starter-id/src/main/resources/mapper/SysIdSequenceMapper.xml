@@ -15,11 +15,13 @@
         FROM sys_id_sequence
         WHERE biz_key LIKE #{escapedLegacyKeyPattern} ESCAPE '!'
           AND (
-            SUBSTRING_INDEX(biz_key, ':', -1) = #{legacyPeriod}
+            biz_key LIKE CONCAT('%:', #{legacyPeriod})
             OR (
               CHAR_LENGTH(#{legacyPeriod}) = 10
-              AND CHAR_LENGTH(SUBSTRING_INDEX(biz_key, ':', -1)) IN (10, 12, 14)
-              AND LEFT(SUBSTRING_INDEX(biz_key, ':', -1), 10) = #{legacyPeriod}
+              AND (
+                biz_key LIKE CONCAT('%:', #{legacyPeriod}, '__')
+                OR biz_key LIKE CONCAT('%:', #{legacyPeriod}, '____')
+              )
             )
           )
     </select>

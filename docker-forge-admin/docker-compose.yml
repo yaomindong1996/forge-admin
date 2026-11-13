@@ -137,7 +137,7 @@ services:
       JAVA_OPTS: ${JAVA_OPTS:--Xms256m -Xmx512m}
     volumes:
       - ./application-datasource.yml:/app/application-prod.yml
-      - ../forge-server/db/migration:/app/db/migration
+      - ../forge-server/db/mysql/migration:/app/db/mysql/migration
     ports:
       - "${FLOW_PORT:-8081}:8081"
     networks:

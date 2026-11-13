@@ -97,7 +97,7 @@ mvn -pl forge-framework/forge-plugin-parent/forge-plugin-generator -am compile -
 Flyway 脚本变更必须先跑低成本静态检查，确认迁移脚本中没有会被 Flyway 解析的业务 `${...}` 占位符：
 
 ```bash
-rg -n '\$\{[^}]+\}' forge-server/db/migration
+rg -n '\$\{[^}]+\}' forge-server/db/mysql/migration
 ```
 
 该命令应无输出；确需入库 `${...}` 模板时，用 SQL `CONCAT('$', '{token}')` 形式拼接。

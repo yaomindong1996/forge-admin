@@ -5,8 +5,8 @@
     <select id="selectOverview" resultType="java.util.Map">
         SELECT
             COUNT(*) AS total,
-            COALESCE(SUM(CASE WHEN DATE(create_time) = CURDATE() THEN 1 ELSE 0 END), 0) AS today,
-            COALESCE(SUM(CASE WHEN create_time >= DATE_FORMAT(CURDATE(), '%Y-%m-01') THEN 1 ELSE 0 END), 0) AS month
+            COALESCE(SUM(CASE WHEN create_time &gt;= #{todayStart} AND create_time &lt; #{tomorrowStart} THEN 1 ELSE 0 END), 0) AS today,
+            COALESCE(SUM(CASE WHEN create_time &gt;= #{monthStart} THEN 1 ELSE 0 END), 0) AS month
         FROM ${tableName}
         WHERE tenant_id = #{tenantId}
           AND del_flag = 0
@@ -25,24 +25,13 @@
 
     <select id="selectTrend" resultType="java.util.Map">
         SELECT
-        <choose>
-            <when test="period == 'week'">
-                DATE_FORMAT(create_time, '%Y-%u')
-            </when>
-            <when test="period == 'month'">
-                DATE_FORMAT(create_time, '%Y-%m')
-            </when>
-            <otherwise>
-                DATE(create_time)
-            </otherwise>
-        </choose>
-            AS label,
+            DATE(create_time) AS label,
             COUNT(*) AS value
         FROM ${tableName}
         WHERE tenant_id = #{tenantId}
           AND del_flag = 0
-          AND create_time >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
-        GROUP BY label
+          AND create_time &gt;= #{since}
+        GROUP BY DATE(create_time)
         ORDER BY label ASC
     </select>
 

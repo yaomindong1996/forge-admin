@@ -13,6 +13,7 @@ import com.mdframe.forge.starter.flow.dto.FlowUserGroupUpdateDTO;
 import com.mdframe.forge.starter.flow.entity.FlowUserGroup;
 import com.mdframe.forge.starter.flow.mapper.FlowUserGroupMapper;
 import com.mdframe.forge.starter.flow.service.FlowUserGroupService;
+import com.mdframe.forge.starter.flow.support.FlowDialectFreeWrites;
 import com.mdframe.forge.starter.flow.vo.FlowUserGroupMemberVO;
 import com.mdframe.forge.starter.flow.vo.FlowUserGroupVO;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ public class FlowUserGroupServiceImpl implements FlowUserGroupService {
 
     private final FlowUserGroupMapper groupMapper;
     private final SysUserMapper sysUserMapper;
+    private final FlowDialectFreeWrites dialectFreeWrites;
 
     @Override
     public IPage<FlowUserGroupVO> page(FlowUserGroupQuery query) {
@@ -140,7 +142,7 @@ public class FlowUserGroupServiceImpl implements FlowUserGroupService {
         }
         Long operatorId = SessionHelper.getUserId();
         for (Long userId : userIds) {
-            groupMapper.insertMember(id, userId, tenantId, operatorId, SessionHelper.getActiveOrgId());
+            dialectFreeWrites.upsertUserGroupMember(id, userId, tenantId, operatorId, SessionHelper.getActiveOrgId());
         }
     }
 

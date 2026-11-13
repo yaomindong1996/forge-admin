@@ -16,6 +16,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -48,7 +51,8 @@ public class BusinessStatsService {
         AiCrudConfig config = getConfig(configKey);
         String tableName = config.getTableName();
         validateIdentifier(tableName);
-        Map<String, Object> result = statsMapper.selectOverview(tableName, TenantContextHolder.getTenantId());
+        Map<String, Object> result = statsMapper.selectOverview(tableName, TenantContextHolder.getTenantId(),
+                todayStart(), tomorrowStart(), monthStart());
         return result == null ? new LinkedHashMap<>() : result;
     }
 
@@ -79,7 +83,9 @@ public class BusinessStatsService {
         String tableName = validateTable(config);
 
         int lookbackDays = (days != null && days > 0) ? Math.min(days, 365) : 30;
-        return statsMapper.selectTrend(tableName, TenantContextHolder.getTenantId(), normalizePeriod(period), lookbackDays);
+        LocalDateTime since = LocalDate.now().minusDays(lookbackDays).atStartOfDay();
+        return aggregateTrend(statsMapper.selectTrend(tableName, TenantContextHolder.getTenantId(), since),
+                normalizePeriod(period));
     }
 
     public List<BusinessStatsMetricVO> metrics(String configKey, BusinessStatsMetricQueryDTO query) {
@@ -91,7 +97,8 @@ public class BusinessStatsService {
 
         List<BusinessStatsMetricVO> metrics = new ArrayList<>();
         if (all || metricTypes.contains("OVERVIEW")) {
-            Map<String, Object> overview = statsMapper.selectOverview(tableName, TenantContextHolder.getTenantId());
+            Map<String, Object> overview = statsMapper.selectOverview(tableName, TenantContextHolder.getTenantId(),
+                    todayStart(), tomorrowStart(), monthStart());
             metrics.add(valueMetric("TOTAL", "记录总数", "COUNT", value(overview, "total"), "条"));
             metrics.add(valueMetric("TODAY", "今日新增", "COUNT", value(overview, "today"), "条"));
             metrics.add(valueMetric("MONTH", "本月新增", "COUNT", value(overview, "month"), "条"));
@@ -119,10 +126,11 @@ public class BusinessStatsService {
                     statsMapper.selectFlowResultDistribution(TenantContextHolder.getTenantId(), config.getObjectCode())));
         }
         if (metricTypes.contains("TREND")) {
+            int lookbackDays = actualQuery.getDays() == null ? 30 : Math.min(Math.max(actualQuery.getDays(), 1), 365);
+            LocalDateTime since = LocalDate.now().minusDays(lookbackDays).atStartOfDay();
             BusinessStatsMetricVO trend = groupMetric("CREATE_TREND", "新增趋势", "createTime",
-                    statsMapper.selectTrend(tableName, TenantContextHolder.getTenantId(),
-                            normalizePeriod(actualQuery.getPeriod()),
-                            actualQuery.getDays() == null ? 30 : Math.min(Math.max(actualQuery.getDays(), 1), 365)));
+                    aggregateTrend(statsMapper.selectTrend(tableName, TenantContextHolder.getTenantId(), since),
+                            normalizePeriod(actualQuery.getPeriod())));
             trend.setMetricType("TREND");
             metrics.add(trend);
         }
@@ -245,6 +253,105 @@ public class BusinessStatsService {
             return "day";
         }
         return normalized;
+    }
+
+    private static LocalDateTime todayStart() {
+        return LocalDate.now().atStartOfDay();
+    }
+
+    private static LocalDateTime tomorrowStart() {
+        return LocalDate.now().plusDays(1).atStartOfDay();
+    }
+
+    private static LocalDateTime monthStart() {
+        return LocalDate.now().withDayOfMonth(1).atStartOfDay();
+    }
+
+    /**
+     * SQL 仅按日聚合；周/月粒度在 Java 侧归并，避免 DATE_FORMAT 方言。
+     */
+    private List<Map<String, Object>> aggregateTrend(List<Map<String, Object>> dailyRows, String period) {
+        List<Map<String, Object>> normalizedDaily = new ArrayList<>();
+        if (dailyRows != null) {
+            for (Map<String, Object> row : dailyRows) {
+                String label = formatTrendLabel(value(row, "label"), "day");
+                if (label == null) {
+                    continue;
+                }
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("label", label);
+                item.put("value", toLong(value(row, "value")));
+                normalizedDaily.add(item);
+            }
+        }
+        if ("day".equals(period)) {
+            return normalizedDaily;
+        }
+        Map<String, Long> grouped = new LinkedHashMap<>();
+        for (Map<String, Object> row : normalizedDaily) {
+            String bucket = formatTrendLabel(row.get("label"), period);
+            if (bucket == null) {
+                continue;
+            }
+            grouped.merge(bucket, toLong(row.get("value")), Long::sum);
+        }
+        List<Map<String, Object>> result = new ArrayList<>();
+        grouped.forEach((label, count) -> {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("label", label);
+            item.put("value", count);
+            result.add(item);
+        });
+        return result;
+    }
+
+    private static String formatTrendLabel(Object raw, String period) {
+        if (raw == null) {
+            return null;
+        }
+        LocalDate date;
+        if (raw instanceof LocalDate localDate) {
+            date = localDate;
+        } else if (raw instanceof java.sql.Date sqlDate) {
+            date = sqlDate.toLocalDate();
+        } else if (raw instanceof java.util.Date utilDate) {
+            date = utilDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+        } else {
+            String text = String.valueOf(raw).trim();
+            if (text.length() >= 10) {
+                text = text.substring(0, 10);
+            }
+            try {
+                date = LocalDate.parse(text);
+            } catch (Exception ex) {
+                return text.isEmpty() ? null : text;
+            }
+        }
+        if ("week".equals(period)) {
+            // Align with historical MySQL DATE_FORMAT(..., '%Y-%u') (Monday-based week).
+            WeekFields weekFields = WeekFields.ISO;
+            int week = date.get(weekFields.weekOfWeekBasedYear());
+            int year = date.get(weekFields.weekBasedYear());
+            return String.format(Locale.ROOT, "%d-%02d", year, week);
+        }
+        if ("month".equals(period)) {
+            return String.format(Locale.ROOT, "%d-%02d", date.getYear(), date.getMonthValue());
+        }
+        return date.toString();
+    }
+
+    private static long toLong(Object value) {
+        if (value == null) {
+            return 0L;
+        }
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        try {
+            return Long.parseLong(String.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return 0L;
+        }
     }
 
     private BusinessStatsMetricVO valueMetric(String code, String name, String type, Object value, String unit) {

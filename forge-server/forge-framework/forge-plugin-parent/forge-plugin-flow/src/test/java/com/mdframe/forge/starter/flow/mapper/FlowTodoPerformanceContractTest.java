@@ -41,17 +41,17 @@ class FlowTodoPerformanceContractTest {
     private Path resolveMigration() {
         Path current = Path.of("").toAbsolutePath();
         for (int depth = 0; depth < 10 && current != null; depth++) {
-            Path candidate = current.resolve("db/migration").resolve(MIGRATION);
+            Path candidate = current.resolve("db/mysql/migration").resolve(MIGRATION);
             if (Files.isRegularFile(candidate)) {
                 return candidate;
             }
-            candidate = current.resolve("forge-server/db/migration").resolve(MIGRATION);
+            candidate = current.resolve("forge-server/db/mysql/migration").resolve(MIGRATION);
             if (Files.isRegularFile(candidate)) {
                 return candidate;
             }
             current = current.getParent();
         }
-        return Path.of("db/migration").resolve(MIGRATION);
+        return Path.of("db/mysql/migration").resolve(MIGRATION);
     }
 
     private Path resolveModuleFile(String relativePath) {

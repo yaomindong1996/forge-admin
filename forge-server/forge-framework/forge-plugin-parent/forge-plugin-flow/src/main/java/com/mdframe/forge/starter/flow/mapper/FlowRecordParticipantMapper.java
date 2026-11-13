@@ -11,7 +11,7 @@ import java.util.List;
 @Mapper
 public interface FlowRecordParticipantMapper extends BaseMapper<FlowRecordParticipant> {
 
-    int insertIgnore(FlowRecordParticipant participant);
+    int insertPlain(FlowRecordParticipant participant);
 
     List<String> selectBusinessIds(@Param("tenantId") Long tenantId,
                                    @Param("userId") String userId,

@@ -23,6 +23,7 @@ class SysIdSequenceMapperContractTest {
         assertTrue(query.contains("biz_key LIKE #{escapedLegacyKeyPattern}"));
         assertTrue(query.contains("ESCAPE '!'"));
         assertFalse(query.contains("LEFT(biz_key"));
+        assertFalse(query.contains("SUBSTRING_INDEX"), "legacy match must stay portable (LIKE, not SUBSTRING_INDEX)");
     }
 
     private Path resolveMapper() {

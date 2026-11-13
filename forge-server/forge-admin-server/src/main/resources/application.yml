@@ -1,11 +1,6 @@
 # 开发环境配置
 server:
   max-http-request-header-size: ${FORGE_MAX_HTTP_REQUEST_HEADER_SIZE:16KB}
-  error:
-    include-message: never
-    include-binding-errors: never
-    include-stacktrace: never
-    include-exception: false
   # 服务器的HTTP端口，默认为8080
   port: 8580
   servlet:
@@ -32,6 +27,13 @@ logging:
 spring:
   application:
     name: forge-admin-server
+  # Boot 4：server.error.* 已迁移到 spring.web.error.*
+  web:
+    error:
+      include-message: never
+      include-binding-errors: never
+      include-stacktrace: never
+      include-exception: false
   # 资源信息
   messages:
     # 国际化资源文件路径
@@ -68,7 +70,7 @@ spring:
   flyway:
     enabled: ${FORGE_FLYWAY_ENABLED:true}
     # 迁移跟随应用版本打包，避免读取启动目录中残留的旧 SQL；外部路径必须显式覆盖。
-    locations: ${FORGE_FLYWAY_LOCATIONS:classpath:db/migration}
+    locations: ${FORGE_FLYWAY_LOCATIONS:classpath:db/mysql/migration}
     fail-on-missing-locations: true
     baseline-on-migrate: true
     baseline-version: 1.0.0

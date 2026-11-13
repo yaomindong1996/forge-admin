@@ -36,12 +36,12 @@ final class PluginReviewTestDatabase {
         for (String file : new String[]{"V1.0.211__add_plugin_install_workbench.sql",
                 "V1.0.212__add_plugin_build_leases.sql", "V1.0.213__add_plugin_task_review.sql",
                 "V1.0.214__add_plugin_artifact_registration.sql"}) {
-            String sql = Files.readString(Path.of("../../../db/migration", file));
+            String sql = Files.readString(Path.of("../../../db/mysql/migration", file));
             int start = sql.indexOf("CREATE TABLE");
             execute(sql.substring(start, sql.indexOf(';', start)));
         }
         var configuration = new MybatisConfiguration();
-        String deliverySql = Files.readString(Path.of("../../../db/migration",
+        String deliverySql = Files.readString(Path.of("../../../db/mysql/migration",
                 "V1.0.216__add_plugin_delivery_control.sql"));
         int first = deliverySql.indexOf("CREATE TABLE");
         int second = deliverySql.indexOf("CREATE TABLE", first + 1);

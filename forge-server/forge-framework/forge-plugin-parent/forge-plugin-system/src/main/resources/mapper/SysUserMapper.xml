@@ -61,39 +61,9 @@
         u.id_card, u.gender, u.password, u.salt, u.user_status, u.avatar, u.region_code,
         u.last_login_time, u.last_login_ip, u.login_count, u.force_password_change, u.remark, u.create_dept,
         u.create_by, u.create_time, u.update_by, u.update_time, u.del_flag,
-        COALESCE((
-            SELECT GROUP_CONCAT(tn.tenant_name ORDER BY sut.is_default DESC, tn.id ASC SEPARATOR ',')
-            FROM sys_user_tenant sut
-            INNER JOIN sys_tenant tn
-                ON tn.id = sut.tenant_id
-               AND tn.del_flag = 0
-            WHERE sut.user_id = u.id
-              AND sut.status = 1
-              AND tn.tenant_status = 1
-        ), t.tenant_name) AS tenant_name,
-        (
-            SELECT GROUP_CONCAT(o.org_name ORDER BY o.sort SEPARATOR ',')
-            FROM sys_user_org uo
-            LEFT JOIN sys_org o
-                ON o.id = uo.org_id
-               AND o.tenant_id = uo.tenant_id
-               AND o.del_flag = 0
-            WHERE uo.user_id = u.id
-            <if test="query != null and query.tenantId != null">
-              AND uo.tenant_id = #{query.tenantId}
-            </if>
-        ) AS org_name,
-        (
-            SELECT GROUP_CONCAT(p.post_name ORDER BY p.sort SEPARATOR ',')
-            FROM sys_user_post up
-            LEFT JOIN sys_post p
-                ON p.id = up.post_id
-               AND p.del_flag = 0
-            WHERE up.user_id = u.id
-            <if test="query != null and query.tenantId != null">
-              AND up.tenant_id = #{query.tenantId}
-            </if>
-        ) AS post_name
+        t.tenant_name AS tenant_name,
+        NULL AS org_name,
+        NULL AS post_name
     </sql>
 
     <select id="selectFlowUserInfo" resultType="java.util.HashMap">
@@ -389,7 +359,7 @@
                             <if test="query.tenantId != null">
                                 tenant_id = #{query.tenantId} AND
                             </if>
-                            (id = #{query.orgId} OR FIND_IN_SET(#{query.orgId}, ancestors) > 0)
+                            (id = #{query.orgId} OR CONCAT(',', COALESCE(ancestors, ''), ',') LIKE CONCAT('%,', #{query.orgId}, ',%'))
                         )
                     )
                 </otherwise>
@@ -614,5 +584,47 @@
           AND tenant_id = #{tenantId}
           AND del_flag = 0
     </update>
+
+
+    <select id="selectTenantNameLabels" resultType="com.mdframe.forge.plugin.system.vo.ContactMemberLabelVO">
+        SELECT sut.user_id AS userId, tn.tenant_name AS label
+        FROM sys_user_tenant sut
+        INNER JOIN sys_tenant tn ON tn.id = sut.tenant_id AND tn.del_flag = 0
+        WHERE sut.status = 1
+          AND tn.tenant_status = 1
+          AND sut.user_id IN
+          <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+              #{userId}
+          </foreach>
+        ORDER BY sut.is_default DESC, tn.id ASC
+    </select>
+
+    <select id="selectOrgNameLabels" resultType="com.mdframe.forge.plugin.system.vo.ContactMemberLabelVO">
+        SELECT uo.user_id AS userId, o.org_name AS label
+        FROM sys_user_org uo
+        LEFT JOIN sys_org o ON o.id = uo.org_id AND o.tenant_id = uo.tenant_id AND o.del_flag = 0
+        WHERE uo.user_id IN
+          <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+              #{userId}
+          </foreach>
+        <if test="tenantId != null">
+          AND uo.tenant_id = #{tenantId}
+        </if>
+        ORDER BY o.sort ASC, o.id ASC
+    </select>
+
+    <select id="selectPostNameLabels" resultType="com.mdframe.forge.plugin.system.vo.ContactMemberLabelVO">
+        SELECT up.user_id AS userId, p.post_name AS label
+        FROM sys_user_post up
+        LEFT JOIN sys_post p ON p.id = up.post_id AND p.del_flag = 0
+        WHERE up.user_id IN
+          <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+              #{userId}
+          </foreach>
+        <if test="tenantId != null">
+          AND up.tenant_id = #{tenantId}
+        </if>
+        ORDER BY p.sort ASC, p.id ASC
+    </select>
 
 </mapper>

@@ -7,7 +7,6 @@
          create_by, create_dept, create_time, update_by, update_time)
         VALUES (#{id}, #{tenantId}, #{clientId}, #{capabilityId}, #{keyHash}, #{digest}, '',
                 #{userId}, #{orgId}, NOW(), #{userId}, NOW())
-        ON DUPLICATE KEY UPDATE id = id
     </insert>
     <select id="lock" resultType="java.util.LinkedHashMap">
         SELECT id, request_digest AS requestDigest, record_id AS recordId

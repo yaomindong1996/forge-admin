@@ -12,6 +12,7 @@ import com.mdframe.forge.starter.flow.mapper.FlowBusinessMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowFormInstanceMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowTaskMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowTaskCandidateMapper;
+import com.mdframe.forge.starter.flow.support.FlowDialectFreeWrites;
 import com.mdframe.forge.starter.flow.entity.FlowTaskCandidate;
 import com.mdframe.forge.starter.flow.enums.FlowTaskCandidateStatus;
 import com.mdframe.forge.starter.flow.entity.FlowRecordParticipant;
@@ -73,6 +74,10 @@ public class FlowTaskEventListener implements FlowableEventListener {
     @Autowired(required = false)
     @Lazy
     private FlowTaskCandidateMapper flowTaskCandidateMapper;
+
+    @Autowired(required = false)
+    @Lazy
+    private FlowDialectFreeWrites flowDialectFreeWrites;
 
     @Autowired
     @Lazy
@@ -809,7 +814,11 @@ public class FlowTaskEventListener implements FlowableEventListener {
             candidate.setCreateTime(flowTask.getCreateTime());
             candidate.setUpdateTime(LocalDateTime.now());
             try {
-                flowTaskCandidateMapper.insertIgnore(candidate);
+                if (flowDialectFreeWrites != null) {
+                    flowDialectFreeWrites.upsertTaskCandidate(candidate);
+                } else if (flowTaskCandidateMapper != null) {
+                    flowTaskCandidateMapper.insertPlain(candidate);
+                }
             } catch (Exception e) {
                 log.warn("同步流程任务候选关系失败，不阻断任务创建：taskId={}, type={}",
                         flowTask.getTaskId(), candidateType, e);

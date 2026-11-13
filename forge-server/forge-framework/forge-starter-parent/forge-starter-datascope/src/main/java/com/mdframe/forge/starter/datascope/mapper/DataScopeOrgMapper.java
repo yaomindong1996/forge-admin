@@ -22,7 +22,7 @@ public interface DataScopeOrgMapper {
             "SELECT id FROM sys_org " +
             "WHERE del_flag = 0 AND " +
             "<foreach collection='orgIds' item='orgId' open='(' separator=' OR ' close=')'>" +
-            "FIND_IN_SET(#{orgId}, ancestors) > 0 OR id = #{orgId}" +
+            "CONCAT(',', COALESCE(ancestors, ''), ',') LIKE CONCAT('%,', #{orgId}, ',%') OR id = #{orgId}" +
             "</foreach>" +
             "</script>")
     Set<Long> selectChildOrgIds(@Param("orgIds") List<Long> orgIds);

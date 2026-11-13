@@ -1,10 +1,5 @@
 server:
   max-http-request-header-size: ${FORGE_MAX_HTTP_REQUEST_HEADER_SIZE:16KB}
-  error:
-    include-message: never
-    include-binding-errors: never
-    include-stacktrace: never
-    include-exception: false
   port: 8581
   servlet:
     context-path: /
@@ -28,6 +23,13 @@ logging:
 spring:
   application:
     name: forge-report
+  # Boot 4：server.error.* 已迁移到 spring.web.error.*
+  web:
+    error:
+      include-message: never
+      include-binding-errors: never
+      include-stacktrace: never
+      include-exception: false
   messages:
     basename: i18n/messages
   profiles:

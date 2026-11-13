@@ -1,9 +1,0 @@
-{
-  "type": "schema",
-  "dryRun": false,
-  "source": "/Users/yaomindong/Desktop/project/mdframe/forge-project/forge/db/migration",
-  "target": "/Users/yaomindong/Desktop/project/mdframe/forge-project/forge/db/community-export/migration",
-  "files": [
-    "V1.0.0__baseline.sql"
-  ]
-}

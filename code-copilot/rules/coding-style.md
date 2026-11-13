@@ -47,7 +47,7 @@ alwaysApply: true
 - 使用 `utf8mb4` 字符集，`InnoDB` 引擎
 - 为高频查询字段创建索引，组合索引遵循最左前缀原则
 - 禁止将数据库凭据提交到仓库
-- Flyway 迁移脚本中禁止直接写业务 `${...}` 模板；确需入库时使用 `CONCAT('$', '{token}')` 拼接，并用 `rg -n '\$\{[^}]+\}' forge-server/db/migration` 确认无残留
+- Flyway 迁移脚本中禁止直接写业务 `${...}` 模板；确需入库时使用 `CONCAT('$', '{token}')` 拼接，并用 `rg -n '\$\{[^}]+\}' forge-server/db/mysql/migration` 确认无残留
 
 ## 7. 前端规范
 ### 7.1 字典使用

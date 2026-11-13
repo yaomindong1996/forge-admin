@@ -32,7 +32,7 @@
             SELECT bd.tenant_id,
                    bd.business_id,
                    COUNT(ds.id) AS dataset_count,
-                   GROUP_CONCAT(ds.dataset_name ORDER BY bd.is_primary DESC, bd.sort ASC, bd.id ASC SEPARATOR '、') AS dataset_names
+                   NULL AS dataset_names
             FROM ai_report_data_business_dataset bd
             LEFT JOIN ai_report_data_dataset ds
                 ON ds.tenant_id = bd.tenant_id
@@ -77,4 +77,20 @@
           AND del_flag = '0'
         LIMIT 1
     </select>
+
+    <select id="selectDatasetNameLabels" resultType="java.util.HashMap">
+        SELECT bd.business_id AS businessId, ds.dataset_name AS datasetName
+        FROM ai_report_data_business_dataset bd
+        LEFT JOIN ai_report_data_dataset ds
+            ON ds.tenant_id = bd.tenant_id
+           AND ds.id = bd.dataset_id
+           AND ds.del_flag = '0'
+        WHERE bd.tenant_id = #{tenantId}
+          AND bd.business_id IN
+          <foreach collection="businessIds" item="id" open="(" separator="," close=")">
+              #{id}
+          </foreach>
+        ORDER BY bd.is_primary DESC, bd.sort ASC, bd.id ASC
+    </select>
+
 </mapper>

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Fail if a new MySQL migration under db/migration lacks a same-version
- * sibling under db/migration/postgresql (after baseline 1.0.233).
+ * Fail if a new MySQL migration under db/mysql/migration lacks a same-version
+ * sibling under db/postgresql/migration (after baseline 1.0.233).
  *
  * Usage: node forge-server/scripts/db/check-pg-migration-pairs.mjs
  */
@@ -11,8 +11,8 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const forgeDir = path.resolve(__dirname, '../..')
-const mysqlDir = path.join(forgeDir, 'db/migration')
-const pgDir = path.join(forgeDir, 'db/migration/postgresql')
+const mysqlDir = path.join(forgeDir, 'db/mysql/migration')
+const pgDir = path.join(forgeDir, 'db/postgresql/migration')
 const BASELINE = [1, 0, 233]
 
 function parseVersion(fileName) {

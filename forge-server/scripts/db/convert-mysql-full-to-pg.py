@@ -3,7 +3,7 @@
 
 Usage:
   python3 forge-server/scripts/db/convert-mysql-full-to-pg.py \\
-    --input forge-server/db/全量初始化SQL.sql \\
+    --input forge-server/db/mysql/全量初始化SQL.sql \\
     --output forge-server/db/postgresql/全量初始化SQL.sql
 
 Skips Flowable engine tables (act_*/flw_*). Keeps framework *_version tables.
@@ -18,7 +18,8 @@ import re
 import sys
 from pathlib import Path
 
-SKIP_TABLE_PREFIXES = ("act_", "flw_")
+# Flowable + Quartz runtime tables: engine/scheduler recreate or re-register.
+SKIP_TABLE_PREFIXES = ("act_", "flw_", "qrtz_")
 # PostgreSQL NAMEDATALEN-1
 PG_IDENT_MAX = 63
 
@@ -107,7 +108,9 @@ def convert_type(mysql_type: str) -> str:
     if lower.startswith("longblob") or lower.startswith("mediumblob") or lower.startswith("blob") or lower.startswith("binary") or lower.startswith("varbinary"):
         return "bytea"
     if lower.startswith("json"):
-        return "jsonb"
+        # Full-dump seed data often contains '' / non-JSON fragments that reject on jsonb.
+        # Store as text for init compatibility; app layer still reads JSON strings.
+        return "text"
     if lower.startswith("varchar") or lower.startswith("char"):
         return t
     if lower.startswith("enum") or lower.startswith("set"):

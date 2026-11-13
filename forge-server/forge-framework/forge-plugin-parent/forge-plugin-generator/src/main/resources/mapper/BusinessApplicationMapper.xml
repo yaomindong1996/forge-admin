@@ -305,8 +305,7 @@
           AND a.del_flag = '0'
           AND a.status = 1
           AND a.last_publish_version IS NOT NULL
-          AND JSON_UNQUOTE(JSON_EXTRACT(published_version.snapshot_json,
-              '$.application.portalSlug')) = #{portalSlug}
+          AND published_version.snapshot_json LIKE CONCAT('%"portalSlug":"', #{portalSlug}, '"%')
         LIMIT 1
     </select>
 

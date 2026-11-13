@@ -30,7 +30,7 @@ class FlywayClasspathConfigurationTest {
     void defaultsToBundledSqlAndRequiresTheLocationToExist() throws IOException {
         FlywayProperties properties = bind(Map.of());
 
-        assertEquals(List.of("classpath:db/migration"), properties.getLocations());
+        assertEquals(List.of("classpath:db/mysql/migration"), properties.getLocations());
         assertTrue(properties.isFailOnMissingLocations());
         assertTrue(properties.isEnabled());
         assertTrue(properties.isValidateOnMigrate());
@@ -55,7 +55,7 @@ class FlywayClasspathConfigurationTest {
 
     @Test
     void everySourceSqlIsAvailableUnchangedWithoutExtraClasspathMigrations() throws IOException {
-        Path source = Path.of(System.getProperty("basedir", ".")).resolve("../db/migration").normalize();
+        Path source = Path.of(System.getProperty("basedir", ".")).resolve("../db/mysql/migration").normalize();
         assertTrue(Files.isDirectory(source), "Run this test from the Admin Maven module");
         Set<String> expected;
         try (var files = Files.list(source)) {
@@ -65,7 +65,7 @@ class FlywayClasspathConfigurationTest {
         assertFalse(expected.isEmpty(), "The source migration directory must not be empty");
 
         Resource[] resources = new PathMatchingResourcePatternResolver()
-                .getResources("classpath*:db/migration/*.sql");
+                .getResources("classpath*:db/mysql/migration/*.sql");
         Set<String> actual = new HashSet<>();
         for (Resource resource : resources) {
             String name = resource.getFilename();

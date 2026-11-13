@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Forge 数据库初始化：建库 → 全量 SQL → required seed →（可选）Flyway 增量 →（可选）清理成干净模板库。
+# Forge 数据库初始化：建库 → MySQL 全量 SQL →（可选）Flyway 增量 →（可选）清理成干净模板库。
 # 兼容 macOS 自带 bash 3.2。
 set -euo pipefail
 
@@ -10,8 +10,6 @@ PORT="3306"
 DATABASE="forge_admin"
 USER="root"
 PASSWORD="${MYSQL_PWD:-}"
-WITH_DEMO="false"
-WITH_OPTIONAL="false"
 WITH_MODULE="false"
 SKIP_ADMIN_INIT="false"
 RECREATE="false"
@@ -24,7 +22,8 @@ usage() {
   cat <<'USAGE'
 Usage: init-db.sh [options]
 
-默认流程：创建数据库 → 执行 db/全量初始化SQL.sql → 执行 db/seed/required/*.sql。
+默认流程：创建数据库 → 执行 db/mysql/全量初始化SQL.sql。
+必需基础数据已包含在全量脚本中；增量由 Flyway（或 --migrate）执行。
 
 Options:
   --host HOST              MySQL host, default 127.0.0.1
@@ -32,12 +31,10 @@ Options:
   --database DATABASE      Database name, default forge_admin
   --user USER              MySQL user, default root
   --password PASSWORD      MySQL password（也可用环境变量 MYSQL_PWD）
-  --with-demo              Import demo seed data
-  --with-optional          Import optional seed data
-  --with-module            Import module SQL from db/module
-  --skip-admin-init        跳过 db/全量初始化SQL.sql（仅用于已完成基础初始化的库）
+  --with-module            Import module SQL from db/module（若存在）
+  --skip-admin-init        跳过 db/mysql/全量初始化SQL.sql（仅用于已完成基础初始化的库）
   --recreate               先 DROP 再重建数据库（全量 SQL 只能导入空库）
-  --migrate                导入后用 Flyway 执行 db/migration 增量（需要 Maven，与后端启动时的迁移等价）
+  --migrate                导入后用 Flyway 执行 db/mysql/migration 增量（需要 Maven，与后端启动时的迁移等价）
   --clean                  增量执行完后调用 clean-db.sh 清理成干净模板库（隐含 --migrate）
   --clean-arg ARG          透传给 clean-db.sh 的参数，可重复，例如 --clean-arg --admin-username --clean-arg admin
   --yes                    --recreate / --clean 时跳过确认
@@ -64,8 +61,10 @@ while [[ $# -gt 0 ]]; do
     --database) require_value "$1" "${2:-}"; DATABASE="$2"; shift 2 ;;
     --user) require_value "$1" "${2:-}"; USER="$2"; shift 2 ;;
     --password) require_value "$1" "${2:-}"; PASSWORD="$2"; shift 2 ;;
-    --with-demo) WITH_DEMO="true"; shift ;;
-    --with-optional) WITH_OPTIONAL="true"; shift ;;
+    --with-demo|--with-optional)
+      echo "WARN: $1 已废弃（db/seed 已移除），忽略。" >&2
+      shift
+      ;;
     --with-module) WITH_MODULE="true"; shift ;;
     --skip-admin-init) SKIP_ADMIN_INIT="true"; shift ;;
     --recreate) RECREATE="true"; shift ;;
@@ -82,16 +81,13 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-ADMIN_INIT_SQL="$FORGE_DIR/db/全量初始化SQL.sql"
+ADMIN_INIT_SQL="$FORGE_DIR/db/mysql/全量初始化SQL.sql"
 if [[ "$SKIP_ADMIN_INIT" != "true" && ( ! -f "$ADMIN_INIT_SQL" || ! -r "$ADMIN_INIT_SQL" || ! -s "$ADMIN_INIT_SQL" ) ]]; then
   echo "ERROR: 必需的初始化 SQL 不存在、不可读或为空：$ADMIN_INIT_SQL" >&2
   exit 1
 fi
 
 [[ "$DATABASE" =~ ^[A-Za-z0-9_]+$ ]] || die "--database 只能包含字母、数字和下划线: $DATABASE"
-if [[ "$CLEAN" == "true" && "$WITH_DEMO" == "true" ]]; then
-  die "--clean 会清空演示数据，不能和 --with-demo 同时使用。"
-fi
 
 if ! command -v mysql >/dev/null 2>&1; then
   echo "mysql client is required. Install MySQL client and retry." >&2
@@ -171,28 +167,19 @@ run_sql_dir() {
 run_migrations() {
   local url="jdbc:mysql://$HOST:$PORT/$DATABASE?useUnicode=true&characterEncoding=utf8"
   url="$url&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true&useSSL=false"
-  echo "Running Flyway migrations from $FORGE_DIR/db/migration"
+  echo "Running Flyway migrations from $FORGE_DIR/db/mysql/migration"
   FORGE_DB_PASSWORD="$PASSWORD" mvn -q -B -f "$SCRIPT_DIR/flyway/pom.xml" flyway:migrate \
     -Dforge.db.url="$url" \
     -Dforge.db.user="$USER" \
-    -Dforge.migration.dir="$FORGE_DIR/db/migration"
+    -Dforge.migration.dir="$FORGE_DIR/db/mysql/migration"
 }
 
 if [[ "$SKIP_ADMIN_INIT" != "true" ]]; then
   run_sql_file "$ADMIN_INIT_SQL"
 fi
-run_sql_dir "$FORGE_DIR/db/seed/required"
 
 if [[ "$WITH_MODULE" == "true" ]]; then
   run_sql_dir "$FORGE_DIR/db/module"
-fi
-
-if [[ "$WITH_DEMO" == "true" ]]; then
-  run_sql_dir "$FORGE_DIR/db/seed/demo"
-fi
-
-if [[ "$WITH_OPTIONAL" == "true" ]]; then
-  run_sql_dir "$FORGE_DIR/db/seed/optional"
 fi
 
 if [[ "$MIGRATE" == "true" ]]; then

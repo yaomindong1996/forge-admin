@@ -3,6 +3,7 @@ package com.mdframe.forge.plugin.capability.secureaction.system;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.mdframe.forge.plugin.capability.secureaction.mapper.LowcodeFormReceiptMapper;
 import com.mdframe.forge.starter.core.exception.BusinessException;
+import com.mdframe.forge.starter.orm.support.DuplicateKeyActions;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -54,8 +55,8 @@ public class LowcodeFormInvocationGuard {
 
     private Claim reserve(Request request) {
         long candidate = IdWorker.getId();
-        receipts.reserve(candidate, request.tenant(), request.client(), request.capability(), request.keyHash(),
-                request.digest(), request.actor(), request.org());
+        DuplicateKeyActions.insertIgnoreConflict(() -> receipts.reserve(candidate, request.tenant(), request.client(),
+                request.capability(), request.keyHash(), request.digest(), request.actor(), request.org()));
         Map<String, Object> receipt = receipts.lock(request.tenant(), request.client(), request.capability(), request.keyHash());
         if (receipt == null || !request.digest().equals(receipt.get("requestDigest"))) {
             throw new BusinessException(409, "IDEMPOTENCY_CONFLICT");

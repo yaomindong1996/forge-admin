@@ -47,4 +47,4 @@
 - `forge-server/forge-framework/forge-plugin-parent/forge-plugin-system/src/main/java/com/mdframe/forge/plugin/system/service/impl/SysOrgServiceImpl.java`
 - `forge-server/forge-framework/forge-starter-parent/forge-starter-datascope/src/main/java/com/mdframe/forge/starter/datascope/service/impl/DataScopeServiceImpl.java`
 - `forge-server/forge-framework/forge-starter-parent/forge-starter-datascope/src/main/java/com/mdframe/forge/starter/datascope/handler/DataScopeInterceptor.java`
-- `forge-server/db/migration/V1.0.1__add_org_scoped_role_permission.sql`
+- `forge-server/db/mysql/migration/V1.0.1__add_org_scoped_role_permission.sql`

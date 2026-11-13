@@ -284,7 +284,7 @@ pnpm preview
 
 ### 6.3 数据库命令
 
-首次安装推荐按 [README](../../README.md#2-初始化数据库) 使用 `forge-server/scripts/db/init-db.sh`（全量 SQL + required seed）。以下手工导入只适用于新建空库；已有业务库禁止重跑全量初始化，后续增量由 Admin 启动时执行 Flyway。
+首次安装推荐按 [README](../../README.md#2-初始化数据库) 使用 `forge-server/scripts/db/init-db.sh`（执行 MySQL 全量 SQL）。以下手工导入只适用于新建空库；已有业务库禁止重跑全量初始化，后续增量由 Admin 启动时执行 Flyway。
 
 ```sql
 -- 创建数据库
@@ -292,7 +292,7 @@ CREATE DATABASE forge_admin DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_a
 
 -- 导入初始数据
 USE forge_admin;
-SOURCE /path/to/forge-server/db/全量初始化SQL.sql;
+SOURCE /path/to/forge-server/db/mysql/全量初始化SQL.sql;
 ```
 
 ## 7. 开发环境配置

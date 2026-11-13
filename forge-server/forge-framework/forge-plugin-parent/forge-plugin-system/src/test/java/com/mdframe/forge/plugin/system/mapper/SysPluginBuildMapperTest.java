@@ -49,7 +49,7 @@ class SysPluginBuildMapperTest {
         source.setURL("jdbc:h2:mem:" + UUID.randomUUID() + ";MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE");
         for (String file : new String[]{"V1.0.211__add_plugin_install_workbench.sql",
                 "V1.0.212__add_plugin_build_leases.sql"}) {
-            String sql = Files.readString(Path.of("../../../db/migration", file));
+            String sql = Files.readString(Path.of("../../../db/mysql/migration", file));
             int start = sql.indexOf("CREATE TABLE");
             try (var connection = source.getConnection(); var statement = connection.createStatement()) {
                 statement.execute(sql.substring(start, sql.indexOf(';', start)));

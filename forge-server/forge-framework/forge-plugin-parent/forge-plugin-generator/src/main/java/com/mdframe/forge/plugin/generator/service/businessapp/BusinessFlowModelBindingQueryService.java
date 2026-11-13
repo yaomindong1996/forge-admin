@@ -21,7 +21,11 @@ public class BusinessFlowModelBindingQueryService {
         if (tenantId == null || tenantId <= 0) {
             throw new BusinessException("无法读取当前租户的业务绑定");
         }
-        List<String> keys = query.getModelKeys().stream().map(String::trim).distinct().toList();
-        return bindingMapper.selectFlowBindingsByModelKeys(tenantId, keys);
+        List<String> keys = query.getModelKeys().stream().map(String::trim).filter(s -> !s.isEmpty()).distinct().toList();
+        List<String> needles = keys.stream().map(BusinessBindingSummarySupport::flowModelKeyLikeNeedle).toList();
+        List<BusinessBindingSummaryVO> rows = bindingMapper.selectFlowBindingsByModelKeys(tenantId, keys, needles);
+        rows = BusinessBindingSummarySupport.retainMatchingModelKeys(rows, keys);
+        BusinessBindingSummarySupport.enrichDisplay(rows);
+        return rows;
     }
 }

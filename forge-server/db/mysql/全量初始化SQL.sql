@@ -3653,6 +3653,7 @@ CREATE TABLE `sys_client` (
   `captcha_type` varchar(32) DEFAULT NULL COMMENT '验证码类型：graphical图形，slider滑块，sms短信；为空继承全局配置',
   `status` tinyint DEFAULT '1' COMMENT '状态（0-禁用 1-启用）',
   `description` varchar(500) DEFAULT NULL COMMENT '客户端描述',
+  `home_url` varchar(512) DEFAULT NULL COMMENT '前端入口地址（SSO 跳转 baseUrl，如 http://host/forge-report）',
   `tenant_id` bigint DEFAULT NULL COMMENT '租户ID',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `create_by` bigint DEFAULT NULL,
@@ -10722,11 +10723,11 @@ INSERT INTO sys_auth_online_user (id,token_value,user_id,username,real_name,dept
 	 (4693,'ef986277-92f4-4ed1-be17-d3e4a6539ee1',1,'admin','超级管理员','内蒙分公司','127.0.0.1','本地','Chrome','OSX','2026-07-23 09:14:17','2026-07-23 09:14:17','2026-08-22 09:14:17',1,NULL,NULL,1,'2026-07-23 09:14:17','2026-07-23 09:14:17'),
 	 (4694,'64b786e5-8030-4986-9c13-dea725bbd997',1,'admin','超级管理员','内蒙分公司','127.0.0.1','本地','MSEdge','Windows 10 or Windows Server 2016','2026-07-23 09:14:28','2026-07-23 09:14:28','2026-08-22 09:14:28',1,NULL,NULL,1,'2026-07-23 09:14:28','2026-07-23 09:14:28'),
 	 (4695,'ed06c195-710a-487d-8188-e6242529e0b2',1,'admin','超级管理员','内蒙分公司','127.0.0.1','本地','Firefox','Windows 10 or Windows Server 2016','2026-07-23 09:21:18','2026-07-23 09:21:18','2026-08-22 09:21:18',1,NULL,NULL,1,'2026-07-23 09:21:18','2026-07-23 09:21:18');
-INSERT INTO sys_client (id,client_code,client_name,app_id,app_secret,client_auth_method,token_timeout,token_activity_timeout,token_prefix,token_name,concurrent_login,share_token,enable_ip_limit,ip_whitelist,enable_encrypt,encrypt_algorithm,max_user_count,max_online_count,auth_types,captcha_type,status,description,tenant_id,create_time,create_by,update_time,update_by,create_dept) VALUES
-	 (6,'pc','PC端','pc',NULL,'none',2592000,7200,'Bearer','Authorization',1,0,0,NULL,0,'AES',-1,-1,'password,password_captcha','',1,NULL,1,'2026-04-08 09:37:10',1,'2026-06-07 21:28:18',1,2),
-	 (8,'forge_report','报表系统','forge_report',NULL,'none',2592000,7200,'Bearer','Authorization',0,0,0,NULL,0,'AES',-1,-1,'password,password_captcha','graphical',1,NULL,1,'2026-04-08 09:37:10',1,'2026-06-07 20:47:08',1,2),
-	 (9,'app','APP端','forge_app',NULL,'none',7200,-1,'Bearer','Authorization',0,0,0,NULL,0,'AES',-1,-1,'password,password_captcha,phone_captcha','graphical',1,NULL,1,'2026-04-29 14:44:57',1,'2026-06-06 20:58:27',1,2),
-	 (10,'h5','H5端','forge_h5',NULL,'none',7200,-1,'Bearer','Authorization',0,0,0,NULL,0,'AES',-1,-1,'password,password_captcha','graphical',1,'H5模板客户端',1,'2026-06-06 21:05:01',1,'2026-06-06 21:17:17',1,2);
+INSERT INTO sys_client (id,client_code,client_name,app_id,app_secret,client_auth_method,token_timeout,token_activity_timeout,token_prefix,token_name,concurrent_login,share_token,enable_ip_limit,ip_whitelist,enable_encrypt,encrypt_algorithm,max_user_count,max_online_count,auth_types,captcha_type,status,description,home_url,tenant_id,create_time,create_by,update_time,update_by,create_dept) VALUES
+	 (6,'pc','PC端','pc',NULL,'none',2592000,7200,'Bearer','Authorization',1,0,0,NULL,0,'AES',-1,-1,'password,password_captcha','',1,NULL,NULL,1,'2026-04-08 09:37:10',1,'2026-06-07 21:28:18',1,2),
+	 (8,'forge_report','报表系统','forge_report',NULL,'none',2592000,7200,'Bearer','Authorization',0,0,0,NULL,0,'AES',-1,-1,'password,password_captcha','graphical',1,NULL,NULL,1,'2026-04-08 09:37:10',1,'2026-06-07 20:47:08',1,2),
+	 (9,'app','APP端','forge_app',NULL,'none',7200,-1,'Bearer','Authorization',0,0,0,NULL,0,'AES',-1,-1,'password,password_captcha,phone_captcha','graphical',1,NULL,NULL,1,'2026-04-29 14:44:57',1,'2026-06-06 20:58:27',1,2),
+	 (10,'h5','H5端','forge_h5',NULL,'none',7200,-1,'Bearer','Authorization',0,0,0,NULL,0,'AES',-1,-1,'password,password_captcha','graphical',1,'H5模板客户端',NULL,1,'2026-06-06 21:05:01',1,'2026-06-06 21:17:17',1,2);
 INSERT INTO sys_config (config_id,tenant_id,config_name,config_key,config_value,config_type,config_desc,sort,create_by,create_time,update_by,update_time,create_dept,del_flag) VALUES
 	 (1,1,'用户初始密码','sys.user.initPassword','','N','用户注册时的默认密码；已因安全加固停用，新增/重置用户必须首次登录修改密码',1,NULL,'2025-11-12 17:41:18',NULL,'2026-06-13 09:21:39',NULL,0),
 	 (2,1,'账号自助注册','sys.account.registerUser','false','Y','是否开启用户自助注册功能',2,NULL,'2025-11-12 17:41:18',NULL,'2025-11-12 17:41:18',NULL,0),

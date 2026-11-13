@@ -76,7 +76,7 @@ class SysPluginMigrationTest {
     }
 
     private void run(Connection connection, String file) throws Exception {
-        try (var reader = Files.newBufferedReader(Path.of("../../../db/migration", file))) {
+        try (var reader = Files.newBufferedReader(Path.of("../../../db/mysql/migration", file))) {
             RunScript.execute(connection, reader);
         }
     }

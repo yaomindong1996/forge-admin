@@ -15,13 +15,13 @@ class PrintResourceContractTest {
 
     static Path migrationDirectory() {
         Path dir = Path.of("").toAbsolutePath();
-        while (dir != null && !Files.isDirectory(dir.resolve("db/migration"))) {
+        while (dir != null && !Files.isDirectory(dir.resolve("db/mysql/migration"))) {
             dir = dir.getParent();
         }
         if (dir == null) {
-            throw new IllegalStateException("找不到 forge-server/db/migration");
+            throw new IllegalStateException("找不到 forge-server/db/mysql/migration");
         }
-        return dir.resolve("db/migration");
+        return dir.resolve("db/mysql/migration");
     }
 
     @Test

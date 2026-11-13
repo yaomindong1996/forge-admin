@@ -105,7 +105,7 @@ cd forge-admin
 
 2. Initialize the database
 
-From the repository root, run the unified init script. It executes `forge-server/db/全量初始化SQL.sql` and `forge-server/db/seed/required`. Incremental schema changes are applied by Flyway from `forge-server/db/migration` when `forge-admin-server` starts.
+From the repository root, run the unified init script. It executes `forge-server/db/mysql/全量初始化SQL.sql` (includes required baseline data). Incremental schema changes are applied by Flyway from `forge-server/db/mysql/migration` when `forge-admin-server` starts.
 
 ```bash
 bash forge-server/scripts/db/init-db.sh \

@@ -83,7 +83,7 @@ dependency:tree 的成功只代表解析，不代表上面失败的源码/运行
 ### 收尾
 
 - `bash -n verification/run-matrix.sh` 退出 0；Java / POM / shell 新代码单行长度检查无超 120 字符项。
-- `git diff --check` 退出 0；正式 POM 和 `forge-server/db/migration` 与基线对比退出 0。
+- `git diff --check` 退出 0；正式 POM 和 `forge-server/db/mysql/migration` 与基线对比退出 0。
 - 测试只在自身 JVM 使用 H2 和 loopback HTTP；HTTP 逐项 close，所有本轮 Maven / Surefire JVM 已退出。
   收尾 ps 只匹配诊断命令本身，没有遗留 T0 服务。没有停止用户其它服务。
 - 在 backend pitfalls 追加本次真实版本混配故障，供下次升级复用；不改用户已有其它变更记录。

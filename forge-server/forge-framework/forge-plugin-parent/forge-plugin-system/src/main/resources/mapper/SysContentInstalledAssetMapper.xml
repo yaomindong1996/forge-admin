@@ -61,7 +61,7 @@
         FROM sys_content_installed_asset
         <include refid="KindKeywordFilter"/>
         ORDER BY update_time DESC, id DESC
-        LIMIT #{offset}, #{limit}
+        LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <select id="selectByKindAndKey" resultType="com.mdframe.forge.plugin.system.entity.SysContentInstalledAsset">

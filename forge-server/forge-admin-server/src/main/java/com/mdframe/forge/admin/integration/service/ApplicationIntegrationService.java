@@ -22,6 +22,7 @@ import com.mdframe.forge.starter.core.domain.PageQuery;
 import com.mdframe.forge.starter.core.enums.EnableStatus;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
+import com.mdframe.forge.starter.orm.support.DuplicateKeyActions;
 import com.mdframe.forge.starter.social.domain.entity.SysSocialConfig;
 import com.mdframe.forge.starter.social.enums.SocialPlatform;
 import com.mdframe.forge.starter.social.service.ISocialAppConfigService;
@@ -109,7 +110,7 @@ public class ApplicationIntegrationService {
             if (!selected.loginAvailable() && !selected.messageAvailable())
                 throw new BusinessException("请先在企业协同中配置可用的免登或消息应用");
         }
-        mapper.initialize(IdWorker.getId(), tenant(), appId, SessionHelper.getUserId(), SessionHelper.getActiveOrgId());
+        DuplicateKeyActions.insertIgnoreConflict(() -> mapper.initialize(IdWorker.getId(), tenant(), appId, SessionHelper.getUserId(), SessionHelper.getActiveOrgId()));
         if (mapper.save(tenant(), appId, config, SessionHelper.getUserId()) != 1)
             throw new BusinessException("配置已被其他人修改，请刷新后重试");
         syncChannel(app, selected);
@@ -219,7 +220,7 @@ public class ApplicationIntegrationService {
     }
 
     public void attach(Long appId, Long capabilityId) {
-        mapper.attach(IdWorker.getId(), tenant(), appId, capabilityId, SessionHelper.getUserId(), SessionHelper.getActiveOrgId());
+        DuplicateKeyActions.insertIgnoreConflict(() -> mapper.attach(IdWorker.getId(), tenant(), appId, capabilityId, SessionHelper.getUserId(), SessionHelper.getActiveOrgId()));
     }
 
     public AiCapability requireCapability(Long appId, Long capabilityId) {
@@ -258,8 +259,8 @@ public class ApplicationIntegrationService {
                     || claimed.stream().anyMatch(existing -> sameRegistrationSource(existing, candidate))) {
                 continue;
             }
-            attached += mapper.attach(IdWorker.getId(), tenantId, appId, candidate.getCapabilityId(),
-                    SessionHelper.getUserId(), SessionHelper.getActiveOrgId());
+            attached += DuplicateKeyActions.insertIgnoreConflict(() -> mapper.attach(IdWorker.getId(), tenantId, appId, candidate.getCapabilityId(),
+                    SessionHelper.getUserId(), SessionHelper.getActiveOrgId()));
             claimed.add(candidate);
         }
         return attached;

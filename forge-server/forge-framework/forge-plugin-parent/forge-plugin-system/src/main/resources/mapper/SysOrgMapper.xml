@@ -175,14 +175,7 @@
         SELECT id FROM sys_org
         WHERE del_flag = 0
           AND (id = #{orgId} OR
-            <choose>
-              <when test="_databaseId == 'postgresql'">
-                #{orgId}::text = ANY (string_to_array(ancestors, ','))
-              </when>
-              <otherwise>
-                FIND_IN_SET(#{orgId}, ancestors) &gt; 0
-              </otherwise>
-            </choose>
+               CONCAT(',', COALESCE(ancestors, ''), ',') LIKE CONCAT('%,', #{orgId}, ',%')
           )
     </select>
 
@@ -193,14 +186,7 @@
           AND del_flag = 0
           AND org_status = 1
           AND (id = #{orgId} OR
-            <choose>
-              <when test="_databaseId == 'postgresql'">
-                #{orgId}::text = ANY (string_to_array(ancestors, ','))
-              </when>
-              <otherwise>
-                FIND_IN_SET(#{orgId}, ancestors) &gt; 0
-              </otherwise>
-            </choose>
+               CONCAT(',', COALESCE(ancestors, ''), ',') LIKE CONCAT('%,', #{orgId}, ',%')
           )
         ORDER BY sort ASC, id ASC
     </select>

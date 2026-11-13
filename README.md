@@ -306,7 +306,7 @@ forge-server/                    # 后端根目录
 │   ├── forge-dependencies/      # 统一依赖版本管理
 │   ├── forge-plugin-parent/     # system / generator / job / message / flow / ai 等业务插件
 │   └── forge-starter-parent/    # auth / cache / orm / tenant / crypto / excel / file 等技术 Starter
-├── db/                          # Flyway 迁移、seed、全量初始化 SQL
+├── db/                          # 按 mysql/postgresql 划分的全量与 Flyway 增量 SQL
 └── scripts/                     # 数据库初始化与社区导出脚本
 
 forge-admin-ui/                  # 后台管理系统前端
@@ -349,7 +349,7 @@ npx --yes \
 
 ### 2. 初始化数据库
 
-推荐使用统一初始化脚本，它会按顺序执行 `forge-server/db/全量初始化SQL.sql` 和 `forge-server/db/seed/required` 必需初始化数据，并可按需导入 demo/optional 数据。表结构增量变更由主后台服务启动时的 Flyway 执行 `forge-server/db/migration`。
+推荐使用统一初始化脚本，它会执行 `forge-server/db/mysql/全量初始化SQL.sql`（含必需基础数据）。表结构增量由主后台启动时的 Flyway 执行 `forge-server/db/mysql/migration`。
 
 ```bash
 bash forge-server/scripts/db/init-db.sh \
@@ -372,13 +372,11 @@ bash forge-server/scripts/db/init-db.sh \
 
 数据库变更规范：
 
-- 表结构、字段、索引、系统资源等正式变更统一新增到 `forge-server/db/migration/`。
+- 表结构、字段、索引、系统资源等正式变更统一新增到 `forge-server/db/mysql/migration/`。
 - Flyway 版本脚本命名为 `V<版本号>__<lower_snake_case_description>.sql`，例如 `V1.0.2__add_dashboard_version_table.sql`。
 - `V1.0.0__baseline.sql` 是历史基线，新脚本版本必须大于 `1.0.0`，且版本号单调递增。
 - 已写入 `forge_schema_history` 的脚本禁止修改；需要修正时新增下一个版本脚本。
-- 系统必需基础数据放入 `forge-server/db/seed/required/R__*.sql`。
-- 演示数据放入 `forge-server/db/seed/demo/D__*.sql`，默认不导入。
-- 可选模块数据放入 `forge-server/db/seed/optional/O__*.sql`。
+- 必需基础数据已包含在全量脚本中；结构变更只新增 `forge-server/db/mysql/migration/`（启用 PG 时同步 `db/postgresql/migration/`）。
 - SQL 必须幂等或有防重复保护：`CREATE TABLE IF NOT EXISTS`、`INSERT ... SELECT ... WHERE NOT EXISTS`、新增列/索引前查 `information_schema`。
 - `INSERT` 必须显式列名；业务内置数据 `tenant_id` 使用 `1`，禁止写 `0`。
 - 权限资源类脚本（如 `sys_resource`、`sys_role_resource`）必须做 `NOT EXISTS` 防重复。
@@ -387,11 +385,11 @@ bash forge-server/scripts/db/init-db.sh \
 
 Flyway 启动说明：
 
-- 主后台服务 `forge-admin-server` 启动时执行 `forge-server/db/migration`；单独启动 `forge-report-server` 不会执行这些迁移。
-- 默认扫描 `classpath:db/migration`；Admin POM 通过 `copy-resources`（`copy-flyway-sql`）将 `forge-server/db/migration` 原样拷到 classes/JAR（不要写进默认 `<resources>`，maven-resources-plugin 3.3+ 会拒绝跨模块路径）；本地和部署使用同一套资源，不依赖启动目录。
+- 主后台服务 `forge-admin-server` 启动时执行 `forge-server/db/mysql/migration`；单独启动 `forge-report-server` 不会执行这些迁移。
+- 默认扫描 `classpath:db/mysql/migration`；Admin POM 通过 `copy-resources`（`copy-flyway-sql`）将 `forge-server/db/mysql/migration`（及 PG 的 `db/postgresql/migration`）原样拷到 classes/JAR；本地和部署使用同一套资源，不依赖启动目录。
 - 找不到迁移目录时启动失败。IDE 首次启动或新增 SQL 后需刷新 Maven 并构建资源；Maven 启动/打包自动处理资源。
 - 如果设置了 `FORGE_FLYWAY_LOCATIONS` 或 `FORGE_FLYWAY_ENABLED`，环境变量会覆盖默认配置；迁移未执行时先检查这两个变量。
-- 从旧版本升级时，检查外置配置、JVM 参数和环境变量是否仍显式设置 `filesystem:`；通常应移除覆盖项或改为 `classpath:db/migration`，不要混扫旧目录。
+- 从旧版本升级时，检查外置配置、JVM 参数和环境变量是否仍显式设置 `filesystem:`；通常应移除覆盖项或改为 `classpath:db/mysql/migration`，不要混扫旧目录。
 - 可通过以下 SQL 查看执行状态：
 
 ```sql
@@ -485,7 +483,7 @@ bash forge-server/scripts/db/export-community-db.sh --dry-run
 bash forge-server/scripts/db/export-community-db.sh
 ```
 
-导出结果位于 `forge-server/db/community-export/`，流程会校验 migration 命名、复制 seed 脚本、扫描敏感字段并生成摘要。白名单、黑名单和敏感字段规则维护在 `forge-server/scripts/db/community-db.config.json`。
+社区导出脚本仍保留在 `forge-server/scripts/db/export-community-db.sh`；默认输出目录与 seed 目录已从仓库移除，如需导出请自行指定输出路径并更新 `community-db.config.json`。
 
 ### 7. 构建生产包
 

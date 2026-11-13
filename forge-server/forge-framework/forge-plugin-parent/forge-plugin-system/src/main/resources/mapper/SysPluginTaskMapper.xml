@@ -12,7 +12,7 @@
         SELECT <include refid="Columns"/> FROM sys_plugin_task
         WHERE tenant_id = #{tenantId} AND del_flag = 0
         <if test="query.keyword != null and query.keyword != ''">
-            AND (LOCATE(#{query.keyword}, plugin_id) > 0 OR LOCATE(#{query.keyword}, plugin_name) > 0)
+            AND (plugin_id LIKE CONCAT('%', #{query.keyword}, '%') OR plugin_name LIKE CONCAT('%', #{query.keyword}, '%'))
         </if>
         <if test="query.status != null and query.status != ''">
             AND task_status = #{query.status}

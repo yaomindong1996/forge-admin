@@ -50,7 +50,17 @@
          AND v.behavior = c.behavior
          AND v.version = CASE
               WHEN g.version_strategy = 'FOLLOW_MAJOR'
-               AND SUBSTRING_INDEX(c.current_version, '.', 1) = SUBSTRING_INDEX(g.fixed_version, '.', 1)
+               AND CASE
+                WHEN POSITION('.' IN COALESCE(c.current_version, '')) > 0
+                THEN SUBSTRING(c.current_version FROM 1 FOR POSITION('.' IN c.current_version) - 1)
+                ELSE COALESCE(c.current_version, '')
+              END
+              =
+              CASE
+                WHEN POSITION('.' IN COALESCE(g.fixed_version, '')) > 0
+                THEN SUBSTRING(g.fixed_version FROM 1 FOR POSITION('.' IN g.fixed_version) - 1)
+                ELSE COALESCE(g.fixed_version, '')
+              END
               THEN c.current_version
               ELSE g.fixed_version
              END

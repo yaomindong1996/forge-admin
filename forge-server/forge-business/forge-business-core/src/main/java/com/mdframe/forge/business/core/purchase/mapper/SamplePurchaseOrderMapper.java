@@ -34,4 +34,7 @@ public interface SamplePurchaseOrderMapper extends BaseMapper<SamplePurchaseOrde
 
     List<Map<String, Object>> selectActiveTaskDefKeysByBusinessKeys(@Param("tenantId") Long tenantId,
                                                                     @Param("businessKeys") Collection<String> businessKeys);
+
+    /** 批量查询用户展示名，供会签人姓名 Java 聚合。 */
+    List<Map<String, Object>> selectUserDisplayNames(@Param("userIds") Collection<Long> userIds);
 }

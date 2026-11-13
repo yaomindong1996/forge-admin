@@ -56,11 +56,11 @@ class LowcodeQuerySourceMigrationContractTest {
     private Path resolveMigration(String migration) {
         Path current = Path.of("").toAbsolutePath();
         while (current != null) {
-            Path candidate = current.resolve("db/migration").resolve(migration);
+            Path candidate = current.resolve("db/mysql/migration").resolve(migration);
             if (Files.exists(candidate)) {
                 return candidate;
             }
-            candidate = current.resolve("forge-server/db/migration").resolve(migration);
+            candidate = current.resolve("forge-server/db/mysql/migration").resolve(migration);
             if (Files.exists(candidate)) {
                 return candidate;
             }

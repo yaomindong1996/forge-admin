@@ -68,6 +68,7 @@ public class SamplePurchaseOrderServiceImpl extends ServiceImpl<SamplePurchaseOr
     public IPage<SamplePurchaseOrderVO> page(PageQuery pageQuery, SamplePurchaseOrderQuery query) {
         Page<SamplePurchaseOrderVO> page = new Page<>(pageQuery.getPageNum(), pageQuery.getPageSize());
         IPage<SamplePurchaseOrderVO> result = getBaseMapper().selectPage(page, resolveTenantId(), query);
+        fillCountersignUserNames(result.getRecords());
         reconcileStatusesWithActiveTasks(result.getRecords());
         return result;
     }
@@ -81,6 +82,7 @@ public class SamplePurchaseOrderServiceImpl extends ServiceImpl<SamplePurchaseOr
         if (detail == null) {
             throw new BusinessException("采购单不存在");
         }
+        fillCountersignUserNames(List.of(detail));
         reconcileStatusesWithActiveTasks(List.of(detail));
         return detail;
     }
@@ -95,8 +97,65 @@ public class SamplePurchaseOrderServiceImpl extends ServiceImpl<SamplePurchaseOr
             return List.of();
         }
         List<SamplePurchaseOrderVO> details = getBaseMapper().selectDetailsByIds(resolveTenantId(), normalizedIds);
+        fillCountersignUserNames(details);
         reconcileStatusesWithActiveTasks(details);
         return details;
+    }
+
+    private void fillCountersignUserNames(List<SamplePurchaseOrderVO> records) {
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+        LinkedHashSet<Long> userIds = new LinkedHashSet<>();
+        for (SamplePurchaseOrderVO record : records) {
+            userIds.addAll(parseCsvIds(record.getCountersignUserIds()));
+        }
+        if (userIds.isEmpty()) {
+            return;
+        }
+        Map<Long, String> names = new LinkedHashMap<>();
+        for (Map<String, Object> row : getBaseMapper().selectUserDisplayNames(userIds)) {
+            Object userId = firstPresent(row, "userId", "userid");
+            Object displayName = firstPresent(row, "displayName", "displayname");
+            if (userId == null || displayName == null || !StringUtils.hasText(String.valueOf(displayName))) {
+                continue;
+            }
+            names.put(((Number) userId).longValue(), String.valueOf(displayName));
+        }
+        for (SamplePurchaseOrderVO record : records) {
+            List<String> labels = parseCsvIds(record.getCountersignUserIds()).stream()
+                    .map(names::get)
+                    .filter(StringUtils::hasText)
+                    .toList();
+            record.setCountersignUserNames(labels.isEmpty() ? null : String.join(",", labels));
+        }
+    }
+
+    private static List<Long> parseCsvIds(String csv) {
+        if (!StringUtils.hasText(csv)) {
+            return List.of();
+        }
+        return Arrays.stream(csv.split(","))
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .map(value -> {
+                    try {
+                        return Long.valueOf(value);
+                    } catch (NumberFormatException ex) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private static Object firstPresent(Map<String, Object> row, String... keys) {
+        for (String key : keys) {
+            if (row.containsKey(key) && row.get(key) != null) {
+                return row.get(key);
+            }
+        }
+        return null;
     }
 
     @Override

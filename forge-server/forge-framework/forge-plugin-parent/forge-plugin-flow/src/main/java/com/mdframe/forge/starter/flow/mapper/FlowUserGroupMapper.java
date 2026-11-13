@@ -41,9 +41,12 @@ public interface FlowUserGroupMapper extends BaseMapper<FlowUserGroup> {
 
     int countGroup(@Param("id") Long id, @Param("tenantId") Long tenantId);
 
-    int insertMember(@Param("groupId") Long groupId, @Param("userId") Long userId,
-                     @Param("tenantId") Long tenantId, @Param("operatorId") Long operatorId,
-                     @Param("createDept") Long createDept);
+    int insertMemberPlain(@Param("groupId") Long groupId, @Param("userId") Long userId,
+                          @Param("tenantId") Long tenantId, @Param("operatorId") Long operatorId,
+                          @Param("createDept") Long createDept);
+
+    int reactivateMember(@Param("groupId") Long groupId, @Param("userId") Long userId,
+                         @Param("tenantId") Long tenantId, @Param("operatorId") Long operatorId);
 
     int logicallyDeleteMember(@Param("groupId") Long groupId, @Param("userId") Long userId,
                               @Param("tenantId") Long tenantId, @Param("operatorId") Long operatorId);

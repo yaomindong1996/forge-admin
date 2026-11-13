@@ -4,7 +4,7 @@
 
 - 主库与低代码运行库均可选 PostgreSQL；MySQL 仍为社区默认。
 - 全量：`db/postgresql/全量初始化SQL.sql`（由转换器从 MySQL 全量生成）。
-- 增量：`db/migration/postgresql/`，与 MySQL `V1.0.x` 平行版本号；历史不逐条翻译。
+- 增量：`db/postgresql/migration/`，与 MySQL `V1.0.x` 平行版本号；历史不逐条翻译。
 - 低代码业务物理表：`PostgreSqlRuntimeDatabaseDialect` 运行时 DDL（全量 CREATE / 增量 ALTER）。
 - 数据插件：`PostgreSqlDialect` 拉表/拉列参数绑定。
 

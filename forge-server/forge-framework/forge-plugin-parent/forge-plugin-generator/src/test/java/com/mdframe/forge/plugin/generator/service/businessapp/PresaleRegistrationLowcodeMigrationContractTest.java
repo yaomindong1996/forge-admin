@@ -192,24 +192,24 @@ class PresaleRegistrationLowcodeMigrationContractTest {
     private Path locateMigration() {
         String reactorRoot = System.getProperty("maven.multiModuleProjectDirectory");
         if (reactorRoot != null) {
-            Path candidate = Path.of(reactorRoot).resolve("db/migration").resolve(MIGRATION);
+            Path candidate = Path.of(reactorRoot).resolve("db/mysql/migration").resolve(MIGRATION);
             if (Files.isRegularFile(candidate)) {
                 return candidate;
             }
         }
         Path current = Path.of("").toAbsolutePath();
         while (current != null) {
-            Path candidate = current.resolve("db/migration").resolve(MIGRATION);
+            Path candidate = current.resolve("db/mysql/migration").resolve(MIGRATION);
             if (Files.isRegularFile(candidate)) {
                 return candidate;
             }
-            candidate = current.resolve("forge-server/db/migration").resolve(MIGRATION);
+            candidate = current.resolve("forge-server/db/mysql/migration").resolve(MIGRATION);
             if (Files.isRegularFile(candidate)) {
                 return candidate;
             }
             current = current.getParent();
         }
-        return Path.of("db/migration").resolve(MIGRATION);
+        return Path.of("db/mysql/migration").resolve(MIGRATION);
     }
 
     private String repairMigrationSql() throws IOException {

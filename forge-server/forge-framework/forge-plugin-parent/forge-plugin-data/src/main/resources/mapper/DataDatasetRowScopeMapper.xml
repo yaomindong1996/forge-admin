@@ -66,15 +66,7 @@
                   #{orgId}
               </foreach>
               <foreach collection="orgIds" item="orgId">
-                  OR
-                  <choose>
-                    <when test="_databaseId == 'postgresql'">
-                      #{orgId}::text = ANY (string_to_array(ancestors, ','))
-                    </when>
-                    <otherwise>
-                      FIND_IN_SET(#{orgId}, ancestors) &gt; 0
-                    </otherwise>
-                  </choose>
+                  OR CONCAT(',', COALESCE(ancestors, ''), ',') LIKE CONCAT('%,', #{orgId}, ',%')
               </foreach>
           )
     </select>

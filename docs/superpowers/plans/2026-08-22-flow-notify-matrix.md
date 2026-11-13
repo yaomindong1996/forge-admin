@@ -46,7 +46,7 @@
 ### Task 4: Seed result and cc collaboration templates
 
 **Files:**
-- Create: `forge-server/db/migration/V1.0.129__flow_result_cc_card_templates.sql`
+- Create: `forge-server/db/mysql/migration/V1.0.129__flow_result_cc_card_templates.sql`
 
 - [x] Insert `FLOW_RESULT_CARD`, `FLOW_RESULT_CARD_WECOM`, `FLOW_CC_CARD`, and `FLOW_CC_CARD_WECOM` with explicit columns, tenant `1`, `NOT EXISTS` guards, and Flyway-safe placeholder construction.
 - [x] Keep generic templates enabled and platform-specific templates disabled by default, matching the existing todo-card seed behavior.

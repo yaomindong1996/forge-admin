@@ -1,11 +1,6 @@
 # 开发环境配置
 server:
   max-http-request-header-size: ${FORGE_MAX_HTTP_REQUEST_HEADER_SIZE:16KB}
-  error:
-    include-message: never
-    include-binding-errors: never
-    include-stacktrace: never
-    include-exception: false
   # 服务器的HTTP端口，默认为8080
   port: 8583
   servlet:
@@ -31,6 +26,13 @@ logging:
 spring:
   application:
     name: ${project.name}
+  # Boot 4：server.error.* 已迁移到 spring.web.error.*
+  web:
+    error:
+      include-message: never
+      include-binding-errors: never
+      include-stacktrace: never
+      include-exception: false
   # 资源信息
   messages:
     # 国际化资源文件路径

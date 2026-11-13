@@ -214,13 +214,14 @@
                         </goals>
                         <configuration>
                             <target>
-                                <delete dir="${project.build.outputDirectory}/db/migration" quiet="true"/>
+                                <delete dir="${project.build.outputDirectory}/db/mysql/migration" quiet="true"/>
+                                <delete dir="${project.build.outputDirectory}/db/postgresql/migration" quiet="true"/>
                             </target>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
-            <!-- 将 forge-server/db/migration 原样拷到 classpath:db/migration（JAR/IDE 共用）。 -->
+            <!-- 将 forge-server/db/mysql/migration 原样拷到 classpath:db/mysql/migration（JAR/IDE 共用）。 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
@@ -236,17 +237,17 @@
                             <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>${project.basedir}/../db/migration</directory>
-                                    <targetPath>db/migration</targetPath>
+                                    <directory>${project.basedir}/../db/mysql/migration</directory>
+                                    <targetPath>db/mysql/migration</targetPath>
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>*.sql</include>
                                     </includes>
                                 </resource>
-                                <!-- PostgreSQL 平行增量：classpath:db/migration/postgresql -->
+                                <!-- PostgreSQL 平行增量：classpath:db/postgresql/migration -->
                                 <resource>
-                                    <directory>${project.basedir}/../db/migration/postgresql</directory>
-                                    <targetPath>db/migration/postgresql</targetPath>
+                                    <directory>${project.basedir}/../db/postgresql/migration</directory>
+                                    <targetPath>db/postgresql/migration</targetPath>
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>*.sql</include>

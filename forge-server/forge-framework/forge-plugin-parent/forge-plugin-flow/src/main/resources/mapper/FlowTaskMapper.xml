@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.mdframe.forge.starter.flow.mapper.FlowTaskMapper">
+    <!-- 跨库 CSV token 包含：CONCAT+LIKE，避免各库专有的 CSV 成员函数 -->
+    <sql id="CsvTokenContains">
+        CONCAT(',',
+               REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(${column}, ''), ';', ','), '；', ','), '，', ','), '、', ','), ' ', ''),
+               ',') LIKE CONCAT('%,', ${token}, ',%')
+    </sql>
+
 
     <!-- 根据任务ID查询任务（带流程名称） -->
     <select id="selectByTaskId" resultType="com.mdframe.forge.starter.flow.entity.FlowTask">
@@ -119,14 +126,10 @@
                      AND tc.status = 1
                )
                OR
-               <choose>
-                 <when test="_databaseId == 'postgresql'">
-                   #{userId}::text = ANY (string_to_array(COALESCE(candidate_users, ''), ','))
-                 </when>
-                 <otherwise>
-                   FIND_IN_SET(#{userId}, candidate_users) &gt; 0
-                 </otherwise>
-               </choose>)
+               <include refid="CsvTokenContains">
+                   <property name="column" value="candidate_users"/>
+                   <property name="token" value="#{userId}"/>
+               </include>)
     </select>
 
     <select id="selectActiveTaskSummaries" resultType="java.util.HashMap">
@@ -303,10 +306,13 @@
         COALESCE(NULLIF(m.model_name, ''), NULLIF(task_procdef.NAME_, '')) AS process_definition_name
     </sql>
 
+    <!--
+      用 CONCAT(id,'') 做字符串等值关联，避免各库专有的正则/无符号整型转换。
+      非数字 assignee/start_user_id 自然匹配不上用户主键。
+    -->
     <sql id="TaskListUserJoins">
         LEFT JOIN sys_user assignee_user
-               ON assignee_user.id = CAST(NULLIF(t.assignee, '') AS UNSIGNED)
-              AND t.assignee REGEXP '^[0-9]+$'
+               ON CONCAT(assignee_user.id, '') = NULLIF(t.assignee, '')
               AND assignee_user.del_flag = 0
               AND EXISTS (
                   SELECT 1
@@ -316,8 +322,7 @@
                     AND assignee_membership.status = 1
               )
         LEFT JOIN sys_user start_user
-               ON start_user.id = CAST(NULLIF(t.start_user_id, '') AS UNSIGNED)
-              AND t.start_user_id REGEXP '^[0-9]+$'
+               ON CONCAT(start_user.id, '') = NULLIF(t.start_user_id, '')
               AND start_user.del_flag = 0
               AND EXISTS (
                   SELECT 1
@@ -375,20 +380,10 @@
                     t.candidate_users IS NOT NULL
                     AND t.candidate_users != ''
                     AND
-                    <choose>
-                      <when test="_databaseId == 'postgresql'">
-                        REPLACE(REPLACE(REPLACE(REPLACE(#{userId}, ';', ','), '；', ','), '，', ','), ' ', '')
-                          = ANY (string_to_array(
-                            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_users, ';', ','), '；', ','), '，', ','), '、', ','), ' ', ''),
-                            ','))
-                      </when>
-                      <otherwise>
-                        FIND_IN_SET(
-                            REPLACE(REPLACE(REPLACE(REPLACE(#{userId}, ';', ','), '；', ','), '，', ','), ' ', ''),
-                            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_users, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
-                        ) &gt; 0
-                      </otherwise>
-                    </choose>
+                    <include refid="CsvTokenContains">
+                        <property name="column" value="t.candidate_users"/>
+                        <property name="token" value="#{userId}"/>
+                    </include>
                     )
                     <if test="candidateGroupValues != null and candidateGroupValues.size() > 0">
                     OR (
@@ -396,19 +391,10 @@
                         AND t.candidate_groups != ''
                         AND (
                             <foreach collection="candidateGroupValues" item="groupValue" separator=" OR ">
-                              <choose>
-                                <when test="_databaseId == 'postgresql'">
-                                  #{groupValue} = ANY (string_to_array(
-                                    REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', ''),
-                                    ','))
-                                </when>
-                                <otherwise>
-                                  FIND_IN_SET(
-                                      #{groupValue},
-                                      REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
-                                  ) &gt; 0
-                                </otherwise>
-                              </choose>
+                              <include refid="CsvTokenContains">
+                                  <property name="column" value="t.candidate_groups"/>
+                                  <property name="token" value="#{groupValue}"/>
+                              </include>
                             </foreach>
                         )
                     )
@@ -554,20 +540,10 @@
                         t.candidate_users IS NOT NULL
                         AND t.candidate_users != ''
                         AND
-                        <choose>
-                          <when test="_databaseId == 'postgresql'">
-                            REPLACE(REPLACE(REPLACE(REPLACE(#{userId}, ';', ','), '；', ','), '，', ','), ' ', '')
-                              = ANY (string_to_array(
-                                REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_users, ';', ','), '；', ','), '，', ','), '、', ','), ' ', ''),
-                                ','))
-                          </when>
-                          <otherwise>
-                            FIND_IN_SET(
-                                REPLACE(REPLACE(REPLACE(REPLACE(#{userId}, ';', ','), '；', ','), '，', ','), ' ', ''),
-                                REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_users, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
-                            ) &gt; 0
-                          </otherwise>
-                        </choose>
+                        <include refid="CsvTokenContains">
+                        <property name="column" value="t.candidate_users"/>
+                        <property name="token" value="#{userId}"/>
+                    </include>
                     )
                 )
                 </if>
@@ -589,20 +565,10 @@
                         t.candidate_groups IS NOT NULL
                         AND t.candidate_groups != ''
                         AND
-                        <choose>
-                          <when test="_databaseId == 'postgresql'">
-                            REPLACE(REPLACE(REPLACE(REPLACE(#{groupId}, ';', ','), '；', ','), '，', ','), ' ', '')
-                              = ANY (string_to_array(
-                                REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', ''),
-                                ','))
-                          </when>
-                          <otherwise>
-                            FIND_IN_SET(
-                                REPLACE(REPLACE(REPLACE(REPLACE(#{groupId}, ';', ','), '；', ','), '，', ','), ' ', ''),
-                                REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
-                            ) &gt; 0
-                          </otherwise>
-                        </choose>
+                        <include refid="CsvTokenContains">
+                            <property name="column" value="t.candidate_groups"/>
+                            <property name="token" value="#{groupId}"/>
+                        </include>
                     )
                 )
                 </if>

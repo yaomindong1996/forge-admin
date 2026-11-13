@@ -55,7 +55,7 @@ Forge 后续采用“开源版 + 企业版插件”的模式：
   - `locations` 为文件系统路径，可由 `FORGE_FLYWAY_LOCATIONS` 覆盖。
 - 仓库中没有自定义 `FlywayMigrationStrategy` / `FlywayConfigurationCustomizer`（全局搜索仅 `BusinessApplicationCodegenService` 字符串引用 Flyway，与迁移执行无关）。
 - 踩坑记录 `code-copilot/memory/pitfalls/db-flyway.md` #55：`jobAutoRegistrar` 依赖 `flywayInitializer`。插件迁移必须在同一个初始化阶段完成，否则依赖插件表的 Bean 会先于插件建表执行。
-- 最新迁移版本：`forge-server/db/migration/V1.0.208__expand_tenant_theme_config.sql`。
+- 最新迁移版本：`forge-server/db/mysql/migration/V1.0.208__expand_tenant_theme_config.sql`。
 
 ### 2.3 菜单与权限
 

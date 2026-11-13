@@ -11,7 +11,7 @@
 - 变更范围：`sys_flow_comment_phrase` Flyway、flow plugin Service/Mapper、flow-server Controller、管理页、审批输入组件、待办/请假/采购单/H5。
 - 命令与结果：
   - `git diff --check`：通过。
-  - `rg -n '\$\{[^}]+\}' forge-server/db/migration/V1.0.156__add_flow_comment_phrase.sql`：无匹配。
+  - `rg -n '\$\{[^}]+\}' forge-server/db/mysql/migration/V1.0.156__add_flow_comment_phrase.sql`：无匹配。
   - JDK 17 `mvn -pl forge-framework/forge-plugin-parent/forge-plugin-flow,forge-flow/forge-flow-server -am compile -DskipTests`：BUILD SUCCESS。
   - `mvn -pl forge-framework/forge-plugin-parent/forge-plugin-flow -Penable-tests test -Dtest=FlowCommentPhraseGovernanceContractTest`：Tests run: 3, Failures: 0。
   - `mvn -pl forge-flow/forge-flow-server -Penable-tests test -Dtest=FlowCommentPhraseControllerContractTest`：Tests run: 2, Failures: 0。

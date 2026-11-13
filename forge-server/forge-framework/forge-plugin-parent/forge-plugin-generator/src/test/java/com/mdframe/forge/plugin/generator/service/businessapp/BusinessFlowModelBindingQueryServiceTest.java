@@ -32,8 +32,12 @@ class BusinessFlowModelBindingQueryServiceTest {
             session.when(SessionHelper::getTenantId).thenReturn(7L);
             var query = new BusinessFlowModelBindingsQueryDTO();
             query.setModelKeys(List.of(" A ", "B", "A"));
+            when(mapper.selectFlowBindingsByModelKeys(anyLong(), anyList(), anyList())).thenReturn(List.of());
             new BusinessFlowModelBindingQueryService(mapper).list(query);
-            verify(mapper, times(1)).selectFlowBindingsByModelKeys(7L, List.of("A", "B"));
+            verify(mapper, times(1)).selectFlowBindingsByModelKeys(
+                    eq(7L),
+                    eq(List.of("A", "B")),
+                    eq(List.of("%\"flowModelKey\"%A%", "%\"flowModelKey\"%B%")));
             verifyNoMoreInteractions(mapper);
         }
     }

@@ -21,8 +21,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import com.mdframe.forge.starter.core.enums.EnableStatus;
 
 /**
@@ -224,7 +228,12 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionMapper, AiCha
     }
 
     public AiSessionStatisticsVO getStatistics() {
-        AiSessionStatisticsVO stats = baseMapper.selectStatistics();
+        LocalDate today = LocalDate.now();
+        LocalDateTime todayStart = today.atStartOfDay();
+        LocalDateTime tomorrowStart = today.plusDays(1).atStartOfDay();
+        LocalDateTime since90 = today.minusDays(90).atStartOfDay();
+        LocalDateTime since30 = today.minusDays(30).atStartOfDay();
+        AiSessionStatisticsVO stats = baseMapper.selectStatistics(since90, todayStart, tomorrowStart);
         if (stats == null) {
             stats = new AiSessionStatisticsVO();
             stats.setTotalSessions(0L);
@@ -232,8 +241,10 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionMapper, AiCha
             stats.setTodaySessions(0L);
             stats.setTotalTokenUsage(0L);
         }
-        List<DailyTrendItem> trend = baseMapper.selectDailyTrend();
-        stats.setDailyTrend(trend);
+        List<DailyTrendItem> sparse = new ArrayList<>();
+        sparse.addAll(baseMapper.selectDailySessionTrend(since30));
+        sparse.addAll(baseMapper.selectDailyMessageTrend(since30));
+        stats.setDailyTrend(fillDailyTrend(today.minusDays(29), today, sparse));
         return stats;
     }
 
@@ -242,7 +253,10 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionMapper, AiCha
      * 首字延迟/总耗时/token/状态聚合；完成率、错误率、中断率在此按计数派生。
      */
     public AiExperienceMetricsVO getExperienceMetrics() {
-        AiExperienceMetricsVO metrics = baseMapper.selectExperienceMetrics();
+        LocalDate today = LocalDate.now();
+        LocalDateTime since30 = today.minusDays(30).atStartOfDay();
+        LocalDateTime since14 = today.minusDays(14).atStartOfDay();
+        AiExperienceMetricsVO metrics = baseMapper.selectExperienceMetrics(since30);
         if (metrics == null) {
             metrics = new AiExperienceMetricsVO();
         }
@@ -260,8 +274,100 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionMapper, AiCha
             metrics.setErrorRate(0d);
             metrics.setAbortRate(0d);
         }
-        metrics.setDailyTrend(baseMapper.selectExperienceDailyTrend());
+        metrics.setDailyTrend(fillExperienceTrend(today.minusDays(13), today,
+                baseMapper.selectExperienceDailyTrend(since14)));
         return metrics;
+    }
+
+    private static List<DailyTrendItem> fillDailyTrend(LocalDate from, LocalDate to, List<DailyTrendItem> rows) {
+        Map<String, DailyTrendItem> byDate = new LinkedHashMap<>();
+        if (rows != null) {
+            for (DailyTrendItem row : rows) {
+                String date = normalizeDate(row.getDate());
+                if (date == null) {
+                    continue;
+                }
+                row.setDate(date);
+                row.setSessionCount(nz(row.getSessionCount()));
+                row.setMessageCount(nz(row.getMessageCount()));
+                DailyTrendItem existing = byDate.get(date);
+                if (existing == null) {
+                    byDate.put(date, row);
+                } else {
+                    existing.setSessionCount(Math.max(nz(existing.getSessionCount()), nz(row.getSessionCount())));
+                    existing.setMessageCount(Math.max(nz(existing.getMessageCount()), nz(row.getMessageCount())));
+                }
+            }
+        }
+        List<DailyTrendItem> filled = new ArrayList<>();
+        for (LocalDate cursor = from; !cursor.isAfter(to); cursor = cursor.plusDays(1)) {
+            String date = cursor.toString();
+            DailyTrendItem item = byDate.get(date);
+            if (item == null) {
+                item = new DailyTrendItem();
+                item.setDate(date);
+                item.setSessionCount(0L);
+                item.setMessageCount(0L);
+            }
+            filled.add(item);
+        }
+        return filled;
+    }
+
+    private static List<ExperienceTrendItem> fillExperienceTrend(LocalDate from, LocalDate to,
+                                                                 List<ExperienceTrendItem> rows) {
+        Map<String, ExperienceTrendItem> byDate = new LinkedHashMap<>();
+        if (rows != null) {
+            for (ExperienceTrendItem row : rows) {
+                String date = normalizeDate(row.getDate());
+                if (date == null) {
+                    continue;
+                }
+                row.setDate(date);
+                row.setReplyCount(nz(row.getReplyCount()));
+                row.setAvgFirstTokenMs(nz(row.getAvgFirstTokenMs()));
+                row.setAvgTotalMs(nz(row.getAvgTotalMs()));
+                row.setErrorCount(nz(row.getErrorCount()));
+                row.setAbortedCount(nz(row.getAbortedCount()));
+                byDate.put(date, row);
+            }
+        }
+        List<ExperienceTrendItem> filled = new ArrayList<>();
+        for (LocalDate cursor = from; !cursor.isAfter(to); cursor = cursor.plusDays(1)) {
+            String date = cursor.toString();
+            ExperienceTrendItem item = byDate.get(date);
+            if (item == null) {
+                item = new ExperienceTrendItem();
+                item.setDate(date);
+                item.setReplyCount(0L);
+                item.setAvgFirstTokenMs(0L);
+                item.setAvgTotalMs(0L);
+                item.setErrorCount(0L);
+                item.setAbortedCount(0L);
+            }
+            filled.add(item);
+        }
+        return filled;
+    }
+
+    private static String normalizeDate(Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        if (raw instanceof LocalDate localDate) {
+            return localDate.toString();
+        }
+        if (raw instanceof java.sql.Date sqlDate) {
+            return sqlDate.toLocalDate().toString();
+        }
+        if (raw instanceof java.util.Date utilDate) {
+            return utilDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString();
+        }
+        String text = String.valueOf(raw).trim();
+        if (text.length() >= 10) {
+            return text.substring(0, 10);
+        }
+        return text.isEmpty() ? null : text;
     }
 
     private static long nz(Long v) {

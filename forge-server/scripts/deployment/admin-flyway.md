@@ -2,12 +2,12 @@
 
 当前生产环境、部署基线及回退入口见 [生产部署手册](./production-runbook.md)。
 
-`forge-admin-server.jar` 已通过 Admin POM 打包 `db/migration/*.sql`。
-新版默认读取 `classpath:db/migration`，本地、独立 JAR 和 Docker 无需额外复制或挂载 SQL 目录。
+`forge-admin-server.jar` 已通过 Admin POM 打包 `db/mysql/migration/*.sql`。
+新版默认读取 `classpath:db/mysql/migration`，本地、独立 JAR 和 Docker 无需额外复制或挂载 SQL 目录。
 目录缺失时启动失败，不自动回退到服务器旧文件。旧版本兼容或需要显式固定来源时可以设置：
 
 ```dotenv
-FORGE_FLYWAY_LOCATIONS=classpath:db/migration
+FORGE_FLYWAY_LOCATIONS=classpath:db/mysql/migration
 ```
 
 示例见 [forge-admin.env.example](./forge-admin.env.example)。只将这一项合并到该服务实际使用的
@@ -23,8 +23,8 @@ EnvironmentFile，不覆盖现有变量。服务管理器须将它传给 Java �
 
 ## 本地开发与 IDE
 
-- SQL 源文件仍维护在 `forge-server/db/migration`，不要复制第二套到 `src/main/resources`。
-- Maven 的 resources 阶段会把 SQL 不经占位符过滤地复制到 Admin 的 `target/classes/db/migration`。
+- SQL 源文件仍维护在 `forge-server/db/mysql/migration`，不要复制第二套到 `src/main/resources`。
+- Maven 的 resources 阶段会把 SQL 不经占位符过滤地复制到 Admin 的 `target/classes/db/mysql/migration`。
 - IDE 首次运行或新增 SQL 后，刷新 Maven 项目并构建资源；可在 `forge-server` 执行
   `mvn -pl forge-admin-server -am process-resources -DskipTests`。IDE 输出目录应包含相同的资源根。
 - 确有外部路径需求时仍可通过 `FORGE_FLYWAY_LOCATIONS=filesystem:/绝对路径` 覆盖，

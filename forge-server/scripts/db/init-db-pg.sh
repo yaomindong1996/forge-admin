@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Forge PostgreSQL 数据库初始化：建库 → PG 全量 SQL → required seed →（可选）Flyway 增量。
+# Forge PostgreSQL 数据库初始化：建库 → PG 全量 SQL →（可选）Flyway 增量。
 # 兼容 macOS 自带 bash 3.2。默认社区安装仍使用 init-db.sh（MySQL）。
 set -euo pipefail
 
@@ -14,13 +14,13 @@ RECREATE="false"
 MIGRATE="false"
 ASSUME_YES="false"
 SKIP_ADMIN_INIT="false"
-WITH_DEMO="false"
 
 usage() {
   cat <<'USAGE'
 Usage: init-db-pg.sh [options]
 
-默认流程：创建数据库 → 执行 db/postgresql/全量初始化SQL.sql → 执行 db/seed/required/*.sql。
+默认流程：创建数据库 → 执行 db/postgresql/全量初始化SQL.sql。
+必需基础数据已包含在全量脚本中；增量由 Flyway（或 --migrate）执行。
 
 Options:
   --host HOST              PostgreSQL host, default 127.0.0.1
@@ -30,8 +30,7 @@ Options:
   --password PASSWORD      PostgreSQL password（也可用环境变量 PGPASSWORD）
   --skip-admin-init        跳过全量 SQL
   --recreate               先 DROP 再重建数据库
-  --migrate                导入后用 Flyway 执行 db/migration/postgresql 增量（需要 Maven）
-  --with-demo              导入 demo seed（若脚本含 MySQL 方言可能失败，优先用中立 seed）
+  --migrate                导入后用 Flyway 执行 db/postgresql/migration 增量（需要 Maven）
   --yes                    --recreate 时跳过确认
   -h, --help               Show help
 
@@ -50,10 +49,13 @@ while [[ $# -gt 0 ]]; do
     --database) require_value "$1" "${2:-}"; DATABASE="$2"; shift 2 ;;
     --user) require_value "$1" "${2:-}"; USER="$2"; shift 2 ;;
     --password) require_value "$1" "${2:-}"; PASSWORD="$2"; shift 2 ;;
+    --with-demo)
+      echo "WARN: --with-demo 已废弃（db/seed 已移除），忽略。" >&2
+      shift
+      ;;
     --skip-admin-init) SKIP_ADMIN_INIT="true"; shift ;;
     --recreate) RECREATE="true"; shift ;;
     --migrate) MIGRATE="true"; shift ;;
-    --with-demo) WITH_DEMO="true"; shift ;;
     --yes) ASSUME_YES="true"; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
@@ -100,36 +102,15 @@ if [[ "$SKIP_ADMIN_INIT" != "true" ]]; then
   psql_db -f "$ADMIN_INIT_SQL"
 fi
 
-SEED_REQUIRED="$FORGE_DIR/db/seed/required"
-if [[ -d "$SEED_REQUIRED" ]]; then
-  echo "Importing required seeds from $SEED_REQUIRED ..."
-  # Prefer dialect-neutral seeds; skip obviously MySQL-only snippets when possible.
-  shopt -s nullglob
-  for f in "$SEED_REQUIRED"/*.sql; do
-    echo "  -> $(basename "$f")"
-    psql_db -f "$f" || echo "WARN: seed failed (可能含 MySQL 方言): $f" >&2
-  done
-fi
-
-if [[ "$WITH_DEMO" == "true" ]]; then
-  DEMO_DIR="$FORGE_DIR/db/seed/demo"
-  if [[ -d "$DEMO_DIR" ]]; then
-    for f in "$DEMO_DIR"/*.sql; do
-      echo "  demo -> $(basename "$f")"
-      psql_db -f "$f" || echo "WARN: demo seed failed: $f" >&2
-    done
-  fi
-fi
-
 if [[ "$MIGRATE" == "true" ]]; then
-  echo "Running Flyway migrations from db/migration/postgresql ..."
+  echo "Running Flyway migrations from db/postgresql/migration ..."
   (
     cd "$FORGE_DIR/forge-admin-server"
     mvn -q flyway:migrate \
       -Dflyway.url="jdbc:postgresql://${HOST}:${PORT}/${DATABASE}" \
       -Dflyway.user="$USER" \
       -Dflyway.password="$PASSWORD" \
-      -Dflyway.locations="filesystem:$FORGE_DIR/db/migration/postgresql" \
+      -Dflyway.locations="filesystem:$FORGE_DIR/db/postgresql/migration" \
       -Dflyway.table="forge_schema_history" \
       -Dflyway.baselineOnMigrate=true \
       -Dflyway.baselineVersion=1.0.233

@@ -35,7 +35,7 @@
         FROM ai_report_directory
         WHERE del_flag = '0'
           AND (id = #{directoryId}
-              OR FIND_IN_SET(#{directoryId}, ancestors) > 0)
+              OR CONCAT(',', COALESCE(ancestors, ''), ',') LIKE CONCAT('%,', #{directoryId}, ',%'))
         ORDER BY sort ASC, create_time DESC
     </select>
 
@@ -49,7 +49,7 @@
     <select id="selectDescendants" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List" />
         FROM ai_report_directory
-        WHERE FIND_IN_SET(#{directoryId}, ancestors) > 0
+        WHERE CONCAT(',', COALESCE(ancestors, ''), ',') LIKE CONCAT('%,', #{directoryId}, ',%')
           AND del_flag = '0'
         ORDER BY ancestors ASC, sort ASC, create_time DESC
     </select>

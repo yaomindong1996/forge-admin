@@ -138,8 +138,14 @@
         LIMIT 1
     </select>
 
+    <!--
+      JSON / codeApp 不在 SQL 解析：选出原文后由 BusinessBindingSummarySupport 处理，
+      避免 JSON_VALID / JSON_EXTRACT / PG 正则等方言，后续兼容其它库无需改此片段。
+    -->
     <sql id="FlowBindingSummaryColumns">
           b.id AS bindingId,
+          b.binding_key AS bindingKey,
+          b.binding_config AS bindingConfigJson,
           b.binding_name AS bindingName,
           b.target_code AS objectCode,
           COALESCE(o.object_name, b.target_code) AS objectName,
@@ -184,19 +190,8 @@
             LIMIT 1
           ) AS applicationName,
           s.suite_name AS suiteName,
-          CASE
-            WHEN JSON_VALID(o.options) AND JSON_UNQUOTE(JSON_EXTRACT(o.options, '$.codeApp')) = 'true' THEN 1
-            WHEN JSON_VALID(o.designer_options) AND JSON_UNQUOTE(JSON_EXTRACT(o.designer_options, '$.codeApp')) = 'true' THEN 1
-            ELSE 0
-          END AS codeApp,
-          CONCAT(
-            '/app-center/object/', b.target_code, '/designer?panel=flow-app',
-            CASE
-              WHEN JSON_VALID(o.options) AND JSON_UNQUOTE(JSON_EXTRACT(o.options, '$.codeApp')) = 'true' THEN '&amp;codeApp=1'
-              WHEN JSON_VALID(o.designer_options) AND JSON_UNQUOTE(JSON_EXTRACT(o.designer_options, '$.codeApp')) = 'true' THEN '&amp;codeApp=1'
-              ELSE ''
-            END
-          ) AS entryRoute
+          o.options AS optionsJson,
+          o.designer_options AS designerOptionsJson
     </sql>
 
     <sql id="FlowBindingSummaryJoins">
@@ -222,39 +217,39 @@
           AND o.id IS NOT NULL
           AND (
             b.binding_key = #{modelKey}
-            OR (
-              JSON_VALID(b.binding_config)
-              AND JSON_UNQUOTE(JSON_EXTRACT(b.binding_config, '$.flowModelKey')) = #{modelKey}
-            )
+            OR b.binding_config LIKE #{modelKeyLikeNeedle}
           )
         ORDER BY COALESCE(o.sort_order, 0) ASC, b.sort_order ASC, b.id ASC
     </select>
 
     <select id="selectFlowBindingsByModelKeys" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessBindingSummaryVO">
-        SELECT requested.model_key AS flowModelKey,
+        SELECT b.binding_key AS flowModelKey,
         <include refid="FlowBindingSummaryColumns"/>
-        FROM (
-            <choose>
-                <when test="modelKeys != null and modelKeys.size() > 0">
-                    <foreach collection="modelKeys" item="modelKey" separator=" UNION ALL ">
-                        SELECT #{modelKey} AS model_key
-                    </foreach>
-                </when>
-                <otherwise>SELECT NULL AS model_key WHERE 1 = 0</otherwise>
-            </choose>
-        ) requested
-        INNER JOIN ai_business_binding b ON b.tenant_id = #{tenantId}
-          AND (b.binding_key = requested.model_key OR
-            CASE WHEN JSON_VALID(b.binding_config)
-                 THEN JSON_UNQUOTE(JSON_EXTRACT(b.binding_config, '$.flowModelKey'))
-                 ELSE NULL END = requested.model_key)
+        FROM ai_business_binding b
         <include refid="FlowBindingSummaryJoins"/>
         WHERE b.tenant_id = #{tenantId}
           AND b.target_type = 'OBJECT'
           AND b.binding_type IN ('FLOW', 'APPROVAL')
           AND b.status = 1
           AND o.id IS NOT NULL
-        ORDER BY requested.model_key ASC, COALESCE(o.sort_order, 0) ASC, b.sort_order ASC, b.id ASC
+          AND (
+            <choose>
+                <when test="modelKeys != null and modelKeys.size() > 0">
+                    b.binding_key IN
+                    <foreach collection="modelKeys" item="modelKey" open="(" separator="," close=")">
+                        #{modelKey}
+                    </foreach>
+                    <if test="modelKeyLikeNeedles != null and modelKeyLikeNeedles.size() > 0">
+                    OR
+                    <foreach collection="modelKeyLikeNeedles" item="needle" separator=" OR ">
+                        b.binding_config LIKE #{needle}
+                    </foreach>
+                    </if>
+                </when>
+                <otherwise>1 = 0</otherwise>
+            </choose>
+          )
+        ORDER BY COALESCE(o.sort_order, 0) ASC, b.sort_order ASC, b.id ASC
     </select>
 
     <select id="selectByApplication" resultMap="BaseResultMap">

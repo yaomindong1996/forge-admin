@@ -35,7 +35,7 @@
 ### Task 3: Add Flyway indexes
 
 **Files:**
-- Create: `forge-server/db/migration/V1.0.135__optimize_flow_task_list_queries.sql`
+- Create: `forge-server/db/mysql/migration/V1.0.135__optimize_flow_task_list_queries.sql`
 
 - [ ] Add guarded composite indexes for tenant/assignee/status/create_time and tenant/assignee/status/complete_time.
 - [ ] Add guarded indexes for task start user and candidate group lookup where supported by the revised query.

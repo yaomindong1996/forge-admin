@@ -5,10 +5,10 @@ import { fileURLToPath } from 'node:url'
 import test from 'node:test'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')
-const migrationDir = path.join(root, 'forge-server/db/migration')
+const migrationDir = path.join(root, 'forge-server/db/mysql/migration')
 const migrationName = 'V1.0.208__expand_tenant_theme_config.sql'
 const read = file => readFileSync(path.join(root, file), 'utf8')
-const sql = read(`forge-server/db/migration/${migrationName}`)
+const sql = read(`forge-server/db/mysql/migration/${migrationName}`)
 
 // 只检查脚本契约，不连接 MySQL、不执行迁移；实际 DDL 验收由用户执行。
 test('新版本唯一，旧迁移不复用', () => {
@@ -38,7 +38,7 @@ test('文本扩容保留字符集和排序规则，不截断或改写租户数�
 })
 
 test('全量与 Docker 初始化均使用 TEXT，两个脚本字节一致', () => {
-  const full = read('forge-server/db/全量初始化SQL.sql')
+  const full = read('forge-server/db/mysql/全量初始化SQL.sql')
   const docker = read('docker-forge-admin/init-sql/01-init.sql')
   assert.match(full, /`theme_config` text DEFAULT NULL COMMENT '主题配置'/)
   assert.doesNotMatch(full, /`theme_config` varchar\(1000\)/)

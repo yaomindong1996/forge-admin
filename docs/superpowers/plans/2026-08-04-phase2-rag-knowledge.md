@@ -43,7 +43,7 @@
 ### Task 1: RAG 数据库迁移（表结构 + 字典 + 菜单）
 
 **Files:**
-- Create: `forge-server/db/migration/V1.0.87__add_ai_knowledge_rag.sql`
+- Create: `forge-server/db/mysql/migration/V1.0.87__add_ai_knowledge_rag.sql`
 
 **Interfaces:**
 - Produces: 表 `ai_store_instance`、`ai_knowledge`、`ai_knowledge_document`、`ai_knowledge_chunk`；字典 `ai_store_instance_category`、`ai_vector_store_type`、`ai_knowledge_status`；菜单"知识库"分组
@@ -174,7 +174,7 @@ CREATE TABLE IF NOT EXISTS `ai_knowledge_chunk` (
 - [ ] **Step 6: 提交**
 
 ```bash
-git add forge-server/db/migration/V1.0.87__add_ai_knowledge_rag.sql
+git add forge-server/db/mysql/migration/V1.0.87__add_ai_knowledge_rag.sql
 git commit -m "feat(db): RAG 知识库表结构、字典与菜单"
 ```
 
@@ -733,7 +733,7 @@ git commit -m "feat(ai): 知识库/存储实例CRUD与检索调试接口"
 - Create: `.../rag/service/RagForcedInjector.java`
 - Modify: `.../ai/chat/service/AiChatService.java`（三期对话前注入 RAG）
 - Modify: `.../ai/agent/controller/AiAgentController.java`（三期 Agent 保存知识库绑定）
-- Modify: `forge-server/db/migration/V1.0.88__add_agent_engine_event_skill.sql`（三期补 ai_agent 列）
+- Modify: `forge-server/db/mysql/migration/V1.0.88__add_agent_engine_event_skill.sql`（三期补 ai_agent 列）
 - Test: `.../rag/service/RagForcedInjectorTest.java`
 
 **Interfaces:**
@@ -781,7 +781,7 @@ Expected: PASS
 - [ ] **Step 6（三期）: 提交**
 
 ```bash
-git add forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/rag/service/ forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/agent/ forge-server/db/migration/
+git add forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/rag/service/ forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/agent/ forge-server/db/mysql/migration/
 git commit -m "feat(ai): Agent绑定知识库与Forced模式注入"
 ```
 

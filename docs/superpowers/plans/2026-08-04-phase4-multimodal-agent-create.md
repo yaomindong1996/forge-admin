@@ -36,7 +36,7 @@
 ### Task 1: 数据库迁移（多模态记录表 + AI 创建 Agent 记录 + 菜单）
 
 **Files:**
-- Create: `forge-server/db/migration/V1.0.89__add_ai_multimodal_agent_create.sql`
+- Create: `forge-server/db/mysql/migration/V1.0.89__add_ai_multimodal_agent_create.sql`
 
 **Interfaces:**
 - Produces: 表 `ai_image_generate_record`、`ai_agent_generate_record`；字典 + 菜单
@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_generate_record` (
 - [x] **Step 4: 提交**
 
 ```bash
-git add forge-server/db/migration/V1.0.89__add_ai_multimodal_agent_create.sql
+git add forge-server/db/mysql/migration/V1.0.89__add_ai_multimodal_agent_create.sql
 git commit -m "feat(db): 多模态与AI创建Agent表结构"
 ```
 
@@ -164,7 +164,7 @@ git commit -m "feat(ai): 图片生成能力与Agent工具"
 - Create: `.../multimodal/voice/controller/AiVoiceController.java`
 - Modify: `.../model/adapter/AiModelAdapterRegistry.java`（新增 `List<AiAsrModelAdapter>`/`List<AiTtsModelAdapter>` + `getAsr(modelKey)`/`getTts(modelKey)`）
 - Modify: `.../agent/domain/AiAgent.java`（新增 `asr_model_id`/`tts_model_id` 可选字段）
-- Modify: `forge-server/db/migration/V1.0.89__add_ai_multimodal_agent_create.sql`（ai_agent 补 `asr_model_id`/`tts_model_id` 列，幂等）
+- Modify: `forge-server/db/mysql/migration/V1.0.89__add_ai_multimodal_agent_create.sql`（ai_agent 补 `asr_model_id`/`tts_model_id` 列，幂等）
 - Test: `.../multimodal/voice/AiVoiceServiceTest.java`
 
 **Interfaces:**

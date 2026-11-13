@@ -8,10 +8,9 @@ EXPECTED_COLLATION="utf8mb4_0900_ai_ci"
 INIT_SCRIPT="$PROJECT_DIR/forge-server/scripts/db/init-db.sh"
 COMPOSE_FILE="$PROJECT_DIR/docker-forge-admin/docker-compose.yml"
 ACTIVE_SQL_PATHS=(
-  "$PROJECT_DIR/forge-server/db/全量初始化SQL.sql"
+  "$PROJECT_DIR/forge-server/db/mysql/全量初始化SQL.sql"
   "$PROJECT_DIR/docker-forge-admin/init-sql/01-init.sql"
-  "$PROJECT_DIR/forge-server/db/seed"
-  "$PROJECT_DIR/forge-server/forge-report-server/sql"
+    "$PROJECT_DIR/forge-server/forge-report-server/sql"
   "$PROJECT_DIR/forge-server/forge-framework"
 )
 CONFIG_AND_GUIDE_PATHS=(
@@ -88,7 +87,7 @@ require_pattern \
   "Docker MySQL must use $EXPECTED_COLLATION"
 require_pattern \
   "SET NAMES utf8mb4 COLLATE $EXPECTED_COLLATION" \
-  "$PROJECT_DIR/forge-server/db/全量初始化SQL.sql" \
+  "$PROJECT_DIR/forge-server/db/mysql/全量初始化SQL.sql" \
   "the server full initialization SQL must set the expected connection collation"
 require_pattern \
   "SET NAMES utf8mb4 COLLATE $EXPECTED_COLLATION" \
@@ -96,7 +95,7 @@ require_pattern \
   "the Docker full initialization SQL must set the expected connection collation"
 require_pattern \
   "ALTER DATABASE CHARACTER SET utf8mb4 COLLATE $EXPECTED_COLLATION" \
-  "$PROJECT_DIR/forge-server/db/全量初始化SQL.sql" \
+  "$PROJECT_DIR/forge-server/db/mysql/全量初始化SQL.sql" \
   "the server full initialization SQL must align the selected database default"
 require_pattern \
   "ALTER DATABASE CHARACTER SET utf8mb4 COLLATE $EXPECTED_COLLATION" \

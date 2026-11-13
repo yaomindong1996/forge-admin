@@ -43,9 +43,15 @@ public interface FormulaFunctionMapper extends BaseMapper<AiFormulaFunction> {
 
     List<FormulaFunctionMarketResponse> selectInstalledFunctionDefinitions(@Param("tenantId") Long tenantId);
 
-    int upsertFormulaFunction(AiFormulaFunction function);
+    int insertFormulaFunction(AiFormulaFunction function);
 
-    int upsertFunctionVersion(AiFormulaFunctionVersion version);
+    int updateFormulaFunctionByUk(AiFormulaFunction function);
 
-    int upsertFunctionInstall(AiFormulaFunctionInstall install);
+    int insertFunctionVersion(AiFormulaFunctionVersion version);
+
+    int updateFunctionVersionByUk(AiFormulaFunctionVersion version);
+
+    int insertFunctionInstall(AiFormulaFunctionInstall install);
+
+    int updateFunctionInstallByUk(AiFormulaFunctionInstall install);
 }

@@ -59,39 +59,29 @@
 
     <select id="selectStatistics" resultType="com.mdframe.forge.plugin.ai.session.vo.AiSessionStatisticsVO">
         SELECT
-            (SELECT COUNT(*) FROM ai_chat_session WHERE status = '0' AND create_time &gt;= DATE_SUB(NOW(), INTERVAL 90 DAY)) AS totalSessions,
-            (SELECT COUNT(*) FROM ai_chat_record WHERE del_flag = 0 AND create_time &gt;= DATE_SUB(NOW(), INTERVAL 90 DAY)) AS totalMessages,
-            (SELECT COUNT(*) FROM ai_chat_session WHERE status = '0' AND DATE(create_time) = CURDATE()) AS todaySessions,
-            (SELECT COALESCE(SUM(token_usage), 0) FROM ai_chat_record WHERE del_flag = 0 AND create_time &gt;= DATE_SUB(NOW(), INTERVAL 90 DAY)) AS totalTokenUsage
+            (SELECT COUNT(*) FROM ai_chat_session WHERE status = '0' AND create_time &gt;= #{since90}) AS totalSessions,
+            (SELECT COUNT(*) FROM ai_chat_record WHERE del_flag = 0 AND create_time &gt;= #{since90}) AS totalMessages,
+            (SELECT COUNT(*) FROM ai_chat_session WHERE status = '0' AND create_time &gt;= #{todayStart} AND create_time &lt; #{tomorrowStart}) AS todaySessions,
+            (SELECT COALESCE(SUM(token_usage), 0) FROM ai_chat_record WHERE del_flag = 0 AND create_time &gt;= #{since90}) AS totalTokenUsage
     </select>
 
-    <select id="selectDailyTrend" resultType="com.mdframe.forge.plugin.ai.session.vo.DailyTrendItem">
-        SELECT
-            d.date,
-            COALESCE(s.cnt, 0) AS sessionCount,
-            COALESCE(r.cnt, 0) AS messageCount
-        FROM (
-            SELECT DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL n DAY), '%Y-%m-%d') AS date
-            FROM (SELECT 0 AS n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
-                  UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9
-                  UNION SELECT 10 UNION SELECT 11 UNION SELECT 12 UNION SELECT 13 UNION SELECT 14
-                  UNION SELECT 15 UNION SELECT 16 UNION SELECT 17 UNION SELECT 18 UNION SELECT 19
-                  UNION SELECT 20 UNION SELECT 21 UNION SELECT 22 UNION SELECT 23 UNION SELECT 24
-                  UNION SELECT 25 UNION SELECT 26 UNION SELECT 27 UNION SELECT 28 UNION SELECT 29) nums
-        ) d
-        LEFT JOIN (
-            SELECT DATE(create_time) AS dt, COUNT(*) AS cnt
-            FROM ai_chat_session
-            WHERE create_time >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-            GROUP BY DATE(create_time)
-        ) s ON d.date = s.dt
-        LEFT JOIN (
-            SELECT DATE(create_time) AS dt, COUNT(*) AS cnt
-            FROM ai_chat_record
-            WHERE del_flag = 0 AND create_time >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-            GROUP BY DATE(create_time)
-        ) r ON d.date = r.dt
-        ORDER BY d.date
+    <select id="selectDailySessionTrend" resultType="com.mdframe.forge.plugin.ai.session.vo.DailyTrendItem">
+        SELECT DATE(create_time) AS date,
+               COUNT(*) AS sessionCount,
+               0 AS messageCount
+        FROM ai_chat_session
+        WHERE create_time &gt;= #{since}
+        GROUP BY DATE(create_time)
+    </select>
+
+    <select id="selectDailyMessageTrend" resultType="com.mdframe.forge.plugin.ai.session.vo.DailyTrendItem">
+        SELECT DATE(create_time) AS date,
+               0 AS sessionCount,
+               COUNT(*) AS messageCount
+        FROM ai_chat_record
+        WHERE del_flag = 0
+          AND create_time &gt;= #{since}
+        GROUP BY DATE(create_time)
     </select>
 
     <select id="selectExperienceMetrics" resultType="com.mdframe.forge.plugin.ai.session.vo.AiExperienceMetricsVO">
@@ -107,36 +97,21 @@
             COALESCE(ROUND(AVG(CASE WHEN token_usage IS NOT NULL AND token_usage &gt; 0 THEN token_usage END)), 0) AS avgTokenUsage
         FROM ai_chat_record
         WHERE del_flag = 0 AND role = 'assistant'
-          AND create_time &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY)
+          AND create_time &gt;= #{since}
     </select>
 
     <select id="selectExperienceDailyTrend" resultType="com.mdframe.forge.plugin.ai.session.vo.ExperienceTrendItem">
-        SELECT
-            d.date,
-            COALESCE(r.cnt, 0) AS replyCount,
-            COALESCE(r.avg_first, 0) AS avgFirstTokenMs,
-            COALESCE(r.avg_total, 0) AS avgTotalMs,
-            COALESCE(r.err, 0) AS errorCount,
-            COALESCE(r.abt, 0) AS abortedCount
-        FROM (
-            SELECT DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL n DAY), '%Y-%m-%d') AS date
-            FROM (SELECT 0 AS n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
-                  UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9
-                  UNION SELECT 10 UNION SELECT 11 UNION SELECT 12 UNION SELECT 13) nums
-        ) d
-        LEFT JOIN (
-            SELECT DATE(create_time) AS dt,
-                   COUNT(*) AS cnt,
-                   ROUND(AVG(CASE WHEN first_token_ms IS NOT NULL THEN first_token_ms END)) AS avg_first,
-                   ROUND(AVG(CASE WHEN total_ms IS NOT NULL THEN total_ms END)) AS avg_total,
-                   SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) AS err,
-                   SUM(CASE WHEN status = 'aborted' THEN 1 ELSE 0 END) AS abt
-            FROM ai_chat_record
-            WHERE del_flag = 0 AND role = 'assistant'
-              AND create_time &gt;= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
-            GROUP BY DATE(create_time)
-        ) r ON d.date = r.dt
-        ORDER BY d.date
+        SELECT DATE(create_time) AS date,
+               COUNT(*) AS replyCount,
+               ROUND(AVG(CASE WHEN first_token_ms IS NOT NULL THEN first_token_ms END)) AS avgFirstTokenMs,
+               ROUND(AVG(CASE WHEN total_ms IS NOT NULL THEN total_ms END)) AS avgTotalMs,
+               SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) AS errorCount,
+               SUM(CASE WHEN status = 'aborted' THEN 1 ELSE 0 END) AS abortedCount
+        FROM ai_chat_record
+        WHERE del_flag = 0 AND role = 'assistant'
+          AND create_time &gt;= #{since}
+        GROUP BY DATE(create_time)
+        ORDER BY DATE(create_time)
     </select>
 
 </mapper>
