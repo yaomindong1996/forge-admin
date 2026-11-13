@@ -36,3 +36,5 @@ build/
 
 ### Deploy (包含服务器密码等敏感信息) ###
 forge-admin-server/deploy/
+
+!db/**/migration/README.md
