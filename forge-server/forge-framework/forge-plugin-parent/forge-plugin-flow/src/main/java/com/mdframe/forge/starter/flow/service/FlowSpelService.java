@@ -1,5 +1,6 @@
 package com.mdframe.forge.starter.flow.service;
 
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.engine.delegate.DelegateExecution;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -394,7 +395,12 @@ public class FlowSpelService {
                 log.error("SPEL: 展开候选组会签失败：group={}", group, e);
             }
         }
-        return toUserList(users);
+        List<String> result = toUserList(users);
+        if (result.isEmpty()) {
+            // 会签集合为空时 Flowable 不会生成任何任务，实例会停在该节点且无人可办；直接拒绝发起
+            throw new BusinessException("会签节点的候选角色或用户组没有可审批人员：" + groups);
+        }
+        return result;
     }
 
 }

@@ -6,6 +6,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -34,5 +35,16 @@ class FlowSpelServiceUserListTest {
         when(org.getUserIdsByGroupCode("qa_group")).thenReturn(List.of("70", "88"));
 
         assertThat(service.toGroupUserList("ZFMANA,qa_group")).containsExactly("1", "70", "88");
+    }
+
+    @Test
+    void refusesToStartCountersignWithoutAnyApprover() {
+        FlowOrgIntegrationService org = mock(FlowOrgIntegrationService.class);
+        ReflectionTestUtils.setField(service, "flowOrgIntegrationService", org);
+        when(org.getUserIdsByRoleCode("ZFMANA")).thenReturn(List.of());
+        when(org.getUserIdsByGroupCode("ZFMANA")).thenReturn(List.of());
+
+        assertThatThrownBy(() -> service.toGroupUserList("ZFMANA"))
+                .hasMessageContaining("没有可审批人员");
     }
 }
