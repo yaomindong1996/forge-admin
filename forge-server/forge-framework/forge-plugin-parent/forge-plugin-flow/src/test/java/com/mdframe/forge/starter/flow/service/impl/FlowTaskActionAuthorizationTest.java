@@ -74,6 +74,40 @@ class FlowTaskActionAuthorizationTest {
                 .hasMessage("当前用户不是任务办理人");
     }
 
+    @Test
+    void shouldLetNewAssigneeActAfterDelegate() {
+        FlowTask task = delegatedTask("202");
+
+        assertThat(FlowTaskActionAuthorization.authorize(
+                task, "202", 1L, "APPROVE", "key-approve", "sha256:approve", FlowTaskStatus.APPROVED)).isFalse();
+        assertThat(FlowTaskActionAuthorization.authorize(
+                task, "202", 1L, "DELEGATE", "key-again", "sha256:again", FlowTaskStatus.CLAIMED)).isFalse();
+    }
+
+    @Test
+    void shouldStillReplayDelegateRetryFromOriginalOwner() {
+        assertThat(FlowTaskActionAuthorization.authorize(
+                delegatedTask("202"), "101", 1L, "DELEGATE", "key-delegate", "sha256:delegate",
+                FlowTaskStatus.CLAIMED)).isTrue();
+    }
+
+    @Test
+    void shouldRejectOriginalOwnerNewActionAfterDelegate() {
+        assertThatThrownBy(() -> FlowTaskActionAuthorization.authorize(
+                delegatedTask("202"), "101", 1L, "APPROVE", "key-approve", "sha256:approve",
+                FlowTaskStatus.APPROVED))
+                .hasMessage("当前用户不是任务办理人");
+    }
+
+    private FlowTask delegatedTask(String newAssignee) {
+        FlowTask task = task(1L, newAssignee, FlowTaskStatus.CLAIMED);
+        task.setOwner("101");
+        task.setActionIdempotencyKey("key-delegate");
+        task.setActionRequestDigest("sha256:delegate");
+        task.setActionType("DELEGATE");
+        return task;
+    }
+
     private FlowTask task(Long tenantId, String assignee, FlowTaskStatus status) {
         FlowTask task = new FlowTask();
         task.setTenantId(tenantId);

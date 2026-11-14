@@ -9,6 +9,8 @@ import com.mdframe.forge.starter.flow.enums.FlowTaskStatus;
  */
 final class FlowTaskActionAuthorization {
 
+    private static final String NON_FINAL_ACTION_TYPE_DELEGATE = "DELEGATE";
+
     private FlowTaskActionAuthorization() {
     }
 
@@ -48,7 +50,7 @@ final class FlowTaskActionAuthorization {
         if (!actionableStatus) {
             throw new BusinessException("任务当前状态不可办理");
         }
-        if (task.getActionIdempotencyKey() != null) {
+        if (holdsFinalActionKey(task)) {
             throw new BusinessException("任务动作幂等冲突，请刷新后重试");
         }
         if ((idempotencyKey == null) != (requestDigest == null)) {
@@ -69,9 +71,18 @@ final class FlowTaskActionAuthorization {
         if (same && completedStatus != null && completedStatus.matches(task.getStatus())) {
             return true;
         }
-        if (task.getActionIdempotencyKey() != null) {
+        if (holdsFinalActionKey(task)) {
             throw new BusinessException("任务动作幂等冲突，请刷新后重试");
         }
         return false;
+    }
+
+    /**
+     * 转办后任务仍在运行，留下的幂等键只用于识别原操作者的重试；
+     * 不能因此阻止新办理人继续审批、驳回或再次转办。
+     */
+    private static boolean holdsFinalActionKey(FlowTask task) {
+        return task.getActionIdempotencyKey() != null
+                && !NON_FINAL_ACTION_TYPE_DELEGATE.equals(task.getActionType());
     }
 }
