@@ -120,7 +120,7 @@
             </div>
             <div class="approval-field">
               <span class="approval-label">发起时间</span>
-              <span class="approval-value">{{ currentTask.createTime || '-' }}</span>
+              <span class="approval-value">{{ getProcessStartTime(approvalHistory) }}</span>
             </div>
           </div>
         </section>
@@ -302,7 +302,7 @@ import { useUserStore } from '@/store'
 import { createFlowActionCredentials } from '@/utils/flow-action-idempotency'
 import WorkspaceSummaryMetrics from '@/views/workspace/WorkspaceSummaryMetrics.vue'
 import { buildFlowCategoryTreeOptions, resolveFlowCategoryLabel } from './utils/categoryOptions'
-import { getRowDisplayTitle, getTaskDisplayName } from './utils/processDisplay'
+import { getProcessStartTime, getRowDisplayTitle, getTaskDisplayName } from './utils/processDisplay'
 import { buildReduceSignOptions, getSignRelationUserName } from './utils/signRelations'
 
 const userStore = useUserStore()

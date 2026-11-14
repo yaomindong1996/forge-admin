@@ -30,6 +30,12 @@ export function getBusinessFormDisplayTitle(context = {}, fallback = '业务表�
   return firstText(summary, objectName, context.formName, fallback)
 }
 
+// 任务 createTime 是当前节点到达时间；流程发起时间只能取审批时间轴里的 start 记录
+export function getProcessStartTime(history = [], fallback = '-') {
+  const start = (Array.isArray(history) ? history : []).find(record => record?.action === 'start')
+  return firstText(start?.createTime, start?.completeTime).replace('T', ' ') || fallback
+}
+
 export function getTaskHandlerName(row = {}, fallback = '-') {
   if (!row?.assignee && row?.candidateUsers)
     return firstText(row.assigneeName, '待认领')

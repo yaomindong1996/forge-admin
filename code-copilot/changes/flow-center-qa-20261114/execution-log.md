@@ -63,3 +63,8 @@
 - `npx vitest run src/views/flow/utils/__tests__/signRelations.spec.js`：2 passed；eslint 通过；`pnpm check:edition` 通过；
   `pnpm quality:check` 无新增发现（仍为既有 800 条 stale 基线，未 prune）。
 - 演示 Admin 会话中途失效被登出（验证码登录需人工），减签/转办/驳回/撤回/抄送的浏览器验证待重新登录后继续。
+- 重新登录后继续：加签记录显示 test33 ✓；减签只列 test33，「减签成功」后记录变「已撤回」✓；改派 test33 / 改回 admin「当前任务已改派」✓；
+  转办 test33「转办成功」，时间轴显示 test33 + 转办说明 ✓。
+- 改派回 admin 后同意报「任务动作幂等冲突」→ 修复 FlowTaskActionAuthorization；plugin-flow 213、flow-server 43 通过；部署 Flow `1.2.1-150bdb5c8-fonts` healthy、字体库 6/6；
+  同一任务重试「审批通过」✓。审批B 驳回弹窗仅列「审批A」，「已退回」后回到审批A ✓。
+- 发起时间修复：`npx vitest run src/views/flow` 12 文件 53 用例通过；浏览器待办详情显示 2026-11-14 14:29:39 ✓。

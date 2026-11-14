@@ -272,7 +272,7 @@
             </div>
             <div class="approval-field">
               <span class="approval-label">发起时间</span>
-              <span class="approval-value">{{ currentTask.createTime || '-' }}</span>
+              <span class="approval-value">{{ getProcessStartTime(approvalHistory) }}</span>
             </div>
             <div class="approval-field">
               <span class="approval-label">任务状态</span>

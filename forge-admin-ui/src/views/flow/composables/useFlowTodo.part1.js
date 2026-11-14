@@ -25,7 +25,7 @@ import { createFlowActionCredentials } from '@/utils/flow-action-idempotency'
 import { applyChildTableFieldPermissions, childTableKeysAlias } from '@/utils/flow-field-permissions'
 import { buildFlowCategoryTreeOptions, resolveFlowCategoryLabel } from '../utils/categoryOptions'
 import { FLOW_PRIORITY_LABEL_FALLBACK, getFlowPriorityClass, isUrgentFlowPriority, resolveFlowPriorityLevel, shouldShowFlowPriority } from '../utils/priority'
-import { getBusinessFormDisplayTitle, getProcessDisplayName, getRowDisplayTitle, getTaskDisplayName, getTaskHandlerName } from '../utils/processDisplay'
+import { getBusinessFormDisplayTitle, getProcessDisplayName, getProcessStartTime, getRowDisplayTitle, getTaskDisplayName, getTaskHandlerName } from '../utils/processDisplay'
 import { resolveBusinessTaskAiFormSchema } from '../utils/resolveBusinessTaskAiFormSchema'
 import { loadTaskFormBundle } from '../utils/task-form-bundle'
 export function applyFlowTodoPart1() {
@@ -1202,6 +1202,6 @@ export function applyFlowTodoPart1() {
     approveSignatureKey, claimLoadingTaskId, quickActionVisible, quickActionLoading, quickActionType, quickActionTargets, quickActionFailedTargets, quickActionForm,
     quickActionInputRef, quickActionIsApprove, quickActionTitle, quickActionTitleId, quickActionSubject, quickActionMeta, showDelegateModal, showUserSelectModal,
     delegateLoading, delegateTargetUser, delegateForm, delegateSignatureRef, delegateSignatureKey, routeTaskOpening, statusOptions, isApprovalBusy,
-    dict, getLabel, getRowDisplayTitle, getTaskDisplayName, getProcessDisplayName, getTaskHandlerName, isUrgentFlowPriority,
+    dict, getLabel, getRowDisplayTitle, getTaskDisplayName, getProcessDisplayName, getProcessStartTime, getTaskHandlerName, isUrgentFlowPriority,
   }
 }

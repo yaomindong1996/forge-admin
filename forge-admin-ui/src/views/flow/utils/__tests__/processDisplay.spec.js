@@ -3,6 +3,7 @@ import {
   buildTaskBusinessHeadline,
   buildTaskDisplayFields,
   getProcessDisplayName,
+  getProcessStartTime,
   getRowDisplayTitle,
   getTaskHandlerName,
   hasTaskBusinessSummary,
@@ -88,7 +89,7 @@ describe('getRowDisplayTitle', () => {
     })).toBe('测试-5.0')
   })
 
-    it('列表标题不回退到业务主键或模型 Key', () => {
+  it('列表标题不回退到业务主键或模型 Key', () => {
     expect(getRowDisplayTitle({
       processName: '采购申请',
       businessKey: 'sample_purchase_order:88',
@@ -117,5 +118,20 @@ describe('getProcessDisplayName', () => {
       businessType: 'business_object_xvcy_approval_mu7walur',
       processDefKey: 'business_object_xvcy_approval_mu7walur',
     })).toBe('-')
+  })
+})
+
+describe('getProcessStartTime', () => {
+  it('取审批时间轴 start 记录时间，而不是当前任务到达时间', () => {
+    expect(getProcessStartTime([
+      { action: 'start', createTime: '2026-11-14T14:29:39' },
+      { action: 'approve', createTime: '2026-11-14T15:59:08' },
+    ])).toBe('2026-11-14 14:29:39')
+  })
+
+  it('时间轴未加载或没有 start 记录时返回占位', () => {
+    expect(getProcessStartTime([])).toBe('-')
+    expect(getProcessStartTime(undefined, '')).toBe('')
+    expect(getProcessStartTime([{ action: 'approve', createTime: '2026-11-14 15:59:08' }])).toBe('-')
   })
 })
