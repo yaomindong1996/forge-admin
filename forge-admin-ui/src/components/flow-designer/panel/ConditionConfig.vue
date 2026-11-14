@@ -35,7 +35,8 @@ const edges = computed(() => props.outgoingEdges || [])
 const focusedEdge = computed(() => props.focusEdgeId ? edges.value.find(edge => edge.id === props.focusEdgeId) : null)
 const visibleEdges = computed(() => focusedEdge.value ? [focusedEdge.value] : edges.value)
 const focusedBranchIndex = computed(() => focusedEdge.value ? getBranchIndex(focusedEdge.value) : -1)
-const isConditionGateway = computed(() => props.node?.nodeType === 'condition')
+// 包容网关同样按每条分支的条件决定是否进入，只有并行网关无需条件
+const supportsBranchConditions = computed(() => ['condition', 'inclusive'].includes(props.node?.nodeType))
 const nodeNameMap = computed(() => new Map((props.nodes || []).map(node => [node.id, node.name || '未命名节点'])))
 
 const formFields = computed(() => {
@@ -349,7 +350,7 @@ function parseConditionExpression(condition) {
           <template v-else>
             该网关共 {{ edges.length }} 条分支
           </template>
-          <span v-if="isConditionGateway">，可使用 {{ formFields.length }} 个表单字段生成表达式</span>
+          <span v-if="supportsBranchConditions">，可使用 {{ formFields.length }} 个表单字段生成表达式</span>
         </div>
       </div>
     </div>
@@ -381,7 +382,7 @@ function parseConditionExpression(condition) {
         默认分支在 Flowable 中不会执行条件；这里的条件会保留在设计器里，但部署导出时不会写入该分支。
       </div>
 
-      <template v-if="isConditionGateway">
+      <template v-if="supportsBranchConditions">
         <div class="condition-mode-switch">
           <button
             type="button"
@@ -586,7 +587,7 @@ function parseConditionExpression(condition) {
       <div class="condition-default-row">
         <n-radio
           :checked="e.isDefault"
-          :disabled="readonly || !isConditionGateway"
+          :disabled="readonly || !supportsBranchConditions"
           @click="setDefault(e.id)"
         >
           作为默认分支

@@ -74,6 +74,19 @@ function mountConfig(options = {}) {
 }
 
 describe('conditionConfig', () => {
+  it('包容分支也能配置分支条件与默认分支，并行分支只展示分支列表', () => {
+    const inclusive = mountConfig({ node: { id: 'GW', nodeType: 'inclusive', name: '包容分支', config: {} } })
+    expect(inclusive.text()).toContain('开发者高级')
+    expect(inclusive.text()).not.toContain('不需要配置条件表达式')
+    expect(inclusive.find('.n-radio input').attributes('disabled')).toBeUndefined()
+    inclusive.unmount()
+
+    const parallel = mountConfig({ node: { id: 'GW', nodeType: 'parallel', name: '并行分支', config: {} } })
+    expect(parallel.text()).toContain('不需要配置条件表达式')
+    expect(parallel.find('.n-radio input').attributes('disabled')).toBeDefined()
+    parallel.unmount()
+  })
+
   it('有动态表单字段时展示字段条件配置器', () => {
     const wrapper = mountConfig()
 
