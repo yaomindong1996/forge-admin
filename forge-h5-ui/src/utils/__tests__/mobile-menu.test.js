@@ -1,13 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import {
-  MENU_TONES,
-  buildMobileMenuGroups,
-  flattenMobileMenus,
-  resolveMobileMenuIcon,
-  resolveMobileMenuTarget,
-  resolveMobileMenuTone,
-} from '../mobile-menu.js'
+import { MENU_TONES, buildMobileMenuGroups, flattenAuthorizedMobileMenus, flattenMobileMenus, resolveMobileMenuIcon, resolveMobileMenuTarget, resolveMobileMenuTone } from '../mobile-menu.js'
 
 test('only authorized visible H5 routes and low-code pages become app entries', () => {
   const menus = [
@@ -76,4 +69,16 @@ test('app icon tones follow menu semantics and stay stable for the same menu', (
   assert.equal(entry.color, MENU_TONES.red.color)
   assert.equal(entry.toneBg, MENU_TONES.red.bg)
   assert.deepEqual(flattenMobileMenus(menus)[0], entry)
+})
+
+test('authorized menus keep hidden-but-enabled app pages for start catalogs', () => {
+  const menus = [
+    { id: 1, resourceName: '报销申请', resourceType: 2, visible: 0, menuStatus: 1, path: '/pages/lowcode-runtime?configKey=hr_apply_kdcp&appId=9' },
+    { id: 2, resourceName: '停用页面', resourceType: 2, visible: 0, menuStatus: 0, path: '/pages/lowcode-runtime?configKey=off&appId=9' },
+    { id: 3, resourceName: '门户', resourceType: 1, visible: 0, menuStatus: 1, path: '/app/x', children: [
+      { id: 4, resourceName: '巡检', resourceType: 2, visible: 0, menuStatus: 1, path: '/pages/lowcode-runtime?configKey=inspect' },
+    ] },
+  ]
+  assert.deepEqual(flattenMobileMenus(menus), [])
+  assert.deepEqual(flattenAuthorizedMobileMenus(menus).map(item => item.label), ['报销申请', '巡检'])
 })

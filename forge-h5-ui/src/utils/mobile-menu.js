@@ -45,6 +45,10 @@ function visible(menu) {
   return menu && menu.visible !== 0 && menu.menuStatus !== 0
 }
 
+function enabled(menu) {
+  return menu && menu.menuStatus !== 0
+}
+
 function isMobileMenu(menu) {
   // 与 PC 的 UserResourceTreeVO 一致：目录 1、菜单 2；按钮/API 不是导航。
   if (menu.resourceType !== undefined && Number(menu.resourceType) !== 2) return false
@@ -114,10 +118,10 @@ function stableHash(menu, identity) {
   return [...stableKey].reduce((total, char) => ((total * 31) + char.charCodeAt(0)) >>> 0, 0)
 }
 
-function collectEntries(menus, offset = 0) {
+function collectEntries(menus, offset = 0, include = visible) {
   const entries = []
   function walk(list) {
-    sorted(list).filter(visible).forEach((menu) => {
+    sorted(list).filter(include).forEach((menu) => {
       const children = Array.isArray(menu.children) ? menu.children : []
       if (isMobileMenu(menu)) {
         const target = resolveMobileMenuTarget(menu)
@@ -171,4 +175,9 @@ export function buildMobileMenuGroups(menus = []) {
 
 export function flattenMobileMenus(menus = []) {
   return buildMobileMenuGroups(menus).flatMap(group => group.items)
+}
+
+// 应用页面发布为「可授权、默认不进导航」的隐藏菜单；隐藏只影响导航展示，不代表用户没有该单据的访问权限
+export function flattenAuthorizedMobileMenus(menus = []) {
+  return collectEntries(menus, 0, enabled)
 }

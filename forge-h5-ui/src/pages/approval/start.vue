@@ -42,7 +42,7 @@ import AiListSkeleton from '@/components/AiListSkeleton.vue'
 import AiSearchBar from '@/components/AiSearchBar.vue'
 import api from '@/api'
 import { useAuthStore } from '@/store'
-import { flattenMobileMenus } from '@/utils/mobile-menu'
+import { flattenAuthorizedMobileMenus } from '@/utils/mobile-menu'
 import { FLOW_PERMISSIONS } from '@/utils/permission'
 import { buildStartableGroups, indexMenusByConfigKey } from '@/utils/startable-objects'
 
@@ -55,7 +55,7 @@ const failed = ref(false)
 // 目录同时含对象主流程与应用业务流程，两类发起权限分别过滤
 const can = key => authStore.hasPermission(FLOW_PERMISSIONS[key])
 const canStart = computed(() => authStore.hasPermission(FLOW_PERMISSIONS.start) || can('processStart'))
-const menuIndex = computed(() => indexMenusByConfigKey(flattenMobileMenus(authStore.menus)))
+const menuIndex = computed(() => indexMenusByConfigKey(flattenAuthorizedMobileMenus(authStore.menus)))
 const groups = computed(() => buildStartableGroups(objects.value, menuIndex.value, keyword.value, can))
 const emptyTitle = computed(() => {
   if (failed.value) return '加载失败'
