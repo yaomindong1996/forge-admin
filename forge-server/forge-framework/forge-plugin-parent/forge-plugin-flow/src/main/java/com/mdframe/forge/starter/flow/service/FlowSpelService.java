@@ -362,4 +362,39 @@ public class FlowSpelService {
         return result;
     }
 
+    /**
+     * 把候选角色/流程用户组展开成会签多实例集合，解析顺序与抄送节点一致：
+     * 数字按角色 ID、否则按角色编码，取不到再按流程用户组编码，数字仍取不到时按部门。
+     *
+     * @param groups 逗号分隔的角色/用户组编码
+     * @return 去重后的用户 ID 列表（最多 200 人）
+     */
+    public List<String> toGroupUserList(Object groups) {
+        List<String> users = new ArrayList<>();
+        if (flowOrgIntegrationService == null) {
+            log.warn("SPEL: 组织服务未注入，无法展开候选组会签");
+            return users;
+        }
+        for (String group : toUserList(groups)) {
+            try {
+                boolean numeric = group.chars().allMatch(Character::isDigit);
+                List<String> resolved = numeric
+                        ? flowOrgIntegrationService.getUserIdsByRoleId(group)
+                        : flowOrgIntegrationService.getUserIdsByRoleCode(group);
+                if (resolved == null || resolved.isEmpty()) {
+                    resolved = flowOrgIntegrationService.getUserIdsByGroupCode(group);
+                }
+                if ((resolved == null || resolved.isEmpty()) && numeric) {
+                    resolved = flowOrgIntegrationService.getUserIdsByDeptId(group);
+                }
+                if (resolved != null) {
+                    users.addAll(resolved);
+                }
+            } catch (Exception e) {
+                log.error("SPEL: 展开候选组会签失败：group={}", group, e);
+            }
+        }
+        return toUserList(users);
+    }
+
 }

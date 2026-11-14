@@ -50,3 +50,22 @@ describe('candidate users countersign', () => {
     expect(children).not.toContain('multiInstanceLoopCharacteristics')
   })
 })
+
+describe('candidate groups countersign', () => {
+  const groupCountersign = {
+    taskType: 'candidateGroups',
+    candidateGroups: ['ZFMANA'],
+    candidateGroupNames: ['租户管理员'],
+    multiInstanceType: 'parallel',
+    completionCondition: 'any',
+  }
+
+  it('expands role members through the countersign collection and round-trips the roles', () => {
+    const { attrs, children, parsed } = roundTrip(groupCountersign)
+    expect(children).toContain(`flowable:collection="${DOLLAR}{flowSpelService.toGroupUserList('ZFMANA')}"`)
+    expect(children).not.toContain('loopCardinality')
+    expect(attrs).toContain(`flowable:assignee="${DOLLAR}{assignee}"`)
+    expect(attrs).not.toContain('flowable:candidateGroups=')
+    expect(parsed).toMatchObject({ taskType: 'candidateGroups', candidateGroups: ['ZFMANA'], candidateGroupNames: ['租户管理员'] })
+  })
+})

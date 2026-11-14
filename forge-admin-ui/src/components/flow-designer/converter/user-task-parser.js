@@ -15,7 +15,7 @@
  */
 
 import { normalizeFlowFormPermissions } from '@/utils/flow-field-permissions'
-import { CANDIDATE_COUNTERSIGN } from './completion-condition.js'
+import { CANDIDATE_COUNTERSIGN, CANDIDATE_GROUP_COUNTERSIGN } from './completion-condition.js'
 import {
   getAttr,
   getChild,
@@ -187,6 +187,12 @@ function applyAssignee(el, config) {
     config.taskType = 'candidateUsers'
     config.candidateUsers = splitCsv(getFlowableAttr(el, 'countersignUsers'))
     config.candidateUserNames = splitCsv(candidateUserNames)
+    return
+  }
+  if (assigneeType === CANDIDATE_GROUP_COUNTERSIGN) {
+    config.taskType = 'candidateGroups'
+    config.candidateGroups = splitCsv(getFlowableAttr(el, 'countersignGroups'))
+    config.candidateGroupNames = splitCsv(candidateGroupNames)
     return
   }
 
@@ -461,8 +467,8 @@ function applyMultiInstance(el, config) {
   config.passRate = parsed.passRate
 
   const collection = getAttr(loop, 'collection') || getFlowableAttr(loop, 'collection')
-  // 候选人会签的集合由候选人列表生成，回读后不保留，避免改候选人后仍用旧集合
-  if (collection && config.taskType !== 'candidateUsers') {
+  // 候选人/候选组会签的集合由候选列表生成，回读后不保留，避免改候选后仍用旧集合
+  if (collection && !['candidateUsers', 'candidateGroups'].includes(config.taskType)) {
     config.multiInstanceCollection = collection
     const match = String(collection).match(/^\$\{PROCESS_START_USER\[['"]([^'"\]]+)['"]\]\}$/)
     if (match) {

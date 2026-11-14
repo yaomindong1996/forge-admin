@@ -30,3 +30,4 @@ export function buildCompletionExpression(condition, passRate) {
 
 /** 候选人会签：多实例逐个展开候选人，BPMN 上用 assigneeType 标记以便回读 */
 export const CANDIDATE_COUNTERSIGN = 'candidateCountersign'
+export const CANDIDATE_GROUP_COUNTERSIGN = 'candidateGroupCountersign'
