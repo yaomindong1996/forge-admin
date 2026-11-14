@@ -700,7 +700,7 @@ export function applyFlowModelPart1() {
         title,
         variables: variables || {},
         testStart: true,
-      })
+      }, { needTip: false })
       if (res.code === 200) {
         window.$message?.success('测试流程已发起')
         showStartTestModal.value = false

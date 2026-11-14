@@ -104,3 +104,6 @@
 
 - QA会签1114：审批节点「候选人员」先搜 admin 勾选、再搜 test33 勾选，确认后只剩 test33 → 修复 UserSelectModal；浏览器复测「已选 2 人：超级管理员、test33」，字段为「超级管理员、test33」✓。
   `npx vitest run src/components/common/__tests__/UserSelectModal.spec.js` 通过（还原修复后失败）。
+- QA会签1114（候选人员 admin+test33，并行会签·全部通过）发起报 nrOfInstances → 修复后发布，发起生成 admin、test33 两条任务 ✓；admin 同意后 test33 仍待办 ✓；
+  改派 test33 任务给 admin 并同意后实例完成 ✓。plugin-flow 221 通过、flow-designer 58 文件 495 用例通过。
+- QA角色会签1114（候选角色 租户管理员，任一通过）同样报错 → 修复后发起实例卡住无任务（角色无成员）→ 发起即提示「没有可审批人员：ZFMANA」✓；发起测试失败不再弹全局对话框 ✓。

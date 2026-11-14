@@ -139,8 +139,8 @@ export default {
   /**
    * 发起流程
    */
-  startProcess: (modelKey, data) =>
-    request.post(`/api/flow/instance/start/${modelKey}`, data),
+  startProcess: (modelKey, data, config) =>
+    request.post(`/api/flow/instance/start/${modelKey}`, data, config),
 
   /**
    * 获取流程状态
