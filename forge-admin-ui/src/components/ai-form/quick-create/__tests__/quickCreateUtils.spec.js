@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { hasQuickCreatePermission } from '../permissions'
 import { resolveDefaultsFromForm, resolveUserFormOrgId } from '../resolveDefaults'
 import { mergeQuickCreateSelection } from '../selectionBackfill'
-import { isPlatformDictQuickCreateBlocked, isPlatformDictType } from '../presets/dictData'
+import {
+  createDictDataQuickCreatePreset,
+  isPlatformDictQuickCreateBlocked,
+  isPlatformDictType,
+} from '../presets/dictData'
 import { buildSystemRoleEditSchema, createRoleKeyAutoCode } from '@/views/system/schemas/systemRoleEditSchema'
 import { resolveQuickCreateDefinition } from '../registry'
 
@@ -141,6 +145,45 @@ describe('quickCreate registry', () => {
     expect(resolveQuickCreateDefinition({
       quickCreate: { preset: 'dictData', dictType: 'sys_role_data_scope' },
     })).toBeNull()
+  })
+
+  it('字典快捷编辑不会用空值覆盖未加载的上级和关联字典', () => {
+    const preset = createDictDataQuickCreatePreset()
+    const ctx = { config: { dictType: 'biz_region' } }
+    const partial = preset.buildEditInitialValues({
+      dictCode: 9,
+      label: '子项',
+      value: 'child',
+      dictSort: 2,
+      status: 1,
+      raw: {
+        dictCode: 9,
+        dictLabel: '子项',
+        dictValue: 'child',
+        dictSort: 2,
+        dictStatus: 1,
+      },
+    }, ctx)
+
+    expect(partial).not.toHaveProperty('parentDictCode')
+    expect(partial).not.toHaveProperty('linkedDictType')
+    expect(partial).not.toHaveProperty('linkedDictValue')
+
+    const linked = preset.buildEditInitialValues({
+      raw: {
+        dictCode: 9,
+        dictLabel: '子项',
+        dictValue: 'child',
+        dictSort: 2,
+        dictStatus: 1,
+        parentDictCode: 3,
+        linkedDictType: 'biz_parent',
+        linkedDictValue: 'p1',
+      },
+    }, ctx)
+    expect(linked.parentDictCode).toBe(3)
+    expect(linked.linkedDictType).toBe('biz_parent')
+    expect(linked.linkedDictValue).toBe('p1')
   })
 
   it('平台 sys_ 字典标记与快捷新增白名单', () => {

@@ -58,6 +58,40 @@ export function isPlatformDictQuickCreateBlocked(dictType = '', config = {}) {
   return !PLATFORM_DICT_DATA_QUICK_CREATE_ALLOWLIST.has(String(dictType).trim())
 }
 
+function firstDefined(...values) {
+  return values.find(value => value !== undefined && value !== null)
+}
+
+/**
+ * 快捷管理的列表来自字典选项接口。没带回的上级/关联字段不能补 0 或空串，
+ * 否则编辑和拖拽排序会把已配置的树形关系和关联字典写掉。
+ */
+function linkageFromRow(raw = {}, row = {}) {
+  const linkage = {}
+  const parentDictCode = firstDefined(
+    raw.parentDictCode,
+    raw.parent_dict_code,
+    row.parentDictCode,
+  )
+  if (parentDictCode !== undefined && parentDictCode !== '')
+    linkage.parentDictCode = parentDictCode
+  const linkedDictType = firstDefined(
+    raw.linkedDictType,
+    raw.linked_dict_type,
+    row.linkedDictType,
+  )
+  if (linkedDictType)
+    linkage.linkedDictType = linkedDictType
+  const linkedDictValue = firstDefined(
+    raw.linkedDictValue,
+    raw.linked_dict_value,
+    row.linkedDictValue,
+  )
+  if (linkedDictValue)
+    linkage.linkedDictValue = linkedDictValue
+  return linkage
+}
+
 export function resolveDictTypeFromContext(ctx = {}) {
   const { config, field } = ctx
   return config?.dictType
@@ -186,10 +220,8 @@ export function createDictDataQuickCreatePreset() {
         remark: raw.remark ?? row.remark ?? '',
         isDefault: raw.isDefault || 'N',
         listClass: raw.listClass || 'default',
-        parentDictCode: raw.parentDictCode ?? 0,
         cssClass: raw.cssClass || '',
-        linkedDictType: raw.linkedDictType || '',
-        linkedDictValue: raw.linkedDictValue || '',
+        ...linkageFromRow(raw, row),
       }
     },
     beforeOpen(ctx = {}) {

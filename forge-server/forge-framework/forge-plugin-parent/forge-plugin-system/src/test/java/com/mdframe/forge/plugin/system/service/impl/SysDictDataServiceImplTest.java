@@ -14,8 +14,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -55,6 +57,21 @@ class SysDictDataServiceImplTest {
         assertThat(annotation).isNotNull();
         assertThat(annotation.phase()).isEqualTo(TransactionPhase.AFTER_COMMIT);
         assertThat(annotation.fallbackExecution()).isTrue();
+    }
+
+    @Test
+    void enabledDictQueryShouldReturnParentAndLinkedColumns() throws Exception {
+        try (InputStream input = getClass().getClassLoader().getResourceAsStream("mapper/SysDictDataMapper.xml")) {
+            assertThat(input).isNotNull();
+            String xml = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            int start = xml.indexOf("id=\"selectEnabledByType\"");
+            int end = xml.indexOf("</select>", start);
+            String select = xml.substring(start, end);
+
+            assertThat(select).contains("parent_dict_code");
+            assertThat(select).contains("linked_dict_type");
+            assertThat(select).contains("linked_dict_value");
+        }
     }
 
     @Test
