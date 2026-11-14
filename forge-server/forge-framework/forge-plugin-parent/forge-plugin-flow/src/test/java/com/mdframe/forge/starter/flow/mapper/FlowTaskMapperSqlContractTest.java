@@ -94,6 +94,8 @@ class FlowTaskMapperSqlContractTest {
         String fragment = xml.substring(start, xml.indexOf("</sql>", start));
         assertTrue(fragment.contains("newer.process_instance_id = t.process_instance_id"));
         assertTrue(fragment.contains("newer.status IN (0, 1)"), "pending tasks must win over finished history");
+        assertTrue(fragment.contains("WHEN newer.status = 5 THEN 0"),
+                "tasks closed by the engine (e.g. remaining or-sign tasks) must not represent an approved process");
         assertTrue(fragment.contains("newer.create_time &gt; t.create_time"), "latest task wins among the same kind");
         assertTrue(fragment.contains("newer.id &gt; t.id"), "ties need a deterministic winner so a process never shows twice");
         assertTrue(statement.contains("MIN(first_task.create_time)") && statement.contains("AS process_start_time"),
