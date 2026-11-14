@@ -14,7 +14,7 @@
  */
 
 import { normalizeFlowFormPermissions, serializeFlowFormPermissions } from '@/utils/flow-field-permissions'
-import { buildCompletionExpression } from './completion-condition.js'
+import { buildCompletionExpression, CANDIDATE_COUNTERSIGN } from './completion-condition.js'
 import { escapeXmlAttr, escapeXmlText } from './xml-escape.js'
 
 const PERMISSION_KEYS = [
@@ -107,6 +107,14 @@ export function writeUserTaskConfig(config) {
         ? `${DOLLAR}{assignee}`
         : `${DOLLAR}{INITIATOR_SELECT_${sanitizeVariableName(nodeKey)}}`}"`)
     }
+  }
+  else if (cfg.taskType === 'candidateUsers' && cfg.candidateUsers?.length && isCandidateCountersign(cfg)) {
+    // 会签需要每位候选人各一条任务：多实例集合逐个展开为 assignee，不能再写 candidateUsers（否则人人都能办每一条）
+    attrs.push(`flowable:assigneeType="${CANDIDATE_COUNTERSIGN}"`)
+    attrs.push(`flowable:assignee="${DOLLAR}{assignee}"`)
+    attrs.push(`flowable:countersignUsers="${escapeXmlAttr(cfg.candidateUsers.join(','))}"`)
+    if (cfg.candidateUserNames?.length)
+      attrs.push(`flowable:candidateUserNames="${escapeXmlAttr(cfg.candidateUserNames.join(','))}"`)
   }
   else if (cfg.taskType === 'candidateUsers' && cfg.candidateUsers?.length) {
     attrs.push(`flowable:candidateUsers="${escapeXmlAttr(cfg.candidateUsers.join(','))}"`)
@@ -206,10 +214,15 @@ export function writeUserTaskConfig(config) {
     const seq = multiInstanceType === 'sequential' ? 'true' : 'false'
     const expr = buildCompletionExpression(cfg.completionCondition, cfg.passRate)
     const nodeKey = normalizeOptionalText(cfg.initiatorSelectNodeKey || cfg.bpmnElementId || cfg.nodeId)
+    const candidateCountersign = cfg.taskType === 'candidateUsers' && cfg.candidateUsers?.length
     const collection = initiatorSelect
       ? `${DOLLAR}{PROCESS_START_USER['${nodeKey}']}`
-      : normalizeOptionalText(cfg.multiInstanceCollection)
-    const elementVariable = normalizeOptionalText(cfg.multiInstanceElementVariable) || 'assignee'
+      : candidateCountersign
+        ? buildCandidateCountersignCollection(cfg.candidateUsers)
+        : normalizeOptionalText(cfg.multiInstanceCollection)
+    const elementVariable = candidateCountersign
+      ? 'assignee'
+      : normalizeOptionalText(cfg.multiInstanceElementVariable) || 'assignee'
     const loopAttrs = [`isSequential="${seq}"`]
     let loopCardinalityXml = ''
     if (collection) {
@@ -242,6 +255,15 @@ export function writeUserTaskConfig(config) {
     attrs: attrs.join(' '),
     children: children.join(''),
   }
+}
+
+function isCandidateCountersign(cfg) {
+  return Boolean(cfg.multiInstanceType && cfg.multiInstanceType !== 'none')
+}
+
+function buildCandidateCountersignCollection(users = []) {
+  const ids = users.map(user => String(user).trim()).filter(id => /^[\w-]+$/.test(id))
+  return `${DOLLAR}{flowSpelService.toUserList('${ids.join(',')}')}`
 }
 
 function normalizeFixedAssigneeUserId(value) {

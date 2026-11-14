@@ -341,4 +341,25 @@ public class FlowSpelService {
         return result;
     }
 
+    /**
+     * 把审批人转成会签多实例集合。Flowable 多实例集合只接受 Collection/Iterable，
+     * 其它方法返回的逗号分隔字符串不能直接作为 collection。
+     *
+     * @param users 逗号分隔的用户 ID，或用户 ID 集合
+     * @return 去重、去空后的用户 ID 列表（最多 200 人），没有用户时返回空列表
+     */
+    public List<String> toUserList(Object users) {
+        List<String> result = new ArrayList<>();
+        Iterable<?> values = users instanceof Iterable<?> iterable
+                ? iterable
+                : users == null ? List.of() : List.of(users.toString().split(","));
+        for (Object value : values) {
+            String userId = value == null ? "" : value.toString().trim();
+            if (!userId.isEmpty() && !result.contains(userId) && result.size() < MAX_RESULT_USERS) {
+                result.add(userId);
+            }
+        }
+        return result;
+    }
+
 }

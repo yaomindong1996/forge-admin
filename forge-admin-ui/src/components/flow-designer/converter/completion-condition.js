@@ -27,3 +27,6 @@ export function buildCompletionExpression(condition, passRate) {
   // all / 默认
   return `${DOLLAR}{nrOfCompletedInstances/nrOfInstances == 1}`
 }
+
+/** 候选人会签：多实例逐个展开候选人，BPMN 上用 assigneeType 标记以便回读 */
+export const CANDIDATE_COUNTERSIGN = 'candidateCountersign'
