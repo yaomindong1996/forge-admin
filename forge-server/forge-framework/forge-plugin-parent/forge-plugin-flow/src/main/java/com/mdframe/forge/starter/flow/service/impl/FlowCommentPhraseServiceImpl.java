@@ -22,8 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /** 常用审批意见：企业意见按租户共享，个人意见仅当前用户可见。 */
 @Slf4j
@@ -48,7 +51,20 @@ public class FlowCommentPhraseServiceImpl implements FlowCommentPhraseService {
         Long userId = requireUserId();
         String safeScene = normalizeSceneFilter(scene);
         List<FlowCommentPhraseVO> phrases = phraseMapper.selectUsable(tenantId, userId, safeScene);
-        return phrases == null ? Collections.emptyList() : phrases;
+        return phrases == null ? Collections.emptyList() : distinctByContent(phrases);
+    }
+
+    /** SQL 已按个人常用语在前排序；同内容只保留首条，避免个人与租户共享的同名意见重复出现。 */
+    private List<FlowCommentPhraseVO> distinctByContent(List<FlowCommentPhraseVO> phrases) {
+        Set<String> seen = new HashSet<>();
+        List<FlowCommentPhraseVO> distinct = new ArrayList<>(phrases.size());
+        for (FlowCommentPhraseVO phrase : phrases) {
+            String key = phrase == null || phrase.getContent() == null ? "" : phrase.getContent().trim();
+            if (StringUtils.hasText(key) && seen.add(key)) {
+                distinct.add(phrase);
+            }
+        }
+        return distinct;
     }
 
     @Override

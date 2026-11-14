@@ -9,6 +9,7 @@ import { layoutBusinessProcess } from '../business-process-layout.js'
 import {
   BUSINESS_PROCESS_NODE_TYPE,
   getBusinessProcessNodeDefinition,
+  getBusinessProcessNodeSummary,
 } from '../business-process-node-types.js'
 import {
   businessProcessHashInput,
@@ -738,3 +739,12 @@ function orthogonalPathsOverlap(first, second) {
   }
   return false
 }
+
+describe('business process node summaries', () => {
+  it('describes each insertable node instead of a generic placeholder', () => {
+    expect(getBusinessProcessNodeSummary(BUSINESS_PROCESS_NODE_TYPE.CONDITION)).toBe('分支条件判断')
+    expect(getBusinessProcessNodeSummary(BUSINESS_PROCESS_NODE_TYPE.APPROVAL)).toBe('等待审批结果')
+    expect(getBusinessProcessNodeSummary(BUSINESS_PROCESS_NODE_TYPE.SUB_PROCESS)).toBe('调用子流程')
+    expect(getBusinessProcessNodeSummary(BUSINESS_PROCESS_NODE_TYPE.ACTION)).toBe('执行业务操作')
+  })
+})

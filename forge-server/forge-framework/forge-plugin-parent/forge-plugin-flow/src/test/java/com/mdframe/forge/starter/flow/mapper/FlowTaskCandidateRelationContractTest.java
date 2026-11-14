@@ -14,7 +14,7 @@ class FlowTaskCandidateRelationContractTest {
     private static final Path MAPPER = Path.of("src/main/resources/mapper/FlowTaskMapper.xml");
     private static final Path CANDIDATE_MAPPER = Path.of("src/main/resources/mapper/FlowTaskCandidateMapper.xml");
     private static final Path MIGRATION = Path.of(
-            "../../../db/migration/V1.0.147__add_flow_task_candidate_relation.sql");
+            "../../../db/mysql/migration/V1.0.147__add_flow_task_candidate_relation.sql");
 
     @Test
     void candidateQueriesMustUseTenantScopedIndexedRelationsWithCsvFallback() throws IOException {

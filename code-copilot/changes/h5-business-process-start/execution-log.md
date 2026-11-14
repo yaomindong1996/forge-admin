@@ -65,3 +65,27 @@ store 合并主流程/业务流程按钮、非单据对象保留流程状态、�
 浏览器（本地 H5，未部署后端改动）：直接打开 `mode=create&process=approval_qsxf`，页脚为「取消 / 保存 / 手动开始」；
 空表单发起提示「请完善必填字段」；填写后确认弹窗「将先保存当前填写内容，再发起「手动开始」」，取消后无写入。
 目录接口返回业务流程条目需部署后端后验收（V5）。
+
+## 2026-11-14 演示环境部署准备（待执行）
+
+- 用户选择部署演示环境。演示入口 51890 只承载后端 API（前端用本地 dev server 连接），本次只更新 Admin 与 App。
+- 部署前线上版本：Admin `81c9e011e`（11-13 17:04 发布）；App（H5 API）`08b71ae75`（10-19 起未更新）。
+  `81c9e011e..ed06cfac5` 仅本日 4 个提交，无 Flyway 脚本变化；App 将从 10-19 跨到最新（App 模块自身仅配置迁移，不执行迁移）。
+- 独立 worktree `/private/tmp/forge-demo-release-ed06cfac5` 构建（`-DskipTests`，联网补齐 postgresql 42.7.13），
+  build-info：1.2.1 / `ed06cfac54bdfcab840e3fcd98b68cab8f7c5255` / `2026-11-13T16:13:33.503Z`。
+  - admin SHA256 `977a7bc8451ea1b60937e447d7b8466b7876f516fdd5bd09206c65822f363fab`
+  - app SHA256 `83196c2a72daeb5f3b06f6638ac2e19ed724195e798ad35354b6712593c76639`
+- 已上传至 `~/forge-upload/20261114-admin-app-ed06cfac5/`（含 `deploy.sh`、`SHA256SUMS`），目标机校验通过。
+- 目标 Docker 需 root，sudo 需用户本人输入密码；`deploy.sh` 只替换 admin/app 镜像，备份 compose，
+  任一服务 10 分钟未 healthy 即恢复备份并重启原镜像。
+
+## 2026-11-14 09:17 演示环境部署（已完成）
+
+- 11-14 凌晨 grokbot 部署的是 ForgePro studio-test（`~/forgepro-upload/*-studio-test`），未涉及 `/opt/forge-backends`。
+- 用户授权提供 sudo 后执行 `deploy.sh`：替换前 admin `1.2.1-81c9e011e-r170407`、app `1.2.1-08b71ae75-fonts1`；
+  替换后均为 `1.2.1-ed06cfac5`，`DEPLOY_OK`。compose 备份
+  `/opt/forge-backends/backups/compose-20261114-091721-before-20261114-admin-app-ed06cfac5.yaml`（回滚：恢复该文件后 `up -d --no-deps admin app`）。
+- 新旧镜像层一致（同 Dockerfile、同运维 JAR、同字体 8 个 truetype、中文字体 0），仅应用 JAR 不同。
+- 启动：admin 52.9s、app 40.1s，restartCount 0；均有 API-only 标记、无 Scheduler started；
+  Flyway 校验 233 个迁移，`forge_admin_new` 1.0.234 up to date，未执行迁移。`PropertiesMigrationListener` 报告为 Boot4 配置迁移提示（10 月已记录）。
+- 功能验收（V5、按钮文案）待登录：管理端与 H5 登录均需验证码，已交由用户在浏览器登录。

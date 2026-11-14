@@ -63,7 +63,8 @@ const searchSchema = computed(() => [
     type: 'select',
     defaultValue: 0,
     props: {
-      placeholder: '全部范围',
+      // 不选范围时后端按企业常用查询（无企业权限时为我的常用），不会混合两类
+      placeholder: '企业常用（默认）',
       options: ownerTypeOptions.value,
       clearable: true,
     },

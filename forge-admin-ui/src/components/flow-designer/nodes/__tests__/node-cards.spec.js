@@ -138,6 +138,18 @@ describe('endNode', () => {
     })
     expect(w.text()).toContain('终止')
   })
+
+  it('readonly 查看器仍渲染 20px 结束圆点而不是卡片，并按运行状态着色', () => {
+    const w = mount(EndNode, {
+      props: { node: { id: 'E', name: '结束', nodeType: 'end', config: {} }, readonly: true, status: 'completed' },
+    })
+    expect(w.find('.flow-node-card').exists()).toBe(false)
+    const marker = w.find('.flow-end-marker')
+    expect(marker.exists()).toBe(true)
+    expect(marker.classes()).toEqual(expect.arrayContaining(['is-readonly', 'is-completed']))
+    expect(marker.attributes('style')).toContain('width: 20px')
+    expect(marker.attributes('title')).toBe('正常结束（已结束）')
+  })
 })
 
 describe('approverNode', () => {

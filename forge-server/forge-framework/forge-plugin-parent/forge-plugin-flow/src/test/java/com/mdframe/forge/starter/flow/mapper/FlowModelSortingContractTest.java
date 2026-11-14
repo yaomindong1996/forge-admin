@@ -31,7 +31,7 @@ class FlowModelSortingContractTest {
 
     @Test
     void migrationAddsGuardedSortColumnAndIndex() throws Exception {
-        String sql = Files.readString(Path.of("../../../db/migration/V1.0.151__add_flow_model_sort_order.sql"));
+        String sql = Files.readString(Path.of("../../../db/mysql/migration/V1.0.151__add_flow_model_sort_order.sql"));
         assertTrue(sql.contains("information_schema.COLUMNS"));
         assertTrue(sql.contains("sort_order"));
         assertTrue(sql.contains("idx_flow_model_tenant_sort"));
@@ -39,7 +39,7 @@ class FlowModelSortingContractTest {
 
     @Test
     void sortPermissionMigrationIsIndependentAndRepeatable() throws Exception {
-        String sql = Files.readString(Path.of("../../../db/migration/V1.0.152__add_flow_model_sort_permission.sql"));
+        String sql = Files.readString(Path.of("../../../db/mysql/migration/V1.0.152__add_flow_model_sort_permission.sql"));
         String controller = Files.readString(Path.of(
                 "../../../forge-flow/forge-flow-server/src/main/java/com/mdframe/forge/flow/controller/FlowModelController.java"));
         assertTrue(sql.contains("flow:model:sort"));

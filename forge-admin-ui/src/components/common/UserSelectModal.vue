@@ -215,6 +215,8 @@ watch(() => props.show, async (val) => {
   if (val) {
     // 级联锁定组织时默认选中该组织，保证打开即按组织范围加载人员
     searchForm.deptId = lockedOrgId.value
+    // 人员部门名依赖部门树，先加载树；期间表格保持加载态，避免先闪「无数据」
+    loading.value = true
     await loadDeptTree()
     loadUserList()
     // 初始化已选中的用户

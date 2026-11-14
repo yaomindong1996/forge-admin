@@ -15,7 +15,7 @@ class FlowUserGroupGovernanceContractTest {
             "src/main/java/com/mdframe/forge/starter/flow/mapper/FlowUserGroupMapper.java");
     private static final Path SERVICE = Path.of(
             "src/main/java/com/mdframe/forge/starter/flow/service/impl/FlowUserGroupServiceImpl.java");
-    private static final Path MIGRATION = Path.of("../../../db/migration/V1.0.149__add_flow_user_group_management.sql");
+    private static final Path MIGRATION = Path.of("../../../db/mysql/migration/V1.0.149__add_flow_user_group_management.sql");
 
     @Test
     void groupQueriesMustBeTenantScopedAndFilterLogicalDeletes() throws IOException {

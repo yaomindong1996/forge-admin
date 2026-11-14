@@ -1,0 +1,28 @@
+# 流程管理/编排 QA 发现
+1. [已修复] 流程设计器「通知与推送」预览模板报错 `_ctx.sanitizeHtml is not a function`，预览打不开。
+   根因：design.vue 模板调用 sanitizeHtml，但 useFlowDesign 返回对象未暴露。修复 part1 return + 模板绑定契约测试。
+0. [环境] 演示 Flow 服务停在 08b71ae75，发布信息等新字段缺失；已部署 Flow 到 ed06cfac5。
+2. [已修复·部署回归] 发布流程 500：Flow 服务 UnsatisfiedLinkError libharfbuzz.so.0。我部署 Admin/App/Flow 时用了无字体库的运行时基础镜像；
+   已改用 forge-local-runtime:ubuntu24-java17-fonts-20261019 重建三镜像（tag 1.2.1-ed06cfac5-fonts）。
+3. [已修复] 流程模型「发起测试」成功后跳转「我发起的」带 title，但页面忽略该参数，列表显示全部 274 条。
+   修复 started.vue：初始化与路由 query 变化时读取 title 预筛选。
+4. [已修复·待部署 Flow] 审批意见常用语「同意」重复两次（PC 快捷审批弹窗与 H5 都出现）：可用接口同时返回个人与租户共享同名常用语。
+   修复 FlowCommentPhraseServiceImpl.listUsable 按内容去重（个人优先），新增 FlowCommentPhraseUsableTest。
+5. [已修复·测试] 10 个流程相关契约测试仍读取旧路径 db/migration/，迁移目录已迁到 db/mysql/migration/，测试全部 IO 失败；已改路径，流程插件/Flow 服务测试全绿。
+   同类问题仍在 job/system/print/generator(打印) 等 16 个非流程测试中（未改，待评估）。
+6. [已修复] 只读流程图（版本详情/流程进度）结束节点渲染成错位的小白卡片，审批人→结束连线被遮挡。
+   根因 a) EndNode 只读态渲染 NodeCard 却用 20px 尺寸；b) 自由布局导出 BPMN 时结束圆点写成 180x70，回读丢 w/h，被当作旧卡片二次居中。
+   修复 EndNode 只读同样渲染圆点并按状态着色；layout-algorithm 导出用 uiPosition.w/h；bpmn-to-json 回填结束节点 w/h；补往返测试。
+7. [已修复] 新模型首次保存后 BPMN process name 仍为模板默认「新流程」（Flowable 流程定义名错误）；保存时同步模型名称。
+8. [已修复·测试] flow-designer 4 条存量失败测试：freeLayout 新字段未进期望、OverdueReminderConfig 测试未激活 Pinia。
+9. [已修复·待部署 Flow] 流程分类停用后从管理页消失、无法重新启用（/category/tree 只返回启用分类，管理页也用它）。
+   新增 FlowCategoryMapper.xml selectManageList + listManageTree，/tree 改为含停用；/tree-select 仍只返回启用。补 FlowCategoryManageTreeTest。
+10. [已修复] 流程分类/表单/模板列表行「更多」按钮同时使用 text 与 quaternary，控制台 Naive UI 报错；去掉 text。
+11. [已修复] 工作台统计（待办/已办/我发起/抄送页顶部）偶发超时后直接显示全 0 与超时提示且不重试；改为超时静默重试一次。补组件测试。
+12. [已修复] 流程用户组「维护成员」弹窗打开后先显示「无数据」1~2 秒（先加载部门树期间表格未进入加载态）；打开即进入加载态。
+13. [已修复] 常用审批意见范围筛选占位文案「全部范围」，实际后端默认只查企业常用；改为「企业常用（默认）」。
+14. [已修复·待部署 Admin/App] 业务流程运行详情「流程」显示编码而非名称（detail 未填 processName）。
+15. [已修复·待部署 Admin/App] 运行详情节点执行记录顺序错乱（同秒按 node_id 字典序，审批流程排在手动开始前）；改为按雪花 id。
+16. [已修复] 业务流程「添加节点」弹层说明统一显示「业务编排节点」，与节点库不一致；抽 getBusinessProcessNodeSummary 共用并补测试。
+17. [已修复] 流程模型存在流程数据时删除被拒，提示重复两次（全局「请求参数错误」弹窗 + 页面消息）；删除接口关闭全局提示。
+观察未改：打开业务流程设计器后不改动直接关闭也会刷新流程更新时间（疑似自动保存草稿）；审批标题模板默认相同导致各单标题一致（配置层）；版本对比未预选版本。

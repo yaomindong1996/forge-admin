@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, ref } from 'vue'
 import OverdueReminderConfig from '../OverdueReminderConfig.vue'
@@ -91,6 +92,8 @@ function mountConfig(initialConfig = {}) {
 describe('overdueReminderConfig', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // 推送方式与重复策略改用 DictSelect，其快捷新增能力依赖 Pinia
+    setActivePinia(createPinia())
   })
 
   it('展示处理时限、模板、渠道和重复策略字段', () => {

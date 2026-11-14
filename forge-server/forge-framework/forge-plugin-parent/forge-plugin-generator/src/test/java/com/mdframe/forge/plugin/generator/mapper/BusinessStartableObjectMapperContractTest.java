@@ -45,19 +45,23 @@ class BusinessStartableObjectMapperContractTest {
     void processCatalogOnlyReturnsCurrentPublishedEnabledProcesses() throws IOException {
         String xml = Files.readString(MAPPER);
         String select = xml.substring(xml.indexOf("id=\"selectStartableProcesses\""));
+        String versionXml = Files.readString(Path.of("src/main/resources/mapper/BusinessProcessVersionMapper.xml"));
+        String sharedFrom = versionXml.substring(versionXml.indexOf("<sql id=\"Current_Published_Process_From\">"));
+        sharedFrom = sharedFrom.substring(0, sharedFrom.indexOf("</sql>"));
 
+        // 与运行时按钮投影共用同一段「当前发布版本」连接条件
         assertThat(select).contains(
+                "BusinessProcessVersionMapper.Current_Published_Process_From",
                 "p.tenant_id = #{tenantId}",
                 "p.status = 1",
                 "p.del_flag = 0",
                 "p.published_version IS NOT NULL",
+                "o.config_key IS NOT NULL");
+        assertThat(sharedFrom).contains(
                 "v.version_no = p.published_version",
                 "v.status = 1",
                 "v.del_flag = 0",
-                "a.status = 1",
-                "ao.del_flag = 0",
-                "o.status = 1",
-                "o.config_key IS NOT NULL");
+                "BusinessProcessMapper.Active_Application_And_Subject");
     }
 
     @Test

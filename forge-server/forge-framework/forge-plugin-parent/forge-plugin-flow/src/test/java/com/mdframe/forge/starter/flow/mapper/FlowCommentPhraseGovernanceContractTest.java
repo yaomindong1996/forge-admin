@@ -13,7 +13,7 @@ class FlowCommentPhraseGovernanceContractTest {
     private static final Path MAPPER = Path.of("src/main/resources/mapper/FlowCommentPhraseMapper.xml");
     private static final Path SERVICE = Path.of(
             "src/main/java/com/mdframe/forge/starter/flow/service/impl/FlowCommentPhraseServiceImpl.java");
-    private static final Path MIGRATION = Path.of("../../../db/migration/V1.0.156__add_flow_comment_phrase.sql");
+    private static final Path MIGRATION = Path.of("../../../db/mysql/migration/V1.0.156__add_flow_comment_phrase.sql");
 
     @Test
     void queriesMustBeTenantScopedAndFilterLogicalDeletes() throws IOException {

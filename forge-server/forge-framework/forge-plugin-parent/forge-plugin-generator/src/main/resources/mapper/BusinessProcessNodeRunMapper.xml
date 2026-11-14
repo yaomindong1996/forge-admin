@@ -73,12 +73,13 @@
         update_time
     </sql>
 
+    <!-- 同一秒内创建的节点不能按 node_id 字典序排；雪花 id 单调递增，即真实执行顺序 -->
     <select id="selectTimeline" resultMap="BaseResultMap">
         SELECT <include refid="Timeline_Columns"/>
         FROM ai_business_process_node_run
         WHERE tenant_id = #{tenantId}
           AND run_id = #{runId}
-        ORDER BY create_time ASC, node_id ASC, attempt_no ASC, id ASC
+        ORDER BY create_time ASC, id ASC
     </select>
 
     <select id="selectLatestAttempt" resultMap="BaseResultMap">

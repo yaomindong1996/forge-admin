@@ -136,3 +136,27 @@ describe('roundtrip - 会签语义等价', () => {
     }
   })
 })
+
+describe('free-layout end marker round trip', () => {
+  it('keeps the 20px end marker geometry through BPMN DI so viewers do not shift it', async () => {
+    const { layoutFlow } = await import('../../canvas/layout-engine.js')
+    const flow = convertBpmnToJson(SAMPLE_LINEAR)
+    flow.config = { ...flow.config, freeLayout: true }
+    const place = (id, uiPosition) => {
+      flow.nodes.find(node => node.id === id).uiPosition = uiPosition
+    }
+    place('S', { x: 240, y: 92 })
+    place('T1', { x: 240, y: 220 })
+    place('E', { x: 330, y: 348, w: 20, h: 20 })
+
+    const xml = convertJsonToBpmn(flow)
+    const endShape = findElementsByLocalName(parseBpmnXml(xml), 'BPMNShape').find(shape => getAttr(shape, 'bpmnElement') === 'E')
+    const bounds = findElementsByLocalName(endShape, 'Bounds')[0]
+    expect([getAttr(bounds, 'x'), getAttr(bounds, 'y'), getAttr(bounds, 'width'), getAttr(bounds, 'height')]).toEqual(['330', '348', '20', '20'])
+
+    const reloaded = convertBpmnToJson(xml)
+    expect(reloaded.nodes.find(node => node.id === 'E').uiPosition).toEqual({ x: 330, y: 348, w: 20, h: 20 })
+    const endPosition = layoutFlow(reloaded).nodePositions.get('E')
+    expect(endPosition).toMatchObject({ x: 330, y: 348, width: 20, height: 20 })
+  })
+})

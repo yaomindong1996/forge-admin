@@ -18,7 +18,7 @@ class FlowCcRevokeContractTest {
         String mapper = Files.readString(Path.of(
                 "src/main/resources/mapper/FlowCcMapper.xml"));
         String migration = Files.readString(Path.of(
-                "../../../db/migration/V1.0.146__add_flow_cc_revoke_state.sql"));
+                "../../../db/mysql/migration/V1.0.146__add_flow_cc_revoke_state.sql"));
         assertTrue(service.contains("baseMapper.revokeBySender"));
         assertTrue(service.contains("FlowCcStatus.REVOKED.getCode()"));
         assertTrue(service.contains("FlowCcStatus.ACTIVE.getCode()"));

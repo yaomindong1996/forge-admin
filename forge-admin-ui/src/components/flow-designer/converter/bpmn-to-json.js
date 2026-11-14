@@ -113,6 +113,11 @@ function applyDiagramPositions(doc, flowJson) {
     if (!bounds)
       continue
     node.uiPosition = { x: bounds.x, y: bounds.y }
+    // 结束圆点保留 DI 宽高，布局据此区分「圆点坐标」与旧版「大卡片左上角」
+    if (node.nodeType === 'end' && Number.isFinite(bounds.width) && Number.isFinite(bounds.height)) {
+      node.uiPosition.w = bounds.width
+      node.uiPosition.h = bounds.height
+    }
   }
 }
 
@@ -132,7 +137,7 @@ function collectDiagramShapes(doc) {
         const x = Number(getAttr(bounds, 'x'))
         const y = Number(getAttr(bounds, 'y'))
         if (Number.isFinite(x) && Number.isFinite(y))
-          map.set(bpmnElement, { x, y })
+          map.set(bpmnElement, { x, y, width: Number(getAttr(bounds, 'width')), height: Number(getAttr(bounds, 'height')) })
       }
     }
     for (const child of getChildren(cur))

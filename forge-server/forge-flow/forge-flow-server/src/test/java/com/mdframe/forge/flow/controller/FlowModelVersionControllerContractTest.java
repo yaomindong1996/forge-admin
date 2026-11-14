@@ -15,7 +15,7 @@ class FlowModelVersionControllerContractTest {
         String controller = Files.readString(Path.of(
                 "src/main/java/com/mdframe/forge/flow/controller/FlowModelVersionController.java"));
         String migration = Files.readString(Path.of(
-                "../../db/migration/V1.0.150__add_flow_model_version_cleanup_permission.sql"));
+                "../../db/mysql/migration/V1.0.150__add_flow_model_version_cleanup_permission.sql"));
 
         assertThat(controller).contains("@SaCheckPermission(\"flow:model:version:cleanup\")",
                 "@PostMapping(\"/cleanup\")", "VersionCleanupDTO dto");

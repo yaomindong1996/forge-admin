@@ -46,6 +46,7 @@ describe('bpmn-to-json - 线性流程', () => {
     expect(json.config).toEqual({
       allowSubmitterWithdraw: false,
       autoApprovalMode: 'consecutive',
+      freeLayout: false,
       rejectStrategy: 'MANUAL',
     })
   })

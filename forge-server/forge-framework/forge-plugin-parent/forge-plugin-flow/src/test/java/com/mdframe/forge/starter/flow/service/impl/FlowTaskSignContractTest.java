@@ -47,13 +47,13 @@ class FlowTaskSignContractTest {
     @Test
     void dynamicSignRelationReadMustStayTenantScopedAndBounded() throws IOException {
         String mapper = Files.readString(Path.of("src/main/resources/mapper/FlowTaskCandidateMapper.xml"));
-        String migration = Files.readString(Path.of("../../../db/migration/V1.0.148__add_flow_task_sign_relation_audit.sql"));
+        String migration = Files.readString(Path.of("../../../db/mysql/migration/V1.0.148__add_flow_task_sign_relation_audit.sql"));
         String idempotencyMigration = Files.readString(Path.of(
-                "../../../db/migration/V1.0.153__add_flow_task_sign_idempotency.sql"));
+                "../../../db/mysql/migration/V1.0.153__add_flow_task_sign_idempotency.sql"));
         String runtimeRelationMigration = Files.readString(Path.of(
-                "../../../db/migration/V1.0.154__add_flow_task_sign_runtime_relation.sql"));
+                "../../../db/mysql/migration/V1.0.154__add_flow_task_sign_runtime_relation.sql"));
         String signDictMigration = Files.readString(Path.of(
-                "../../../db/migration/V1.0.155__seed_flow_sign_mode_dict.sql"));
+                "../../../db/mysql/migration/V1.0.155__seed_flow_sign_mode_dict.sql"));
         assertTrue(mapper.contains("tenant_id = #{tenantId}"));
         assertTrue(mapper.contains("parent_task_id = #{parentTaskId}"));
         assertTrue(mapper.contains("source = 'DYNAMIC_SIGN'"));

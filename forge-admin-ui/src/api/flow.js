@@ -215,8 +215,9 @@ export default {
   /**
    * 删除流程模型
    */
+  // 存在流程数据时后端返回 400 业务拦截，由页面提示具体原因，避免全局错误弹窗重复提示
   deleteModel: id =>
-    request.delete(`/api/flow/model/${id}`),
+    request.delete(`/api/flow/model/${id}`, { needTip: false }),
 
   /**
    * 部署流程模型

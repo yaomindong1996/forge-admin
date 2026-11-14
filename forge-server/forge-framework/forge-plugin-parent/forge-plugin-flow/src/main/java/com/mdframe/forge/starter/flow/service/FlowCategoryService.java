@@ -21,9 +21,14 @@ public interface FlowCategoryService extends IService<FlowCategory> {
     FlowCategory getByCode(String categoryCode);
 
     /**
-     * 获取分类树形列表
+     * 获取分类树形列表（仅启用分类，供选择器等场景使用）
      */
     List<FlowCategory> listTree();
+
+    /**
+     * 获取分类管理树（含停用分类）
+     */
+    List<FlowCategory> listManageTree();
 
     /**
      * 获取分类下拉树（用于选择器）
