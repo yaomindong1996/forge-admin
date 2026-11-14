@@ -625,13 +625,14 @@
           AND t.complete_time &gt;= #{since}
     </select>
 
-    <!-- 工作台我发起且仍在流转中的流程数。 -->
+    <!-- 工作台我发起且仍在流转中的流程数：并行/会签同时有多条活动任务，按流程实例去重。 -->
     <select id="countWorkspaceStartedRunning" resultType="java.lang.Long">
-        SELECT COUNT(1)
+        SELECT COUNT(DISTINCT t.process_instance_id)
         FROM sys_flow_task t
         WHERE t.tenant_id = #{tenantId}
           AND t.start_user_id = #{userId}
           AND t.status IN (0, 1)
+          <include refid="RequireRuntimeTaskExists" />
     </select>
 
     <update id="updateProcessTaskStatusByTaskIds">

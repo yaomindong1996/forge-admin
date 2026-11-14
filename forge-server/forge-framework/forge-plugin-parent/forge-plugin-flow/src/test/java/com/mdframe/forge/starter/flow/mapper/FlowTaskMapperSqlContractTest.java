@@ -81,6 +81,15 @@ class FlowTaskMapperSqlContractTest {
     }
 
     @Test
+    void startedRunningCountMustCountProcessesNotParallelTasks() throws IOException {
+        String statement = statement(resource(), "countWorkspaceStartedRunning");
+        assertTrue(statement.contains("COUNT(DISTINCT t.process_instance_id)"),
+                "parallel or countersign tasks of one process must count as one running process");
+        assertTrue(statement.contains("RequireRuntimeTaskExists"),
+                "phantom task rows left by ended processes must not count as running");
+    }
+
+    @Test
     void participantLookupMustNotTreatGroupIdsAsUserIds() throws IOException {
         String statement = statement(resource(), "countProcessParticipant");
         assertTrue(statement.contains("CsvTokenContains") || statement.contains("candidate_users"),
