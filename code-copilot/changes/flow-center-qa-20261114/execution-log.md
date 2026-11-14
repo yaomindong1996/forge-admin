@@ -99,3 +99,8 @@
   plugin-flow 218、flow-server 43、H5 node --test 209 中 207 通过（2 个既有失败）。
 - H5 转办：QA包容1114 转办 test33 成功（我发起的处理人变 test33）✓；修复后再次转办无二次确认 ✓；测试后经改派接口改回 admin。
 - H5 撤回：我发起的 QA包容1114 运行中实例「确认撤回」→「撤回成功」，卡片变「已撤回」✓。H5 阶段覆盖：发起目录、我发起的、催办、加签/减签、同意、驳回到节点、转办、抄送查看/已读、撤回。
+
+## 第二轮：审批人多人模式与高级节点
+
+- QA会签1114：审批节点「候选人员」先搜 admin 勾选、再搜 test33 勾选，确认后只剩 test33 → 修复 UserSelectModal；浏览器复测「已选 2 人：超级管理员、test33」，字段为「超级管理员、test33」✓。
+  `npx vitest run src/components/common/__tests__/UserSelectModal.spec.js` 通过（还原修复后失败）。

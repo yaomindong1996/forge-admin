@@ -53,6 +53,10 @@
         @update:checked-row-keys="handleCheck"
       />
 
+      <div v-if="multiple && checkedKeys.length" class="selected-summary">
+        已选 {{ checkedKeys.length }} 人：{{ selectedSummary }}
+      </div>
+
       <!-- 分页 -->
       <div class="pagination-wrapper">
         <n-pagination
@@ -129,6 +133,13 @@ const visible = ref(false)
 const loading = ref(false)
 const userList = ref([])
 const checkedKeys = ref([])
+// 多选时换关键词/翻页后旧行不在当前列表里，确认时仍需拿到已勾选人员的完整信息
+const knownUsers = ref(new Map())
+const selectedSummary = computed(() => checkedKeys.value
+  .map(key => knownUsers.value.get(String(key)))
+  .map(user => user?.realName || user?.name || user?.username)
+  .filter(Boolean)
+  .join('、'))
 const deptTreeOptions = ref([])
 const deptNameMap = ref(new Map())
 
@@ -220,6 +231,7 @@ watch(() => props.show, async (val) => {
     await loadDeptTree()
     loadUserList()
     // 初始化已选中的用户
+    rememberUsers(props.selectedUsers)
     checkedKeys.value = props.selectedUsers.map(u => String(u.id))
   }
 })
@@ -288,6 +300,7 @@ async function loadUserList() {
     })
     if (res.code === 200 && res.data) {
       userList.value = (res.data.records || []).map(normalizeUser)
+      rememberUsers(userList.value)
       pagination.total = res.data.total || 0
     }
   }
@@ -324,15 +337,19 @@ function handleCheck(keys) {
   }
 }
 
+function rememberUsers(users = []) {
+  const next = new Map(knownUsers.value)
+  users.forEach((user) => {
+    if (user?.id !== null && user?.id !== undefined)
+      next.set(String(user.id), user)
+  })
+  knownUsers.value = next
+}
+
 // 确认
 function handleConfirm() {
-  const userMap = new Map()
-  ;[...props.selectedUsers, ...userList.value].forEach((user) => {
-    if (user?.id !== null && user?.id !== undefined)
-      userMap.set(String(user.id), user)
-  })
   const selectedUsers = checkedKeys.value
-    .map(key => userMap.get(String(key)))
+    .map(key => knownUsers.value.get(String(key)))
     .filter(Boolean)
   emit('confirm', props.multiple ? selectedUsers : selectedUsers[0])
   handleClose()
@@ -342,6 +359,7 @@ function handleConfirm() {
 function handleClose() {
   visible.value = false
   checkedKeys.value = []
+  knownUsers.value = new Map()
   searchForm.keyword = ''
   searchForm.deptId = null
 }
@@ -366,6 +384,12 @@ function handleClose() {
   padding: 12px;
   background: var(--bg-secondary);
   border-radius: 4px;
+}
+
+.selected-summary {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .pagination-wrapper {
