@@ -96,6 +96,8 @@ class FlowTaskMapperSqlContractTest {
         assertTrue(fragment.contains("newer.status IN (0, 1)"), "pending tasks must win over finished history");
         assertTrue(fragment.contains("newer.create_time &gt; t.create_time"), "latest task wins among the same kind");
         assertTrue(fragment.contains("newer.id &gt; t.id"), "ties need a deterministic winner so a process never shows twice");
+        assertTrue(statement.contains("MIN(first_task.create_time)") && statement.contains("AS process_start_time"),
+                "a process card must show when it was submitted, not when its current step arrived");
     }
 
     @Test

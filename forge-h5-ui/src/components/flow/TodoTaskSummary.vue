@@ -16,7 +16,7 @@
       <view class="task-fact"><view class="task-fact__label"><AiIcon icon="/static/icons/ai-icon/user.svg" color="#a2a3a5" size="xs" /><text>申请人</text></view><text>{{ applicant }}</text></view>
       <view class="task-fact"><view class="task-fact__label"><AiIcon icon="/static/icons/ai-icon/briefcase.svg" color="#a2a3a5" size="xs" /><text>发起部门</text></view><text>{{ task.startDeptName || '-' }}</text></view>
       <view class="task-fact"><view class="task-fact__label"><AiIcon icon="/static/icons/ai-icon/folder.svg" color="#a2a3a5" size="xs" /><text>流程分类</text></view><text>{{ task.categoryName || task.category || '-' }}</text></view>
-      <view class="task-fact"><view class="task-fact__label"><AiIcon icon="/static/icons/ai-icon/clock.svg" color="#a2a3a5" size="xs" /><text>提交时间</text></view><text>{{ formatFlowDateTime(task.createTime || task.startTime) }}</text></view>
+      <view class="task-fact"><view class="task-fact__label"><AiIcon icon="/static/icons/ai-icon/clock.svg" color="#a2a3a5" size="xs" /><text>提交时间</text></view><text>{{ formatFlowDateTime(task.processStartTime || task.createTime || task.startTime) }}</text></view>
     </view>
   </view>
 </template>

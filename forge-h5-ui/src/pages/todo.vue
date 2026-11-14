@@ -48,7 +48,7 @@
               <view class="task-applicant__avatar">{{ applicantInitial(task) }}</view>
               <view class="task-card__heading">
                 <text class="task-card__title">{{ taskTitle(task) }}</text>
-                <text class="task-time">{{ applicantName(task) }} · {{ formatFlowDateTime(task.createTime || task.startTime) }}</text>
+                <text class="task-time">{{ applicantName(task) }} · {{ formatFlowDateTime(task.processStartTime || task.createTime || task.startTime) }}</text>
               </view>
               <text class="status-tag" :class="statusToneClass(task)">{{ statusText(task) }}</text>
             </view>

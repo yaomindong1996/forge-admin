@@ -508,7 +508,13 @@
     </sql>
 
     <select id="selectStartedTasks" resultType="com.mdframe.forge.starter.flow.entity.FlowTask">
-        SELECT <include refid="TaskListColumns" />
+        SELECT <include refid="TaskListColumns" />,
+               (
+                   SELECT MIN(first_task.create_time)
+                   FROM sys_flow_task first_task
+                   WHERE first_task.tenant_id = t.tenant_id
+                     AND first_task.process_instance_id = t.process_instance_id
+               ) AS process_start_time
         FROM sys_flow_task t
         <include refid="TaskListUserJoins" />
         <where>

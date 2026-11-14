@@ -91,7 +91,7 @@
                 </div>
                 <div v-if="showTime" class="task-card-time">
                   <slot name="time" :row="item">
-                    提交于 {{ item.createTime || item.submitTime || '-' }}
+                    提交于 {{ item.processStartTime || item.createTime || item.submitTime || '-' }}
                   </slot>
                 </div>
               </div>

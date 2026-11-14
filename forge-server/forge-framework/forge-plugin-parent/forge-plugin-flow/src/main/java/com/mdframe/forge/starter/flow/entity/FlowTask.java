@@ -109,6 +109,12 @@ public class FlowTask {
     private String businessObjectName;
 
     /**
+     * 流程发起时间（「我发起的」列表查询补齐；任务 createTime 只是当前节点到达时间）
+     */
+    @TableField(exist = false)
+    private LocalDateTime processStartTime;
+
+    /**
      * 业务摘要（由业务侧列表展示扩展点补齐）
      */
     @TableField(exist = false)
