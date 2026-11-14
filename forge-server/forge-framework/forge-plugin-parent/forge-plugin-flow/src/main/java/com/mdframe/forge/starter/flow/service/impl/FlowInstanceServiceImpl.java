@@ -203,6 +203,8 @@ public class FlowInstanceServiceImpl implements FlowInstanceService {
             }
         }
 
+        DesignerApproverVariableSupport.enrich(bpmnModel, vars, userId, deptId, flowOrgIntegrationService);
+
         // 自动注入行政区划编码（用于按区域查找审批人）
         if (contextRequirements.region()
                 && userId != null && !userId.isEmpty() && sysUserService != null) {
