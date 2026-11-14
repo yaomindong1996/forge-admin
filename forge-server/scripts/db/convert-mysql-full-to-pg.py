@@ -6,11 +6,12 @@ Usage:
     --input forge-server/db/mysql/全量初始化SQL.sql \\
     --output forge-server/db/postgresql/全量初始化SQL.sql
 
-  # Pure template (DDL + foundation seed; omit clean-db truncate-class rows):
+  # Community pure PG (CORRECT): convert MySQL pure dump from clean-db + dump-safe-full
   python3 forge-server/scripts/db/convert-mysql-full-to-pg.py \\
-    --input forge-server/db/mysql/全量初始化SQL.sql \\
-    --output forge-server/db/postgresql/全量初始化SQL.纯净版.sql \\
-    --clean-seed
+    --input forge-server/db/backup/ForgeAdmin-纯净版-V1.2.0.sql \\
+    --output forge-server/db/postgresql/全量初始化SQL.纯净版.sql
+
+  # --clean-seed is NOT community 纯净版; it only strips truncate-class INSERTs from a fat dump.
 
 Skips Flowable engine tables (act_*/flw_*). Keeps framework *_version tables.
 Does not claim byte-perfect semantic parity for every MySQL quirk; output is the
