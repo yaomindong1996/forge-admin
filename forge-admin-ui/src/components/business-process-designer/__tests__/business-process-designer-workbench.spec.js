@@ -640,6 +640,54 @@ describe('structured business node configuration', () => {
     wrapper.unmount()
   })
 
+  it('renames an untouched start node when switching trigger type but keeps a custom name', async () => {
+    const stubs = {
+      'NButton': { template: '<button><slot /></button>' },
+      'NModal': { template: '<div class="node-config-modal-stub"><slot /></div>' },
+      'Modal': { template: '<div class="node-config-modal-stub"><slot /></div>' },
+      'n-button': { template: '<button><slot /></button>' },
+      'n-modal': { template: '<div class="node-config-modal-stub"><slot /></div>' },
+    }
+    const start = createBusinessProcessSchema({ processCode: 'purchase_submit', objectRef }).nodes[0]
+    const wrapper = mount(BusinessProcessNodeConfigDrawer, { props: { visible: true, node: start }, global: { stubs } })
+    wrapper.findComponent(StartNodeConfig).vm.$emit('update:type', 'START_EVENT')
+    await Promise.resolve()
+    expect(wrapper.emitted('save').at(-1)[0]).toMatchObject({ type: 'START_EVENT', name: '事件触发' })
+    wrapper.unmount()
+
+    const custom = mount(BusinessProcessNodeConfigDrawer, { props: { visible: true, node: { ...start, name: '提交采购' } }, global: { stubs } })
+    custom.findComponent(StartNodeConfig).vm.$emit('update:type', 'START_SCHEDULE')
+    await Promise.resolve()
+    expect(custom.emitted('save').at(-1)[0]).toMatchObject({ type: 'START_SCHEDULE', name: '提交采购' })
+    custom.unmount()
+  })
+
+  it('only offers date fields for scheduled scans', () => {
+    const wrapper = mount(StartNodeConfig, {
+      props: {
+        type: 'START_SCHEDULE',
+        config: {},
+        fields: [
+          { fieldCode: 'reason', fieldName: '报销事由', fieldType: 'TEXT', dataType: 'varchar' },
+          { fieldCode: 'amount', fieldName: '报销金额', fieldType: 'MONEY', dataType: 'decimal' },
+          { fieldCode: 'occurDate', fieldName: '发生日期', fieldType: 'DATE', dataType: 'date' },
+          { fieldCode: 'createTime', fieldName: '创建时间', fieldType: 'DATETIME', dataType: 'datetime' },
+        ],
+      },
+    })
+    const dueSelect = wrapper.findAll('select').find(select => select.text().includes('选择主业务对象日期字段'))
+    expect(dueSelect.findAll('option').map(option => option.text()).slice(1)).toEqual(['发生日期', '创建时间'])
+    wrapper.unmount()
+  })
+
+  it('describes event filters instead of button visibility for event triggers', () => {
+    const wrapper = mount(StartNodeConfig, { props: { type: 'START_EVENT', config: { eventType: 'RECORD_CREATED' } } })
+    expect(wrapper.text()).toContain('未设置条件时，每次事件都会触发流程')
+    expect(wrapper.text()).toContain('添加过滤条件')
+    expect(wrapper.text()).not.toContain('按钮始终显示')
+    wrapper.unmount()
+  })
+
   it('routes start and execution nodes to dedicated structured panels', async () => {
     const start = createBusinessProcessSchema({ processCode: 'purchase_submit', objectRef }).nodes[0]
     const wrapper = mount(BusinessProcessNodeConfigDrawer, {

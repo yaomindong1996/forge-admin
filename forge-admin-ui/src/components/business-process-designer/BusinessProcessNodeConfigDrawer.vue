@@ -64,8 +64,15 @@ function patchConfig(config) {
 
 function handleStartType(type) {
   const template = createBusinessProcessNodeTemplate(type)
+  const defaultStartNames = ['START_MANUAL', 'START_EVENT', 'START_SCHEDULE']
+    .map(startType => createBusinessProcessNodeTemplate(startType).name)
+  // 用户没改过名字时跟随触发方式，避免事件/定时触发节点仍叫「手动开始」
+  const name = !draftNode.value.name || defaultStartNames.includes(draftNode.value.name)
+    ? template.name
+    : draftNode.value.name
   draftNode.value = {
     ...draftNode.value,
+    name,
     type,
     ports: template.ports,
     config: template.config,

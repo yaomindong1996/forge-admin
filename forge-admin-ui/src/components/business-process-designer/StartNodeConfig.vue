@@ -14,12 +14,23 @@ const emit = defineEmits(['update:type', 'update:config', 'update:recordIdSource
 const localConfig = ref(clone(props.config))
 const selectedTemplate = ref('')
 
-const fieldOptions = computed(() => props.fields
-  .map(field => ({
-    label: field.fieldName || field.fieldLabel || field.label || field.fieldCode || field.code,
-    value: field.fieldCode || field.code || field.value,
-  }))
-  .filter(item => item.value))
+const fieldOptions = computed(() => toFieldOptions(props.fields))
+// 定时扫描按日期比较到期窗口，非日期字段在运行时无法换算日期
+const dateFieldOptions = computed(() => toFieldOptions(props.fields.filter(isDateField)))
+
+function toFieldOptions(fields) {
+  return fields
+    .map(field => ({
+      label: field.fieldName || field.fieldLabel || field.label || field.fieldCode || field.code,
+      value: field.fieldCode || field.code || field.value,
+    }))
+    .filter(item => item.value)
+}
+
+function isDateField(field) {
+  const types = [field?.fieldType, field?.dataType, field?.componentType].map(value => String(value || '').toLowerCase())
+  return types.some(value => ['date', 'datetime', 'timestamp'].includes(value))
+}
 
 const conditionKey = computed(() => props.type === 'START_MANUAL' ? 'visibleCondition' : 'condition')
 const conditionRules = computed(() => {
@@ -231,7 +242,7 @@ function clone(value) {
         <span>日期字段</span>
         <select :value="localConfig.dueField || ''" @change="patchConfig('dueField', $event.target.value)">
           <option value="" disabled>选择主业务对象日期字段</option>
-          <option v-for="item in fieldOptions" :key="item.value" :value="item.value">
+          <option v-for="item in dateFieldOptions" :key="item.value" :value="item.value">
             {{ item.label }}
           </option>
         </select>
@@ -296,9 +307,9 @@ function clone(value) {
         <button type="button" @click="addConditionRule">添加条件</button>
       </div>
       <div v-else class="condition-empty">
-        <span>未设置条件时，按钮始终显示。</span>
+        <span>{{ type === 'START_MANUAL' ? '未设置条件时，按钮始终显示。' : '未设置条件时，每次事件都会触发流程。' }}</span>
         <button type="button" data-condition-add @click="addConditionRule">
-          添加显示条件
+          {{ type === 'START_MANUAL' ? '添加显示条件' : '添加过滤条件' }}
         </button>
       </div>
       <div
