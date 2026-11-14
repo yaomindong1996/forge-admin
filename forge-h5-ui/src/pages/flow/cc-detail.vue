@@ -19,7 +19,7 @@
           </view>
         </view>
 
-        <!-- 业务表单（只读）：只读上下文不可用时降级为提示 -->
+        <!-- 业务表单（只读）：有表单但只读上下文不可用时降级为提示；纯审批流程没有表单则不展示 -->
         <view v-if="formLoading" class="cc-panel cc-loading-card">
           <TodoDetailSkeleton form-only />
         </view>
@@ -30,7 +30,7 @@
           </view>
           <FlowBusinessFormPanel :form="businessForm" />
         </view>
-        <view v-else class="cc-blocked-panel">
+        <view v-else-if="businessForm.blockedReason" class="cc-blocked-panel">
           <AiIcon icon="/static/icons/ai-icon/monitor.svg" color="#0066ff" size="md" />
           <view class="cc-blocked-copy">
             <text class="cc-blocked-title">业务表单请在 PC 端查看</text>
@@ -65,12 +65,12 @@ import { ccSender, ccTitle } from '@/utils/flow-cc'
 import { formatFlowDateTime } from '@/utils/flow-display'
 
 const {
-  cc, formInfo, businessForm, history, processNodes, loading, formLoading, traceLoading, notFound, load,
+  cc, formInfo, businessForm, history, processNodes, diagramInfo, loading, formLoading, traceLoading, notFound, load,
 } = useCcDetail()
 
 // 不能对 businessForm 用 toRefs：该运行时会立即求值全部 computed，业务上下文未加载时部分计算会抛错。
 const showBusinessFormPanel = computed(() => businessForm.showBusinessFormPanel && !businessForm.blockedReason)
-const processName = computed(() => cc.value?.processName || formInfo.value?.processName || formInfo.value?.processDefinitionName || '-')
+const processName = computed(() => cc.value?.processName || formInfo.value?.processName || formInfo.value?.processDefinitionName || diagramInfo.value?.processName || '-')
 const title = computed(() => (cc.value ? ccTitle(cc.value) : formInfo.value?.title || processName.value))
 const sender = computed(() => (cc.value ? ccSender(cc.value) : '系统'))
 

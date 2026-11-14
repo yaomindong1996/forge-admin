@@ -403,7 +403,10 @@ final class FlowProcessDiagramService {
             ProcessDiagramInfo diagramInfo = new ProcessDiagramInfo();
             diagramInfo.setProcessInstanceId(processInstanceId);
             diagramInfo.setProcessDefinitionId(processDefinitionId);
-            diagramInfo.setProcessName(historicProcessInstance.getName());
+            // 发起时未设置实例名称时 getName() 为空，回退到流程定义名称
+            diagramInfo.setProcessName(historicProcessInstance.getName() != null && !historicProcessInstance.getName().isBlank()
+                    ? historicProcessInstance.getName()
+                    : historicProcessInstance.getProcessDefinitionName());
             diagramInfo.setStartUserId(historicProcessInstance.getStartUserId());
             diagramInfo.setStartTime(historicProcessInstance.getStartTime());
             diagramInfo.setEndTime(historicProcessInstance.getEndTime());

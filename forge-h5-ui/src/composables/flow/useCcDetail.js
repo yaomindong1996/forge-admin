@@ -119,7 +119,7 @@ export function useCcDetail() {
   }
 
   return {
-    cc, formInfo, businessForm, businessContextError, history, processNodes,
+    cc, formInfo, businessForm, businessContextError, history, processNodes, diagramInfo,
     loading, formLoading, traceLoading, notFound, load,
   }
 }

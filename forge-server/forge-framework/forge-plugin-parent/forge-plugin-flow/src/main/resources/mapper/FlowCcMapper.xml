@@ -6,8 +6,20 @@
         抄送列表查询显式绑定租户和参与人。标题搜索同时覆盖标题、摘要、流程定义和业务键，
         与前端“流程名称或编号”搜索保持一致；排序补充主键保证分页结果稳定。
     -->
+    <!-- 抄送记录只存模型编码；列表与 H5 详情需展示流程名称，按租户内有效模型补齐。 -->
+    <sql id="CcProcessNameColumn">
+        (
+            SELECT m.model_name
+            FROM sys_flow_model m
+            WHERE m.tenant_id = c.tenant_id
+              AND m.model_key = c.process_def_key
+              AND m.del_flag = 0
+            LIMIT 1
+        ) AS process_name
+    </sql>
+
     <select id="selectMyPage" resultType="com.mdframe.forge.starter.flow.entity.FlowCc">
-        SELECT c.*
+        SELECT c.*, <include refid="CcProcessNameColumn" />
         FROM sys_flow_cc c
         WHERE c.tenant_id = #{tenantId}
           AND c.cc_user_id = #{userId}
@@ -27,7 +39,7 @@
     </select>
 
     <select id="selectSentPage" resultType="com.mdframe.forge.starter.flow.entity.FlowCc">
-        SELECT c.*
+        SELECT c.*, <include refid="CcProcessNameColumn" />
         FROM sys_flow_cc c
         WHERE c.tenant_id = #{tenantId}
           AND c.send_user_id = #{userId}
