@@ -85,10 +85,13 @@ function onConnect() {
           type="button"
           class="add-node-menu-item"
           :data-type="item.type"
-          @click.stop="$emit('select', item.type)"
+          :disabled="!!item.unsupportedReason"
+          :title="item.unsupportedReason || undefined"
+          @click.stop="!item.unsupportedReason && $emit('select', item.type)"
         >
           <i :class="getNodePresentation(item.type).icon" :style="{ color: getNodePresentation(item.type).color }" />
           <span>{{ item.label }}</span>
+          <small v-if="item.unsupportedReason" class="add-node-unsupported">暂不支持</small>
         </button>
       </div>
     </template>
@@ -96,6 +99,15 @@ function onConnect() {
 </template>
 
 <style scoped>
+.add-node-unsupported {
+  margin-left: auto;
+  color: var(--text-tertiary, #86909c);
+  font-size: 11px;
+}
+.add-node-menu-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
 .add-node-popover {
   width: min(258px, calc(100vw - 56px));
   max-height: calc(100dvh - 80px);

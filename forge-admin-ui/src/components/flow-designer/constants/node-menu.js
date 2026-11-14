@@ -7,6 +7,9 @@
 
 import { NODE_TYPE } from './node-types.js'
 
+// 服务端部署预检拒绝脚本/调用活动/子流程及非抄送的服务任务（执行白名单），设计器里先禁用并说明原因
+export const UNSUPPORTED_EXECUTION_REASON = '当前版本暂不支持发布该类节点（服务端执行白名单限制）'
+
 export const NODE_MENU_GROUPS = Object.freeze([
   Object.freeze({
     label: '审批流',
@@ -26,10 +29,10 @@ export const NODE_MENU_GROUPS = Object.freeze([
   Object.freeze({
     label: '高级',
     items: Object.freeze([
-      { type: NODE_TYPE.SERVICE, label: '服务任务', icon: 'i-lucide:settings', tone: 'indigo' },
-      { type: NODE_TYPE.SCRIPT, label: '脚本任务', icon: 'i-lucide:code', tone: 'violet' },
-      { type: NODE_TYPE.SUB_PROCESS, label: '子流程', icon: 'i-lucide:network', tone: 'cyan' },
-      { type: NODE_TYPE.CALL_ACTIVITY, label: '调用活动', icon: 'i-lucide:phone', tone: 'sky' },
+      { type: NODE_TYPE.SERVICE, label: '服务任务', icon: 'i-lucide:settings', tone: 'indigo', unsupportedReason: UNSUPPORTED_EXECUTION_REASON },
+      { type: NODE_TYPE.SCRIPT, label: '脚本任务', icon: 'i-lucide:code', tone: 'violet', unsupportedReason: UNSUPPORTED_EXECUTION_REASON },
+      { type: NODE_TYPE.SUB_PROCESS, label: '子流程', icon: 'i-lucide:network', tone: 'cyan', unsupportedReason: UNSUPPORTED_EXECUTION_REASON },
+      { type: NODE_TYPE.CALL_ACTIVITY, label: '调用活动', icon: 'i-lucide:phone', tone: 'sky', unsupportedReason: UNSUPPORTED_EXECUTION_REASON },
     ]),
   }),
 ])

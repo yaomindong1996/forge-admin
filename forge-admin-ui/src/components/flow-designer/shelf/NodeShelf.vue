@@ -69,12 +69,14 @@ function colorOf(type) {
         :key="item.type"
         type="button"
         class="node-shelf__item"
-        :draggable="!readonly"
-        :disabled="readonly"
+        :draggable="!readonly && !item.unsupportedReason"
+        :disabled="readonly || !!item.unsupportedReason"
+        :title="item.unsupportedReason || undefined"
         @dragstart="onDragStart($event, item.type)"
       >
         <i class="node-shelf__icon" :class="iconOf(item.type)" :style="{ color: colorOf(item.type) }" />
         <span>{{ item.label }}</span>
+        <small v-if="item.unsupportedReason" class="node-shelf__unsupported">暂不支持</small>
       </button>
     </div>
     <div class="node-shelf__group">
@@ -97,6 +99,11 @@ function colorOf(type) {
 </template>
 
 <style scoped>
+.node-shelf__unsupported {
+  margin-left: auto;
+  color: var(--text-tertiary, #86909c);
+  font-size: 11px;
+}
 .node-shelf {
   display: flex;
   width: 168px;
