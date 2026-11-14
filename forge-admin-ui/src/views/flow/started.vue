@@ -299,6 +299,7 @@ import FlowTaskCardList from '@/components/flow/FlowTaskCardList.vue'
 import FlowTaskDetailShell from '@/components/flow/FlowTaskDetailShell.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
+import { useWorkspaceBadgeStore } from '@/stores/flow/workspaceBadgeStore'
 import { createFlowActionCredentials } from '@/utils/flow-action-idempotency'
 import WorkspaceSummaryMetrics from '@/views/workspace/WorkspaceSummaryMetrics.vue'
 import { buildFlowCategoryTreeOptions, resolveFlowCategoryLabel } from './utils/categoryOptions'
@@ -564,6 +565,7 @@ async function loadData() {
   }
   finally {
     loading.value = false
+    useWorkspaceBadgeStore().refresh()
   }
 }
 

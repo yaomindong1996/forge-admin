@@ -43,6 +43,8 @@ export const useWorkspaceBadgeStore = defineStore('flow-workspace-badge', () => 
   const auth = useAuthStore()
   const user = useUserStore()
   const counts = ref(emptyCounts())
+  // 仅成功拉到统计时递增；失败会把 counts 清零，订阅方不能据此覆盖已有数字
+  const syncedVersion = ref(0)
   const loading = ref(false)
   const contextVersion = ref(0)
   const ready = computed(() => Boolean(auth.accessToken && user.userId))
@@ -126,6 +128,7 @@ export const useWorkspaceBadgeStore = defineStore('flow-workspace-badge', () => 
           startedRunningCount: Number(data.startedRunningCount || 0),
           ccUnreadCount: Number(data.ccUnreadCount || 0),
         }
+        syncedVersion.value += 1
       }
       catch {
         if (context === contextVersion.value && sequence === refreshSequence)
@@ -198,6 +201,7 @@ export const useWorkspaceBadgeStore = defineStore('flow-workspace-badge', () => 
 
   return {
     counts,
+    syncedVersion,
     loading,
     ready,
     refresh,

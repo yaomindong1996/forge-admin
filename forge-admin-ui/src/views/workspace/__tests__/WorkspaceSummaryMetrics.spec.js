@@ -1,9 +1,12 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { reactive } from 'vue'
 import { getWorkspaceSummary } from '@/api/workspace'
 import WorkspaceSummaryMetrics from '../WorkspaceSummaryMetrics.vue'
 
 vi.mock('@/api/workspace', () => ({ getWorkspaceSummary: vi.fn() }))
+const badgeStore = reactive({ syncedVersion: 0, counts: {} })
+vi.mock('@/stores/flow/workspaceBadgeStore', () => ({ useWorkspaceBadgeStore: () => badgeStore }))
 vi.mock('vue-router', () => ({
   useRoute: () => ({ path: '/flow/cc', query: {} }),
   useRouter: () => ({ push: vi.fn() }),
@@ -44,6 +47,19 @@ describe('workspaceSummaryMetrics', () => {
     vi.mocked(getWorkspaceSummary).mockImplementation(() => Promise.reject(Object.assign(new Error('未登录'), { code: 401 })))
     const wrapper = render()
     await flushPromises()
+    expect(getWorkspaceSummary).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
+  it('syncs counts after the badge store refreshes following an action', async () => {
+    vi.mocked(getWorkspaceSummary).mockResolvedValueOnce({ code: 200, data: { ...ok.data, ccUnreadCount: 1 } })
+    const wrapper = render()
+    await flushPromises()
+    expect(wrapper.vm.summary.ccUnreadCount).toBe(1)
+    badgeStore.counts = { ...ok.data, ccUnreadCount: 0 }
+    badgeStore.syncedVersion += 1
+    await flushPromises()
+    expect(wrapper.vm.summary.ccUnreadCount).toBe(0)
     expect(getWorkspaceSummary).toHaveBeenCalledTimes(1)
     wrapper.unmount()
   })

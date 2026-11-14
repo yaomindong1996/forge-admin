@@ -25,17 +25,18 @@
             <i :style="{ width: `${loading ? 0 : item.sharePercent}%` }" />
           </span>
         </span>
-        <i v-if="!readonly" class="i-material-symbols:chevron-right metric-arrow" />
+        <i v-if="!readonly" class="metric-arrow i-material-symbols:chevron-right" />
       </button>
     </section>
   </div>
 </template>
 
 <script setup>
+import { NAlert } from 'naive-ui'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { NAlert } from 'naive-ui'
 import { getWorkspaceSummary } from '@/api/workspace'
+import { useWorkspaceBadgeStore } from '@/stores/flow/workspaceBadgeStore'
 
 const props = defineProps({
   routeTargets: {
@@ -75,6 +76,7 @@ const emit = defineEmits(['navigate', 'loaded'])
 
 const route = useRoute()
 const router = useRouter()
+const badgeStore = useWorkspaceBadgeStore()
 // autoLoad 时首屏即 loading，避免指标区先空再刷
 const loading = ref(props.autoLoad !== false)
 const loadError = ref('')
@@ -183,6 +185,14 @@ function resolveMetricTarget(item = {}) {
   }
   return item.fallbackPath || '/workspace/todo'
 }
+
+// 待办/抄送等页面办理后会刷新侧栏徽标统计；同一份数据同步到指标卡，避免卡片停在进入页面时的数字
+watch(() => badgeStore.syncedVersion, () => {
+  if (!props.autoLoad || loading.value)
+    return
+  loadError.value = ''
+  summary.value = { ...badgeStore.counts }
+})
 
 watch(() => props.autoLoad, (enabled) => {
   if (enabled)
