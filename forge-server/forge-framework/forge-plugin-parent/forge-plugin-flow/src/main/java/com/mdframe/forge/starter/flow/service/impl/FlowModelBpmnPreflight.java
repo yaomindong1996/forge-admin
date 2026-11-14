@@ -221,6 +221,21 @@ final class FlowModelBpmnPreflight {
         return multiInstanceResult.getBpmnXml();
     }
 
+    private static final java.util.regex.Pattern CC_SERVICE_TASK_TYPE = java.util.regex.Pattern.compile(
+            "(<(?:bpmn:)?serviceTask\\b[^>]*?\\s)flowable:type=\"cc\"", java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /**
+     * 部署前转换为引擎可执行 XML：flowable:type 是 Flowable 服务任务保留属性（mail/http 等），
+     * 设计器用它标记抄送节点会触发 flowable-servicetask-invalid-type；部署时改写为不冲突的
+     * flowable:forgeNodeType，执行仍由 ${flowCcNodeDelegate} 委托完成。模型保存的 XML 保持原样供设计器识别。
+     */
+    static String toEngineExecutableXml(String bpmnXml) {
+        if (bpmnXml == null || bpmnXml.isEmpty()) {
+            return bpmnXml;
+        }
+        return CC_SERVICE_TASK_TYPE.matcher(bpmnXml).replaceAll("$1flowable:forgeNodeType=\"cc\"");
+    }
+
     /** 设计器抄送节点固定绑定的已注册委托 Bean（FlowCcNodeDelegate）；其它委托表达式一律拒绝。 */
     private static final String REGISTERED_CC_DELEGATE_EXPRESSION = "${flowCcNodeDelegate}";
 

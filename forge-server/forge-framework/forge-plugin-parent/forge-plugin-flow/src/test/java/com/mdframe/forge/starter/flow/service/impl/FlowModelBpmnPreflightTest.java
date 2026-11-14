@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -73,6 +74,30 @@ class FlowModelBpmnPreflightTest {
     }
 
     @Test
+    void carbonCopyNodesAreRewrittenToEngineExecutableXml() throws Exception {
+        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                + "<bpmn:definitions xmlns:bpmn=\"http://www.omg.org/spec/BPMN/20100524/MODEL\""
+                + " xmlns:flowable=\"http://flowable.org/bpmn\" targetNamespace=\"t\">"
+                + "<bpmn:process id=\"p\" isExecutable=\"true\">"
+                + "<bpmn:startEvent id=\"s\"/>"
+                + "<bpmn:serviceTask id=\"cc\" name=\"抄送人\" flowable:type=\"cc\" flowable:candidateUsers=\"1\""
+                + " flowable:delegateExpression=\"${flowCcNodeDelegate}\"/>"
+                + "<bpmn:endEvent id=\"e\"/>"
+                + "<bpmn:sequenceFlow id=\"f1\" sourceRef=\"s\" targetRef=\"cc\"/>"
+                + "<bpmn:sequenceFlow id=\"f2\" sourceRef=\"cc\" targetRef=\"e\"/>"
+                + "</bpmn:process></bpmn:definitions>";
+
+        String executable = FlowModelBpmnPreflight.toEngineExecutableXml(xml);
+
+        assertFalse(executable.contains("flowable:type=\"cc\""));
+        assertTrue(executable.contains("flowable:forgeNodeType=\"cc\""));
+        assertTrue(executable.contains("flowable:delegateExpression=\"${flowCcNodeDelegate}\""));
+        assertTrue(serviceTaskTypeErrors(xml) > 0, "原始设计器 XML 应触发 Flowable 服务任务类型校验");
+        assertEquals(0, serviceTaskTypeErrors(executable), "转换后不应再触发服务任务类型校验");
+        assertEquals(xml, FlowModelBpmnPreflight.toEngineExecutableXml(xml).replace("forgeNodeType", "type"));
+    }
+
+    @Test
     void designerCarbonCopyNodeWithRegisteredDelegateIsAllowed() {
         // 与前端 json-to-bpmn 生成的抄送节点一致
         assertDoesNotThrow(() -> FlowModelBpmnPreflight.validateExecutableNodesAndGatewayConditions(
@@ -93,5 +118,12 @@ class FlowModelBpmnPreflightTest {
         assertTrue(exception.getMessage().contains("缺少条件表达式或默认分支"));
         assertDoesNotThrow(() -> FlowModelBpmnPreflight.validateExecutableNodesAndGatewayConditions(
                 xml.replace("id=\"decision\"", "id=\"decision\" default=\"branch\"")));
+    }
+
+    private static long serviceTaskTypeErrors(String xml) {
+        var model = new org.flowable.bpmn.converter.BpmnXMLConverter().convertToBpmnModel(
+                new org.flowable.common.engine.impl.util.io.StringStreamSource(xml), false, false);
+        return new org.flowable.validation.ProcessValidatorFactory().createDefaultProcessValidator().validate(model)
+                .stream().filter(error -> "flowable-servicetask-invalid-type".equals(error.getProblem())).count();
     }
 }
