@@ -97,3 +97,4 @@
   `node --test` utils/store：207 用例 205 通过，2 个失败为既有 mobile-field-contract（与本次无关）；同步更新 console-design-system 对提交时间表达式的断言。
 - H5 走完 QA审批操作1114（A 同意→B 同意）后「抄送我的」出现未读 1 条，进入详情自动已读 ✓；详情「流程 -」、无表单仍提示去 PC → 修复（Flow 抄送查询补流程名、流程图名称回退；H5 详情仅有表单受阻时提示）。
   plugin-flow 218、flow-server 43、H5 node --test 209 中 207 通过（2 个既有失败）。
+- H5 转办：QA包容1114 转办 test33 成功（我发起的处理人变 test33）✓；修复后再次转办无二次确认 ✓；测试后经改派接口改回 admin。
