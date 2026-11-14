@@ -193,7 +193,7 @@
       :mask-closable="false"
     >
       <NAlert type="warning" class="mb-16">
-        仅清理当前租户中超过保留数量的历史版本。已发布、已废弃、当前版本和仍被运行中实例引用的版本会自动跳过。
+        只清理本流程中超过保留数量的旧版本。当前版本和仍有运行中流程的版本会自动跳过。
       </NAlert>
       <NForm label-placement="top">
         <NFormItem label="保留最近版本数">
@@ -208,7 +208,7 @@
       </NForm>
       <NAlert v-if="cleanupResult" type="info" class="mt-12">
         扫描 {{ cleanupResult.scanned || 0 }} 个版本，清理 {{ cleanupResult.deleted || 0 }} 个；
-        跳过保护 {{ cleanupResult.skippedProtected || 0 }} 个、运行中引用 {{ cleanupResult.skippedRunning || 0 }} 个。
+        跳过当前版本 {{ cleanupResult.skippedCurrent || 0 }} 个、运行中引用 {{ cleanupResult.skippedRunning || 0 }} 个。
       </NAlert>
       <template #footer>
         <NSpace justify="end">
@@ -347,7 +347,7 @@ const columns = [
         isCurrentVersion(row.version) ? null : actionButton('回退', 'warning', () => handleRevert(row)),
         h(NDropdown, {
           trigger: 'click',
-          options: getMoreActionOptions(),
+          options: getMoreActionOptions(row),
           onSelect: key => handleMoreAction(key, row),
         }, {
           default: () => h(NButton, { size: 'small', text: true }, { default: () => '更多' }),
@@ -366,13 +366,13 @@ function actionButton(label, type, onClick) {
   }, { default: () => label })
 }
 
-function getMoreActionOptions() {
+function getMoreActionOptions(row) {
   return [
     { label: '版本对比', key: 'compare' },
     { label: '修改标记', key: 'tag' },
     { label: '下载 BPMN', key: 'download' },
     { type: 'divider', key: 'd1' },
-    { label: '删除版本', key: 'delete', props: { style: 'color: #d03050' } },
+    { label: '删除版本', key: 'delete', disabled: isCurrentVersion(row?.version), props: { style: 'color: #d03050' } },
   ]
 }
 
@@ -623,7 +623,7 @@ async function handleCopyXml() {
 function handleDelete(row) {
   window.$dialog?.warning({
     title: '确认删除',
-    content: `确定要删除版本「${row.versionName || `v${row.version}`}」吗？已发布版本和已废弃版本不允许删除。`,
+    content: `确定要删除版本「${row.versionName || `v${row.version}`}」吗？仍有运行中流程的版本不允许删除。`,
     positiveText: '确定删除',
     negativeText: '取消',
     onPositiveClick: async () => {

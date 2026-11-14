@@ -482,6 +482,31 @@
     </select>
 
     <!-- 我发起的任务列表（带分类关联查询） -->
+    <!--
+        「我发起的」按流程实例展示：每个实例只取一条代表任务。
+        优先待处理(0/1)的任务，其次最新创建的任务；同一时刻按 id 兜底保证唯一。
+        状态筛选作用在代表任务上，因此先选代表再过滤。
+    -->
+    <sql id="StartedInstanceRepresentativeTask">
+        AND NOT EXISTS (
+            SELECT 1
+            FROM sys_flow_task newer
+            WHERE newer.tenant_id = t.tenant_id
+              AND newer.process_instance_id = t.process_instance_id
+              AND newer.id &lt;&gt; t.id
+              AND (
+                  (CASE WHEN newer.status IN (0, 1) THEN 1 ELSE 0 END)
+                      &gt; (CASE WHEN t.status IN (0, 1) THEN 1 ELSE 0 END)
+                  OR (
+                      (CASE WHEN newer.status IN (0, 1) THEN 1 ELSE 0 END)
+                          = (CASE WHEN t.status IN (0, 1) THEN 1 ELSE 0 END)
+                      AND (newer.create_time &gt; t.create_time
+                           OR (newer.create_time = t.create_time AND newer.id &gt; t.id))
+                  )
+              )
+        )
+    </sql>
+
     <select id="selectStartedTasks" resultType="com.mdframe.forge.starter.flow.entity.FlowTask">
         SELECT <include refid="TaskListColumns" />
         FROM sys_flow_task t
@@ -489,6 +514,7 @@
         <where>
             AND t.tenant_id = #{tenantId}
             AND t.start_user_id = #{userId}
+            <include refid="StartedInstanceRepresentativeTask" />
             <if test="title != null and title != ''">
                 AND t.title LIKE CONCAT('%', #{title}, '%')
             </if>

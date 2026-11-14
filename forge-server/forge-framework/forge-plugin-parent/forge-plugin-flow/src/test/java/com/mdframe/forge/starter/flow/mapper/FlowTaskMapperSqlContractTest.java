@@ -81,6 +81,24 @@ class FlowTaskMapperSqlContractTest {
     }
 
     @Test
+    void startedListMustShowOneRepresentativeTaskPerProcess() throws IOException {
+        String xml = resource();
+        String statement = statement(xml, "selectStartedTasks");
+        assertTrue(statement.contains("StartedInstanceRepresentativeTask"),
+                "my started list must collapse history and parallel tasks into one row per process instance");
+        int include = statement.indexOf("StartedInstanceRepresentativeTask");
+        int statusFilter = statement.indexOf("t.status = #{status}");
+        assertTrue(include >= 0 && statusFilter > include,
+                "status filtering must apply to the chosen representative task, not before choosing it");
+        int start = xml.indexOf("<sql id=\"StartedInstanceRepresentativeTask\">");
+        String fragment = xml.substring(start, xml.indexOf("</sql>", start));
+        assertTrue(fragment.contains("newer.process_instance_id = t.process_instance_id"));
+        assertTrue(fragment.contains("newer.status IN (0, 1)"), "pending tasks must win over finished history");
+        assertTrue(fragment.contains("newer.create_time &gt; t.create_time"), "latest task wins among the same kind");
+        assertTrue(fragment.contains("newer.id &gt; t.id"), "ties need a deterministic winner so a process never shows twice");
+    }
+
+    @Test
     void startedRunningCountMustCountProcessesNotParallelTasks() throws IOException {
         String statement = statement(resource(), "countWorkspaceStartedRunning");
         assertTrue(statement.contains("COUNT(DISTINCT t.process_instance_id)"),

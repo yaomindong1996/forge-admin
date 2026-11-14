@@ -297,8 +297,9 @@ public class FlowModelVersionServiceImpl extends ServiceImpl<FlowModelVersionMap
             throw new RuntimeException("版本不存在");
         }
 
-        if ("release".equals(version.getVersionTag()) || "deprecated".equals(version.getVersionTag())) {
-            throw new RuntimeException("已发布版本和已废弃版本不可删除");
+        FlowModel model = flowModelMapper.selectByIdAndTenant(version.getModelId(), tenantId);
+        if (isCurrentVersion(model, version)) {
+            throw new RuntimeException("当前版本不可删除");
         }
 
         if (repositoryService != null && version.getProcessDefinitionId() != null) {
@@ -381,7 +382,6 @@ public class FlowModelVersionServiceImpl extends ServiceImpl<FlowModelVersionMap
         result.setRetainLatest(retainLatest);
         result.setScanned(candidates == null ? 0 : candidates.size());
         int deleted = 0;
-        int protectedCount = 0;
         int runningCount = 0;
         int currentCount = 0;
         if (candidates != null) {
@@ -390,13 +390,8 @@ public class FlowModelVersionServiceImpl extends ServiceImpl<FlowModelVersionMap
                 if (index < retainLatest) {
                     continue;
                 }
-                if ("release".equals(version.getVersionTag())
-                        || "deprecated".equals(version.getVersionTag())) {
-                    protectedCount++;
-                    continue;
-                }
-                if (Objects.equals(model.getVersion(), version.getVersion())
-                        || Objects.equals(model.getProcessDefinitionId(), version.getProcessDefinitionId())) {
+                // 每次发布都会生成「正式发布」版本，按标记保护会让清理永远为 0；只保护当前版本和仍在运行的版本
+                if (isCurrentVersion(model, version)) {
                     currentCount++;
                     continue;
                 }
@@ -410,12 +405,18 @@ public class FlowModelVersionServiceImpl extends ServiceImpl<FlowModelVersionMap
             }
         }
         result.setDeleted(deleted);
-        result.setSkippedProtected(protectedCount);
+        result.setSkippedProtected(0);
         result.setSkippedRunning(runningCount);
         result.setSkippedCurrent(currentCount);
         log.info("清理流程模型历史版本: tenantId={}, modelId={}, retainLatest={}, scanned={}, deleted={}, skippedRunning={}",
                 tenantId, dto.getModelId(), retainLatest, result.getScanned(), deleted, runningCount);
         return result;
+    }
+
+    private static boolean isCurrentVersion(FlowModel model, FlowModelVersion version) {
+        return model != null && (Objects.equals(model.getVersion(), version.getVersion())
+                || (model.getProcessDefinitionId() != null
+                && Objects.equals(model.getProcessDefinitionId(), version.getProcessDefinitionId())));
     }
 
     private boolean isReferencedByRunningInstance(FlowModelVersion version) {
