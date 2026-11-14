@@ -16,6 +16,7 @@
 </p>
 
 <p align="center">
+  <a href="http://www.dlforgelab.com/"><b>官网</b></a> ·
   <a href="#-在线演示">在线演示</a> ·
   <a href="#-项目亮点">项目亮点</a> ·
   <a href="#-系统截图">系统截图</a> ·
@@ -29,6 +30,10 @@
 ## ✨ 项目简介
 
 **Forge Admin** 是一套面向企业后台、SaaS 管理端、数据可视化平台和内部低代码工具的中后台框架。它不只提供常见的用户、角色、菜单、字典、文件、日志等基础能力，还把 **AI 代码生成**、**AI 数据大屏**、**AI 智能体管理**、**Flowable 工作流**、**多租户隔离** 做成可持续扩展的工程体系。
+
+只想要若依风格的基础中后台（用户权限、字典、任务、代码生成等），可用精简姊妹项目 **[Forge Lite](https://gitee.com/ForgeLab/forge-lite)**，不含流程 / AI / 低代码 / 打印 / 大屏等重模块。
+
+官网：**[http://www.dlforgelab.com/](http://www.dlforgelab.com/)**（产品介绍与对外入口；下方 `:8084` 为在线演示环境，请区分使用）
 
 如果你正在搭建一个长期演进的后台系统，Forge Admin 更关注三件事：
 
@@ -67,7 +72,7 @@
 
 ## 🏛️ 系统架构
 
-![系统架构图.jpeg](images/%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E5%9B%BE.jpeg)
+![Forge 系统架构](images/forge-architecture.svg)
 
 后端采用 `forge-framework` + `forge-plugin-parent` + `forge-starter-parent` 的分层方式：Starter 负责认证、缓存、ORM、多租户、数据权限、加解密、日志、文件、Excel 等底层能力；Plugin 负责系统管理、代码生成、任务调度、消息中心、流程和 AI 等业务能力；应用服务按场景聚合插件并对外提供接口。
 
@@ -75,33 +80,65 @@
 
 ## 📺 在线演示
 
-| 入口     | 地址 |
-|--------|------|
-| 后台管理   | http://www.dlforgelab.com:8084/forge/login |
-| 移动端 H5  | http://www.dlforgelab.com:8084/forge-h5/ |
-| 项目文档   | http://www.dlforgelab.com:8084/forge-docs/ |
-| 大屏设计器  | http://www.dlforgelab.com:8084/forge-report/|
-| Gitee  | https://gitee.com/ForgeLab/forge-admin |
-| GitHub | https://github.com/yaomindong1996/forge-admin |
+官网与演示请区分：
+
+| 入口 | 地址 | 说明 |
+|------|------|------|
+| **官网** | [http://www.dlforgelab.com/](http://www.dlforgelab.com/) | 对外产品官网 |
+| 后台管理 | http://www.dlforgelab.com:8084/forge/login | 在线演示 |
+| 移动端 H5 | http://www.dlforgelab.com:8084/forge-h5/ | 在线演示 |
+| 项目文档 | http://www.dlforgelab.com:8084/forge-docs/ | 在线演示 |
+| 大屏设计器 | http://www.dlforgelab.com:8084/forge-report/ | 在线演示 |
 
 默认体验账号：`admin` / `123456` ｜ H5 体验账号：`h5_admin` / `123456`
+
+## 🔗 仓库地址
+
+| 产品 | 说明 | 地址 |
+|------|------|------|
+| **Forge Admin**（本仓库） | 完整社区版：系统管理 + 流程 / AI / 低代码 / 大屏等 | [Gitee](https://gitee.com/ForgeLab/forge-admin) · [GitHub](https://github.com/yaomindong1996/forge-admin) |
+| **[Forge Lite](https://gitee.com/ForgeLab/forge-lite)** | 轻量版：若依风格基础中后台，模块更少、上手更快 | [https://gitee.com/ForgeLab/forge-lite](https://gitee.com/ForgeLab/forge-lite) |
+
+按需选型：要全家桶选本仓库；只要登录鉴权、组织用户角色菜单、字典、定时任务、消息与代码生成，优先 Lite。
 
 ---
 
 ## 🖼️ 系统截图
 
+以下截图均来自当前测试环境实机页面。
+
 ### 后台管理系统
 
-| 登录页 | 工作台首页 | 用户管理 |
-|:---:|:---:|:---:|
-| ![登录页](images/%E7%99%BB%E5%BD%95%E9%A1%B5.png) | ![工作台首页](images/%E6%96%B0%E9%A6%96%E9%A1%B5.png) | ![用户管理](images/user-management.png) |
-| **登录页**<br>账号密码 + 验证码统一认证入口 | **工作台首页**<br>待办任务、审批中心、快捷入口与公告 | **用户管理**<br>组织架构树 + 用户列表联动、批量授权 |
-| ![菜单管理](images/%E8%8F%9C%E5%8D%95%E7%AE%A1%E7%90%86.png) | ![统一配置中心](images/%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86.png) | ![消息管理](images/%E6%B6%88%E6%81%AF%E7%AE%A1%E7%90%86.png) |
-| **菜单管理**<br>动态路由、按钮权限、资源绑定 | **统一配置中心**<br>登录 / 水印 / 安全 / 加解密 / 认证 / 日志 | **消息管理**<br>站内信、系统通知、消息模板 |
-| ![流程设计](images/%E6%B5%81%E7%A8%8B%E8%AE%BE%E8%AE%A1.png) | ![我的待办](images/%E6%88%91%E7%9A%84%E5%BE%85%E5%8A%9E.png) | ![服务监控](images/%E6%9C%8D%E5%8A%A1%E7%9B%91%E6%8E%A7.png) |
-| **流程设计**<br>Flowable 在线建模、AI 生成、发布部署 | **我的待办**<br>待办 / 已办 / 我发起的 / 抄送我集中审批 | **服务监控**<br>CPU / 内存 / JVM / 磁盘运行指标 |
+| 登录页 | 工作台首页 |
+|:---:|:---:|
+| ![登录页](images/登录页.png) | ![工作台首页](images/新首页.png) |
+| **登录页**<br>账号登录、租户切换与安全校验 | **工作台首页**<br>待办任务、审批中心、快捷入口与公告 |
 
-> 更多截图：流程模型、流程时间轴、文件管理、数据权限配置、Excel 导出配置等见 `images/` 目录。
+| 用户管理 | 菜单管理 |
+|:---:|:---:|
+| ![用户管理](images/user-management.png) | ![菜单管理](images/菜单管理.png) |
+| **用户管理**<br>组织架构树 + 用户列表联动、批量授权 | **菜单管理**<br>动态菜单、路由配置与按钮权限 |
+
+### 流程中心
+
+| 流程模型 | 流程设计 | 我的待办 |
+|:---:|:---:|:---:|
+| ![流程模型](images/流程模型.png) | ![流程设计](images/流程设计.png) | ![我的待办](images/我的待办.png) |
+| **流程模型**<br>Flowable 模型管理、部署与监控 | **流程设计**<br>在线 BPMN 建模、发布部署 | **我的待办**<br>待办 / 已办 / 我发起的 / 抄送我 |
+
+### 低代码平台
+
+| 低代码应用中心 | 低代码应用开发 |
+|:---:|:---:|
+| ![低代码应用中心](images/低代码应用中心.png) | ![低代码应用开发](images/低代码应用开发.png) |
+| **应用中心**<br>智能创建 / 模板 / Excel / 空白建应用 | **应用开发**<br>表单、列表与页面编排 |
+
+| 低代码页面管理 | 数据模型设计 |
+|:---:|:---:|
+| ![低代码页面管理](images/低代码页面管理.png) | ![数据模型设计](images/数据模型设计.png) |
+| **页面管理**<br>拖拽字段完成表单与列表设计 | **数据模型**<br>实体、字段与关系建模 |
+
+> 另有文件管理、数据权限、企业协同、开放平台、Excel 导出、服务监控等截图见 `images/` 目录。
 
 ---
 
@@ -132,7 +169,7 @@ Forge Admin 内置 **AI 智能体引擎**，提供开箱即用的 AI 能力。�
 
 ---
 
-## 🤖 AI 数据可视化大屏
+## 📊 AI 数据可视化大屏
 
 **Forge AI** 是项目内置的 AI 数据可视化低代码平台。你可以先用自然语言描述业务目标，让 AI 生成大屏草稿，再通过可视化编辑器调整组件、数据源、主题和交互，最后发布为可访问页面。
 
@@ -151,10 +188,10 @@ Forge Admin 内置 **AI 智能体引擎**，提供开箱即用的 AI 能力。�
 
 | 页面 | 截图 |
 |------|------|
-| **登录页** | ![登录页](images/report/login-page.png) |
-| **项目列表** | ![项目列表](images/report/project-home.png) |
-| **画布编辑器** | ![画布编辑器](images/report/canvas-editor.png) |
-| **AI 供应商配置** | ![AI供应商配置](images/report/AI%E4%BE%9B%E5%BA%94%E5%95%86%E9%85%8D%E7%BD%AE.png) |
+| **登录页** | ![登录页](images/report/登录页.png) |
+| **项目列表** | ![项目列表](images/report/项目列表.png) |
+| **画布编辑器** | ![画布编辑器](images/report/画布.png) |
+| **AI 供应商配置** | ![AI 供应商配置](images/report/AI供应商配置.png) |
 
 ### 内置组件
 
@@ -192,19 +229,35 @@ Forge Admin 提供独立的移动端 H5 入口，基于 **uni-app 3 + Vue 3** �
 
 Forge Admin 的代码生成能力面向真实后台研发流程：可以通过 AI 辅助生成表单和 CRUD 页面，也可以通过模板市场进行个性化配置。简单业务可以 0 代码上线，复杂业务可以下载代码包继续二次开发。
 
+### AI 表单生成
+
+| AI 表单生成 | AI 表单生成列表 |
+|:---:|:---:|
+| ![AI 表单生成](images/AI代码生成/AI表单生成.png) | ![AI 表单生成列表](images/AI代码生成/AI表单生成列表.png) |
+
+| 模版配置 | 表单编辑 |
+|:---:|:---:|
+| ![模版配置](images/AI代码生成/模版配置.png) | ![表单编辑](images/AI代码生成/表单编辑.png) |
+
 ### AI 数据模型设计
 
-![数据模型设计.png](images/%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B%E8%AE%BE%E8%AE%A1.png)
+![数据模型设计](images/数据模型设计.png)
 
 ### 低代码应用中心
 
-![低代码应用中心](images/%E4%BD%8E%E4%BB%A3%E7%A0%81%E5%BA%94%E7%94%A8%E4%B8%AD%E5%BF%83.png)
+![低代码应用中心](images/低代码应用中心.png)
 
 应用中心是低代码的统一入口：智能创建 / 模板 / Excel / 空白四种方式建应用，进入页面管理拖字段即可完成表单、列表页面设计，再经业务流程画布编排审批与自动化，一键发布到独立门户。
 
-### 低代码页面管理
+| 低代码应用开发 | 低代码页面管理 |
+|:---:|:---:|
+| ![低代码应用开发](images/低代码应用开发.png) | ![低代码页面管理](images/低代码页面管理.png) |
 
-![低代码页面管理](images/%E4%BD%8E%E4%BB%A3%E7%A0%81%E9%A1%B5%E9%9D%A2%E7%AE%A1%E7%90%86.png)
+### 业务流程画布
+
+![业务流程画布](images/业务流程画布.png)
+
+在应用内可视化编排审批节点、条件分支与自动化动作，发布后与表单、待办打通。
 
 ---
 
@@ -253,7 +306,7 @@ forge-server/                    # 后端根目录
 │   ├── forge-dependencies/      # 统一依赖版本管理
 │   ├── forge-plugin-parent/     # system / generator / job / message / flow / ai 等业务插件
 │   └── forge-starter-parent/    # auth / cache / orm / tenant / crypto / excel / file 等技术 Starter
-├── db/                          # Flyway 迁移、seed、全量初始化 SQL
+├── db/                          # 按 mysql/postgresql 划分的全量与 Flyway 增量 SQL
 └── scripts/                     # 数据库初始化与社区导出脚本
 
 forge-admin-ui/                  # 后台管理系统前端
@@ -296,7 +349,7 @@ npx --yes \
 
 ### 2. 初始化数据库
 
-推荐使用统一初始化脚本，它会按顺序执行 `forge-server/db/全量初始化SQL.sql` 和 `forge-server/db/seed/required` 必需初始化数据，并可按需导入 demo/optional 数据。表结构增量变更由主后台服务启动时的 Flyway 执行 `forge-server/db/migration`。
+推荐使用统一初始化脚本，它会执行 `forge-server/db/mysql/全量初始化SQL.sql`（含必需基础数据）。表结构增量由主后台启动时的 Flyway 执行 `forge-server/db/mysql/migration`。
 
 ```bash
 bash forge-server/scripts/db/init-db.sh \
@@ -319,13 +372,11 @@ bash forge-server/scripts/db/init-db.sh \
 
 数据库变更规范：
 
-- 表结构、字段、索引、系统资源等正式变更统一新增到 `forge-server/db/migration/`。
+- 表结构、字段、索引、系统资源等正式变更统一新增到 `forge-server/db/mysql/migration/`。
 - Flyway 版本脚本命名为 `V<版本号>__<lower_snake_case_description>.sql`，例如 `V1.0.2__add_dashboard_version_table.sql`。
 - `V1.0.0__baseline.sql` 是历史基线，新脚本版本必须大于 `1.0.0`，且版本号单调递增。
 - 已写入 `forge_schema_history` 的脚本禁止修改；需要修正时新增下一个版本脚本。
-- 系统必需基础数据放入 `forge-server/db/seed/required/R__*.sql`。
-- 演示数据放入 `forge-server/db/seed/demo/D__*.sql`，默认不导入。
-- 可选模块数据放入 `forge-server/db/seed/optional/O__*.sql`。
+- 必需基础数据已包含在全量脚本中；结构变更只新增 `forge-server/db/mysql/migration/`（启用 PG 时同步 `db/postgresql/migration/`）。
 - SQL 必须幂等或有防重复保护：`CREATE TABLE IF NOT EXISTS`、`INSERT ... SELECT ... WHERE NOT EXISTS`、新增列/索引前查 `information_schema`。
 - `INSERT` 必须显式列名；业务内置数据 `tenant_id` 使用 `1`，禁止写 `0`。
 - 权限资源类脚本（如 `sys_resource`、`sys_role_resource`）必须做 `NOT EXISTS` 防重复。
@@ -334,11 +385,11 @@ bash forge-server/scripts/db/init-db.sh \
 
 Flyway 启动说明：
 
-- 主后台服务 `forge-admin-server` 启动时执行 `forge-server/db/migration`；单独启动 `forge-report-server` 不会执行这些迁移。
-- 默认扫描 `classpath:db/migration`；Admin POM 通过 `copy-resources`（`copy-flyway-sql`）将 `forge-server/db/migration` 原样拷到 classes/JAR（不要写进默认 `<resources>`，maven-resources-plugin 3.3+ 会拒绝跨模块路径）；本地和部署使用同一套资源，不依赖启动目录。
+- 主后台服务 `forge-admin-server` 启动时执行 `forge-server/db/mysql/migration`；单独启动 `forge-report-server` 不会执行这些迁移。
+- 默认扫描 `classpath:db/mysql/migration`；Admin POM 通过 `copy-resources`（`copy-flyway-sql`）将 `forge-server/db/mysql/migration`（及 PG 的 `db/postgresql/migration`）原样拷到 classes/JAR；本地和部署使用同一套资源，不依赖启动目录。
 - 找不到迁移目录时启动失败。IDE 首次启动或新增 SQL 后需刷新 Maven 并构建资源；Maven 启动/打包自动处理资源。
 - 如果设置了 `FORGE_FLYWAY_LOCATIONS` 或 `FORGE_FLYWAY_ENABLED`，环境变量会覆盖默认配置；迁移未执行时先检查这两个变量。
-- 从旧版本升级时，检查外置配置、JVM 参数和环境变量是否仍显式设置 `filesystem:`；通常应移除覆盖项或改为 `classpath:db/migration`，不要混扫旧目录。
+- 从旧版本升级时，检查外置配置、JVM 参数和环境变量是否仍显式设置 `filesystem:`；通常应移除覆盖项或改为 `classpath:db/mysql/migration`，不要混扫旧目录。
 - 可通过以下 SQL 查看执行状态：
 
 ```sql
@@ -432,7 +483,7 @@ bash forge-server/scripts/db/export-community-db.sh --dry-run
 bash forge-server/scripts/db/export-community-db.sh
 ```
 
-导出结果位于 `forge-server/db/community-export/`，流程会校验 migration 命名、复制 seed 脚本、扫描敏感字段并生成摘要。白名单、黑名单和敏感字段规则维护在 `forge-server/scripts/db/community-db.config.json`。
+社区导出脚本仍保留在 `forge-server/scripts/db/export-community-db.sh`；默认输出目录与 seed 目录已从仓库移除，如需导出请自行指定输出路径并更新 `community-db.config.json`。
 
 ### 7. 构建生产包
 

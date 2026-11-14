@@ -24,6 +24,7 @@ import com.mdframe.forge.plugin.system.mapper.SysUserRoleMapper;
 import com.mdframe.forge.plugin.system.mapper.SysUserOrgRoleMapper;
 import com.mdframe.forge.plugin.system.mapper.SysUserTenantMapper;
 import com.mdframe.forge.plugin.system.service.ISysTenantService;
+import com.mdframe.forge.plugin.system.service.ISysUserService;
 import com.mdframe.forge.plugin.system.service.IUserLoadService;
 import com.mdframe.forge.plugin.system.vo.SysUserTenantVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
@@ -58,6 +59,7 @@ public class SysTenantServiceImpl extends ServiceImpl<SysTenantMapper, SysTenant
     private final SysUserOrgMapper userOrgMapper;
     private final SysUserPostMapper userPostMapper;
     private final IUserLoadService userLoadService;
+    private final ISysUserService userService;
 
     @Override
     public IPage<SysTenant> selectTenantPage(SysTenantQuery query) {
@@ -140,8 +142,7 @@ public class SysTenantServiceImpl extends ServiceImpl<SysTenantMapper, SysTenant
         assertCanAccessTenant(tenantId);
         SysUserQuery userQuery = query == null ? new SysUserQuery() : query;
         userQuery.setTenantId(tenantId);
-        Page<SysUser> page = new Page<>(userQuery.getPageNum(), userQuery.getPageSize());
-        return TenantContextHolder.executeIgnore(() -> userMapper.selectUserPage(page, userQuery));
+        return userService.selectUserPage(userQuery);
     }
 
     @Override

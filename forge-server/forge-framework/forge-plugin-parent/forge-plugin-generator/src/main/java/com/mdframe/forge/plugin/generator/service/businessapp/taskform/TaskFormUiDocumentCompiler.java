@@ -67,10 +67,41 @@ public final class TaskFormUiDocumentCompiler {
                 sections.add(section);
             }
             if (!sections.isEmpty()) {
+                appendUnassignedFields(sections, defaultSection(resolvedFields, components));
                 return sections;
             }
         }
         return List.of(defaultSection(resolvedFields, components));
+    }
+
+    /**
+     * 设计态改字段编码后分区引用可能停在旧编码，未被任何分区引用的主表字段补进第一个内容分区，
+     * 避免待办表单整块丢字段。
+     */
+    private static void appendUnassignedFields(List<Map<String, Object>> sections, Map<String, Object> allFields) {
+        Set<String> referenced = new LinkedHashSet<>();
+        for (Map<String, Object> section : sections) {
+            referenced.addAll(copyStringList(section.get("fields")));
+        }
+        List<String> missing = copyStringList(allFields.get("fields")).stream()
+                .filter(code -> !referenced.contains(code))
+                .toList();
+        if (missing.isEmpty()) {
+            return;
+        }
+        Map<String, Object> target = sections.stream()
+                .filter(section -> !"child_table".equals(section.get("sectionType")))
+                .findFirst()
+                .orElse(null);
+        if (target == null) {
+            Map<String, Object> fallback = new LinkedHashMap<>(allFields);
+            fallback.put("fields", missing);
+            sections.add(0, fallback);
+            return;
+        }
+        List<String> merged = copyStringList(target.get("fields"));
+        merged.addAll(missing);
+        target.put("fields", merged);
     }
 
     private static Map<String, Object> defaultSection(List<Map<String, Object>> resolvedFields,

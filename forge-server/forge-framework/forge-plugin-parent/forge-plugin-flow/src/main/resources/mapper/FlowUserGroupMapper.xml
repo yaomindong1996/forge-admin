@@ -146,18 +146,25 @@
           AND del_flag = 0
     </select>
 
-    <insert id="insertMember">
+    <insert id="insertMemberPlain">
         INSERT INTO sys_flow_user_group_member
             (tenant_id, group_id, user_id, status, create_by, create_time, create_dept,
              update_by, update_time, del_flag)
         VALUES (#{tenantId}, #{groupId}, #{userId}, 1, #{operatorId}, CURRENT_TIMESTAMP,
                 #{createDept}, #{operatorId}, CURRENT_TIMESTAMP, 0)
-        ON DUPLICATE KEY UPDATE
-            status = 1,
+    </insert>
+
+    <update id="reactivateMember">
+        UPDATE sys_flow_user_group_member
+        SET status = 1,
             del_flag = 0,
             update_by = #{operatorId},
             update_time = CURRENT_TIMESTAMP
-    </insert>
+        WHERE tenant_id = #{tenantId}
+          AND group_id = #{groupId}
+          AND user_id = #{userId}
+          AND del_flag = 0
+    </update>
 
     <update id="logicallyDeleteMember">
         UPDATE sys_flow_user_group_member

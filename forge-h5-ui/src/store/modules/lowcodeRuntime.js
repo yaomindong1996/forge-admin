@@ -20,6 +20,7 @@ import {
   resolveRuntimeZoneFormDesignerSchema,
   syncChildRowAliases,
 } from '../../utils/lowcode-runtime.js'
+import { completePageSectionFields } from '../../utils/page-section-fields.js'
 
 export const useLowcodeRuntimeStore = defineStore('lowcode-runtime', {
   state: () => ({
@@ -55,7 +56,7 @@ export const useLowcodeRuntimeStore = defineStore('lowcode-runtime', {
     searchFields: state => (Array.isArray(state.config.searchSchema) ? state.config.searchSchema : []).map(normalizeField).filter(field => field.field),
     visibleColumns: state => (Array.isArray(state.config.columnsSchema) ? state.config.columnsSchema : []).filter(column => column?.prop || column?.field),
     hasPageSections() { return Array.isArray(this.formDesignerSchema?.pageSections) && this.formDesignerSchema.pageSections.length > 0 },
-    pageSections() { return this.formDesignerSchema?.pageSections || [] },
+    pageSections() { return completePageSectionFields(this.formDesignerSchema?.pageSections || [], this.mainFields) },
     flowInteraction: state => normalizeRuntimeFlowInteraction(state.config?.options?.flowInteraction),
     bottomBar() { return mergeFlowActionsIntoBottomBar(this.formDesignerSchema?.bottomBar || {}, this.flowInteraction) },
     fieldLinkages(state) { return resolveFieldLinkages(this.formDesignerSchema, state.config) },
@@ -160,6 +161,9 @@ export const useLowcodeRuntimeStore = defineStore('lowcode-runtime', {
     runtimeZoneHasSections(zone = {}) {
       const schema = this.runtimeZoneFormSchema(zone)
       return Array.isArray(schema.pageSections) && schema.pageSections.length > 0
+    },
+    runtimeZonePageSections(zone = {}) {
+      return completePageSectionFields(this.runtimeZoneFormSchema(zone).pageSections || [], this.runtimeZoneMainFields(zone))
     },
     runtimeZoneBottomBar(zone = {}) {
       return mergeFlowActionsIntoBottomBar(this.runtimeZoneFormSchema(zone)?.bottomBar || this.bottomBar || {}, this.flowInteraction)

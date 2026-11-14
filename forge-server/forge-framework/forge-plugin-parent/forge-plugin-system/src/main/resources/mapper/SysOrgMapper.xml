@@ -174,7 +174,9 @@
     <select id="selectOrgAndChildrenIds" resultType="java.lang.Long">
         SELECT id FROM sys_org
         WHERE del_flag = 0
-          AND (id = #{orgId} OR FIND_IN_SET(#{orgId}, ancestors) > 0)
+          AND (id = #{orgId} OR
+               CONCAT(',', COALESCE(ancestors, ''), ',') LIKE CONCAT('%,', #{orgId}, ',%')
+          )
     </select>
 
     <select id="selectOrgAndChildrenIdsByTenant" resultType="java.lang.Long">
@@ -183,7 +185,9 @@
         WHERE tenant_id = #{tenantId}
           AND del_flag = 0
           AND org_status = 1
-          AND (id = #{orgId} OR FIND_IN_SET(#{orgId}, ancestors) > 0)
+          AND (id = #{orgId} OR
+               CONCAT(',', COALESCE(ancestors, ''), ',') LIKE CONCAT('%,', #{orgId}, ',%')
+          )
         ORDER BY sort ASC, id ASC
     </select>
 

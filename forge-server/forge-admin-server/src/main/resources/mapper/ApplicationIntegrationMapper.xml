@@ -8,7 +8,6 @@
   <insert id="initialize">
     INSERT INTO ai_application_integration (id, tenant_id, application_id, create_by, create_dept, update_by)
     VALUES (#{id}, #{tenantId}, #{appId}, #{userId}, #{deptId}, #{userId})
-    ON DUPLICATE KEY UPDATE id = id
   </insert>
   <update id="save">
     UPDATE ai_application_integration SET connection_id = #{config.connectionId}, revision = revision + 1,
@@ -18,7 +17,6 @@
   <insert id="attach">
     INSERT INTO ai_application_capability (id, tenant_id, application_id, capability_id, create_by, create_dept, update_by)
     VALUES (#{id}, #{tenantId}, #{appId}, #{capabilityId}, #{userId}, #{deptId}, #{userId})
-    ON DUPLICATE KEY UPDATE id = id
   </insert>
   <select id="member" resultType="java.lang.Long">
     SELECT capability_id FROM ai_application_capability

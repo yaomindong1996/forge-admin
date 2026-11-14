@@ -15,6 +15,7 @@ import com.mdframe.forge.plugin.generator.dto.formula.FormulaFunctionRegisterReq
 import com.mdframe.forge.plugin.generator.dto.formula.FormulaFunctionResponse;
 import com.mdframe.forge.plugin.generator.mapper.FormulaFunctionMapper;
 import com.mdframe.forge.starter.core.session.SessionHelper;
+import com.mdframe.forge.starter.orm.support.DuplicateKeyActions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -152,7 +153,9 @@ public class FormulaFunctionMarketService {
         function.setSortOrder(existing == null || existing.getSortOrder() == null ? 500 : existing.getSortOrder());
         function.setRemark("Java Bean 自定义公式函数");
         fillAuditFields(function, userId, deptId, now);
-        formulaFunctionMapper.upsertFormulaFunction(function);
+        DuplicateKeyActions.upsert(
+                () -> formulaFunctionMapper.updateFormulaFunctionByUk(function),
+                () -> formulaFunctionMapper.insertFormulaFunction(function));
 
         AiFormulaFunctionVersion functionVersion = new AiFormulaFunctionVersion();
         functionVersion.setId(IdWorker.getId());
@@ -169,7 +172,9 @@ public class FormulaFunctionMarketService {
         functionVersion.setStatus(function.getStatus());
         functionVersion.setRemark("Java Bean 自定义公式函数版本");
         fillAuditFields(functionVersion, userId, deptId, now);
-        formulaFunctionMapper.upsertFunctionVersion(functionVersion);
+        DuplicateKeyActions.upsert(
+                () -> formulaFunctionMapper.updateFunctionVersionByUk(functionVersion),
+                () -> formulaFunctionMapper.insertFunctionVersion(functionVersion));
 
         FormulaFunctionInstallRequest installRequest = new FormulaFunctionInstallRequest();
         installRequest.setFunctionCode(functionCode);
@@ -242,7 +247,9 @@ public class FormulaFunctionMarketService {
             install.setInstalledBy(resolveUserId());
             install.setInstalledTime(LocalDateTime.now());
             fillAuditFields(install);
-            formulaFunctionMapper.upsertFunctionInstall(install);
+            DuplicateKeyActions.upsert(
+                    () -> formulaFunctionMapper.updateFunctionInstallByUk(install),
+                    () -> formulaFunctionMapper.insertFunctionInstall(install));
             FormulaFunctionMarketResponse response = detail(functionCode);
             registerRuntimeDefinition(response);
             return response;

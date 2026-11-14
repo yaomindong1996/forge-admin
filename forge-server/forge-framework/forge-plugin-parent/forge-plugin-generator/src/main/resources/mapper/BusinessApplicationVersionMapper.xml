@@ -84,7 +84,7 @@
         JOIN ai_business_application a ON a.id = v.application_id AND a.tenant_id = v.tenant_id
         WHERE v.tenant_id = #{tenantId} AND v.del_flag = '0' AND a.del_flag = '0'
           AND v.version_no = a.last_publish_version
-          AND JSON_CONTAINS(JSON_EXTRACT(v.snapshot_json, '$.objects'), JSON_OBJECT('configKey', #{configKey}))
+          AND v.snapshot_json LIKE CONCAT('%"configKey":"', #{configKey}, '"%')
         <if test="applicationId != null">AND a.id = #{applicationId}</if>
         ORDER BY a.id
     </select>

@@ -1,3 +1,0 @@
--- Forge database migration baseline.
--- Historical schema is initialized by forge-admin-server/sql/初始化脚本.sql.
--- New schema changes must be added as versioned migration scripts after this baseline.

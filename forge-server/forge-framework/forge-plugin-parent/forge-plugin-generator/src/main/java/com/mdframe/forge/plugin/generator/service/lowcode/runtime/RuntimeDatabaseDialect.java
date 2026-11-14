@@ -42,6 +42,8 @@ public interface RuntimeDatabaseDialect {
 
     /**
      * 将一对多子表的文本列聚合为单个展示值。
+     * <p>仅供低代码动态 SQL 方言路径使用；静态 Mapper XML 禁止直接写 {@code GROUP_CONCAT}，
+     * 应改为查明细后在 Java 侧拼接。
      * 方言负责数据库差异，调用方只提供已经完成安全引用的列名。
      */
     default String stringAggregate(String column, String orderColumn, String delimiter) {

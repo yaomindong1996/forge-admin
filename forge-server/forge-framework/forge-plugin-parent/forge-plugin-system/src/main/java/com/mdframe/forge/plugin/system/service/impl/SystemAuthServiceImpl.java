@@ -170,6 +170,8 @@ public class SystemAuthServiceImpl implements IAuthService {
         }
 
         SysClient targetClient = validateSsoTargetClient(request.getTargetClient());
+        // 密码登录会校验 allowedClients；SSO 出票是另一条登录入口，不能绕过客户端限制。
+        validateUserClientAccess(currentUser, targetClient.getClientCode());
         String redirectPath = normalizeRedirectPath(request.getRedirectPath());
         String ticket = IdUtil.fastSimpleUUID();
 
@@ -216,6 +218,8 @@ public class SystemAuthServiceImpl implements IAuthService {
 
         SysClient targetClient = validateSsoTargetClient(payload.getTargetClient());
         LoginUser loginUser = rebuildSsoLoginUser(payload);
+        // 换票才真正签发目标客户端会话，限制以换票时的库内授权为准。
+        validateUserClientAccess(loginUser, payload.getTargetClient());
 
         log.info("开始SSO票据交换: userId={}, sourceClient={}, targetClient={}, redirectPath={}",
                 payload.getUserId(), payload.getSourceClient(), payload.getTargetClient(), payload.getRedirectPath());

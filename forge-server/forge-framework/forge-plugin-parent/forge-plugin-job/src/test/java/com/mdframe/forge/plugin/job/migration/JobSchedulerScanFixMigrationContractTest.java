@@ -31,11 +31,11 @@ class JobSchedulerScanFixMigrationContractTest {
     private Path resolveMigration() {
         Path current = Path.of("").toAbsolutePath();
         while (current != null) {
-            Path candidate = current.resolve("db/migration").resolve(MIGRATION);
+            Path candidate = current.resolve("db/mysql/migration").resolve(MIGRATION);
             if (Files.exists(candidate)) {
                 return candidate;
             }
-            candidate = current.resolve("forge-server/db/migration").resolve(MIGRATION);
+            candidate = current.resolve("forge-server/db/mysql/migration").resolve(MIGRATION);
             if (Files.exists(candidate)) {
                 return candidate;
             }

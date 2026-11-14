@@ -2,9 +2,15 @@
 
 Forge Admin is an enterprise-level mid-to-back-end management system built on Spring Boot and Vue 3, adopting a frontend-backend separation architecture. It provides comprehensive enterprise-grade features including user permission management, multi-tenancy, and system monitoring.
 
+- Official website: [http://www.dlforgelab.com/](http://www.dlforgelab.com/)
+- Online demo (port `:8084`): see the Chinese README demo section
+- Lightweight sibling: **[Forge Lite](https://gitee.com/ForgeLab/forge-lite)** — RuoYi-style basics only (no flow / AI / low-code / print / dashboard)
+
 ## Project Overview
 
 Forge Admin is a modern enterprise-grade admin system designed to serve as a foundational framework for rapid development and business expansion. The system employs a microkernel + plugin-based architecture, where core functionalities exist as plugins, enabling on-demand integration and extensibility.
+
+Repositories: [Forge Admin (full)](https://gitee.com/ForgeLab/forge-admin) · [Forge Lite (slim)](https://gitee.com/ForgeLab/forge-lite)
 
 ### Core Features
 
@@ -99,7 +105,7 @@ cd forge-admin
 
 2. Initialize the database
 
-From the repository root, run the unified init script. It executes `forge-server/db/全量初始化SQL.sql` and `forge-server/db/seed/required`. Incremental schema changes are applied by Flyway from `forge-server/db/migration` when `forge-admin-server` starts.
+From the repository root, run the unified init script. It executes `forge-server/db/mysql/全量初始化SQL.sql` (includes required baseline data). Incremental schema changes are applied by Flyway from `forge-server/db/mysql/migration` when `forge-admin-server` starts.
 
 ```bash
 bash forge-server/scripts/db/init-db.sh \

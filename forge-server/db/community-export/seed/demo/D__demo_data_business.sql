@@ -1,2 +1,0 @@
--- Demo seed data for data business examples.
--- Keep this file idempotent and do not include production data.

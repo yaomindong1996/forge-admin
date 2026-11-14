@@ -233,7 +233,7 @@ NODE_OPTIONS=--max-old-space-size=8192 pnpm build
 范围：T2.3 逾期提醒幂等、失败退避、重试上限和正式数据库迁移。
 
 - `xmllint --noout forge-server/forge-framework/forge-plugin-parent/forge-plugin-flow/src/main/resources/mapper/FlowOverdueReminderRecordMapper.xml`：通过。
-- `rg -n '\$\{[^}]+\}' forge-server/db/migration/V1.0.144__add_flow_overdue_reminder_runtime.sql`：无输出。
+- `rg -n '\$\{[^}]+\}' forge-server/db/mysql/migration/V1.0.144__add_flow_overdue_reminder_runtime.sql`：无输出。
 - `git diff --check`：通过。
 - `mvn -pl forge-framework/forge-plugin-parent/forge-plugin-flow -am -DskipTests compile`：BUILD SUCCESS。
 - 新增 `FlowOverdueReminderRetryContractTest`，覆盖重试上限、指数退避、原子 claim、唯一键和迁移字段；由于仓库既有 Surefire `groups/excludedGroups` 配置及本地依赖缓存问题，最终测试运行需在完整 CI/开发环境复跑。

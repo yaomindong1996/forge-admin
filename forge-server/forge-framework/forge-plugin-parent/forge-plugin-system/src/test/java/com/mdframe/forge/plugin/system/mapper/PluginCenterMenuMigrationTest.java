@@ -99,7 +99,7 @@ class PluginCenterMenuMigrationTest {
     }
 
     private void run(String file) throws Exception {
-        try (var reader = Files.newBufferedReader(Path.of("../../../db/migration", file))) {
+        try (var reader = Files.newBufferedReader(Path.of("../../../db/mysql/migration", file))) {
             RunScript.execute(connection, reader);
         }
     }

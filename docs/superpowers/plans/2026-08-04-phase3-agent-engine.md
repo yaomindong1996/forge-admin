@@ -41,7 +41,7 @@
 ### Task 1: 数据库迁移（事件表 + Agent 扩展 + 工具/技能/权限表 + 菜单）
 
 **Files:**
-- Create: `forge-server/db/migration/V1.0.88__add_agent_engine_event_skill.sql`
+- Create: `forge-server/db/mysql/migration/V1.0.88__add_agent_engine_event_skill.sql`
 
 **Interfaces:**
 - Produces: 表 `ai_agent_event`、`ai_agent_tool_config`、`ai_skill`、`ai_skill_file`、`ai_agent_skill`、`ai_agent_tool_permission`（HITL 中断状态**纯 Redis 存，不建表**）；`ai_agent` 扩展列；字典 + 菜单
@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS `ai_agent_skill` (
 - [ ] **Step 5: 提交**
 
 ```bash
-git add forge-server/db/migration/V1.0.88__add_agent_engine_event_skill.sql
+git add forge-server/db/mysql/migration/V1.0.88__add_agent_engine_event_skill.sql
 git commit -m "feat(db): Agent引擎事件/工具/技能表与菜单"
 ```
 

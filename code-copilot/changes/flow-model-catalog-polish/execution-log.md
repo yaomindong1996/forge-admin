@@ -63,8 +63,8 @@ JAVA_TOOL_OPTIONS=-javaagent:/Users/mini32g/.m2/repository/net/bytebuddy/byte-bu
 
 ```bash
 git diff --check
-ls forge-server/db/migration/V*.sql | sed 's/__.*//' | sort | uniq -d
-rg -n '\$\{' forge-server/db/migration/V1.0.226__add_flow_model_publication_state_dict.sql
+ls forge-server/db/mysql/migration/V*.sql | sed 's/__.*//' | sort | uniq -d
+rg -n '\$\{' forge-server/db/mysql/migration/V1.0.226__add_flow_model_publication_state_dict.sql
 source ~/.nvm/nvm.sh && nvm use v24.21.0
 node scripts/guards/check-edition.mjs
 ```

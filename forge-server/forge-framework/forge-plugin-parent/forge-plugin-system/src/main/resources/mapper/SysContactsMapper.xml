@@ -61,7 +61,7 @@
                 INNER JOIN sys_user u ON u.id = uo.user_id
                 WHERE uo.tenant_id = #{tenantId}
                   AND c.del_flag = 0
-                  AND (c.id = o.id OR FIND_IN_SET(o.id, c.ancestors) > 0)
+                  AND (c.id = o.id OR CONCAT(',', COALESCE(c.ancestors, ''), ',') LIKE CONCAT('%,', o.id, ',%'))
                   AND <include refid="activeMember" />
             ) AS memberCount
         FROM sys_org o
@@ -99,7 +99,7 @@
             )
         </if>
         <!-- 转 GBK 排序可让中文姓名近似按拼音排列 -->
-        ORDER BY u.real_name IS NULL, CONVERT(u.real_name USING gbk) ASC, u.id ASC
+        ORDER BY CASE WHEN u.real_name IS NULL THEN 1 ELSE 0 END ASC, u.real_name ASC, u.id ASC
     </select>
 
     <select id="selectMember" resultType="com.mdframe.forge.plugin.system.vo.ContactMemberVO">

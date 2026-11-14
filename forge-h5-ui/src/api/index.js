@@ -400,6 +400,20 @@ export default {
     encrypt: true,
     needTip: false,
   }),
+  // 低代码应用级业务流程，与管理端 startBusinessProcess 共用同一组接口
+  getBusinessProcessStartConfig: (applicationCode, processCode) => request({
+    url: `/ai/business/process/runtime/${encodeURIComponent(String(applicationCode || ''))}/${encodeURIComponent(String(processCode || ''))}/start-config`,
+    method: 'get',
+    encrypt: true,
+    needTip: false,
+  }),
+  startBusinessProcess: (applicationCode, processCode, data) => request({
+    url: `/ai/business/process/runtime/${encodeURIComponent(String(applicationCode || ''))}/${encodeURIComponent(String(processCode || ''))}/start`,
+    method: 'post',
+    data,
+    encrypt: true,
+    needTip: false,
+  }),
   resubmitBusinessDocumentFlow: data => request({
     url: '/ai/business/flow/resubmit',
     method: 'post',

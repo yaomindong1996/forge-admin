@@ -77,7 +77,7 @@
 - `forge-server/forge-framework/forge-plugin-parent/forge-plugin-external/src/main/java/com/mdframe/forge/plugin/external/controller/ExternalProxyController.java`
 - `forge-server/forge-framework/forge-plugin-parent/forge-plugin-external/src/main/java/com/mdframe/forge/plugin/external/controller/ExternalApiLogController.java`
 - `forge-server/forge-framework/forge-plugin-parent/forge-plugin-external/src/main/java/com/mdframe/forge/plugin/external/support/ExternalPermissionGuard.java`、`ExternalQueryContractValidator.java`
-- `forge-server/db/migration/` 外部资源脚本
+- `forge-server/db/mysql/migration/` 外部资源脚本
 
 - [ ] 为管理、调试、代理、日志清理接口定义明确权限标识和平台管理员边界。
 - [ ] 外部 API 默认 `permissionCheckEnabled=true`；旧数据迁移前先盘点并提供兼容告警。

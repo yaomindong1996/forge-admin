@@ -14,10 +14,16 @@
     <description>Forge Flow 流程服务 - 基于 Flowable 的独立流程服务</description>
 
     <dependencies>
-        <!-- MySQL驱动 -->
+        <!-- MySQL驱动（默认） -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
+        </dependency>
+        <!-- PostgreSQL 驱动（可选主库 / 与 Admin 共用 PG） -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- Forge Flow Plugin (核心业务逻辑) -->

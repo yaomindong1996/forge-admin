@@ -31,7 +31,7 @@ test('dev UI manifest validates actual link and source metadata without requirin
 
 test('workbench persists bounded private packages, additive RBAC/dictionaries and no process execution', async () => {
   const migration = await fs.readFile(path.join(repository,
-    'forge-server/db/migration/V1.0.211__add_plugin_install_workbench.sql'), 'utf8')
+    'forge-server/db/mysql/migration/V1.0.211__add_plugin_install_workbench.sql'), 'utf8')
   assert.match(migration, /CREATE TABLE IF NOT EXISTS sys_plugin_task/)
   assert.match(migration, /uk_sys_plugin_task_active/)
   assert.match(migration, /archive_bytes BETWEEN 1 AND 8388608/)
@@ -54,7 +54,7 @@ test('workbench persists bounded private packages, additive RBAC/dictionaries an
 
 test('review is an additive platform permission with immutable audit, not a deployment path', async () => {
   const migration = await fs.readFile(path.join(repository,
-    'forge-server/db/migration/V1.0.213__add_plugin_task_review.sql'), 'utf8')
+    'forge-server/db/mysql/migration/V1.0.213__add_plugin_task_review.sql'), 'utf8')
   assert.match(migration, /CREATE TABLE IF NOT EXISTS sys_plugin_task_review/)
   assert.match(migration, /'system:plugin:review'/)
   assert.match(migration, /'POST' AS method/)

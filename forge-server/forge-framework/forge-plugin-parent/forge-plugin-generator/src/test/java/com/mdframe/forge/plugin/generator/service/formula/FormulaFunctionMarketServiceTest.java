@@ -97,7 +97,7 @@ class FormulaFunctionMarketServiceTest {
 
         ArgumentCaptor<AiFormulaFunctionInstall> captor =
             ArgumentCaptor.forClass(AiFormulaFunctionInstall.class);
-        verify(formulaFunctionMapper).upsertFunctionInstall(captor.capture());
+        verify(formulaFunctionMapper).updateFunctionInstallByUk(captor.capture());
 
         AiFormulaFunctionInstall install = captor.getValue();
         assertNotNull(install.getId());

@@ -11,7 +11,7 @@
 
 - **目标**：建立独立来源持久化模型，并使模板/绑定/执行表兼容无应用来源。
 - **涉及文件**：
-  - `forge-server/db/migration/V1.0.204__add_standalone_print_sources.sql`
+  - `forge-server/db/mysql/migration/V1.0.204__add_standalone_print_sources.sql`
   - `forge-plugin-print/entity/PrintBusinessSource.java`
   - `forge-plugin-print/mapper/PrintBusinessSourceMapper.java`
   - `forge-plugin-print/resources/mapper/PrintBusinessSourceMapper.xml`
@@ -95,7 +95,7 @@
 
 - **目标**：撤销把历史 `/print` 隐藏路由直接显示在“应用总览”下的错误做法，恢复应用总览，并将打印中心拆成独立一级目录。
 - **涉及文件**：
-  - `forge-server/db/migration/V1.0.205__repair_print_center_menu_hierarchy.sql`
+  - `forge-server/db/mysql/migration/V1.0.205__repair_print_center_menu_hierarchy.sql`
   - `forge-admin-ui/src/router/index.js`
   - `forge-admin-ui/src/views/print/index.vue`
   - `components/print/center/PrintCenterWorkspace.vue`

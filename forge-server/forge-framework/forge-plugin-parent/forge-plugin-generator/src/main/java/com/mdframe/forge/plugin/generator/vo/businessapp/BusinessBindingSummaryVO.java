@@ -1,5 +1,6 @@
 package com.mdframe.forge.plugin.generator.vo.businessapp;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 /**
@@ -28,4 +29,17 @@ public class BusinessBindingSummaryVO {
     private Boolean codeApp;
 
     private String entryRoute;
+
+    /** 仅查询链路使用：SQL 粗过滤后由 Java 精匹配 / 渲染，不对外输出。 */
+    @JsonIgnore
+    private String bindingKey;
+
+    @JsonIgnore
+    private String bindingConfigJson;
+
+    @JsonIgnore
+    private String optionsJson;
+
+    @JsonIgnore
+    private String designerOptionsJson;
 }

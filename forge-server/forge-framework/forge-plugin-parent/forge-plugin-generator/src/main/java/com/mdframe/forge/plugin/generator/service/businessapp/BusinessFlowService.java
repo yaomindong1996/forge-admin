@@ -462,7 +462,11 @@ public class BusinessFlowService {
         if (key == null) {
             throw new BusinessException("流程模型Key不能为空");
         }
-        return bindingMapper.selectFlowBindingsByModelKey(resolveTenantId(), key);
+        List<BusinessBindingSummaryVO> rows = bindingMapper.selectFlowBindingsByModelKey(
+                resolveTenantId(), key, BusinessBindingSummarySupport.flowModelKeyLikeNeedle(key));
+        rows = BusinessBindingSummarySupport.retainMatchingModelKey(rows, key);
+        BusinessBindingSummarySupport.enrichDisplay(rows);
+        return rows;
     }
 
     /**

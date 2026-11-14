@@ -59,7 +59,7 @@ mvn -B -ntp -pl forge-admin-server -am package -Dmaven.test.skip=true
 ```bash
 git diff --check
 xmllint --noout --nonet forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/forge-plugin-capability-actions/src/main/resources/mapper/capability/LowcodeFormReceiptMapper.xml code-copilot/changes/open-platform-experience/verification/pom.xml
-rg -n '\$\{[^}]+\}' forge-server/db/migration/V1.0.184__add_open_platform_withdraw_operation.sql forge-server/db/migration/V1.0.182__add_open_platform_form_receipt_and_permissions.sql
+rg -n '\$\{[^}]+\}' forge-server/db/mysql/migration/V1.0.184__add_open_platform_withdraw_operation.sql forge-server/db/mysql/migration/V1.0.182__add_open_platform_form_receipt_and_permissions.sql
 ```
 
 最后的占位符扫描预期无输出、退出码 1。`verification/pom.xml` 仅是本轮定向测试入口，不加入生产 reactor；标准测试编译的存量阻断见执行记录。

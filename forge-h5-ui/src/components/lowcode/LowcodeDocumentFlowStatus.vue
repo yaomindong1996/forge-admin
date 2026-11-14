@@ -1,6 +1,7 @@
 <template>
-  <view v-if="store.visible" class="document-flow-status">
-    <view class="document-flow-status__head">
+  <!-- 未启用单据审批的对象只有业务流程按钮时，自定义底部栏场景仍需展示按钮卡 -->
+  <view v-if="store.visible || (showActions && store.buttons.length)" class="document-flow-status">
+    <view v-if="store.visible" class="document-flow-status__head">
       <text class="document-flow-status__label">审批状态</text>
       <AiTag v-if="store.statusText" :type="store.statusTone" size="sm">{{ store.statusText }}</AiTag>
     </view>

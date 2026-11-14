@@ -27,6 +27,10 @@ class FlowTaskMapperSqlContractTest {
             assertTrue(statement.contains("TaskListUserJoins"),
                     () -> statementId + " must use the SQL user/model joins");
         }
+        assertTrue(xml.contains("CONCAT(assignee_user.id, '') = NULLIF(t.assignee, '')"),
+                "TaskListUserJoins must use portable id-to-text equality");
+        assertFalse(xml.contains("REGEXP"), "FlowTaskMapper must not use MySQL-only REGEXP");
+        assertFalse(xml.contains("UNSIGNED"), "FlowTaskMapper must not use MySQL-only UNSIGNED cast");
     }
 
     @Test
@@ -79,8 +83,9 @@ class FlowTaskMapperSqlContractTest {
     @Test
     void participantLookupMustNotTreatGroupIdsAsUserIds() throws IOException {
         String statement = statement(resource(), "countProcessParticipant");
-        assertTrue(statement.contains("FIND_IN_SET(#{userId}, candidate_users)"));
-        assertFalse(statement.contains("FIND_IN_SET(#{userId}, candidate_groups)"),
+        assertTrue(statement.contains("CsvTokenContains") || statement.contains("candidate_users"),
+                "participant lookup must still match candidate_users via portable CSV predicate");
+        assertFalse(statement.contains("candidate_groups"),
                 "candidate group identifiers require group membership resolution and must not be compared to user ids");
     }
 

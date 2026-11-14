@@ -285,8 +285,8 @@ const orgTreeSummaryText = computed(() => {
   return `${total} 个组织节点`
 })
 
-function buildTenantParams() {
-  const resolvedTenantId = userStore.userInfo?.tenantId
+function buildTenantParams(tenantId) {
+  const resolvedTenantId = tenantId ?? userStore.userInfo?.tenantId
   return resolvedTenantId ? { tenantId: resolvedTenantId } : {}
 }
 

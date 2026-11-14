@@ -56,6 +56,49 @@ class BusinessProcessRuntimeActionCompilerTest {
     }
 
     @Test
+    @DisplayName("default start node name falls back to the process name")
+    void defaultStartNodeNameFallsBackToProcessName() {
+        BusinessProcessSchema schema = schema("START_MANUAL", Map.of("positions", List.of("ROW")));
+        schema.getNodes().get(0).setName(BusinessProcessRuntimeActionCompiler.DEFAULT_START_NODE_NAME);
+
+        List<Map<String, Object>> actions = compiler.compileSchema(schema, "HR_APP", "approval_qsxf", "报销审批");
+
+        assertEquals("报销审批", actions.get(0).get("label"));
+    }
+
+    @Test
+    @DisplayName("custom start node name still wins over the process name")
+    void customStartNodeNameWins() {
+        BusinessProcessSchema schema = schema("START_MANUAL", Map.of("positions", List.of("ROW")));
+
+        List<Map<String, Object>> actions = compiler.compileSchema(schema, "CRM_APP", "submit_approval", "订单流程");
+
+        assertEquals("提交审批", actions.get(0).get("label"));
+    }
+
+    @Test
+    @DisplayName("published snapshots use the provided process name for default start nodes")
+    void snapshotsUseProcessNames() {
+        BusinessProcessSnapshot snapshot = new BusinessProcessSnapshot(
+                "1", "2", "approval_qsxf", 1, 1, "1.0", "a".repeat(64),
+                Map.of("schemaVersion", "1.0",
+                        "processCode", "approval_qsxf",
+                        "nodes", List.of(Map.of(
+                                "id", "start_manual",
+                                "type", "START_MANUAL",
+                                "name", BusinessProcessRuntimeActionCompiler.DEFAULT_START_NODE_NAME,
+                                "config", Map.of("positions", List.of("DETAIL"))))),
+                Map.of());
+
+        List<Map<String, Object>> named = compiler.compileSnapshots(
+                List.of(snapshot), "HR_APP", Map.of("approval_qsxf", "报销审批"));
+        List<Map<String, Object>> unnamed = compiler.compileSnapshots(List.of(snapshot), "HR_APP", null);
+
+        assertEquals("报销审批", named.get(0).get("label"));
+        assertEquals("approval_qsxf", unnamed.get(0).get("label"));
+    }
+
+    @Test
     @DisplayName("structured visibleCondition compiles to a list display expression")
     void compileVisibleConditionToDisplayExpression() {
         BusinessProcessSchema schema = schema("START_MANUAL", Map.of(

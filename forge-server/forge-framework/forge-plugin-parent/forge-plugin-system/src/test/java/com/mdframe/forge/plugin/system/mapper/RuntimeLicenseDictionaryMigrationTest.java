@@ -24,7 +24,7 @@ class RuntimeLicenseDictionaryMigrationTest {
              var fixture = getClass().getResourceAsStream("/plugin-task-migration-fixture.sql")) {
             RunScript.execute(connection, new InputStreamReader(fixture, StandardCharsets.UTF_8));
             for (int count = 0; count < 2; count++) {
-                try (var sql = Files.newBufferedReader(Path.of("../../../db/migration",
+                try (var sql = Files.newBufferedReader(Path.of("../../../db/mysql/migration",
                         "V1.0.215__add_runtime_license_diagnostics_dict.sql"))) {
                     RunScript.execute(connection, sql);
                 }

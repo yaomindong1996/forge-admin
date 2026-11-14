@@ -46,3 +46,23 @@ test('start url opens the runtime in create mode with app context', () => {
   assert.equal(url, '/pages/lowcode-runtime?configKey=leave&mode=create&flow=1&appId=7&applicationId=10&title=%E8%AF%B7%E5%81%87%E5%8D%95')
   assert.match(buildStartUrl(objects[2], {}), /applicationId=20/)
 })
+
+const processItem = {
+  objectCode: 'expense', objectName: '报销单', configKey: 'expense',
+  applicationId: '20', applicationName: '财务', processCode: 'approval_qsxf', processName: '报销审批',
+}
+
+test('business process items open create mode with the process code and use the process name', () => {
+  const groups = buildStartableGroups([objects[2], processItem], indexMenusByConfigKey(menus))
+  assert.deepEqual(groups[0].items.map(item => [item.label, item.processCode]), [['报销单', ''], ['报销审批', 'approval_qsxf']])
+  assert.equal(groups[0].items[1].url, '/pages/lowcode-runtime?configKey=expense&mode=create&process=approval_qsxf&applicationId=20&title=%E6%8A%A5%E9%94%80%E5%8D%95')
+  assert.deepEqual(buildStartableGroups([processItem], indexMenusByConfigKey(menus), '报销审批')[0].items.length, 1)
+})
+
+test('catalog items are filtered by the matching start permission', () => {
+  const index = indexMenusByConfigKey(menus)
+  const onlyProcess = buildStartableGroups([objects[2], processItem], index, '', key => key === 'processStart')
+  assert.deepEqual(onlyProcess[0].items.map(item => item.processCode), ['approval_qsxf'])
+  const onlyFlow = buildStartableGroups([objects[2], processItem], index, '', key => key === 'start')
+  assert.deepEqual(onlyFlow[0].items.map(item => item.processCode), [''])
+})

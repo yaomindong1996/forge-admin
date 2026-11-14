@@ -109,7 +109,7 @@
 
 ### T1-07：规则表、字典与权限迁移
 
-- **文件**：`forge-server/db/migration/V<next>__add_rule_engine_control_tables.sql`、`V<next>__add_rule_engine_dict_and_permissions.sql`（同目录，分别取不同合法编号）、`P/enums/RuleRunStatus.java`、`P/enums/RuleReleaseState.java`。
+- **文件**：`forge-server/db/mysql/migration/V<next>__add_rule_engine_control_tables.sql`、`V<next>__add_rule_engine_dict_and_permissions.sql`（同目录，分别取不同合法编号）、`P/enums/RuleRunStatus.java`、`P/enums/RuleReleaseState.java`。
 - **工作**：Spec §6 五张 Forge 表、审计/删除/索引，发布状态和节点/效果/运行状态字典；EnableStatus 复用；SQL 不带真实业务样例。
 - **验收**：C15；迁移重号/占位符检查、重复执行、实体列一致、tenant=1 种子。权限资源属于人工审查内容，不默认给全部角色。
 
@@ -209,7 +209,7 @@
 
 ### T2-01：Rule-DB 适配及原生 DDL
 
-- **文件**：`P/config/RuleDbConfiguration.java`、`P/publisher/RuleDbArtifactPublisher.java`、`P/runtime/RuleDbArtifactResolver.java`、`forge-server/db/migration/V<next>__add_rule_engine_runtime_store.sql`。
+- **文件**：`P/config/RuleDbConfiguration.java`、`P/publisher/RuleDbArtifactPublisher.java`、`P/runtime/RuleDbArtifactResolver.java`、`forge-server/db/mysql/migration/V<next>__add_rule_engine_runtime_store.sql`。
 - **关键签名**：`RuleArtifactWriteResult publish(RuleArtifactWriteCommand command)`、`RuleArtifact resolveExact(RuleArtifactKey key)`。
 - **工作**：使用 T0 锁定 API/DDL；平台元数据源、运行读/发布写、auto-init=false；内部键含安装/租户/应用/不可变版本；只用 RulePublisher。
 - **验收**：C03/C15/C34，多数据源切换不改变规则权威源，不把 MyBatis 租户插件当作 Rule-DB 防线。

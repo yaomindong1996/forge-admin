@@ -9,6 +9,7 @@ import com.mdframe.forge.starter.flow.mapper.FlowTaskCandidateMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowTaskMapper;
 import com.mdframe.forge.starter.flow.security.FlowAccessGuard;
 import com.mdframe.forge.starter.flow.vo.FlowTaskSignRelationVO;
+import com.mdframe.forge.starter.orm.support.DuplicateKeyActions;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.bpmn.model.BpmnModel;
 import org.flowable.bpmn.model.FlowElement;
@@ -284,7 +285,9 @@ final class FlowTaskDynamicSignCoordinator {
             relation.setStatus(FlowTaskCandidateStatus.ACTIVE.getCode());
             relation.setCreateTime(now);
             relation.setUpdateTime(now);
-            flowTaskCandidateMapper.insertIgnore(relation);
+            DuplicateKeyActions.upsert(
+                    () -> flowTaskCandidateMapper.updateUpsertByUniqueKey(relation),
+                    () -> flowTaskCandidateMapper.insertPlain(relation));
         } else {
             flowTaskCandidateMapper.deactivateWithAudit(task.getTenantId(), task.getTaskId(),
                     FlowTaskCandidate.TYPE_USER, candidateUserId, operatorId, reason,

@@ -19,7 +19,7 @@ const sourceOptions = [
 
 const datasetSource = readSplitVueSource('src/views/data/dataset.vue', 'useDatasetPage')
 const frontendDictionaryMigrationSource = readFileSync(
-  resolve(process.cwd(), '../forge-server/db/migration/V1.0.54__add_frontend_runtime_dicts.sql'),
+  resolve(process.cwd(), '../forge-server/db/mysql/migration/V1.0.54__add_frontend_runtime_dicts.sql'),
   'utf8',
 )
 

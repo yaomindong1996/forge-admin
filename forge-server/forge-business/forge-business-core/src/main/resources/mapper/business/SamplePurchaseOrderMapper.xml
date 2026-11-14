@@ -60,12 +60,7 @@
         po.engineering_manager_id,
         COALESCE(engineering_user.real_name, engineering_user.username) AS engineering_manager_name,
         po.countersign_user_ids,
-        (
-            SELECT GROUP_CONCAT(COALESCE(cu.real_name, cu.username) ORDER BY cu.id SEPARATOR ',')
-            FROM sys_user cu
-            WHERE FIND_IN_SET(cu.id, po.countersign_user_ids)
-              AND cu.del_flag = 0
-        ) AS countersign_user_names,
+        NULL AS countersign_user_names,
         po.cc_role_keys,
         po.arrival_list_file_ids,
         po.applicant_modify_remark,
@@ -185,5 +180,17 @@
             #{businessKey}
         </foreach>
         ORDER BY create_time DESC, id DESC
+    </select>
+
+    <select id="selectUserDisplayNames" resultType="java.util.Map">
+        SELECT id AS userId,
+               COALESCE(real_name, username) AS displayName
+        FROM sys_user
+        WHERE del_flag = 0
+          AND id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+        ORDER BY id ASC
     </select>
 </mapper>

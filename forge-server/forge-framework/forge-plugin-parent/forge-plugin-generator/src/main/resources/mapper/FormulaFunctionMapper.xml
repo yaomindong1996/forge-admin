@@ -293,7 +293,7 @@
         ORDER BY f.sort_order ASC, f.id ASC
     </select>
 
-    <insert id="upsertFormulaFunction" parameterType="com.mdframe.forge.plugin.generator.domain.entity.AiFormulaFunction">
+    <insert id="insertFormulaFunction" parameterType="com.mdframe.forge.plugin.generator.domain.entity.AiFormulaFunction">
         INSERT INTO ai_formula_function (
             id,
             tenant_id,
@@ -339,25 +339,30 @@
             #{updateBy},
             #{updateTime}
         )
-        ON DUPLICATE KEY UPDATE
-            display_name = VALUES(display_name),
-            category = VALUES(category),
-            description = VALUES(description),
-            source_type = VALUES(source_type),
-            argument_schema = VALUES(argument_schema),
-            return_type = VALUES(return_type),
-            example = VALUES(example),
-            status = VALUES(status),
-            current_version = VALUES(current_version),
-            latest_version = VALUES(latest_version),
-            builtin = VALUES(builtin),
-            sort_order = VALUES(sort_order),
-            remark = VALUES(remark),
-            update_by = VALUES(update_by),
-            update_time = VALUES(update_time)
     </insert>
 
-    <insert id="upsertFunctionVersion" parameterType="com.mdframe.forge.plugin.generator.domain.entity.AiFormulaFunctionVersion">
+    <update id="updateFormulaFunctionByUk" parameterType="com.mdframe.forge.plugin.generator.domain.entity.AiFormulaFunction">
+        UPDATE ai_formula_function
+        SET display_name = #{displayName},
+            category = #{category},
+            description = #{description},
+            source_type = #{sourceType},
+            argument_schema = #{argumentSchema},
+            return_type = #{returnType},
+            example = #{example},
+            status = #{status},
+            current_version = #{currentVersion},
+            latest_version = #{latestVersion},
+            builtin = #{builtin},
+            sort_order = #{sortOrder},
+            remark = #{remark},
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        WHERE tenant_id = #{tenantId}
+          AND function_code = #{functionCode}
+    </update>
+
+    <insert id="insertFunctionVersion" parameterType="com.mdframe.forge.plugin.generator.domain.entity.AiFormulaFunctionVersion">
         INSERT INTO ai_formula_function_version (
             id,
             tenant_id,
@@ -397,21 +402,27 @@
             #{updateBy},
             #{updateTime}
         )
-        ON DUPLICATE KEY UPDATE
-            implementation_type = VALUES(implementation_type),
-            bean_name = VALUES(bean_name),
-            method_name = VALUES(method_name),
-            argument_schema = VALUES(argument_schema),
-            return_type = VALUES(return_type),
-            example = VALUES(example),
-            release_note = VALUES(release_note),
-            status = VALUES(status),
-            remark = VALUES(remark),
-            update_by = VALUES(update_by),
-            update_time = VALUES(update_time)
     </insert>
 
-    <insert id="upsertFunctionInstall" parameterType="com.mdframe.forge.plugin.generator.domain.entity.AiFormulaFunctionInstall">
+    <update id="updateFunctionVersionByUk" parameterType="com.mdframe.forge.plugin.generator.domain.entity.AiFormulaFunctionVersion">
+        UPDATE ai_formula_function_version
+        SET implementation_type = #{implementationType},
+            bean_name = #{beanName},
+            method_name = #{methodName},
+            argument_schema = #{argumentSchema},
+            return_type = #{returnType},
+            example = #{example},
+            release_note = #{releaseNote},
+            status = #{status},
+            remark = #{remark},
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        WHERE tenant_id = #{tenantId}
+          AND function_code = #{functionCode}
+          AND version = #{version}
+    </update>
+
+    <insert id="insertFunctionInstall" parameterType="com.mdframe.forge.plugin.generator.domain.entity.AiFormulaFunctionInstall">
         INSERT INTO ai_formula_function_install (
             id,
             tenant_id,
@@ -445,15 +456,20 @@
             #{updateBy},
             #{updateTime}
         )
-        ON DUPLICATE KEY UPDATE
-            installed_version = VALUES(installed_version),
-            install_status = VALUES(install_status),
-            enabled = VALUES(enabled),
-            source_type = VALUES(source_type),
-            installed_by = VALUES(installed_by),
-            installed_time = VALUES(installed_time),
-            remark = VALUES(remark),
-            update_by = VALUES(update_by),
-            update_time = VALUES(update_time)
     </insert>
+
+    <update id="updateFunctionInstallByUk" parameterType="com.mdframe.forge.plugin.generator.domain.entity.AiFormulaFunctionInstall">
+        UPDATE ai_formula_function_install
+        SET installed_version = #{installedVersion},
+            install_status = #{installStatus},
+            enabled = #{enabled},
+            source_type = #{sourceType},
+            installed_by = #{installedBy},
+            installed_time = #{installedTime},
+            remark = #{remark},
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        WHERE tenant_id = #{tenantId}
+          AND function_code = #{functionCode}
+    </update>
 </mapper>

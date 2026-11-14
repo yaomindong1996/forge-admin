@@ -150,7 +150,7 @@ git commit -m "feat(ai): 模型类型枚举细分为6类"
 ### Task 2: ai_model_type 字典扩展迁移
 
 **Files:**
-- Create: `forge-server/db/migration/V1.0.86.1__add_ai_model_type_refined_dict.sql`
+- Create: `forge-server/db/mysql/migration/V1.0.86.1__add_ai_model_type_refined_dict.sql`
 
 **Interfaces:**
 - Consumes: Task 1 的 `AiModelType` code 值
@@ -177,11 +177,11 @@ UPDATE ai_model SET model_type = 'image_generation' WHERE model_type = 'image';
 UPDATE ai_model SET model_type = 'asr' WHERE model_type = 'audio';
 ```
 
-> ⚠️ 实施前务必以 `forge-server/db/migration/V1.0.18__add_ai_model_routing_governance.sql` 为模板核对 `sys_dict_data` / `sys_dict_type` 真实列名（已确认用 `dict_type`）。
+> ⚠️ 实施前务必以 `forge-server/db/mysql/migration/V1.0.18__add_ai_model_routing_governance.sql` 为模板核对 `sys_dict_data` / `sys_dict_type` 真实列名（已确认用 `dict_type`）。
 > ⚠️ 存量 `image`/`audio` 的 UPDATE 需确认 `model_type` 无其他依赖（如路由/能力判断按字符串比对，映射后保持一致）。
 
 ```bash
-git add forge-server/db/migration/V1.0.86.1__add_ai_model_type_refined_dict.sql
+git add forge-server/db/mysql/migration/V1.0.86.1__add_ai_model_type_refined_dict.sql
 git commit -m "feat(db): ai_model_type 字典扩展6类模型"
 ```
 

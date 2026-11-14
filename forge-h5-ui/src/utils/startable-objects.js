@@ -26,8 +26,11 @@ export function indexMenusByConfigKey(menuItems = []) {
 }
 
 export function buildStartUrl(object = {}, menuEntry = {}) {
-  // flow=1 让新建页展示「提交审批」，保存后按单据运行态发起。
-  const params = { configKey: object.configKey, mode: 'create', flow: '1' }
+  // flow=1 让新建页展示「提交审批」，保存后按单据运行态发起；
+  // process=<processCode> 让新建页只展示该业务流程按钮，保存后发起业务流程。
+  const params = object.processCode
+    ? { configKey: object.configKey, mode: 'create', process: object.processCode }
+    : { configKey: object.configKey, mode: 'create', flow: '1' }
   for (const name of CONTEXT_PARAMS) {
     if (menuEntry.query?.[name]) params[name] = menuEntry.query[name]
   }
@@ -43,25 +46,31 @@ function matches(keyword, ...values) {
   return !keyword || values.some(value => String(value || '').toLowerCase().includes(keyword))
 }
 
-// 按应用分组并保持接口顺序；未挂应用的单据放到最后的"其他"分组。
-export function buildStartableGroups(objects = [], menuIndex = new Map(), keyword = '') {
+/**
+ * 按应用分组并保持接口顺序；未挂应用的单据放到最后的"其他"分组。
+ * can(permissionKey) 对应 FLOW_PERMISSIONS 的键：主流程条目需 start，业务流程条目需 processStart。
+ */
+export function buildStartableGroups(objects = [], menuIndex = new Map(), keyword = '', can = () => true) {
   const needle = String(keyword || '').trim().toLowerCase()
   const groups = new Map()
   for (const object of Array.isArray(objects) ? objects : []) {
     const menuEntry = menuIndex.get(object?.configKey)
     if (!menuEntry) continue
+    if (!can(object.processCode ? 'processStart' : 'start')) continue
     const groupKey = object.applicationId ? String(object.applicationId) : OTHER_GROUP_KEY
     const groupLabel = object.applicationName || '其他'
-    if (!matches(needle, groupLabel, object.objectName)) continue
+    if (!matches(needle, groupLabel, object.objectName, object.processName)) continue
     if (!groups.has(groupKey)) groups.set(groupKey, { key: groupKey, label: groupLabel, items: [] })
     const group = groups.get(groupKey)
-    if (group.items.some(item => item.configKey === object.configKey)) continue
-    const identity = { id: object.objectCode, icon: object.objectIcon, resourceName: object.objectName }
+    const processCode = object.processCode || ''
+    if (group.items.some(item => item.configKey === object.configKey && item.processCode === processCode)) continue
+    const identity = { id: processCode || object.objectCode, icon: object.objectIcon, resourceName: object.objectName }
     const tone = resolveMobileMenuTone(identity)
     group.items.push({
-      key: `${groupKey}:${object.objectCode}`,
-      label: object.objectName || menuEntry.label,
+      key: `${groupKey}:${object.objectCode}${processCode ? `:${processCode}` : ''}`,
+      label: object.processName || object.objectName || menuEntry.label,
       configKey: object.configKey,
+      processCode,
       icon: resolveMobileMenuIcon(identity),
       color: tone.color,
       toneBg: tone.bg,

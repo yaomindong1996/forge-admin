@@ -21,6 +21,12 @@
             <artifactId>forge-starter-core</artifactId>
         </dependency>
 
+        <!-- 跨库写路径（DuplicateKeyActions 等），避免 Mapper 内 ON DUPLICATE / ON CONFLICT 方言 -->
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-orm</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-starter-outbound</artifactId>

@@ -54,7 +54,7 @@
             </view>
             <view class="task-card__body">
               <view class="task-card__line">
-                <text class="task-card__label">当前节点</text>
+                <text class="task-card__label">{{ activeScope === 'started' && !canWithdraw(task) ? '最后处理' : '当前节点' }}</text>
                 <text class="task-card__node">{{ task.taskName || task.name || '审批节点' }}</text>
               </view>
               <view class="task-card__line">
@@ -142,6 +142,7 @@ import { takeTabHandoff } from '@/utils/tab-handoff'
 import { resolveApiErrorMessage } from '@/utils/flow-page'
 import { toast } from '@/utils/notify'
 import { formatFlowDateTime } from '@/utils/flow-display'
+import { isUrgentFlowPriority } from '@/utils/flow-priority'
 
 const authStore = useAuthStore()
 const badgeStore = useBadgeStore()
@@ -374,22 +375,30 @@ function taskTypeTone(task = {}) {
 }
 function applicantName(task = {}) { return task.startUserName || task.createByName || '未知申请人' }
 function applicantInitial(task = {}) { return String(applicantName(task)).trim().slice(0, 1) || '申' }
+// 「我发起的」按最近处理任务的状态码展示终态结果（与后端 FlowTaskStatus 一致），非明确终态仍显示已结束
+const STARTED_RESULTS = {
+  2: { text: '已通过', tone: 'status-done' },
+  3: { text: '已驳回', tone: 'status-rejected' },
+  6: { text: '已撤回', tone: 'status-neutral' },
+  8: { text: '已终止', tone: 'status-rejected' },
+}
+function startedResult(task) { return STARTED_RESULTS[Number(task.status)] || { text: '已结束', tone: 'status-neutral' } }
 function statusText(task) {
   if (isCandidateTask(task)) return '待签收'
   if (activeScope.value === 'done') return '已处理'
-  if (activeScope.value === 'started') return canWithdraw(task) ? '进行中' : '已结束'
+  if (activeScope.value === 'started') return canWithdraw(task) ? '进行中' : startedResult(task).text
   return Number(task.status) === 1 ? '处理中' : '待处理'
 }
 function statusToneClass(task) {
   if (activeScope.value === 'done') return 'status-done'
-  if (activeScope.value === 'started') return canWithdraw(task) ? 'status-running' : 'status-neutral'
+  if (activeScope.value === 'started') return canWithdraw(task) ? 'status-running' : startedResult(task).tone
   return isCandidateTask(task) ? 'status-waiting' : 'status-pending'
 }
 function taskActionText(task) {
   if (activeScope.value === 'todo') return isCandidateTask(task) ? '签收并处理' : '立即处理'
   return '查看详情'
 }
-function isUrgentTask(task) { return Number(task.priority || 0) >= 3 }
+function isUrgentTask(task) { return isUrgentFlowPriority(task.priority) }
 function canWithdraw(task) { return Number(task.status) === 0 || Number(task.status) === 1 || ['RUNNING', 'IN_PROCESS'].includes(String(task.status || '').toUpperCase()) }
 function resolveScopeApi() { return activeScope.value === 'done' ? api.getDoneFlowTasks : activeScope.value === 'started' ? api.getStartedFlowTasks : api.getTodoTasks }
 function isFlowServiceUnavailableError(error) {

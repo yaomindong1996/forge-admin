@@ -160,8 +160,8 @@ UI 至少桌面与 390/320px、深浅色、真实组件交互截图；任何合�
 
 ```bash
 git diff --check
-ls forge-server/db/migration/V*.sql | sed 's/__.*//' | sort | uniq -d
-rg -n '\$\{[^}]+\}' forge-server/db/migration
+ls forge-server/db/mysql/migration/V*.sql | sed 's/__.*//' | sort | uniq -d
+rg -n '\$\{[^}]+\}' forge-server/db/mysql/migration
 ```
 
 修改 SQL 时核对全部目录输出与本轮脚本，不能因为已有问题就忽略新增错误。正式迁移编号根据目录与真实 schema history 再确定，不复用本文基线编号。

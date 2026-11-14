@@ -2,7 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-EXPORT_DIR="$SCRIPT_DIR/../../db/community-export"
+# 仓库已不再固定维护 community-export / seed；默认输出到可忽略的本地目录。
+EXPORT_DIR="$SCRIPT_DIR/../../db/mysql/community-export"
 DRY_RUN=""
 
 for arg in "$@"; do

@@ -41,7 +41,7 @@ SSH 使用可信 known_hosts 校验；上一轮临时 SSH 会话已关闭，临�
 
 ### Flyway
 
-有效来源为 `FORGE_FLYWAY_LOCATIONS=classpath:db/migration`，历史表为 `forge_schema_history`。
+有效来源为 `FORGE_FLYWAY_LOCATIONS=classpath:db/mysql/migration`，历史表为 `forge_schema_history`。
 最后验证数据库为 `forge_admin_new`，最新迁移 `1.0.217`；不要和 Website 数据库混用。
 详见 [Admin JAR / Flyway 部署说明](./admin-flyway.md)。
 

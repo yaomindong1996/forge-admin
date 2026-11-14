@@ -30,6 +30,7 @@ import com.mdframe.forge.plugin.system.mapper.SysUserRoleMapper;
 import com.mdframe.forge.plugin.system.mapper.SysUserTenantMapper;
 import com.mdframe.forge.plugin.system.service.ISysUserService;
 import com.mdframe.forge.plugin.system.service.IUserLoadService;
+import com.mdframe.forge.plugin.system.vo.ContactMemberLabelVO;
 import com.mdframe.forge.plugin.system.vo.SysUserTenantVO;
 import com.mdframe.forge.plugin.system.vo.UserOrgBindingVO;
 import com.mdframe.forge.starter.auth.util.PasswordUtil;
@@ -39,9 +40,14 @@ import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 用户Service实现类
@@ -68,13 +74,59 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     public IPage<SysUser> selectUserPage(SysUserQuery query) {
         normalizeUserQueryTenant(query);
         Page<SysUser> page = new Page<>(query.getPageNum(), query.getPageSize());
-        return TenantContextHolder.executeIgnore(() -> userMapper.selectUserPage(page, query));
+        IPage<SysUser> result = TenantContextHolder.executeIgnore(() -> userMapper.selectUserPage(page, query));
+        fillDisplayNames(query == null ? null : query.getTenantId(), result.getRecords());
+        return result;
     }
 
     @Override
     public List<SysUser> selectExportList(SysUserQuery query) {
         normalizeUserQueryTenant(query);
-        return TenantContextHolder.executeIgnore(() -> userMapper.selectExportList(query));
+        List<SysUser> users = TenantContextHolder.executeIgnore(() -> userMapper.selectExportList(query));
+        fillDisplayNames(query == null ? null : query.getTenantId(), users);
+        return users;
+    }
+
+    /**
+     * 列表展示名改为查明细后在 Java 拼接，避免静态 Mapper 使用 GROUP_CONCAT。
+     */
+    private void fillDisplayNames(Long tenantId, List<SysUser> users) {
+        if (users == null || users.isEmpty()) {
+            return;
+        }
+        List<Long> userIds = users.stream().map(SysUser::getId).filter(Objects::nonNull).distinct().toList();
+        if (userIds.isEmpty()) {
+            return;
+        }
+        Map<Long, String> tenantNames = joinLabels(userMapper.selectTenantNameLabels(userIds));
+        Map<Long, String> orgNames = joinLabels(userMapper.selectOrgNameLabels(tenantId, userIds));
+        Map<Long, String> postNames = joinLabels(userMapper.selectPostNameLabels(tenantId, userIds));
+        for (SysUser user : users) {
+            String tenants = tenantNames.get(user.getId());
+            if (StringUtils.hasText(tenants)) {
+                user.setTenantName(tenants);
+            }
+            String orgName = orgNames.get(user.getId());
+            user.setOrgName(orgName);
+            user.setDeptName(orgName);
+            user.setPostName(postNames.get(user.getId()));
+        }
+    }
+
+    private static Map<Long, String> joinLabels(List<ContactMemberLabelVO> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<Long, List<String>> grouped = rows.stream()
+                .filter(row -> row.getUserId() != null && StringUtils.hasText(row.getLabel()))
+                .collect(Collectors.groupingBy(ContactMemberLabelVO::getUserId,
+                        LinkedHashMap::new,
+                        Collectors.mapping(ContactMemberLabelVO::getLabel,
+                                Collectors.collectingAndThen(Collectors.toList(),
+                                        list -> list.stream().distinct().toList()))));
+        Map<Long, String> joined = new LinkedHashMap<>();
+        grouped.forEach((userId, labels) -> joined.put(userId, String.join(",", labels)));
+        return joined;
     }
 
     @Override

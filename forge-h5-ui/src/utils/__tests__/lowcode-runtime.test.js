@@ -1,12 +1,25 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  normalizeActions,
   normalizeDesignerComponents,
   normalizeDesignerField,
   normalizeRuntimeZoneCanvasNodes,
   normalizeInternalPageUrl,
   resolveMobilePageChrome,
 } from '../lowcode-runtime.js'
+
+test('list row actions exclude business process start actions', () => {
+  const actions = normalizeActions({
+    options: {
+      rowActions: [
+        { actionCode: 'approve_pass', label: '通过' },
+        { key: 'startProcess:reimburse', actionType: 'START_PROCESS', processCode: 'reimburse' },
+      ],
+    },
+  })
+  assert.deepEqual(actions.map(action => action.actionCode || action.key), ['approve_pass'])
+})
 
 test('legacy date picker keeps its configured semantic subtype', () => {
   const field = normalizeDesignerField({

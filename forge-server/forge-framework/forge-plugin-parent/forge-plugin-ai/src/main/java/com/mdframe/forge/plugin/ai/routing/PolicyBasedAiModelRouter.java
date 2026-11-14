@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mdframe.forge.plugin.ai.agent.domain.AiAgent;
 import com.mdframe.forge.plugin.ai.health.*;
+import com.mdframe.forge.plugin.ai.model.capability.domain.AiModelCapability;
+import com.mdframe.forge.plugin.ai.model.capability.mapper.AiModelCapabilityMapper;
 import com.mdframe.forge.plugin.ai.model.domain.AiModel;
 import com.mdframe.forge.plugin.ai.model.mapper.AiModelMapper;
 import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import com.mdframe.forge.starter.core.enums.EnableStatus;
 
 @Component
@@ -27,6 +30,7 @@ public class PolicyBasedAiModelRouter implements AiModelRouter {
     private final AiModelMapper modelMapper;
     private final AiModelRoutePolicyMapper policyMapper;
     private final AiModelRoutingQueryMapper routingQueryMapper;
+    private final AiModelCapabilityMapper capabilityMapper;
     private final AiModelHealthRegistry healthRegistry;
     private final ObjectMapper objectMapper;
 
@@ -84,7 +88,9 @@ public class PolicyBasedAiModelRouter implements AiModelRouter {
         requireSameTenant(tenantId, policy.getTenantId());
         Set<String> required = parseCapabilities(policy.getRequiredCapabilities());
         List<RouteCandidateSkip> skips = new ArrayList<>();
-        for (AiModelRouteCandidate candidate : routingQueryMapper.selectPolicyCandidates(policyId)) {
+        List<AiModelRouteCandidate> candidates = routingQueryMapper.selectPolicyCandidates(policyId);
+        fillCapabilityCodes(candidates);
+        for (AiModelRouteCandidate candidate : candidates) {
             if (!tenantId.equals(candidate.getTargetTenantId())
                     || !tenantId.equals(candidate.getModelTenantId())
                     || !tenantId.equals(candidate.getProviderTenantId())) {
@@ -143,6 +149,29 @@ public class PolicyBasedAiModelRouter implements AiModelRouter {
             throw new BusinessException("模型路由资源不属于当前租户");
         }
     }
+    private void fillCapabilityCodes(List<AiModelRouteCandidate> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return;
+        }
+        List<Long> modelIds = candidates.stream()
+                .map(AiModelRouteCandidate::getModelPk)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (modelIds.isEmpty()) {
+            return;
+        }
+        Map<Long, String> codesByModel = capabilityMapper.selectEnabledByModelIds(modelIds).stream()
+                .filter(row -> row.getModelId() != null && StringUtils.hasText(row.getCapabilityCode()))
+                .collect(Collectors.groupingBy(AiModelCapability::getModelId,
+                        Collectors.mapping(AiModelCapability::getCapabilityCode,
+                                Collectors.collectingAndThen(Collectors.toCollection(LinkedHashSet::new),
+                                        set -> String.join(",", set)))));
+        for (AiModelRouteCandidate candidate : candidates) {
+            candidate.setCapabilityCodes(codesByModel.get(candidate.getModelPk()));
+        }
+    }
+
     private Set<String> parseCapabilities(String json) {
         if (!StringUtils.hasText(json)) return Set.of();
         try {

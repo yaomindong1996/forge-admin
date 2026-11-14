@@ -41,10 +41,12 @@ public interface BusinessBindingMapper extends BaseMapper<AiBusinessBinding> {
                                                   @Param("bindingType") String bindingType);
 
     List<BusinessBindingSummaryVO> selectFlowBindingsByModelKey(@Param("tenantId") Long tenantId,
-                                                                @Param("modelKey") String modelKey);
+                                                                @Param("modelKey") String modelKey,
+                                                                @Param("modelKeyLikeNeedle") String modelKeyLikeNeedle);
 
     List<BusinessBindingSummaryVO> selectFlowBindingsByModelKeys(@Param("tenantId") Long tenantId,
-                                                               @Param("modelKeys") List<String> modelKeys);
+                                                               @Param("modelKeys") List<String> modelKeys,
+                                                               @Param("modelKeyLikeNeedles") List<String> modelKeyLikeNeedles);
 
     List<AiBusinessBinding> selectByApplication(@Param("tenantId") Long tenantId,
                                                 @Param("applicationId") Long applicationId);

@@ -101,10 +101,29 @@ scripts/security-scan/reports/
 
 forge/db/community-export/
 *docs-dist
-!/docs/vendor/
 /trip/
 /output/
-/docs/
+# Ignore local docs dumps; keep agent-ready / already-published paths trackable
+/docs/*
+!/docs/README.md
+!/docs/DOMAIN.md
+!/docs/architecture.md
+!/docs/guides/
+!/docs/guides/**
+!/docs/references/
+!/docs/references/**
+!/docs/architecture/
+!/docs/architecture/**
+!/docs/adr/
+!/docs/adr/**
+!/docs/blogs/
+!/docs/blogs/**
+!/docs/community/
+!/docs/community/**
+!/docs/superpowers/
+!/docs/superpowers/**
+!/docs/vendor/
+!/docs/vendor/**
 /var/
 /.tmp/
 /.tmp-test/
@@ -112,3 +131,5 @@ forge/db/community-export/
 /forge-server/plugins/
 /forge-admin-ui/src/views/plugins/
 # forge-template-only:end
+__pycache__/
+.jscpd-out/

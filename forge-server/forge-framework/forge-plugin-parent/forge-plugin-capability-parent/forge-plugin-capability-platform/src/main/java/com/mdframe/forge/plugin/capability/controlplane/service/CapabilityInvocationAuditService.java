@@ -8,6 +8,7 @@ import com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityInvoc
 import com.mdframe.forge.plugin.capability.controlplane.mapper.AiCapabilityInvocationLogMapper;
 import com.mdframe.forge.plugin.capability.controlplane.vo.CapabilityInvocationDetailVO;
 import com.mdframe.forge.starter.core.domain.PageQuery;
+import com.mdframe.forge.starter.orm.support.DuplicateKeyActions;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.datascope.context.DataScopeContextHolder;
 import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
@@ -39,7 +40,7 @@ public class CapabilityInvocationAuditService {
 
     public void record(Long tenantId, CapabilityInvocationAuditEvent event) {
         AiCapabilityInvocationLog log = buildLog(tenantId, event);
-        executeInTrustedTenant(tenantId, () -> logMapper.insertIdempotent(log));
+        executeInTrustedTenant(tenantId, () -> DuplicateKeyActions.insertIgnoreConflict(() -> logMapper.insertIdempotent(log)));
     }
 
     public void recordOrUpdate(Long tenantId, CapabilityInvocationAuditEvent event) {
@@ -48,7 +49,7 @@ public class CapabilityInvocationAuditService {
             if (logMapper.updateResultByRequestIdentity(log) > 0) {
                 return null;
             }
-            if (logMapper.insertIdempotent(log) > 0) {
+            if (DuplicateKeyActions.insertIgnoreConflict(() -> logMapper.insertIdempotent(log)) > 0) {
                 return null;
             }
             AiCapabilityInvocationLog existing = logMapper.selectByRequestId(

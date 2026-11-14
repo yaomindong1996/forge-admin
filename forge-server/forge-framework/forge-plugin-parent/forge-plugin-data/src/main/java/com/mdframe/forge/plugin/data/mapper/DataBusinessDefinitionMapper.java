@@ -7,7 +7,9 @@ import com.mdframe.forge.plugin.data.entity.DataBusinessDefinition;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface DataBusinessDefinitionMapper extends BaseMapper<DataBusinessDefinition> {
@@ -22,4 +24,8 @@ public interface DataBusinessDefinitionMapper extends BaseMapper<DataBusinessDef
 
     DataBusinessDefinition selectBusinessByCode(@Param("tenantId") Long tenantId,
         @Param("businessCode") String businessCode);
+
+    /** 批量查明细数据集名称，由 Service 按业务定义聚合展示。 */
+    List<Map<String, Object>> selectDatasetNameLabels(@Param("tenantId") Long tenantId,
+        @Param("businessIds") Collection<Long> businessIds);
 }

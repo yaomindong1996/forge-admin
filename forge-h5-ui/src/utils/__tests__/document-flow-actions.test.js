@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  NO_PROCESS_START_PERMISSION_HINT,
   NO_START_PERMISSION_HINT,
-  PC_ONLY_PROCESS_HINT,
   buildDocumentFlowButtons,
+  buildProcessStartButtons,
+  collectProcessStartActions,
+  resolveProcessRunFailure,
   resolveDocumentFlowTone,
   resolveDocumentStatusText,
 } from '../document-flow-actions.js'
@@ -43,15 +46,57 @@ test('missing permissions hide buttons and explain why', () => {
   assert.equal(hint, NO_START_PERMISSION_HINT)
 })
 
-test('view and app-process actions never render buttons', () => {
+test('view and app-process actions are not document flow buttons', () => {
   const { buttons, hint } = buildDocumentFlowButtons(runtime([
     { actionType: 'VIEW_FLOW' },
     { key: 'START_PROCESS' },
+    { key: 'startProcess:approval_x', actionType: 'START_PROCESS' },
     { actionType: 'UNKNOWN' },
   ]))
   assert.equal(buttons.length, 0)
-  assert.equal(hint, PC_ONLY_PROCESS_HINT)
+  assert.equal(hint, '')
   assert.deepEqual(buildDocumentFlowButtons(null), { buttons: [], hint: '' })
+})
+
+const processAction = (processCode, extra = {}) => ({
+  key: `startProcess:${processCode}`,
+  actionType: 'START_PROCESS',
+  label: '报销审批',
+  applicationCode: 'hr_e2_e',
+  processCode,
+  objectCode: 'apply_kdcp',
+  ...extra,
+})
+
+test('process start actions are collected from record-level positions only', () => {
+  const config = {
+    options: {
+      rowActions: [processAction('p1'), { key: 'edit' }],
+      detailActions: [processAction('p2')],
+      formActions: [processAction('p1')],
+      toolbarActions: [processAction('p3')],
+    },
+  }
+  assert.deepEqual(collectProcessStartActions(config).map(action => action.processCode), ['p1', 'p2', 'p1'])
+  assert.deepEqual(collectProcessStartActions({}), [])
+})
+
+test('process start buttons dedupe by process and hide started ones', () => {
+  const actions = [processAction('p1'), processAction('p1', { key: 'startProcess:p1:form' }), processAction('p2'), processAction('p3')]
+  const { buttons, hint } = buildProcessStartButtons(actions, { activeProcessCodes: ['p2'], startedProcessCodes: ['p3'] })
+  assert.deepEqual(buttons.map(button => [button.processCode, button.applicationCode, button.label]), [['p1', 'hr_e2_e', '报销审批']])
+  assert.equal(buttons[0].actionType, 'START_PROCESS')
+  assert.equal(hint, '')
+})
+
+test('process start buttons respect permission and display condition', () => {
+  const actions = [processAction('p1'), processAction('p2', { visibleCondition: 'flowStatus == DRAFT' })]
+  const denied = buildProcessStartButtons(actions, {}, { canStart: false })
+  assert.equal(denied.buttons.length, 0)
+  assert.equal(denied.hint, NO_PROCESS_START_PERMISSION_HINT)
+  const filtered = buildProcessStartButtons(actions, {}, { isVisible: action => !action.visibleCondition })
+  assert.deepEqual(filtered.buttons.map(button => button.processCode), ['p1'])
+  assert.equal(buildProcessStartButtons([{ actionType: 'START_PROCESS', processCode: 'p9' }]).buttons.length, 0)
 })
 
 test('status text prefers the document label then the runtime message', () => {
@@ -67,4 +112,18 @@ test('flow status only changes the tag tone', () => {
   assert.equal(resolveDocumentFlowTone('REJECTED'), 'danger')
   assert.equal(resolveDocumentFlowTone('NOT_STARTED'), 'default')
   assert.equal(resolveDocumentFlowTone(null), 'default')
+})
+
+test('process run failure surfaces the failed node reason', () => {
+  assert.equal(resolveProcessRunFailure({ status: 'PENDING' }), '')
+  assert.equal(resolveProcessRunFailure(null), '')
+  assert.equal(resolveProcessRunFailure({
+    status: 'FAILED',
+    errorSummary: null,
+    timeline: [
+      { status: 'FAILED', errorSummary: '当前单据已有主流程实例，不能重复发起' },
+      { status: 'SUCCESS', errorSummary: null },
+    ],
+  }), '当前单据已有主流程实例，不能重复发起')
+  assert.equal(resolveProcessRunFailure({ status: 'failed' }), '流程执行失败，请联系管理员')
 })

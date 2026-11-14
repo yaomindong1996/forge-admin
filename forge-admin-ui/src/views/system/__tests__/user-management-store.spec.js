@@ -143,8 +143,65 @@ describe('用户管理拆分行为契约', () => {
     store.rolePagination = { page: 2, pageSize: 20, itemCount: 0 }
     mocks.get.mockResolvedValueOnce({ code: 200, data: { records: [{ id: 3 }], total: 21 } })
     await store.loadRoleList()
-    expect(mocks.get).toHaveBeenCalledWith('/system/role/page', { params: { pageNum: 2, pageSize: 20, roleName: undefined, orgId: 10, prioritizedUserId: 8, tenantId: 1 } })
+    expect(mocks.get).toHaveBeenCalledWith('/system/role/page', { params: { pageNum: 2, pageSize: 20, roleName: undefined, orgId: 10, prioritizedUserId: 8, tenantId: 2 } })
     expect(store.rolePagination.itemCount).toBe(21)
+  })
+
+  it('buildTenantParams 优先使用传入的操作租户，而不是管理员登录租户', () => {
+    expect(store.buildTenantParams(99)).toEqual({ tenantId: 99 })
+    expect(store.buildTenantParams()).toEqual({ tenantId: 1 })
+    expect(store.buildTenantParams(null)).toEqual({ tenantId: 1 })
+  })
+
+  it('resolveOperationTenantId：显式操作租户 > 工作台成员租户 > 行上租户', () => {
+    mocks.login.isAdmin = true
+    mocks.login.userInfo = { tenantId: 4 }
+    store.currentUser = { id: 76, tenantId: 1 }
+    store.checkedTenantKeys = [1, 4]
+    store.defaultTenantId = 1
+    expect(store.resolveOperationTenantId()).toBe(4)
+
+    store.relationOperationTenantId = 1
+    expect(store.resolveOperationTenantId()).toBe(1)
+
+    store.relationOperationTenantId = null
+    mocks.login.userInfo = { tenantId: 1 }
+    expect(store.resolveOperationTenantId()).toBe(1)
+  })
+
+  it('高级关系概览先加载租户成员并合并各租户组织绑定', async () => {
+    mocks.login.isAdmin = true
+    mocks.login.userInfo = { tenantId: 1 }
+    store.tenantOptions = [
+      { id: 1, tenantName: '默认租户' },
+      { id: 4, tenantName: '小米连锁' },
+    ]
+    mocks.get
+      .mockResolvedValueOnce({
+        code: 200,
+        data: [
+          { tenantId: 1, isDefault: 1, status: 1 },
+          { tenantId: 4, isDefault: 0, status: 1 },
+        ],
+      })
+      .mockResolvedValueOnce({ code: 200, data: [] })
+      .mockResolvedValueOnce({ code: 200, data: [{ orgId: 17, orgName: '小米连锁', isMain: 1 }] })
+      .mockResolvedValueOnce({ code: 200, data: [] })
+      .mockResolvedValueOnce({ code: 200, data: [] })
+
+    await store.loadRelationOverview({ id: 76, tenantId: 1 })
+
+    expect(mocks.get.mock.calls.map(call => call[0])).toEqual([
+      '/system/user/76/tenants',
+      '/system/user/76/org-bindings',
+      '/system/user/76/org-bindings',
+      '/system/post/list',
+      '/system/user/76/posts',
+    ])
+    expect(mocks.get.mock.calls[1][1]).toEqual({ params: { tenantId: 1 } })
+    expect(mocks.get.mock.calls[2][1]).toEqual({ params: { tenantId: 4 } })
+    expect(store.currentUserOrgBindings).toEqual([{ orgId: 17, orgName: '小米连锁', isMain: 1 }])
+    expect(store.relationOperationTenantId).toBe(1)
   })
 
   it('批量授权追加现有角色而非覆盖，成功清选择并刷新', async () => {

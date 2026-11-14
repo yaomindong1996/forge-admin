@@ -80,7 +80,7 @@
 
 ### [ ] T3.2 数据修复脚本（如确认需要）
 
-- **文件**：`forge-server/db/migration/V<下一版本>__fix_pending_assigned_flow_tasks.sql`。
+- **文件**：`forge-server/db/mysql/migration/V<下一版本>__fix_pending_assigned_flow_tasks.sql`。
 - **实现**：`UPDATE sys_flow_task SET status=1, claim_time=NOW() WHERE status=0 AND assignee IS NOT NULL AND (owner IS NULL OR owner=assignee)`；脚本幂等、附影响行数与回滚说明。
 - **验收**：在测试库人工执行验证后，方可进入正式迁移；执行记录与回滚方式写入 `execution-log.md`。
 

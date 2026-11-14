@@ -1,4 +1,5 @@
 import { normalizeMobileComponentType, resolveMobileComponent } from '../components/lowcode/mobile-component-registry.js'
+import { isProcessStartAction } from './document-flow-actions.js'
 import { normalizeMobileFieldContract } from './mobile-field-contract.js'
 
 const DANGEROUS_KEYS = new Set([
@@ -531,9 +532,10 @@ export function normalizeActions(config = {}) {
   const byCode = new Map(source.map(action => [String(action?.actionCode || action?.key || ''), action]))
   const rowActions = Array.isArray(config.options?.rowActions) ? config.options.rowActions : []
   const children = normalizeChildrenConfig(config)
+  // 业务流程启动依赖单据运行态（是否已发起），只在详情页由 documentFlow 渲染
   return [...rowActions, ...children.flatMap(child => child.rowActions)]
     .map(action => ({ ...byCode.get(String(action?.actionCode || action?.key || '')), ...action }))
-    .filter(action => action.actionCode || action.key)
+    .filter(action => (action.actionCode || action.key) && !isProcessStartAction(action))
 }
 
 export function normalizeDesignerField(component = {}) {

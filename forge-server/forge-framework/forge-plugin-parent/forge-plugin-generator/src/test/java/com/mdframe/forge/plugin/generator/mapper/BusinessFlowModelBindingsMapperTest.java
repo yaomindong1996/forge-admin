@@ -20,18 +20,28 @@ class BusinessFlowModelBindingsMapperTest {
         }
         var statement = configuration.getMappedStatement(
                 BusinessBindingMapper.class.getName() + ".selectFlowBindingsByModelKeys");
-        var bound = statement.getBoundSql(Map.of("tenantId", 1L, "modelKeys", List.of("A", "B")));
+        var bound = statement.getBoundSql(Map.of(
+                "tenantId", 1L,
+                "modelKeys", List.of("A", "B"),
+                "modelKeyLikeNeedles", List.of("%\"flowModelKey\"%A%", "%\"flowModelKey\"%B%")));
         String sql = bound.getSql();
         assertThat(CCJSqlParserUtil.parse(sql)).isNotNull();
-        assertThat(sql).contains("requested.model_key AS flowModelKey", "UNION ALL", "b.tenant_id = ?",
+        assertThat(sql).contains("b.tenant_id = ?",
                 "o.tenant_id = b.tenant_id", "o.del_flag = '0'", "b.status = 1", "b.target_type = 'OBJECT'",
-                "a.del_flag = 0", "ao.del_flag = 0", "CASE WHEN JSON_VALID(b.binding_config)");
-        assertThat(bound.getParameterMappings()).hasSize(4);
-        assertThat(statement.getBoundSql(Map.of("tenantId", 1L, "modelKeys", List.of())).getSql())
-                .contains("SELECT NULL AS model_key WHERE 1 = 0");
+                "a.del_flag = 0", "ao.del_flag = 0", "b.binding_key IN", "b.binding_config LIKE");
+        assertThat(sql).doesNotContain("JSON_VALID", "JSON_EXTRACT", "regexp_match", "_databaseId");
+        assertThat(statement.getBoundSql(Map.of(
+                "tenantId", 1L,
+                "modelKeys", List.of(),
+                "modelKeyLikeNeedles", List.of())).getSql())
+                .contains("1 = 0");
         String single = configuration.getMappedStatement(BusinessBindingMapper.class.getName()
-                + ".selectFlowBindingsByModelKey").getBoundSql(Map.of("tenantId", 1L, "modelKey", "A")).getSql();
+                + ".selectFlowBindingsByModelKey").getBoundSql(Map.of(
+                "tenantId", 1L,
+                "modelKey", "A",
+                "modelKeyLikeNeedle", "%\"flowModelKey\"%A%")).getSql();
         assertThat(CCJSqlParserUtil.parse(single)).isNotNull();
-        assertThat(single).contains("b.tenant_id = ?");
+        assertThat(single).contains("b.tenant_id = ?", "b.binding_config LIKE");
+        assertThat(single).doesNotContain("JSON_VALID", "JSON_EXTRACT", "regexp_match");
     }
 }

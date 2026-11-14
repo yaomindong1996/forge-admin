@@ -57,6 +57,8 @@ export function createUserManagementState() {
   const tenantOptions = ref([])
   const checkedTenantKeys = ref([])
   const defaultTenantId = ref(null)
+  // 高级关系维护当前读写的操作租户（可与行上默认租户、管理员登录租户不同）
+  const relationOperationTenantId = ref(null)
   const batchTenantModalVisible = ref(false)
   const batchTenantSubmitLoading = ref(false)
   const batchTenantForm = ref({
@@ -66,5 +68,5 @@ export function createUserManagementState() {
   const searchRegionOptions = ref([])
   const editRegionOptions = ref([])
   const dict = ref({})
-  return { selectedUserIds, leftOrgTreeData, leftOrgTreeLoading, leftOrgExpandAll, leftOrgExpandedKeys, leftOrgPanelCollapsed, selectedOrgKeys, selectedOrgNode, isShowAllUsers, relationModalVisible, relationActiveTab, relationSubmitLoading, authLoading, authSubmitLoading, batchAuthModalVisible, batchAuthSubmitLoading, batchAuthTenantId, batchAuthOrgId, batchAuthOrgTreeData, currentUser, roleTableData, roleSearchKeyword, editingUserTenantId, checkedRoleKeys, authOrgId, currentUserOrgBindings, rolePermissionModalVisible, currentPermissionRole, rolePagination, resetPwdModalVisible, resetPwdLoading, resetPwdForm, orgLoading, orgSubmitLoading, orgTreeData, mainOrgId, checkedOrgKeys, orgTreeExpandAll, orgTreeExpandedKeys, postLoading, postSubmitLoading, postList, checkedPostKeys, mainPostId, tenantLoading, tenantSubmitLoading, tenantOptions, checkedTenantKeys, defaultTenantId, batchTenantModalVisible, batchTenantSubmitLoading, batchTenantForm, searchRegionOptions, editRegionOptions, dict }
+  return { selectedUserIds, leftOrgTreeData, leftOrgTreeLoading, leftOrgExpandAll, leftOrgExpandedKeys, leftOrgPanelCollapsed, selectedOrgKeys, selectedOrgNode, isShowAllUsers, relationModalVisible, relationActiveTab, relationSubmitLoading, authLoading, authSubmitLoading, batchAuthModalVisible, batchAuthSubmitLoading, batchAuthTenantId, batchAuthOrgId, batchAuthOrgTreeData, currentUser, roleTableData, roleSearchKeyword, editingUserTenantId, checkedRoleKeys, authOrgId, currentUserOrgBindings, rolePermissionModalVisible, currentPermissionRole, rolePagination, resetPwdModalVisible, resetPwdLoading, resetPwdForm, orgLoading, orgSubmitLoading, orgTreeData, mainOrgId, checkedOrgKeys, orgTreeExpandAll, orgTreeExpandedKeys, postLoading, postSubmitLoading, postList, checkedPostKeys, mainPostId, tenantLoading, tenantSubmitLoading, tenantOptions, checkedTenantKeys, defaultTenantId, relationOperationTenantId, batchTenantModalVisible, batchTenantSubmitLoading, batchTenantForm, searchRegionOptions, editRegionOptions, dict }
 }

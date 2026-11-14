@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  独立 Flyway 执行器：不启动 forge-admin-server 也能执行 db/migration 增量脚本。
+  独立 Flyway 执行器：不启动 forge-admin-server 也能执行 db/mysql/migration 增量脚本。
   版本与表名、基线配置必须和 forge-admin-server 的 spring.flyway 保持一致，否则启动时校验和对不上。
   不属于 forge-server 反应堆模块，由 scripts/db/init-db.sh 调用：
     FORGE_DB_PASSWORD=*** mvn -q -f forge-server/scripts/db/flyway/pom.xml flyway:migrate \
@@ -22,7 +22,7 @@
         <mysql-connector.version>9.6.0</mysql-connector.version>
         <forge.db.url>jdbc:mysql://127.0.0.1:3306/forge_admin</forge.db.url>
         <forge.db.user>root</forge.db.user>
-        <forge.migration.dir>${project.basedir}/../../../db/migration</forge.migration.dir>
+        <forge.migration.dir>${project.basedir}/../../../db/mysql/migration</forge.migration.dir>
     </properties>
 
     <build>

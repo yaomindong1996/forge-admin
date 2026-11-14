@@ -113,7 +113,7 @@ Forge 已经具备待办、已办、我发起、抄送、流程模型、版本�
 
 ### F8 数据、接口和迁移约束
 
-- 新增字段、索引、关系表和字典必须通过 `forge-server/db/migration/` Flyway 脚本；脚本具备防重复保护，业务数据 `tenant_id=1`。
+- 新增字段、索引、关系表和字典必须通过 `forge-server/db/mysql/migration/` Flyway 脚本；脚本具备防重复保护，业务数据 `tenant_id=1`。
 - 候选用户、角色、部门和用户组关系优先使用关联表，不再新增逗号字符串字段。
 - 新增 Controller 写接口使用 DTO/VO；流程 variables 仍可使用 Map 字段。
 - 业务主数据删除默认逻辑删除；流程运行表和清理任务如需物理删除，必须写明原因、留存和回滚方式。
@@ -125,7 +125,7 @@ Forge 已经具备待办、已办、我发起、抄送、流程模型、版本�
 |---|---|
 | Flow 服务边界 | `forge-server/forge-flow/forge-flow-server/src/main/java/com/mdframe/forge/flow/controller/FlowTaskController.java`、`FlowMonitorController.java`、新增 DTO/VO/访问守卫 |
 | 任务与实例服务 | `forge-plugin-flow/.../service/impl/FlowTaskServiceImpl.java`、`FlowInstanceServiceImpl.java`、`FlowMonitorServiceImpl.java` |
-| Mapper 与数据库 | `.../resources/mapper/FlowTaskMapper.xml`、`FlowBusinessMapper.xml`、`FlowNodeConfigMapper.xml`、`forge-server/db/migration/` |
+| Mapper 与数据库 | `.../resources/mapper/FlowTaskMapper.xml`、`FlowBusinessMapper.xml`、`FlowNodeConfigMapper.xml`、`forge-server/db/mysql/migration/` |
 | 超时与通知 | `FlowTimeoutServiceImpl.java`、`FlowOverdueReminderServiceImpl.java`、消息事件和通知记录 Mapper |
 | 模型与节点 | `FlowModelServiceImpl.java`、`FlowNodeConfigServiceImpl.java`、`FlowBpmnGenerateService.java` |
 | 前端任务 | `forge-admin-ui/src/views/flow/todo.vue`、`done.vue`、`started.vue`、`cc.vue` |

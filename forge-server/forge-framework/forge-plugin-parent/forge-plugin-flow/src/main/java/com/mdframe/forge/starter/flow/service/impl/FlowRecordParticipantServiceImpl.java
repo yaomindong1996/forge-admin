@@ -4,6 +4,7 @@ import com.mdframe.forge.starter.flow.entity.FlowBusiness;
 import com.mdframe.forge.starter.flow.entity.FlowRecordParticipant;
 import com.mdframe.forge.starter.flow.mapper.FlowRecordParticipantMapper;
 import com.mdframe.forge.starter.flow.service.FlowRecordParticipantService;
+import com.mdframe.forge.starter.flow.support.FlowDialectFreeWrites;
 import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ public class FlowRecordParticipantServiceImpl implements FlowRecordParticipantSe
     private static final Long DEFAULT_TENANT_ID = 1L;
 
     private final FlowRecordParticipantMapper participantMapper;
+    private final FlowDialectFreeWrites dialectFreeWrites;
 
     @Override
     public void record(FlowBusiness business, String userId, String relationType) {
@@ -56,7 +58,7 @@ public class FlowRecordParticipantServiceImpl implements FlowRecordParticipantSe
         participant.setProcessInstanceId(processInstanceId);
         participant.setCreateTime(LocalDateTime.now());
         try {
-            TenantContextHolder.executeIgnore(() -> participantMapper.insertIgnore(participant));
+            TenantContextHolder.executeIgnore(() -> dialectFreeWrites.insertParticipantIgnoreConflict(participant));
         } catch (Exception e) {
             log.warn("写入流程经手索引失败: type={}, id={}, userId={}, relation={}",
                     ref.businessType(), ref.businessId(), userId, relationType, e);

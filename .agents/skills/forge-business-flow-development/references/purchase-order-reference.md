@@ -13,10 +13,10 @@ Use the current purchase order approval as the canonical code-first example.
 - Mapper XML: `forge-server/forge-business/forge-business-core/src/main/resources/mapper/business/SamplePurchaseOrderMapper.xml`
 - Frontend API: `forge-admin-ui/src/api/business/purchase-order-test.js`
 - Frontend page/form: `forge-admin-ui/src/views/business/purchase-order-test.vue`
-- Table/dict/menu seed: `forge-server/db/migration/V1.0.81__add_sample_purchase_order_flow_test.sql`
-- Flow binding seed: `forge-server/db/migration/V1.0.82__seed_sample_purchase_order_flow_binding.sql`
-- App Center seed: `forge-server/db/migration/V1.0.83__seed_sample_purchase_order_app_center_entry.sql`
-- Fallback node permission patch: `forge-server/db/migration/V1.0.84__extend_sample_purchase_order_form_asset_fields.sql`
+- Table/dict/menu seed: `forge-server/db/mysql/migration/V1.0.81__add_sample_purchase_order_flow_test.sql`
+- Flow binding seed: `forge-server/db/mysql/migration/V1.0.82__seed_sample_purchase_order_flow_binding.sql`
+- App Center seed: `forge-server/db/mysql/migration/V1.0.83__seed_sample_purchase_order_app_center_entry.sql`
+- Fallback node permission patch: `forge-server/db/mysql/migration/V1.0.84__extend_sample_purchase_order_form_asset_fields.sql`
 
 ## Business Contract
 

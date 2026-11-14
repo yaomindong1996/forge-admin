@@ -21,7 +21,8 @@ class SysContentInstalledAssetMapperContractTest {
                 .contains("KindKeywordFilter")
                 .doesNotContain("${");
         assertThat(statement(mapper, "selectPageByKind", "select"))
-                .contains("KindKeywordFilter", "LIMIT #{offset}, #{limit}", "AssetSummaryColumns")
+                .contains("KindKeywordFilter", "LIMIT #{limit} OFFSET #{offset}", "AssetSummaryColumns")
+                .doesNotContain("LIMIT #{offset}, #{limit}")
                 .doesNotContain("${");
         assertThat(statement(mapper, "AssetSummaryColumns", "sql"))
                 .doesNotContain("package_json");

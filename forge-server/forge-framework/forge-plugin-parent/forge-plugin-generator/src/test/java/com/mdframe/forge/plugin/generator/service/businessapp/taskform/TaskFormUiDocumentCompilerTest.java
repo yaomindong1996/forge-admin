@@ -77,6 +77,33 @@ class TaskFormUiDocumentCompilerTest {
     }
 
     @Test
+    void appendsFieldsMissingFromStalePageSections() {
+        JSONObject schema = JSONObject.parseObject("""
+                {
+                  "pageSections": [
+                    { "sectionId": "section_default", "sectionType": "card", "title": "基本信息", "fields": ["fieldInput"] }
+                  ],
+                  "components": [
+                    { "id": "c1", "componentKey": "input", "label": "报销事由", "fieldBinding": { "fieldCode": "reason" } },
+                    { "id": "c2", "componentKey": "money", "label": "报销金额", "fieldBinding": { "fieldCode": "amount" } }
+                  ]
+                }
+                """);
+
+        Map<String, Object> doc = TaskFormUiDocumentCompiler.compile(
+                schema,
+                "reimburse_form",
+                List.of(Map.of("field", "reason", "label", "报销事由"), Map.of("field", "amount", "label", "报销金额")),
+                List.of());
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> sections = (List<Map<String, Object>>) doc.get("sections");
+        assertEquals(1, sections.size());
+        assertEquals("section_default", sections.get(0).get("sectionId"));
+        assertEquals(List.of("fieldInput", "reason", "amount"), sections.get(0).get("fields"));
+    }
+
+    @Test
     void buildsDefaultSectionWhenPageSectionsMissing() {
         JSONObject schema = JSONObject.parseObject("""
                 {

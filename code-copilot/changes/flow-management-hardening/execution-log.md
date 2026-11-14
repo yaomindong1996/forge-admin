@@ -186,7 +186,7 @@
    - 结果：0 errors，8 个模板换行 warning。
 6. `npm run build`
    - 结果：通过（Vite built in 45.45s）；保留仓库已有 native config、CSS 注释和 dynamic import 警告。
-7. `rg -n '\$\{[^}]+\}' forge-server/db/migration`
+7. `rg -n '\$\{[^}]+\}' forge-server/db/mysql/migration`
    - 结果：仅发现历史 V1.0.72 模板脚本，新增 V1.0.142 无占位符。
 
 ### 未执行/阻断
@@ -364,7 +364,7 @@
 
 - 逾期提醒记录新增 `retry_count`、`next_retry_time`；失败后按 5/10/20/40/80 分钟退避，最多 5 次，超过后停止自动重试。
 - 重试通过 `tenant_id + reminder_key + channel` 唯一键和条件更新 `claimRetry` 原子抢占；成功/失败更新复用原记录 ID，避免重复插入或把重试次数重置。
-- 新增 `forge-server/db/migration/V1.0.144__add_flow_overdue_reminder_runtime.sql`，正式创建提醒记录表，补齐节点提醒配置列、重试列、重复策略字典和默认消息模板，脚本具备防重复保护。
+- 新增 `forge-server/db/mysql/migration/V1.0.144__add_flow_overdue_reminder_runtime.sql`，正式创建提醒记录表，补齐节点提醒配置列、重试列、重复策略字典和默认消息模板，脚本具备防重复保护。
 - Mapper XML 校验通过；迁移无 Flyway `${...}` 占位符；Flow reactor compile BUILD SUCCESS；`git diff --check` 通过。
 - 未执行真实 Flyway、消息服务、Redis、Flowable 和并发重试验证。
 
@@ -374,7 +374,7 @@
 ## 2026-09-06 — 临时抄送撤回与逾期提醒停止语义
 
 - 变更范围：`sys_flow_cc` 增加 ACTIVE/REVOKED 状态及撤回审计字段；新增发送人撤回接口和前端操作入口；接收方查询、表单可见性、工作台未读统计过滤已撤回关系；逾期提醒发送前增加任务可办理状态门禁。
-- 迁移：新增 `forge-server/db/migration/V1.0.146__add_flow_cc_revoke_state.sql`，列和索引均使用 `information_schema` 防重复保护。
+- 迁移：新增 `forge-server/db/mysql/migration/V1.0.146__add_flow_cc_revoke_state.sql`，列和索引均使用 `information_schema` 防重复保护。
 - 验证：`mvn -pl forge-framework/forge-plugin-parent/forge-plugin-flow,forge-flow/forge-flow-server -am -DskipTests compile`（JDK 22，BUILD SUCCESS）；`mvn -Penable-tests -Dtest=FlowCcRevokeContractTest,FlowOverdueReminderRetryContractTest -DfailIfNoTests=false test`（4/4 通过）；`pnpm eslint src/views/flow/cc.vue src/api/flow.js`（通过）；`git diff --check`（通过）。
 - 状态展示使用新增 `flow_cc_status` 字典，迁移脚本包含字典及数据的 `NOT EXISTS` 防重复写入。
 - 同步补齐超时转换时区配置 `forge.flow.timeout.time-zone`，Flow 服务和 Admin 服务默认 `Asia/Shanghai`，非法时区会回退并告警。

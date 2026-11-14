@@ -100,8 +100,16 @@ watch(() => props.application?.id, (applicationId, previousId) => {
   loadProcesses()
 }, { immediate: true })
 
+// 应用内弹窗设计器发布后由宿主派发，同步最新版本与设计状态
+function handleProcessChanged() {
+  if (props.application?.id)
+    loadProcesses()
+}
+window.addEventListener('forge:business-process-changed', handleProcessChanged)
+
 onBeforeUnmount(() => {
   listRequest += 1
+  window.removeEventListener('forge:business-process-changed', handleProcessChanged)
 })
 
 // 从流程画布返回时（returnTo 携带 processRefresh），重载列表同步最新草稿状态。

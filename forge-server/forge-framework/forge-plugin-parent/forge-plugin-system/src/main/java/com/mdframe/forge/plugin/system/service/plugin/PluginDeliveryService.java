@@ -8,6 +8,7 @@ import com.mdframe.forge.plugin.system.enums.PluginDeliveryAction;
 import com.mdframe.forge.plugin.system.enums.PluginDeliveryStatus;
 import com.mdframe.forge.plugin.system.mapper.SysPluginDeliveryMapper;
 import com.mdframe.forge.plugin.system.vo.*;
+import com.mdframe.forge.starter.orm.support.DuplicateKeyActions;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.plugin.delivery.PackageDigests;
 import lombok.RequiredArgsConstructor;
@@ -57,7 +58,9 @@ public class PluginDeliveryService {
     public PluginDeliveryVO create(PluginDeliveryCreateDTO dto, PluginTaskActor actor) {
         var target = properties.target(dto.getTargetId(), actor.tenantId());
         String digest = PackageDigests.sha256(codec.encode(dto).getBytes(StandardCharsets.UTF_8));
-        mapper.ensureTarget(actor.tenantId(), UUID.randomUUID().toString(), target.getId());
+        DuplicateKeyActions.upsert(
+                () -> mapper.touchTarget(actor.tenantId(), target.getId()),
+                () -> mapper.insertTarget(actor.tenantId(), UUID.randomUUID().toString(), target.getId()));
         var state = mapper.lockTarget(actor.tenantId(), target.getId());
         // 先串行化目标，再做当前读；并发重试不能被旧事务快照误判为新任务。
         var previous = mapper.request(actor.tenantId(), actor.userId(), dto.getRequestId());

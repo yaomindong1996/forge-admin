@@ -245,7 +245,7 @@ class LogicDeleteUniqueIndexPortabilityMigrationTest {
     }
 
     private Path resolveMigration() {
-        return resolveRepositoryFile("forge-server/db/migration/" + MIGRATION);
+        return resolveRepositoryFile("forge-server/db/mysql/migration/" + MIGRATION);
     }
 
     private Path resolveRepositoryFile(String relativePath) {

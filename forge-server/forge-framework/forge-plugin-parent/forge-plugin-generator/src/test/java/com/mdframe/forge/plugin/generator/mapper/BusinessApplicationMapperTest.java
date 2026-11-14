@@ -41,6 +41,24 @@ class BusinessApplicationMapperTest {
     }
 
     @Test
+    @DisplayName("application page returns summary columns without heavy design JSON")
+    void applicationPageReturnsSummaryColumnsWithoutHeavyDesignJson() throws IOException {
+        String xml = resource("mapper/BusinessApplicationMapper.xml");
+
+        String page = section(xml, "<select id=\"selectApplicationPage\"", "</select>");
+        assertTrue(page.contains("refid=\"Application_VO_Summary_Select\""));
+
+        String summary = section(xml, "<sql id=\"Application_VO_Summary_Select\">", "</sql>");
+        assertFalse(summary.contains("a.options AS options"));
+        assertFalse(summary.contains("a.ai_assistant_config"));
+        assertTrue(summary.contains("refid=\"Application_VO_Stats_From\""));
+
+        String detail = section(xml, "<sql id=\"Application_VO_Select\">", "</sql>");
+        assertTrue(detail.contains("a.options AS options"));
+        assertTrue(xml.contains("AS pageCount"));
+    }
+
+    @Test
     @DisplayName("suite mapper resolves a tenant-scoped recursive subtree")
     void suiteMapperResolvesTenantScopedRecursiveSubtree() throws IOException {
         String xml = resource("mapper/BusinessSuiteMapper.xml");
@@ -49,6 +67,14 @@ class BusinessApplicationMapperTest {
         assertTrue(xml.contains("child.parent_id = parent.id"));
         assertTrue(xml.contains("child.tenant_id = #{tenantId}"));
         assertTrue(xml.contains("child.del_flag = '0'"));
+    }
+
+    private String section(String xml, String start, String end) {
+        int from = xml.indexOf(start);
+        assertTrue(from >= 0, "找不到片段: " + start);
+        int to = xml.indexOf(end, from);
+        assertTrue(to > from, "片段未闭合: " + start);
+        return xml.substring(from, to);
     }
 
     private String resource(String path) throws IOException {

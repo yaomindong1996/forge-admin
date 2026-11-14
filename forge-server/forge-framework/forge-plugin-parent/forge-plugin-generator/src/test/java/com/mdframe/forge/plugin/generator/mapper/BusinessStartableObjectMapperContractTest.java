@@ -42,6 +42,25 @@ class BusinessStartableObjectMapperContractTest {
     }
 
     @Test
+    void processCatalogOnlyReturnsCurrentPublishedEnabledProcesses() throws IOException {
+        String xml = Files.readString(MAPPER);
+        String select = xml.substring(xml.indexOf("id=\"selectStartableProcesses\""));
+
+        assertThat(select).contains(
+                "p.tenant_id = #{tenantId}",
+                "p.status = 1",
+                "p.del_flag = 0",
+                "p.published_version IS NOT NULL",
+                "v.version_no = p.published_version",
+                "v.status = 1",
+                "v.del_flag = 0",
+                "a.status = 1",
+                "ao.del_flag = 0",
+                "o.status = 1",
+                "o.config_key IS NOT NULL");
+    }
+
+    @Test
     void voOnlyExposesCatalogMetadata() {
         String[] fields = Arrays.stream(BusinessStartableObjectVO.class.getDeclaredFields())
                 .filter(field -> !Modifier.isStatic(field.getModifiers()))
@@ -51,7 +70,7 @@ class BusinessStartableObjectMapperContractTest {
 
         assertThat(fields).containsExactly(
                 "applicationIcon", "applicationId", "applicationName", "configKey",
-                "objectCode", "objectIcon", "objectName", "sortOrder");
+                "objectCode", "objectIcon", "objectName", "processCode", "processName", "sortOrder");
     }
 
     @Test

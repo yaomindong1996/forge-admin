@@ -8,7 +8,7 @@ import test from 'node:test'
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const serverDir = path.resolve(scriptDir, '../..')
-const migrationDir = path.join(serverDir, 'db/migration')
+const migrationDir = path.join(serverDir, 'db/mysql/migration')
 const source = readFileSync(path.join(scriptDir, 'clean-db.sh'), 'utf8')
   .replace(/^SCRIPT_DIR=.*$/m, `SCRIPT_DIR=${JSON.stringify(scriptDir)}`)
   .replace(/^FORGE_DIR=.*$/m, `FORGE_DIR=${JSON.stringify(serverDir)}`)
@@ -16,7 +16,7 @@ const source = readFileSync(path.join(scriptDir, 'clean-db.sh'), 'utf8')
 // 真实库结构：全量 SQL + 增量新建的表 + Flowable 启动时建的表
 function realTables() {
   const names = new Set()
-  const fullSql = readFileSync(path.join(serverDir, 'db/全量初始化SQL.sql'), 'utf8')
+  const fullSql = readFileSync(path.join(serverDir, 'db/mysql/全量初始化SQL.sql'), 'utf8')
   for (const match of fullSql.matchAll(/^CREATE TABLE `([^`]+)`/gm)) names.add(match[1])
   for (const file of readdirSync(migrationDir)) {
     const sql = readFileSync(path.join(migrationDir, file), 'utf8')

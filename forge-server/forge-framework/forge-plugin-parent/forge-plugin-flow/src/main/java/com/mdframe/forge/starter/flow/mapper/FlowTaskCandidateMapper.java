@@ -9,7 +9,9 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface FlowTaskCandidateMapper extends BaseMapper<FlowTaskCandidate> {
 
-    int insertIgnore(FlowTaskCandidate candidate);
+    int insertPlain(FlowTaskCandidate candidate);
+
+    int updateUpsertByUniqueKey(FlowTaskCandidate candidate);
 
     int activate(@Param("tenantId") Long tenantId,
                  @Param("taskId") String taskId,

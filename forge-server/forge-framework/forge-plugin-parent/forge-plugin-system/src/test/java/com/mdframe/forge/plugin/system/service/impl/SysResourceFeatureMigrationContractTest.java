@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** MySQL 专用 DDL 只做静态契约验证；实际 information_schema/DDL 执行仍需真实 MySQL 验收。 */
 class SysResourceFeatureMigrationContractTest {
 
-    private static final Path MIGRATIONS = Path.of("../../../db/migration");
+    private static final Path MIGRATIONS = Path.of("../../../db/mysql/migration");
     private static final String VERSION = "V1.0.209__add_resource_feature_code.sql";
 
     @Test

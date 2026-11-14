@@ -12,6 +12,7 @@ import com.mdframe.forge.plugin.ai.session.vo.ExperienceTrendItem;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper
@@ -19,13 +20,17 @@ public interface AiChatSessionMapper extends BaseMapper<AiChatSession> {
 
     Page<AiSessionVO> selectSessionPage(Page<?> page, @Param("query") AiSessionPageQuery query);
 
-    AiSessionStatisticsVO selectStatistics();
+    AiSessionStatisticsVO selectStatistics(@Param("since90") LocalDateTime since90,
+                                           @Param("todayStart") LocalDateTime todayStart,
+                                           @Param("tomorrowStart") LocalDateTime tomorrowStart);
 
-    List<DailyTrendItem> selectDailyTrend();
+    List<DailyTrendItem> selectDailySessionTrend(@Param("since") LocalDateTime since);
+
+    List<DailyTrendItem> selectDailyMessageTrend(@Param("since") LocalDateTime since);
 
     /** 对话体验聚合指标（近 30 天 assistant 回复） */
-    AiExperienceMetricsVO selectExperienceMetrics();
+    AiExperienceMetricsVO selectExperienceMetrics(@Param("since") LocalDateTime since);
 
     /** 对话体验日趋势（近 14 天） */
-    List<ExperienceTrendItem> selectExperienceDailyTrend();
+    List<ExperienceTrendItem> selectExperienceDailyTrend(@Param("since") LocalDateTime since);
 }

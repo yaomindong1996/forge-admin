@@ -29,7 +29,7 @@
                 field_code = #{query.fieldCode}
                 OR column_name = #{query.fieldCode}
                 OR LOWER(REPLACE(field_code, '_', '')) = LOWER(REPLACE(#{query.fieldCode}, '_', ''))
-                OR LOWER(REPLACE(IFNULL(column_name, ''), '_', '')) = LOWER(REPLACE(#{query.fieldCode}, '_', ''))
+                OR LOWER(REPLACE(COALESCE(column_name, ''), '_', '')) = LOWER(REPLACE(#{query.fieldCode}, '_', ''))
             )
         </if>
         <if test="query != null and query.relationKey != null">

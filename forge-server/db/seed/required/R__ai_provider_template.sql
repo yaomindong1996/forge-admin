@@ -1,2 +1,0 @@
--- Required seed data for ai_provider_template.
--- Keep this file idempotent and do not include local test or sensitive data.

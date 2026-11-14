@@ -10,6 +10,8 @@ import com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInt
 import com.mdframe.forge.starter.orm.handler.InjectionMetaObjectHandler;
 import com.mdframe.forge.starter.orm.interceptor.CountOnePaginationInnerInterceptor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.mapping.DatabaseIdProvider;
+import org.apache.ibatis.mapping.VendorDatabaseIdProvider;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import java.util.List;
+import java.util.Properties;
 
 /**
  * mybatis-plus配置类(下方注释有插件介绍)
@@ -66,6 +69,21 @@ public class MybatisPlusConfig implements InitializingBean {
         // 分页合理化
         //paginationInnerInterceptor.setOverflow(true);
         return paginationInnerInterceptor;
+    }
+
+    /**
+     * 供 Mapper XML 使用 databaseId / {@code _databaseId} 区分 MySQL 与 PostgreSQL 方言片段。
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public DatabaseIdProvider databaseIdProvider() {
+        VendorDatabaseIdProvider provider = new VendorDatabaseIdProvider();
+        Properties properties = new Properties();
+        properties.setProperty("MySQL", "mysql");
+        properties.setProperty("MariaDB", "mysql");
+        properties.setProperty("PostgreSQL", "postgresql");
+        provider.setProperties(properties);
+        return provider;
     }
 
     /**

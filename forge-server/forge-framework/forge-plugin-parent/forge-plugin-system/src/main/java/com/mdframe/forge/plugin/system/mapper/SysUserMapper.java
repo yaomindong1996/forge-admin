@@ -5,9 +5,11 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.system.dto.SysUserQuery;
 import com.mdframe.forge.plugin.system.entity.SysUser;
+import com.mdframe.forge.plugin.system.vo.ContactMemberLabelVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -99,4 +101,15 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
     /** 校验流程用户组成员是否均为当前租户内启用用户。 */
     List<Long> selectFlowAvailableUserIds(@Param("tenantId") Long tenantId,
                                           @Param("userIds") List<Long> userIds);
+
+    /** 批量查询用户所属租户名（展示聚合，由 Service 拼接）。 */
+    List<ContactMemberLabelVO> selectTenantNameLabels(@Param("userIds") Collection<Long> userIds);
+
+    /** 批量查询用户所属组织名（展示聚合，由 Service 拼接）。 */
+    List<ContactMemberLabelVO> selectOrgNameLabels(@Param("tenantId") Long tenantId,
+                                                   @Param("userIds") Collection<Long> userIds);
+
+    /** 批量查询用户所属岗位名（展示聚合，由 Service 拼接）。 */
+    List<ContactMemberLabelVO> selectPostNameLabels(@Param("tenantId") Long tenantId,
+                                                    @Param("userIds") Collection<Long> userIds);
 }

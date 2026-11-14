@@ -11,7 +11,7 @@ const serverDir = path.resolve(scriptDir, '../..')
 const source = readFileSync(path.join(scriptDir, 'init-db.sh'), 'utf8')
   .replace(/^SCRIPT_DIR=.*$/m, `SCRIPT_DIR=${JSON.stringify(scriptDir)}`)
   .replace(/^FORGE_DIR=.*$/m, `FORGE_DIR=${JSON.stringify(serverDir)}`)
-const sqlPath = '$FORGE_DIR/db/全量初始化SQL.sql'
+const sqlPath = '$FORGE_DIR/db/mysql/全量初始化SQL.sql'
 
 // MySQL 调用全部由当前子 Shell 的函数接管，不执行任何真实数据库操作。
 function runInit(script = source, args = [], mysqlStatus = 0) {
@@ -51,7 +51,7 @@ test('默认流程会将仓库中真实全量 SQL 交给 MySQL 桩', () => {
   const result = runInit()
   assert.ifError(result.error)
   assert.equal(result.status, 0, result.stdout + result.stderr)
-  assert.match(result.stdout, /Running .*db\/全量初始化SQL\.sql/)
+  assert.match(result.stdout, /Running .*db\/mysql\/全量初始化SQL\.sql/)
   assert.match(result.stdout, /MYSQL_STUB_CALLED/)
 })
 
@@ -64,7 +64,7 @@ test('MySQL 执行失败时不输出初始化成功', () => {
 test('帮助使用当前 SQL 路径且不连接数据库', () => {
   const result = runInit(source, ['--help'])
   assert.equal(result.status, 0, result.stdout + result.stderr)
-  assert.match(result.stdout, /db\/全量初始化SQL\.sql/)
+  assert.match(result.stdout, /db\/mysql\/全量初始化SQL\.sql/)
   assert.doesNotMatch(result.stdout, /MYSQL_STUB_CALLED|forge-admin-server\/sql/)
 })
 
@@ -108,22 +108,22 @@ test('--recreate --yes 先删库再导入', () => {
   const dropAt = calls.indexOf('DROP DATABASE IF EXISTS `forge_admin`')
   const createAt = calls.indexOf('CREATE DATABASE IF NOT EXISTS `forge_admin`')
   assert.ok(dropAt >= 0 && createAt > dropAt, calls)
-  assert.match(result.stdout, /Running .*db\/全量初始化SQL\.sql/)
+  assert.match(result.stdout, /Running .*db\/mysql\/全量初始化SQL\.sql/)
 })
 
-test('--clean 不能与 --with-demo 同时使用，且不连接数据库', () => {
-  const { result, calls } = runWithRecorder(['--clean', '--with-demo'])
-  assert.equal(result.status, 1)
-  assert.match(result.stderr, /--with-demo/)
-  assert.equal(calls, '')
+test('废弃的 --with-demo 仅告警且不影响默认初始化', () => {
+  const { result, calls } = runWithRecorder(['--with-demo'])
+  assert.equal(result.status, 0, result.stdout + result.stderr)
+  assert.match(result.stderr, /--with-demo 已废弃/)
+  assert.match(calls, /CREATE DATABASE/)
 })
 
-test('--migrate 在全量与 seed 之后调用独立 Flyway 执行器', () => {
+test('--migrate 在全量之后调用独立 Flyway 执行器', () => {
   const { result, calls } = runWithRecorder(['--migrate', '--database', 'demo_db', '--port', '3307'])
   assert.equal(result.status, 0, result.stdout + result.stderr)
   assert.match(calls, /MVN -q -B -f .*scripts\/db\/flyway\/pom\.xml flyway:migrate/)
   assert.match(calls, /-Dforge\.db\.url=jdbc:mysql:\/\/127\.0\.0\.1:3307\/demo_db\?/)
-  assert.match(calls, /-Dforge\.migration\.dir=.*\/db\/migration/)
+  assert.match(calls, /-Dforge\.migration\.dir=.*\/db\/mysql\/migration/)
   assert.ok(result.stdout.indexOf('全量初始化SQL') < result.stdout.indexOf('Running Flyway'), result.stdout)
 })
 

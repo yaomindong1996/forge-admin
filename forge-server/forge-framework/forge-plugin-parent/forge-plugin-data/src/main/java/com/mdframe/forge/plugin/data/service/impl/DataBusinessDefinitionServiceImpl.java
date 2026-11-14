@@ -60,12 +60,55 @@ public class DataBusinessDefinitionServiceImpl
     @Override
     public IPage<DataBusinessDefinition> page(String businessName, Integer status, Integer pageNum, Integer pageSize) {
         Page<DataBusinessDefinition> page = new Page<>(pageNum, pageSize);
-        return businessMapper.selectBusinessPage(page, SessionHelper.getTenantId(), businessName, status);
+        Long tenantId = SessionHelper.getTenantId();
+        IPage<DataBusinessDefinition> result = businessMapper.selectBusinessPage(page, tenantId, businessName, status);
+        fillDatasetNames(tenantId, result.getRecords());
+        return result;
     }
 
     @Override
     public List<DataBusinessDefinition> listEnabled() {
-        return businessMapper.selectBusinessList(SessionHelper.getTenantId(), 1);
+        Long tenantId = SessionHelper.getTenantId();
+        List<DataBusinessDefinition> list = businessMapper.selectBusinessList(tenantId, 1);
+        fillDatasetNames(tenantId, list);
+        return list;
+    }
+
+    private void fillDatasetNames(Long tenantId, List<DataBusinessDefinition> records) {
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+        List<Long> businessIds = records.stream()
+                .map(DataBusinessDefinition::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (businessIds.isEmpty()) {
+            return;
+        }
+        List<Map<String, Object>> rows = businessMapper.selectDatasetNameLabels(tenantId, businessIds);
+        Map<Long, List<String>> grouped = new HashMap<>();
+        if (rows != null) {
+            for (Map<String, Object> row : rows) {
+                Object businessId = row.get("businessId");
+                if (businessId == null) {
+                    businessId = row.get("businessid");
+                }
+                Object datasetName = row.get("datasetName");
+                if (datasetName == null) {
+                    datasetName = row.get("datasetname");
+                }
+                if (businessId == null || datasetName == null || !StringUtils.hasText(String.valueOf(datasetName))) {
+                    continue;
+                }
+                Long id = ((Number) businessId).longValue();
+                grouped.computeIfAbsent(id, key -> new ArrayList<>()).add(String.valueOf(datasetName));
+            }
+        }
+        for (DataBusinessDefinition record : records) {
+            List<String> names = grouped.getOrDefault(record.getId(), List.of());
+            record.setDatasetNames(names.isEmpty() ? "" : String.join("、", names.stream().distinct().toList()));
+        }
     }
 
     @Override

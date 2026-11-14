@@ -8,7 +8,9 @@ import org.apache.ibatis.annotations.Param;
 import java.util.List;
 @Mapper
 public interface SysPluginDeliveryMapper extends BaseMapper<SysPluginDelivery> {
-    void ensureTarget(@Param("tenant") Long tenant, @Param("id") String id, @Param("target") String target);
+    int insertTarget(@Param("tenant") Long tenant, @Param("id") String id, @Param("target") String target);
+
+    int touchTarget(@Param("tenant") Long tenant, @Param("target") String target);
     PluginDeliveryTargetVO lockTarget(@Param("tenant") Long tenant, @Param("target") String target);
     List<PluginDeliveryTargetVO> targets(@Param("tenant") Long tenant);
     List<SysPluginDelivery> recent(@Param("tenant") Long tenant);

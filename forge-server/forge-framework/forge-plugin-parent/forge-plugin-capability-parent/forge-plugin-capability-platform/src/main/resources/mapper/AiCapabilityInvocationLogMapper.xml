@@ -23,7 +23,6 @@
             #{log.createBy}, COALESCE(#{log.createTime}, NOW()), #{log.createDept},
             #{log.updateBy}, COALESCE(#{log.updateTime}, NOW())
         )
-        ON DUPLICATE KEY UPDATE id = ai_capability_invocation_log.id
     </insert>
     <update id="updateResultByRequestIdentity">
         UPDATE ai_capability_invocation_log

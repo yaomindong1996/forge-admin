@@ -12,21 +12,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SysUserMapperSqlContractTest {
 
     @Test
-    void userListDisplayNamesMustBeCorrelatedToCurrentUser() throws IOException {
+    void userListDisplayNamesMustUsePortableDetailQueries() throws IOException {
         String xml = Files.readString(Path.of("src/main/resources/mapper/SysUserMapper.xml"));
         String page = statement(xml, "selectUserPage");
         String export = statement(xml, "selectExportList");
 
+        assertFalse(page.contains("GROUP_CONCAT"), "selectUserPage must not use MySQL GROUP_CONCAT");
+        assertFalse(export.contains("GROUP_CONCAT"), "selectExportList must not use MySQL GROUP_CONCAT");
+        assertFalse(xml.contains("GROUP_CONCAT"), "SysUserMapper must not use GROUP_CONCAT");
+
+        assertTrue(xml.contains("selectTenantNameLabels"));
+        assertTrue(xml.contains("selectOrgNameLabels"));
+        assertTrue(xml.contains("selectPostNameLabels"));
         assertFalse(page.contains("GROUP BY sut.user_id"), "selectUserPage must not aggregate the whole user-tenant table");
         assertFalse(page.contains("GROUP BY uo.user_id"), "selectUserPage must not aggregate the whole user-org table");
         assertFalse(page.contains("GROUP BY up.user_id"), "selectUserPage must not aggregate the whole user-post table");
-        assertFalse(export.contains("GROUP BY sut.user_id"));
-        assertFalse(export.contains("GROUP BY uo.user_id"));
-        assertFalse(export.contains("GROUP BY up.user_id"));
-
-        assertTrue(xml.contains("WHERE sut.user_id = u.id"));
-        assertTrue(xml.contains("WHERE uo.user_id = u.id"));
-        assertTrue(xml.contains("WHERE up.user_id = u.id"));
     }
 
     @Test

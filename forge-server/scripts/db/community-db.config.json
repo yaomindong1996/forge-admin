@@ -1,7 +1,7 @@
 {
-  "migrationDir": "../../db/migration",
-  "seedDir": "../../db/seed",
-  "exportDir": "../../db/community-export",
+  "migrationDir": "../../db/mysql/migration",
+  "seedDir": "../../db/mysql",
+  "exportDir": "../../db/mysql/community-export",
   "allowTables": [
     "sys_resource",
     "sys_dict",
