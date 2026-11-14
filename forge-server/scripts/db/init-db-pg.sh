@@ -14,6 +14,7 @@ RECREATE="false"
 MIGRATE="false"
 ASSUME_YES="false"
 SKIP_ADMIN_INIT="false"
+ADMIN_INIT_SQL=""
 
 usage() {
   cat <<'USAGE'
@@ -29,6 +30,8 @@ Options:
   --user USER              PostgreSQL user, default forge
   --password PASSWORD      PostgreSQL password（也可用环境变量 PGPASSWORD）
   --skip-admin-init        跳过全量 SQL
+  --init-sql FILE          指定全量 SQL（默认 db/postgresql/全量初始化SQL.sql）
+  --pure                   使用纯净版全量（db/postgresql/全量初始化SQL.纯净版.sql）
   --recreate               先 DROP 再重建数据库
   --migrate                导入后用 Flyway 执行 db/postgresql/migration 增量（需要 Maven）
   --yes                    --recreate 时跳过确认
@@ -36,6 +39,7 @@ Options:
 
 Example:
   PGPASSWORD=*** bash forge-server/scripts/db/init-db-pg.sh --database forge_admin --recreate --migrate
+  PGPASSWORD=*** bash forge-server/scripts/db/init-db-pg.sh --database forge_admin --recreate --pure
 USAGE
 }
 
@@ -54,6 +58,8 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --skip-admin-init) SKIP_ADMIN_INIT="true"; shift ;;
+    --init-sql) require_value "$1" "${2:-}"; ADMIN_INIT_SQL="$2"; shift 2 ;;
+    --pure) ADMIN_INIT_SQL="$FORGE_DIR/db/postgresql/全量初始化SQL.纯净版.sql"; shift ;;
     --recreate) RECREATE="true"; shift ;;
     --migrate) MIGRATE="true"; shift ;;
     --yes) ASSUME_YES="true"; shift ;;
@@ -62,7 +68,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-ADMIN_INIT_SQL="$FORGE_DIR/db/postgresql/全量初始化SQL.sql"
+ADMIN_INIT_SQL="${ADMIN_INIT_SQL:-$FORGE_DIR/db/postgresql/全量初始化SQL.sql}"
 [[ "$DATABASE" =~ ^[A-Za-z0-9_]+$ ]] || die "--database 只能包含字母、数字和下划线: $DATABASE"
 
 if [[ "$SKIP_ADMIN_INIT" != "true" && ( ! -f "$ADMIN_INIT_SQL" || ! -s "$ADMIN_INIT_SQL" ) ]]; then
