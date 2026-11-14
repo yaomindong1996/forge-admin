@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "base_ref": "origin/main",
+  "baseline": ".quality-baseline.json",
+  "checks": {
+    "complexity": {
+      "command": "python3 scripts/quality-gate-adapter.py complexity",
+      "format": "unix"
+    },
+    "duplication": {
+      "command": "python3 scripts/quality-gate-adapter.py duplication",
+      "format": "jsonl"
+    }
+  }
+}

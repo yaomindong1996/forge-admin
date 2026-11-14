@@ -1,0 +1,39 @@
+# Regression-aware quality gate.
+# Never add continue-on-error, and never run `baseline` here.
+
+name: Quality Gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch base branch for merge-base
+        run: git fetch origin ${{ github.base_ref || 'main' }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install analyzers
+        run: |
+          python3 -m pip install --user lizard
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Quality gate
+        run: python3 scripts/quality-gate.py check
+
+      - name: Gate self-test
+        run: bash scripts/quality-gate-test.sh
