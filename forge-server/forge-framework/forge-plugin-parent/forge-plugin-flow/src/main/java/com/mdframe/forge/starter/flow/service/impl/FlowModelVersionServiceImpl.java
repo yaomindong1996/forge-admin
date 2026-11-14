@@ -210,6 +210,8 @@ public class FlowModelVersionServiceImpl extends ServiceImpl<FlowModelVersionMap
         String deploymentKey = model.getModelKey() + "_v" + newVersion;
         String deployXml = replaceProcessId(targetVersion.getBpmnXml(), model.getModelKey());
         deployXml = normalizeBpmnXml(deployXml, "版本回退部署");
+        // 与正式发布一致的引擎兼容转换（抄送节点 flowable:type 改写），否则含抄送的历史版本无法回退部署
+        deployXml = FlowModelBpmnPreflight.toEngineExecutableXml(deployXml);
         Deployment deployment = repositoryService.createDeployment()
                 .addString(model.getModelKey() + ".bpmn20.xml", deployXml)
                 .name(model.getModelName() + "_v" + newVersion)

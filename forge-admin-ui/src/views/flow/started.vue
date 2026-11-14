@@ -156,7 +156,7 @@
               <div class="flex items-center justify-between gap-3">
                 <div>
                   <div class="font-medium">
-                    {{ relation.targetUserId || '-' }}
+                    {{ getSignRelationUserName(relation) }}
                   </div>
                   <div class="text-xs text-gray-500">
                     {{ getLabel('flow_task_sign_mode', relation.signMode) || relation.signMode || '-' }}
@@ -243,13 +243,23 @@
             </n-radio-button>
           </n-radio-group>
         </n-form-item>
-        <n-form-item label="加签模式" required>
-          <n-select v-model:value="signMode" :options="signModeOptions" />
-          <n-alert type="info" :show-icon="false" class="mt-2" :bordered="false">
-            当前仅支持并行加签；前加签、后加签待流程编排能力完成后开放。
-          </n-alert>
+        <n-form-item v-if="signAction === 'add'" label="加签模式" required>
+          <div class="w-full">
+            <n-select v-model:value="signMode" :options="signModeOptions" />
+            <n-alert type="info" :show-icon="false" class="mt-2" :bordered="false">
+              当前仅支持并行加签；前加签、后加签待流程编排能力完成后开放。
+            </n-alert>
+          </div>
         </n-form-item>
-        <n-form-item label="目标用户" required>
+        <!-- 减签只能移除当前任务上仍有效的加签人，不能任选用户 -->
+        <n-form-item v-if="signAction === 'reduce'" label="移除人员" required>
+          <n-select
+            v-model:value="signUserId"
+            :options="reduceSignOptions"
+            placeholder="请选择要移除的加签人员"
+          />
+        </n-form-item>
+        <n-form-item v-else label="目标用户" required>
           <UserSelectPicker
             v-model="signUserId"
             v-model:label-value="signUserName"
@@ -287,12 +297,13 @@ import FlowPrintAction from '@/components/flow/FlowPrintAction.vue'
 import FlowTaskBusinessSummary from '@/components/flow/FlowTaskBusinessSummary.vue'
 import FlowTaskCardList from '@/components/flow/FlowTaskCardList.vue'
 import FlowTaskDetailShell from '@/components/flow/FlowTaskDetailShell.vue'
-import WorkspaceSummaryMetrics from '@/views/workspace/WorkspaceSummaryMetrics.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
 import { createFlowActionCredentials } from '@/utils/flow-action-idempotency'
+import WorkspaceSummaryMetrics from '@/views/workspace/WorkspaceSummaryMetrics.vue'
 import { buildFlowCategoryTreeOptions, resolveFlowCategoryLabel } from './utils/categoryOptions'
 import { getRowDisplayTitle, getTaskDisplayName } from './utils/processDisplay'
+import { buildReduceSignOptions, getSignRelationUserName } from './utils/signRelations'
 
 const userStore = useUserStore()
 const { dict, getLabel } = useDict('flow_started_status', 'flow_task_sign_mode', 'flow_task_sign_relation_status')
@@ -351,6 +362,7 @@ const signModeOptions = computed(() => (dict.value.flow_task_sign_mode || []).ma
   ...item,
   disabled: String(item.value).toUpperCase() !== 'PARALLEL',
 })))
+const reduceSignOptions = computed(() => buildReduceSignOptions(signRelations.value))
 
 function getStatusTagClass(status) {
   const cls = { 0: 'warning', 1: 'info', 2: 'success', 3: 'error', 4: 'warning', 5: 'default', 6: 'default', 7: 'warning', 8: 'error' }
@@ -442,6 +454,10 @@ function openReassignModal() {
 }
 
 function openSignModal(action) {
+  if (action === 'reduce' && !reduceSignOptions.value.length) {
+    window.$message.warning('当前任务没有有效的加签人员')
+    return
+  }
   signAction.value = action
   signUserId.value = null
   signUserName.value = ''
@@ -449,6 +465,11 @@ function openSignModal(action) {
   signMode.value = 'PARALLEL'
   signVisible.value = true
 }
+
+watch(signAction, () => {
+  signUserId.value = null
+  signUserName.value = ''
+})
 
 async function submitSign() {
   if (!signUserId.value) {

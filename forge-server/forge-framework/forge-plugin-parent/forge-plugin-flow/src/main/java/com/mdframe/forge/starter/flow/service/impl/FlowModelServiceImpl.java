@@ -51,6 +51,7 @@ import static com.mdframe.forge.starter.flow.service.impl.FlowModelBpmnPreflight
 import static com.mdframe.forge.starter.flow.service.impl.FlowModelBpmnPreflight.hasText;
 import static com.mdframe.forge.starter.flow.service.impl.FlowModelBpmnPreflight.normalizeBpmnXml;
 import static com.mdframe.forge.starter.flow.service.impl.FlowModelBpmnPreflight.replaceProcessId;
+import static com.mdframe.forge.starter.flow.service.impl.FlowModelBpmnPreflight.toEngineExecutableXml;
 import static com.mdframe.forge.starter.flow.service.impl.FlowModelBpmnPreflight.validateBpmnStructure;
 import static com.mdframe.forge.starter.flow.service.impl.FlowModelBpmnPreflight.validateExecutableNodesAndGatewayConditions;
 import static com.mdframe.forge.starter.flow.service.impl.FlowModelBpmnPreflight.validateSequenceFlowRefs;
@@ -344,6 +345,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
         validateSequenceFlowRefs(bpmnXml);
         validateBpmnStructure(bpmnXml);
         validateExecutableNodesAndGatewayConditions(bpmnXml);
+        bpmnXml = toEngineExecutableXml(bpmnXml);
 
         try {
             if (repositoryService == null) {

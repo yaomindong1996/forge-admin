@@ -54,3 +54,12 @@
 - 演示环境 Java 镜像必须基于 `forge-local-runtime:ubuntu24-java17-fonts-20261019`；无字体库基础镜像会在 Flowable 部署生成流程图时
   `UnsatisfiedLinkError: libharfbuzz.so.0`，表现为「发布流程」500。旧标签 `-fonts1` 后缀即指该基础镜像，不能只比对 Dockerfile 末尾层。
 - 质量门禁：本机 `quality-gate.py check` 报 800 条 stale 基线条目（改动前即 799 条，疑与生成基线环境差异有关），未执行 prune，待人工确认。
+
+## 抄送节点发布与审批操作（a62ef91c0 起）
+
+- Flow `a62ef91c0`：plugin-flow 210、flow-server 43、client 17 测试通过；字体基础镜像部署 `1.2.1-a62ef91c0-fonts` healthy，字体库 6/6。
+- 线上：「QA审批操作1114」（含抄送人节点）发布返回「部署成功」，「发起测试」成功，待办出现在审批A。
+- 动态加签 test33：返回「加签成功」，`/api/flow/task/{taskId}/sign-relations` 返回 `targetUserName=test33`，页面却显示 70 → 修复 started.vue。
+- `npx vitest run src/views/flow/utils/__tests__/signRelations.spec.js`：2 passed；eslint 通过；`pnpm check:edition` 通过；
+  `pnpm quality:check` 无新增发现（仍为既有 800 条 stale 基线，未 prune）。
+- 演示 Admin 会话中途失效被登出（验证码登录需人工），减签/转办/驳回/撤回/抄送的浏览器验证待重新登录后继续。
