@@ -14,6 +14,15 @@ describe('模型列表工具栏', () => {
     expect(wrapper.text()).not.toContain('调整本页排序')
     wrapper.unmount()
   })
+  it('列表加载中点击查询/重置仍然生效', async () => {
+    const wrapper = mount(FlowModelToolbar, { props: { loading: true } })
+    const buttons = wrapper.findAll('button')
+    await buttons.find(button => button.text() === '查询').trigger('click')
+    await buttons.find(button => button.text() === '重置').trigger('click')
+    expect(wrapper.emitted('search')).toHaveLength(1)
+    expect(wrapper.emitted('reset')).toHaveLength(1)
+    wrapper.unmount()
+  })
   it('排序时锁定筛选，显示保存/取消，不叠加新增按钮', () => {
     const wrapper = mount(FlowModelToolbar, { props: { sortMode: true } })
     expect(wrapper.get('input').attributes('disabled')).toBeDefined()

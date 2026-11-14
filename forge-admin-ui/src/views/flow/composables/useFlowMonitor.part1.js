@@ -16,6 +16,7 @@ import { request } from '@/utils'
 import {
   buildCurrentTaskOptions,
   buildMonitorFormQuery,
+  buildRollbackActivityOptions,
   canInterveneInstance,
   canMutateRunningInstance,
   hasMonitorPermission,
@@ -1109,10 +1110,7 @@ export function applyFlowMonitorPart1() {
     try {
       const res = await request.get(`/api/flow/monitor/activities/${processInstanceId}`)
       if (res.code === 200 && res.data) {
-        activityOptions.value = res.data.map(item => ({
-          label: `${item.activityName} (${item.activityId})`,
-          value: item.activityId,
-        }))
+        activityOptions.value = buildRollbackActivityOptions(res.data)
       }
     }
     catch (error) {

@@ -41,10 +41,11 @@ const moreOptions = computed(() => [{ label: '调整本页排序', key: 'sort', 
         @update:value="emit('update:status', $event)"
       />
       <div class="model-toolbar__query-actions">
-        <NButton secondary :loading="loading" :disabled="sortMode" @click="emit('search')">
+        <!-- 列表请求按版本号只认最后一次结果；加载中仍须响应点击，否则首屏慢加载时点查询会被吞掉 -->
+        <NButton secondary :disabled="sortMode" @click="emit('search')">
           查询
         </NButton>
-        <NButton quaternary :disabled="sortMode || loading" @click="emit('reset')">
+        <NButton quaternary :disabled="sortMode" @click="emit('reset')">
           重置
         </NButton>
       </div>

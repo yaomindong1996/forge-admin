@@ -344,7 +344,7 @@ const columns = [
     render: (row) => {
       return h('div', { class: 'version-actions' }, [
         actionButton('详情', 'primary', () => handleDetail(row)),
-        actionButton('回退', 'warning', () => handleRevert(row)),
+        isCurrentVersion(row.version) ? null : actionButton('回退', 'warning', () => handleRevert(row)),
         h(NDropdown, {
           trigger: 'click',
           options: getMoreActionOptions(),

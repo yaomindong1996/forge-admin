@@ -73,3 +73,18 @@ function resolveRouteButtonCodes(route) {
     .map(item => typeof item === 'string' ? item : item?.code)
     .filter(Boolean)
 }
+
+// 回退只能回到已完成过的历史节点：正在进行的节点(endTime 为空)不可选，多次经过的节点只列一次
+export function buildRollbackActivityOptions(activities = []) {
+  const active = new Set()
+  const options = new Map()
+  for (const item of Array.isArray(activities) ? activities : []) {
+    if (!item?.activityId)
+      continue
+    if (!item.endTime)
+      active.add(item.activityId)
+    else if (!options.has(item.activityId))
+      options.set(item.activityId, { label: item.activityName || item.activityId, value: item.activityId })
+  }
+  return [...options.values()].filter(option => !active.has(option.value))
+}

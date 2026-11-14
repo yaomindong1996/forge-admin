@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildCurrentTaskOptions,
   buildMonitorFormQuery,
+  buildRollbackActivityOptions,
   canInterveneInstance,
   canMutateRunningInstance,
   compactParams,
@@ -72,5 +73,15 @@ describe('monitorAdmin', () => {
       { meta: { btns: [] } },
       'flow:monitor:manage',
     )).toBe(true)
+  })
+
+  it('回退目标只列已完成的历史节点，不含当前节点与节点编码', () => {
+    expect(buildRollbackActivityOptions([
+      { activityId: 'Node_1', activityName: '审批A', endTime: '2026-11-14 16:00:00' },
+      { activityId: 'Node_2', activityName: '审批B', endTime: '2026-11-14 16:01:00' },
+      { activityId: 'Node_1', activityName: '审批A', endTime: '2026-11-14 16:02:00' },
+      { activityId: 'Node_2', activityName: '审批B', endTime: null },
+    ])).toEqual([{ label: '审批A', value: 'Node_1' }])
+    expect(buildRollbackActivityOptions(undefined)).toEqual([])
   })
 })
