@@ -577,6 +577,9 @@ export function applyFlowDesignPart2(props, emit, deps = {}) {
       const definitionsEl = doc.documentElement
       if (definitionsEl && !definitionsEl.getAttribute('xmlns:flowable'))
         definitionsEl.setAttribute('xmlns:flowable', 'http://flowable.org/bpmn')
+      // 流程定义名随模型名称保存；新模型模板里的「新流程」不能部署成 Flowable 定义名
+      if (String(modelInfo.modelName || '').trim())
+        processEl.setAttribute('name', String(modelInfo.modelName).trim())
 
       processEl.setAttributeNS(
         'http://flowable.org/bpmn',

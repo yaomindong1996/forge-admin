@@ -219,11 +219,12 @@ export function calculateLayout(flowJson, opts = {}) {
       width: cfg.NODE_WIDTH,
       height: cfg.NODE_HEIGHT,
     }
+    // 结束圆点的 uiPosition 自带 w/h（20px），坐标是圆点左上角，DI 宽高必须与之一致，否则回读时会被当成旧卡片再居中
     result.nodePositions.set(node.id, {
       x: ui.x,
       y: ui.y,
-      width: prev.width || cfg.NODE_WIDTH,
-      height: prev.height || cfg.NODE_HEIGHT,
+      width: Number.isFinite(ui.w) ? ui.w : (prev.width || cfg.NODE_WIDTH),
+      height: Number.isFinite(ui.h) ? ui.h : (prev.height || cfg.NODE_HEIGHT),
     })
   }
 

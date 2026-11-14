@@ -104,6 +104,17 @@ const NODE_DEFINITIONS = Object.freeze({
   }),
 })
 
+const NODE_SUMMARIES = Object.freeze({
+  [BUSINESS_PROCESS_NODE_TYPE.APPROVAL]: '等待审批结果',
+  [BUSINESS_PROCESS_NODE_TYPE.CONDITION]: '分支条件判断',
+  [BUSINESS_PROCESS_NODE_TYPE.SUB_PROCESS]: '调用子流程',
+})
+
+/** 节点库与连线「+」添加面板共用的节点用途说明。 */
+export function getBusinessProcessNodeSummary(type) {
+  return NODE_SUMMARIES[type] || '执行业务操作'
+}
+
 export function getBusinessProcessNodeDefinition(type) {
   const normalizedType = typeof type === 'string' ? type.trim().toUpperCase() : ''
   return NODE_DEFINITIONS[normalizedType] || null

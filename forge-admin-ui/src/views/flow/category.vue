@@ -259,7 +259,6 @@ function renderRowActions(row) {
       },
     }, {
       default: () => h(NButton, {
-        'text': true,
         'size': 'tiny',
         'quaternary': true,
         'class': 'flow-category-more-btn',

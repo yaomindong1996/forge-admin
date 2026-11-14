@@ -194,11 +194,28 @@ onMounted(() => {
     loadSummary()
 })
 
+function isTimeoutError(error) {
+  const message = String(error?.message ?? error?.response?.data?.message ?? '')
+  return error?.code === 'ECONNABORTED' || /timeout/i.test(message) || error?.message === 'Network Error'
+}
+
+// 页面初次进入时多请求并发容易让统计偶发超时；超时静默重试一次，避免误显示全 0 和超时提示
+async function fetchSummaryWithRetry() {
+  try {
+    return await getWorkspaceSummary()
+  }
+  catch (error) {
+    if (!isTimeoutError(error))
+      throw error
+    return getWorkspaceSummary()
+  }
+}
+
 async function loadSummary() {
   loading.value = true
   loadError.value = ''
   try {
-    const res = await getWorkspaceSummary()
+    const res = await fetchSummaryWithRetry()
     const data = res.data || {}
     summary.value = {
       todoCount: Number(data.todoCount || 0),
@@ -212,9 +229,7 @@ async function loadSummary() {
     const code = error?.code ?? error?.response?.data?.code
     const rawMessage = error?.message ?? error?.response?.data?.message
     const message = typeof rawMessage === 'string' && rawMessage.trim() ? rawMessage.trim() : ''
-    const isTimeout = code === 'ECONNABORTED'
-      || /timeout/i.test(message)
-      || error?.message === 'Network Error'
+    const isTimeout = isTimeoutError(error)
     // 本地未起 flow / 代理指错环境时常见 401；避免把布尔 false 等脏值当成文案
     if (code === 401 || code === '401')
       loadError.value = '流程服务未接通或登录态不一致，工作台统计暂不可用（请确认本地 forge-flow 已启动且与 admin 同库）'

@@ -40,7 +40,8 @@ public class FlowCategoryController {
      */
     @GetMapping("/tree")
     public RespInfo<List<FlowCategory>> listTree() {
-        List<FlowCategory> categories = flowCategoryService.listTree();
+        // 分类管理页使用，需包含停用分类；选择器走 /tree-select（仅启用）
+        List<FlowCategory> categories = flowCategoryService.listManageTree();
         return RespInfo.success(categories);
     }
 

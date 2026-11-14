@@ -15,7 +15,7 @@ class FlowControllerBoundaryContractTest {
     private static final Path FLOW_MAPPER_DIR = Path.of(
             "../../forge-framework/forge-plugin-parent/forge-plugin-flow/src/main/resources/mapper");
     private static final Path FLOW_CLEANUP_PERMISSION_MIGRATION = Path.of(
-            "../../db/migration/V1.0.55__secure_flow_monitor_cleanup.sql");
+            "../../db/mysql/migration/V1.0.55__secure_flow_monitor_cleanup.sql");
 
     @Test
     void controllersShouldNotUseMybatisWrappersOrMappersDirectly() throws IOException {

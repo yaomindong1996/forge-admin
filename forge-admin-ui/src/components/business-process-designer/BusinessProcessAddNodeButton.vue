@@ -1,5 +1,6 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { getBusinessProcessNodeSummary } from './business-process-node-types.js'
 
 const props = defineProps({
   edgeId: { type: String, required: true },
@@ -94,7 +95,7 @@ onBeforeUnmount(() => window.removeEventListener('mousedown', handleClickOutside
           <span :class="`tone-${item.tone}`" aria-hidden="true" />
           <span>
             <b>{{ item.label }}</b>
-            <small>{{ item.type === 'APPROVAL' ? '等待审批结果' : '业务编排节点' }}</small>
+            <small>{{ getBusinessProcessNodeSummary(item.type) }}</small>
           </span>
         </button>
       </div>

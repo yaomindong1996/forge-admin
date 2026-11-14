@@ -46,6 +46,12 @@ public class FlowCategoryServiceImpl extends ServiceImpl<FlowCategoryMapper, Flo
     }
 
     @Override
+    public List<FlowCategory> listManageTree() {
+        List<FlowCategory> categories = baseMapper.selectManageList();
+        return buildTree(categories == null ? List.of() : categories, null);
+    }
+
+    @Override
     public List<FlowCategory> listTreeSelect(boolean onlyLeaf) {
         List<FlowCategory> tree = listTree();
         if (onlyLeaf) {

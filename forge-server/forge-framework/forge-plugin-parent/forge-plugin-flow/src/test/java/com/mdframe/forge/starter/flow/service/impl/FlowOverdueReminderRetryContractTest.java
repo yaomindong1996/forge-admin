@@ -37,7 +37,7 @@ class FlowOverdueReminderRetryContractTest {
     @Test
     void overdueReminderMigrationMustProvideIdempotencyAndRetryColumns() throws IOException {
         String migration = Files.readString(Path.of(
-                "../../../db/migration/V1.0.144__add_flow_overdue_reminder_runtime.sql"));
+                "../../../db/mysql/migration/V1.0.144__add_flow_overdue_reminder_runtime.sql"));
         assertTrue(migration.contains("UNIQUE KEY uk_flow_overdue_reminder"));
         assertTrue(migration.contains("retry_count"));
         assertTrue(migration.contains("next_retry_time"));
@@ -48,7 +48,7 @@ class FlowOverdueReminderRetryContractTest {
     @Test
     void timeoutCursorMigrationMustBeRepeatableAndIndexed() throws IOException {
         String migration = Files.readString(Path.of(
-                "../../../db/migration/V1.0.145__add_flow_timeout_cursor_index.sql"));
+                "../../../db/mysql/migration/V1.0.145__add_flow_timeout_cursor_index.sql"));
         assertTrue(migration.contains("information_schema.STATISTICS"));
         assertTrue(migration.contains("idx_flow_task_timeout_cursor"));
         assertTrue(migration.contains("(due_date, id, status, tenant_id)"));

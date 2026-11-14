@@ -1395,5 +1395,6 @@ export function applyFlowDesignPart1(props, emit) {
     currentProviderLabel, currentModelLabel, designerType, isApprovalDesigner, isBusinessDesigner, designerRenderKey, designerTypeLabel, businessPanelTitle,
     businessPanelIcon, processConfig, appManagedFormTypeActive, businessFormConfigActive, businessApplicationPickerVisible, businessObjectPickerVisible, nodeFormAssetOptions, businessGlobalFormRef,
     businessGlobalFormNode, selectedBusinessGlobalFormAsset, formConfigStatus, notifySmsSelected, notificationConfigStatus, autoApprovalModeLabel, isAiPanelActive, settingsTreeGroups,
+    sanitizeHtml,
   }
 }

@@ -206,6 +206,9 @@ class BusinessProcessMapperContractTest {
         assertFalse(runPage.contains("source_event_id"));
         assertTrue(timeline.contains("Timeline_Columns"));
         assertFalse(timeline.contains("Base_Columns"));
+        // 同一秒内的节点按雪花 id 保持执行顺序，不能按 node_id 字典序打乱
+        assertTrue(timeline.contains("ORDER BY create_time ASC, id ASC"));
+        assertFalse(timeline.contains("node_id ASC"));
     }
 
     @Test

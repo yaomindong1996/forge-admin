@@ -78,6 +78,8 @@ public class BusinessProcessOrchestrator {
     public BusinessProcessRunDetailVO detail(Long runId) {
         AiBusinessProcessRun run = requireRun(runId);
         BusinessProcessRunDetailVO vo = BusinessProcessRunViewAssembler.toDetail(run);
+        AiBusinessProcess process = processMapper.selectActiveById(run.getTenantId(), run.getProcessId());
+        vo.setProcessName(process == null ? null : process.getProcessName());
         Map<String, String> nodeNameMap = BusinessProcessRunViewAssembler.loadNodeNameMap(
                 run.getTenantId(), run.getProcessVersionId(), versionMapper, schemaValidator);
         if (!nodeNameMap.isEmpty()) {

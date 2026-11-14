@@ -277,7 +277,8 @@
 
 <script setup>
 import { NButton, NTreeSelect } from 'naive-ui'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import flowApi from '@/api/flow'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import UserSelectPicker from '@/components/common/UserSelectPicker.vue'
@@ -315,7 +316,10 @@ const pagination = reactive({
   },
 })
 
-const queryParams = reactive({ title: '', category: '', status: null })
+const route = useRoute()
+const routeTitle = () => (typeof route.query.title === 'string' ? route.query.title : '')
+// 「发起测试」等入口带 title 跳转，进入时按标题预筛选
+const queryParams = reactive({ title: routeTitle(), category: '', status: null })
 const categoryTreeOptions = ref([])
 
 const pendingCount = ref(0)
@@ -569,6 +573,14 @@ function handleReset() {
 onMounted(() => {
   loadCategories()
   loadData()
+})
+
+// 页签缓存时再次带 title 跳转不会重新挂载，需要跟随新的筛选条件
+watch(() => route.query.title, () => {
+  if (route.path !== '/flow/started')
+    return
+  queryParams.title = routeTitle()
+  handleSearch()
 })
 </script>
 

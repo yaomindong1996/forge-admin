@@ -142,6 +142,18 @@
           AND del_flag = 0
     </select>
 
+    <!-- 当前发布版本 + 有效应用/应用对象/主体对象；运行投影与移动端发起目录共用，保证可见范围一致 -->
+    <sql id="Current_Published_Process_From">
+        FROM ai_business_process p
+        INNER JOIN ai_business_process_version v
+          ON v.tenant_id = p.tenant_id
+         AND v.process_id = p.id
+         AND v.version_no = p.published_version
+         AND v.status = 1
+         AND v.del_flag = 0
+        <include refid="com.mdframe.forge.plugin.generator.mapper.BusinessProcessMapper.Active_Application_And_Subject"/>
+    </sql>
+
     <select id="selectCurrentPublishedByApplication" resultMap="BaseResultMap">
         SELECT
           v.id,
@@ -165,29 +177,7 @@
           v.create_dept,
           v.update_by,
           v.update_time
-        FROM ai_business_process p
-        INNER JOIN ai_business_process_version v
-          ON v.tenant_id = p.tenant_id
-         AND v.process_id = p.id
-         AND v.version_no = p.published_version
-         AND v.status = 1
-         AND v.del_flag = 0
-        INNER JOIN ai_business_application a
-          ON a.tenant_id = p.tenant_id
-         AND a.id = p.application_id
-         AND a.status = 1
-         AND a.del_flag = 0
-        INNER JOIN ai_business_application_object ao
-          ON ao.tenant_id = p.tenant_id
-         AND ao.application_id = p.application_id
-         AND ao.object_id = p.subject_object_id
-         AND ao.del_flag = 0
-        INNER JOIN ai_business_object o
-          ON o.tenant_id = p.tenant_id
-         AND o.id = p.subject_object_id
-         AND o.object_code = p.subject_object_code
-         AND o.status = 1
-         AND o.del_flag = 0
+        <include refid="Current_Published_Process_From"/>
         WHERE p.tenant_id = #{tenantId}
           AND p.application_id = #{applicationId}
           AND p.status = 1
@@ -218,29 +208,7 @@
           v.create_dept,
           v.update_by,
           v.update_time
-        FROM ai_business_process p
-        INNER JOIN ai_business_process_version v
-          ON v.tenant_id = p.tenant_id
-         AND v.process_id = p.id
-         AND v.version_no = p.published_version
-         AND v.status = 1
-         AND v.del_flag = 0
-        INNER JOIN ai_business_application a
-          ON a.tenant_id = p.tenant_id
-         AND a.id = p.application_id
-         AND a.status = 1
-         AND a.del_flag = 0
-        INNER JOIN ai_business_application_object ao
-          ON ao.tenant_id = p.tenant_id
-         AND ao.application_id = p.application_id
-         AND ao.object_id = p.subject_object_id
-         AND ao.del_flag = 0
-        INNER JOIN ai_business_object o
-          ON o.tenant_id = p.tenant_id
-         AND o.id = p.subject_object_id
-         AND o.object_code = p.subject_object_code
-         AND o.status = 1
-         AND o.del_flag = 0
+        <include refid="Current_Published_Process_From"/>
         WHERE p.tenant_id = #{tenantId}
           AND p.subject_object_code = #{objectCode}
           AND p.status = 1

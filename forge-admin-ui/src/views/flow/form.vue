@@ -358,7 +358,6 @@ function renderFormActions(row) {
       },
     }, {
       default: () => h(NButton, {
-        'text': true,
         'size': 'tiny',
         'quaternary': true,
         'class': 'flow-row-more-btn',
