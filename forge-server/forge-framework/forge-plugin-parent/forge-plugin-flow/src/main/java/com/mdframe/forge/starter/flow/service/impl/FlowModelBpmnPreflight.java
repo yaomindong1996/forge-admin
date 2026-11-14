@@ -221,10 +221,16 @@ final class FlowModelBpmnPreflight {
         return multiInstanceResult.getBpmnXml();
     }
 
+    /** 设计器抄送节点固定绑定的已注册委托 Bean（FlowCcNodeDelegate）；其它委托表达式一律拒绝。 */
+    private static final String REGISTERED_CC_DELEGATE_EXPRESSION = "${flowCcNodeDelegate}";
+
     private static boolean containsUnsupportedExecutionAttribute(String attributes) {
         String normalized = attributes == null ? "" : attributes.toLowerCase(Locale.ROOT);
+        boolean registeredCcDelegate = "cc".equalsIgnoreCase(attributeValue(attributes, "flowable:type"))
+                && REGISTERED_CC_DELEGATE_EXPRESSION.equals(attributeValue(attributes, "flowable:delegateExpression"))
+                && countMatches(normalized, "delegateexpression=") == 1;
         return normalized.contains("flowable:class=")
-                || normalized.contains("flowable:delegateexpression=")
+                || (normalized.contains("flowable:delegateexpression=") && !registeredCcDelegate)
                 || normalized.contains("flowable:expression=")
                 || normalized.contains("activiti:class=")
                 || normalized.contains("activiti:delegateexpression=")

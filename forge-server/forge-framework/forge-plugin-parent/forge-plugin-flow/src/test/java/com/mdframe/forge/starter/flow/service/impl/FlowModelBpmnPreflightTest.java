@@ -66,6 +66,22 @@ class FlowModelBpmnPreflightTest {
                 () -> FlowModelBpmnPreflight.validateExecutableNodesAndGatewayConditions(
                         "<bpmn:serviceTask id=\"unsafe\" flowable:type=\"cc\" flowable:class=\"x.Y\"/>"));
         assertTrue(delegate.getMessage().contains("未注册的执行委托"));
+        RuntimeException otherDelegate = assertThrows(RuntimeException.class,
+                () -> FlowModelBpmnPreflight.validateExecutableNodesAndGatewayConditions(
+                        "<bpmn:serviceTask id=\"cc2\" flowable:type=\"cc\" flowable:delegateExpression=\"${evilBean}\"/>"));
+        assertTrue(otherDelegate.getMessage().contains("未注册的执行委托"));
+    }
+
+    @Test
+    void designerCarbonCopyNodeWithRegisteredDelegateIsAllowed() {
+        // 与前端 json-to-bpmn 生成的抄送节点一致
+        assertDoesNotThrow(() -> FlowModelBpmnPreflight.validateExecutableNodesAndGatewayConditions(
+                "<bpmn:serviceTask id=\"Node_5\" name=\"抄送人\" flowable:type=\"cc\" flowable:ccReceiverType=\"users\""
+                        + " flowable:candidateUsers=\"1\" flowable:delegateExpression=\"${flowCcNodeDelegate}\"/>"));
+        RuntimeException notCc = assertThrows(RuntimeException.class,
+                () -> FlowModelBpmnPreflight.validateExecutableNodesAndGatewayConditions(
+                        "<bpmn:serviceTask id=\"svc\" flowable:delegateExpression=\"${flowCcNodeDelegate}\"/>"));
+        assertTrue(notCc.getMessage().contains("flowable:type=cc"));
     }
 
     @Test
