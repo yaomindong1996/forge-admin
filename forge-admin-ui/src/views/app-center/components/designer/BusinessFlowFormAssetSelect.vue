@@ -18,7 +18,7 @@
             </span>
           </span>
           <span class="asset-card__meta">
-            {{ pageLabel(asset) }} · {{ resolveFieldCount(asset) }} 个字段
+            {{ pageLabel(asset) }}<template v-if="resolveFieldCount(asset) !== null"> · {{ resolveFieldCount(asset) }} 个字段</template>
           </span>
           <span class="asset-card__preview">
             {{ fieldPreviewText(asset) }}
@@ -189,11 +189,12 @@ function sourceClass(asset = {}) {
   return 'business'
 }
 
+// 流程表单列表不带字段目录（选中后才按 formKey 加载），没有字段信息时不显示「0 个字段」误导
 function resolveFieldCount(asset = {}) {
-  if (Number.isFinite(Number(asset.fieldCount)))
+  if (asset.fieldCount !== undefined && asset.fieldCount !== null && Number.isFinite(Number(asset.fieldCount)))
     return Number(asset.fieldCount)
   const fields = Array.isArray(asset.fieldCatalog) ? asset.fieldCatalog : Array.isArray(asset.fields) ? asset.fields : []
-  return fields.length
+  return fields.length ? fields.length : null
 }
 
 function fieldPreviewText(asset = {}) {
@@ -206,7 +207,7 @@ function fieldPreviewText(asset = {}) {
         .map(field => field?.label || field?.fieldName || field?.field || field?.fieldCode)
         .filter(Boolean)
         .slice(0, 5)
-  return preview.length ? `字段：${preview.join(' / ')}` : '暂无字段预览'
+  return preview.length ? `字段：${preview.join(' / ')}` : '选中后加载字段'
 }
 
 function normalizeMode(value, source = '') {

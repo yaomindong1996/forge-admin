@@ -18,7 +18,7 @@ const FIELDS = [
   { key: 'allowApprove', label: '允许通过', desc: '审批人可点击“通过”' },
   { key: 'allowReject', label: '允许驳回', desc: '按流程级驳回策略处理：可能结束流程、退回发起人修改，或走手工设计路径' },
   { key: 'allowRejectToStart', label: '退回发起人修改', desc: '始终保留原流程实例，进入发起人修改节点，修改后沿原流程重提' },
-  { key: 'allowDelegate', label: '允许委派', desc: '审批人可委托他人代审' },
+  { key: 'allowDelegate', label: '允许转办', desc: '审批人可将任务转交他人处理（待办中的「转办」）' },
   { key: 'allowTerminate', label: '允许终止', desc: '可直接终止流程' },
   { key: 'requireSignature', label: '强制签名', desc: '审批时必须电子签名' },
   { key: 'requireComment', label: '审批意见', desc: '同意或驳回流程时必须填写审批意见' },

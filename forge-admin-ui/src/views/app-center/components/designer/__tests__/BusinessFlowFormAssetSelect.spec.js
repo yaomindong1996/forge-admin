@@ -74,4 +74,17 @@ describe('businessFlowFormAssetSelect', () => {
 
     wrapper.unmount()
   })
+
+  it('流程表单没有字段目录时不显示「0 个字段」', () => {
+    const wrapper = mount(BusinessFlowFormAssetSelect, {
+      props: {
+        formAssets: [{ formKey: 'expense_form', formName: '报销申请表单', source: 'flowForm', fieldCatalog: [] }],
+        nodeForm: {},
+      },
+      global: { stubs: STUBS },
+    })
+    expect(wrapper.text()).not.toContain('0 个字段')
+    expect(wrapper.text()).toContain('选中后加载字段')
+    wrapper.unmount()
+  })
 })

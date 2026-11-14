@@ -26,6 +26,7 @@ import { applyChildTableFieldPermissions, childTableKeysAlias } from '@/utils/fl
 import { buildFlowCategoryTreeOptions, resolveFlowCategoryLabel } from '../utils/categoryOptions'
 import { FLOW_PRIORITY_LABEL_FALLBACK, getFlowPriorityClass, isUrgentFlowPriority, resolveFlowPriorityLevel, shouldShowFlowPriority } from '../utils/priority'
 import { getBusinessFormDisplayTitle, getProcessDisplayName, getProcessStartTime, getRowDisplayTitle, getTaskDisplayName, getTaskHandlerName } from '../utils/processDisplay'
+import { quickActionPolicyError, quickActionPrecheckError } from '../utils/quickActionPolicy'
 import { resolveBusinessTaskAiFormSchema } from '../utils/resolveBusinessTaskAiFormSchema'
 import { loadTaskFormBundle } from '../utils/task-form-bundle'
 export function applyFlowTodoPart1() {
@@ -1074,7 +1075,7 @@ export function applyFlowTodoPart1() {
       .filter(Boolean)
   }
 
-  function openQuickAction(action, targets) {
+  async function openQuickAction(action, targets) {
     const resolvedTargets = resolveQuickActionTargets(targets)
     if (resolvedTargets.length === 0) {
       window.$message.warning('请选择待办任务')
@@ -1086,6 +1087,18 @@ export function applyFlowTodoPart1() {
     quickActionForm.comment = action === 'approve' ? '同意' : '驳回'
     quickActionVisible.value = true
     nextTick(() => quickActionInputRef.value?.focus?.())
+    // 单条快捷操作同时检查节点是否允许，不允许就关掉弹窗，避免填完意见提交后才被拒绝；批量仍逐条在提交时校验
+    if (resolvedTargets.length !== 1)
+      return
+    const taskId = resolvedTargets[0].taskId || resolvedTargets[0].id
+    const res = await flowApi.getTaskFormInfo(taskId).catch(() => null)
+    const policyError = quickActionPrecheckError(action, res?.data)
+    const sameDialog = quickActionVisible.value && quickActionType.value === action
+      && quickActionTargets.value.length === 1 && (quickActionTargets.value[0].taskId || quickActionTargets.value[0].id) === taskId
+    if (policyError && sameDialog) {
+      quickActionVisible.value = false
+      window.$message.warning(policyError)
+    }
   }
 
   function isCandidateTask(row) {
@@ -1103,16 +1116,9 @@ export function applyFlowTodoPart1() {
   function assertQuickActionAllowed(action, formInfo, businessFormContext = null) {
     const businessManaged = businessFormContext?.configured === true
       && ['business-object', 'business-code'].includes(businessFormContext?.formType)
-    if (action === 'approve' && formInfo?.allowApprove === false)
-      throw new Error('当前节点不允许同意')
-    if (action === 'reject' && formInfo?.allowReject === false)
-      throw new Error('当前节点不允许驳回')
-    if (action === 'reject' && formInfo?.allowMultiReturn === true && Array.isArray(formInfo.returnTargets) && formInfo.returnTargets.length)
-      throw new Error('该流程已开启指定节点驳回，请进入详情选择驳回节点')
-    if (action === 'rejectToStart' && formInfo?.allowRejectToStart !== true)
-      throw new Error('当前节点不允许退回发起人修改')
-    if (formInfo?.requireSignature === true)
-      throw new Error('需要手写签名，请进入详情处理')
+    const policyError = quickActionPolicyError(action, formInfo)
+    if (policyError)
+      throw new Error(policyError)
     if (action === 'approve' && !businessManaged && formInfo?.formType === 'dynamic' && formInfo?.formJson)
       throw new Error('需要填写节点表单，请进入详情处理')
     if (action === 'approve' && !businessManaged && formInfo?.formType === 'external' && formInfo?.formUrl)
