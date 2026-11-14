@@ -9,6 +9,11 @@ describe('normalizeInitiatorSelectIds', () => {
   it('会签数组去重', () => {
     expect(normalizeInitiatorSelectIds(['1001', '1001', '1002'])).toEqual(['1001', '1002'])
   })
+
+  it('多选人员选择器的逗号拼接值拆成多个审批人', () => {
+    expect(normalizeInitiatorSelectIds('1,70')).toEqual(['1', '70'])
+    expect(normalizeInitiatorSelectIds(' 1, ,70,1 ')).toEqual(['1', '70'])
+  })
 })
 
 describe('collectInitiatorSelectSelections', () => {

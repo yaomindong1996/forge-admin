@@ -171,8 +171,12 @@ final class InitiatorSelectedApproverSupport {
         if (value == null) {
             return List.of();
         }
-        String text = String.valueOf(value).trim();
-        return text.isEmpty() ? List.of() : List.of(text);
+        // 兼容多选人员选择器提交的逗号拼接字符串；用户 ID 本身不含逗号
+        return java.util.Arrays.stream(String.valueOf(value).split(","))
+                .map(String::trim)
+                .filter(item -> !item.isEmpty())
+                .distinct()
+                .toList();
     }
 
     static String singleAssigneeVariable(String nodeKey) {

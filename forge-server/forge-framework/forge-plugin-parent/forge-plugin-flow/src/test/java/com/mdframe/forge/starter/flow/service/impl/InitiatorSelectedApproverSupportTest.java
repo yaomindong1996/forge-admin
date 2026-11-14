@@ -66,4 +66,11 @@ class InitiatorSelectedApproverSupportTest {
         assertEquals("2090", variables.get("INITIATOR_SELECT_Node_2"));
         assertEquals(List.of("2090"), ((Map<?, ?>) variables.get("PROCESS_START_USER")).get("Node_2"));
     }
+
+    @Test
+    void splitsCommaJoinedSelectionsIntoSeparateApprovers() {
+        assertEquals(List.of("1", "70"), InitiatorSelectedApproverSupport.readUserIds("1, 70,1"));
+        assertEquals(List.of("5"), InitiatorSelectedApproverSupport.readUserIds(List.of("5", "5")));
+        assertEquals(List.of(), InitiatorSelectedApproverSupport.readUserIds(" "));
+    }
 }

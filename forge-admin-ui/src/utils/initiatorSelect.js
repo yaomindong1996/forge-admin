@@ -2,15 +2,13 @@
  * 发起人自选审批人：单选（不会签）是字符串，会签是数组。
  */
 export function normalizeInitiatorSelectIds(value) {
-  if (Array.isArray(value)) {
-    return [...new Set(value
-      .map(item => String(item ?? '').trim())
-      .filter(Boolean))]
-  }
-  if (value == null || value === '')
-    return []
-  const text = String(value).trim()
-  return text ? [text] : []
+  // 多选人员选择器的值是逗号拼接的字符串（如 "1,70"），需拆成多个审批人
+  const items = Array.isArray(value)
+    ? value
+    : value == null || value === '' ? [] : String(value).split(',')
+  return [...new Set(items
+    .map(item => String(item ?? '').trim())
+    .filter(Boolean))]
 }
 
 export function collectInitiatorSelectSelections(nodes = [], selections = {}) {
