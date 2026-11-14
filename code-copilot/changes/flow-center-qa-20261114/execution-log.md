@@ -38,4 +38,19 @@
 - 保留：流程模型「QA流程测试1114」（有 1 条历史实例，按设计不可删除）。
 - 已删除：模型副本、业务流程 QA编排测试1114 及副本、QA 表达式、QA 用户组、QA 常用意见。
 - 已取消：单据 1/2 的 `approval_qsxf` 测试运行。
-- 待清理：分类「QA分类1114改」及子分类（停用后在旧版本 Flow 中不可见，部署修复后清理）。
+- 已清理：分类「QA分类1114改」及子分类（部署修复后在管理页可见，已删除）。
+
+## 部署与线上验证（f33f7d6a1）
+
+- 提交 `f33f7d6a1` 已推送；独立 worktree 构建 Admin/App/Flow（`-DskipTests`），build-info commit 均为 `f33f7d6a1`。
+- `~/forge-upload/20261114-admin-app-flow-f33f7d6a1/deploy.sh`：固定 `FROM forge-local-runtime:ubuntu24-java17-fonts-20261019`，
+  构建后校验字体库（libharfbuzz/libfreetype/liblcms2 共 6 个）不足即中止；compose 备份后替换三服务，任一不健康即回滚。
+- 结果：三服务 `1.2.1-f33f7d6a1-fonts` healthy，字体库 6/6，Scheduler started 0，Flyway `forge_admin_new` up to date（无迁移）。
+- 线上验证：可用常用语「批阅、同意、已阅、情况属实」不再重复；分类管理树含停用分类、选择树仅启用；
+  业务流程运行详情显示「报销审批」，节点顺序 手动开始 → 审批流程 → 完成；Admin `/system/version` commit `f33f7d6a1`。
+
+## 踩坑
+
+- 演示环境 Java 镜像必须基于 `forge-local-runtime:ubuntu24-java17-fonts-20261019`；无字体库基础镜像会在 Flowable 部署生成流程图时
+  `UnsatisfiedLinkError: libharfbuzz.so.0`，表现为「发布流程」500。旧标签 `-fonts1` 后缀即指该基础镜像，不能只比对 Dockerfile 末尾层。
+- 质量门禁：本机 `quality-gate.py check` 报 800 条 stale 基线条目（改动前即 799 条，疑与生成基线环境差异有关），未执行 prune，待人工确认。
