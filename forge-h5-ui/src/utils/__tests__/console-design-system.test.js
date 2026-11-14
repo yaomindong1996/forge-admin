@@ -337,8 +337,8 @@ test('approval detail combines progress and history with localized display helpe
   assert.doesNotMatch(detail, /<AiTabs|<AiTab/)
   assert.match(trace, /formatFlowStatus\(item\.status \|\| item\.statusText\)/)
   assert.match(trace, /formatFlowDateTime\(time\)/)
-  assert.match(summary, /formatFlowDateTime\(task\.createTime \|\| task\.startTime\)/)
-  assert.match(todo, /formatFlowDateTime\(task\.createTime \|\| task\.startTime\)/)
+  assert.match(summary, /formatFlowDateTime\(task\.processStartTime \|\| task\.createTime \|\| task\.startTime\)/)
+  assert.match(todo, /formatFlowDateTime\(task\.processStartTime \|\| task\.createTime \|\| task\.startTime\)/)
   assert.match(lowcodeTrace, /formatFlowDateTime\(item\.completeTime/)
 })
 

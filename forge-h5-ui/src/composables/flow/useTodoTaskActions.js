@@ -91,7 +91,8 @@ export function useTodoTaskActions({ businessForm, userId, refresh, scrollToAppr
     }
     const inputs = actionInputs(action, signatureRef)
     if (!validateAction(action, inputs)) return
-    const confirmed = await showConfirmDialog({
+    // 指定节点驳回已在「选择驳回节点」面板点过「确认驳回」，不再二次确认
+    const confirmed = action === 'return' || await showConfirmDialog({
       title: `确认${ACTION_LABELS[action]}`,
       description: action === 'rejectToStart'
         ? '当前流程会保留并退回发起人，修改后可沿原流程重新提交。'

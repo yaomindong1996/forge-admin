@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { orderProcessNodes } from '../../utils/flow-node-order.js'
 import { activeSignRelations, canAddSign, canReduceSign } from '../../utils/flow-sign.js'
 
 export const TODO_ACTION_LABELS = Object.freeze({
@@ -85,7 +86,7 @@ export const useTodoDetailStore = defineStore('todoDetail', {
     isCandidateTask: state => Number(state.task?.status) === 0 && !state.task?.assignee,
     responsibilityDescription: state => state.formInfo?.responsibilityDescription || '',
     approvalPoints: state => (Array.isArray(state.formInfo?.approvalPoints) ? state.formInfo.approvalPoints : []),
-    processNodes: state => (Array.isArray(state.diagramInfo?.nodes) ? state.diagramInfo.nodes : []),
+    processNodes: state => orderProcessNodes(state.diagramInfo?.nodes, state.diagramInfo?.sequenceFlows),
     actionLoadingText: state => `${TODO_ACTION_LABELS[state.pendingAction] || '提交'}中...`,
     currentTaskId: state => String(state.task?.taskId || state.task?.id || state.taskId || ''),
   },

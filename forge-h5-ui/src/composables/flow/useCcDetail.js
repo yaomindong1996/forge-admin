@@ -2,6 +2,7 @@ import { computed, reactive, ref } from 'vue'
 import api from '@/api'
 import { useCcStore } from '@/store'
 import { isCcUnread } from '@/utils/flow-cc'
+import { orderProcessNodes } from '@/utils/flow-node-order'
 import { compactObject as compact, parseNestedJson as parseJson, resolveApiErrorMessage } from '@/utils/flow-page'
 import { useFlowBusinessForm } from './useFlowBusinessForm'
 
@@ -29,7 +30,7 @@ export function useCcDetail() {
     businessContextError,
     isReadonly: () => true,
   }))
-  const processNodes = computed(() => (Array.isArray(diagramInfo.value?.nodes) ? diagramInfo.value.nodes : []))
+  const processNodes = computed(() => orderProcessNodes(diagramInfo.value?.nodes, diagramInfo.value?.sequenceFlows))
 
   async function load(options = {}) {
     ccId.value = String(options.id || '')
