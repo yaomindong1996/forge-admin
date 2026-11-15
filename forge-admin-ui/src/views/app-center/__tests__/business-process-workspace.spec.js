@@ -133,6 +133,7 @@ vi.mock('@/components/business-process-designer/BusinessProcessDesigner.vue', ()
         <button data-dirty @click="$emit('dirtyChange', true)">dirty</button>
         <button data-save @click="$emit('save', schema, { reason: 'manual', hashInput: 'client-dirty-hash' })">save</button>
         <button data-validate @click="$emit('validate', schema, { valid: true, issues: [] })">validate</button>
+        <button data-validate-client-fail @click="$emit('validate', schema, { isValid: false, issues: [{ code: 'ACTION_FIELD_MAPPING_REQUIRED', level: 'ERROR', message: '更新/创建记录动作至少配置一个有效字段赋值', nodeId: 'action_1' }] })">validate-client-fail</button>
         <button data-refresh-flow @click="$emit('refreshFlowModel', 'sample_purchase_order_approval')">refresh</button>
         <button data-open-flow @click="$emit('openFlowDesigner', { modelId: '2001', modelKey: 'sample_purchase_order_approval', businessFormKey: 'purchase_form' })">open flow</button>
       </div>
@@ -754,6 +755,18 @@ describe('full-screen business process designer page', () => {
     await wrapper.find('[data-save]').trigger('click')
     await flushPromises()
     expect(wrapper.find('[data-process-designer]').attributes('data-save-state')).toBe('conflict')
+  })
+
+  it('does not report check passed when client graph has errors even if server is valid', async () => {
+    const wrapper = mount(BusinessProcessPage, designerMountOptions())
+    await flushPromises()
+
+    await wrapper.find('[data-validate-client-fail]').trigger('click')
+    await flushPromises()
+
+    expect(processApiMocks.validateBusinessProcess).toHaveBeenCalledWith(processRecord.id)
+    expect(window.$message.warning).toHaveBeenCalledWith('流程检查发现 1 项错误')
+    expect(window.$message.success).not.toHaveBeenCalledWith('流程检查通过，可进入应用发布检查')
   })
 
   it('confirms route leave for a dirty draft and returns to the original filtered application section', async () => {

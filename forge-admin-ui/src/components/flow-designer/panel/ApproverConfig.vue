@@ -46,6 +46,19 @@ const externalFieldCatalog = ref([])
 const externalFieldCatalogError = ref('')
 
 const config = computed(() => props.node?.config || {})
+
+/** 仅候选多人 / 发起人自选 / SPEL 可能产生多任务；指定人员与固定单人变量不展示会签。 */
+const supportsCountersign = computed(() => {
+  const cfg = config.value || {}
+  const taskType = String(cfg.taskType || 'assignee')
+  if (taskType === 'candidateUsers' || taskType === 'candidateGroups')
+    return true
+  if (taskType !== 'assignee')
+    return false
+  const assignee = String(cfg.assignee || '')
+  return assignee === 'initiatorSelect' || assignee === 'spel'
+})
+
 const normalizedFormAssetOptions = computed(() => (props.formAssetOptions || [])
   .map((item) => {
     const value = String(item?.value || item?.formKey || item?.key || '').trim()
@@ -110,6 +123,15 @@ watch(
 function patch(part) {
   emit('update:config', part)
 }
+
+watch(supportsCountersign, (enabled) => {
+  if (enabled || props.readonly)
+    return
+  const multiType = String(config.value?.multiInstanceType || 'none')
+  if (multiType === 'none')
+    return
+  patch({ multiInstanceType: 'none' })
+}, { immediate: true })
 
 async function refreshExternalFieldCatalog() {
   externalFieldCatalogError.value = ''
@@ -313,7 +335,7 @@ function buildFormRefFromAsset(asset, formMode) {
           :readonly="readonly"
           @update:config="patch"
         />
-        <div class="config-section-block">
+        <div v-if="supportsCountersign" class="config-section-block">
           <div class="config-section-title">
             多人审批方式
           </div>

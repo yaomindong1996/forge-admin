@@ -4,6 +4,7 @@ import com.mdframe.forge.plugin.generator.businessprocess.schema.BusinessProcess
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessMessageChannel;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessProcessRun;
 import com.mdframe.forge.plugin.generator.mapper.BusinessMessageChannelMapper;
+import com.mdframe.forge.plugin.generator.mapper.BusinessProcessMapper;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessMessageChannelService;
 import com.mdframe.forge.plugin.generator.service.businessprocess.BusinessProcessMessageExecutor;
 import com.mdframe.forge.plugin.message.domain.dto.MessageSendRequestDTO;
@@ -20,7 +21,8 @@ class ApplicationMessageIntegrationTest {
     BusinessMessageChannelMapper mapper = mock(BusinessMessageChannelMapper.class);
     BusinessMessageChannelService channels = new BusinessMessageChannelService(mapper);
     MessageService messages = mock(MessageService.class);
-    BusinessProcessMessageExecutor executor = new BusinessProcessMessageExecutor(channels, messages);
+    BusinessProcessMapper processMapper = mock(BusinessProcessMapper.class);
+    BusinessProcessMessageExecutor executor = new BusinessProcessMessageExecutor(channels, messages, processMapper);
     MockedStatic<SessionHelper> session;
     AiBusinessProcessRun run = new AiBusinessProcessRun();
     BusinessProcessNode node = new BusinessProcessNode();

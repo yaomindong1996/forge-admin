@@ -23,8 +23,9 @@ export const START_NODE_TEMPLATES = Object.freeze([
 export const ACTION_NODE_TEMPLATES = Object.freeze([
   actionTemplate('更新状态', 'UPDATE_STATUS', '预填当前对象的状态字段和值', {
     actionType: 'UPDATE_RECORD',
-    fieldMappings: [{ field: 'status', valueSource: 'CONSTANT', value: '' }],
-  }, [{ type: 'TRANSITION_STATUS', field: 'status', fromValue: '', toValue: '' }]),
+    // 默认用平台托管的 flowStatus；有对象字段时由 createActionTemplateConfig 覆盖为实际编码
+    fieldMappings: [{ field: 'flowStatus', valueSource: 'CONSTANT', value: '' }],
+  }, [{ type: 'TRANSITION_STATUS', field: 'flowStatus', fromValue: '', toValue: '' }]),
   actionTemplate('调整数量', 'ADJUST_NUMBER', '选择已发布的数值调整业务动作', {
     actionType: 'BUSINESS_ACTION',
     businessActionCode: '',
@@ -49,14 +50,34 @@ export function createStartTemplateConfig(value) {
   }
 }
 
-export function createActionTemplateConfig(value, { objectCode = '' } = {}) {
+/**
+ * @param {string} value 模板编码
+ * @param {{ objectCode?: string, statusField?: string }} [options]
+ *   statusField：对象上的流程/业务状态字段编码（优先 flowStatus）
+ */
+export function createActionTemplateConfig(value, { objectCode = '', statusField = '' } = {}) {
   const template = ACTION_NODE_TEMPLATES.find(item => item.value === value)
   if (!template)
     return null
   const config = clone(template.config)
   if (['UPDATE_RECORD', 'CREATE_RECORD'].includes(config.actionType))
     config.objectCode = objectCode
+  if (value === 'UPDATE_STATUS') {
+    const field = normalizeStatusFieldCode(statusField) || 'flowStatus'
+    config.fieldMappings = [{ field, valueSource: 'CONSTANT', value: '' }]
+  }
   return config
+}
+
+/** 识别 flowStatus / status 等状态字段编码，避免模板写死不存在的 status。 */
+export function normalizeStatusFieldCode(value) {
+  const code = String(value || '').trim()
+  if (!code)
+    return ''
+  const compact = code.replace(/[-_]/g, '').toLowerCase()
+  if (compact === 'flowstatus' || compact === 'status' || compact.endsWith('status'))
+    return code
+  return ''
 }
 
 function startTemplate(label, value, description, nodeType, config) {

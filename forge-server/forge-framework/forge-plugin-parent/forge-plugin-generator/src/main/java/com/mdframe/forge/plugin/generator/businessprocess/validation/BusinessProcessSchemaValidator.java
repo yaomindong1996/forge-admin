@@ -539,6 +539,11 @@ public class BusinessProcessSchemaValidator {
                     error(result, "ACTION_OBJECT_UNAVAILABLE", "动作引用对象不属于当前应用或已失效", node.getId(),
                             path + ".config.objectCode", "选择当前应用已关联对象");
                 }
+                if (!hasConfiguredFieldMapping(config.get("fieldMappings"))) {
+                    error(result, "ACTION_FIELD_MAPPING_REQUIRED", "更新/创建记录动作至少配置一个有效字段赋值",
+                            node.getId(), path + ".config.fieldMappings",
+                            "添加字段并选择目标字段后再发布");
+                }
             }
             case "BUSINESS_ACTION", "EXECUTE_BUSINESS_ACTION", "DOMAIN_ACTION" -> {
                 String actionCode = firstString(config, "businessActionCode", "actionCode");
@@ -814,6 +819,26 @@ public class BusinessProcessSchemaValidator {
         }
         path.remove(current);
         return max;
+    }
+
+    /** 至少一条 fieldMappings 项配置了非空 field，空动作节点不可发布。 */
+    private boolean hasConfiguredFieldMapping(Object rawMappings) {
+        if (!(rawMappings instanceof Collection<?> mappings) || mappings.isEmpty()) {
+            return false;
+        }
+        for (Object item : mappings) {
+            if (!(item instanceof Map<?, ?> mapping)) {
+                continue;
+            }
+            Object field = mapping.get("field");
+            if (field == null) {
+                field = mapping.get("targetField");
+            }
+            if (string(field) != null) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void error(BusinessProcessValidationVO result, String code, String message,

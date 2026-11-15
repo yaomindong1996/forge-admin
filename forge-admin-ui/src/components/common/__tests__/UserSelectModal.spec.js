@@ -73,4 +73,24 @@ describe('userSelectModal multiple selection', () => {
     expect(wrapper.emitted('confirm').at(-1)[0].map(u => u.username)).toEqual(['admin', 'test33'])
     wrapper.unmount()
   })
+
+  it('loads users in parallel with the dept tree so a slow tree does not leave the table empty', async () => {
+    let releaseTree
+    const treeGate = new Promise((resolve) => { releaseTree = resolve })
+    const wrapper = mountModal()
+    request.get.mockImplementation((url) => {
+      if (url === '/system/org/tree') {
+        return treeGate.then(() => ({ code: 200, data: [{ id: 1, orgName: '根', children: [] }] }))
+      }
+      return Promise.resolve({ code: 200, data: { records: [users.admin], total: 1 } })
+    })
+
+    await wrapper.setProps({ show: true })
+    await flushPromises()
+
+    expect(wrapper.findComponent(DataTable).props('data').map(u => u.username)).toEqual(['admin'])
+    releaseTree()
+    await flushPromises()
+    wrapper.unmount()
+  })
 })

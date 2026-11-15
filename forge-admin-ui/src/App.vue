@@ -85,6 +85,7 @@ import { useAppStore, useAuthStore, usePermissionStore, useTabStore, useUserStor
 import { useRecentDownloadsStore } from '@/stores/system/recentDownloadsStore'
 import { hasDownloadDock } from '@/stores/system/recentDownloadsUtils'
 import { useSystemVersionStore } from '@/stores/system/versionStore'
+import { isFlowTaskListPath } from '@/utils/flow-task-layout'
 import { initResponsiveFont } from '@/utils/responsive-font'
 import ApplicationPortalSkeleton from '@/views/app-center/components/portal/ApplicationPortalSkeleton.vue'
 import ApplicationRuntimeSkeleton from '@/views/app-center/components/portal/ApplicationRuntimeSkeleton.vue'
@@ -107,7 +108,9 @@ const layoutModules = import.meta.glob([
 ])
 
 function resolveRouteViewKey(curRoute) {
-  return curRoute.meta?.preserveOnQuery ? curRoute.path : curRoute.fullPath
+  if (curRoute.meta?.preserveOnQuery || isFlowTaskListPath(curRoute.path))
+    return curRoute.path
+  return curRoute.fullPath
 }
 
 function isApplicationRuntimeRoute(curRoute) {

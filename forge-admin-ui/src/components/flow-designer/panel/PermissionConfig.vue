@@ -5,8 +5,6 @@
  * 字段名对齐 user-task-parser DEFAULT_PERMISSIONS。
  * 指定节点驳回由流程级 allowMultiReturn 控制，不再在节点上展示 allowReturn。
  */
-import { computed } from 'vue'
-
 const props = defineProps({
   config: { type: Object, required: true },
   readonly: Boolean,
@@ -24,26 +22,19 @@ const FIELDS = [
   { key: 'requireComment', label: '审批意见', desc: '同意或驳回流程时必须填写审批意见' },
 ]
 
-function bool(key, fallback = false) {
-  return computed({
-    get: () => Boolean(props.config?.[key] ?? fallback),
-    set: v => emit('update:config', { [key]: !!v }),
-  })
+function readBool(key, fallback = false) {
+  return Boolean(props.config?.[key] ?? fallback)
 }
 
-// 创建一组 v-model 引用
-const fields = FIELDS.map(({ key, label, desc, fallback }) => ({
-  key,
-  label,
-  desc,
-  model: bool(key, fallback),
-}))
+function writeBool(key, value) {
+  emit('update:config', { [key]: !!value })
+}
 </script>
 
 <template>
   <div class="permission-config">
     <div
-      v-for="f in fields"
+      v-for="f in FIELDS"
       :key="f.key"
       class="permission-row"
     >
@@ -55,7 +46,12 @@ const fields = FIELDS.map(({ key, label, desc, fallback }) => ({
           {{ f.desc }}
         </div>
       </div>
-      <n-switch v-model:value="f.model.value" :aria-label="f.label" :disabled="readonly" />
+      <n-switch
+        :value="readBool(f.key)"
+        :aria-label="f.label"
+        :disabled="readonly"
+        @update:value="v => writeBool(f.key, v)"
+      />
     </div>
   </div>
 </template>

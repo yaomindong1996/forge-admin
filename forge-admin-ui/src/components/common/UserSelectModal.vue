@@ -51,7 +51,12 @@
         :single-line="false"
         :max-height="400"
         @update:checked-row-keys="handleCheck"
-      />
+      >
+        <!-- loading 期间不要闪「无数据」：部门树慢时原先会先等树再请求用户 -->
+        <template #empty>
+          <span v-if="!loading">无数据</span>
+        </template>
+      </n-data-table>
 
       <div v-if="multiple && checkedKeys.length" class="selected-summary">
         已选 {{ checkedKeys.length }} 人：{{ selectedSummary }}
@@ -226,13 +231,17 @@ watch(() => props.show, async (val) => {
   if (val) {
     // 级联锁定组织时默认选中该组织，保证打开即按组织范围加载人员
     searchForm.deptId = lockedOrgId.value
-    // 人员部门名依赖部门树，先加载树；期间表格保持加载态，避免先闪「无数据」
-    loading.value = true
-    await loadDeptTree()
-    loadUserList()
-    // 初始化已选中的用户
     rememberUsers(props.selectedUsers)
     checkedKeys.value = props.selectedUsers.map(u => String(u.id))
+    // 部门树仅用于展示部门名/筛选；与用户列表并行请求，避免演示环境树接口慢时表格长时间空白
+    loading.value = true
+    try {
+      await Promise.all([loadDeptTree(), loadUserList({ manageLoading: false })])
+      userList.value = userList.value.map(normalizeUser)
+    }
+    finally {
+      loading.value = false
+    }
   }
 })
 
@@ -284,8 +293,9 @@ function normalizeUser(user) {
 }
 
 // 加载用户列表
-async function loadUserList() {
-  loading.value = true
+async function loadUserList({ manageLoading = true } = {}) {
+  if (manageLoading)
+    loading.value = true
   try {
     const effectiveOrgId = searchForm.deptId || lockedOrgId.value
     const res = await request.get('/system/user/page', {
@@ -308,7 +318,8 @@ async function loadUserList() {
     console.error('加载用户列表失败', e)
   }
   finally {
-    loading.value = false
+    if (manageLoading)
+      loading.value = false
   }
 }
 

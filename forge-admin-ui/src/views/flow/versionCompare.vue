@@ -119,10 +119,16 @@ function handleVisibleUpdate(show) {
 async function loadVersionOptions() {
   try {
     const res = await versionApi.getVersionList(props.modelId, 1, 100)
-    versionOptions.value = (res.data?.records || []).map(v => ({
+    const records = res.data?.records || []
+    versionOptions.value = records.map(v => ({
       label: `${v.versionName} (${v.publishTime})`,
       value: v.version,
     }))
+    // 默认预选最新两个版本，减少空选再点对比的步骤
+    if (!version1.value && records.length >= 1)
+      version1.value = records[0].version
+    if (!version2.value && records.length >= 2)
+      version2.value = records[1].version
   }
   catch (error) {
     console.error('加载版本列表失败', error)

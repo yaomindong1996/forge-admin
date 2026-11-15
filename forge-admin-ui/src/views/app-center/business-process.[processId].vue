@@ -18,7 +18,10 @@ import {
   validateBusinessProcess,
 } from '@/api/business-process'
 import messageApi from '@/api/message'
-import { businessProcessHashInput } from '@/components/business-process-designer/business-process-schema.js'
+import {
+  businessProcessHashInput,
+  validateBusinessProcessGraph,
+} from '@/components/business-process-designer/business-process-schema.js'
 import BusinessProcessDesigner from '@/components/business-process-designer/BusinessProcessDesigner.vue'
 import ObjectActionEditor from './components/designer/ObjectActionEditor.vue'
 
@@ -374,7 +377,7 @@ async function persistSchemaInternal(schema, metadata = {}) {
   }
 }
 
-async function handleValidate(schema) {
+async function handleValidate(schema, clientValidationResult) {
   if (activeSavePromise)
     await activeSavePromise
   const currentSchema = clone(draftSchema.value || schema)
@@ -383,15 +386,30 @@ async function handleValidate(schema) {
     if (!saved)
       return
   }
+  // 设计器已算好的客户端结果优先；缺省时本地再跑一遍，避免旧服务端漏检时误报「检查通过」
+  const clientResult = clientValidationResult && typeof clientValidationResult === 'object'
+    ? clientValidationResult
+    : validateBusinessProcessGraph(currentSchema)
+  const clientErrorCount = (clientResult.issues || [])
+    .filter(item => String(item?.level || 'ERROR').toUpperCase() !== 'WARNING')
+    .length
   try {
     const response = await validateBusinessProcess(processId.value)
     serverValidation.value = response.data || null
-    if (serverValidation.value?.valid)
-      notify('success', '流程检查通过，可进入应用发布检查')
+    const serverErrorCount = serverValidation.value?.valid
+      ? 0
+      : Number(serverValidation.value?.errorCount || 0)
+    const errorCount = Math.max(clientErrorCount, serverErrorCount)
+    if (errorCount > 0)
+      notify('warning', `流程检查发现 ${errorCount} 项错误`)
     else
-      notify('warning', `流程检查发现 ${serverValidation.value?.errorCount || 0} 项错误`)
+      notify('success', '流程检查通过，可进入应用发布检查')
   }
   catch (error) {
+    if (clientErrorCount > 0) {
+      notify('warning', `流程检查发现 ${clientErrorCount} 项错误`)
+      return
+    }
     notify('error', errorMessage(error, '业务流程检查失败'))
   }
 }
@@ -487,12 +505,25 @@ function returnToApplication() {
   router.push('/app-center')
 }
 
+/** 发布前先跑客户端图校验，避免仅依赖演示未部署的服务端规则时仍能点开发布。 */
+function clientPublishBlockingErrorCount() {
+  if (!draftSchema.value)
+    return 0
+  const result = validateBusinessProcessGraph(draftSchema.value)
+  return (result.issues || []).filter(item => String(item?.level || 'ERROR').toUpperCase() !== 'WARNING').length
+}
+
 // 独立发布：只生成当前流程的不可变版本并切换运行投影，不触发应用发布。
 async function openApplicationPublish() {
   if (publishing.value)
     return
   if (dirty.value) {
     notify('warning', '请先保存流程草稿，再发布流程')
+    return
+  }
+  const clientErrors = clientPublishBlockingErrorCount()
+  if (clientErrors > 0) {
+    notify('warning', `流程检查发现 ${clientErrors} 项错误，请修正后再发布`)
     return
   }
   if (!window.$dialog)
@@ -509,6 +540,11 @@ async function openApplicationPublish() {
 async function executePublish() {
   if (publishing.value)
     return
+  const clientErrors = clientPublishBlockingErrorCount()
+  if (clientErrors > 0) {
+    notify('warning', `流程检查发现 ${clientErrors} 项错误，请修正后再发布`)
+    return
+  }
   publishing.value = true
   try {
     const validation = await validateBusinessProcess(processId.value)

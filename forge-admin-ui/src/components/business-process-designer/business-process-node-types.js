@@ -79,7 +79,11 @@ const NODE_DEFINITIONS = Object.freeze({
     category: 'EXECUTION',
     ports: ['NEXT'],
     tone: 'action',
-    createConfig: () => ({ actionType: 'UPDATE_RECORD' }),
+    createConfig: () => ({
+      actionType: 'UPDATE_RECORD',
+      // 默认带一行空赋值，设计器会提示补全字段，避免发布空动作节点
+      fieldMappings: [{ field: '', valueSource: 'CONSTANT', value: '' }],
+    }),
   }),
   [BUSINESS_PROCESS_NODE_TYPE.APPROVAL]: definition({
     label: '审批流程',

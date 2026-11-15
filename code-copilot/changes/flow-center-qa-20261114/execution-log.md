@@ -119,3 +119,78 @@
 - QA节点权限1114（报销申请表单；权限审批：关驳回/关转办/开终结/开退回发起人/审批意见选填；金额只读、说明隐藏）：详情按钮为 同意/退回发起人修改/终结 ✓，金额只读、说明不显示、意见可选 ✓；
   列表快捷驳回原先提交后才被拒 → 修复后点击即提示「当前节点不允许驳回」并关闭 ✓；快捷同意提示「需要填写节点表单」✓；详情内同意后实例完成 ✓。
   `npx vitest run src/views/flow` 58、flow-designer 495、BusinessFlowFormAssetSelect 2 通过。
+
+## 第四轮：审批扩展（要点 / 签名 / 退回重提 / 终结 / 批量）
+
+- 新建「QA审批扩展1115」：指定人员 admin；必审要点「已核对金额与附件齐全」；开退回发起人修改 / 允许终止 / 强制签名。
+  设计器权限开关点不亮 → 修复 PermissionConfig（嵌套 computed v-model）后开关可亮，发布「部署成功」✓。
+  开启退回发起人后画布自动出现「发起人修改」节点与驳回网关 ✓。
+- 发起测试成功；快捷同意预检提示需签名 ✓；详情展示审批要点（必审 0/1）与手写签名 ✓，未勾选/未签名时同意被拦 ✓。
+- 退回发起人修改（需签名）成功，待办节点变为「发起人修改」✓；发起人「同意」重提后回到「要点签名审批」✓；勾选要点 + 手写签名后同意，流程完成（待办 20→19）✓。
+- 再发起「终结测试」实例，详情点终结 →「流程已终结」✓。
+- 批量：FlowTaskCardList 原先无法勾选 → 补卡片勾选框后可选「已选 N 项」并出现批量同意/驳回 ✓；批量同意 2 条需表单任务返回「2 条任务未处理」✓（策略跳过符合预期）。
+- `npx vitest run src/components/flow-designer/panel/__tests__/PermissionConfig.spec.js` 通过。
+- 演示发起测试偶发 ECONNABORTED（既有观察）；签名需 Pointer/CDP 鼠标事件，页面 mouse API 不一定写入 SignaturePad 墨迹。
+
+## 第五轮：SPEL / 通知 / 业务动作 / H5 复测 / 模板冒烟（2026-11-15）
+
+- SPEL：新建「QASPEL1115」，审批人=SPEL 模板「发起人」(`${initiator}`) → 发布部署成功；API 发起成功，待办 assignee=1，同意通过 ✓。
+  站内信 id=517「您有一个待办任务需要处理：qaspel1115流程」（FLOW_TODO）✓。
+  「QASPELLEADER1115」用 initiatorLeader 发起被拒：「发起人未设置上级领导，无法确定审批节点「SPEL审批」的审批人」✓（与既有上级 SPEL 行为一致）。
+- 业务流程动作（费用报销E2E / apply_kdcp，临时开写库）：
+  - 空动作节点随 V1 发布 → 运行失败「动作节点没有配置有效的字段赋值」（action_mwh9x5dn_1）→ 删空节点后重发。
+  - 「发送站内信」(FLOW_TODO_CARD)：记录 5 执行成功，「消息已入队」✓；但站内信正文未渲染 `${taskTitle}` → findings #53。
+  - 「更新补充说明」(UPDATE_RECORD remark=常量)：记录 6 执行成功，H5 详情补充说明变为「QA动作节点已执行」✓。
+  - 「更新状态」场景模板预填 status 与对象 flowStatus 不匹配 → findings #52。
+  - 应用发布至 v5；测完写库已关回 false。
+- H5：会签「QA会签1114」发起后待办可开详情并同意，会签待办清零 ✓。
+  发起人自选：PC「发起测试」校验「请选择「自选审批」的审批人」并展开选人器 ✓；该模型后续还有「上级审批」，无上级时仍会按既有规则拒绝发起。
+- 冒烟：设计器「AI辅助」可打开 AI 流程助手面板 ✓；`/flow/template` 路由 403（接口有 4 条）→ #54；`/print/templates` 403 → #55。
+- 本地仍有未提交修复：PermissionConfig.vue、FlowTaskCardList.vue（第四轮）；未部署演示。
+
+## 第六轮：修复 #52/#53/空动作拦截并回归（2026-11-15）
+
+- 修复「更新状态」模板默认字段 `status` → `flowStatus`（`node-templates.js` + `suggestedStatusField`）；默认 ACTION 带空 fieldMappings 行便于提示。
+- 前后端拦截空 UPDATE/CREATE 动作：`ACTION_FIELD_MAPPING_REQUIRED`；发布前 `business-process.[processId].vue` 先跑客户端图校验。
+- 发送消息补齐模板参数 `taskTitle/processName/processCode/startUserName`（`BusinessProcessMessageExecutor`）。
+- 单测：`vitest` business-process-designer 63 + workspace 20 通过；`BusinessProcessSchemaValidatorTest` 15、`BusinessProcessMessageExecutorTest` 2 通过（`-Penable-tests`）。
+- 浏览器（localhost:3000 → 演示 API，QA动作节点1115）：
+  - 选「更新状态」后 `localConfig.fieldMappings[0].field === 'flowStatus'` ✓
+  - 清空字段赋值 →「流程问题 1」`ACTION_FIELD_MAPPING_REQUIRED` ✓；再套模板恢复 issues=0 ✓
+  - 演示旧包「检查流程」仍提示通过（#53/#56 服务端待部署）；未点确认发布。
+- #54/#55 仍为账号菜单 ACL 观察，未改。
+- 待授权：中文提交 + 部署 Admin（含第四轮 PermissionConfig / FlowTaskCardList）。
+
+## 第七轮：检查流程误报 + 发布门禁复测（2026-11-15）
+
+- 修复：`handleValidate` 原先忽略设计器传入的客户端校验结果，旧服务端返回 valid 时仍 toast「流程检查通过」。
+  现合并 `Math.max(clientErrorCount, serverErrorCount)`；客户端有错即 warning。
+- 单测：`business-process-workspace` 新增「client fail 不报通过」；合计 84 通过。
+- 浏览器（QA动作节点1115）：
+  - 清空字段赋值 → 流程问题 1 ✓
+  - 「检查流程」toast「流程检查发现 1 项错误」（不再误报通过）✓
+  - 「发布」不弹确认框，直接「流程检查发现 1 项错误，请修正后再发布」✓
+  - 套回「更新状态」模板后 issues=0 ✓
+- 待办批量：卡片勾选出现「已选 2 项 / 驳回 / 同意 / 清空」✓（第四轮 FlowTaskCardList）
+- #54/#55 复测：`/flow/template`、`/print/templates` → `/403` 禁止访问（观察不变）；`/flow/model`、`/flow/todo` 可进。
+
+## 第八轮：支撑配置 + CREATE_RECORD + 用户组选人修复（2026-11-15）
+
+- 流程分类：管理树含停用项（9→10→9）；新增/删除「QA分类1115」✓（删除后需点查询才刷新计数，体验可后续优化）。
+- 流程表达式：列表可加载「发起人 / 发起人上级」等；首屏异步组件未就绪时可能短暂「共0条」，搜索后正常。
+- 流程用户组：列表「测试」2 人；维护成员已选摘要「姚民栋、姚民梁」✓，但打开后表格长时间无数据 → #57 修复；修复后并行加载可出 admin 等用户 ✓。
+- 常用审批意见：范围占位「企业常用（默认）」✓；列表 6 条无重复「同意」；新增/删除冒烟（列表偶发未即时刷新）。
+- `/flow/conditionRule` → 403 → #58 观察。
+- CREATE_RECORD 场景模板：`actionType=CREATE_RECORD`、`objectCode=apply_kdcp`、带空 fieldMappings 行 ✓（需补字段，否则会被 #56 拦截）。
+- 运行记录：可见成功/失败历史（含空动作失败记录）；监控页可进、有分布统计，当前筛选实例列表为空。
+- 待办：19 项，快捷同意/驳回与勾选框仍在 ✓。
+- `vitest` UserSelectModal 2 通过。
+
+## 第九轮：会签显隐 / 发起测试校验文案 / 版本预选 / 页签复用（2026-11-15）
+
+- #59：`ApproverConfig` 单人指定不展示「多人审批方式」，候选人员仍展示；切回单人重置会签。`ApproverConfig.spec` 5 通过。
+- #60：`formatStartTestValidationMessage` 提取必填文案；`startTestValidation.spec` 2 通过。
+- #61：`versionCompare` 加载后预选最新两版；`versionCompare.preselect.spec` 1 通过。
+- #62：`tab-guard` + `App.resolveRouteViewKey` 对流程任务列表按 path 复用；`tab-guard.spec` 1 通过。
+  浏览器：`/flow/started?title=A` → `?title=B` 后 sessionStorage 仅 1 个 key=`/flow/started`、path 更新为 B ✓。
+- 本轮相关 vitest 合计 9 通过。未部署；设计器画布节点点选冒烟未稳定点开属性面板（单测已覆盖会签显隐）。

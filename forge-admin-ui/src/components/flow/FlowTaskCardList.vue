@@ -49,13 +49,24 @@
           :key="getRowKey(item)"
           class="task-card-item"
           :class="{
-            selected: isSelected(item),
-            unread: isUnread(item),
+            'selected': isSelected(item),
+            'unread': isUnread(item),
             'has-actions': !!$slots.actions,
           }"
           @click="emit('rowClick', item)"
         >
           <div class="task-card-body">
+            <div
+              v-if="selectable"
+              class="task-card-select"
+              @click.stop
+            >
+              <n-checkbox
+                :checked="isSelected(item)"
+                :aria-label="`选择 ${item.title || item.taskName || '任务'}`"
+                @update:checked="checked => toggleSelection(item, checked)"
+              />
+            </div>
             <!-- 左侧彩色类型图标 -->
             <div class="task-card-icon" :class="resolveRowIconTone(item)">
               <slot name="icon" :row="item">
@@ -234,6 +245,18 @@ function resolveRowIconTone(row) {
   if (Number(row?.status) === 0 && !row?.assignee)
     return 'amber'
   return ICON_PRESETS.todo.tone
+}
+
+function toggleSelection(row, checked) {
+  const key = getRowKey(row)
+  if (key == null || key === '')
+    return
+  const next = new Set(props.selectedKeys)
+  if (checked)
+    next.add(key)
+  else
+    next.delete(key)
+  emit('update:selectedKeys', [...next])
 }
 
 function clearSelection() {
@@ -442,6 +465,17 @@ function clearSelection() {
   min-height: 88px;
   flex: 1 1 auto;
   padding: 14px 16px 12px;
+}
+
+.task-card-body:has(.task-card-select) {
+  grid-template-columns: 20px 40px minmax(0, 1fr);
+}
+
+.task-card-select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
 }
 
 .task-card-icon {

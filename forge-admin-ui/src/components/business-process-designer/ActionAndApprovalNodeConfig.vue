@@ -146,7 +146,11 @@ watch(selectedFlowModel, async (model) => {
 }, { immediate: true })
 
 function applyActionTemplate(value) {
-  const config = createActionTemplateConfig(value, { objectCode: props.objectCode })
+  const config = createActionTemplateConfig(value, {
+    objectCode: props.objectCode,
+    // 优先用对象上的独立流程状态字段，避免模板默认 status 在多数对象上不存在
+    statusField: suggestedStatusField.value,
+  })
   if (!config)
     return
   selectedTemplate.value = value

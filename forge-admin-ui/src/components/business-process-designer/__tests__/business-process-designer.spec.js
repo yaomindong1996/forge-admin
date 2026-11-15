@@ -215,7 +215,11 @@ describe('useBusinessProcessDesigner', () => {
 
     const actionId = designer.addNode('start_manual', 'ACTION', {
       name: '更新采购单',
-      config: { actionType: 'UPDATE_RECORD', objectCode: 'sample_purchase_order' },
+      config: {
+        actionType: 'UPDATE_RECORD',
+        objectCode: 'sample_purchase_order',
+        fieldMappings: [{ field: 'status', valueSource: 'CONSTANT', value: 'OPEN' }],
+      },
     })
     const copiedId = designer.copyNode(actionId)
 
@@ -253,6 +257,11 @@ describe('useBusinessProcessDesigner', () => {
 
     const actionId = designer.insertNodeOnEdge(matchedEdge.id, 'ACTION', {
       name: '记录命中结果',
+      config: {
+        actionType: 'UPDATE_RECORD',
+        objectCode: 'sample_purchase_order',
+        fieldMappings: [{ field: 'status', valueSource: 'CONSTANT', value: 'HIT' }],
+      },
     })
 
     expect(designer.getEdge(matchedEdge.id).target).toBe(actionId)

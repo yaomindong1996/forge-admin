@@ -219,6 +219,8 @@ export function validateBusinessProcessGraph(input) {
       issues.push(issue('NODE_TYPE_UNKNOWN', '节点类型不在业务流程注册表中', node.id, 'nodes'))
     if (node.type === BUSINESS_PROCESS_NODE_TYPE.CONDITION)
       validateConditionNode(node, issues)
+    if (node.type === BUSINESS_PROCESS_NODE_TYPE.ACTION)
+      validateActionNode(node, issues)
     if (node.type === BUSINESS_PROCESS_NODE_TYPE.APPROVAL) {
       const formMode = String(node.config?.formAsset?.formMode || node.config?.formAsset?.type || '').toUpperCase()
       const statusField = String(node.config?.statusField || '')
@@ -570,6 +572,22 @@ function allowedPorts(node) {
   if (node.type === BUSINESS_PROCESS_NODE_TYPE.CONDITION)
     return node.ports
   return item.ports
+}
+
+function validateActionNode(node, issues) {
+  const actionType = String(node.config?.actionType || '').toUpperCase()
+  if (!['UPDATE_RECORD', 'CREATE_RECORD'].includes(actionType))
+    return
+  const mappings = Array.isArray(node.config?.fieldMappings) ? node.config.fieldMappings : []
+  const hasField = mappings.some(item => String(item?.field || '').trim())
+  if (!hasField) {
+    issues.push(issue(
+      'ACTION_FIELD_MAPPING_REQUIRED',
+      '更新/创建记录动作至少配置一个有效字段赋值',
+      node.id,
+      `nodes.${node.id}.config.fieldMappings`,
+    ))
+  }
 }
 
 function validateConditionNode(node, issues) {

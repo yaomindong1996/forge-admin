@@ -254,26 +254,27 @@ export const manualRoutes = [
         name: 'WorkspaceTodo',
         path: 'todo',
         component: () => import('@/views/workspace/todo.vue'),
-        meta: { title: '我的待办' },
+        meta: { title: '我的待办', preserveOnQuery: true },
       },
       {
         name: 'WorkspaceDone',
         path: 'done',
         component: () => import('@/views/workspace/done.vue'),
-        meta: { title: '我的已办' },
+        meta: { title: '我的已办', preserveOnQuery: true },
       },
       {
         name: 'WorkspaceStarted',
         path: 'started',
         component: () => import('@/views/workspace/started.vue'),
-        meta: { title: '我发起的' },
+        meta: { title: '我发起的', preserveOnQuery: true },
       },
       {
         name: 'WorkspaceCc',
         path: 'cc',
         component: () => import('@/views/workspace/cc.vue'),
-        meta: { title: '抄送我' },
+        meta: { title: '抄送我', preserveOnQuery: true },
       },
+
     ],
   },
   {

@@ -11,6 +11,7 @@ import DesignerAsyncLoader from '@/views/app-center/components/designer/Designer
 import { buildFlowCategoryTreeOptions, resolveFlowCategoryLabel, resolveFlowCategoryValue } from '../utils/categoryOptions'
 import { extractBusinessBindingRows, formatBusinessBindings, mergeModelBusinessBindings } from '../utils/modelCatalog'
 import { normalizeBusinessFormReference, parseBusinessFormReference, resolveApplicationIdFromFormKey } from '../utils/modelFormReference'
+import { formatStartTestValidationMessage } from '../utils/startTestValidation'
 import { useFlowModelActions } from './useFlowModelActions'
 import { useFlowModelCatalog } from './useFlowModelCatalog'
 
@@ -711,6 +712,11 @@ export function applyFlowModelPart1() {
       }
     }
     catch (error) {
+      const validationMessage = formatStartTestValidationMessage(error)
+      if (validationMessage) {
+        window.$message?.warning(validationMessage)
+        return
+      }
       console.error('发起测试失败:', error)
       window.$message?.error(error?.message || '发起测试失败')
     }

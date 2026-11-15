@@ -215,4 +215,31 @@ describe('approverConfig', () => {
     expect(wrapper.vm.node.config.formType).toBe('dynamic')
     wrapper.unmount()
   })
+
+  it('指定人员单人审批不展示多人审批方式，并重置会签配置', async () => {
+    const wrapper = mountApproverConfig({
+      nodeConfig: {
+        taskType: 'assignee',
+        assignee: 'custom',
+        multiInstanceType: 'parallel',
+      },
+    })
+
+    expect(wrapper.text()).not.toContain('多人审批方式')
+    expect(wrapper.vm.node.config.multiInstanceType).toBe('none')
+    wrapper.unmount()
+  })
+
+  it('候选人员展示多人审批方式', async () => {
+    const wrapper = mountApproverConfig({
+      nodeConfig: {
+        taskType: 'candidateUsers',
+        multiInstanceType: 'parallel',
+      },
+    })
+
+    expect(wrapper.text()).toContain('多人审批方式')
+    expect(wrapper.vm.node.config.multiInstanceType).toBe('parallel')
+    wrapper.unmount()
+  })
 })

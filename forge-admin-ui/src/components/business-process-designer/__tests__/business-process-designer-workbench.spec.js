@@ -280,7 +280,8 @@ describe('structured business node configuration', () => {
     expect(wrapper.emitted('update:config').at(-1)[0]).toMatchObject({
       actionType: 'UPDATE_RECORD',
       objectCode: 'sample_purchase_order',
-      fieldMappings: [{ field: 'status', valueSource: 'CONSTANT', value: '' }],
+      // 无对象字段时回退平台托管 flowStatus，不再写死不存在的 status
+      fieldMappings: [{ field: 'flowStatus', valueSource: 'CONSTANT', value: '' }],
     })
 
     await wrapper.find('[data-action-template="ADJUST_NUMBER"]').trigger('click')

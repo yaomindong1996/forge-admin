@@ -177,6 +177,19 @@ class BusinessProcessSchemaValidatorTest {
     }
 
     @Test
+    @DisplayName("update/create record actions require at least one configured field mapping")
+    void actionFieldMappingsAreRequired() {
+        String invalid = validSchema().replace(
+                "\"fieldMappings\":[{\"field\":\"status\",\"valueSource\":\"CONSTANT\",\"value\":\"OPEN\"}]",
+                "\"fieldMappings\":[{\"field\":\"\",\"valueSource\":\"CONSTANT\",\"value\":\"OPEN\"}]");
+
+        BusinessProcessValidationVO result = validator.validate(
+                validator.normalize(invalid), validContext());
+
+        assertTrue(result.hasError("ACTION_FIELD_MAPPING_REQUIRED"));
+    }
+
+    @Test
     @DisplayName("unreachable nodes and nodes without an end path are rejected")
     void reachabilityAndEndPathAreRequired() {
         String invalid = validSchema().replace(

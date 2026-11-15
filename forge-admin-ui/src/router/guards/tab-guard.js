@@ -1,4 +1,5 @@
 import { usePermissionStore, useTabStore } from '@/store'
+import { isFlowTaskListPath } from '@/utils/flow-task-layout'
 import { isHomeTabPath } from '@/utils/home-path'
 import { confirmDirtyTabs } from '@/utils/tab-interactions'
 
@@ -95,9 +96,11 @@ export function createTabGuard(router) {
     }
     const permissionStore = usePermissionStore()
     const { name } = to
-    // key 用 to.fullPath（含查询参数），避免同一页面不同参数共用同一 Tab
-    // path 保存 fullPath，以便 Tab 点击时恢复完整路径
+    // 默认 key/path 用 fullPath，避免同页不同参数共用 Tab；
+    // preserveOnQuery / 流程任务列表则按 pathname 复用，并刷新 path 到最新查询串。
     const path = to.fullPath
+    const reuseByPathname = !!to.meta?.preserveOnQuery || isFlowTaskListPath(to.path)
+    const identityKey = reuseByPathname ? to.path : path
 
     // 1. 优先使用 route.meta.title（由 permission-guard 注册路由时设置）
     let title = to.meta?.title
@@ -137,18 +140,24 @@ export function createTabGuard(router) {
     }
 
     // 检查是否已存在相同 path 的 tab；首页 `/` 与 `/home` 视为同一页，避免品牌点击重复开 Tab
-    const existingTab = tabStore.tabs.find(item => item.path === path)
+    const existingTab = tabStore.tabs.find(item => item.key === identityKey || item.path === path)
+      || (reuseByPathname
+        ? tabStore.tabs.find(item => item.key === to.path || normalizeRoutePath(item.path) === to.path)
+        : null)
       || (isHomeTabPath(to.path)
         ? tabStore.tabs.find(item => isHomeTabPath(item.path) || isHomeTabPath(item.key))
         : null)
     const forceClosable = !!to.meta?.forceClosable || isBusinessRuntimePath(to.path)
     const closable = to.meta?.closable !== false
-    const tabKey = existingTab?.key || existingTab?.path || path
+    const tabKey = existingTab?.key || identityKey
     if (!existingTab) {
-      tabStore.addTab({ name, path, title: title || path, icon, keepAlive, key: path, closable, forceClosable })
+      tabStore.addTab({ name, path, title: title || path, icon, keepAlive, key: identityKey, closable, forceClosable })
     }
     else {
-      tabStore.updateTabMeta(tabKey, { closable, forceClosable })
+      const metaPatch = { closable, forceClosable }
+      if (reuseByPathname && existingTab.path !== path)
+        metaPatch.path = path
+      tabStore.updateTabMeta(tabKey, metaPatch)
       if (shouldUpdateExistingTitle(existingTab.title, title, to.path)) {
         tabStore.updateTabTitle(tabKey, title)
       }
