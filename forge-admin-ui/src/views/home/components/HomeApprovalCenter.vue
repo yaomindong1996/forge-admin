@@ -23,7 +23,7 @@ const summaries = computed(() => [
   },
 ])
 const actions = [
-  { title: '发起流程', path: '/flow/template', icon: 'create' },
+  { title: '发起流程', path: '/flow/model', icon: 'create' },
   { title: '抄送我的', path: '/flow/cc', icon: 'cc' },
   { title: '流程监控', path: '/flow/monitor', icon: 'monitor' },
 ]

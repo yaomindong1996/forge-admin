@@ -34,10 +34,7 @@ function normalizeRoutePath(path) {
   return normalized.startsWith('/') ? normalized : `/${normalized}`
 }
 
-function escapeRegExp(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
+/** 按路径段匹配，支持菜单里的 :param；不用动态 RegExp。 */
 function isSameRoutePath(menuPath, targetPath) {
   const normalizedMenuPath = normalizeRoutePath(menuPath)
   const normalizedTargetPath = normalizeRoutePath(targetPath)
@@ -47,11 +44,16 @@ function isSameRoutePath(menuPath, targetPath) {
     return true
   if (!normalizedMenuPath.includes(':'))
     return false
-  const pattern = normalizedMenuPath
-    .split('/')
-    .map(segment => segment.startsWith(':') ? '[^/]+' : escapeRegExp(segment))
-    .join('/')
-  return new RegExp(`^${pattern}$`).test(normalizedTargetPath)
+  const menuSegments = normalizedMenuPath.split('/')
+  const targetSegments = normalizedTargetPath.split('/')
+  if (menuSegments.length !== targetSegments.length)
+    return false
+  return menuSegments.every((segment, index) => {
+    const targetSegment = targetSegments[index]
+    if (segment.startsWith(':'))
+      return Boolean(targetSegment)
+    return segment === targetSegment
+  })
 }
 
 function isGenericRuntimeTitle(title, path) {

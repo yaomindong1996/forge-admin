@@ -47,4 +47,19 @@ describe('permission guard route access', () => {
       { accessRoutes: [] },
     )).toBe(true)
   })
+
+  it('treats legacy print workspace deep links as the unified /print menu', () => {
+    const menu = { accessRoutes: [{ path: '/print' }] }
+    expect(canAccessRoute({ path: '/print/templates' }, menu)).toBe(true)
+    expect(canAccessRoute({ path: '/print/sources' }, menu)).toBe(true)
+    expect(canAccessRoute({ path: '/print/bindings' }, menu)).toBe(true)
+    expect(canAccessRoute({ path: '/print/templates' }, { accessRoutes: [] })).toBe(false)
+  })
+
+  it('matches menu routes with :param segments without using RegExp', () => {
+    const menu = { accessRoutes: [{ path: '/app-center/business-process/:processId' }] }
+    expect(canAccessRoute({ path: '/app-center/business-process/abc' }, menu)).toBe(true)
+    expect(canAccessRoute({ path: '/app-center/business-process' }, menu)).toBe(false)
+    expect(canAccessRoute({ path: '/app-center/other/abc' }, menu)).toBe(false)
+  })
 })

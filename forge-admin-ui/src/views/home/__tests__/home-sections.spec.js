@@ -58,7 +58,7 @@ describe('homepage section contracts', () => {
     expect(wrapper.findAll('.approval-summary-value strong').map(item => item.text())).toEqual(['17', '93', '24'])
     expect(wrapper.text()).toContain('5 个审批中')
     const buttons = [...wrapper.findAll('.approval-summary'), ...wrapper.findAll('nav button')]
-    const paths = ['/flow/todo', '/flow/done', '/flow/started', '/flow/template', '/flow/cc', '/flow/monitor']
+    const paths = ['/flow/todo', '/flow/done', '/flow/started', '/flow/model', '/flow/cc', '/flow/monitor']
     for (const [index, button] of buttons.entries()) {
       await button.trigger('click')
       expect(push).toHaveBeenLastCalledWith(paths[index])

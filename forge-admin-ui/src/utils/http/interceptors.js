@@ -122,10 +122,7 @@ function normalizeRoutePath(path) {
   return normalized.startsWith('/') ? normalized : `/${normalized}`
 }
 
-function escapeRegExp(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
+/** 按路径段匹配，支持菜单里的 :param；不用动态 RegExp。 */
 function isSameRoutePath(menuPath, targetPath) {
   const normalizedMenuPath = normalizeRoutePath(menuPath)
   const normalizedTargetPath = normalizeRoutePath(targetPath)
@@ -135,11 +132,16 @@ function isSameRoutePath(menuPath, targetPath) {
     return true
   if (!normalizedMenuPath.includes(':'))
     return false
-  const pattern = normalizedMenuPath
-    .split('/')
-    .map(segment => segment.startsWith(':') ? '[^/]+' : escapeRegExp(segment))
-    .join('/')
-  return new RegExp(`^${pattern}$`).test(normalizedTargetPath)
+  const menuSegments = normalizedMenuPath.split('/')
+  const targetSegments = normalizedTargetPath.split('/')
+  if (menuSegments.length !== targetSegments.length)
+    return false
+  return menuSegments.every((segment, index) => {
+    const targetSegment = targetSegments[index]
+    if (segment.startsWith(':'))
+      return Boolean(targetSegment)
+    return segment === targetSegment
+  })
 }
 
 function resolveCurrentPagePath() {
@@ -553,8 +555,14 @@ async function reqResolve(config, axiosInstance) {
       config.headers.Authorization = `Bearer ${authStore.accessToken}`
     }
 
-    if (config.pageAudit !== false)
-      Object.assign(config.headers, resolvePageAuditHeaders())
+    // 只写入固定审计头，避免 Object.assign 把来源对象上的多余键并进 headers
+    if (config.pageAudit !== false) {
+      const auditHeaders = resolvePageAuditHeaders()
+      if (auditHeaders['X-Page-Path'])
+        config.headers['X-Page-Path'] = auditHeaders['X-Page-Path']
+      if (auditHeaders['X-Page-Title'])
+        config.headers['X-Page-Title'] = auditHeaders['X-Page-Title']
+    }
 
     // 后端重启或配置中心切换加密开关后，页面可能仍保留旧配置。
     // 显式加密的敏感请求在提交前重新同步，避免把加密信封绑定成空业务 DTO。

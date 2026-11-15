@@ -207,3 +207,14 @@
 - #59/#60：单测已覆盖；本轮浏览器设计器属性面板点选 / 带必填表单的发起测试弹窗未稳定打开，保留单测证据。
 - #53：部署包已含参数补齐；真实站内信触发正文复验可下次补做。
 - 未 push remote；本地 `main` ahead 1。
+
+## ACL / 体验续修（2026-11-15 晚）
+
+- #54/#58：新增 `V1.0.235`（MySQL + PG）注册 `/flow/template`、`/flow/conditionRule` 菜单/按钮/接口，并给已有流程入口角色同步 `sys_role_resource`。
+- 首页「发起流程」由错误的 `/flow/template` 改为 `/flow/model`；`home-sections` 单测已改。
+- #55：`permission-guard` 将打印旧深链归一到 `/print`；新增单测。
+- #63：`formCreateBridge.installFormCreate` 挂 Element Plus `zh-cn`。
+- #64：定时开始节点空账号目录提示；`clientPublishBlockingErrorCount` / 发布入口拦截。
+- #65：`bindDefaultApprovalForms` 仅目录补默认 formKey 时不再标脏自动保存。
+- 验证：`vitest` permission-guard / home-sections / business-process-designer / workbench 共 72 通过。
+- 未部署（需重启 Admin 跑 Flyway 后浏览器复验 #54/#55/#58）；条件规则页若缺 Controller 需另开接口任务。

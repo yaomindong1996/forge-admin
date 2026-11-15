@@ -271,14 +271,20 @@ function clone(value) {
         <span>运行账号</span>
         <select
           :value="localConfig.serviceActor?.userConfigKey || ''"
+          :disabled="!serviceActors.length"
           @change="patchConfig('serviceActor', { mode: 'CONFIGURED_USER', userConfigKey: $event.target.value })"
         >
-          <option value="" disabled>选择受限普通服务账号</option>
+          <option value="" disabled>
+            {{ serviceActors.length ? '选择受限普通服务账号' : '暂无可用服务账号' }}
+          </option>
           <option v-for="item in serviceActors" :key="item.value" :value="item.value">
             {{ item.label }}
           </option>
         </select>
-        <small>未配置合法普通用户时失败关闭，不会回退管理员。</small>
+        <small v-if="!serviceActors.length">
+          请先在系统配置 business.process.schedule.service-user 挂载受限普通用户；未配置时禁止发布，运行时也不会回退管理员。
+        </small>
+        <small v-else>未配置合法普通用户时失败关闭，不会回退管理员。</small>
       </label>
     </template>
 

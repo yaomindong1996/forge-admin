@@ -510,7 +510,12 @@ function clientPublishBlockingErrorCount() {
   if (!draftSchema.value)
     return 0
   const result = validateBusinessProcessGraph(draftSchema.value)
-  return (result.issues || []).filter(item => String(item?.level || 'ERROR').toUpperCase() !== 'WARNING').length
+  let count = (result.issues || []).filter(item => String(item?.level || 'ERROR').toUpperCase() !== 'WARNING').length
+  // 定时扫描依赖受限服务账号目录；演示未挂载时禁止发布，避免运行时静默失败关闭。
+  const start = (draftSchema.value.nodes || []).find(node => String(node?.type || '') === 'START_SCHEDULE')
+  if (start && (!Array.isArray(serviceActors.value) || serviceActors.value.length === 0))
+    count += 1
+  return count
 }
 
 // 独立发布：只生成当前流程的不可变版本并切换运行投影，不触发应用发布。
@@ -523,6 +528,11 @@ async function openApplicationPublish() {
   }
   const clientErrors = clientPublishBlockingErrorCount()
   if (clientErrors > 0) {
+    const start = (draftSchema.value?.nodes || []).find(node => String(node?.type || '') === 'START_SCHEDULE')
+    if (start && (!Array.isArray(serviceActors.value) || serviceActors.value.length === 0)) {
+      notify('warning', '定时扫描未配置运行账号（business.process.schedule.service-user），请先挂载受限普通用户后再发布')
+      return
+    }
     notify('warning', `流程检查发现 ${clientErrors} 项错误，请修正后再发布`)
     return
   }

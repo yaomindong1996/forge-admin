@@ -1,5 +1,6 @@
 import formCreate from '@form-create/element-ui'
 import ElementPlus from 'element-plus'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import 'element-plus/dist/index.css'
 import '@form-create/element-ui/src/style/index.css'
 
@@ -41,7 +42,8 @@ const GENERIC_ENGLISH_TITLES = new Set([
 export function installFormCreate(app) {
   if (!app || app._context.provides[INSTALL_KEY])
     return
-  app.use(ElementPlus)
+  // 运行态下拉默认占位依赖 Element Plus 语言包；未装 zh-cn 时显示英文 Select
+  app.use(ElementPlus, { locale: zhCn })
   app.use(formCreate)
   app._context.provides[INSTALL_KEY] = true
 }

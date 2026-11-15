@@ -46,24 +46,40 @@ function normalizeRoutePath(path) {
   return normalized.startsWith('/') ? normalized : `/${normalized}`
 }
 
-function escapeRegExp(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+/** 打印工作台合并后菜单仅保留 /print；旧深链仍指向同页组件。 */
+const PRINT_WORKSPACE_ALIASES = new Set([
+  '/print/templates',
+  '/print/sources',
+  '/print/bindings',
+])
+
+function normalizePrintWorkspacePath(path) {
+  const normalized = normalizeRoutePath(path)
+  if (PRINT_WORKSPACE_ALIASES.has(normalized))
+    return '/print'
+  return normalized
 }
 
+/** 按路径段匹配，支持菜单里的 :param；不用动态 RegExp，避免路径被当成正则扫描。 */
 function isSameRoutePath(routePath, targetPath) {
-  const normalizedRoutePath = normalizeOpenPlatformPath(normalizeRoutePath(routePath))
-  const normalizedTargetPath = normalizeOpenPlatformPath(normalizeRoutePath(targetPath))
+  const normalizedRoutePath = normalizePrintWorkspacePath(normalizeOpenPlatformPath(normalizeRoutePath(routePath)))
+  const normalizedTargetPath = normalizePrintWorkspacePath(normalizeOpenPlatformPath(normalizeRoutePath(targetPath)))
   if (!normalizedRoutePath || !normalizedTargetPath)
     return false
   if (normalizedRoutePath === normalizedTargetPath)
     return true
   if (!normalizedRoutePath.includes(':'))
     return false
-  const pattern = normalizedRoutePath
-    .split('/')
-    .map(segment => segment.startsWith(':') ? '[^/]+' : escapeRegExp(segment))
-    .join('/')
-  return new RegExp(`^${pattern}$`).test(normalizedTargetPath)
+  const routeSegments = normalizedRoutePath.split('/')
+  const targetSegments = normalizedTargetPath.split('/')
+  if (routeSegments.length !== targetSegments.length)
+    return false
+  return routeSegments.every((segment, index) => {
+    const targetSegment = targetSegments[index]
+    if (segment.startsWith(':'))
+      return Boolean(targetSegment)
+    return segment === targetSegment
+  })
 }
 
 export function canAccessRoute(to, permissionStore, userStore) {

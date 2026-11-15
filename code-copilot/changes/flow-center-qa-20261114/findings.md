@@ -88,17 +88,24 @@
     `createActionTemplateConfig` 默认/`suggestedStatusField` 改为 `flowStatus`；浏览器回归：localConfig.fieldMappings[0].field=`flowStatus` ✓。
 53. [已修复·已部署 Admin 0521d689b] 业务流程「发送消息」选用「流程待办卡片（通用）」后站内信正文残留 `${taskTitle}`。
     `BusinessProcessMessageExecutor.buildTemplateParams` 补齐 taskTitle/processName 等；单测 2 通过；部署包 class 含 `taskTitle`/`processName`。运行时站内信正文建议再抽一条真实触发复验。
-54. [观察] `/flow/template` 前端路由对当前账号返回 403，但 `/api/flow/template/page` 可查到 4 条模板——菜单权限与接口权限不一致。
-55. [观察] `/print/templates` 对当前账号 403；打印中心入口在导航可见，但点进模板列表无权限。
+54. [已修复] `/flow/template` 前端路由 403：`sys_resource` 从未注册该菜单（接口因管理员 `*` 仍可调）。
+    Flyway `V1.0.235`（MySQL/PG）补「流程模板」菜单+按钮/接口，并同步授权给已有流程入口角色。首页「发起流程」改链 `/flow/model`（模板页是维护入口，不是发起）。
+55. [已修复] `/print/templates` 403：打印中心已合并为 `/print`，旧深链未归一。
+    `canAccessRoute` 将 `/print/templates|sources|bindings` 视为 `/print` 工作台别名。补 permission-guard 单测。
 56. [已修复·已部署 Admin 0521d689b] 空「执行动作」节点（无有效字段赋值）可发布，运行时报「动作节点没有配置有效的字段赋值」。
     前后端校验 `ACTION_FIELD_MAPPING_REQUIRED`；部署后「检查流程」toast「流程检查发现 1 项错误」，流程问题面板含 `ACTION_FIELD_MAPPING_REQUIRED` ✓（不再误报通过）。
 57. [已修复] 流程用户组「维护成员」打开后用户表格长时间「无数据」（已选人摘要正常）：`UserSelectModal` 先 await 部门树再请求用户，演示环境 `/system/org/tree` 慢时表格空白。
     改为部门树与用户列表并行加载；loading 期间 empty 槽不渲染「无数据」。补并行加载单测。
-58. [观察] `/flow/conditionRule` 对当前账号 403（与 #54/#55 同类：直链无菜单权限）。
+58. [已修复] `/flow/conditionRule` 403：同 #54，菜单未注册。
+    `V1.0.235` 补「条件规则」菜单+按钮/接口及角色授权。备注：页面调用的 `/api/flow/conditionRule/**` 若仍无 Controller，打开后可能接口失败，需另开接口补齐。
 59. [已修复] 审批节点「人工审批 · 指定人员」（及发起人/上级等单人变量）仍显示「多人审批方式」会签选项。
     `ApproverConfig` 仅在候选人员/角色、发起人自选、SPEL 时展示会签；切回单人时重置 `multiInstanceType=none`。补单测。
 60. [已修复] 发起测试表单必填校验失败只提示「发起测试失败」：从 Naive/AiForm 校验结构提取字段文案，改为 warning「请完善必填项：…」；普通 Error 仍走失败提示。补纯函数单测。
 61. [已修复] 版本对比打开后两个版本下拉为空：加载版本列表后预选最新两个版本。补挂载预选单测。
 62. [已修复] 同一页面带不同 `title` 查询会打开多个同名「我发起的」页签：`tab-guard` / `App` 对 `preserveOnQuery` 与流程任务列表（`/flow/todo|done|started|cc`）按 pathname 复用 Tab 并刷新 path。浏览器：两次不同 title 仅 1 个「我发起的」Tab ✓。
-观察未改：演示环境慢时偶发 12s 超时弹全局「请求失败 ECONNABORTED」对话框；节点动态表单标签右对齐在字段上方，排版偏怪；表单引擎下拉占位为英文「Select」；H5 抄送详情从消息或刷新进入时缺少列表缓存、发送人显示「系统」、时间「-」（无单条抄送查询接口）；H5 审批意见输入后立即点同意（<0.4s）只提交首字（wd-textarea 值同步滞后，正常操作不易触发）；应用页面未配置 H5 入口时，H5 工作台/全部应用里看不到该应用（发布检查已提示「尚未配置页面入口」，属配置项）；定时触发「运行账号」下拉为空（演示环境未配置 business.process.schedule.service-user），无账号也能发布、运行时失败关闭；流程监控「流程分布统计」饼图标签重叠；管理端无「催办」入口（设计如此，仅 H5 提供）；改派/转办不在审批时间轴留独立记录（只更新处理人）；H5 低代码运行时「委派」需手输用户 ID；打开业务流程设计器后不改动直接关闭也会刷新流程更新时间（疑似自动保存草稿）；审批标题模板默认相同导致各单标题一致（配置层）。
+63. [已修复] 表单引擎下拉占位英文「Select」：`installFormCreate` 安装 Element Plus 时未挂 zh-cn 语言包。
+64. [已修复] 定时触发「运行账号」目录为空仍可发布：开始节点提示+发布前客户端拦截（需配置 `business.process.schedule.service-user`）。
+65. [已修复] 打开业务流程设计器不改动即关闭也会刷新更新时间：目录回填默认 formKey 曾标脏并自动保存；无历史修复时 `markSaved` + 取消自动保存。
+
+观察未改：演示环境慢时偶发 12s 超时弹全局「请求失败 ECONNABORTED」对话框；节点动态表单标签右对齐在字段上方，排版偏怪；H5 抄送详情从消息或刷新进入时缺少列表缓存、发送人显示「系统」、时间「-」（无单条抄送查询接口）；H5 审批意见输入后立即点同意（<0.4s）只提交首字（wd-textarea 值同步滞后，正常操作不易触发）；应用页面未配置 H5 入口时，H5 工作台/全部应用里看不到该应用（发布检查已提示「尚未配置页面入口」，属配置项）；流程监控「流程分布统计」饼图标签重叠；管理端无「催办」入口（设计如此，仅 H5 提供）；改派/转办不在审批时间轴留独立记录（只更新处理人）；H5 低代码运行时「委派」需手输用户 ID；审批标题模板默认相同导致各单标题一致（配置层）。
 

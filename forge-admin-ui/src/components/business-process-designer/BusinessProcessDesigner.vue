@@ -221,6 +221,9 @@ function bindDefaultApprovalForms() {
   const source = props.formAssets.find(item => item?.formKey)
   if (!source)
     return
+  // 打开设计器时目录回填默认 formKey 不应算作用户改动，否则空开空关也会自动保存并刷新更新时间。
+  const wasDirty = designer.isDirty.value
+  let repairedLegacy = false
   designer.schema.value.nodes
     .filter(node => node?.type === 'APPROVAL')
     .forEach((node) => {
@@ -236,6 +239,8 @@ function bindDefaultApprovalForms() {
       const formAsset = toFormAssetRef(repaired || source)
       if (currentKey && !repaired)
         return
+      if (currentKey && repaired)
+        repairedLegacy = true
       designer.updateNode(node.id, {
         config: {
           ...(node.config || {}),
@@ -243,6 +248,10 @@ function bindDefaultApprovalForms() {
         },
       })
     })
+  if (!wasDirty && !repairedLegacy && designer.isDirty.value) {
+    designer.markSaved()
+    clearAutoSave()
+  }
 }
 
 function resolveAvailableFormAsset(assets, current = {}) {
