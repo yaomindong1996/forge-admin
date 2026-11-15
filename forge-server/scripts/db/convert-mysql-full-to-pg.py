@@ -13,7 +13,8 @@ Usage:
 
   # --clean-seed is NOT community 纯净版; it only strips truncate-class INSERTs from a fat dump.
 
-Skips Flowable engine tables (act_*/flw_*). Keeps framework *_version tables.
+Skips Flowable engine tables (act_*/flw_*); keeps Quartz qrtz_* DDL (aligned with MySQL
+full/pure dumps). Keeps framework *_version tables.
 Does not claim byte-perfect semantic parity for every MySQL quirk; output is the
 repeatable baseline for empty PG installs. Re-run after refreshing the MySQL full dump.
 """
@@ -25,8 +26,9 @@ import re
 import sys
 from pathlib import Path
 
-# Flowable + Quartz runtime tables: engine/scheduler recreate or re-register.
-SKIP_TABLE_PREFIXES = ("act_", "flw_", "qrtz_")
+# Flowable engine tables only — app recreates them on startup.
+# Quartz qrtz_* must stay: MySQL full/pure ship the 11 DDL tables; JDBC JobStore needs them.
+SKIP_TABLE_PREFIXES = ("act_", "flw_")
 # PostgreSQL NAMEDATALEN-1
 PG_IDENT_MAX = 63
 
@@ -332,6 +334,69 @@ def convert_mysql_expr(expr: str) -> str:
     return expr.rstrip().rstrip(";")
 
 
+def convert_mysql_hex_blobs(sql: str) -> str:
+    """Rewrite MySQL hex-blob literals to PostgreSQL bytea outside string literals.
+
+    mysqldump --hex-blob emits bare 0xABCD... tokens for BLOB/BINARY columns.
+    PostgreSQL needs '\\xABCD...'::bytea (or decode(...)). Also handles X'ABCD'.
+    """
+    out: list[str] = []
+    i = 0
+    n = len(sql)
+    in_string = False
+    while i < n:
+        ch = sql[i]
+        if in_string:
+            if ch == "\\" and i + 1 < n:
+                out.append(ch)
+                out.append(sql[i + 1])
+                i += 2
+                continue
+            if ch == "'":
+                if i + 1 < n and sql[i + 1] == "'":
+                    out.append("''")
+                    i += 2
+                    continue
+                in_string = False
+                out.append(ch)
+                i += 1
+                continue
+            out.append(ch)
+            i += 1
+            continue
+        if ch == "'":
+            # MySQL X'ABCD' / x'ABCD' hex literal
+            if i > 0 and sql[i - 1] in "Xx" and (i < 2 or not (sql[i - 2].isalnum() or sql[i - 2] == "_")):
+                j = i + 1
+                while j < n and sql[j] != "'":
+                    j += 1
+                if j < n:
+                    hex_body = sql[i + 1 : j]
+                    if re.fullmatch(r"[0-9A-Fa-f]*", hex_body or ""):
+                        # drop the leading X already appended? it was previous char
+                        if out and out[-1] in "Xx":
+                            out.pop()
+                        out.append(f"'\\x{hex_body}'::bytea")
+                        i = j + 1
+                        continue
+            in_string = True
+            out.append(ch)
+            i += 1
+            continue
+        if ch == "0" and i + 1 < n and sql[i + 1] in "xX":
+            j = i + 2
+            while j < n and sql[j] in "0123456789abcdefABCDEF":
+                j += 1
+            if j > i + 2:
+                hex_body = sql[i + 2 : j]
+                out.append(f"'\\x{hex_body}'::bytea")
+                i = j
+                continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
 def convert_insert(line: str, mysql_vars: dict[str, str] | None = None) -> str:
     # INSERT INTO t (...) VALUES (...);  or INSERT INTO `t` (...)
     def repl_table(match: re.Match[str]) -> str:
@@ -358,6 +423,8 @@ def convert_insert(line: str, mysql_vars: dict[str, str] | None = None) -> str:
         # PG treats @x as absolute-value of column x; inline captured SET @x expressions.
         for var_name, var_expr in sorted(mysql_vars.items(), key=lambda kv: -len(kv[0])):
             line = re.sub(rf"@{var_name}\b", f"({var_expr})", line)
+    # mysqldump --hex-blob → PG bytea (Quartz job_data etc.)
+    line = convert_mysql_hex_blobs(line)
     return line
 
 
@@ -409,6 +476,7 @@ def convert(content: str, *, clean_seed: bool = False) -> str:
     else:
         out.append("-- PostgreSQL full init for Forge Admin (empty database).")
     out.append("-- Flowable act_*/flw_* tables are skipped; engine creates them on startup.")
+    out.append("-- Quartz qrtz_* DDL is kept (same as MySQL full/pure); runtime row data may be empty.")
     out.append("SET client_encoding = 'UTF8';")
     out.append("")
 
