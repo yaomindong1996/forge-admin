@@ -92,6 +92,7 @@ public class UsernamePasswordCaptchaAuthStrategy extends AbstractAuthStrategy {
         if (loginUser == null) {
             recordLoginFailure(null, "用户名或密码错误");
         }
+        applyPasswordExpiration(loginUser);
         return loginUser;
     }
 

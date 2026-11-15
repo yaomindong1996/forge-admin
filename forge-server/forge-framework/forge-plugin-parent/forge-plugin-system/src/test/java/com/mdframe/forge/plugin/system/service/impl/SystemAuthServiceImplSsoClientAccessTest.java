@@ -134,6 +134,7 @@ class SystemAuthServiceImplSsoClientAccessTest {
                 null,
                 null,
                 null,
+                null,
                 null);
     }
 

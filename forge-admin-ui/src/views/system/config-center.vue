@@ -589,12 +589,31 @@
                   </div>
                   <n-switch v-model:value="configForms.security.passwordPolicy.requireSpecialChars" />
                 </div>
+                <div class="config-item config-item-wide">
+                  <div class="config-copy">
+                    <div class="config-label">
+                      <i class="i-material-symbols:event-busy-outline" />
+                      启用密码过期
+                    </div>
+                    <div class="config-help">
+                      默认关闭。开启后，密码超过有效期的账号在用密码登录时必须先修改密码才能继续使用（短信、第三方登录不受影响）。
+                      H5 端暂无改密引导，过期用户需在 PC 端修改密码。
+                    </div>
+                  </div>
+                  <n-switch v-model:value="configForms.security.passwordPolicy.expireEnabled" />
+                </div>
                 <div class="config-item">
                   <div class="config-label">
                     <i class="i-material-symbols:calendar-month-outline" />
                     密码过期天数
                   </div>
-                  <n-input-number v-model:value="configForms.security.passwordPolicy.expireDays" :min="1" :max="365" class="config-input" />
+                  <n-input-number
+                    v-model:value="configForms.security.passwordPolicy.expireDays"
+                    :min="1"
+                    :max="365"
+                    :disabled="!configForms.security.passwordPolicy.expireEnabled"
+                    class="config-input"
+                  />
                 </div>
                 <div class="config-item">
                   <div class="config-label">
@@ -1066,6 +1085,7 @@ const configForms = ref({
       requireLowercase: true,
       requireNumbers: true,
       requireSpecialChars: false,
+      expireEnabled: false,
       expireDays: 90,
       historyCount: 5,
     },
@@ -1433,7 +1453,8 @@ onMounted(async () => {
   color: var(--text-primary);
 }
 
-.password-encryption-item {
+.password-encryption-item,
+.config-item-wide {
   grid-column: 1 / -1;
   gap: 24px;
 }

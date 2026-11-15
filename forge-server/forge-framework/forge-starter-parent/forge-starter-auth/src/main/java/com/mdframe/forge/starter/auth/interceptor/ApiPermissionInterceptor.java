@@ -135,6 +135,8 @@ public class ApiPermissionInterceptor implements HandlerInterceptor {
         }
 
         log.warn("强制改密用户访问被拦截: userId={}, uri={}", loginUser.getUserId(), requestUri);
-        throw new NotPermissionException("当前账号必须先修改初始密码");
+        throw new NotPermissionException(Boolean.TRUE.equals(loginUser.getPasswordExpired())
+                ? "当前账号密码已过期，必须先修改密码"
+                : "当前账号必须先修改初始密码");
     }
 }

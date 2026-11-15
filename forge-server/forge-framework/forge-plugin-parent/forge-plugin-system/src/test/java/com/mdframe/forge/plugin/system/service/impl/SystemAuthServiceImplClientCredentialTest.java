@@ -112,7 +112,7 @@ class SystemAuthServiceImplClientCredentialTest {
         authProperties.setEnableClientValidation(clientValidationEnabled);
         return new SystemAuthServiceImpl(
                 null, null, null, null, null, authProperties, null,
-                clientService, null, null, null, null, null, null);
+                clientService, null, null, null, null, null, null, null);
     }
 
     private IClientService clientService(SysClient client, boolean requiresSecret,

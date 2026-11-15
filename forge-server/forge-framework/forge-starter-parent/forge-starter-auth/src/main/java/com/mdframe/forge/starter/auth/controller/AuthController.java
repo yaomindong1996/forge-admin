@@ -93,6 +93,12 @@ public class AuthController {
                 fresh.setLoginTime(loginUser.getLoginTime());
                 fresh.setLoginIp(loginUser.getLoginIp());
                 fresh.setUserClient(loginUser.getUserClient());
+                // 密码过期是登录时判定的会话态，数据库重建不会带出来，需要从旧会话延续，
+                // 否则刷新一次用户信息就能绕过强制改密。
+                if (Boolean.TRUE.equals(loginUser.getPasswordExpired())) {
+                    fresh.setPasswordExpired(true);
+                    fresh.setForcePasswordChange(true);
+                }
                 SessionHelper.setLoginUser(fresh);
                 loginUser = fresh;
             }

@@ -1,6 +1,7 @@
 package com.mdframe.forge.plugin.system.strategy;
 
 import cn.hutool.core.util.StrUtil;
+import com.mdframe.forge.plugin.system.auth.PasswordPolicySupport;
 import com.mdframe.forge.plugin.system.service.IUserLoadService;
 import com.mdframe.forge.starter.core.context.AuthProperties;
 import com.mdframe.forge.starter.auth.domain.LoginRequest;
@@ -31,6 +32,19 @@ public abstract class AbstractAuthStrategy implements IAuthStrategy {
 
     @Autowired
     protected AuthProperties authProperties;
+
+    @Autowired
+    protected PasswordPolicySupport passwordPolicySupport;
+
+    /**
+     * 密码过期判定。只由用户名密码类策略在认证成功后调用：
+     * 短信、三方等方式登录的用户可能并不知道本地密码，不能因此被强制改密。
+     */
+    protected void applyPasswordExpiration(LoginUser loginUser) {
+        if (loginUser != null) {
+            passwordPolicySupport.applyExpiration(loginUser);
+        }
+    }
 
     /**
  * 认证模板方法
