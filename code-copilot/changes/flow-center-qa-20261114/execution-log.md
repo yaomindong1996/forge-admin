@@ -194,3 +194,16 @@
 - #62：`tab-guard` + `App.resolveRouteViewKey` 对流程任务列表按 path 复用；`tab-guard.spec` 1 通过。
   浏览器：`/flow/started?title=A` → `?title=B` 后 sessionStorage 仅 1 个 key=`/flow/started`、path 更新为 B ✓。
 - 本轮相关 vitest 合计 9 通过。未部署；设计器画布节点点选冒烟未稳定点开属性面板（单测已覆盖会签显隐）。
+
+## 部署 Admin 0521d689b 与复测（2026-11-15）
+
+- 提交：`0521d689b`（`fix: 业务流程校验与发起测试体验修复`）；构建 `-Dforge.build.commit=0521d689b…`。
+- 上传 `~/forge-upload/20261115-admin-0521d689b`，`deploy.sh` 仅替换 admin；镜像 `forge-admin-server:1.2.1-0521d689b-fonts`，字体库 6/6，healthy；Flyway `forge_admin_new` up to date；Scheduler started 0。
+- 版本接口：`/system/version` → build.commit=`0521d689b27f8977e000f9f56e4b9fe9f9c27e6d`，time=`2026-11-15T10:01:55.438Z`。
+- 包内校验：`forge-plugin-generator` 含 `BusinessProcessMessageExecutor`（`taskTitle`/`processName`）与 `ACTION_FIELD_MAPPING_REQUIRED`。
+- #56 复测（QA动作节点1115）：清空/空动作后「检查流程」→ toast「流程检查发现 1 项错误」，流程问题含 `ACTION_FIELD_MAPPING_REQUIRED` ✓。
+- #61 复测（QA会签1114 版本对比）：下拉预选 `v3`、`v2` ✓。
+- #62 此前浏览器已确认页签复用 ✓。
+- #59/#60：单测已覆盖；本轮浏览器设计器属性面板点选 / 带必填表单的发起测试弹窗未稳定打开，保留单测证据。
+- #53：部署包已含参数补齐；真实站内信触发正文复验可下次补做。
+- 未 push remote；本地 `main` ahead 1。

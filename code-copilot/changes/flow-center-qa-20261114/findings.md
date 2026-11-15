@@ -84,14 +84,14 @@
     改为 `:value` + `@update:value` 直接 emit；补 PermissionConfig 单测。
 51. [已修复] 待办「批量同意/驳回」永远出不来：FlowTaskCardList 有已选态与批量槽位，但卡片上没有任何勾选入口，`selectedKeys` 只能清空不能增加。
     卡片增加可选勾选框（selectable），点选后标题栏出现「已选 N 项 / 同意 / 驳回」。
-52. [已修复·待部署 Admin] 业务流程动作节点场景模板「更新状态」预填 `field=status`，报销申请对象实际字段为 `flowStatus`，模板选中后字段下拉仍为空。
+52. [已修复·已部署 Admin 0521d689b] 业务流程动作节点场景模板「更新状态」预填 `field=status`，报销申请对象实际字段为 `flowStatus`，模板选中后字段下拉仍为空。
     `createActionTemplateConfig` 默认/`suggestedStatusField` 改为 `flowStatus`；浏览器回归：localConfig.fieldMappings[0].field=`flowStatus` ✓。
-53. [已修复·待部署 Admin] 业务流程「发送消息」选用「流程待办卡片（通用）」后站内信正文残留 `${taskTitle}`。
-    `BusinessProcessMessageExecutor.buildTemplateParams` 补齐 taskTitle/processName 等；单测 2 通过。演示仍跑旧包，需部署后复测站内信。
+53. [已修复·已部署 Admin 0521d689b] 业务流程「发送消息」选用「流程待办卡片（通用）」后站内信正文残留 `${taskTitle}`。
+    `BusinessProcessMessageExecutor.buildTemplateParams` 补齐 taskTitle/processName 等；单测 2 通过；部署包 class 含 `taskTitle`/`processName`。运行时站内信正文建议再抽一条真实触发复验。
 54. [观察] `/flow/template` 前端路由对当前账号返回 403，但 `/api/flow/template/page` 可查到 4 条模板——菜单权限与接口权限不一致。
 55. [观察] `/print/templates` 对当前账号 403；打印中心入口在导航可见，但点进模板列表无权限。
-56. [已修复·待部署 Admin] 空「执行动作」节点（无有效字段赋值）可发布，运行时报「动作节点没有配置有效的字段赋值」。
-    前后端校验 `ACTION_FIELD_MAPPING_REQUIRED`；设计器「流程问题」面板即时提示；发布按钮先跑客户端图校验再弹确认；「检查流程」合并客户端错误，避免旧服务端误报通过；服务端 `BusinessProcessSchemaValidator` 单测覆盖。演示服务端规则待部署后双端一致。
+56. [已修复·已部署 Admin 0521d689b] 空「执行动作」节点（无有效字段赋值）可发布，运行时报「动作节点没有配置有效的字段赋值」。
+    前后端校验 `ACTION_FIELD_MAPPING_REQUIRED`；部署后「检查流程」toast「流程检查发现 1 项错误」，流程问题面板含 `ACTION_FIELD_MAPPING_REQUIRED` ✓（不再误报通过）。
 57. [已修复] 流程用户组「维护成员」打开后用户表格长时间「无数据」（已选人摘要正常）：`UserSelectModal` 先 await 部门树再请求用户，演示环境 `/system/org/tree` 慢时表格空白。
     改为部门树与用户列表并行加载；loading 期间 empty 槽不渲染「无数据」。补并行加载单测。
 58. [观察] `/flow/conditionRule` 对当前账号 403（与 #54/#55 同类：直链无菜单权限）。
