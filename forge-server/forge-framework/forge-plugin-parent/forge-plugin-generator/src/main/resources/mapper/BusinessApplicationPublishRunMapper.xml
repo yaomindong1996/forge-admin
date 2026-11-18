@@ -99,7 +99,7 @@
         UPDATE ai_business_application_publish_run
         SET run_status = 'RUNNING',
             started_by = #{startedBy},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND application_id = #{applicationId}
           AND id = #{runId}
@@ -118,7 +118,7 @@
             error_code = COALESCE(#{errorCode}, error_code),
             error_summary = COALESCE(#{errorSummary}, error_summary),
             finished_time = COALESCE(#{finishedTime}, finished_time),
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND application_id = #{applicationId}
           AND id = #{runId}
@@ -133,7 +133,7 @@
             finished_time = NULL,
             error_code = NULL,
             error_summary = NULL,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND application_id = #{applicationId}
           AND id = #{runId}

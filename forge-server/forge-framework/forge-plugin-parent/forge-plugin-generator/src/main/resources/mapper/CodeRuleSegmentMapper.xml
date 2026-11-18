@@ -52,7 +52,7 @@
         UPDATE ai_code_rule_segment
         SET del_flag = id,
             update_by = #{updateBy},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND rule_id = #{ruleId}
           AND del_flag = '0'

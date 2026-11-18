@@ -19,7 +19,7 @@
 
     <update id="touchAuthenticated">
         UPDATE ai_capability_external_identity
-        SET last_authenticated_at = #{authenticatedAt}, update_time = NOW()
+        SET last_authenticated_at = #{authenticatedAt}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND status = 'ENABLED'
@@ -79,7 +79,7 @@
 
     <update id="disableClientMapping">
         UPDATE ai_capability_external_identity
-        SET status = 'DISABLED', del_flag = id, update_time = NOW()
+        SET status = 'DISABLED', del_flag = id, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND provider_code = #{providerCode}

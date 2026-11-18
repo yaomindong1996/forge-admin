@@ -25,7 +25,7 @@
     <update id="transition">
         UPDATE ai_image_generate_record
         SET status = #{record.status}, result_file_id = #{record.resultFileId}, error_msg = #{record.errorMsg},
-            update_by = #{record.userId}, update_time = NOW()
+            update_by = #{record.userId}, update_time = CURRENT_TIMESTAMP
         WHERE id = #{record.id} AND tenant_id = #{record.tenantId} AND user_id = #{record.userId}
           AND del_flag = 0 AND status = #{expectedStatus}
     </update>

@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import com.mdframe.forge.starter.core.enums.EnableStatus;
@@ -129,10 +130,24 @@ public class CollaborationCallbackInboxService {
     }
 
     /**
-     * CAS 标记事件处理失败，指数退避重试，超过上限置为 DISCARDED
+     * CAS 标记事件处理失败，指数退避重试，超过上限置为 DISCARDED。
+     * 退避分钟数在 Java 计算：min(2^(retry+1), 60)，避免 Mapper 使用 DATE_ADD/POW。
      */
-    public boolean markFailed(Long id, Long tenantId, String workerId, String errorCode, String errorSummary) {
-        return callbackEventMapper.markFailed(id, tenantId, workerId, MAX_RETRY, errorCode, errorSummary) > 0;
+    public boolean markFailed(SocialCallbackEvent event, String workerId, String errorCode, String errorSummary) {
+        int currentRetry = event.getRetryCount() == null ? 0 : event.getRetryCount();
+        int nextRetry = currentRetry + 1;
+        boolean discard = nextRetry >= MAX_RETRY;
+        LocalDateTime nextRetryTime = null;
+        if (!discard) {
+            long minutes = Math.min(1L << Math.min(nextRetry, 6), 60L);
+            nextRetryTime = LocalDateTime.now().plusMinutes(minutes);
+        }
+        String processStatus = discard
+                ? CollaborationCallbackProcessStatus.DISCARDED.getCode()
+                : CollaborationCallbackProcessStatus.FAILED.getCode();
+        return callbackEventMapper.markFailed(
+                event.getId(), event.getTenantId(), workerId,
+                processStatus, nextRetryTime, errorCode, errorSummary) > 0;
     }
 
     /**

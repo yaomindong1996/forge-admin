@@ -10,7 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.stereotype.Component;
 
 /**
- * 开放网关幂等快照留存清理 Handler。物理删除 {@code expires_at < NOW()} 的
+ * 开放网关幂等快照留存清理 Handler。物理删除 {@code expires_at < CURRENT_TIMESTAMP} 的
  * 超期快照（跨租户、留存清理场景，spec 8-4 已说明；行级删除仍走逻辑删除规范）。
  * 参数为单批删除行数，空取默认值；分批循环直到删净，避免大事务。
  */

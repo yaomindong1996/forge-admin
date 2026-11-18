@@ -87,7 +87,7 @@
         </foreach>
             ELSE c.is_required
         END,
-        c.update_time = NOW()
+        c.update_time = CURRENT_TIMESTAMP
         WHERE
         <choose>
             <when test="tableId != null">

@@ -54,9 +54,9 @@
         SET secret_cipher = #{newCipher},
             secret_ref = #{newRef},
             secret_mode = #{secretMode},
-            secret_update_time = NOW(),
+            secret_update_time = CURRENT_TIMESTAMP,
             update_by = #{updateBy},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE id = #{id}
           AND tenant_id = #{tenantId}
           AND del_flag = 0

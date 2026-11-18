@@ -20,8 +20,8 @@
             #{log.resultStatus}, #{log.resultCode},
             #{log.errorCode}, #{log.failureStage}, #{log.errorMessage},
             #{log.schemaPath}, #{log.traceId}, #{log.durationMs}, 0,
-            #{log.createBy}, COALESCE(#{log.createTime}, NOW()), #{log.createDept},
-            #{log.updateBy}, COALESCE(#{log.updateTime}, NOW())
+            #{log.createBy}, COALESCE(#{log.createTime}, CURRENT_TIMESTAMP), #{log.createDept},
+            #{log.updateBy}, COALESCE(#{log.updateTime}, CURRENT_TIMESTAMP)
         )
     </insert>
     <update id="updateResultByRequestIdentity">
@@ -35,7 +35,7 @@
             trace_id = #{log.traceId},
             duration_ms = #{log.durationMs},
             update_by = COALESCE(#{log.updateBy}, update_by),
-            update_time = COALESCE(#{log.updateTime}, NOW())
+            update_time = COALESCE(#{log.updateTime}, CURRENT_TIMESTAMP)
         WHERE tenant_id = #{log.tenantId}
           AND request_id = #{log.requestId}
           AND client_id = #{log.clientId}

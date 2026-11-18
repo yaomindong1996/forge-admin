@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.collaboration.domain.entity.SocialCallbackEvent;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -35,12 +36,13 @@ public interface SocialCallbackEventMapper extends BaseMapper<SocialCallbackEven
                       @Param("workerId") String workerId);
 
     /**
-     * CAS 标记事件处理失败，指数退避重试，超过上限置为 DISCARDED
+     * CAS 标记事件处理失败；退避时间由调用方计算后传入，避免 Mapper 方言函数。
      */
     int markFailed(@Param("id") Long id,
                    @Param("tenantId") Long tenantId,
                    @Param("workerId") String workerId,
-                   @Param("maxRetry") int maxRetry,
+                   @Param("processStatus") String processStatus,
+                   @Param("nextRetryTime") LocalDateTime nextRetryTime,
                    @Param("errorCode") String errorCode,
                    @Param("errorSummary") String errorSummary);
 

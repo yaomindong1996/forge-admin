@@ -11,7 +11,7 @@
   </insert>
   <update id="save">
     UPDATE ai_application_integration SET connection_id = #{config.connectionId}, revision = revision + 1,
-      update_by = #{userId}, update_time = NOW()
+      update_by = #{userId}, update_time = CURRENT_TIMESTAMP
     WHERE tenant_id = #{tenantId} AND application_id = #{appId} AND del_flag = 0 AND revision = #{config.revision}
   </update>
   <insert id="attach">

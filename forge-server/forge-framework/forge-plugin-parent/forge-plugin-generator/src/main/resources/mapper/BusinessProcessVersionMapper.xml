@@ -229,7 +229,7 @@
           #{versionNo}, #{applicationVersion}, #{publishRunId}, #{schemaVersion},
           #{schemaJson}, #{schemaHash}, #{dependencySnapshotJson}, #{publishTime},
           #{publishedBy}, #{status}, 0,
-          #{createBy}, NOW(), #{createDept}, #{updateBy}, NOW()
+          #{createBy}, CURRENT_TIMESTAMP, #{createDept}, #{updateBy}, CURRENT_TIMESTAMP
         )
     </insert>
 

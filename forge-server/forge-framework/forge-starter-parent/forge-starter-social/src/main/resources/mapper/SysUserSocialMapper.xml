@@ -74,7 +74,7 @@
     <update id="bindForgeUserCas">
         UPDATE sys_user_social
         SET user_id = #{userId},
-            bind_time = NOW()
+            bind_time = CURRENT_TIMESTAMP
         WHERE id = #{id}
           AND del_flag = 0
           AND (user_id IS NULL OR user_id = #{userId})

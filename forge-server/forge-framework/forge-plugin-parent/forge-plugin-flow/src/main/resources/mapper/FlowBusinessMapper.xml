@@ -137,7 +137,7 @@
                     WHERE overdue_task.process_instance_id = sys_flow_business.process_instance_id
                       AND overdue_task.tenant_id = #{tenantId}
                       AND overdue_task.due_date IS NOT NULL
-                      AND overdue_task.due_date &lt;= NOW()
+                      AND overdue_task.due_date &lt;= CURRENT_TIMESTAMP
                       AND overdue_task.status IN (0, 1)
                 )
             </if>
@@ -243,7 +243,7 @@
                    FROM sys_flow_task overdue_task
                    WHERE overdue_task.tenant_id = #{tenantId}
                      AND overdue_task.due_date IS NOT NULL
-                     AND overdue_task.due_date &lt;= NOW()
+                     AND overdue_task.due_date &lt;= CURRENT_TIMESTAMP
                      AND overdue_task.status IN (0, 1)
                ) AS timeoutTasks
         FROM sys_flow_business business
@@ -267,7 +267,7 @@
     <update id="updateStatusByProcessInstanceId">
         UPDATE sys_flow_business
         SET status = #{status},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE process_instance_id = #{processInstanceId}
           AND tenant_id = #{tenantId}
     </update>

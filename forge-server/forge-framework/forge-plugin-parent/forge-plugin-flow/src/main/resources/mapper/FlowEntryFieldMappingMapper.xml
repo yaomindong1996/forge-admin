@@ -13,7 +13,7 @@
     <update id="deleteByEntryId">
         UPDATE sys_flow_entry_field_mapping
         SET deleted = 1,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE entry_id = #{entryId}
           AND deleted = 0
     </update>

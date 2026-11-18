@@ -10,7 +10,7 @@
         VALUES
         (#{tenantId}, #{taskId}, #{parentTaskId}, #{childTaskId}, #{childExecutionId}, #{processInstanceId}, #{candidateType}, #{candidateValue},
          #{source}, #{signMode}, #{operatorId}, #{reason}, #{idempotencyKey}, #{requestDigest},
-         #{status}, COALESCE(#{createTime}, NOW()), COALESCE(#{updateTime}, NOW()))
+         #{status}, COALESCE(#{createTime}, CURRENT_TIMESTAMP), COALESCE(#{updateTime}, CURRENT_TIMESTAMP))
     </insert>
 
     <update id="updateUpsertByUniqueKey">
@@ -25,7 +25,7 @@
             reason = #{reason},
             idempotency_key = #{idempotencyKey},
             request_digest = #{requestDigest},
-            update_time = COALESCE(#{updateTime}, NOW())
+            update_time = COALESCE(#{updateTime}, CURRENT_TIMESTAMP)
         WHERE tenant_id = #{tenantId}
           AND task_id = #{taskId}
           AND candidate_type = #{candidateType}

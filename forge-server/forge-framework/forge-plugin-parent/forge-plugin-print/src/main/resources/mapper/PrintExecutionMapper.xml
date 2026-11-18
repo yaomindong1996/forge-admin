@@ -43,7 +43,7 @@
     <!-- 服务还需校验事件 DTO；数据库不接受 PREPARED 回退或物理成功事件。 -->
     <update id="recordEvent">
         UPDATE sys_print_execution SET result = #{result}, page_count = #{pageCount}, error_code = #{errorCode},
-            update_by = #{actor}, update_time = NOW()
+            update_by = #{actor}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND id = #{id} AND actor = #{actor} AND del_flag = 0
           AND result = 'PREPARED' AND #{result} IN ('DIALOG_OPENED', 'PDF_DOWNLOADED', 'FAILED')
           AND (#{pageCount} IS NULL OR #{pageCount} BETWEEN 1 AND 50)

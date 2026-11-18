@@ -67,16 +67,16 @@
     </sql>
 
     <select id="selectFlowUserInfo" resultType="java.util.HashMap">
-        SELECT CAST(u.id AS CHAR) AS id,
+        SELECT CAST(u.id AS varchar(64)) AS id,
                u.username,
                u.real_name AS realName,
                u.user_status AS userStatus,
                u.avatar,
                u.email,
                u.phone,
-               CAST(uo.org_id AS CHAR) AS deptId,
+               CAST(uo.org_id AS varchar(64)) AS deptId,
                o.org_name AS deptName,
-               CAST(up.post_id AS CHAR) AS postId
+               CAST(up.post_id AS varchar(64)) AS postId
         FROM sys_user u
         INNER JOIN sys_user_tenant sut
                 ON sut.user_id = u.id
@@ -109,16 +109,16 @@
     </select>
 
     <select id="selectFlowUserInfoBatch" resultType="java.util.HashMap">
-        SELECT CAST(u.id AS CHAR) AS id,
+        SELECT CAST(u.id AS varchar(64)) AS id,
                u.username,
                u.real_name AS realName,
                u.user_status AS userStatus,
                u.avatar,
                u.email,
                u.phone,
-               CAST(uo.org_id AS CHAR) AS deptId,
+               CAST(uo.org_id AS varchar(64)) AS deptId,
                o.org_name AS deptName,
-               CAST(up.post_id AS CHAR) AS postId
+               CAST(up.post_id AS varchar(64)) AS postId
         FROM sys_user u
         INNER JOIN sys_user_tenant sut
                 ON sut.user_id = u.id
@@ -158,11 +158,11 @@
     </select>
 
     <select id="selectFlowUsers" resultType="java.util.HashMap">
-        SELECT CAST(u.id AS CHAR) AS id,
+        SELECT CAST(u.id AS varchar(64)) AS id,
                u.username,
                u.real_name AS name,
                u.avatar,
-               CAST(uo.org_id AS CHAR) AS deptId,
+               CAST(uo.org_id AS varchar(64)) AS deptId,
                o.org_name AS deptName
         FROM sys_user u
         INNER JOIN sys_user_tenant sut
@@ -578,7 +578,7 @@
             <if test="avatar != null and avatar != ''">avatar = #{avatar},</if>
             <if test="email != null and email != ''">email = #{email},</if>
             <if test="phone != null and phone != ''">phone = #{phone},</if>
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         </set>
         WHERE id = #{userId}
           AND tenant_id = #{tenantId}

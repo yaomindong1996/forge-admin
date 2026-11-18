@@ -111,7 +111,7 @@
     <update id="markDeletedByFileId">
         UPDATE ai_report_material
         SET status = 0,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND file_id = #{fileId}
           AND status = 1

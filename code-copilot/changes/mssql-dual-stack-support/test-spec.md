@@ -1,0 +1,19 @@
+# MSSQL 双轨支持 Test Spec
+
+## 阶段 1（本批）
+
+| 项 | 方式 | 通过标准 |
+|----|------|----------|
+| `NOW()` 残留 | `rg` Mapper XML/注解 | 业务 Mapper 无裸 `NOW()`（引擎/第三方脚本除外） |
+| CHAR cast | `rg` | 无 `CAST(... AS CHAR)` |
+| DATE_ADD | `rg` | SocialCallback 无 `DATE_ADD` |
+| DatabaseId | 单测或配置审阅 | SQL Server productName → `sqlserver` |
+| DuplicateKey | 单测 | 2627/2601 判定为重复键 |
+| SqlServer 方言 | 单测 | 工厂可解析；分页/标识符等基础行为正确 |
+| 回归 | `-Penable-tests` 相关模块 | 既有 MySQL/H2 路径单测通过 |
+
+## 后续阶段
+
+- SQL Server 真库：Flyway migrate、登录、组织权限、流程、定时任务冒烟
+- 低代码：建表/改列/分页查询
+- 三栈平行增量脚本一致性检查

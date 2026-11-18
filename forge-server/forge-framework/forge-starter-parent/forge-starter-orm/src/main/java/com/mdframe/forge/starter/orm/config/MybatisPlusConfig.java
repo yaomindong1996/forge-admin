@@ -72,7 +72,7 @@ public class MybatisPlusConfig implements InitializingBean {
     }
 
     /**
-     * 供 Mapper XML 使用 databaseId / {@code _databaseId} 区分 MySQL 与 PostgreSQL 方言片段。
+     * 供 Mapper XML 使用 databaseId / {@code _databaseId} 区分 MySQL / PostgreSQL / SQL Server 方言片段。
      */
     @Bean
     @ConditionalOnMissingBean
@@ -82,6 +82,8 @@ public class MybatisPlusConfig implements InitializingBean {
         properties.setProperty("MySQL", "mysql");
         properties.setProperty("MariaDB", "mysql");
         properties.setProperty("PostgreSQL", "postgresql");
+        // JDBC DatabaseMetaData#getDatabaseProductName → "Microsoft SQL Server"
+        properties.setProperty("Microsoft SQL Server", "sqlserver");
         provider.setProperties(properties);
         return provider;
     }

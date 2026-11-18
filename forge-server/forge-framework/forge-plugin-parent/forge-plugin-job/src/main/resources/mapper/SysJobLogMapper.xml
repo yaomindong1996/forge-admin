@@ -136,8 +136,8 @@
             result = #{result},
             exception_msg = #{exceptionMsg},
             retry_count = #{retryCount},
-            end_time = NOW(),
-            duration = TIMESTAMPDIFF(MICROSECOND, start_time, NOW()) DIV 1000
+            end_time = CURRENT_TIMESTAMP,
+            duration = TIMESTAMPDIFF(MICROSECOND, start_time, CURRENT_TIMESTAMP) DIV 1000
         WHERE id = #{id}
           AND status = 2
           AND del_flag = 0
@@ -150,8 +150,8 @@
             exception_msg = NULL,
             process_instance_id = #{processInstanceId},
             retry_count = #{retryCount},
-            end_time = NOW(),
-            duration = TIMESTAMPDIFF(MICROSECOND, start_time, NOW()) DIV 1000
+            end_time = CURRENT_TIMESTAMP,
+            duration = TIMESTAMPDIFF(MICROSECOND, start_time, CURRENT_TIMESTAMP) DIV 1000
         WHERE id = #{id}
           AND status = 2
           AND del_flag = 0
@@ -166,14 +166,14 @@
             SELECT 1
             FROM sys_job_api_idempotency idempotency
             WHERE idempotency.execution_id = job_log.id
-              AND idempotency.expires_at &gt; NOW()
+              AND idempotency.expires_at &gt; CURRENT_TIMESTAMP
               AND idempotency.del_flag = 0
           )
     </delete>
 
     <update id="refreshHeartbeat">
         UPDATE sys_job_log
-        SET heartbeat_time = NOW()
+        SET heartbeat_time = CURRENT_TIMESTAMP
         WHERE id = #{id}
           AND status = 2
           AND del_flag = 0
@@ -183,10 +183,10 @@
         UPDATE sys_job_log
         SET status = 0,
             exception_msg = #{exceptionMsg},
-            end_time = NOW(),
+            end_time = CURRENT_TIMESTAMP,
             duration = CASE
                 WHEN start_time IS NULL THEN 0
-                ELSE GREATEST(TIMESTAMPDIFF(MICROSECOND, start_time, NOW()) DIV 1000, 0)
+                ELSE GREATEST(TIMESTAMPDIFF(MICROSECOND, start_time, CURRENT_TIMESTAMP) DIV 1000, 0)
             END
         WHERE del_flag = 0
           AND (
@@ -269,7 +269,7 @@
         UPDATE sys_job_log
         SET status = 0,
             exception_msg = #{exceptionMsg},
-            end_time = NOW(),
+            end_time = CURRENT_TIMESTAMP,
             duration = 0
         WHERE id = #{id}
           AND status = 4

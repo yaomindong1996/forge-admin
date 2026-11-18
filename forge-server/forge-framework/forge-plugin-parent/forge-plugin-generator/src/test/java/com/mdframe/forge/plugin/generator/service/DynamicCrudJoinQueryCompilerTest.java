@@ -3,6 +3,7 @@ package com.mdframe.forge.plugin.generator.service;
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.MySqlRuntimeDatabaseDialect;
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.OracleRuntimeDatabaseDialect;
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.PostgreSqlRuntimeDatabaseDialect;
+import com.mdframe.forge.plugin.generator.service.lowcode.runtime.SqlServerRuntimeDatabaseDialect;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import org.junit.jupiter.api.AfterEach;
@@ -82,6 +83,8 @@ class DynamicCrudJoinQueryCompilerTest {
             new PostgreSqlRuntimeDatabaseDialect().stringAggregate("\"name\"", "\"id\"", "、"));
         assertEquals("LISTAGG(\"name\", '、') WITHIN GROUP (ORDER BY \"id\")",
             new OracleRuntimeDatabaseDialect().stringAggregate("\"name\"", "\"id\"", "、"));
+        assertEquals("STRING_AGG(CAST([name] AS nvarchar(max)), '、') WITHIN GROUP (ORDER BY [id])",
+            new SqlServerRuntimeDatabaseDialect().stringAggregate("[name]", "[id]", "、"));
     }
 
     private DynamicCrudJoinQueryCompiler compiler() {

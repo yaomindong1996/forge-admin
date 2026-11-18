@@ -104,7 +104,7 @@ public class DirectoryCallbackEventProcessor {
                                 String errorCode, String message) {
         String summary = truncate(message);
         for (SocialCallbackEvent event : batch) {
-            inboxService.markFailed(event.getId(), tenantId, workerId, errorCode, summary);
+            inboxService.markFailed(event, workerId, errorCode, summary);
         }
         return batch.size();
     }

@@ -82,7 +82,7 @@
     </select>
     <update id="clearDefault">
         UPDATE sys_print_binding SET is_default = 0, binding_revision = binding_revision + 1,
-            update_by = #{actor}, update_time = NOW()
+            update_by = #{actor}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND source_key = #{sourceKey}
           AND scene = #{scene} AND del_flag = 0 AND is_default = 1
           AND ((#{applicationId} IS NOT NULL AND application_id = #{applicationId})
@@ -92,7 +92,7 @@
         UPDATE sys_print_binding SET is_default = #{row.isDefault}, sort_order = #{row.sortOrder},
             template_version_id = #{row.templateVersionId}, status = #{row.status},
             binding_revision = binding_revision + 1,
-            update_by = #{row.updateBy}, update_time = NOW()
+            update_by = #{row.updateBy}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{row.tenantId} AND id = #{row.id}
           AND source_key = #{row.sourceKey} AND scene = #{row.scene} AND template_id = #{row.templateId}
           AND ((#{row.applicationId} IS NOT NULL AND application_id = #{row.applicationId})
@@ -101,7 +101,7 @@
     </update>
     <update id="softDelete">
         UPDATE sys_print_binding SET del_flag = id, binding_revision = binding_revision + 1,
-            update_by = #{actor}, update_time = NOW()
+            update_by = #{actor}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0 AND binding_revision = #{expectedRevision}
     </update>
 </mapper>

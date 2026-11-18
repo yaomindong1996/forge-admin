@@ -25,7 +25,7 @@
     </select>
     <update id="logicallyRevoke">
         UPDATE ai_capability_grant
-        SET status = 'REVOKED', del_flag = id, update_time = NOW()
+        SET status = 'REVOKED', del_flag = id, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
     </update>
     <select id="countActiveByCapability" resultType="int">
@@ -34,7 +34,7 @@
         WHERE tenant_id = #{tenantId}
           AND capability_id = #{capabilityId}
           AND status = 'ENABLED'
-          AND (expires_at IS NULL OR expires_at &gt; NOW())
+          AND (expires_at IS NULL OR expires_at &gt; CURRENT_TIMESTAMP)
           AND del_flag = 0
     </select>
 </mapper>

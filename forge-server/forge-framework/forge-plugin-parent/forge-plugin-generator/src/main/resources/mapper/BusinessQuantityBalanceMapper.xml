@@ -80,7 +80,7 @@
     <update id="increaseQuantity">
         UPDATE ai_business_quantity_balance
         SET quantity = quantity + #{quantity},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND account_code = #{accountCode}
           AND item_code = #{itemCode}
@@ -91,7 +91,7 @@
     <update id="decreaseAvailableQuantity">
         UPDATE ai_business_quantity_balance
         SET quantity = quantity - #{quantity},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND account_code = #{accountCode}
           AND item_code = #{itemCode}
@@ -103,7 +103,7 @@
     <update id="lockQuantity">
         UPDATE ai_business_quantity_balance
         SET locked_quantity = locked_quantity + #{quantity},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND account_code = #{accountCode}
           AND item_code = #{itemCode}
@@ -115,7 +115,7 @@
     <update id="releaseLockedQuantity">
         UPDATE ai_business_quantity_balance
         SET locked_quantity = locked_quantity - #{quantity},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND account_code = #{accountCode}
           AND item_code = #{itemCode}
@@ -128,7 +128,7 @@
         UPDATE ai_business_quantity_balance
         SET quantity = quantity - #{quantity},
             locked_quantity = locked_quantity - #{quantity},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND account_code = #{accountCode}
           AND item_code = #{itemCode}

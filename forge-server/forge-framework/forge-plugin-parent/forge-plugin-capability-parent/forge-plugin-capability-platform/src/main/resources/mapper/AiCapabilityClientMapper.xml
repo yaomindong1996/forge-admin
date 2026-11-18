@@ -35,7 +35,7 @@
         FROM ai_capability_client
         WHERE tenant_id = #{tenantId} AND del_flag = 0
         ORDER BY CASE WHEN status = 'ENABLED'
-                           AND (expires_at IS NULL OR expires_at &gt; NOW()) THEN 0 ELSE 1 END,
+                           AND (expires_at IS NULL OR expires_at &gt; CURRENT_TIMESTAMP) THEN 0 ELSE 1 END,
                  client_name ASC, id ASC
     </select>
     <select id="selectCredentialByKeyId" resultType="com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityClient">
@@ -48,7 +48,7 @@
     </select>
     <update id="touchLastUsed">
         UPDATE ai_capability_client
-        SET last_used_at = #{lastUsedAt}, update_time = NOW()
+        SET last_used_at = #{lastUsedAt}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
           AND status = 'ENABLED' AND credential_version = #{credentialVersion}
           AND key_hash = #{keyHash}
@@ -56,14 +56,14 @@
     <update id="rotateCredential">
         UPDATE ai_capability_client
         SET key_id = #{keyId}, key_prefix = #{keyPrefix}, key_hash = #{keyHash},
-            credential_version = credential_version + 1, update_time = NOW()
+            credential_version = credential_version + 1, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
           AND status = 'ENABLED' AND credential_version = #{credentialVersion}
     </update>
     <update id="rotateSigningKey">
         UPDATE ai_capability_client
         SET signing_key_cipher = #{signingKeyCipher},
-            signing_key_version = signing_key_version + 1, update_time = NOW()
+            signing_key_version = signing_key_version + 1, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
           AND status = 'ENABLED' AND signing_key_version = #{signingKeyVersion}
     </update>
@@ -74,7 +74,7 @@
             user_assertion_public_key = #{publicKeyPem},
             user_assertion_key_version = COALESCE(user_assertion_key_version, 0) + 1,
             credential_version = credential_version + 1,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
           AND status = 'ENABLED' AND credential_version = #{credentialVersion}
           AND COALESCE(user_assertion_key_version, 0) = #{expectedKeyVersion}
@@ -83,27 +83,27 @@
         UPDATE ai_capability_client
         SET user_assertion_enabled = 0,
             credential_version = credential_version + 1,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
           AND status = 'ENABLED' AND credential_version = #{credentialVersion}
           AND COALESCE(user_assertion_key_version, 0) = #{expectedKeyVersion}
     </update>
     <update id="updateUserAssertionMappingMode">
         UPDATE ai_capability_client
-        SET user_assertion_mapping_mode = #{mappingMode}, update_time = NOW()
+        SET user_assertion_mapping_mode = #{mappingMode}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
           AND status = 'ENABLED' AND credential_version = #{credentialVersion}
     </update>
     <update id="revokeCredential">
         UPDATE ai_capability_client
-        SET status = 'REVOKED', credential_version = credential_version + 1, update_time = NOW()
+        SET status = 'REVOKED', credential_version = credential_version + 1, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
           AND status = 'ENABLED' AND credential_version = #{credentialVersion}
     </update>
     <update id="configureOAuth">
         UPDATE ai_capability_client
         SET oauth_enabled = #{oauthEnabled}, oauth_client_type = #{oauthClientType},
-            credential_version = credential_version + 1, update_time = NOW()
+            credential_version = credential_version + 1, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
           AND status = 'ENABLED' AND credential_version = #{credentialVersion}
     </update>

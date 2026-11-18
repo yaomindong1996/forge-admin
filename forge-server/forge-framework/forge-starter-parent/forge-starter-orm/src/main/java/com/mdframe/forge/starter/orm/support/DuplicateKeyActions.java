@@ -3,6 +3,7 @@ package com.mdframe.forge.starter.orm.support;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 
+import java.sql.SQLException;
 import java.util.function.Supplier;
 
 /**
@@ -10,6 +11,15 @@ import java.util.function.Supplier;
  * 与 PostgreSQL {@code ON CONFLICT}，新增数据库时无需再写 Mapper 方言分支。
  */
 public final class DuplicateKeyActions {
+
+    /** MySQL / MariaDB ER_DUP_ENTRY */
+    private static final int MYSQL_DUPLICATE = 1062;
+    /** SQL Server violation of UNIQUE KEY / PRIMARY KEY constraint */
+    private static final int SQLSERVER_UNIQUE_CONSTRAINT = 2627;
+    /** SQL Server unique index duplicate key */
+    private static final int SQLSERVER_UNIQUE_INDEX = 2601;
+    /** PostgreSQL unique_violation */
+    private static final String PG_UNIQUE_SQLSTATE = "23505";
 
     private DuplicateKeyActions() {
     }
@@ -54,9 +64,22 @@ public final class DuplicateKeyActions {
         }
     }
 
-    private static boolean isDuplicateKey(DataIntegrityViolationException ex) {
+    static boolean isDuplicateKey(DataIntegrityViolationException ex) {
         if (ex instanceof DuplicateKeyException) {
             return true;
+        }
+        for (Throwable t = ex; t != null; t = t.getCause()) {
+            if (t instanceof SQLException sqlEx) {
+                int code = sqlEx.getErrorCode();
+                if (code == MYSQL_DUPLICATE
+                        || code == SQLSERVER_UNIQUE_CONSTRAINT
+                        || code == SQLSERVER_UNIQUE_INDEX) {
+                    return true;
+                }
+                if (PG_UNIQUE_SQLSTATE.equals(sqlEx.getSQLState())) {
+                    return true;
+                }
+            }
         }
         Throwable cause = ex.getMostSpecificCause();
         String message = cause == null ? ex.getMessage() : cause.getMessage();

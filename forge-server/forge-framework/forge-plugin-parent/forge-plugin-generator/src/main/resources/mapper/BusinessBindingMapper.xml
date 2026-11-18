@@ -266,7 +266,7 @@
         SET binding_config = #{bindingConfig},
             status = #{status},
             sort_order = #{sortOrder},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND target_type = 'APPLICATION'
           AND target_id = #{applicationId}

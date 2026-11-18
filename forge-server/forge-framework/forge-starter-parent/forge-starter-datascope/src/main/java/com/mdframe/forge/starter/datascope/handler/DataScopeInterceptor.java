@@ -325,7 +325,7 @@ public class DataScopeInterceptor implements InnerInterceptor {
                 + context.getTenantId()
                 + " AND p.user_id = '" + escapeSqlLiteral(String.valueOf(context.getUserId()))
                 + "' AND p.business_type = '" + escapeSqlLiteral(businessType)
-                + "' AND p.business_id = CAST(" + qualifiedPk + " AS CHAR))";
+                + "' AND p.business_id = CAST(" + qualifiedPk + " AS varchar(64)))";
         try {
             return CCJSqlParserUtil.parseCondExpression(sql);
         } catch (Exception e) {

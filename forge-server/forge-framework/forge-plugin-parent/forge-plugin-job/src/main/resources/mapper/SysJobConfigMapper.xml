@@ -119,7 +119,7 @@
             sync_error = #{syncError},
             sync_time = #{syncTime},
             version = version + 1,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE id = #{id}
           AND version = #{expectedVersion}
           AND del_flag = 0
@@ -129,7 +129,7 @@
         UPDATE sys_job_config
         SET del_flag = id,
             version = version + 1,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE id = #{id}
           AND version = #{expectedVersion}
           AND del_flag = 0
@@ -142,7 +142,7 @@
             sync_error = NULL,
             sync_time = #{syncTime},
             version = version + 1,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE id = #{id}
           AND schedule_type = 'ONCE'
           AND fire_once_time = #{fireOnceTime}
@@ -156,7 +156,7 @@
         UPDATE sys_job_config
         SET status = 2,
             version = version + 1,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE id = #{id}
           AND schedule_type = 'ONCE'
           AND fire_once_time = #{fireOnceTime}
@@ -178,7 +178,7 @@
             END,
             job.last_completion_time = execution.end_time,
             job.last_completion_execution_id = execution.id,
-            job.update_time = NOW()
+            job.update_time = CURRENT_TIMESTAMP
         WHERE job.del_flag = 0
           AND #{status} IN (0, 1)
           AND execution.end_time IS NOT NULL

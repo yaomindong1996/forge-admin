@@ -139,7 +139,7 @@
     <update id="releaseLockQuantity">
         UPDATE ai_business_quantity_lock
         SET released_quantity = released_quantity + #{quantity},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{lockId}
           AND lock_status = 'LOCKED'
@@ -149,7 +149,7 @@
     <update id="commitLockQuantity">
         UPDATE ai_business_quantity_lock
         SET committed_quantity = committed_quantity + #{quantity},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{lockId}
           AND lock_status = 'LOCKED'
@@ -159,7 +159,7 @@
     <update id="updateLockStatus">
         UPDATE ai_business_quantity_lock
         SET lock_status = #{lockStatus},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{lockId}
     </update>
