@@ -18,8 +18,9 @@
 
 ## 阶段 2 — 业务库方言补齐
 
-- [ ] DDL / 分页 / 元数据 / 聚合等与 Oracle/PG 对标补强
-- [ ] 管理端 SQLServer 选项与运行时联调说明
+- [x] DDL / 分页 / 元数据 / 聚合等与 Oracle/PG 对标补强（扩展属性注释、OFFSET 缺 ORDER BY 注入）
+- [x] 数据资产 `SqlServerDialect` + JDBC `databaseName` 解析 + `mssql-jdbc` 依赖
+- [x] 管理端 SQLServer URL 提示与 `business-runtime-notes.md` 联调说明
 
 ## 阶段 3 — 平台 Schema
 

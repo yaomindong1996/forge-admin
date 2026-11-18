@@ -134,7 +134,12 @@ public class SqlServerRuntimeDatabaseDialect implements RuntimeDatabaseDialect {
 
     @Override
     public String paginate(String sql, long offset, long limit) {
-        return sql + " OFFSET " + offset + " ROWS FETCH NEXT " + limit + " ROWS ONLY";
+        // SQL Server 要求 OFFSET/FETCH 前必须有 ORDER BY；调用方未带时注入稳定占位
+        String base = sql;
+        if (sql == null || !sql.toLowerCase(Locale.ROOT).matches("(?s).*\\border\\s+by\\b.*")) {
+            base = sql + " ORDER BY (SELECT NULL)";
+        }
+        return base + " OFFSET " + offset + " ROWS FETCH NEXT " + limit + " ROWS ONLY";
     }
 
     @Override
@@ -197,6 +202,14 @@ public class SqlServerRuntimeDatabaseDialect implements RuntimeDatabaseDialect {
                                             List<DdlColumn> columns,
                                             List<IndexDefinition> indexes) {
         List<String> statements = new ArrayList<>();
+        if (StringUtils.isNotBlank(tableComment)) {
+            statements.add(tableDescriptionSql(tableName, tableComment));
+        }
+        for (DdlColumn column : columns) {
+            if (StringUtils.isNotBlank(column.comment())) {
+                statements.add(columnDescriptionSql(tableName, column.columnName(), column.comment()));
+            }
+        }
         for (IndexDefinition index : indexes) {
             statements.add(addIndexSql(tableName, index));
         }
@@ -209,11 +222,24 @@ public class SqlServerRuntimeDatabaseDialect implements RuntimeDatabaseDialect {
     }
 
     @Override
+    public List<String> afterAddColumnSql(String tableName, DdlColumn column) {
+        if (StringUtils.isBlank(column.comment())) {
+            return List.of();
+        }
+        return List.of(columnDescriptionSql(tableName, column.columnName(), column.comment()));
+    }
+
+    @Override
     public List<String> modifyColumnSql(String tableName, DdlColumn column) {
-        // SQL Server 改默认值需按约束名 DROP CONSTRAINT，阶段 1 仅改类型与空值；默认值后续补强
+        // 默认值约束需按名 DROP CONSTRAINT，此处仅改类型/空值；注释走扩展属性
+        List<String> statements = new ArrayList<>();
         String nullability = column.required() ? " NOT NULL" : " NULL";
-        return List.of("ALTER TABLE " + ddlIdentifier(tableName) + " ALTER COLUMN "
+        statements.add("ALTER TABLE " + ddlIdentifier(tableName) + " ALTER COLUMN "
             + ddlIdentifier(column.columnName()) + " " + column.sqlType() + nullability);
+        if (StringUtils.isNotBlank(column.comment())) {
+            statements.add(columnDescriptionSql(tableName, column.columnName(), column.comment()));
+        }
+        return statements;
     }
 
     @Override
@@ -384,6 +410,21 @@ public class SqlServerRuntimeDatabaseDialect implements RuntimeDatabaseDialect {
             return "datetime2";
         }
         return normalized;
+    }
+
+    private String tableDescriptionSql(String tableName, String comment) {
+        return "EXEC sp_addextendedproperty @name=N'MS_Description', @value=N'"
+            + escapeSqlComment(comment) + "', "
+            + "@level0type=N'SCHEMA', @level0name=SCHEMA_NAME(), "
+            + "@level1type=N'TABLE', @level1name=N'" + escapeSqlComment(tableName) + "'";
+    }
+
+    private String columnDescriptionSql(String tableName, String columnName, String comment) {
+        return "EXEC sp_addextendedproperty @name=N'MS_Description', @value=N'"
+            + escapeSqlComment(comment) + "', "
+            + "@level0type=N'SCHEMA', @level0name=SCHEMA_NAME(), "
+            + "@level1type=N'TABLE', @level1name=N'" + escapeSqlComment(tableName) + "', "
+            + "@level2type=N'COLUMN', @level2name=N'" + escapeSqlComment(columnName) + "'";
     }
 
     private String escapeSqlComment(String value) {

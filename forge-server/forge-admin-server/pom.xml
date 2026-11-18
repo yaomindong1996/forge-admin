@@ -28,6 +28,12 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!-- SQL Server 驱动（业务库 / 低代码运行库 / 数据连接；平台主库见阶段 3） -->
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <scope>runtime</scope>
+        </dependency>
         
         <dependency>
             <groupId>com.mdframe.forge</groupId>

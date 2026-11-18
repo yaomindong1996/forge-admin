@@ -18,8 +18,9 @@
 
 - 已有 MySQL 默认 + PostgreSQL 可选双栈：`db/{mysql,postgresql}/`、全量转换、baseline=`1.0.234`。
 - 可移植基础：`PortableCsvSql`、`DuplicateKeyActions`、`DatabaseIdProvider`（仅 mysql/postgresql）。
-- 低代码方言 SPI：`RuntimeDatabaseDialect` + MySQL / PostgreSQL / Oracle；**无 SQL Server 实现**。
-- Mapper 高危方言大多已清；仍大量 `NOW()`（约 63 文件）、`FOR UPDATE`（约 25 文件）、`CAST(... AS CHAR)`、协同回调 `DATE_ADD`+`UPDATE LIMIT`。
+- 低代码方言 SPI：`RuntimeDatabaseDialect` + MySQL / PostgreSQL / Oracle / **SQL Server**（阶段 1–2）。
+- 数据资产方言：MySQL / PostgreSQL / **SQL Server**（阶段 2）。
+- Mapper：`NOW()` / `CAST AS CHAR` / 协同 `DATE_ADD` 已在阶段 1 可移植化；仍有 `FOR UPDATE`、批量 `UPDATE LIMIT`（阶段 4）。
 
 ## 3. 方案要点
 

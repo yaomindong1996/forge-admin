@@ -12,8 +12,18 @@
 | SqlServer 方言 | 单测 | 工厂可解析；分页/标识符等基础行为正确 |
 | 回归 | `-Penable-tests` 相关模块 | 既有 MySQL/H2 路径单测通过 |
 
+## 阶段 2
+
+| 项 | 方式 | 通过标准 |
+|----|------|----------|
+| 数据方言工厂 | 单测 | SQLSERVER/mssql 别名可解析 |
+| SqlServerDialect | 单测 | 标识符/分页/绑参防注入 |
+| JDBC URL | 单测 | `databaseName=` 可解析 |
+| 低代码方言补强 | 单测 | 注释扩展属性、缺 ORDER BY 注入 |
+| 驱动 | pom 审阅 | admin/app/generator 含 mssql-jdbc |
+
 ## 后续阶段
 
 - SQL Server 真库：Flyway migrate、登录、组织权限、流程、定时任务冒烟
-- 低代码：建表/改列/分页查询
+- 低代码：建表/改列/分页查询（真库）
 - 三栈平行增量脚本一致性检查

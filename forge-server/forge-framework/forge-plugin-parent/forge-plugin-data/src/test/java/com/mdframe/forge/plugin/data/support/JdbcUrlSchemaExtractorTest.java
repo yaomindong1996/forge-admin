@@ -75,8 +75,18 @@ class JdbcUrlSchemaExtractorTest {
     }
 
     @Test
+    void extractsSqlServerDatabaseName() {
+        assertThat(JdbcUrlSchemaExtractor.extract(
+                "jdbc:sqlserver://localhost:1433;databaseName=demo;encrypt=false"))
+                .isEqualTo("demo");
+        assertThat(JdbcUrlSchemaExtractor.extract(
+                "jdbc:sqlserver://localhost:1433;encrypt=false;databaseName=forge_biz"))
+                .isEqualTo("forge_biz");
+    }
+
+    @Test
     void returnsNullWhenNoPathDatabase() {
-        assertThat(JdbcUrlSchemaExtractor.extract("jdbc:sqlserver://localhost:1433;databaseName=demo"))
+        assertThat(JdbcUrlSchemaExtractor.extract("jdbc:sqlserver://localhost:1433;encrypt=false"))
                 .isNull();
         assertThat(JdbcUrlSchemaExtractor.extract(null)).isNull();
         assertThat(JdbcUrlSchemaExtractor.extract("")).isNull();

@@ -16,6 +16,8 @@ forge-server/db/
 
 社区默认安装使用 **MySQL**。PostgreSQL 为可选双栈，详见 `postgresql/README.md`。
 
+业务库（低代码数据源 / 数据连接）已可选用 **SQL Server**（驱动与方言见变更 `mssql-dual-stack-support` 阶段 2）；平台主库 SQL Server 全量脚本见后续 `db/sqlserver/`（阶段 3）。
+
 ---
 
 ## 一、首次初始化（MySQL）

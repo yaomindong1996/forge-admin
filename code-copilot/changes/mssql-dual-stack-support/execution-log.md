@@ -12,3 +12,11 @@
   - 新增并注册 `SqlServerRuntimeDatabaseDialect` + 单测
   - 相关单测通过（orm/generator/job/system）
 - 未推送；下一步阶段 2 业务方言补强 / 阶段 3 平台 Schema
+
+## 2026-11-18（阶段 2）
+
+- 数据插件：`SqlServerDialect`、工厂别名、`JdbcUrlSchemaExtractor` 解析 `databaseName`
+- 低代码方言：表/列 `MS_Description`、分页缺 ORDER BY 注入、modify 附注释
+- 依赖：`mssql-jdbc` 进入 BOM / generator / admin-server / app-server
+- 管理端数据源 URL 示例随库类型变化；补充 `business-runtime-notes.md`
+- 相关单测通过后提交（不推送）

@@ -43,10 +43,12 @@ class SqlServerRuntimeDatabaseDialectTest {
     }
 
     @Test
-    @DisplayName("paginate uses OFFSET FETCH")
+    @DisplayName("paginate uses OFFSET FETCH and injects ORDER BY when missing")
     void paginate() {
-        assertEquals("SELECT 1 OFFSET 10 ROWS FETCH NEXT 20 ROWS ONLY",
+        assertEquals("SELECT 1 ORDER BY (SELECT NULL) OFFSET 10 ROWS FETCH NEXT 20 ROWS ONLY",
                 dialect.paginate("SELECT 1", 10, 20));
+        assertEquals("SELECT 1 ORDER BY id OFFSET 0 ROWS FETCH NEXT 5 ROWS ONLY",
+                dialect.paginate("SELECT 1 ORDER BY id", 0, 5));
     }
 
     @Test
@@ -93,8 +95,22 @@ class SqlServerRuntimeDatabaseDialectTest {
                 List.of(id, name),
                 List.of(new RuntimeDatabaseDialect.IndexDefinition("idx_biz_order_name", List.of("name"), false))
         );
+        assertTrue(after.stream().anyMatch(sql -> sql.contains("sp_addextendedproperty") && sql.contains("业务订单")),
+                after.toString());
         assertTrue(after.stream().anyMatch(sql -> sql.contains("CREATE INDEX [idx_biz_order_name] ON [biz_order]")),
                 after.toString());
+    }
+
+    @Test
+    @DisplayName("modify column updates type/nullability and description")
+    void modifyColumn() {
+        var column = new RuntimeDatabaseDialect.DdlColumn(
+                "amount", "decimal(18,2)", false, null, null, "金额", false);
+        List<String> statements = dialect.modifyColumnSql("biz_order", column);
+        assertEquals(2, statements.size());
+        assertTrue(statements.get(0).contains("ALTER COLUMN [amount] decimal(18,2) NULL"), statements.get(0));
+        assertTrue(statements.get(1).contains("sp_addextendedproperty"), statements.get(1));
+        assertTrue(statements.get(1).contains("金额"), statements.get(1));
     }
 
     @Test
