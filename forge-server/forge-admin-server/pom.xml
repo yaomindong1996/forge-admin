@@ -175,6 +175,10 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-sqlserver</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -222,6 +226,7 @@
                             <target>
                                 <delete dir="${project.build.outputDirectory}/db/mysql/migration" quiet="true"/>
                                 <delete dir="${project.build.outputDirectory}/db/postgresql/migration" quiet="true"/>
+                                <delete dir="${project.build.outputDirectory}/db/sqlserver/migration" quiet="true"/>
                             </target>
                         </configuration>
                     </execution>
@@ -254,6 +259,15 @@
                                 <resource>
                                     <directory>${project.basedir}/../db/postgresql/migration</directory>
                                     <targetPath>db/postgresql/migration</targetPath>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>*.sql</include>
+                                    </includes>
+                                </resource>
+                                <!-- SQL Server 平行增量：classpath:db/sqlserver/migration -->
+                                <resource>
+                                    <directory>${project.basedir}/../db/sqlserver/migration</directory>
+                                    <targetPath>db/sqlserver/migration</targetPath>
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>*.sql</include>

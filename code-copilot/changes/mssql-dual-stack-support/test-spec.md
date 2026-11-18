@@ -22,6 +22,15 @@
 | 低代码方言补强 | 单测 | 注释扩展属性、缺 ORDER BY 注入 |
 | 驱动 | pom 审阅 | admin/app/generator 含 mssql-jdbc |
 
+## 阶段 3
+
+| 项 | 方式 | 通过标准 |
+|----|------|----------|
+| 全量脚本 | `check-sqlserver-full-basics.py` | CREATE TABLE 充足、无 ENGINE、含 GO |
+| 平行增量 | `check-sqlserver-migration-pairs.mjs` | `>1.0.234` 与 MySQL 成对（可为空） |
+| 配置 | 审阅 | example yml + Admin 拷贝 `db/sqlserver/migration` |
+| Flyway 依赖 | 解析/编译 | 含 `flyway-sqlserver`（与 Flyway 10.20.x 构件名一致） |
+
 ## 后续阶段
 
 - SQL Server 真库：Flyway migrate、登录、组织权限、流程、定时任务冒烟

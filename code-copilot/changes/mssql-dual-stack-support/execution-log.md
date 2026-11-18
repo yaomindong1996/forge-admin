@@ -20,3 +20,11 @@
 - 依赖：`mssql-jdbc` 进入 BOM / generator / admin-server / app-server
 - 管理端数据源 URL 示例随库类型变化；补充 `business-runtime-notes.md`
 - 相关单测通过后提交（不推送）
+
+## 2026-11-18（阶段 3）
+
+- 新增 `convert-mysql-full-to-sqlserver.py` / `check-sqlserver-full-basics.py` / `check-sqlserver-migration-pairs.mjs`
+- 由 `ForgeAdmin-纯净版-latest.sql` 生成 `db/sqlserver/` 全量与纯净版（241 表）+ migration README（baseline 1.0.234）
+- `init-db-sqlserver.sh`、`application-sqlserver.example.yml`
+- Admin：`flyway-database-sqlserver` + classpath 拷贝 `db/sqlserver/migration`
+- 更新 `db/README.md` / CHANGELOG；不强制本机 SQL Server 冒烟

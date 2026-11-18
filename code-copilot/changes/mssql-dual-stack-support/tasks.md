@@ -24,9 +24,9 @@
 
 ## 阶段 3 — 平台 Schema
 
-- [ ] `db/sqlserver/` 全量转换脚本 + README
-- [ ] baseline `1.0.234` + 平行增量约定
-- [ ] 示例 `application-*.yml` / 驱动与 Flyway SQL Server 依赖
+- [x] `db/sqlserver/` 全量转换脚本 + README
+- [x] baseline `1.0.234` + 平行增量约定
+- [x] 示例 `application-*.yml` / 驱动与 Flyway SQL Server 依赖
 
 ## 阶段 4 — 引擎与锁语义
 
