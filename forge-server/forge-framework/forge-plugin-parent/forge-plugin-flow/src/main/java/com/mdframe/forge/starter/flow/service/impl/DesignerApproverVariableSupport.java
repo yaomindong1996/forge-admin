@@ -65,8 +65,9 @@ final class DesignerApproverVariableSupport {
             return firstNonBlank(org.getLeaderUserIdByLevel(userId, 1), first(org.getLeaderUserIds(userId)));
         }
         if (DEPT_MANAGER.equals(variable)) {
-            return firstNonBlank(org.getDeptManagerUserIdByLevel(userId, 1),
-                    first(org.getDeptManagerUserIds(userId)),
+            // getDeptManagerUserIdByLevel(user, 1) 返回的是上级部门负责人。
+            // 设计器「部门主管」是发起人所在部门的负责人；本部门没有主管时拒绝发起，不能改派到上级部门。
+            return firstNonBlank(first(org.getDeptManagerUserIds(userId)),
                     deptId == null ? null : first(org.getDeptManagerByDeptId(deptId)));
         }
         return first(org.getUserIdsByRoleCode(HR_ROLE_CODE));

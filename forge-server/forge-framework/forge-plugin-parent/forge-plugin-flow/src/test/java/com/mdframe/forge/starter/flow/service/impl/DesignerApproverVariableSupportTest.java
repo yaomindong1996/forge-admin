@@ -46,6 +46,28 @@ class DesignerApproverVariableSupportTest {
     }
 
     @Test
+    void usesTheInitiatorsOwnDepartmentManagerInsteadOfTheParentDepartment() {
+        when(org.getDeptManagerUserIdByLevel("9", 1)).thenReturn("999");
+        when(org.getDeptManagerUserIds("9")).thenReturn(List.of("200"));
+        Map<String, Object> variables = new HashMap<>();
+
+        DesignerApproverVariableSupport.enrich(model("${deptManager}"), variables, "9", "12", org);
+
+        assertThat(variables).containsEntry("deptManager", "200");
+    }
+
+    @Test
+    void refusesToStartWhenOwnDepartmentHasNoManagerEvenIfParentHasOne() {
+        when(org.getDeptManagerUserIdByLevel("9", 1)).thenReturn("999");
+        when(org.getDeptManagerUserIds("9")).thenReturn(List.of());
+        when(org.getDeptManagerByDeptId("12")).thenReturn(List.of());
+
+        assertThatThrownBy(() -> DesignerApproverVariableSupport.enrich(model("${deptManager}"),
+                new HashMap<>(), "9", "12", org))
+                .hasMessage("发起人所在部门未设置部门主管，无法确定审批节点「审批1」的审批人");
+    }
+
+    @Test
     void keepsCallerProvidedValuesAndIgnoresOtherAssignees() {
         Map<String, Object> variables = new HashMap<>(Map.of("deptManager", "777"));
 
