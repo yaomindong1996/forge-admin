@@ -24,17 +24,29 @@
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
-    <!-- 批量领取待处理事件：PENDING 或到期重试的 FAILED，置为 PROCESSING 并绑定 Worker -->
-    <update id="claimPendingEvents">
-        UPDATE sys_social_callback_event
-        SET process_status = 'PROCESSING',
-            claimed_by = #{workerId},
-            claim_time = CURRENT_TIMESTAMP
+    <!-- 两段式领取：先查候选 id（LIMIT 由 SQL Server 拦截器改写），再按 id CAS 更新 -->
+    <select id="selectClaimCandidateIds" resultType="java.lang.Long">
+        SELECT id
+        FROM sys_social_callback_event
         WHERE tenant_id = #{tenantId}
           AND (process_status = 'PENDING'
                OR (process_status = 'FAILED' AND next_retry_time IS NOT NULL AND next_retry_time &lt;= CURRENT_TIMESTAMP))
         ORDER BY id
         LIMIT #{batchSize}
+    </select>
+
+    <update id="claimEventsByIds">
+        UPDATE sys_social_callback_event
+        SET process_status = 'PROCESSING',
+            claimed_by = #{workerId},
+            claim_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{tenantId}
+          AND id IN
+          <foreach collection="ids" item="id" open="(" separator="," close=")">
+              #{id}
+          </foreach>
+          AND (process_status = 'PENDING'
+               OR (process_status = 'FAILED' AND next_retry_time IS NOT NULL AND next_retry_time &lt;= CURRENT_TIMESTAMP))
     </update>
 
     <!-- 查询指定 Worker 当前已领取的事件 -->

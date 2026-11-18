@@ -28,3 +28,10 @@
 - `init-db-sqlserver.sh`、`application-sqlserver.example.yml`
 - Admin：`flyway-database-sqlserver` + classpath 拷贝 `db/sqlserver/migration`
 - 更新 `db/README.md` / CHANGELOG；不强制本机 SQL Server 冒烟
+
+## 2026-11-18（阶段 4）
+
+- `SqlServerDialectSqlRewriter` / `SqlServerDialectSqlInterceptor`：FOR UPDATE→UPDLOCK，LIMIT→OFFSET/FETCH
+- 协同 `claimPendingEvents` 改为 selectClaimCandidateIds + claimEventsByIds
+- Quartz `QuartzDriverDelegateResolver`；Flowable `database-schema-update` 写入 sqlserver 示例
+- 单测：rewriter / claim 契约 / Quartz resolver

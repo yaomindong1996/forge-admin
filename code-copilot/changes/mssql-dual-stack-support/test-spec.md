@@ -31,6 +31,15 @@
 | 配置 | 审阅 | example yml + Admin 拷贝 `db/sqlserver/migration` |
 | Flyway 依赖 | 解析/编译 | 含 `flyway-sqlserver`（与 Flyway 10.20.x 构件名一致） |
 
+## 阶段 4
+
+| 项 | 方式 | 通过标准 |
+|----|------|----------|
+| FOR UPDATE / LIMIT 改写 | 单测 | UPDLOCK / OFFSET FETCH；LIMIT OFFSET 参数交换标记 |
+| 协同 claim | XML 契约 | 两段式；UPDATE 无 ORDER BY LIMIT |
+| Quartz Delegate | 单测 | SQL Server→MSSQLDelegate |
+| Flowable 配置 | 审阅 | sqlserver 示例含 database-schema-update=true |
+
 ## 后续阶段
 
 - SQL Server 真库：Flyway migrate、登录、组织权限、流程、定时任务冒烟

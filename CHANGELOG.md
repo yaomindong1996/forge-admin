@@ -10,6 +10,7 @@
 本节保留 `v1.2.0` 源码快照中的历史待整理条目，新变更单独标注日期；不能将整个 Unreleased 视为本周或 1.2.1 的新增能力。
 
 ### Added
+- （2026-11-18）MSSQL 双轨支持阶段 4：SQL Server 运行时改写 `FOR UPDATE`/`LIMIT`；协同回调两段式领取；Quartz 按库选择 `MSSQLDelegate`；Flowable schema-update 示例配置。
 - （2026-11-18）MSSQL 双轨支持阶段 3：`db/sqlserver/` 全量/纯净版（由 MySQL tip 纯净 dump 转换）、baseline `1.0.234` 平行增量约定、`init-db-sqlserver.sh`、`application-sqlserver.example.yml`、Admin `flyway-sqlserver` 依赖与 classpath 拷贝。
 - （2026-11-18）MSSQL 双轨支持阶段 2：数据资产 `SqlServerDialect`；JDBC URL 解析 `databaseName`；admin/app/generator 引入 `mssql-jdbc`；低代码方言补强注释与 OFFSET/FETCH；管理端数据源 URL 按库类型提示。
 - （2026-11-18）MSSQL 双轨支持阶段 1：Mapper 可移植时间函数与 varchar 转换；低代码新增 `SqlServerRuntimeDatabaseDialect`；MyBatis DatabaseId 识别 SQL Server；重复键处理覆盖 SQL Server 2627/2601；协同回调失败退避改 Java 计算。

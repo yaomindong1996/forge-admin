@@ -21,10 +21,11 @@ public class ScheduleConfig {
     public SchedulerFactoryBean schedulerFactoryBean(DataSource dataSource, JobProperties jobProperties) {
 
         SchedulerFactoryBean factory = new SchedulerFactoryBean();
+        DataSource quartzDataSource = dataSource;
         if (dataSource instanceof DynamicRoutingDataSource) {
             DynamicRoutingDataSource dynamicRoutingDataSource = (DynamicRoutingDataSource) dataSource;
-            DataSource master = dynamicRoutingDataSource.getDataSource("master");
-            factory.setDataSource(master);
+            quartzDataSource = dynamicRoutingDataSource.getDataSource("master");
+            factory.setDataSource(quartzDataSource);
         } else {
             factory.setDataSource(dataSource);
         }
@@ -36,9 +37,9 @@ public class ScheduleConfig {
         prop.put("org.quartz.threadPool.class", "org.quartz.simpl.SimpleThreadPool");
         prop.put("org.quartz.threadPool.threadCount", String.valueOf(normalizeThreadPoolSize(jobProperties)));
         prop.put("org.quartz.threadPool.threadPriority", "5");
-        // JobStore配置
+        // JobStore配置（按主库产品选择 Delegate：MySQL / PostgreSQL / SQL Server）
         prop.put("org.quartz.jobStore.class", "org.springframework.scheduling.quartz.LocalDataSourceJobStore");
-        prop.put("org.quartz.jobStore.driverDelegateClass", "org.quartz.impl.jdbcjobstore.StdJDBCDelegate");
+        prop.put("org.quartz.jobStore.driverDelegateClass", QuartzDriverDelegateResolver.resolve(quartzDataSource));
         prop.put("org.quartz.jobStore.isClustered", String.valueOf(Boolean.TRUE.equals(jobProperties.getClustered())));
         prop.put("org.quartz.jobStore.clusterCheckinInterval", String.valueOf(normalizePositive(
                 jobProperties.getClusterCheckinInterval(), 15000L)));

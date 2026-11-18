@@ -31,4 +31,10 @@ jdbc:sqlserver://主机:1433;databaseName=库名;encrypt=false
 
 - 开关字段继续用 **0/1 tinyint**，避免 `bit` 绑定差异。
 - `sp_addextendedproperty` 写注释；重复执行改注释可能需先 drop 再 add（后续可补强）。
-- **平台库** 迁到 SQL Server（Flyway / Flowable / Quartz）属于阶段 3–4，本说明不覆盖。
+
+## 平台主库（阶段 3–4）
+
+- 初始化：`init-db-sqlserver.sh` + `db/sqlserver/` 全量；Flyway baseline `1.0.234`。
+- `FOR UPDATE` / 裸 `LIMIT`：由 `SqlServerDialectSqlInterceptor` 运行时改写；协同回调领取为两段式（查 id + CAS 更新）。
+- Quartz：`ScheduleConfig` 自动选 `MSSQLDelegate`；`qrtz_*` 表已在全量脚本中。
+- Flowable：全量跳过 `act_*`/`flw_*`，示例配置须 `flowable.database-schema-update: true`（见 `application-sqlserver.example.yml`）。

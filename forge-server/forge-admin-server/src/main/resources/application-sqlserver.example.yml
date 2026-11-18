@@ -30,6 +30,12 @@ spring:
     baseline-on-migrate: true
     baseline-version: ${FORGE_FLYWAY_BASELINE_VERSION:1.0.234}
 
+# 全量脚本跳过 act_*/flw_*，首次启动须由引擎建表
+flowable:
+  database-schema-update: true
+  async-executor-activate: true
+  history-level: full
+
 config:
   datasource:
     url: ${spring.datasource.dynamic.datasource.master.url}

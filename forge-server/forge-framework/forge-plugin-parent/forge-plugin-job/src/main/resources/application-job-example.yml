@@ -16,6 +16,8 @@ spring:
           jobStore:
             # 使用JDBC存储
             class: org.quartz.impl.jdbcjobstore.JobStoreTx
+            # 生产路径由 ScheduleConfig 按主库产品自动选择：
+            # MySQL→StdJDBCDelegate / PostgreSQL→PostgreSQLDelegate / SQL Server→MSSQLDelegate
             driverDelegateClass: org.quartz.impl.jdbcjobstore.StdJDBCDelegate
             # 表前缀
             tablePrefix: QRTZ_

@@ -106,13 +106,18 @@ public class CollaborationCallbackInboxService {
     }
 
     /**
-     * 批量领取待处理事件（PENDING 或到期重试的 FAILED），返回领取数量
+     * 批量领取待处理事件（PENDING 或到期重试的 FAILED），返回领取数量。
+     * 两段式：先查候选 id，再 CAS 更新，避免 {@code UPDATE ... ORDER BY LIMIT} 方言。
      */
     public int claimPendingEvents(Long tenantId, int batchSize, String workerId) {
         if (batchSize <= 0) {
             return 0;
         }
-        return callbackEventMapper.claimPendingEvents(tenantId, batchSize, workerId);
+        List<Long> candidateIds = callbackEventMapper.selectClaimCandidateIds(tenantId, batchSize);
+        if (candidateIds == null || candidateIds.isEmpty()) {
+            return 0;
+        }
+        return callbackEventMapper.claimEventsByIds(tenantId, workerId, candidateIds);
     }
 
     /**

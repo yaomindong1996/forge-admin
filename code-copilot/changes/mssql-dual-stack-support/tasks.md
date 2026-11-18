@@ -30,9 +30,9 @@
 
 ## 阶段 4 — 引擎与锁语义
 
-- [ ] `FOR UPDATE` / 批量 `UPDATE ... LIMIT` 可移植或方言化
-- [ ] Flowable SQL Server
-- [ ] Quartz `MSSQLDelegate` + 表脚本
+- [x] `FOR UPDATE` / 批量 `UPDATE ... LIMIT` 可移植或方言化（拦截器 + 协同两段式 claim）
+- [x] Flowable SQL Server（schema-update 示例配置）
+- [x] Quartz `MSSQLDelegate` 按库自动选择（表脚本阶段 3 已有）
 
 ## 阶段 5–6 — 矩阵与 Pro 同步
 

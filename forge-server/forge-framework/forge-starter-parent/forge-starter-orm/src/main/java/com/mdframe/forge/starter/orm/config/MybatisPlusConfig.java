@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.extension.plugins.inner.InnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInterceptor;
 import com.mdframe.forge.starter.orm.handler.InjectionMetaObjectHandler;
 import com.mdframe.forge.starter.orm.interceptor.CountOnePaginationInnerInterceptor;
+import com.mdframe.forge.starter.orm.interceptor.SqlServerDialectSqlInterceptor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.mapping.DatabaseIdProvider;
 import org.apache.ibatis.mapping.VendorDatabaseIdProvider;
@@ -42,7 +43,7 @@ public class MybatisPlusConfig implements InitializingBean {
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
         
-        // 1. 先添加其他模块注册的拦截器（按优先级顺序）
+        // 1. 先添加其他模块注册的拦截器（租户 / 数据权限等）
         if (innerInterceptors != null && !innerInterceptors.isEmpty()) {
             log.info("检测到 {} 个自定义拦截器，开始注册", innerInterceptors.size());
             innerInterceptors.forEach(inner -> {
@@ -50,11 +51,14 @@ public class MybatisPlusConfig implements InitializingBean {
                 log.info("注册拦截器: {}", inner.getClass().getSimpleName());
             });
         }
+
+        // 2. SQL Server 方言改写（FOR UPDATE / LIMIT），须在租户改写之后、分页之前
+        interceptor.addInnerInterceptor(new SqlServerDialectSqlInterceptor());
         
-        // 2. 添加分页插件
+        // 3. 添加分页插件
         interceptor.addInnerInterceptor(paginationInnerInterceptor());
         
-        // 3. 添加乐观锁插件
+        // 4. 添加乐观锁插件
         interceptor.addInnerInterceptor(optimisticLockerInnerInterceptor());
         
         log.info("MyBatis-Plus拦截器初始化完成，共 {} 个拦截器", interceptor.getInterceptors().size());
