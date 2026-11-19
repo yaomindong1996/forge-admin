@@ -1,0 +1,101 @@
+# SQL Server 双栈冒烟：本分支 jar + Azure SQL Edge
+# 用法：
+#   1) docker compose -f docker-compose.yml -f docker-compose.mssql-test.yml up -d mssql redis
+#   2) 导入全量/纯净版 SQL 后
+#   3) docker compose -f docker-compose.yml -f docker-compose.mssql-test.yml up -d forge-flow forge-admin
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    container_name: forge-mssql
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Forge_Sa_Passw0rd}
+      MSSQL_PID: Developer
+      TZ: ${TZ:-Asia/Shanghai}
+    ports:
+      - "${MSSQL_HOST_PORT:-1433}:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    # 2022 镜像不含 sqlcmd；用 /dev/tcp 探测 1433
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/1433'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+    networks:
+      - forge-network
+
+  forge-flow:
+    image: eclipse-temurin:17-jre
+    working_dir: /app
+    volumes:
+      - ../forge-server/forge-flow/forge-flow-server/target/forge-flow-server.jar:/app/app.jar:ro
+      - ./application-datasource-mssql.yml:/app/application-prod.yml:ro
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      MSSQL_HOST: mssql
+      MSSQL_PORT: 1433
+      MSSQL_DB: forge_admin
+      MSSQL_USER: sa
+      MSSQL_PASSWORD: ${MSSQL_SA_PASSWORD:-Forge_Sa_Passw0rd}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: forge123456
+      # 全量/纯净版已含 forge_schema_history；migration 目录当前仅 README，冒烟关闭 Flyway
+      FORGE_FLYWAY_ENABLED: "false"
+      FORGE_FLYWAY_BASELINE_VERSION: "1.0.234"
+      JAVA_OPTS: ${JAVA_OPTS:--Xms256m -Xmx512m}
+    depends_on:
+      mssql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    entrypoint: ["sh", "-c", "java $${JAVA_OPTS} -Dspring.profiles.active=prod -jar /app/app.jar"]
+    ports:
+      - "${FLOW_PORT:-8081}:8081"
+    networks:
+      - forge-network
+
+  forge-admin:
+    image: eclipse-temurin:17-jre
+    working_dir: /app
+    volumes:
+      - ../forge-server/forge-admin-server/target/forge-admin-server.jar:/app/app.jar:ro
+      - ./application-datasource-mssql.yml:/app/application-prod.yml:ro
+      - crypto_secrets:/var/lib/forge/secrets
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      MSSQL_HOST: mssql
+      MSSQL_PORT: 1433
+      MSSQL_DB: forge_admin
+      MSSQL_USER: sa
+      MSSQL_PASSWORD: ${MSSQL_SA_PASSWORD:-Forge_Sa_Passw0rd}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: forge123456
+      FLOW_CLIENT_URL: http://forge-flow:8081
+      FORGE_FLYWAY_ENABLED: "false"
+      FORGE_FLYWAY_BASELINE_VERSION: "1.0.234"
+      FORGE_CRYPTO_BOOTSTRAP_ENABLED: "true"
+      FORGE_CRYPTO_BOOTSTRAP_FILE: /var/lib/forge/secrets/crypto.properties
+      FORGE_AUTH_LEGACY_CLIENT_SECRET_READ_ENABLED: "true"
+      JAVA_OPTS: ${JAVA_OPTS:--Xms256m -Xmx768m}
+    depends_on:
+      mssql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      forge-flow:
+        condition: service_started
+    entrypoint: ["sh", "-c", "java $${JAVA_OPTS} -Dspring.profiles.active=prod -Dforge.flow.client.url=$${FLOW_CLIENT_URL} -jar /app/app.jar"]
+    ports:
+      - "${ADMIN_PORT:-8580}:8580"
+    networks:
+      - forge-network
+
+volumes:
+  mssql_data:
+    driver: local

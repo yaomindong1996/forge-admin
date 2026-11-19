@@ -35,3 +35,10 @@
 - 协同 `claimPendingEvents` 改为 selectClaimCandidateIds + claimEventsByIds
 - Quartz `QuartzDriverDelegateResolver`；Flowable `database-schema-update` 写入 sqlserver 示例
 - 单测：rewriter / claim 契约 / Quartz resolver
+
+## 2026-11-19（阶段 4 真库冒烟）
+
+- Docker `mssql/server:2022`（linux/amd64）+ `docker-compose.mssql-test.yml`
+- 导入全量/纯净版：需 `N'...'` Unicode 字面量、拆分 >1000 行 INSERT、qrtz empty varbinary→NULL；`sys_resource` 唯一索引与 MySQL NULL 语义差异需临时 drop
+- `LIMIT n` 改写改为 `TOP (n)`（含子查询）；分页仍用 OFFSET/FETCH
+- Admin/Flow health UP；登录 + 菜单权限 OK；Flowable 自建 act_/flw_ 共 62 表

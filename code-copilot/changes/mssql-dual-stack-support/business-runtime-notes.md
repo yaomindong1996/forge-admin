@@ -35,6 +35,8 @@ jdbc:sqlserver://主机:1433;databaseName=库名;encrypt=false
 ## 平台主库（阶段 3–4）
 
 - 初始化：`init-db-sqlserver.sh` + `db/sqlserver/` 全量；Flyway baseline `1.0.234`。
-- `FOR UPDATE` / 裸 `LIMIT`：由 `SqlServerDialectSqlInterceptor` 运行时改写；协同回调领取为两段式（查 id + CAS 更新）。
+- 本地 Docker 冒烟：`docker-forge-admin/docker-compose.mssql-test.yml`（SQL Server 2022 amd64 + 本分支 jar）。
+- 用旧版 `sqlcmd` 导入时注意：非 ASCII 字面量需 `N'...'`；单条 INSERT ≤1000 行；`qrtz_triggers.job_data` 空串改为 `NULL`。
+- `FOR UPDATE` → `WITH (UPDLOCK)`；裸 `LIMIT n` → `TOP (n)`（含子查询）；`LIMIT/OFFSET` 分页 → `OFFSET/FETCH`。
 - Quartz：`ScheduleConfig` 自动选 `MSSQLDelegate`；`qrtz_*` 表已在全量脚本中。
-- Flowable：全量跳过 `act_*`/`flw_*`，示例配置须 `flowable.database-schema-update: true`（见 `application-sqlserver.example.yml`）。
+- Flowable：全量跳过 `act_*`/`flw_*`，须 `flowable.database-schema-update: true`；首次启动由引擎建表。

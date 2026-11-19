@@ -30,12 +30,12 @@ class SqlServerDialectSqlRewriterTest {
     }
 
     @Test
-    void rewritesLimitOnlyAndInjectsOrderBy() {
+    void rewritesLimitOnlyAsTop() {
         String sql = "SELECT id FROM t WHERE a = 1 LIMIT ?";
         String out = SqlServerDialectSqlRewriter.rewrite(sql);
-        assertThat(out).contains("ORDER BY (SELECT NULL)");
-        assertThat(out).endsWith("OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY");
+        assertThat(out).startsWith("SELECT TOP (?) id FROM t WHERE a = 1");
         assertThat(out).doesNotContain("LIMIT");
+        assertThat(out).doesNotContain("OFFSET");
     }
 
     @Test
@@ -58,5 +58,21 @@ class SqlServerDialectSqlRewriterTest {
     void leavesPlainSelectUntouched() {
         String sql = "SELECT id FROM t WHERE a = 1 ORDER BY id";
         assertThat(SqlServerDialectSqlRewriter.rewrite(sql)).isEqualTo(sql);
+    }
+
+    @Test
+    void rewritesLimitInsideSubqueriesAndOuterAsTop() {
+        String sql = "SELECT job.id, "
+                + "(SELECT log.status FROM sys_job_log log WHERE log.job_config_id = job.id "
+                + "ORDER BY log.start_time DESC, log.id DESC LIMIT 1) AS last_execution_status, "
+                + "(SELECT log.start_time FROM sys_job_log log WHERE log.job_config_id = job.id "
+                + "ORDER BY log.start_time DESC, log.id DESC LIMIT 1) AS last_execution_time "
+                + "FROM sys_job_config job WHERE job.job_name = ? AND job.del_flag = 0 LIMIT 1";
+        String out = SqlServerDialectSqlRewriter.rewrite(sql);
+        assertThat(out).doesNotContain("LIMIT");
+        assertThat(out).doesNotContain("OFFSET");
+        assertThat(out).contains("SELECT TOP (1) job.id");
+        assertThat(out).contains("(SELECT TOP (1) log.status FROM sys_job_log log");
+        assertThat(out).contains("(SELECT TOP (1) log.start_time FROM sys_job_log log");
     }
 }
