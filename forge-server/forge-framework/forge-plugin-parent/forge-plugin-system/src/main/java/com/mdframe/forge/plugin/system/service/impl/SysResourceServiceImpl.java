@@ -424,10 +424,14 @@ public class SysResourceServiceImpl extends ServiceImpl<SysResourceMapper, SysRe
 
     /**
      * 按租户套餐 RESOURCE 白名单裁剪菜单：命中节点、其子菜单、祖先目录保留；
-     * 白名单为空或超管不裁剪。
+     * 白名单为空、超管、默认租户（id=1）不裁剪。
      */
     private List<SysResource> applyPackageMenuVisibility(LoginUser loginUser, List<SysResource> menuResources) {
         if (loginUser == null || loginUser.isAdmin() || CollUtil.isEmpty(menuResources)) {
+            return menuResources;
+        }
+        // 默认租户（id=1）是平台运营空间，不受套餐菜单白名单限制
+        if (Objects.equals(loginUser.getTenantId(), 1L)) {
             return menuResources;
         }
         Set<Long> whitelist = tenantPackageService.resolveMenuResourceWhitelist(loginUser.getTenantId());

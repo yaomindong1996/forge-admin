@@ -15,7 +15,7 @@
 - `TenantLineInnerInterceptor` 自动追加 `WHERE tenant_id = 当前租户ID`，`0` 的数据对所有租户不可见
 - `sys_resource`（菜单/权限）表不受租户拦截，`tenant_id` 设为 `1` 即可
 - 新建租户走「套餐 → 组成项 → 开通引擎」：超管在「租户套餐」维护 `sys_tenant_package` / `sys_tenant_package_item`；创建时选 `packageId`（可微调 `bootstrapPackages` / `userLimit`），`SysTenantServiceImpl` 解析套餐后调用 `TenantBaseDataBootstrapService` 并写入 `sys_tenant_package_grant` 开通快照。已有空租户可用 `/system/tenant/bootstrapBaseData` 按已绑套餐（或显式 packages）幂等补齐。行政区划等平台表无需拷贝；套餐定义变更不回写已开租户
-- 运行时仅裁剪菜单可见性：`/auth/current/menu` 按开通快照/套餐 `RESOURCE.resourceIds` 白名单过滤侧栏；未配置白名单则不裁剪。不按套餐拦截 API、按钮权限或插件
+- 运行时仅裁剪菜单可见性：`/auth/current/menu` 按开通快照/套餐 `RESOURCE.resourceIds` 白名单过滤侧栏；未配置白名单、超管、**默认租户（id=1）** 不裁剪。不按套餐拦截 API、按钮权限或插件
 
 ### 5.3 分页参数命名
 

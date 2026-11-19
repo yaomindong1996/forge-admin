@@ -219,7 +219,8 @@ public class SysTenantPackageServiceImpl implements ISysTenantPackageService {
 
     @Override
     public Set<Long> resolveMenuResourceWhitelist(Long tenantId) {
-        if (tenantId == null) {
+        // 默认租户不做套餐菜单裁剪
+        if (tenantId == null || Objects.equals(tenantId, 1L)) {
             return Set.of();
         }
         return TenantContextHolder.executeIgnore(() -> {
