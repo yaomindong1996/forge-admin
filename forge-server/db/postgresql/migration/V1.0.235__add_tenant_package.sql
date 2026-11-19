@@ -117,19 +117,19 @@ INSERT INTO sys_resource (
     keep_alive, always_show, remark,
     create_by, create_time, update_by, update_time, create_dept, client_code, del_flag
 )
-SELECT 1, '租户套餐', s.id, '/system/tenant-package', 'system/tenant-package', 2,
+SELECT 1, '租户套餐', t.parent_id, '/system/tenant-package', 'system/tenant-package', 2,
        COALESCE(t.sort, 50) + 1,
        0, '_self', 0, 1, 1, 'system:tenantPackage:view',
        0, 0, '租户开通模板管理',
        1, CURRENT_TIMESTAMP, 1, CURRENT_TIMESTAMP, 1, 'pc', 0
-FROM sys_resource s
-LEFT JOIN sys_resource t ON t.tenant_id = 1 AND t.path = '/system/tenant' AND t.del_flag = 0
-WHERE s.tenant_id = 1 AND s.path = '/system' AND s.del_flag = 0
+FROM sys_resource t
+WHERE t.tenant_id = 1 AND t.path = '/system/tenant' AND t.del_flag = 0
+  AND t.parent_id IS NOT NULL
   AND NOT EXISTS (
       SELECT 1 FROM sys_resource r
       WHERE r.tenant_id = 1 AND r.path = '/system/tenant-package' AND r.del_flag = 0
   )
-ORDER BY s.id
+ORDER BY t.id
 LIMIT 1;
 
 INSERT INTO sys_resource (
@@ -144,13 +144,13 @@ SELECT 1, seed.resource_name, m.id, 4, seed.sort,
        1, CURRENT_TIMESTAMP, 1, CURRENT_TIMESTAMP, 1, 'pc', 0
 FROM sys_resource m
 CROSS JOIN (
-    SELECT '套餐分页' AS resource_name, 1 AS sort, 'system:tenantPackage:view' AS perms, 'GET' AS api_method,
+    SELECT '套餐分页' AS resource_name, 1 AS sort, 'system:tenantPackage:page' AS perms, 'GET' AS api_method,
            '/system/tenant-package/page' AS api_url, '分页查询租户套餐' AS remark
-    UNION ALL SELECT '套餐详情', 2, 'system:tenantPackage:view', 'GET', '/system/tenant-package/:id', '查询套餐详情'
-    UNION ALL SELECT '套餐选项', 3, 'system:tenantPackage:view', 'GET', '/system/tenant-package/options', '启用套餐下拉'
-    UNION ALL SELECT '新增套餐', 4, 'system:tenantPackage:manage', 'POST', '/system/tenant-package/add', '新增租户套餐'
-    UNION ALL SELECT '修改套餐', 5, 'system:tenantPackage:manage', 'POST', '/system/tenant-package/edit', '修改租户套餐'
-    UNION ALL SELECT '删除套餐', 6, 'system:tenantPackage:manage', 'POST', '/system/tenant-package/remove', '删除租户套餐'
+    UNION ALL SELECT '套餐详情', 2, 'system:tenantPackage:detail', 'GET', '/system/tenant-package/:id', '查询套餐详情'
+    UNION ALL SELECT '套餐选项', 3, 'system:tenantPackage:options', 'GET', '/system/tenant-package/options', '启用套餐下拉'
+    UNION ALL SELECT '新增套餐', 4, 'system:tenantPackage:add', 'POST', '/system/tenant-package/add', '新增租户套餐'
+    UNION ALL SELECT '修改套餐', 5, 'system:tenantPackage:edit', 'POST', '/system/tenant-package/edit', '修改租户套餐'
+    UNION ALL SELECT '删除套餐', 6, 'system:tenantPackage:remove', 'POST', '/system/tenant-package/remove', '删除租户套餐'
 ) seed
 WHERE m.tenant_id = 1 AND m.path = '/system/tenant-package' AND m.del_flag = 0
   AND NOT EXISTS (

@@ -1,4 +1,8 @@
 -- 租户套餐（开通模板）：与 MySQL V1.0.235 平行
+-- sqlcmd 默认可能关闭 QUOTED_IDENTIFIER；sys_resource 等表索引要求必须 ON。
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+GO
 
 IF OBJECT_ID(N'sys_tenant_package', N'U') IS NULL
 BEGIN
@@ -133,8 +137,9 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys_resource WHERE tenant_id = 1 AND path = N'/system/tenant-package' AND del_flag = 0)
 BEGIN
-    DECLARE @system_menu_id bigint = (SELECT TOP 1 id FROM sys_resource WHERE tenant_id = 1 AND path = N'/system' AND del_flag = 0 ORDER BY id);
-    DECLARE @tenant_sort int = (SELECT TOP 1 sort FROM sys_resource WHERE tenant_id = 1 AND path = N'/system/tenant' AND del_flag = 0 ORDER BY id);
+    DECLARE @tenant_menu_id bigint = (SELECT TOP 1 id FROM sys_resource WHERE tenant_id = 1 AND path = N'/system/tenant' AND del_flag = 0 ORDER BY id);
+    DECLARE @system_menu_id bigint = (SELECT parent_id FROM sys_resource WHERE id = @tenant_menu_id);
+    DECLARE @tenant_sort int = (SELECT sort FROM sys_resource WHERE id = @tenant_menu_id);
     IF @system_menu_id IS NOT NULL
     BEGIN
         INSERT INTO sys_resource (
@@ -167,12 +172,12 @@ BEGIN
            v.api_method, v.api_url, 0, 0, v.remark,
            1, SYSDATETIME(), 1, SYSDATETIME(), 1, N'pc', 0
     FROM (VALUES
-        (N'套餐分页', 1, N'system:tenantPackage:view', N'GET', N'/system/tenant-package/page', N'分页查询租户套餐'),
-        (N'套餐详情', 2, N'system:tenantPackage:view', N'GET', N'/system/tenant-package/:id', N'查询套餐详情'),
-        (N'套餐选项', 3, N'system:tenantPackage:view', N'GET', N'/system/tenant-package/options', N'启用套餐下拉'),
-        (N'新增套餐', 4, N'system:tenantPackage:manage', N'POST', N'/system/tenant-package/add', N'新增租户套餐'),
-        (N'修改套餐', 5, N'system:tenantPackage:manage', N'POST', N'/system/tenant-package/edit', N'修改租户套餐'),
-        (N'删除套餐', 6, N'system:tenantPackage:manage', N'POST', N'/system/tenant-package/remove', N'删除租户套餐')
+        (N'套餐分页', 1, N'system:tenantPackage:page', N'GET', N'/system/tenant-package/page', N'分页查询租户套餐'),
+        (N'套餐详情', 2, N'system:tenantPackage:detail', N'GET', N'/system/tenant-package/:id', N'查询套餐详情'),
+        (N'套餐选项', 3, N'system:tenantPackage:options', N'GET', N'/system/tenant-package/options', N'启用套餐下拉'),
+        (N'新增套餐', 4, N'system:tenantPackage:add', N'POST', N'/system/tenant-package/add', N'新增租户套餐'),
+        (N'修改套餐', 5, N'system:tenantPackage:edit', N'POST', N'/system/tenant-package/edit', N'修改租户套餐'),
+        (N'删除套餐', 6, N'system:tenantPackage:remove', N'POST', N'/system/tenant-package/remove', N'删除租户套餐')
     ) v(resource_name, sort, perms, api_method, api_url, remark)
     WHERE NOT EXISTS (
         SELECT 1 FROM sys_resource r

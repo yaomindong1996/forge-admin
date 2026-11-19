@@ -127,16 +127,15 @@ WHERE @minimal_id IS NOT NULL
         AND i.item_code = seed.item_code AND i.del_flag = 0
   );
 
--- 菜单：租户套餐（挂在系统管理下，紧邻租户管理）
-SET @system_menu_id = (
-    SELECT id FROM sys_resource
-    WHERE tenant_id = 1 AND path = '/system' AND del_flag = 0
-    ORDER BY id LIMIT 1
-);
+-- 菜单：租户套餐（挂在「租户管理」同级目录下；勿写死 /system，MSSQL 等库父节点可能是 /platform）
 SET @tenant_menu_id = (
     SELECT id FROM sys_resource
     WHERE tenant_id = 1 AND path = '/system/tenant' AND del_flag = 0
     ORDER BY id LIMIT 1
+);
+SET @system_menu_id = (
+    SELECT parent_id FROM sys_resource
+    WHERE id = @tenant_menu_id
 );
 
 INSERT INTO sys_resource (
@@ -173,18 +172,19 @@ SELECT 1, seed.resource_name, @pkg_menu_id, 4, seed.sort,
        seed.api_method, seed.api_url, 0, 0, seed.remark,
        1, NOW(), 1, NOW(), 1, 'pc', 0
 FROM (
-    SELECT '套餐分页' resource_name, 1 sort, 'system:tenantPackage:view' perms, 'GET' api_method,
+    -- perms 必须唯一（uk_tenant_resource_active）；勿复用同一 view/manage 编码
+    SELECT '套餐分页' resource_name, 1 sort, 'system:tenantPackage:page' perms, 'GET' api_method,
            '/system/tenant-package/page' api_url, '分页查询租户套餐' remark
     UNION ALL
-    SELECT '套餐详情', 2, 'system:tenantPackage:view', 'GET', '/system/tenant-package/:id', '查询套餐详情'
+    SELECT '套餐详情', 2, 'system:tenantPackage:detail', 'GET', '/system/tenant-package/:id', '查询套餐详情'
     UNION ALL
-    SELECT '套餐选项', 3, 'system:tenantPackage:view', 'GET', '/system/tenant-package/options', '启用套餐下拉'
+    SELECT '套餐选项', 3, 'system:tenantPackage:options', 'GET', '/system/tenant-package/options', '启用套餐下拉'
     UNION ALL
-    SELECT '新增套餐', 4, 'system:tenantPackage:manage', 'POST', '/system/tenant-package/add', '新增租户套餐'
+    SELECT '新增套餐', 4, 'system:tenantPackage:add', 'POST', '/system/tenant-package/add', '新增租户套餐'
     UNION ALL
-    SELECT '修改套餐', 5, 'system:tenantPackage:manage', 'POST', '/system/tenant-package/edit', '修改租户套餐'
+    SELECT '修改套餐', 5, 'system:tenantPackage:edit', 'POST', '/system/tenant-package/edit', '修改租户套餐'
     UNION ALL
-    SELECT '删除套餐', 6, 'system:tenantPackage:manage', 'POST', '/system/tenant-package/remove', '删除租户套餐'
+    SELECT '删除套餐', 6, 'system:tenantPackage:remove', 'POST', '/system/tenant-package/remove', '删除租户套餐'
 ) seed
 WHERE @pkg_menu_id IS NOT NULL
   AND NOT EXISTS (
