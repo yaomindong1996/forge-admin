@@ -264,20 +264,23 @@ public class SysTenantServiceImpl extends ServiceImpl<SysTenantMapper, SysTenant
         BeanUtil.copyProperties(dto, tenant);
         boolean inserted = tenantMapper.insert(tenant) > 0;
         if (inserted && tenant.getId() != null) {
-            tenantBaseDataBootstrapService.ensureFromDefaultTenant(tenant.getId());
+            tenantBaseDataBootstrapService.ensureFromDefaultTenant(
+                    tenant.getId(), dto.getBootstrapPackages(), tenant.getTenantName());
         }
         return inserted;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public TenantBaseDataBootstrapService.BootstrapResult bootstrapBaseData(Long tenantId) {
+    public TenantBaseDataBootstrapService.BootstrapResult bootstrapBaseData(Long tenantId, java.util.List<String> packages) {
         assertSuperAdmin();
         assertCanAccessTenant(tenantId);
-        if (tenantMapper.selectById(tenantId) == null) {
+        SysTenant existing = tenantMapper.selectById(tenantId);
+        if (existing == null) {
             throw new BusinessException("租户不存在");
         }
-        return tenantBaseDataBootstrapService.ensureFromDefaultTenant(tenantId);
+        return tenantBaseDataBootstrapService.ensureFromDefaultTenant(
+                tenantId, packages, existing.getTenantName());
     }
 
     @Override

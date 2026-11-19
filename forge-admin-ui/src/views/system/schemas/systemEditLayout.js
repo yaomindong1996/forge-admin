@@ -59,6 +59,7 @@ export function buildSystemEditCards(sections = []) {
         type: 'card',
         nodeType: 'card',
         label: section.label || '基础信息',
+        vIf: section.vIf,
         props: {
           icon: section.icon || 'forge:module',
           bordered: true,

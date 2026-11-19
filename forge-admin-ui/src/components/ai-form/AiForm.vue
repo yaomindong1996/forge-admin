@@ -1311,6 +1311,8 @@ function filterVisibleNodes(nodes = []) {
       if (!node || typeof node !== 'object')
         return null
       if (isRuntimeLayoutNode(node)) {
+        if (!isFieldVisible(node))
+          return null
         const children = filterVisibleNodes(node.children || [])
         if (!children.length && !isStandaloneRuntimeLayoutNode(node) && !props.keepEmptyLayoutNodes)
           return null

@@ -113,11 +113,14 @@ public class SysTenantController {
     }
 
     /**
-     * 为已有租户补齐基础字典与系统配置（从默认租户拷贝；已有则跳过）
+     * 为已有租户按数据包补齐基础数据（从默认租户拷贝/生成；已有则跳过）。
+     * {@code packages} 为空或未传时使用推荐默认集；传空数组表示不引导。
      */
     @PostMapping("/bootstrapBaseData")
-    public RespInfo<TenantBaseDataBootstrapService.BootstrapResult> bootstrapBaseData(@RequestParam Long id) {
-        return RespInfo.success(tenantService.bootstrapBaseData(id));
+    public RespInfo<TenantBaseDataBootstrapService.BootstrapResult> bootstrapBaseData(
+            @RequestParam Long id,
+            @RequestBody(required = false) java.util.List<String> packages) {
+        return RespInfo.success(tenantService.bootstrapBaseData(id, packages));
     }
 
     /**

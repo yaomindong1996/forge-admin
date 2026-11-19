@@ -287,6 +287,10 @@ function handleBeforeSubmit(formData) {
   const datasource = findBusinessDatasource(formData.defaultBusinessDatasourceId)
   formData.defaultBusinessDatasourceId = datasource?.datasourceId || null
   formData.defaultBusinessDatasourceCode = datasource?.datasourceCode || null
+  // 编辑时不提交引导包；新建勾选结果原样提交（空数组=不引导，缺省由后端用推荐默认）
+  if (formData?.id) {
+    delete formData.bootstrapPackages
+  }
   return prepareTenantAppearance(formData)
 }
 

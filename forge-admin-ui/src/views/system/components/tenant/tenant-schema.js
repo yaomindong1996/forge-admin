@@ -62,6 +62,38 @@ export function createTenantEditSchema({ tenantStatusOptions, businessDatasource
       ],
     },
     {
+      label: '初始化数据',
+      icon: 'forge:module',
+      // 仅新建时展示；编辑已有租户用补齐接口，避免误覆盖
+      vIf: formData => !formData?.id,
+      fields: [
+        {
+          field: 'bootstrapPackages',
+          label: '基础数据包',
+          type: 'checkbox',
+          span: SYSTEM_EDIT_FULL_SPAN,
+          defaultValue: [
+            'dictAndConfig',
+            'rootOrg',
+            'tenantAdminRole',
+            'messageTemplates',
+            'flowAssist',
+            'dataScopePresets',
+          ],
+          props: {
+            options: [
+              { label: '字典与系统配置', value: 'dictAndConfig' },
+              { label: '默认根组织', value: 'rootOrg' },
+              { label: '租户管理员角色与菜单（不含租户管理）', value: 'tenantAdminRole' },
+              { label: '消息模板与业务类型', value: 'messageTemplates' },
+              { label: '审批常用语与 SpEL 模板', value: 'flowAssist' },
+              { label: '数据权限预设', value: 'dataScopePresets' },
+            ],
+          },
+        },
+      ],
+    },
+    {
       label: '业务数据源',
       icon: 'forge:database',
       fields: [
