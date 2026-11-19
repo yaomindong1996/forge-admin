@@ -7,6 +7,7 @@ import com.mdframe.forge.plugin.system.entity.SysTenantPackage;
 import com.mdframe.forge.plugin.system.vo.SysTenantPackageVO;
 
 import java.util.List;
+import java.util.Set;
 
 public interface ISysTenantPackageService {
 
@@ -29,4 +30,10 @@ public interface ISysTenantPackageService {
     TenantPackageResolution resolveDefault();
 
     void recordGrant(Long tenantId, TenantPackageResolution resolution, List<String> appliedBootstrap);
+
+    /**
+     * 运行时菜单可见白名单：优先开通快照中的 resourceIds，其次当前绑定套餐 RESOURCE 项。
+     * 空集表示不额外裁剪（沿用角色授权结果）。不用于 API/按钮鉴权。
+     */
+    Set<Long> resolveMenuResourceWhitelist(Long tenantId);
 }

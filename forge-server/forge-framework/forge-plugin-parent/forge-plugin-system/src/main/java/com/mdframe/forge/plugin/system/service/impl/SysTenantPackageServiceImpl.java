@@ -9,9 +9,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mdframe.forge.plugin.system.dto.SysTenantPackageDTO;
 import com.mdframe.forge.plugin.system.dto.SysTenantPackageItemDTO;
 import com.mdframe.forge.plugin.system.dto.SysTenantPackageQuery;
+import com.mdframe.forge.plugin.system.entity.SysTenant;
 import com.mdframe.forge.plugin.system.entity.SysTenantPackage;
 import com.mdframe.forge.plugin.system.entity.SysTenantPackageGrant;
 import com.mdframe.forge.plugin.system.entity.SysTenantPackageItem;
+import com.mdframe.forge.plugin.system.mapper.SysTenantMapper;
 import com.mdframe.forge.plugin.system.mapper.SysTenantPackageGrantMapper;
 import com.mdframe.forge.plugin.system.mapper.SysTenantPackageItemMapper;
 import com.mdframe.forge.plugin.system.mapper.SysTenantPackageMapper;
@@ -52,6 +54,7 @@ public class SysTenantPackageServiceImpl implements ISysTenantPackageService {
     private final SysTenantPackageMapper packageMapper;
     private final SysTenantPackageItemMapper itemMapper;
     private final SysTenantPackageGrantMapper grantMapper;
+    private final SysTenantMapper tenantMapper;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -212,6 +215,60 @@ public class SysTenantPackageServiceImpl implements ISysTenantPackageService {
             }
             return null;
         });
+    }
+
+    @Override
+    public Set<Long> resolveMenuResourceWhitelist(Long tenantId) {
+        if (tenantId == null) {
+            return Set.of();
+        }
+        return TenantContextHolder.executeIgnore(() -> {
+            Set<Long> fromGrant = readResourceIdsFromLatestGrant(tenantId);
+            if (!fromGrant.isEmpty()) {
+                return fromGrant;
+            }
+            SysTenant tenant = tenantMapper.selectById(tenantId);
+            if (tenant == null || tenant.getPackageId() == null) {
+                return Set.of();
+            }
+            SysTenantPackage pkg = packageMapper.selectById(tenant.getPackageId());
+            if (pkg == null) {
+                return Set.of();
+            }
+            TenantPackageResolution resolution = toResolution(pkg, listItems(pkg.getId()));
+            return resolution.getResourceIds() == null ? Set.of() : Set.copyOf(resolution.getResourceIds());
+        });
+    }
+
+    private Set<Long> readResourceIdsFromLatestGrant(Long tenantId) {
+        IPage<SysTenantPackageGrant> page = grantMapper.selectPage(
+                new Page<>(1, 1),
+                new LambdaQueryWrapper<SysTenantPackageGrant>()
+                        .eq(SysTenantPackageGrant::getTenantId, tenantId)
+                        .eq(SysTenantPackageGrant::getGrantStatus, "ACTIVE")
+                        .orderByDesc(SysTenantPackageGrant::getGrantedAt)
+                        .orderByDesc(SysTenantPackageGrant::getId));
+        List<SysTenantPackageGrant> grants = page.getRecords();
+        if (grants == null || grants.isEmpty() || StringUtils.isBlank(grants.get(0).getSnapshotJson())) {
+            return Set.of();
+        }
+        try {
+            Map<String, Object> snapshot = objectMapper.readValue(
+                    grants.get(0).getSnapshotJson(), new TypeReference<Map<String, Object>>() {
+                    });
+            Object raw = snapshot.get("resourceIds");
+            if (raw == null) {
+                return Set.of();
+            }
+            if (raw instanceof String text) {
+                return new LinkedHashSet<>(parseLongList(text));
+            }
+            String asJson = objectMapper.writeValueAsString(raw);
+            return new LinkedHashSet<>(parseLongList(asJson));
+        } catch (Exception ex) {
+            log.warn("解析租户 {} 开通快照 resourceIds 失败", tenantId);
+            return Set.of();
+        }
     }
 
     private TenantPackageResolution toResolution(SysTenantPackage pkg, List<SysTenantPackageItem> items) {

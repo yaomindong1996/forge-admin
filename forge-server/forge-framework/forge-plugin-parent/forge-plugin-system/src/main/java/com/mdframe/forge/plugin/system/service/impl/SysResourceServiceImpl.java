@@ -16,6 +16,7 @@ import com.mdframe.forge.plugin.system.mapper.SysResourceMapper;
 import com.mdframe.forge.plugin.system.mapper.SysRoleResourceMapper;
 import com.mdframe.forge.plugin.system.mapper.SysUserRoleMapper;
 import com.mdframe.forge.plugin.system.service.ISysResourceService;
+import com.mdframe.forge.plugin.system.service.ISysTenantPackageService;
 import com.mdframe.forge.starter.auth.domain.UserResourceTreeVO;
 import com.mdframe.forge.starter.auth.service.IMenuService;
 import com.mdframe.forge.starter.core.session.LoginUser;
@@ -51,6 +52,7 @@ public class SysResourceServiceImpl extends ServiceImpl<SysResourceMapper, SysRe
     private final SysRoleResourceMapper roleResourceMapper;
     private final PermissionServiceImpl permissionService;
     private final FeatureGate featureGate;
+    private final ISysTenantPackageService tenantPackageService;
 
     @Override
     public boolean save(SysResource entity) {
@@ -410,12 +412,50 @@ public class SysResourceServiceImpl extends ServiceImpl<SysResourceMapper, SysRe
                 .filter(resource -> resource.getResourceType() != null
                         && (resource.getResourceType() == 1 || resource.getResourceType() == 2))
                 .collect(Collectors.toList());
+        // 仅裁剪侧栏/路由菜单可见性；权限码与 API 鉴权不受套餐影响
+        menuResources = applyPackageMenuVisibility(loginUser, menuResources);
 
         List<UserResourceTreeVO> voList = menuResources.stream()
                 .map(this::convertToVO)
                 .collect(Collectors.toList());
 
         return buildVOTree(voList, 0L);
+    }
+
+    /**
+     * 按租户套餐 RESOURCE 白名单裁剪菜单：命中节点、其子菜单、祖先目录保留；
+     * 白名单为空或超管不裁剪。
+     */
+    private List<SysResource> applyPackageMenuVisibility(LoginUser loginUser, List<SysResource> menuResources) {
+        if (loginUser == null || loginUser.isAdmin() || CollUtil.isEmpty(menuResources)) {
+            return menuResources;
+        }
+        Set<Long> whitelist = tenantPackageService.resolveMenuResourceWhitelist(loginUser.getTenantId());
+        if (CollUtil.isEmpty(whitelist)) {
+            return menuResources;
+        }
+        Map<Long, SysResource> byId = menuResources.stream()
+                .filter(item -> item.getId() != null)
+                .collect(Collectors.toMap(SysResource::getId, item -> item, (a, b) -> a));
+        Map<Long, List<SysResource>> childrenMap = menuResources.stream()
+                .filter(item -> item.getParentId() != null)
+                .collect(Collectors.groupingBy(SysResource::getParentId));
+        Set<Long> keep = new HashSet<>();
+        for (Long id : whitelist) {
+            if (!byId.containsKey(id) || !keep.add(id)) {
+                continue;
+            }
+            keep.addAll(collectDescendantIds(id, childrenMap));
+        }
+        for (Long id : new HashSet<>(keep)) {
+            Long parentId = byId.containsKey(id) ? byId.get(id).getParentId() : null;
+            while (parentId != null && parentId != 0L && byId.containsKey(parentId) && keep.add(parentId)) {
+                parentId = byId.get(parentId).getParentId();
+            }
+        }
+        return menuResources.stream()
+                .filter(item -> item.getId() != null && keep.contains(item.getId()))
+                .collect(Collectors.toList());
     }
 
     @Override
