@@ -42,3 +42,4 @@
 - 导入全量/纯净版：需 `N'...'` Unicode 字面量、拆分 >1000 行 INSERT、qrtz empty varbinary→NULL；`sys_resource` 唯一索引与 MySQL NULL 语义差异需临时 drop
 - `LIMIT n` 改写改为 `TOP (n)`（含子查询）；分页仍用 OFFSET/FETCH
 - Admin/Flow health UP；登录 + 菜单权限 OK；Flowable 自建 act_/flw_ 共 62 表
+- 转换脚本补齐：`N'...'`、INSERT 拆批、空 varbinary→NULL、可空唯一索引过滤、`QUOTED_IDENTIFIER ON`；纯净版可一次导入成功，配置分组不再重复

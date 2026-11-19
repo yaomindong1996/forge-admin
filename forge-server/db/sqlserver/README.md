@@ -4,7 +4,8 @@
 - 仓库内 `db/mysql/全量初始化SQL.sql` 可能落后于 Flyway tip；**不要**直接用它转 SQL Server，否则会缺表。
 - 跳过 Flowable `act_*` / `flw_*`（引擎启动自建）；保留 Quartz `qrtz_*` DDL。
 - 仅用于 **空库** 首次安装；已有业务库禁止重导全量。
-- 脚本含 `GO` 批分隔，请用 `sqlcmd` 执行。
+- 脚本含 `GO` 批分隔，请用 `sqlcmd` 执行。开头已 `SET QUOTED_IDENTIFIER ON`（过滤唯一索引需要）。
+- 非 ASCII 字面量为 `N'...'`；单条 INSERT 不超过 1000 行；空二进制写成 `NULL`；可空列唯一索引带 `WHERE ... IS NOT NULL`，对齐 MySQL 对 NULL 不互斥的行为。
 
 ## 刷新（从 MySQL 纯净版 tip dump）
 

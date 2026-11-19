@@ -120,7 +120,10 @@ def should_skip_table(name: str) -> bool:
 
 
 def unquote_ident(value: str) -> str:
-    return value.replace("`", "").strip()
+    name = value.strip()
+    if name.startswith("[") and name.endswith("]"):
+        name = name[1:-1].replace("]]", "]")
+    return name.replace("`", "").strip()
 
 
 def quote_ident(value: str) -> str:
@@ -241,11 +244,11 @@ def normalize_default(rest: str, mssql_type: str) -> str:
     return re.sub(r"DEFAULT\s+'((?:\\'|[^'])*)'", repl, rest, flags=re.I)
 
 
-def convert_column_line(line: str) -> tuple[str | None, bool]:
-    """Returns (col_sql, is_identity)."""
+def convert_column_line(line: str) -> tuple[str | None, bool, bool, bool]:
+    """Returns (col_sql, is_identity, is_nullable, is_varbinary)."""
     match = COL_LINE.match(line.rstrip().rstrip(","))
     if not match:
-        return None, False
+        return None, False, False, False
     name, type_and_rest, _comment = match.group(1), match.group(2), match.group(3)
     rest, is_identity = strip_auto_increment(strip_on_update(type_and_rest))
     type_match = re.match(
@@ -273,11 +276,16 @@ def convert_column_line(line: str) -> tuple[str | None, bool]:
         constraints = (constraints + " IDENTITY(1,1)").strip()
         constraints = re.sub(r"\s+", " ", constraints).strip()
     col_sql = f"  {quote_ident(name)} {mssql_type}" + (f" {constraints}" if constraints else "")
-    return col_sql, is_identity
+    nullable = "NOT NULL" not in constraints.upper()
+    varbinary = mssql_type.lower().startswith("varbinary")
+    return col_sql, is_identity, nullable, varbinary
 
 
 def convert_key_line(
-    table: str, line: str, used_index_names: set[str]
+    table: str,
+    line: str,
+    used_index_names: set[str],
+    nullable_columns: set[str] | None = None,
 ) -> tuple[str | None, str | None]:
     match = KEY_LINE.match(line.rstrip().rstrip(","))
     if not match:
@@ -295,7 +303,17 @@ def convert_key_line(
         c = re.sub(r"^([A-Za-z0-9_]+)(?:\s*\(\d+\))?$", r"\1", c)
         return quote_ident(c) + order
 
-    col_list = ", ".join(normalize_index_col(c) for c in cols.split(","))
+    raw_cols = [c.strip() for c in cols.split(",")]
+    col_names: list[str] = []
+    for raw in raw_cols:
+        c = raw
+        order_match = re.search(r"\s+(ASC|DESC)\s*$", c, flags=re.I)
+        if order_match:
+            c = c[: order_match.start()].strip()
+        c = re.sub(r"^`([^`]+)`(?:\s*\(\d+\))?$", r"\1", c)
+        c = re.sub(r"^([A-Za-z0-9_]+)(?:\s*\(\d+\))?$", r"\1", c)
+        col_names.append(unquote_ident(c))
+    col_list = ", ".join(normalize_index_col(c) for c in raw_cols)
     if kind == "PRIMARY KEY":
         return f"  PRIMARY KEY ({col_list})", None
     raw_name = unquote_ident(key_name) if key_name else "idx"
@@ -306,7 +324,13 @@ def convert_key_line(
     index_name = shorten_ident(full_name, used_index_names)
     unique = kind.startswith("UNIQUE")
     prefix = "CREATE UNIQUE INDEX" if unique else "CREATE INDEX"
-    return None, f"{prefix} {quote_ident(index_name)} ON {quote_ident(table)} ({col_list});"
+    where = ""
+    if unique and nullable_columns:
+        nullable = [name for name in col_names if name.lower() in nullable_columns]
+        if nullable:
+            # MySQL UNIQUE 把 NULL 视为互不相同；SQL Server 需过滤可空列
+            where = " WHERE " + " AND ".join(f"{quote_ident(name)} IS NOT NULL" for name in nullable)
+    return None, f"{prefix} {quote_ident(index_name)} ON {quote_ident(table)} ({col_list}){where};"
 
 
 def convert_mysql_expr(expr: str) -> str:
@@ -387,6 +411,169 @@ def convert_insert(line: str, mysql_vars: dict[str, str] | None = None) -> str:
     return line
 
 
+def prefix_national_literals(sql: str) -> str:
+    """Non-ASCII string literals need an N prefix or sqlcmd stores '?'."""
+    out: list[str] = []
+    i = 0
+    n = len(sql)
+    while i < n:
+        if sql[i] != "'":
+            out.append(sql[i])
+            i += 1
+            continue
+        already = i > 0 and sql[i - 1] in "Nn" and (
+            i == 1 or not (sql[i - 2].isalnum() or sql[i - 2] == "_")
+        )
+        j = i + 1
+        buf = ["'"]
+        while j < n:
+            if sql[j] == "'":
+                buf.append("'")
+                if j + 1 < n and sql[j + 1] == "'":
+                    buf.append("'")
+                    j += 2
+                    continue
+                j += 1
+                break
+            buf.append(sql[j])
+            j += 1
+        lit = "".join(buf)
+        body = lit[1:-1].replace("''", "'")
+        if not already and any(ord(ch) > 127 for ch in body):
+            out.append("N" + lit)
+        else:
+            out.append(lit)
+        i = j
+    return "".join(out)
+
+
+def _split_top_level(text: str, separator: str) -> list[str]:
+    parts: list[str] = []
+    buf: list[str] = []
+    depth = 0
+    in_string = False
+    i = 0
+    while i < len(text):
+        ch = text[i]
+        if in_string:
+            buf.append(ch)
+            if ch == "'" and i + 1 < len(text) and text[i + 1] == "'":
+                buf.append("'")
+                i += 2
+                continue
+            if ch == "'":
+                in_string = False
+            i += 1
+            continue
+        if ch == "'":
+            in_string = True
+            buf.append(ch)
+            i += 1
+            continue
+        if ch == "(":
+            depth += 1
+            buf.append(ch)
+            i += 1
+            continue
+        if ch == ")":
+            depth = max(0, depth - 1)
+            buf.append(ch)
+            i += 1
+            continue
+        if depth == 0 and text.startswith(separator, i):
+            parts.append("".join(buf))
+            buf = []
+            i += len(separator)
+            continue
+        buf.append(ch)
+        i += 1
+    parts.append("".join(buf))
+    return parts
+
+
+def split_value_tuples(values_sql: str) -> list[str]:
+    text = values_sql.strip().rstrip(";").strip()
+    tuples: list[str] = []
+    depth = 0
+    in_string = False
+    start = None
+    i = 0
+    while i < len(text):
+        ch = text[i]
+        if in_string:
+            if ch == "'" and i + 1 < len(text) and text[i + 1] == "'":
+                i += 2
+                continue
+            if ch == "'":
+                in_string = False
+            i += 1
+            continue
+        if ch == "'":
+            in_string = True
+            i += 1
+            continue
+        if ch == "(":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0 and start is not None:
+                tuples.append(text[start : i + 1])
+                start = None
+        i += 1
+    return tuples
+
+
+def rewrite_empty_varbinary(sql: str, varbinary_columns: set[str]) -> str:
+    if not varbinary_columns:
+        return sql
+    match = re.search(
+        r"(?is)^(INSERT INTO \[[^\]]+\]\s*\((.*?)\)\s*VALUES\s*)(.*)$",
+        sql.strip(),
+    )
+    if not match:
+        return sql
+    head, col_sql, values_sql = match.group(1), match.group(2), match.group(3)
+    columns = [unquote_ident(part).lower() for part in _split_top_level(col_sql, ",")]
+    indexes = [idx for idx, name in enumerate(columns) if name in varbinary_columns]
+    if not indexes:
+        return sql
+    tuples = split_value_tuples(values_sql)
+    if not tuples:
+        return sql
+    rewritten: list[str] = []
+    changed = False
+    for tup in tuples:
+        inner = tup[1:-1]
+        fields = _split_top_level(inner, ",")
+        for idx in indexes:
+            if idx < len(fields) and fields[idx].strip() in {"''", "N''"}:
+                fields[idx] = " NULL"
+                changed = True
+        rewritten.append("(" + ",".join(fields) + ")")
+    if not changed:
+        return sql
+    suffix = ";" if sql.strip().endswith(";") else ""
+    return head + ",\n".join(rewritten) + suffix
+
+
+def chunk_insert_statements(sql: str, chunk_size: int = 900) -> list[str]:
+    match = re.search(r"(?is)^(INSERT INTO \[[^\]]+\]\s*\(.*?\)\s*VALUES\s*)(.*)$", sql.strip())
+    if not match:
+        return [sql]
+    head, values_sql = match.group(1), match.group(2)
+    tuples = split_value_tuples(values_sql)
+    if len(tuples) <= 1000:
+        return [sql if sql.strip().endswith(";") else sql.rstrip() + ";"]
+    suffix_semi = True
+    chunks: list[str] = []
+    for offset in range(0, len(tuples), chunk_size):
+        body = ",\n".join(tuples[offset : offset + chunk_size])
+        chunks.append(head + body + (";" if suffix_semi else ""))
+    return chunks
+
+
 def statement_ends_at(lines: list[str], start: int) -> int:
     in_string = False
     i = start
@@ -434,6 +621,8 @@ def convert(content: str, *, clean_seed: bool = False) -> str:
     out.append("-- Quartz qrtz_* DDL is kept (same as MySQL full/pure).")
     out.append("-- Run with sqlcmd; batches separated by GO.")
     out.append("SET NOCOUNT ON;")
+    out.append("SET ANSI_NULLS ON;")
+    out.append("SET QUOTED_IDENTIFIER ON;")
     emit_go(out)
     out.append("")
 
@@ -443,6 +632,7 @@ def convert(content: str, *, clean_seed: bool = False) -> str:
     omitted_seed_tables: set[str] = set()
     used_index_names: set[str] = set()
     identity_tables: set[str] = set()
+    varbinary_by_table: dict[str, set[str]] = {}
     mysql_vars: dict[str, str] = {}
 
     while i < len(lines):
@@ -486,19 +676,26 @@ def convert(content: str, *, clean_seed: bool = False) -> str:
             body_cols: list[str] = []
             indexes: list[str] = []
             has_identity = False
+            nullable_columns: set[str] = set()
+            varbinary_columns: set[str] = set()
             i += 1
             while i < len(lines):
                 raw = lines[i]
                 if ENGINE_TAIL.search(raw) or ENGINE_TAIL_NO_COMMENT.search(raw):
                     break
-                col_sql, is_identity = convert_column_line(raw)
+                col_sql, is_identity, is_nullable, is_varbinary = convert_column_line(raw)
                 if col_sql is not None:
                     body_cols.append(col_sql)
+                    col_name = unquote_ident(re.search(r"\[([^\]]+)\]", col_sql).group(1)).lower()
+                    if is_nullable:
+                        nullable_columns.add(col_name)
+                    if is_varbinary:
+                        varbinary_columns.add(col_name)
                     if is_identity:
                         has_identity = True
                     i += 1
                     continue
-                inline, index_sql = convert_key_line(table_l, raw, used_index_names)
+                inline, index_sql = convert_key_line(table_l, raw, used_index_names, nullable_columns)
                 if inline:
                     body_cols.append(inline)
                 if index_sql:
@@ -520,6 +717,8 @@ def convert(content: str, *, clean_seed: bool = False) -> str:
             out.append("")
             if has_identity:
                 identity_tables.add(table_l)
+            if varbinary_columns:
+                varbinary_by_table[table_l.lower()] = varbinary_columns
             i += 1
             continue
 
@@ -536,14 +735,18 @@ def convert(content: str, *, clean_seed: bool = False) -> str:
                 i = end_i + 1
                 continue
             buf = lines[i : end_i + 1]
-            insert_sql = convert_insert("\n".join(buf), mysql_vars)
+            insert_sql = prefix_national_literals(convert_insert("\n".join(buf), mysql_vars))
+            insert_sql = rewrite_empty_varbinary(insert_sql, varbinary_by_table.get(table_l.lower(), set()))
+            chunks = chunk_insert_statements(insert_sql)
             if table_l in identity_tables:
                 out.append(f"SET IDENTITY_INSERT {quote_ident(table_l)} ON;")
-                out.append(insert_sql)
+                emit_go(out)
+            for chunk in chunks:
+                out.append(chunk)
+                emit_go(out)
+            if table_l in identity_tables:
                 out.append(f"SET IDENTITY_INSERT {quote_ident(table_l)} OFF;")
-            else:
-                out.append(insert_sql)
-            emit_go(out)
+                emit_go(out)
             out.append("")
             i = end_i + 1
             continue
