@@ -14,7 +14,7 @@
 - 业务数据（字典、配置等）的 `tenant_id` **必须设为 `1`**（默认租户），**禁止设 `0`**
 - `TenantLineInnerInterceptor` 自动追加 `WHERE tenant_id = 当前租户ID`，`0` 的数据对所有租户不可见
 - `sys_resource`（菜单/权限）表不受租户拦截，`tenant_id` 设为 `1` 即可
-- 新建租户时由管理员勾选基础数据包（`bootstrapPackages`），`TenantBaseDataBootstrapService` 按选项从默认租户拷贝或生成骨架；已有空租户可用 `/system/tenant/bootstrapBaseData` 幂等补齐。行政区划等平台表无需拷贝
+- 新建租户走「套餐 → 组成项 → 开通引擎」：超管在「租户套餐」维护 `sys_tenant_package` / `sys_tenant_package_item`；创建时选 `packageId`（可微调 `bootstrapPackages` / `userLimit`），`SysTenantServiceImpl` 解析套餐后调用 `TenantBaseDataBootstrapService` 并写入 `sys_tenant_package_grant` 开通快照。已有空租户可用 `/system/tenant/bootstrapBaseData` 按已绑套餐（或显式 packages）幂等补齐。行政区划等平台表无需拷贝；套餐定义变更不回写已开租户
 
 ### 5.3 分页参数命名
 

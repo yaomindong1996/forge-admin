@@ -112,11 +112,16 @@ public class SysTenantDTO implements Serializable {
     private String themeConfig;
 
     /**
+     * 开通套餐 ID（仅新增有效；为空则用默认套餐）
+     */
+    private Long packageId;
+
+    /**
      * 新建时勾选的基础数据包（仅新增有效）。
      * <ul>
-     *   <li>{@code null}：使用推荐默认集</li>
+     *   <li>{@code null}：使用套餐解析结果（无套餐则推荐默认集）</li>
      *   <li>空列表：不引导任何基础数据</li>
-     *   <li>非空：仅引导勾选项</li>
+     *   <li>非空：仅引导勾选项（可在套餐默认值上微调）</li>
      * </ul>
      */
     private List<String> bootstrapPackages;

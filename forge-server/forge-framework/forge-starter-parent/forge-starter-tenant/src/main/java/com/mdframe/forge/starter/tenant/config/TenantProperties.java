@@ -54,6 +54,9 @@ public class TenantProperties {
     public TenantProperties() {
         // 平台级表不按当前租户做 SQL 隔离，租户内授权由关联表控制。
         ignoreTables.add("sys_tenant");
+        ignoreTables.add("sys_tenant_package");
+        ignoreTables.add("sys_tenant_package_item");
+        ignoreTables.add("sys_tenant_package_grant");
         ignoreTables.add("sys_resource");
         ignoreTables.add("sys_client");
         ignoreTables.add("sys_region_code");

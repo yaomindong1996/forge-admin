@@ -23,10 +23,12 @@ import com.mdframe.forge.plugin.system.mapper.SysUserPostMapper;
 import com.mdframe.forge.plugin.system.mapper.SysUserRoleMapper;
 import com.mdframe.forge.plugin.system.mapper.SysUserOrgRoleMapper;
 import com.mdframe.forge.plugin.system.mapper.SysUserTenantMapper;
+import com.mdframe.forge.plugin.system.service.ISysTenantPackageService;
 import com.mdframe.forge.plugin.system.service.ISysTenantService;
 import com.mdframe.forge.plugin.system.service.ISysUserService;
 import com.mdframe.forge.plugin.system.service.IUserLoadService;
 import com.mdframe.forge.plugin.system.service.TenantBaseDataBootstrapService;
+import com.mdframe.forge.plugin.system.service.TenantPackageResolution;
 import com.mdframe.forge.plugin.system.vo.SysUserTenantVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.LoginUser;
@@ -62,6 +64,7 @@ public class SysTenantServiceImpl extends ServiceImpl<SysTenantMapper, SysTenant
     private final IUserLoadService userLoadService;
     private final ISysUserService userService;
     private final TenantBaseDataBootstrapService tenantBaseDataBootstrapService;
+    private final ISysTenantPackageService tenantPackageService;
 
     @Override
     public IPage<SysTenant> selectTenantPage(SysTenantQuery query) {
@@ -260,12 +263,31 @@ public class SysTenantServiceImpl extends ServiceImpl<SysTenantMapper, SysTenant
     @Transactional(rollbackFor = Exception.class)
     public boolean insertTenant(SysTenantDTO dto) {
         assertSuperAdmin();
+        TenantPackageResolution resolution = tenantPackageService.resolve(dto.getPackageId());
         SysTenant tenant = new SysTenant();
-        BeanUtil.copyProperties(dto, tenant);
+        BeanUtil.copyProperties(dto, tenant, "bootstrapPackages");
+        if (tenant.getPackageId() == null) {
+            tenant.setPackageId(resolution.getPackageId());
+        }
+        // 表单显式 userLimit 优先；未传则用套餐配额
+        if (dto.getUserLimit() == null && resolution.getUserLimit() != null) {
+            tenant.setUserLimit(resolution.getUserLimit());
+        }
         boolean inserted = tenantMapper.insert(tenant) > 0;
         if (inserted && tenant.getId() != null) {
-            tenantBaseDataBootstrapService.ensureFromDefaultTenant(
-                    tenant.getId(), dto.getBootstrapPackages(), tenant.getTenantName());
+            java.util.List<String> packages = dto.getBootstrapPackages() != null
+                    ? dto.getBootstrapPackages()
+                    : resolution.getBootstrapPackages();
+            TenantBaseDataBootstrapService.BootstrapResult result =
+                    tenantBaseDataBootstrapService.ensureFromDefaultTenant(
+                            tenant.getId(),
+                            packages,
+                            tenant.getTenantName(),
+                            resolution.getResourceIds());
+            tenantPackageService.recordGrant(
+                    tenant.getId(),
+                    resolution,
+                    new java.util.ArrayList<>(result.appliedPackages()));
         }
         return inserted;
     }
@@ -279,8 +301,21 @@ public class SysTenantServiceImpl extends ServiceImpl<SysTenantMapper, SysTenant
         if (existing == null) {
             throw new BusinessException("租户不存在");
         }
-        return tenantBaseDataBootstrapService.ensureFromDefaultTenant(
-                tenantId, packages, existing.getTenantName());
+        TenantPackageResolution resolution = existing.getPackageId() != null
+                ? tenantPackageService.resolve(existing.getPackageId())
+                : tenantPackageService.resolveDefault();
+        java.util.List<String> effective = packages != null ? packages : resolution.getBootstrapPackages();
+        TenantBaseDataBootstrapService.BootstrapResult result =
+                tenantBaseDataBootstrapService.ensureFromDefaultTenant(
+                        tenantId, effective, existing.getTenantName(), resolution.getResourceIds());
+        if (existing.getPackageId() == null && resolution.getPackageId() != null) {
+            SysTenant patch = new SysTenant();
+            patch.setId(tenantId);
+            patch.setPackageId(resolution.getPackageId());
+            tenantMapper.updateById(patch);
+        }
+        tenantPackageService.recordGrant(tenantId, resolution, new java.util.ArrayList<>(result.appliedPackages()));
+        return result;
     }
 
     @Override

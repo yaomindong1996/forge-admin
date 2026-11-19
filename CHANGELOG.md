@@ -10,6 +10,7 @@
 本节保留 `v1.2.0` 源码快照中的历史待整理条目，新变更单独标注日期；不能将整个 Unreleased 视为本周或 1.2.1 的新增能力。
 
 ### Added
+- （2026-11-19）租户套餐（开通模板）：平台表 `sys_tenant_package` / `_item` / `_grant`，种子 `standard`/`minimal`，超管套餐管理页与创建租户选套餐驱动 bootstrap/配额/角色菜单；开通写入快照，`/system/tenant/bootstrapBaseData` 可按已绑套餐幂等补齐（运行时裁剪与升降级为二期预留）。
 - （2026-11-19）新建租户支持勾选基础数据包（字典配置/根组织/租户管理员角色菜单/消息模板/审批辅助/数据权限预设）；提供 `/system/tenant/bootstrapBaseData` 幂等补齐接口。
 - （2026-11-19）MSSQL 真库 API 冒烟脚本 `scripts/db/smoke-mssql-apis.mjs`（Admin + Flow）。
 - （2026-11-19）MSSQL 本地 Docker 冒烟编排：`docker-compose.mssql-test.yml` + SQL Server 数据源示例；`LIMIT n` 改写为 `TOP (n)` 以兼容子查询。

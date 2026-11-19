@@ -21,6 +21,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -77,7 +78,7 @@ public class TenantBaseDataBootstrapService {
 
     @Transactional(rollbackFor = Exception.class)
     public BootstrapResult ensureFromDefaultTenant(Long targetTenantId) {
-        return ensureFromDefaultTenant(targetTenantId, null, null);
+        return ensureFromDefaultTenant(targetTenantId, null, null, null);
     }
 
     /**
@@ -86,6 +87,17 @@ public class TenantBaseDataBootstrapService {
      */
     @Transactional(rollbackFor = Exception.class)
     public BootstrapResult ensureFromDefaultTenant(Long targetTenantId, List<String> packages, String tenantName) {
+        return ensureFromDefaultTenant(targetTenantId, packages, tenantName, null);
+    }
+
+    /**
+     * @param resourceWhitelist 非空时按白名单授予租户管理员菜单；空则从默认 admin 角色拷贝并排除租户管理
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public BootstrapResult ensureFromDefaultTenant(Long targetTenantId,
+                                                   List<String> packages,
+                                                   String tenantName,
+                                                   Collection<Long> resourceWhitelist) {
         if (targetTenantId == null) {
             throw new BusinessException("租户ID不能为空");
         }
@@ -97,10 +109,11 @@ public class TenantBaseDataBootstrapService {
             return BootstrapResult.empty();
         }
         String orgName = StringUtils.defaultIfBlank(tenantName, "默认组织");
-        return TenantContextHolder.executeIgnore(() -> doBootstrap(targetTenantId, selected, orgName));
+        Set<Long> resources = resourceWhitelist == null ? Set.of() : Set.copyOf(resourceWhitelist);
+        return TenantContextHolder.executeIgnore(() -> doBootstrap(targetTenantId, selected, orgName, resources));
     }
 
-    private BootstrapResult doBootstrap(Long targetTenantId, Set<String> selected, String orgName) {
+    private BootstrapResult doBootstrap(Long targetTenantId, Set<String> selected, String orgName, Set<Long> resourceWhitelist) {
         Map<String, Integer> counts = new LinkedHashMap<>();
         Set<String> applied = new HashSet<>();
 
@@ -114,7 +127,7 @@ public class TenantBaseDataBootstrapService {
         }
         if (selected.contains(TenantBootstrapPackages.TENANT_ADMIN_ROLE)) {
             applied.add(TenantBootstrapPackages.TENANT_ADMIN_ROLE);
-            counts.put("tenantAdminRole", ensureTenantAdminRole(targetTenantId));
+            counts.put("tenantAdminRole", ensureTenantAdminRole(targetTenantId, resourceWhitelist));
         }
         if (selected.contains(TenantBootstrapPackages.MESSAGE_TEMPLATES)) {
             applied.add(TenantBootstrapPackages.MESSAGE_TEMPLATES);
@@ -224,13 +237,8 @@ public class TenantBaseDataBootstrapService {
         return orgMapper.insert(org) > 0 ? 1 : 0;
     }
 
-    private int ensureTenantAdminRole(Long targetTenantId) {
+    private int ensureTenantAdminRole(Long targetTenantId, Set<Long> resourceWhitelist) {
         if (bootstrapMapper.countRolesByKey(targetTenantId, TENANT_ADMIN_ROLE_KEY) > 0) {
-            return 0;
-        }
-        Long sourceRoleId = bootstrapMapper.selectTemplateAdminRoleId(DEFAULT_TENANT_ID);
-        if (sourceRoleId == null) {
-            log.warn("默认租户无 admin 角色，跳过租户 {} 的管理员角色引导", targetTenantId);
             return 0;
         }
         SysRole role = new SysRole();
@@ -248,8 +256,19 @@ public class TenantBaseDataBootstrapService {
         if (roleMapper.insert(role) <= 0 || role.getId() == null) {
             return 0;
         }
-        int resources = bootstrapMapper.copyRoleResourcesExcludingTenantMgmt(
-                DEFAULT_TENANT_ID, sourceRoleId, targetTenantId, role.getId());
+        int resources;
+        if (resourceWhitelist != null && !resourceWhitelist.isEmpty()) {
+            resources = bootstrapMapper.copyRoleResourcesByWhitelist(
+                    targetTenantId, role.getId(), resourceWhitelist);
+        } else {
+            Long sourceRoleId = bootstrapMapper.selectTemplateAdminRoleId(DEFAULT_TENANT_ID);
+            if (sourceRoleId == null) {
+                log.warn("默认租户无 admin 角色，跳过租户 {} 的管理员菜单拷贝", targetTenantId);
+                return 1;
+            }
+            resources = bootstrapMapper.copyRoleResourcesExcludingTenantMgmt(
+                    DEFAULT_TENANT_ID, sourceRoleId, targetTenantId, role.getId());
+        }
         return 1 + Math.max(resources, 0);
     }
 

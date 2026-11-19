@@ -92,6 +92,24 @@
           )
     </insert>
 
+    <insert id="copyRoleResourcesByWhitelist">
+        INSERT INTO sys_role_resource (tenant_id, role_id, resource_id, create_time)
+        SELECT #{targetTenantId}, #{targetRoleId}, r.id, CURRENT_TIMESTAMP
+        FROM sys_resource r
+        WHERE r.del_flag = 0
+          AND r.id IN
+          <foreach collection="resourceIds" item="rid" open="(" separator="," close=")">
+              #{rid}
+          </foreach>
+          AND NOT EXISTS (
+              SELECT 1
+              FROM sys_role_resource x
+              WHERE x.tenant_id = #{targetTenantId}
+                AND x.role_id = #{targetRoleId}
+                AND x.resource_id = r.id
+          )
+    </insert>
+
     <insert id="copyMessageTemplates">
         INSERT INTO sys_message_template (
             tenant_id, template_code, template_name, type, title_template, content_template,

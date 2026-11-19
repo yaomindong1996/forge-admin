@@ -36,6 +36,10 @@ public interface TenantBaseDataBootstrapMapper {
                                              @Param("targetTenantId") Long targetTenantId,
                                              @Param("targetRoleId") Long targetRoleId);
 
+    int copyRoleResourcesByWhitelist(@Param("targetTenantId") Long targetTenantId,
+                                     @Param("targetRoleId") Long targetRoleId,
+                                     @Param("resourceIds") java.util.Collection<Long> resourceIds);
+
     int copyMessageTemplates(@Param("sourceTenantId") Long sourceTenantId,
                              @Param("targetTenantId") Long targetTenantId);
 

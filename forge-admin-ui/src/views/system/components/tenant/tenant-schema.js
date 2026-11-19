@@ -1,7 +1,13 @@
 import { buildSystemEditCards, SYSTEM_EDIT_FULL_SPAN } from '../../schemas/systemEditLayout'
+import { BOOTSTRAP_PACKAGE_OPTIONS } from '../tenant-package/tenant-package-schema'
 
 // 租户信息 Schema 与外观组件分别维护。
-export function createTenantEditSchema({ tenantStatusOptions, businessDatasourceOptions }) {
+export function createTenantEditSchema({
+  tenantStatusOptions,
+  businessDatasourceOptions,
+  packageOptions = [],
+  onPackageChange,
+}) {
   return buildSystemEditCards([
     {
       label: '基础信息',
@@ -68,6 +74,19 @@ export function createTenantEditSchema({ tenantStatusOptions, businessDatasource
       vIf: formData => !formData?.id,
       fields: [
         {
+          field: 'packageId',
+          label: '开通套餐',
+          type: 'select',
+          span: SYSTEM_EDIT_FULL_SPAN,
+          rules: [{ required: true, message: '请选择开通套餐', trigger: 'change' }],
+          props: {
+            placeholder: '请选择租户套餐',
+            options: packageOptions,
+            clearable: false,
+          },
+          onChange: onPackageChange,
+        },
+        {
           field: 'bootstrapPackages',
           label: '基础数据包',
           type: 'checkbox',
@@ -81,14 +100,7 @@ export function createTenantEditSchema({ tenantStatusOptions, businessDatasource
             'dataScopePresets',
           ],
           props: {
-            options: [
-              { label: '字典与系统配置', value: 'dictAndConfig' },
-              { label: '默认根组织', value: 'rootOrg' },
-              { label: '租户管理员角色与菜单（不含租户管理）', value: 'tenantAdminRole' },
-              { label: '消息模板与业务类型', value: 'messageTemplates' },
-              { label: '审批常用语与 SpEL 模板', value: 'flowAssist' },
-              { label: '数据权限预设', value: 'dataScopePresets' },
-            ],
+            options: BOOTSTRAP_PACKAGE_OPTIONS,
           },
         },
       ],

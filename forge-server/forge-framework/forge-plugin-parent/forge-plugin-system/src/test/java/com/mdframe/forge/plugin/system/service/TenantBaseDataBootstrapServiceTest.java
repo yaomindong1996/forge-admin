@@ -227,6 +227,7 @@ class TenantBaseDataBootstrapServiceTest {
             case "selectActiveDictTypes", "selectActiveDictData", "selectActiveConfigs" -> List.of();
             case "selectTemplateAdminRoleId" -> null;
             case "insert", "updateById", "copyRoleResourcesExcludingTenantMgmt",
+                 "copyRoleResourcesByWhitelist",
                  "copyMessageTemplates", "copyMessageBizTypes", "copyFlowCommentPhrases",
                  "copyFlowSpelTemplates", "copyDataScopeConfigs" -> 0;
             default -> null;

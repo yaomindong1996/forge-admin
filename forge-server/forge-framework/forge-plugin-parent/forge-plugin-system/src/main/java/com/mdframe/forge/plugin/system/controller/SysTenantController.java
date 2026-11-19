@@ -114,7 +114,8 @@ public class SysTenantController {
 
     /**
      * 为已有租户按数据包补齐基础数据（从默认租户拷贝/生成；已有则跳过）。
-     * {@code packages} 为空或未传时使用推荐默认集；传空数组表示不引导。
+     * {@code packages} 未传时按租户已绑套餐（无绑定则默认套餐）解析；传空数组表示不引导；
+     * 显式列表时仍按列表补齐，并写入/追加开通快照。
      */
     @PostMapping("/bootstrapBaseData")
     public RespInfo<TenantBaseDataBootstrapService.BootstrapResult> bootstrapBaseData(
