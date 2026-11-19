@@ -7,6 +7,7 @@ import com.mdframe.forge.plugin.system.dto.SysUserQuery;
 import com.mdframe.forge.plugin.system.entity.SysTenant;
 import com.mdframe.forge.plugin.system.entity.SysUser;
 import com.mdframe.forge.plugin.system.service.ISysTenantService;
+import com.mdframe.forge.plugin.system.service.TenantBaseDataBootstrapService;
 import com.mdframe.forge.plugin.system.vo.SysUserTenantVO;
 import com.mdframe.forge.starter.core.annotation.api.ApiPermissionIgnore;
 import com.mdframe.forge.starter.core.domain.RespInfo;
@@ -109,6 +110,14 @@ public class SysTenantController {
     public RespInfo<Void> add(@Valid @RequestBody SysTenantDTO dto) {
         boolean result = tenantService.insertTenant(dto);
         return result ? RespInfo.success() : RespInfo.error("新增失败");
+    }
+
+    /**
+     * 为已有租户补齐基础字典与系统配置（从默认租户拷贝；已有则跳过）
+     */
+    @PostMapping("/bootstrapBaseData")
+    public RespInfo<TenantBaseDataBootstrapService.BootstrapResult> bootstrapBaseData(@RequestParam Long id) {
+        return RespInfo.success(tenantService.bootstrapBaseData(id));
     }
 
     /**

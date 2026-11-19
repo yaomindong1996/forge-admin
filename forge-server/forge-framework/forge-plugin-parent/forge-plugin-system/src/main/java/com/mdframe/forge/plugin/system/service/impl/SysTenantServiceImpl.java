@@ -26,6 +26,7 @@ import com.mdframe.forge.plugin.system.mapper.SysUserTenantMapper;
 import com.mdframe.forge.plugin.system.service.ISysTenantService;
 import com.mdframe.forge.plugin.system.service.ISysUserService;
 import com.mdframe.forge.plugin.system.service.IUserLoadService;
+import com.mdframe.forge.plugin.system.service.TenantBaseDataBootstrapService;
 import com.mdframe.forge.plugin.system.vo.SysUserTenantVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.LoginUser;
@@ -60,6 +61,7 @@ public class SysTenantServiceImpl extends ServiceImpl<SysTenantMapper, SysTenant
     private final SysUserPostMapper userPostMapper;
     private final IUserLoadService userLoadService;
     private final ISysUserService userService;
+    private final TenantBaseDataBootstrapService tenantBaseDataBootstrapService;
 
     @Override
     public IPage<SysTenant> selectTenantPage(SysTenantQuery query) {
@@ -255,11 +257,27 @@ public class SysTenantServiceImpl extends ServiceImpl<SysTenantMapper, SysTenant
     }
     
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean insertTenant(SysTenantDTO dto) {
         assertSuperAdmin();
         SysTenant tenant = new SysTenant();
         BeanUtil.copyProperties(dto, tenant);
-        return tenantMapper.insert(tenant) > 0;
+        boolean inserted = tenantMapper.insert(tenant) > 0;
+        if (inserted && tenant.getId() != null) {
+            tenantBaseDataBootstrapService.ensureFromDefaultTenant(tenant.getId());
+        }
+        return inserted;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public TenantBaseDataBootstrapService.BootstrapResult bootstrapBaseData(Long tenantId) {
+        assertSuperAdmin();
+        assertCanAccessTenant(tenantId);
+        if (tenantMapper.selectById(tenantId) == null) {
+            throw new BusinessException("租户不存在");
+        }
+        return tenantBaseDataBootstrapService.ensureFromDefaultTenant(tenantId);
     }
 
     @Override

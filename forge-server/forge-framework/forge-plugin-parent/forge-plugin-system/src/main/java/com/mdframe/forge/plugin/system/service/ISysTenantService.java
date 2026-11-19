@@ -79,6 +79,14 @@ public interface ISysTenantService extends IService<SysTenant> {
     boolean insertTenant(SysTenantDTO dto);
 
     /**
+     * 为已有租户补齐默认租户的基础字典与系统配置（幂等，已有则跳过）。
+     *
+     * @param tenantId 目标租户
+     * @return 拷贝结果摘要
+     */
+    TenantBaseDataBootstrapService.BootstrapResult bootstrapBaseData(Long tenantId);
+
+    /**
      * 修改租户
      *
      * @param dto 租户信息

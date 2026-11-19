@@ -14,6 +14,7 @@
 - 业务数据（字典、配置等）的 `tenant_id` **必须设为 `1`**（默认租户），**禁止设 `0`**
 - `TenantLineInnerInterceptor` 自动追加 `WHERE tenant_id = 当前租户ID`，`0` 的数据对所有租户不可见
 - `sys_resource`（菜单/权限）表不受租户拦截，`tenant_id` 设为 `1` 即可
+- 新建租户时由 `TenantBaseDataBootstrapService` 从默认租户拷贝字典/配置；已有空租户可用 `/system/tenant/bootstrapBaseData` 幂等补齐。行政区划等平台表无需拷贝
 
 ### 5.3 分页参数命名
 

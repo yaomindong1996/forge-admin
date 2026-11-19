@@ -10,6 +10,7 @@
 本节保留 `v1.2.0` 源码快照中的历史待整理条目，新变更单独标注日期；不能将整个 Unreleased 视为本周或 1.2.1 的新增能力。
 
 ### Added
+- （2026-11-19）新建租户自动从默认租户拷贝基础字典与系统配置；提供 `/system/tenant/bootstrapBaseData` 幂等补齐接口。
 - （2026-11-19）MSSQL 真库 API 冒烟脚本 `scripts/db/smoke-mssql-apis.mjs`（Admin + Flow）。
 - （2026-11-19）MSSQL 本地 Docker 冒烟编排：`docker-compose.mssql-test.yml` + SQL Server 数据源示例；`LIMIT n` 改写为 `TOP (n)` 以兼容子查询。
 - （2026-11-18）MSSQL 双轨支持阶段 4：SQL Server 运行时改写 `FOR UPDATE`/`LIMIT`；协同回调两段式领取；Quartz 按库选择 `MSSQLDelegate`；Flowable schema-update 示例配置。
