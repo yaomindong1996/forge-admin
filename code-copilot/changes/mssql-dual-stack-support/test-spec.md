@@ -40,8 +40,19 @@
 | Quartz Delegate | 单测 | SQL Server→MSSQLDelegate |
 | Flowable 配置 | 审阅 | sqlserver 示例含 database-schema-update=true |
 
-## 后续阶段
+## 阶段 5（真库冒烟）
 
-- SQL Server 真库：Flyway migrate、登录、组织权限、流程、定时任务冒烟
+| 项 | 方式 | 通过标准 |
+|----|------|----------|
+| 编排 | Docker compose overlay | `forge-mssql` healthy；admin/flow actuator 200 |
+| 纯净版导入 | sqlcmd + 转换脚本 | 无 Msg 错误；配置分组无重复 |
+| API 冒烟 | `smoke-mssql-apis.mjs` | Admin 列表/组织增删 + Flow 模型读写均为业务 code=200 |
+| 全量脚本 | `check-sqlserver-full-basics.py` | 通过 |
+| 平行增量 | `check-sqlserver-migration-pairs.mjs` | 通过（可为空） |
+| 可移植 SQL | 契约/改写单测 | 无 MySQL `DELETE alias FROM` / 裸 `GREATEST`；TIMESTAMPDIFF 改写 |
+
+## 后续
+
 - 低代码：建表/改列/分页查询（真库）
-- 三栈平行增量脚本一致性检查
+- 三栈 CI 矩阵挂载
+- ForgePro 增量同步

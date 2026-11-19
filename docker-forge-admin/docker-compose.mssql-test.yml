@@ -1,8 +1,9 @@
-# SQL Server 双栈冒烟：本分支 jar + Azure SQL Edge
+# SQL Server 双栈冒烟：本分支 jar + mssql/server:2022
 # 用法：
 #   1) docker compose -f docker-compose.yml -f docker-compose.mssql-test.yml up -d mssql redis
-#   2) 导入全量/纯净版 SQL 后
+#   2) 导入 db/sqlserver/全量初始化SQL.纯净版.sql（可用 mssql-tools 容器 + sqlcmd）
 #   3) docker compose -f docker-compose.yml -f docker-compose.mssql-test.yml up -d forge-flow forge-admin
+#   4) node forge-server/scripts/db/smoke-mssql-apis.mjs
 services:
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest

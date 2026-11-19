@@ -243,7 +243,10 @@
 
     <update id="updatePublishedProjection">
         UPDATE ai_business_process
-        SET current_version = GREATEST(COALESCE(current_version, 0), #{versionNo}),
+        SET current_version = CASE
+            WHEN COALESCE(current_version, 0) &gt;= #{versionNo} THEN COALESCE(current_version, 0)
+            ELSE #{versionNo}
+        END,
             published_version = #{versionNo},
             design_status = CASE
               WHEN draft_schema_hash = #{schemaHash} THEN 'PUBLISHED'

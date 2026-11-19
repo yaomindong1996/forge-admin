@@ -158,14 +158,13 @@
     </update>
 
     <delete id="cleanPhysicalBefore">
-        DELETE job_log
-        FROM sys_job_log job_log
-        WHERE job_log.status IN (0, 1, 3)
-          AND job_log.trigger_time &lt; #{beforeDate}
+        DELETE FROM sys_job_log
+        WHERE status IN (0, 1, 3)
+          AND trigger_time &lt; #{beforeDate}
           AND NOT EXISTS (
             SELECT 1
             FROM sys_job_api_idempotency idempotency
-            WHERE idempotency.execution_id = job_log.id
+            WHERE idempotency.execution_id = sys_job_log.id
               AND idempotency.expires_at &gt; CURRENT_TIMESTAMP
               AND idempotency.del_flag = 0
           )
@@ -186,7 +185,8 @@
             end_time = CURRENT_TIMESTAMP,
             duration = CASE
                 WHEN start_time IS NULL THEN 0
-                ELSE GREATEST(TIMESTAMPDIFF(MICROSECOND, start_time, CURRENT_TIMESTAMP) DIV 1000, 0)
+                WHEN TIMESTAMPDIFF(MICROSECOND, start_time, CURRENT_TIMESTAMP) DIV 1000 &lt; 0 THEN 0
+                ELSE TIMESTAMPDIFF(MICROSECOND, start_time, CURRENT_TIMESTAMP) DIV 1000
             END
         WHERE del_flag = 0
           AND (

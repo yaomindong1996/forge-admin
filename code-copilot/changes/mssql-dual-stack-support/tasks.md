@@ -36,5 +36,7 @@
 
 ## 阶段 5–6 — 矩阵与 Pro 同步
 
-- [ ] 三栈冒烟与 CI 矩阵
-- [ ] 社区合入后增量同步 ForgePro
+- [x] SQL Server 真库 Docker 冒烟（health / 登录 / 组织 / 任务 / 打印来源 / Flow 模型）+ `smoke-mssql-apis.mjs`
+- [x] 转换器一键导入加固与脚本校验（`check-sqlserver-full-basics.py` / `check-sqlserver-migration-pairs.mjs`）
+- [ ] 三栈 CI 矩阵（MySQL / PG / MSSQL）流水线挂载（可选后续）
+- [ ] 社区合入后增量同步 ForgePro（暂缓）

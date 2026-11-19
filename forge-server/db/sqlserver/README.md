@@ -40,3 +40,13 @@ SQLCMDPASSWORD=*** bash forge-server/scripts/db/init-db-sqlserver.sh \
 
 后端示例：`forge-admin-server/src/main/resources/application-sqlserver.example.yml`  
 Flyway：`classpath:db/sqlserver/migration`，`baseline-version=1.0.234`
+
+## Docker 冒烟
+
+```bash
+# 在 docker-forge-admin 目录
+docker compose -f docker-compose.yml -f docker-compose.mssql-test.yml up -d mssql redis
+# 导入纯净版后
+docker compose -f docker-compose.yml -f docker-compose.mssql-test.yml up -d forge-flow forge-admin
+node forge-server/scripts/db/smoke-mssql-apis.mjs
+```

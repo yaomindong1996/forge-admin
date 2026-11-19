@@ -43,3 +43,10 @@
 - `LIMIT n` 改写改为 `TOP (n)`（含子查询）；分页仍用 OFFSET/FETCH
 - Admin/Flow health UP；登录 + 菜单权限 OK；Flowable 自建 act_/flw_ 共 62 表
 - 转换脚本补齐：`N'...'`、INSERT 拆批、空 varbinary→NULL、可空唯一索引过滤、`QUOTED_IDENTIFIER ON`；纯净版可一次导入成功，配置分组不再重复
+
+## 2026-11-19（阶段 5 冒烟加固）
+
+- 可移植 SQL：`SysJobLogMapper.cleanPhysicalBefore` 改为 `DELETE FROM`；去掉 `GREATEST`（job 失联恢复 / 业务流程版本）
+- 新增 `scripts/db/smoke-mssql-apis.mjs`；compose 注释改为 SQL Server 2022 用法
+- 真库冒烟：Admin 用户/角色/组织/任务/打印来源等 + Flow 模型页/待办/工作台；组织增删与流程模型创建通过
+- 单测：`JobMapperXmlContractTest` 锁定 portable DELETE；orm rewriter / Quartz / 校验脚本回归
