@@ -36,9 +36,13 @@ public final class SqlServerDialectSqlRewriter {
     private static final Pattern FROM_TABLE = Pattern.compile(
             "(?is)\\bFROM\\s+((?:\\[[^\\]]+\\]|[\\w.]+))(?:\\s+(?:AS\\s+)?((?:\\[[^\\]]+\\]|\\w+)))?");
 
-    public record RewriteResult(String sql, boolean swapLastTwoLimitOffsetParams) {
+    /** MySQL 微秒差再除 1000 ≈ 毫秒；SQL Server 直接按毫秒差。 */
+    private static final Pattern TIMESTAMPDIFF_MILLIS = Pattern.compile(
+            "(?is)TIMESTAMPDIFF\\s*\\(\\s*MICROSECOND\\s*,\\s*([^,]+)\\s*,\\s*([^)]+)\\)\\s*DIV\\s+1000");
+
+    public record RewriteResult(String sql, boolean swapLastTwoLimitOffsetParams, int[] parameterPermutation) {
         public static RewriteResult of(String sql) {
-            return new RewriteResult(sql, false);
+            return new RewriteResult(sql, false, null);
         }
     }
 
@@ -53,7 +57,7 @@ public final class SqlServerDialectSqlRewriter {
         if (sql == null || sql.isBlank()) {
             return RewriteResult.of(sql);
         }
-        String withLock = rewriteForUpdate(sql);
+        String withLock = rewriteForUpdate(rewriteTimestampDiff(sql));
         return rewriteLimit(withLock);
     }
 
@@ -85,16 +89,23 @@ public final class SqlServerDialectSqlRewriter {
         return sb.toString().trim();
     }
 
+    static String rewriteTimestampDiff(String sql) {
+        return TIMESTAMPDIFF_MILLIS.matcher(sql).replaceAll("DATEDIFF(MILLISECOND, $1, $2)");
+    }
+
     static RewriteResult rewriteLimit(String sql) {
         boolean swap = false;
         String current = sql;
+        int[] permutation = null;
         while (true) {
             LimitMatch match = findRightmostLimit(current);
             if (match == null) {
                 break;
             }
             if (match.kind == LimitKind.ONLY) {
-                current = rewriteLimitOnlyAsTop(current, match);
+                TopRewrite top = rewriteLimitOnlyAsTop(current, match);
+                current = top.sql;
+                permutation = compose(permutation, top.step);
             } else {
                 String before = current.substring(0, match.start);
                 String after = current.substring(match.end);
@@ -104,37 +115,102 @@ public final class SqlServerDialectSqlRewriter {
                 }
                 if (match.swap) {
                     swap = true;
+                    permutation = compose(permutation, swapLastTwo(countPlaceholders(current)));
                 }
                 current = before + match.replacement + after;
             }
         }
-        return new RewriteResult(current, swap);
+        return new RewriteResult(current, swap, permutation);
     }
 
     /**
      * {@code LIMIT n} → 在所属 SELECT 后注入 {@code TOP (n)}，并删除 LIMIT。
      * SQL Server 标量子查询可用 TOP，不可用 OFFSET/FETCH。
+     * 占位符会从语句尾移到 TOP，返回相对当前 SQL 的参数下标置换。
      */
-    private static String rewriteLimitOnlyAsTop(String sql, LimitMatch match) {
+    private static TopRewrite rewriteLimitOnlyAsTop(String sql, LimitMatch match) {
         int selectEnd = findEnclosingSelectHeadEnd(sql, match.start);
         if (selectEnd < 0) {
-            // 找不到 SELECT 时退回 OFFSET/FETCH
             String before = sql.substring(0, match.start);
             String after = sql.substring(match.end);
             String scope = before.substring(Math.max(0, before.lastIndexOf('(')));
             if (!HAS_ORDER_BY.matcher(scope).find()) {
                 before = before + " ORDER BY (SELECT NULL)";
             }
-            return before + " OFFSET 0 ROWS FETCH NEXT " + match.limitToken + " ROWS ONLY" + after;
+            return new TopRewrite(before + " OFFSET 0 ROWS FETCH NEXT " + match.limitToken + " ROWS ONLY" + after, null);
         }
         String head = sql.substring(0, selectEnd);
-        // 已有 TOP 则不再注入
         String afterSelect = sql.substring(selectEnd, match.start);
         if (Pattern.compile("(?is)^\\s*TOP\\s*\\(").matcher(afterSelect).lookingAt()
                 || Pattern.compile("(?is)^\\s*TOP\\s+").matcher(afterSelect).lookingAt()) {
-            return head + afterSelect + sql.substring(match.end);
+            return new TopRewrite(head + afterSelect + sql.substring(match.end), null);
         }
-        return head + "TOP (" + match.limitToken + ") " + afterSelect + sql.substring(match.end);
+        int[] step = null;
+        if ("?".equals(match.limitToken)) {
+            int from = countPlaceholders(sql.substring(0, match.start));
+            int insertAt = countPlaceholders(head);
+            step = movePlaceholder(countPlaceholders(sql), from, insertAt);
+        }
+        return new TopRewrite(head + "TOP (" + match.limitToken + ") " + afterSelect + sql.substring(match.end), step);
+    }
+
+    private record TopRewrite(String sql, int[] step) {
+    }
+
+    /** newIndex → oldIndex。把 from 插到 insertAt。 */
+    private static int[] movePlaceholder(int count, int from, int insertAt) {
+        if (from == insertAt || count <= 0) {
+            return null;
+        }
+        int[] step = new int[count];
+        int w = 0;
+        for (int i = 0; i < count; i++) {
+            if (i == insertAt) {
+                step[w++] = from;
+            }
+            if (i != from) {
+                step[w++] = i;
+            }
+        }
+        return w == count ? step : null;
+    }
+
+    private static int[] swapLastTwo(int count) {
+        if (count < 2) {
+            return null;
+        }
+        int[] step = new int[count];
+        for (int i = 0; i < count; i++) {
+            step[i] = i;
+        }
+        int tmp = step[count - 1];
+        step[count - 1] = step[count - 2];
+        step[count - 2] = tmp;
+        return step;
+    }
+
+    private static int[] compose(int[] existing, int[] step) {
+        if (step == null) {
+            return existing;
+        }
+        if (existing == null) {
+            return step;
+        }
+        int[] next = new int[step.length];
+        for (int i = 0; i < step.length; i++) {
+            next[i] = existing[step[i]];
+        }
+        return next;
+    }
+
+    private static int countPlaceholders(String sql) {
+        int count = 0;
+        for (int i = 0; i < sql.length(); i++) {
+            if (sql.charAt(i) == '?') {
+                count++;
+            }
+        }
+        return count;
     }
 
     /**

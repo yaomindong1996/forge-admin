@@ -43,7 +43,9 @@ public class SqlServerDialectSqlInterceptor implements InnerInterceptor {
             SqlServerDialectSqlRewriter.RewriteResult result = SqlServerDialectSqlRewriter.rewriteDetailed(original);
             if (!result.sql().equals(original)) {
                 mpBs.sql(result.sql());
-                if (result.swapLastTwoLimitOffsetParams()) {
+                if (result.parameterPermutation() != null) {
+                    reorderParameterMappings(mpBs, result.parameterPermutation());
+                } else if (result.swapLastTwoLimitOffsetParams()) {
                     swapLastTwoParameterMappings(mpBs);
                 }
                 if (log.isDebugEnabled()) {
@@ -53,6 +55,18 @@ public class SqlServerDialectSqlInterceptor implements InnerInterceptor {
         } catch (Exception ex) {
             log.warn("SQL Server dialect rewrite skipped: {}", ex.toString());
         }
+    }
+
+    private void reorderParameterMappings(PluginUtils.MPBoundSql mpBs, int[] permutation) {
+        List<ParameterMapping> mappings = mpBs.parameterMappings();
+        if (mappings == null || permutation.length != mappings.size()) {
+            return;
+        }
+        List<ParameterMapping> copy = new ArrayList<>(mappings.size());
+        for (int oldIndex : permutation) {
+            copy.add(mappings.get(oldIndex));
+        }
+        mpBs.parameterMappings(copy);
     }
 
     private void swapLastTwoParameterMappings(PluginUtils.MPBoundSql mpBs) {

@@ -75,4 +75,19 @@ class SqlServerDialectSqlRewriterTest {
         assertThat(out).contains("(SELECT TOP (1) log.status FROM sys_job_log log");
         assertThat(out).contains("(SELECT TOP (1) log.start_time FROM sys_job_log log");
     }
+
+    @Test
+    void movesLimitPlaceholderToTop() {
+        String sql = "SELECT id FROM t WHERE create_time <= ? ORDER BY id LIMIT ?";
+        var result = SqlServerDialectSqlRewriter.rewriteDetailed(sql);
+        assertThat(result.sql()).startsWith("SELECT TOP (?) id FROM t WHERE create_time <= ?");
+        assertThat(result.parameterPermutation()).containsExactly(1, 0);
+    }
+
+    @Test
+    void rewritesTimestampDiffMillis() {
+        String sql = "UPDATE t SET duration = TIMESTAMPDIFF(MICROSECOND, start_time, CURRENT_TIMESTAMP) DIV 1000";
+        String out = SqlServerDialectSqlRewriter.rewrite(sql);
+        assertThat(out).isEqualTo("UPDATE t SET duration = DATEDIFF(MILLISECOND, start_time, CURRENT_TIMESTAMP)");
+    }
 }
