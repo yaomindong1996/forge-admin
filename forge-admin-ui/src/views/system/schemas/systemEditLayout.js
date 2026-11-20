@@ -31,7 +31,7 @@ export function normalizeSystemEditField(field, opts = {}) {
   const forceFull = opts.full
     || next.fullSpan
     || next.type === 'textarea'
-    || next.type === 'slot' && next.slotName === 'appearance'
+    || next.type === 'slot' && (next.slotName === 'appearance' || next.slotName === 'menuWhitelist')
   if (forceFull) {
     next.span = SYSTEM_EDIT_FULL_SPAN
     return next

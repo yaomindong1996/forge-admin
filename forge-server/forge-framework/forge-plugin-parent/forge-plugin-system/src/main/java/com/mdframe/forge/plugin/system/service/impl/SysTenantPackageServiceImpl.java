@@ -135,9 +135,8 @@ public class SysTenantPackageServiceImpl implements ISysTenantPackageService {
             if (Objects.equals(pkg.getIsDefault(), 1)) {
                 clearDefaultFlags();
             }
-            if (packageMapper.updateById(pkg) <= 0) {
-                return false;
-            }
+            // 主表字段未变时部分库可能返回 0，组成项仍需落库
+            packageMapper.updateById(pkg);
             replaceItems(dto.getId(), dto.getItems());
             return true;
         }));

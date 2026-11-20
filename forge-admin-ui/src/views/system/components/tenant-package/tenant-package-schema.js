@@ -93,24 +93,67 @@ export function createTenantPackageEditSchema({ statusOptions }) {
           props: { placeholder: '0 表示无限制', min: 0 },
         },
         {
-          field: 'resourceIdsText',
+          field: 'resourceIds',
           label: '菜单资源白名单',
-          type: 'textarea',
+          type: 'slot',
+          slotName: 'menuWhitelist',
           span: SYSTEM_EDIT_FULL_SPAN,
-          props: {
-            placeholder: '可选：资源 ID 列表，逗号或 JSON 数组；留空则开户时从默认 admin 拷贝并排除租户管理',
-            rows: 3,
-          },
+          defaultValue: [],
+          showFeedback: false,
         },
       ],
     },
   ])
 }
 
+/** 资源树只保留目录/菜单，去掉按钮与 API 节点。 */
+export function toMenuTreeOptions(nodes = []) {
+  return (Array.isArray(nodes) ? nodes : []).flatMap((node) => {
+    if (!node)
+      return []
+    const type = Number(node.resourceType)
+    if (type !== 1 && type !== 2)
+      return []
+    const children = toMenuTreeOptions(node.children || [])
+    return [{
+      id: node.id,
+      key: node.id,
+      value: node.id,
+      label: node.resourceName,
+      resourceName: node.resourceName,
+      resourceType: node.resourceType,
+      children: children.length ? children : undefined,
+    }]
+  })
+}
+
+export function parseResourceIds(raw) {
+  if (Array.isArray(raw)) {
+    return raw.map(Number).filter(id => Number.isFinite(id))
+  }
+  if (raw == null || raw === '')
+    return []
+  const text = String(raw).trim()
+  if (!text)
+    return []
+  try {
+    if (text.startsWith('[')) {
+      const parsed = JSON.parse(text)
+      return Array.isArray(parsed) ? parsed.map(Number).filter(id => Number.isFinite(id)) : []
+    }
+  }
+  catch {
+    // fall through to CSV
+  }
+  return text.split(/[,，\s]+/)
+    .map(part => Number(part.trim()))
+    .filter(id => Number.isFinite(id))
+}
+
 export function itemsToFormFields(items = []) {
   const bootstrapPackages = []
   let userLimit = 0
-  let resourceIdsText = ''
+  let resourceIds = []
   for (const item of items) {
     if (!item)
       continue
@@ -123,10 +166,10 @@ export function itemsToFormFields(items = []) {
       userLimit = Number.isFinite(parsed) ? parsed : 0
     }
     else if (String(item.itemType).toUpperCase() === 'RESOURCE' && item.itemCode === 'resourceIds') {
-      resourceIdsText = item.itemValue || ''
+      resourceIds = parseResourceIds(item.itemValue)
     }
   }
-  return { bootstrapPackages, userLimit, resourceIdsText }
+  return { bootstrapPackages, userLimit, resourceIds }
 }
 
 export function formFieldsToItems(formData = {}) {
@@ -148,12 +191,12 @@ export function formFieldsToItems(formData = {}) {
     itemValue: String(formData.userLimit ?? 0),
     sort: 100,
   })
-  const resourceIdsText = String(formData.resourceIdsText || '').trim()
-  if (resourceIdsText) {
+  const resourceIds = parseResourceIds(formData.resourceIds)
+  if (resourceIds.length) {
     items.push({
       itemType: 'RESOURCE',
       itemCode: 'resourceIds',
-      itemValue: resourceIdsText,
+      itemValue: JSON.stringify(resourceIds),
       sort: 200,
     })
   }

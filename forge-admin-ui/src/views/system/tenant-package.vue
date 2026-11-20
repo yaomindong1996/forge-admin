@@ -10,6 +10,7 @@
         update: 'post@/system/tenant-package/edit',
         delete: 'post@/system/tenant-package/removeBatch',
       }"
+      :load-detail-on-edit="true"
       :search-schema="searchSchema"
       :columns="tableColumns"
       :edit-schema="editSchema"
@@ -21,14 +22,22 @@
       :edit-y-gap="8"
       edit-form-class="system-edit-form"
       edit-size="small"
-      modal-width="880px"
+      modal-width="960px"
       add-button-text="新增套餐"
       :hide-add="!userStore.isAdmin"
       :hide-batch-delete="!userStore.isAdmin"
       :hide-selection="!userStore.isAdmin"
       :before-submit="handleBeforeSubmit"
       :before-render-detail="handleBeforeRenderDetail"
-    />
+    >
+      <template #form-menuWhitelist="{ formData, value, updateValue }">
+        <TenantPackageMenuWhitelist
+          :form-data="formData"
+          :value="value"
+          :update-value="updateValue"
+        />
+      </template>
+    </AiCrudPage>
   </div>
 </template>
 
@@ -39,12 +48,14 @@ import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
+import TenantPackageMenuWhitelist from './components/tenant-package/TenantPackageMenuWhitelist.vue'
 import {
   ALL_BOOTSTRAP_CODES,
   DEFAULT_FLAG_OPTIONS,
   createTenantPackageEditSchema,
   formFieldsToItems,
   itemsToFormFields,
+  parseResourceIds,
 } from './components/tenant-package/tenant-package-schema'
 
 defineOptions({ name: 'SystemTenantPackage' })
@@ -160,14 +171,16 @@ function handleBeforeRenderDetail(data = {}) {
     ...data,
     bootstrapPackages: fields.bootstrapPackages.length ? fields.bootstrapPackages : [...ALL_BOOTSTRAP_CODES],
     userLimit: fields.userLimit,
-    resourceIdsText: fields.resourceIdsText,
+    resourceIds: parseResourceIds(fields.resourceIds),
   }
 }
 
 function handleBeforeSubmit(formData = {}) {
+  formData.resourceIds = parseResourceIds(formData.resourceIds)
   formData.items = formFieldsToItems(formData)
   delete formData.bootstrapPackages
   delete formData.userLimit
+  delete formData.resourceIds
   delete formData.resourceIdsText
   delete formData.itemsSource
   return formData
