@@ -27,23 +27,17 @@ class CountOnePaginationInnerInterceptorTest {
                         WHERE current_user_role.tenant_id = t.tenant_id
                           AND current_user_role.user_id = CAST(NULLIF(?, '') AS UNSIGNED)
                           AND (candidate_role.org_scope_type = 1 OR candidate_role_org.id IS NOT NULL)
-                          AND (FIND_IN_SET(
-                                  CAST(current_user_role.role_id AS CHAR),
-                                  REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
-                              ) > 0
-                              OR FIND_IN_SET(
-                                  candidate_role.role_key,
-                                  REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
-                              ) > 0)
+                          AND (CONCAT(',', REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', ''), ',')
+                                  LIKE CONCAT('%,', CAST(current_user_role.role_id AS varchar(64)), ',%')
+                              OR CONCAT(',', REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', ''), ',')
+                                  LIKE CONCAT('%,', candidate_role.role_key, ',%'))
                       ) OR EXISTS (
                         SELECT 1
                         FROM sys_user_org current_user_org
                         WHERE current_user_org.tenant_id = t.tenant_id
                           AND current_user_org.user_id = CAST(NULLIF(?, '') AS UNSIGNED)
-                          AND FIND_IN_SET(
-                              CAST(current_user_org.org_id AS CHAR),
-                              REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
-                          ) > 0
+                          AND CONCAT(',', REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', ''), ',')
+                              LIKE CONCAT('%,', CAST(current_user_org.org_id AS varchar(64)), ',%')
                       )))
                   )
                 ORDER BY t.create_time DESC

@@ -272,7 +272,7 @@
     <update id="detachDisabledByApplicationId">
         UPDATE ai_business_app
         SET application_id = NULL,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND del_flag = '0'
           AND application_id = #{applicationId}
@@ -283,7 +283,7 @@
         UPDATE ai_business_app
         SET status = 0,
             application_id = NULL,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND del_flag = '0'
           AND application_id = #{applicationId}

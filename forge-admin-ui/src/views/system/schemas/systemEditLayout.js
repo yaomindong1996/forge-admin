@@ -31,7 +31,7 @@ export function normalizeSystemEditField(field, opts = {}) {
   const forceFull = opts.full
     || next.fullSpan
     || next.type === 'textarea'
-    || next.type === 'slot' && next.slotName === 'appearance'
+    || next.type === 'slot' && (next.slotName === 'appearance' || next.slotName === 'menuWhitelist')
   if (forceFull) {
     next.span = SYSTEM_EDIT_FULL_SPAN
     return next
@@ -59,6 +59,7 @@ export function buildSystemEditCards(sections = []) {
         type: 'card',
         nodeType: 'card',
         label: section.label || '基础信息',
+        vIf: section.vIf,
         props: {
           icon: section.icon || 'forge:module',
           bordered: true,

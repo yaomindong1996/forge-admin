@@ -69,10 +69,10 @@
     </sql>
 
     <select id="selectRunPage" resultType="com.mdframe.forge.plugin.generator.vo.businessprocess.BusinessProcessRunVO">
-        SELECT CAST(r.id AS CHAR) AS id,
-               CAST(r.application_id AS CHAR) AS applicationId,
-               CAST(r.process_id AS CHAR) AS processId,
-               CAST(r.process_version_id AS CHAR) AS processVersionId,
+        SELECT CAST(r.id AS varchar(64)) AS id,
+               CAST(r.application_id AS varchar(64)) AS applicationId,
+               CAST(r.process_id AS varchar(64)) AS processId,
+               CAST(r.process_version_id AS varchar(64)) AS processVersionId,
                r.process_code AS processCode,
                p.process_name AS processName,
                r.subject_object_code AS subjectObjectCode,
@@ -80,8 +80,8 @@
                r.business_key AS businessKey,
                r.trigger_type AS triggerType,
                r.actor_type AS actorType,
-               CAST(r.actor_user_id AS CHAR) AS actorUserId,
-               CAST(r.active_org_id AS CHAR) AS activeOrgId,
+               CAST(r.actor_user_id AS varchar(64)) AS actorUserId,
+               CAST(r.active_org_id AS varchar(64)) AS activeOrgId,
                r.status AS status,
                r.current_node_id AS currentNodeId,
                r.retry_count AS retryCount,
@@ -245,14 +245,14 @@
             error_code = #{errorCode},
             error_summary = #{errorSummary},
             start_time = CASE
-              WHEN #{nextStatus} = 'RUNNING' AND start_time IS NULL THEN NOW()
+              WHEN #{nextStatus} = 'RUNNING' AND start_time IS NULL THEN CURRENT_TIMESTAMP
               ELSE start_time
             END,
             end_time = CASE
-              WHEN #{nextStatus} IN ('SUCCESS', 'FAILED', 'CANCELED') THEN NOW()
+              WHEN #{nextStatus} IN ('SUCCESS', 'FAILED', 'CANCELED') THEN CURRENT_TIMESTAMP
               ELSE NULL
             END,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{runId}
           AND status = #{expectedStatus}
@@ -283,7 +283,7 @@
             error_summary = NULL,
             end_time = NULL,
             update_by = #{updateBy},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{runId}
           AND status = 'FAILED'

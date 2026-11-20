@@ -173,7 +173,7 @@
     <update id="logicDeleteByApplicationId">
         UPDATE ai_business_application_object
         SET del_flag = id,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND application_id = #{applicationId}
           AND del_flag = '0'
@@ -188,7 +188,7 @@
           (
             #{item.id}, #{item.tenantId}, #{item.applicationId}, #{item.objectId},
             #{item.objectRole}, #{item.sortOrder}, #{item.options}, '0',
-            #{item.createBy}, NOW(), #{item.createDept}, #{item.updateBy}, NOW()
+            #{item.createBy}, CURRENT_TIMESTAMP, #{item.createDept}, #{item.updateBy}, CURRENT_TIMESTAMP
           )
         </foreach>
     </insert>

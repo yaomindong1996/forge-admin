@@ -53,7 +53,7 @@
         SET enabled = 0,
             publish_status = 'DISABLED',
             del_flag = id,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND del_flag = 0

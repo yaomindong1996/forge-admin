@@ -23,7 +23,7 @@
     <update id="expireMatching">
         UPDATE sys_job_api_idempotency
         SET del_flag = id,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND token_id = #{tokenId}
           AND job_config_id = #{jobConfigId}
@@ -40,8 +40,8 @@
             update_by, update_time, remark, del_flag
         ) VALUES (
             #{tenantId}, #{tokenId}, #{jobConfigId}, #{idempotencyKeyHash},
-            #{executionId}, #{expiresAt}, #{createBy}, NOW(), #{createDept},
-            #{updateBy}, NOW(), #{remark}, 0
+            #{executionId}, #{expiresAt}, #{createBy}, CURRENT_TIMESTAMP, #{createDept},
+            #{updateBy}, CURRENT_TIMESTAMP, #{remark}, 0
         )
     </insert>
 

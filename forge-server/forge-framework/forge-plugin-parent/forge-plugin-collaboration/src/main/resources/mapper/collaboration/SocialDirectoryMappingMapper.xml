@@ -101,7 +101,7 @@
         VALUES
         <foreach collection="list" item="m" separator=",">
             (#{m.tenantId}, #{m.connectionId}, #{m.externalDeptId}, #{m.externalParentId}, #{m.externalDeptName},
-             #{m.orgId}, #{m.sourceHash}, #{m.lastSeenRunId}, #{m.status}, NOW(), NOW(), 0)
+             #{m.orgId}, #{m.sourceHash}, #{m.lastSeenRunId}, #{m.status}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0)
         </foreach>
     </insert>
 
@@ -113,7 +113,7 @@
             source_hash = #{m.sourceHash},
             last_seen_run_id = #{m.lastSeenRunId},
             status = #{m.status},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{m.tenantId}
           AND connection_id = #{m.connectionId}
           AND external_dept_id = #{m.externalDeptId}
@@ -125,7 +125,7 @@
         SET last_seen_run_id = #{runId},
             source_hash = #{sourceHash},
             status = 'ACTIVE',
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND connection_id = #{connectionId}
           AND external_dept_id = #{externalId}
@@ -135,7 +135,7 @@
     <update id="markUnseenOrgInactive">
         UPDATE sys_social_org_mapping
         SET status = 'INACTIVE',
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND connection_id = #{connectionId}
           AND status = 'ACTIVE'
@@ -161,7 +161,7 @@
         VALUES
         <foreach collection="list" item="m" separator=",">
             (#{m.tenantId}, #{m.connectionId}, #{m.externalPostCode}, #{m.externalPostName},
-             #{m.postId}, #{m.status}, NOW(), NOW(), 0)
+             #{m.postId}, #{m.status}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0)
         </foreach>
     </insert>
 
@@ -183,7 +183,7 @@
         VALUES
         <foreach collection="list" item="t" separator=",">
             (#{t.tenantId}, #{t.connectionId}, #{t.externalTagId}, #{t.tagName},
-             #{t.status}, #{t.sourceHash}, #{t.lastSeenRunId}, NOW(), NOW(), 0)
+             #{t.status}, #{t.sourceHash}, #{t.lastSeenRunId}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0)
         </foreach>
     </insert>
 
@@ -193,7 +193,7 @@
             status = #{t.status},
             source_hash = #{t.sourceHash},
             last_seen_run_id = #{t.lastSeenRunId},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{t.tenantId}
           AND connection_id = #{t.connectionId}
           AND external_tag_id = #{t.externalTagId}
@@ -204,7 +204,7 @@
         UPDATE sys_social_tag
         SET last_seen_run_id = #{runId},
             status = 'ACTIVE',
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND connection_id = #{connectionId}
           AND external_tag_id = #{externalTagId}
@@ -214,7 +214,7 @@
     <update id="markUnseenTagInactive">
         UPDATE sys_social_tag
         SET status = 'INACTIVE',
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND connection_id = #{connectionId}
           AND status = 'ACTIVE'
@@ -243,7 +243,7 @@
         VALUES
         <foreach collection="list" item="m" separator=",">
             (#{m.tenantId}, #{m.connectionId}, #{m.tagId}, #{m.memberType},
-             #{m.externalMemberId}, #{m.localTargetId}, NOW())
+             #{m.externalMemberId}, #{m.localTargetId}, CURRENT_TIMESTAMP)
         </foreach>
     </insert>
 
@@ -263,7 +263,7 @@
     <update id="markUserSeen">
         UPDATE sys_user_social
         SET source_hash = #{sourceHash},
-            last_sync_time = NOW(),
+            last_sync_time = CURRENT_TIMESTAMP,
             external_status = 'ACTIVE'
         WHERE tenant_id = #{tenantId}
           AND connection_id = #{connectionId}
@@ -275,7 +275,7 @@
     <update id="updateUserExternalStatus">
         UPDATE sys_user_social
         SET external_status = #{externalStatus},
-            last_sync_time = NOW()
+            last_sync_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND connection_id = #{connectionId}
           AND uuid = #{uuid}

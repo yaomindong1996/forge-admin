@@ -10,7 +10,7 @@
           AND sut.tenant_id = #{tenantId}
           AND sut.status = 1
           AND t.tenant_status = 1
-          AND (t.expire_time IS NULL OR t.expire_time &gt; NOW())
+          AND (t.expire_time IS NULL OR t.expire_time &gt; CURRENT_TIMESTAMP)
     </select>
 
     <select id="selectUserTenants" resultType="com.mdframe.forge.plugin.system.vo.SysUserTenantVO">
@@ -30,7 +30,7 @@
         <if test="onlyEnabled != null and onlyEnabled">
           AND sut.status = 1
           AND t.tenant_status = 1
-          AND (t.expire_time IS NULL OR t.expire_time > NOW())
+          AND (t.expire_time IS NULL OR t.expire_time > CURRENT_TIMESTAMP)
         </if>
         ORDER BY sut.is_default DESC, t.id ASC
     </select>

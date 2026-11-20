@@ -11,13 +11,13 @@
           AND capability_id = #{capabilityId}
           AND idempotency_key_hash = #{keyHash}
           AND del_flag = 0
-          AND expires_at &gt; NOW()
+          AND expires_at &gt; CURRENT_TIMESTAMP
         LIMIT 1
     </select>
 
     <delete id="deleteExpired">
         DELETE FROM ai_capability_openapi_idempotency
-        WHERE expires_at &lt; NOW()
+        WHERE expires_at &lt; CURRENT_TIMESTAMP
         LIMIT #{limit}
     </delete>
 </mapper>

@@ -1,7 +1,13 @@
 import { buildSystemEditCards, SYSTEM_EDIT_FULL_SPAN } from '../../schemas/systemEditLayout'
+import { BOOTSTRAP_PACKAGE_OPTIONS } from '../tenant-package/tenant-package-schema'
 
 // 租户信息 Schema 与外观组件分别维护。
-export function createTenantEditSchema({ tenantStatusOptions, businessDatasourceOptions }) {
+export function createTenantEditSchema({
+  tenantStatusOptions,
+  businessDatasourceOptions,
+  packageOptions = [],
+  onPackageChange,
+}) {
   return buildSystemEditCards([
     {
       label: '基础信息',
@@ -58,6 +64,44 @@ export function createTenantEditSchema({ tenantStatusOptions, businessDatasource
           label: '租户描述',
           type: 'textarea',
           props: { placeholder: '请输入租户描述', rows: 2 },
+        },
+      ],
+    },
+    {
+      label: '初始化数据',
+      icon: 'forge:module',
+      // 仅新建时展示；编辑已有租户用补齐接口，避免误覆盖
+      vIf: formData => !formData?.id,
+      fields: [
+        {
+          field: 'packageId',
+          label: '开通套餐',
+          type: 'select',
+          span: SYSTEM_EDIT_FULL_SPAN,
+          rules: [{ required: true, message: '请选择开通套餐', trigger: 'change' }],
+          props: {
+            placeholder: '请选择租户套餐',
+            options: packageOptions,
+            clearable: false,
+          },
+          onChange: onPackageChange,
+        },
+        {
+          field: 'bootstrapPackages',
+          label: '基础数据包',
+          type: 'checkbox',
+          span: SYSTEM_EDIT_FULL_SPAN,
+          defaultValue: [
+            'dictAndConfig',
+            'rootOrg',
+            'tenantAdminRole',
+            'messageTemplates',
+            'flowAssist',
+            'dataScopePresets',
+          ],
+          props: {
+            options: BOOTSTRAP_PACKAGE_OPTIONS,
+          },
         },
       ],
     },

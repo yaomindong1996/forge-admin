@@ -64,7 +64,7 @@
             tenant_id, role_id, module_code, data_scope, create_time, update_time
         ) VALUES
         <foreach collection="list" item="item" separator=",">
-            (#{item.tenantId}, #{item.roleId}, #{item.moduleCode}, #{item.dataScope}, NOW(), NOW())
+            (#{item.tenantId}, #{item.roleId}, #{item.moduleCode}, #{item.dataScope}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         </foreach>
     </insert>
 

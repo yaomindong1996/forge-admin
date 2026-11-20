@@ -67,7 +67,7 @@
         UPDATE ai_custom_query_scheme
         SET is_default = 0,
             update_by = #{userId},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND create_by = #{userId}
           AND config_key = #{configKey}
@@ -79,7 +79,7 @@
         UPDATE ai_custom_query_scheme
         SET del_flag = '1',
             update_by = #{userId},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND create_by = #{userId}
           AND config_key = #{configKey}

@@ -32,7 +32,7 @@
         UPDATE ai_data_audit_cursor
         SET revision = #{revision},
             last_event_id = #{lastEventId},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE id = #{id}
     </update>
 </mapper>

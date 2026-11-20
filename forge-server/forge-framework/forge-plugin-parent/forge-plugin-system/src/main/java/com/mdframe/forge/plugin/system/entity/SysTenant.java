@@ -111,6 +111,11 @@ public class SysTenant extends BaseEntity {
     private String defaultBusinessDatasourceCode;
 
     /**
+     * 当前绑定的租户套餐 ID
+     */
+    private Long packageId;
+
+    /**
      * 删除标志：0-正常，删除后写主键
      */
     @TableLogic(value = "0", delval = "id")

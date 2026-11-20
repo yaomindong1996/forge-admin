@@ -32,7 +32,7 @@
             error_code = #{log.errorCode},
             duration_ms = #{log.durationMs},
             update_by = COALESCE(#{log.updateBy}, update_by),
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE id = #{log.id}
           AND tenant_id = #{log.tenantId}
           AND request_id = #{log.requestId}

@@ -254,7 +254,7 @@
             <if test="parentId != null">parent_id = #{parentId},</if>
             <if test="ancestors != null and ancestors != ''">ancestors = #{ancestors},</if>
             <if test="sort != null">sort = #{sort},</if>
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         </set>
         WHERE id = #{orgId}
           AND tenant_id = #{tenantId}

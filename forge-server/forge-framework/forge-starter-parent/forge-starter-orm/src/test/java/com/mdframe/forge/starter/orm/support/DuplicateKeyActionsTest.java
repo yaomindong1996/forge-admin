@@ -1,8 +1,10 @@
 package com.mdframe.forge.starter.orm.support;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 
+import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -15,6 +17,18 @@ class DuplicateKeyActionsTest {
             throw new DuplicateKeyException("dup");
         })).isZero();
         assertThat(DuplicateKeyActions.insertIgnoreConflict(() -> 1)).isEqualTo(1);
+    }
+
+    @Test
+    void insertIgnoreConflictTreatsSqlServerUniqueViolationAsDuplicate() {
+        assertThat(DuplicateKeyActions.insertIgnoreConflict(() -> {
+            throw new DataIntegrityViolationException("wrap",
+                    new SQLException("Violation of UNIQUE KEY constraint", "23000", 2627));
+        })).isZero();
+        assertThat(DuplicateKeyActions.insertIgnoreConflict(() -> {
+            throw new DataIntegrityViolationException("wrap",
+                    new SQLException("Cannot insert duplicate key row", "23000", 2601));
+        })).isZero();
     }
 
     @Test

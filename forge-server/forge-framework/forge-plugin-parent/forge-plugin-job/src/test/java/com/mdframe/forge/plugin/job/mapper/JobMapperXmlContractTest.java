@@ -62,10 +62,14 @@ class JobMapperXmlContractTest {
         assertTrue(xml.contains("AND status = 2"));
         assertTrue(xml.contains("status IN (0, 1, 3)"));
         assertTrue(xml.contains("FROM sys_job_api_idempotency idempotency"));
-        assertTrue(xml.contains("idempotency.expires_at &gt; NOW()"));
+        assertTrue(xml.contains("idempotency.expires_at &gt; CURRENT_TIMESTAMP"));
         assertTrue(xml.contains("<update id=\"refreshHeartbeat\""));
         assertTrue(xml.contains("<update id=\"failStaleExecutions\""));
         assertTrue(xml.contains("COALESCE(heartbeat_time, start_time, trigger_time) &lt; #{cutoff}"));
+        assertTrue(xml.contains("<delete id=\"cleanPhysicalBefore\""));
+        assertTrue(xml.contains("DELETE FROM sys_job_log"), "cleanPhysicalBefore must use portable DELETE FROM");
+        assertFalse(xml.contains("DELETE job_log"), "MySQL multi-table DELETE alias form breaks on SQL Server");
+        assertFalse(xml.contains("GREATEST("), "GREATEST is not portable across MySQL/PG/SQL Server targets");
     }
 
     @Test

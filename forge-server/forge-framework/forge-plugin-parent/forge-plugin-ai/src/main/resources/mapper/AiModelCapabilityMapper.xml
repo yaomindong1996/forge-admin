@@ -11,7 +11,7 @@
     ORDER BY model_id, capability_code
   </select>
   <update id="logicallyDeleteByModelId">
-    UPDATE ai_model_capability SET del_flag = id, update_time = NOW()
+    UPDATE ai_model_capability SET del_flag = id, update_time = CURRENT_TIMESTAMP
     WHERE model_id = #{modelId} AND del_flag = '0'
   </update>
 </mapper>

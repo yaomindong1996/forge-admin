@@ -42,7 +42,7 @@
         SET process_instance_id = #{approval.processInstanceId},
             execute_status = #{approval.executeStatus}, result_code = #{approval.resultCode},
             result_snapshot = #{approval.resultSnapshot}, error_code = #{approval.errorCode},
-            completed_at = #{approval.completedAt}, update_time = NOW()
+            completed_at = #{approval.completedAt}, update_time = CURRENT_TIMESTAMP
         WHERE id = #{approval.id} AND tenant_id = #{approval.tenantId}
           AND client_id = #{approval.clientId} AND capability_id = #{approval.capabilityId}
           AND request_digest = #{approval.requestDigest} AND del_flag = 0

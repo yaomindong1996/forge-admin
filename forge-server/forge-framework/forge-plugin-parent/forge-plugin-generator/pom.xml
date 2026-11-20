@@ -141,6 +141,12 @@
             <groupId>com.oracle.database.jdbc</groupId>
             <artifactId>ojdbc8</artifactId>
         </dependency>
+
+        <!-- SQL Server 驱动（低代码 / 动态数据源业务库） -->
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+        </dependency>
         
         <!-- HikariCP连接池 -->
         <dependency>

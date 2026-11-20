@@ -110,9 +110,9 @@
         UPDATE sys_flow_error_log
         SET status = 2,
             last_retry_user_id = #{userId},
-            last_retry_time = NOW(),
+            last_retry_time = CURRENT_TIMESTAMP,
             retry_message = #{message},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE id = #{logId}
           AND tenant_id = #{tenantId}
     </update>
@@ -122,9 +122,9 @@
         SET status = #{status},
             retry_count = COALESCE(retry_count, 0) + 1,
             last_retry_user_id = #{userId},
-            last_retry_time = NOW(),
+            last_retry_time = CURRENT_TIMESTAMP,
             retry_message = #{message},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE id = #{logId}
           AND tenant_id = #{tenantId}
     </update>

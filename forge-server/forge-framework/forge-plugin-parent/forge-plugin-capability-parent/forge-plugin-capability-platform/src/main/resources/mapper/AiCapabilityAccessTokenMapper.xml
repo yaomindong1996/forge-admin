@@ -19,7 +19,7 @@
 
     <update id="touchLastUsed">
         UPDATE ai_capability_access_token
-        SET last_used_at = #{lastUsedAt}, update_time = NOW()
+        SET last_used_at = #{lastUsedAt}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND status = 'ACTIVE'
@@ -29,7 +29,7 @@
 
     <update id="revoke">
         UPDATE ai_capability_access_token
-        SET status = 'REVOKED', revoked_at = #{revokedAt}, update_time = NOW()
+        SET status = 'REVOKED', revoked_at = #{revokedAt}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND status = 'ACTIVE'
@@ -38,7 +38,7 @@
 
     <update id="revokeByClientVersion">
         UPDATE ai_capability_access_token
-        SET status = 'REVOKED', revoked_at = #{revokedAt}, update_time = NOW()
+        SET status = 'REVOKED', revoked_at = #{revokedAt}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND client_id = #{clientId}
           AND credential_version = #{credentialVersion}

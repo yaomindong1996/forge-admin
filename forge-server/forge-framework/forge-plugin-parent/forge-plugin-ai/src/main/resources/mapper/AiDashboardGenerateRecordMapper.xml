@@ -82,7 +82,7 @@
           AND (
             u.username LIKE CONCAT('%', #{query.userKeyword}, '%')
             OR u.real_name LIKE CONCAT('%', #{query.userKeyword}, '%')
-            OR CAST(r.user_id AS CHAR) = #{query.userKeyword}
+            OR CAST(r.user_id AS varchar(64)) = #{query.userKeyword}
           )
         </if>
         <if test="query.providerName != null and query.providerName != ''">

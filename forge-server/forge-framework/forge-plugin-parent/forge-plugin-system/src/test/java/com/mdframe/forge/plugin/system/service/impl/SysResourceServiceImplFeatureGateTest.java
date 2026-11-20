@@ -7,6 +7,7 @@ import com.mdframe.forge.plugin.system.entity.SysRoleResource;
 import com.mdframe.forge.plugin.system.mapper.SysResourceMapper;
 import com.mdframe.forge.plugin.system.mapper.SysRoleResourceMapper;
 import com.mdframe.forge.plugin.system.mapper.SysUserRoleMapper;
+import com.mdframe.forge.plugin.system.service.ISysTenantPackageService;
 import com.mdframe.forge.starter.auth.domain.UserResourceTreeVO;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.session.SessionHelper;
@@ -20,6 +21,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import java.util.List;
+import java.util.Set;
 
 import static com.mdframe.forge.plugin.system.service.impl.ResourceFeatureTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,6 +33,7 @@ class SysResourceServiceImplFeatureGateTest {
 
     private final SysResourceMapper resources = mock(SysResourceMapper.class);
     private final SysRoleResourceMapper bindings = mock(SysRoleResourceMapper.class);
+    private final ISysTenantPackageService tenantPackages = mock(ISysTenantPackageService.class);
 
     @BeforeAll
     static void metadata() {
@@ -184,14 +187,32 @@ class SysResourceServiceImplFeatureGateTest {
     }
 
     private SysResourceServiceImpl service(FeatureGate gate) {
+        lenient().when(tenantPackages.resolveMenuResourceWhitelist(any())).thenReturn(Set.of());
         return new SysResourceServiceImpl(resources, mock(SysUserRoleMapper.class), bindings,
-                mock(PermissionServiceImpl.class), gate);
+                mock(PermissionServiceImpl.class), gate, tenantPackages);
     }
 
     private void allowResources(List<SysResource> source) {
         when(resources.selectList(any(Wrapper.class))).thenReturn(source);
         when(bindings.selectList(any(Wrapper.class))).thenReturn(source.stream()
                 .map(item -> binding(item.getId())).toList());
+    }
+
+    @Test
+    void shouldFilterMenuTreeByPackageWhitelistWithoutTouchingPermissions() {
+        SysResource child = resource(3, 2, null);
+        child.setParentId(1L);
+        SysResource other = resource(4, 2, null);
+        other.setParentId(1L);
+        allowResources(List.of(resource(1, 1, null), child, other, resource(5, 3, "btn:keep")));
+        SysResourceServiceImpl service = service(new CommunityFeatureGate());
+        when(tenantPackages.resolveMenuResourceWhitelist(any())).thenReturn(Set.of(3L));
+        try (MockedStatic<SessionHelper> session = session(user(false))) {
+            List<UserResourceTreeVO> tree = service.selectCurrentUserMenuTree();
+            assertThat(tree).extracting(UserResourceTreeVO::getId).containsExactly(1L);
+            assertThat(tree.get(0).getChildren()).extracting(UserResourceTreeVO::getId).containsExactly(3L);
+            assertThat(service.selectCurrentUserPermissions()).contains("test:resource:5");
+        }
     }
 
     private MockedStatic<SessionHelper> session(LoginUser user) {
