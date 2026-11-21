@@ -344,11 +344,17 @@ export function rollbackBusinessApplication(id, versionNo, data, idempotencyKey)
 }
 
 export function businessObjectTableMapping(objectId) {
-  return request.get(`/ai/business/object/${objectId}/table-mapping`, ENCRYPTED_REQUEST)
+  return request.get(`/ai/business/object/${objectId}/table-mapping`, {
+    ...ENCRYPTED_REQUEST,
+    timeout: 60_000,
+  })
 }
 
 export function previewBusinessObjectDatabaseDiff(objectId, designVersion) {
-  return request.post(`/ai/business/object/${objectId}/database-diff`, { designVersion }, ENCRYPTED_REQUEST)
+  return request.post(`/ai/business/object/${objectId}/database-diff`, { designVersion }, {
+    ...ENCRYPTED_REQUEST,
+    timeout: 60_000,
+  })
 }
 
 export function syncBusinessObjectDatabase(objectId, designVersion, options = {}) {
@@ -356,5 +362,8 @@ export function syncBusinessObjectDatabase(objectId, designVersion, options = {}
     designVersion,
     confirmOnlineDdl: true,
     forceExecute: options.forceExecute === true,
-  }, ENCRYPTED_REQUEST)
+  }, {
+    ...ENCRYPTED_REQUEST,
+    timeout: 120_000,
+  })
 }

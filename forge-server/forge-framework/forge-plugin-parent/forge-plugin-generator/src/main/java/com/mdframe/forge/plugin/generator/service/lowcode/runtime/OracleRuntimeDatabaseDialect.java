@@ -337,47 +337,31 @@ public class OracleRuntimeDatabaseDialect implements RuntimeDatabaseDialect {
         if (column.defaultValue() == null || isLargeText(column.sqlType())) {
             return;
         }
-        Object normalized = normalizeDefaultValue(column.defaultValue());
+        Object normalized = SqlStoredDefaultNormalizer.prepareForDdl(column.defaultValue(), column.sqlType());
+        if (normalized == null) {
+            return;
+        }
         String value = String.valueOf(normalized).trim();
         if (StringUtils.isBlank(value) || "NULL".equalsIgnoreCase(value)) {
             return;
         }
         definition.append(" DEFAULT ");
-        if (isExpressionDefault(value) || isNumericType(column.sqlType()) || normalized instanceof Number) {
+        if (SqlStoredDefaultNormalizer.isExpressionDefault(value)
+                || isNumericType(column.sqlType())
+                || normalized instanceof Number) {
             definition.append(value);
         } else {
             definition.append("'").append(escapeSqlComment(value)).append("'");
         }
     }
 
-    private Object normalizeDefaultValue(Object defaultValue) {
-        if (defaultValue instanceof Boolean bool) {
-            return bool ? 1 : 0;
-        }
-        String text = String.valueOf(defaultValue).trim();
-        if ("true".equalsIgnoreCase(text)) {
-            return 1;
-        }
-        if ("false".equalsIgnoreCase(text)) {
-            return 0;
-        }
-        return defaultValue;
-    }
-
     private boolean isNumericType(String sqlType) {
-        return StringUtils.defaultString(sqlType).toUpperCase(Locale.ROOT).startsWith("NUMBER");
+        String alias = SqlStoredDefaultNormalizer.normalizeTypeAlias(sqlType);
+        return alias.equals("decimal") || alias.equals("number") || alias.equals("int") || alias.equals("bigint");
     }
 
     private boolean isLargeText(String sqlType) {
         return "CLOB".equalsIgnoreCase(StringUtils.defaultString(sqlType).trim());
-    }
-
-    private boolean isExpressionDefault(String value) {
-        String normalized = StringUtils.defaultString(value).trim().toUpperCase(Locale.ROOT);
-        return normalized.equals("CURRENT_TIMESTAMP")
-            || normalized.equals("CURRENT_DATE")
-            || normalized.equals("SYSDATE")
-            || normalized.startsWith("SYSTIMESTAMP");
     }
 
     private String normalizeObjectName(String value) {

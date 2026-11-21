@@ -58,6 +58,28 @@ class PostgreSqlRuntimeDatabaseDialectTest {
     }
 
     @Test
+    @DisplayName("PG COLUMN_DEFAULT cast is not double-quoted when rewriting DEFAULT")
+    void pgCastDefaultIsNotDoubleQuoted() {
+        String definition = dialect.columnDefinition(new RuntimeDatabaseDialect.DdlColumn(
+                "status",
+                "varchar(32)",
+                true,
+                "'DRAFT'::character varying",
+                null,
+                "状态",
+                false
+        ));
+        assertTrue(definition.contains("DEFAULT 'DRAFT'"), definition);
+        assertFalse(definition.contains("'''DRAFT''"), definition);
+        assertFalse(definition.contains("::character varying"), definition);
+
+        var statements = dialect.modifyColumnSql("biz_order", new RuntimeDatabaseDialect.DdlColumn(
+                "status", "varchar(32)", false, "'''DRAFT''::character varying", null, "状态", false));
+        assertTrue(statements.stream().anyMatch(sql -> sql.contains("SET DEFAULT 'DRAFT'")), statements.toString());
+        assertFalse(statements.stream().anyMatch(sql -> sql.contains("'''DRAFT''")), statements.toString());
+    }
+
+    @Test
     @DisplayName("snowflake primary key does not force identity")
     void snowflakePrimaryKeyWithoutIdentity() {
         String definition = dialect.columnDefinition(new RuntimeDatabaseDialect.DdlColumn(

@@ -8,6 +8,7 @@ import com.mdframe.forge.plugin.generator.service.lowcode.runtime.RuntimeDatabas
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.RuntimeDatabaseDialect.DdlColumn;
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.RuntimeDatabaseDialect.IndexDefinition;
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.RuntimeDatabaseDialectFactory;
+import com.mdframe.forge.plugin.generator.service.lowcode.runtime.SqlStoredDefaultNormalizer;
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.LowcodeRuntimeDataSourceContext;
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.LowcodeRuntimeDataSourceResolver;
 import com.mdframe.forge.plugin.generator.vo.lowcode.LowcodeDdlPreviewVO;
@@ -304,24 +305,31 @@ public class LowcodeDdlService {
         String expectedType = normalizeDataType(field);
         String actualType = StringUtils.defaultString(metadata == null ? null : metadata.columnType())
                 .trim().toLowerCase(Locale.ROOT);
+        String expectedAlias = SqlStoredDefaultNormalizer.normalizeTypeAlias(expectedType);
+        String actualAlias = SqlStoredDefaultNormalizer.normalizeTypeAlias(actualType);
         boolean typeCompatible;
-        if (Set.of("varchar", "char").contains(expectedType)) {
+        if (Set.of("varchar", "char").contains(expectedAlias)) {
             int capacity = ddlRepository.characterCapacity(metadata);
-            int requiredCapacity = normalizeLength(field, "char".equals(expectedType) ? 1 : 255, 1, 2048);
-            typeCompatible = capacity == -1 || capacity >= requiredCapacity;
-        } else if (Set.of("text", "longtext").contains(expectedType)) {
-            typeCompatible = ddlRepository.characterCapacity(metadata) != 0;
+            int requiredCapacity = normalizeLength(field, "char".equals(expectedAlias) ? 1 : 255, 1, 2048);
+            typeCompatible = capacity == -1 || capacity >= requiredCapacity
+                    || SqlStoredDefaultNormalizer.sameTypeAlias(expectedAlias, actualAlias);
+        } else if (Set.of("text", "longtext").contains(expectedAlias)) {
+            typeCompatible = ddlRepository.characterCapacity(metadata) != 0
+                    || SqlStoredDefaultNormalizer.sameTypeAlias(expectedAlias, actualAlias);
         } else {
-            typeCompatible = actualType.startsWith(expectedType + "(") || actualType.equals(expectedType);
+            typeCompatible = actualAlias.equals(expectedAlias)
+                    || actualType.startsWith(expectedType + "(")
+                    || actualType.equals(expectedType)
+                    || SqlStoredDefaultNormalizer.sameTypeAlias(expectedType, actualType);
         }
         boolean required = shouldUseNotNull(field, expectedType);
         boolean nullableCompatible = !required || "NO".equalsIgnoreCase(metadata == null ? null : metadata.isNullable());
         Object expectedDefault = required
                 ? normalizeColumnDefault(field.getDefaultValue(), expectedType)
                 : null;
-        boolean defaultCompatible = !required || java.util.Objects.equals(
-                String.valueOf(expectedDefault),
-                metadata == null || metadata.columnDefault() == null ? null : String.valueOf(metadata.columnDefault()));
+        boolean defaultCompatible = !required || SqlStoredDefaultNormalizer.equalsNormalized(
+                expectedDefault,
+                metadata == null ? null : metadata.columnDefault());
         boolean generated = metadata != null && StringUtils.isNotBlank(metadata.generationExpression());
         if (!typeCompatible || !nullableCompatible || !defaultCompatible || generated) {
             throw new BusinessException("数据库列 " + field.getColumnName()
@@ -612,16 +620,7 @@ public class LowcodeDdlService {
     }
 
     private String sqlTypeFamily(String sqlType) {
-        String normalized = StringUtils.defaultString(sqlType).trim().toLowerCase(Locale.ROOT);
-        int paren = normalized.indexOf('(');
-        if (paren > 0) {
-            normalized = normalized.substring(0, paren);
-        }
-        int space = normalized.indexOf(' ');
-        if (space > 0) {
-            normalized = normalized.substring(0, space);
-        }
-        return normalized;
+        return SqlStoredDefaultNormalizer.normalizeTypeAlias(sqlType);
     }
 
     private void appendMissingSystemColumns(LowcodeModelSchema modelSchema, String tableName,
@@ -907,13 +906,16 @@ public class LowcodeDdlService {
                                           LowcodeFieldSchema field,
                                           boolean required) {
         validateIdentifier(metadata.columnName(), "字段列名");
+        String dataType = normalizeDataType(field);
+        // 必填用字段默认值；否则也要清洗库侧 COLUMN_DEFAULT，禁止把 'DRAFT'::varchar 再二次加引号
+        Object defaultValue = required
+                ? normalizeColumnDefault(field.getDefaultValue(), dataType)
+                : normalizeColumnDefault(metadata.columnDefault(), dataType);
         return new DdlColumn(
                 metadata.columnName(),
                 metadata.columnType(),
                 required,
-                required
-                        ? normalizeColumnDefault(field.getDefaultValue(), normalizeDataType(field))
-                        : metadata.columnDefault(),
+                defaultValue,
                 metadata.extra(),
                 metadata.columnComment(),
                 false
@@ -921,45 +923,10 @@ public class LowcodeDdlService {
     }
 
     /**
-     * 开关默认值常为 true/false，落库 tinyint 必须是 0/1。
+     * 开关默认值常为 true/false，落库 tinyint 必须是 0/1；并剥离 PG cast / 外层引号。
      */
     private Object normalizeColumnDefault(Object defaultValue, String dataType) {
-        if (defaultValue == null) {
-            return null;
-        }
-        if (defaultValue instanceof Boolean bool) {
-            return bool ? 1 : 0;
-        }
-        String text = String.valueOf(defaultValue).trim();
-        if (StringUtils.isBlank(text)) {
-            return defaultValue;
-        }
-        if ("true".equalsIgnoreCase(text)) {
-            return 1;
-        }
-        if ("false".equalsIgnoreCase(text)) {
-            return 0;
-        }
-        // 表单预设仅用于运行时填值，不能写入 DDL DEFAULT
-        if (text.startsWith("$forge:")) {
-            return null;
-        }
-        if (Set.of("tinyint", "int", "bigint", "decimal").contains(StringUtils.defaultString(dataType).toLowerCase(Locale.ROOT))
-                && text.matches("-?\\d+(\\.\\d+)?")) {
-            if (text.contains(".")) {
-                return new java.math.BigDecimal(text);
-            }
-            try {
-                long number = Long.parseLong(text);
-                if (number >= Integer.MIN_VALUE && number <= Integer.MAX_VALUE) {
-                    return (int) number;
-                }
-                return number;
-            } catch (NumberFormatException ignored) {
-                return text;
-            }
-        }
-        return defaultValue;
+        return SqlStoredDefaultNormalizer.prepareForDdl(defaultValue, dataType);
     }
 
     private boolean shouldUseNotNull(LowcodeFieldSchema field, String dataType) {

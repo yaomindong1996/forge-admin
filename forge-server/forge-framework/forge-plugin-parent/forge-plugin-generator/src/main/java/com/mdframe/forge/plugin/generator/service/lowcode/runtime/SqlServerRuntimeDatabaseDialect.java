@@ -348,45 +348,29 @@ public class SqlServerRuntimeDatabaseDialect implements RuntimeDatabaseDialect {
     }
 
     private String defaultLiteral(DdlColumn column) {
-        Object normalized = normalizeDefaultValue(column.defaultValue());
+        Object normalized = SqlStoredDefaultNormalizer.prepareForDdl(column.defaultValue(), column.sqlType());
+        if (normalized == null) {
+            return "NULL";
+        }
         String value = Objects.toString(normalized, "").trim();
-        if (isExpressionDefault(value) || isNumericType(column.sqlType()) || normalized instanceof Number) {
+        if (SqlStoredDefaultNormalizer.isExpressionDefault(value)
+                || isNumericType(column.sqlType())
+                || normalized instanceof Number) {
             return value;
         }
         return "N'" + escapeSqlComment(value) + "'";
     }
 
-    private Object normalizeDefaultValue(Object defaultValue) {
-        if (defaultValue instanceof Boolean bool) {
-            return bool ? 1 : 0;
-        }
-        String text = Objects.toString(defaultValue, "").trim();
-        if ("true".equalsIgnoreCase(text)) {
-            return 1;
-        }
-        if ("false".equalsIgnoreCase(text)) {
-            return 0;
-        }
-        return defaultValue;
-    }
-
     private boolean isNumericType(String sqlType) {
-        String normalized = StringUtils.defaultString(sqlType).toLowerCase(Locale.ROOT);
-        return normalized.startsWith("int")
-            || normalized.startsWith("bigint")
-            || normalized.startsWith("tinyint")
-            || normalized.startsWith("smallint")
-            || normalized.startsWith("decimal")
-            || normalized.startsWith("numeric");
-    }
-
-    private boolean isExpressionDefault(String value) {
-        String normalized = StringUtils.defaultString(value).trim().toUpperCase(Locale.ROOT);
-        return normalized.equals("CURRENT_TIMESTAMP")
-            || normalized.equals("GETDATE()")
-            || normalized.equals("SYSDATETIME()")
-            || normalized.equals("CURRENT_DATE")
-            || normalized.equals("CURRENT_TIME");
+        String alias = SqlStoredDefaultNormalizer.normalizeTypeAlias(sqlType);
+        return alias.equals("int")
+            || alias.equals("bigint")
+            || alias.equals("tinyint")
+            || alias.equals("smallint")
+            || alias.equals("decimal")
+            || alias.equals("numeric")
+            || alias.equals("double")
+            || alias.equals("float");
     }
 
     private String normalizeObjectName(String value) {

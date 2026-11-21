@@ -43,4 +43,20 @@ class RuntimeDatabaseDialectDefaultValueTest {
         assertTrue(definition.contains("DEFAULT 0"), definition);
         assertFalse(definition.contains("DEFAULT 'false'"), definition);
     }
+
+    @Test
+    @DisplayName("quoted string default is written once without nested quotes")
+    void quotedStringDefaultWrittenOnce() {
+        String definition = dialect.columnDefinition(new RuntimeDatabaseDialect.DdlColumn(
+                "status",
+                "varchar(32)",
+                true,
+                "'DRAFT'",
+                null,
+                "状态",
+                false
+        ));
+        assertTrue(definition.contains("DEFAULT 'DRAFT'"), definition);
+        assertFalse(definition.contains("'''DRAFT'''"), definition);
+    }
 }
