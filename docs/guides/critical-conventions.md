@@ -152,6 +152,28 @@
 - 版本号必须单调递增；同一版本号只能有一个脚本
 - 已经执行到数据库并进入 `forge_schema_history` 的脚本禁止修改；需要修正时新增下一个版本脚本
 
+#### 新增增量前先占号（不要只看本地文件）
+
+多人并行时「本地最大号 + 1」仍会撞车。占号水位取三者最大值再 +1：
+
+1. 本地 `db/mysql/migration` 文件
+2. `origin/main` 同路径文件（同事已合入但你还没 pull 的）
+3. 可选：共享/本地库 `forge_schema_history` 已成功版本（别人库已跑、脚本尚未进你工作区的）
+
+```bash
+# 只看本地 + origin/main
+node forge-server/scripts/db/next-migration-version.mjs --desc add_foo
+
+# 再并上数据库水位（推荐连共享开发库时）
+node forge-server/scripts/db/next-migration-version.mjs --desc add_foo --from-db \
+  --jdbc 'jdbc:mysql://127.0.0.1:3306/forge_admin_local' --user root --password '***'
+
+# 直接生成 mysql/postgresql/sqlserver 三栈空壳
+node forge-server/scripts/db/next-migration-version.mjs --desc add_foo --create
+```
+
+只读库水位不够：你的库可能落后于文件（例如本地停在 223，仓库已到 241）；只读文件也不够：同事可能已在共享库执行了尚未合入你分支的版本。三者取 max 再顺延。
+
 #### 分支合并 / 社区同步后必须查重版本号
 
 并行分支或 `forge:upstream` 同步后，两边可能各自新增同号迁移（例如两个 `V1.0.218__*.sql`），Flyway 启动会直接失败。
