@@ -32,7 +32,7 @@ public class OpenAiCompatibleProviderAdapter implements AiProviderAdapter {
         String baseUrl = AiProviderBaseUrlPolicy.normalizeAndValidate(adapterCode(), provider.getBaseUrl());
         OpenAiChatOptions.Builder builder = OpenAiChatOptions.builder()
                 .baseUrl(OpenAiSdkSupport.baseUrl(baseUrl)).apiKey(provider.getApiKey()).model(options.model())
-                .timeout(OpenAiSdkSupport.REQUEST_TIMEOUT).maxRetries(0);
+                .timeout(OpenAiSdkSupport.CHAT_TIMEOUT).maxRetries(0).streamUsage(true);
         if (options.temperature() != null) {
             builder.temperature(options.temperature());
         }

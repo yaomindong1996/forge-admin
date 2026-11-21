@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import { engineStop, hubAgents, hubRoute, streamEngineChat } from '@/api/ai'
+import { engineStop, hubAgents, hubRoute, hubTodos, streamEngineChat } from '@/api/ai'
 import { useAuthStore, useUserStore } from '@/store'
 import { generateUUID } from '@/utils'
 
@@ -152,14 +152,31 @@ export const useHubAssistantStore = defineStore('hub-assistant', () => {
       const plan = res.data
       turn.kind = plan.kind
       if (plan.kind === 'TODO') {
-        turn.todos = plan.todos
+        if (plan.todos) {
+          turn.todos = {
+            ...plan.todos,
+            items: plan.todos.items || plan.todos.records || [],
+          }
+        }
+        else {
+          const todoRes = await hubTodos({ pageNum: 1, pageSize: 10 })
+          const page = todoRes?.code === 200 && todoRes.data ? todoRes.data : null
+          turn.todos = page
+            ? {
+                available: page.available,
+                total: Number(page.total || 0),
+                items: page.items || page.records || [],
+                message: page.message,
+              }
+            : { available: false, total: 0, items: [], message: todoRes?.msg || '待办列表加载失败' }
+        }
         turn.status = 'done'
         busy.value = false
         return
       }
       if (plan.kind === 'CLARIFY') {
-        turn.answer = plan.message || '请选择要对话的智能体：'
-        turn.candidates = plan.candidates || []
+        turn.answer = plan.notice || plan.message || '请选择要对话的智能体：'
+        turn.candidates = plan.candidates?.length ? plan.candidates : [...agents.value]
         turn.status = 'done'
         busy.value = false
         return
@@ -168,7 +185,7 @@ export const useHubAssistantStore = defineStore('hub-assistant', () => {
         startAgentStream(turn, plan.agent)
         return
       }
-      turn.answer = plan.message || '暂无可用智能体，请先在「智能体」页面发布智能体。'
+      turn.answer = plan.notice || plan.message || '暂无可用智能体，请先在「智能体」页面启用智能体。'
       turn.status = 'done'
       busy.value = false
     }

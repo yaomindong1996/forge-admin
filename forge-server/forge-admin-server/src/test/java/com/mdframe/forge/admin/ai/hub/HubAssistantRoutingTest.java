@@ -84,6 +84,40 @@ class HubAssistantRoutingTest {
         }
     }
 
+    @Test
+    void routeShouldNotFallbackToInternalJsonGeneratorsForCasualMessage() {
+        AiAgent crud = agent(104L, 1L, "crud_config_builder", "CRUD配置生成器", "根据自然语言描述生成CRUD配置JSON");
+        AiAgent screen = agent(1L, 1L, "dashboard_generator", "大屏生成助手", "生成数据可视化大屏布局JSON");
+        when(agentMapper.selectEnabledAgents()).thenReturn(List.of(crud, screen));
+        when(bindings.findGeneralAgentCode(1L)).thenReturn(null);
+
+        try (MockedStatic<SessionHelper> session = mockStatic(SessionHelper.class)) {
+            session.when(() -> SessionHelper.hasPermission(HubAccess.PERM_HUB_USE)).thenReturn(true);
+            var actor = new HubAccess.Actor(1L, 100L, 10L);
+
+            var route = routing.route(actor, "11", null);
+            assertEquals(HubAssistantRouting.Kind.CLARIFY, route.kind());
+            assertNull(route.agent());
+        }
+    }
+
+    @Test
+    void routeShouldPreferGeneralAssistantCodeOverInternalGenerators() {
+        AiAgent crud = agent(104L, 1L, "crud_config_builder", "CRUD配置生成器", "生成CRUD配置JSON");
+        AiAgent general = agent(200L, 1L, "general_assistant", "通用助手", "日常问答");
+        when(agentMapper.selectEnabledAgents()).thenReturn(List.of(crud, general));
+        when(bindings.findGeneralAgentCode(1L)).thenReturn(null);
+
+        try (MockedStatic<SessionHelper> session = mockStatic(SessionHelper.class)) {
+            session.when(() -> SessionHelper.hasPermission(HubAccess.PERM_HUB_USE)).thenReturn(true);
+            var actor = new HubAccess.Actor(1L, 100L, 10L);
+
+            var route = routing.route(actor, "11", null);
+            assertEquals(HubAssistantRouting.Kind.CHAT, route.kind());
+            assertEquals("general_assistant", route.agent().code());
+        }
+    }
+
     private AiAgent agent(Long id, Long tenantId, String code, String name, String desc) {
         AiAgent a = new AiAgent();
         a.setId(id);

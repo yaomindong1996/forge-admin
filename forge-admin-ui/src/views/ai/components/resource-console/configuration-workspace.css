@@ -1,0 +1,138 @@
+.configuration-workspace {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+.configuration-navigation {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 4px 22px;
+  margin: 0;
+  padding: 14px 22px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--text-primary) 8%, transparent);
+  overflow-x: auto;
+  background: var(--bg-primary);
+}
+
+.configuration-navigation button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 0 2px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text-tertiary);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.configuration-navigation button i {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.configuration-navigation button.active {
+  color: var(--text-primary);
+  font-weight: 650;
+}
+
+.configuration-navigation button.active::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--text-primary);
+}
+
+.configuration-navigation button:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.configuration-content {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+}
+
+.configuration-content > .ai-resource-console {
+  padding: 0;
+  margin: 0;
+  flex: 1;
+  min-height: 0;
+}
+
+.configuration-content .model-console {
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+.configuration-content .resource-heading {
+  padding: 12px 16px 0;
+}
+
+.configuration-content .resource-heading h1 {
+  font-size: 15px;
+}
+
+.configuration-content .resource-scroll {
+  padding: 0;
+  background: transparent;
+}
+
+.configuration-content .resource-result-meta {
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--border-light);
+  border-top: 0;
+  background: var(--bg-primary);
+}
+
+.configuration-content .resource-pagination {
+  padding: 10px 16px;
+}
+
+.configuration-panel {
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  min-width: 0;
+}
+
+.configuration-caption {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+@media (max-width: 640px) {
+  .configuration-navigation {
+    gap: 4px 16px;
+    padding: 12px 14px 0;
+  }
+
+  .configuration-navigation button {
+    font-size: 14px;
+  }
+}

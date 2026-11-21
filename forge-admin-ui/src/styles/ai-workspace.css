@@ -1,0 +1,27 @@
+/* Opt-in workspace foundations. Other AI pages migrate in later phases. */
+.ai-workspace {
+  --ai-surface: var(--bg-primary, #fff);
+  --ai-background: var(--bg-secondary, #f6f7fa);
+  --ai-line: var(--border-light, #e5e8ef);
+  --ai-text: var(--text-primary, #253047);
+  --ai-muted: var(--text-secondary, #66738a);
+  --ai-accent: var(--primary-color, #346de4);
+  color: var(--ai-text);
+  font-size: 13px;
+  min-width: 0;
+}
+.ai-workspace-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex: none; }
+.ai-workspace-heading { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ai-workspace-heading > div { min-width: 0; }
+.ai-workspace-heading h1 { font-size: 20px; font-weight: 600; line-height: 1.4; margin: 0; }
+.ai-workspace-heading p { margin: 4px 0 0; font-size: 12px; color: var(--ai-muted); line-height: 1.5; }
+.ai-workspace-symbol { width: 36px; height: 36px; display: grid; place-items: center; flex: none; border: 0; background: transparent; border-radius: 10px; color: var(--ai-accent); font-size: 18px; }
+.ai-workspace-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.ai-workspace-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0 0; border-top: 1px solid var(--ai-line); flex: none; }
+.ai-workspace-total { color: var(--ai-muted); font-size: 12px; white-space: nowrap; }
+.ai-workspace-total strong { color: var(--ai-text); font-weight: 500; }
+.ai-workspace button:focus-visible { outline: 2px solid var(--ai-accent); outline-offset: 3px; }
+@media (max-width: 640px) {
+  .ai-workspace-header { align-items: flex-start; flex-wrap: wrap; gap: 10px; }
+  .ai-workspace-pagination { flex-wrap: wrap; }
+}

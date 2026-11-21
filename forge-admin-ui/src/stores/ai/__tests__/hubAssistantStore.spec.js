@@ -3,12 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const hubRouteMock = vi.fn()
 const hubAgentsMock = vi.fn()
+const hubTodosMock = vi.fn()
 const streamEngineChatMock = vi.fn()
 const engineStopMock = vi.fn(() => Promise.resolve({ code: 200 }))
 
 vi.mock('@/api/ai', () => ({
   hubRoute: (...args) => hubRouteMock(...args),
   hubAgents: (...args) => hubAgentsMock(...args),
+  hubTodos: (...args) => hubTodosMock(...args),
   streamEngineChat: (...args) => streamEngineChatMock(...args),
   engineStop: (...args) => engineStopMock(...args),
 }))
@@ -26,12 +28,20 @@ describe('useHubAssistantStore', () => {
     vi.clearAllMocks()
   })
 
-  it('routes todo intent and renders todo list without starting SSE stream', async () => {
+  it('routes todo intent and fetches todo page when route omits inline todos', async () => {
     hubRouteMock.mockResolvedValue({
       code: 200,
       data: {
         kind: 'TODO',
-        todos: { available: true, total: 1, items: [{ taskId: 't-1', taskName: '审批采购单' }] },
+        intent: 'MY_TODOS',
+      },
+    })
+    hubTodosMock.mockResolvedValue({
+      code: 200,
+      data: {
+        available: true,
+        total: 1,
+        records: [{ taskId: 't-1', taskName: '审批采购单' }],
       },
     })
 
@@ -41,7 +51,9 @@ describe('useHubAssistantStore', () => {
     expect(store.turns).toHaveLength(1)
     expect(store.turns[0].kind).toBe('TODO')
     expect(store.turns[0].todos.total).toBe(1)
+    expect(store.turns[0].todos.items).toHaveLength(1)
     expect(store.turns[0].status).toBe('done')
+    expect(hubTodosMock).toHaveBeenCalledTimes(1)
     expect(streamEngineChatMock).not.toHaveBeenCalled()
   })
 

@@ -1,0 +1,305 @@
+/* 供应商与模型：对齐专家套件 / hub-market 的轻量市场排版 */
+
+.model-market {
+  padding: 18px 22px 12px;
+  background: var(--bg-primary);
+}
+
+.model-market .hub-market-header {
+  margin-bottom: 14px;
+}
+
+.model-market .hub-market-header h1 {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: clamp(20px, 2.2vw, 26px);
+}
+
+.model-market .hub-market-header h1 .provider-mark {
+  width: 36px;
+  height: 36px;
+  flex: none;
+}
+
+.model-market .hub-market-header p {
+  max-width: 56ch;
+}
+
+.model-market .hub-market-actions {
+  gap: 6px;
+}
+
+.model-market .hub-market-icon-btn i,
+.model-market .hub-market-add i,
+.model-market .model-market-link i {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.model-market .hub-market-icon-btn {
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+}
+
+/* Uno 动态 class 保活，避免列表里能力图标扫不到 */
+.model-market-icon-keepalive {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.model-market .hub-market-add {
+  gap: 4px;
+}
+
+.model-market .provider-connection-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--text-primary) 8%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text-primary) 2%, var(--bg-primary));
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.model-market .provider-connection-picker__select {
+  width: min(280px, 100%);
+}
+
+.model-market .provider-connection-picker__count {
+  margin-left: auto;
+  color: var(--text-tertiary);
+}
+
+.model-market .hub-market-subtabs {
+  margin-bottom: 8px;
+}
+
+.model-market .resource-scroll {
+  flex: 1;
+  min-height: 0;
+  margin: 0 -6px;
+  padding: 4px 6px 8px;
+  overflow: auto;
+}
+
+.model-market .resource-list-spin,
+.model-market .resource-list-spin > .n-spin-container,
+.model-market .resource-list-spin > .n-spin-container > .n-spin-content {
+  min-height: 100%;
+}
+
+.model-market .resource-pagination {
+  display: flex;
+  flex: none;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 2px 4px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  border-top: 0;
+}
+
+.model-market-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.model-market-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  min-height: 72px;
+  padding: 12px 8px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+
+.model-market-card:hover,
+.model-market-card:focus-visible {
+  background: color-mix(in srgb, var(--text-primary) 4%, transparent);
+}
+
+.model-market-card:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
+}
+
+.model-market-card-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+  color: var(--primary-color);
+  font-size: 18px;
+}
+
+.model-market-card-icon > i {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.model-market-card-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.model-market-card-copy strong {
+  display: block;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-market-card-copy p {
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-market-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.model-market-card-tools {
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.model-market-card:hover .model-market-card-tools,
+.model-market-card:focus-within .model-market-card-tools {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .model-market-card-tools {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.model-market-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.model-market-link.is-primary {
+  color: var(--primary-color);
+  font-weight: 650;
+}
+
+.model-market-link.is-icon {
+  width: 28px;
+  padding: 0;
+}
+
+.model-market-link:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+  color: var(--text-primary);
+}
+
+.model-market-link.is-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary-color) 8%, transparent);
+  color: var(--primary-color);
+}
+
+.model-market-link:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.model-market-check {
+  grid-column: 1 / -1;
+  margin: 0 8px 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--success-color) 8%, var(--bg-primary));
+  color: var(--success-color);
+  font-size: 12px;
+}
+
+.model-market-check.is-error {
+  background: color-mix(in srgb, var(--error-color) 8%, var(--bg-primary));
+  color: var(--error-color);
+}
+
+.model-market-check p {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+}
+
+.model-market-check time {
+  margin-left: auto;
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 900px) {
+  .model-market-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .model-market-card {
+    transition: none;
+  }
+}

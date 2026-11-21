@@ -171,8 +171,12 @@ public class ReactLoop {
             emit(context, sink, AgentEventType.MODEL_CALL_END, data);
             return response;
         } catch (Exception ex) {
-            log.warn("[ReactLoop] 模型调用未完成: sessionId={}, exceptionType={}",
-                    context.getSessionId(), ex.getClass().getSimpleName());
+            String summary = ex.getMessage();
+            if (summary != null && summary.length() > 200) {
+                summary = summary.substring(0, 200) + "...";
+            }
+            log.warn("[ReactLoop] 模型调用未完成: sessionId={}, exceptionType={}, detail={}",
+                    context.getSessionId(), ex.getClass().getSimpleName(), summary);
             telemetry.phase = AiInvocationPhase.STREAMING;
             if (context.isCancelled()) {
                 telemetry.outcome = AiInvocationOutcome.CANCELLED;
