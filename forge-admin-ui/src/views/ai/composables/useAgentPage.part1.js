@@ -1,5 +1,5 @@
 /** ai/agent setup part 1. */
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   agentAdd,
@@ -9,25 +9,17 @@ import {
   agentToolAdd,
   agentToolDelete,
   agentToolPage,
-  agentToolUpdate,
   agentUpdate,
   contextConfigAdd,
   contextConfigDelete,
   contextConfigList,
   contextConfigUpdate,
-  knowledgePage,
   modelListByProvider,
   providerPage,
   routePolicyPage,
-  skillAddAgentSkill,
-  skillDeleteAgentSkill,
-  skillGetAgentSkills,
-  skillPage,
-  streamAgentChat,
 } from '@/api/ai'
 import { useDict } from '@/composables/useDict'
 import { generateUUID } from '@/utils'
-import AgentConfigForm from '../components/AgentConfigForm.vue'
 
 export function applyAgentPagePart1() {
   const __impl = {}
@@ -617,8 +609,53 @@ export function applyAgentPagePart1() {
   }
 
   async function handleCreateAgent() {
-    // 进入 AI 生成向导页（描述需求 → AI 自动生成配置）
-    router.push('/ai/agent-create')
+    openBaseModal()
+  }
+
+  function resetAgentSearch() {
+    filter.keyword = ''
+    filter.status = 'all'
+    pagination.page = 1
+    loadAgents()
+  }
+
+  function getAgentCardActions(agent) {
+    return [
+      { label: '编辑基础信息', key: 'edit' },
+      { label: agent.status === '0' ? '下线智能体' : '发布智能体', key: 'toggle-status' },
+      { label: '删除智能体', key: 'delete' },
+    ]
+  }
+
+  function handleAgentCardAction(key, agent) {
+    if (key === 'edit') {
+      handleEditAgent(agent)
+      return
+    }
+    if (key === 'toggle-status') {
+      if (agent.status === '0') {
+        window.$dialog?.warning({
+          title: '下线智能体',
+          content: `下线后用户将无法访问「${agent.agentName}」，确定下线吗？`,
+          positiveText: '确定下线',
+          negativeText: '取消',
+          onPositiveClick: () => handleTogglePublish(agent),
+        })
+      }
+      else {
+        handleTogglePublish(agent)
+      }
+      return
+    }
+    if (key === 'delete') {
+      window.$dialog?.warning({
+        title: '删除智能体',
+        content: `确定删除智能体「${agent.agentName}」吗？删除后不可恢复。`,
+        positiveText: '确定删除',
+        negativeText: '取消',
+        onPositiveClick: () => handleDeleteAgent(agent),
+      })
+    }
   }
 
   async function handleEditAgent(agent) {
@@ -646,12 +683,14 @@ export function applyAgentPagePart1() {
   }
 
   function buildBaseAgentPayload(status = '1') {
+    const defaultProvider = providerList.value.find(item => item.isDefault === '1') || providerList.value[0]
     return {
       ...createEmptyAgent(),
       agentName: baseForm.agentName,
       agentCode: baseForm.agentCode,
       description: baseForm.description,
-      providerId: providerList.value[0]?.id ? toIdString(providerList.value[0].id) : null,
+      providerId: defaultProvider?.id ? toIdString(defaultProvider.id) : null,
+      modelName: defaultProvider?.defaultModel || null,
       status,
       knowledgeIds: null,
       ragMode: 'none',
@@ -1011,6 +1050,7 @@ export function applyAgentPagePart1() {
     finishAgentReasoning,
     formatRelativeTime,
     formatTime,
+    getAgentCardActions,
     getAgentGradient,
     getAgentInitial,
     getAgentTools,
@@ -1018,6 +1058,7 @@ export function applyAgentPagePart1() {
     getMcpToolLabel,
     getProviderDefaultModel,
     goToChat,
+    handleAgentCardAction,
     handleAgentPageSizeChange,
     handleAgentSSEChunk,
     handleCreateAgent,
@@ -1048,6 +1089,7 @@ export function applyAgentPagePart1() {
     removeContextConfig,
     removeTool,
     resetAgentForm,
+    resetAgentSearch,
     resetBaseForm,
     resetConversation,
     resetModelParams,

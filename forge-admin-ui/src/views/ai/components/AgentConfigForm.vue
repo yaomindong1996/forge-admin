@@ -1,4 +1,5 @@
 <template>
+  <!-- eslint-disable vue/no-mutating-props -->
   <div class="agent-config-form">
     <div class="config-anchor-col">
       <div class="anchor-list">
@@ -10,22 +11,22 @@
           :class="{ 'anchor-item--active': activeAnchor === item.href }"
           @click="scrollToSection(item.href)"
         >
-          <i :class="item.icon" />
+          <i :class="item.icon" aria-hidden="true" />
           <span>{{ item.title }}</span>
         </button>
       </div>
     </div>
 
     <div ref="scrollContainerRef" class="config-scroll-col">
-      <n-form ref="agentFormRef" :model="agentForm" :rules="rules" label-placement="top">
-        <!-- ==================== 基础信息 ==================== -->
+      <n-form ref="agentFormRef" :model="agentForm" :rules="rules" label-placement="top" size="small">
+        <!-- 基础信息 -->
         <div id="config-basic" class="config-section">
           <div class="section-heading">
-            <i class="ai-icon:info-circle" />
+            <i class="i-lucide:info" aria-hidden="true" />
             <span>基础信息</span>
             <small>智能体的名称、编码与描述</small>
           </div>
-          <n-grid :cols="2" :x-gap="16">
+          <n-grid :cols="2" :x-gap="14">
             <n-form-item-gi label="智能体名称" path="agentName">
               <n-input v-model:value="agentForm.agentName" placeholder="如 合同审查助手" />
             </n-form-item-gi>
@@ -41,16 +42,16 @@
                 v-model:value="agentForm.description"
                 type="textarea"
                 :rows="2"
-                placeholder="用于列表卡片展示和会话识别"
+                placeholder="用于列表卡片展示和助手自动路由识别"
               />
             </n-form-item-gi>
           </n-grid>
         </div>
 
-        <!-- ==================== 人设与提示词 ==================== -->
+        <!-- 人设与提示词 -->
         <div id="config-prompt" class="config-section">
           <div class="section-heading">
-            <i class="ai-icon:user-check" />
+            <i class="i-lucide:user-check" aria-hidden="true" />
             <span>人设与提示词</span>
             <small>定义智能体的角色、目标与行为边界</small>
           </div>
@@ -58,7 +59,7 @@
             <n-input
               v-model:value="agentForm.systemPrompt"
               type="textarea"
-              :autosize="{ minRows: 8, maxRows: 16 }"
+              :autosize="{ minRows: 7, maxRows: 15 }"
               placeholder="定义智能体角色、目标、边界和输出要求"
             />
           </n-form-item>
@@ -66,17 +67,17 @@
             <n-input
               v-model:value="openingStatementModel"
               type="textarea"
-              :rows="3"
+              :rows="2"
               placeholder="显示在会话中的首条消息"
             />
           </n-form-item>
         </div>
 
-        <!-- ==================== AI 设置 ==================== -->
+        <!-- AI 设置 -->
         <div id="config-model" class="config-section">
           <div class="section-heading">
-            <i class="ai-icon:layers" />
-            <span>AI 设置</span>
+            <i class="i-lucide:layers" aria-hidden="true" />
+            <span>模型与参数</span>
             <small>模型选择与生成参数</small>
           </div>
 
@@ -100,15 +101,14 @@
           </template>
 
           <template v-else>
-            <n-grid :cols="2" :x-gap="16">
+            <n-grid :cols="2" :x-gap="14">
               <n-form-item-gi label="供应商">
                 <n-select
                   v-model:value="agentForm.providerId"
                   :options="providerOptions"
                   clearable
                   filterable
-                  :disabled="agentForm.modelSelectionMode === 'POLICY'"
-                  placeholder="选择供应商"
+                  placeholder="留空则使用租户默认供应商"
                 />
               </n-form-item-gi>
               <n-form-item-gi label="模型">
@@ -119,17 +119,14 @@
                   clearable
                   filterable
                   tag
-                  :disabled="agentForm.modelSelectionMode === 'POLICY'"
-                  placeholder="选择或输入模型"
+                  placeholder="留空则使用供应商默认模型"
                 />
               </n-form-item-gi>
             </n-grid>
           </template>
 
-          <n-divider style="margin: 12px 0" />
-
           <div class="param-panel-title">
-            参数配置
+            生成参数
           </div>
           <div class="param-config-list">
             <div class="param-config-row">
@@ -204,10 +201,10 @@
           </div>
         </div>
 
-        <!-- ==================== 推荐问题 ==================== -->
+        <!-- 推荐问题 -->
         <div id="config-questions" class="config-section">
           <div class="section-heading">
-            <i class="ai-icon:message-circle" />
+            <i class="i-lucide:message-circle" aria-hidden="true" />
             <span>推荐问题</span>
             <small>用户进入会话时可点击的快捷问题</small>
           </div>
@@ -216,57 +213,57 @@
           </n-form-item>
         </div>
 
-        <!-- ==================== 能力与上下文 ==================== -->
+        <!-- 能力与上下文 -->
         <div id="config-capabilities" class="config-section">
           <div class="section-heading">
-            <i class="ai-icon:tool" />
+            <i class="i-lucide:wrench" aria-hidden="true" />
             <span>能力与上下文</span>
-            <small>工具、技能与知识上下文的绑定</small>
+            <small>MCP 工具、技能资料、知识库与上下文的绑定</small>
           </div>
 
           <div class="config-entry-grid">
-            <button type="button" class="config-entry-card" @click="emit('open-tools')">
+            <button type="button" class="config-entry-card" @click="emit('openTools')">
               <div class="config-entry-icon">
-                <i class="ai-icon:tool" />
+                <i class="i-lucide:wrench" aria-hidden="true" />
               </div>
               <div class="config-entry-main">
                 <div class="config-entry-title">
-                  工具与技能
+                  工具、技能与知识库
                 </div>
                 <div class="config-entry-desc">
-                  {{ mcpToolCount }} 个 MCP · {{ questionCount }} 个推荐问题
+                  {{ mcpToolCount }} 个工具 · {{ questionCount }} 个推荐问题
                 </div>
                 <div class="config-entry-tags">
                   <NTag
                     v-for="label in mcpToolLabels.slice(0, 3)"
                     :key="label"
-                    size="small"
-                    round
+                    size="tiny"
+                    :bordered="false"
                   >
                     {{ label }}
                   </NTag>
-                  <span v-if="!mcpToolLabels.length" class="config-entry-empty">未配置工具</span>
+                  <span v-if="!mcpToolLabels.length" class="config-entry-empty">点击装配 MCP / 技能包 / 知识库</span>
                 </div>
               </div>
-              <i class="config-entry-arrow ai-icon:chevron-right" />
+              <i class="config-entry-arrow i-lucide:chevron-right" aria-hidden="true" />
             </button>
 
-            <button type="button" class="config-entry-card" @click="emit('open-context')">
-              <div class="config-entry-icon context-entry-icon">
-                <i class="ai-icon:book-open" />
+            <button type="button" class="config-entry-card" @click="emit('openContext')">
+              <div class="config-entry-icon">
+                <i class="i-lucide:book-open" aria-hidden="true" />
               </div>
               <div class="config-entry-main">
                 <div class="config-entry-title">
-                  上下文
+                  上下文配置
                 </div>
                 <div class="config-entry-desc">
                   {{ contextCount }} 个配置 · {{ enabledContextCount }} 个启用
                 </div>
                 <div class="config-entry-preview">
-                  {{ contextPreview || '导入知识、规则或样例作为上下文' }}
+                  {{ contextPreview || '导入业务规则、样例或背景知识' }}
                 </div>
               </div>
-              <i class="config-entry-arrow ai-icon:chevron-right" />
+              <i class="config-entry-arrow i-lucide:chevron-right" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -298,7 +295,7 @@ const props = defineProps({
   rules: { type: Object, default: () => ({}) },
 })
 
-const emit = defineEmits(['open-tools', 'open-context'])
+const emit = defineEmits(['openTools', 'openContext'])
 
 const agentFormRef = ref(null)
 const scrollContainerRef = ref(null)
@@ -306,19 +303,19 @@ const activeAnchor = ref('config-basic')
 let scrollObserver = null
 
 const anchorItems = [
-  { title: '基础信息', href: 'config-basic', icon: 'ai-icon:info-circle' },
-  { title: '人设与提示词', href: 'config-prompt', icon: 'ai-icon:user-check' },
-  { title: 'AI 设置', href: 'config-model', icon: 'ai-icon:layers' },
-  { title: '推荐问题', href: 'config-questions', icon: 'ai-icon:message-circle' },
-  { title: '能力与上下文', href: 'config-capabilities', icon: 'ai-icon:tool' },
+  { title: '基础信息', href: 'config-basic', icon: 'i-lucide:info' },
+  { title: '人设与提示词', href: 'config-prompt', icon: 'i-lucide:user-check' },
+  { title: '模型与参数', href: 'config-model', icon: 'i-lucide:layers' },
+  { title: '推荐问题', href: 'config-questions', icon: 'i-lucide:message-circle' },
+  { title: '能力与上下文', href: 'config-capabilities', icon: 'i-lucide:wrench' },
 ]
 
-// 开场白双向绑定到 extraConfig.openingStatement
 const openingStatementModel = computed({
   get: () => props.agentForm.extraConfig?.openingStatement || '',
   set: (val) => {
-    if (props.agentForm.extraConfig) {
-      props.agentForm.extraConfig.openingStatement = val
+    const extra = props.agentForm.extraConfig
+    if (extra) {
+      extra.openingStatement = val
     }
   },
 })
@@ -327,7 +324,7 @@ function scrollToSection(href) {
   const target = document.getElementById(href)
   const container = scrollContainerRef.value
   if (target && container) {
-    const top = target.offsetTop - container.offsetTop - 16
+    const top = target.offsetTop - container.offsetTop - 12
     container.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
     activeAnchor.value = href
   }
@@ -340,7 +337,6 @@ function setupScrollObserver() {
 
   scrollObserver = new IntersectionObserver(
     (entries) => {
-      // 取交叉区域里 top 最小的 section
       const visible = entries
         .filter(entry => entry.isIntersecting)
         .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
@@ -348,7 +344,7 @@ function setupScrollObserver() {
         activeAnchor.value = visible[0].target.id
       }
     },
-    { root: container, threshold: 0.03, rootMargin: '-10px 0px 0px 0px' },
+    { root: container, threshold: 0.05, rootMargin: '-8px 0px 0px 0px' },
   )
 
   anchorItems.forEach((item) => {
@@ -375,31 +371,32 @@ defineExpose({
 <style scoped>
 .agent-config-form {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 132px minmax(0, 1fr);
+  height: 100%;
   min-height: 0;
+  background: var(--bg-primary);
 }
 
 .config-anchor-col {
-  padding-top: 4px;
-  border-right: 1px solid rgba(226, 232, 240, 0.6);
+  padding: 12px 8px;
+  border-right: 1px solid var(--border-light);
+  overflow-y: auto;
 }
 
 .anchor-list {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  position: sticky;
-  top: 8px;
 }
 
 .anchor-item {
   display: flex;
   width: 100%;
-  padding: 8px 10px;
+  padding: 7px 10px;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   color: var(--text-secondary);
+  font: inherit;
   font-size: 12px;
   text-align: left;
   cursor: pointer;
@@ -407,95 +404,111 @@ defineExpose({
   border: 0;
   border-radius: 6px;
   transition:
-    color 0.15s ease,
-    background 0.15s ease;
+    color 140ms ease,
+    background-color 140ms ease;
+}
+
+.anchor-item i {
+  flex: none;
+  font-size: 14px;
 }
 
 .anchor-item:hover {
-  color: #0369a1;
-  background: rgba(3, 105, 161, 0.06);
+  color: var(--text-primary);
+  background: var(--bg-secondary);
 }
 
 .anchor-item--active {
-  color: #0369a1;
+  color: var(--primary-color, #2563eb);
   font-weight: 600;
-  background: rgba(3, 105, 161, 0.1);
+  background: color-mix(in srgb, var(--primary-color, #2563eb) 8%, var(--bg-primary));
 }
 
 .config-scroll-col {
   min-height: 0;
-  max-height: calc(100vh - 220px);
-  padding-right: 8px;
+  padding: 12px 20px 24px;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .config-section {
-  margin-bottom: 18px;
-  padding: 16px;
-  background: var(--bg-primary);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+  padding: 14px 0 8px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.config-section:first-child {
+  padding-top: 4px;
+}
+
+.config-section:last-child {
+  border-bottom: 0;
 }
 
 .section-heading {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 .section-heading i {
-  color: #0369a1;
+  color: var(--primary-color, #2563eb);
+  font-size: 14px;
+  align-self: center;
 }
 
 .section-heading span {
   color: var(--text-primary);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .section-heading small {
-  margin-left: auto;
-  color: var(--text-secondary);
-  font-size: 11px;
+  color: var(--text-tertiary);
+  font-size: 12px;
 }
 
 .param-panel-title {
-  margin-bottom: 10px;
-  color: var(--text-primary);
-  font-size: 13px;
+  margin: 4px 0 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
   font-weight: 600;
 }
 
 .param-config-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .param-config-row {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: var(--bg-secondary);
 }
 
 .param-meta-cell {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  min-width: 110px;
+  min-width: 112px;
 }
 
 .param-title-line {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-size: 12px;
+  font-weight: 500;
 }
 
 .param-help {
@@ -507,7 +520,8 @@ defineExpose({
   color: var(--text-tertiary);
   font-size: 10px;
   cursor: help;
-  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  background: var(--bg-primary);
   border-radius: 50%;
 }
 
@@ -517,52 +531,47 @@ defineExpose({
 }
 
 .param-number {
-  width: 90px;
+  width: 86px;
 }
 
 .config-entry-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .config-entry-card {
   display: flex;
   width: 100%;
-  padding: 14px;
+  padding: 12px;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   text-align: left;
   color: inherit;
   cursor: pointer;
   background: var(--bg-secondary);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
   transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    border-color 140ms ease,
+    background-color 140ms ease;
 }
 
 .config-entry-card:hover {
-  border-color: rgba(3, 105, 161, 0.4);
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+  border-color: color-mix(in srgb, var(--primary-color, #2563eb) 42%, var(--border-light));
+  background: var(--bg-primary);
 }
 
 .config-entry-icon {
   display: grid;
   flex: 0 0 auto;
-  width: 38px;
-  height: 38px;
-  color: #0369a1;
-  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  color: var(--primary-color, #2563eb);
+  font-size: 16px;
   place-items: center;
-  background: rgba(3, 105, 161, 0.1);
-  border-radius: 9px;
-}
-
-.context-entry-icon {
-  color: #7c3aed;
-  background: rgba(124, 58, 237, 0.1);
+  background: color-mix(in srgb, var(--primary-color, #2563eb) 9%, var(--bg-primary));
+  border-radius: 6px;
 }
 
 .config-entry-main {
@@ -577,8 +586,8 @@ defineExpose({
 }
 
 .config-entry-desc {
-  margin-top: 3px;
-  color: var(--text-secondary);
+  margin-top: 2px;
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 
@@ -586,7 +595,7 @@ defineExpose({
   display: flex;
   gap: 4px;
   margin-top: 6px;
-  overflow: hidden;
+  flex-wrap: wrap;
 }
 
 .config-entry-empty {
@@ -606,15 +615,18 @@ defineExpose({
 .config-entry-arrow {
   flex: 0 0 auto;
   color: var(--text-tertiary);
+  font-size: 15px;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 960px) {
   .agent-config-form {
     grid-template-columns: 1fr;
   }
+
   .config-anchor-col {
     display: none;
   }
+
   .config-entry-grid {
     grid-template-columns: 1fr;
   }

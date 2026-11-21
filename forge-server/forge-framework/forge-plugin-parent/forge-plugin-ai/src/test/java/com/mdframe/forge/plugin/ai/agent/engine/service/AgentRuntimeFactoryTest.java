@@ -5,10 +5,16 @@ import com.mdframe.forge.plugin.ai.agent.engine.ReactContext;
 import com.mdframe.forge.plugin.ai.agent.engine.tool.AgentTool;
 import com.mdframe.forge.plugin.ai.agent.engine.tool.AgentToolBindingResolver;
 import com.mdframe.forge.plugin.ai.agent.service.AiAgentService;
+import com.mdframe.forge.plugin.ai.model.domain.AiModel;
+import com.mdframe.forge.plugin.ai.model.mapper.AiModelMapper;
 import com.mdframe.forge.plugin.ai.provider.adapter.AiModelRuntimeOptions;
 import com.mdframe.forge.plugin.ai.provider.adapter.AiProviderAdapterRegistry;
 import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
 import com.mdframe.forge.plugin.ai.provider.mapper.AiProviderMapper;
+import com.mdframe.forge.plugin.ai.routing.AiModelRouter;
+import com.mdframe.forge.plugin.ai.routing.RouteDecision;
+import com.mdframe.forge.plugin.ai.routing.constant.AiModelRouteReason;
+import com.mdframe.forge.plugin.ai.routing.constant.AiModelRouteSource;
 import com.mdframe.forge.starter.core.context.LoginUserContextHolder;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.file.core.FileManager;
@@ -34,7 +40,10 @@ class AgentRuntimeFactoryTest {
     private final AiProviderMapper mapper = mock(AiProviderMapper.class);
     private final FileManager files = mock(FileManager.class);
     private final AgentToolBindingResolver bindings = mock(AgentToolBindingResolver.class);
-    private final AgentRuntimeFactory factory = new AgentRuntimeFactory(agents, providers, mapper, files, bindings);
+    private final AiModelRouter router = mock(AiModelRouter.class);
+    private final AiModelMapper modelMapper = mock(AiModelMapper.class);
+    private final AgentRuntimeFactory factory = new AgentRuntimeFactory(
+            agents, providers, mapper, files, bindings, router, modelMapper);
 
     @Test
     void should_reloadCurrentRuntimeWithoutExpandingBudget_when_confirmationResumes() {
@@ -100,6 +109,80 @@ class AgentRuntimeFactoryTest {
             assertThatThrownBy(() -> factory.attach(context(), configuration())).hasMessageContaining("不可访问");
         }
         verifyNoInteractions(providers, bindings);
+    }
+
+    @Test
+    void should_fallbackToTenantDefaultProvider_when_pinnedProviderDeleted() {
+        AiAgent agent = configuration();
+        AiProvider fallback = new AiProvider();
+        fallback.setId(99L);
+        fallback.setTenantId(7L);
+        fallback.setStatus("0");
+        fallback.setDefaultModel("qwen-plus");
+        ChatModel chatModel = mock(ChatModel.class);
+        when(mapper.selectById(81L)).thenReturn(null);
+        when(mapper.selectDefaultProvider()).thenReturn(fallback);
+        when(providers.createChatModel(eq(fallback), any())).thenReturn(chatModel);
+        when(bindings.resolve(agent)).thenReturn(List.of());
+
+        ReactContext context = context();
+        try (var ignored = LoginUserContextHolder.open(user())) {
+            factory.attach(context, agent);
+        }
+
+        assertThat(context.getChatModel()).isSameAs(chatModel);
+        verify(providers).createChatModel(fallback, new AiModelRuntimeOptions("qwen-plus", 0.42, 64));
+    }
+
+    @Test
+    void should_fallbackToFirstEnabledProviderAndModelTable_when_providerUnsetAndNoDefaultFlag() {
+        AiAgent agent = configuration();
+        agent.setProviderId(null);
+        agent.setModelName(null);
+        AiProvider enabled = new AiProvider();
+        enabled.setId(100L);
+        enabled.setTenantId(7L);
+        enabled.setStatus("0");
+        ChatModel chatModel = mock(ChatModel.class);
+        when(mapper.selectDefaultProvider()).thenReturn(null);
+        when(mapper.selectFirstEnabledProvider()).thenReturn(enabled);
+        when(modelMapper.selectEnabledDefaultModelId(100L)).thenReturn("deepseek-chat");
+        when(providers.createChatModel(eq(enabled), any())).thenReturn(chatModel);
+        when(bindings.resolve(agent)).thenReturn(List.of());
+
+        ReactContext context = context();
+        try (var ignored = LoginUserContextHolder.open(user())) {
+            factory.attach(context, agent);
+        }
+
+        assertThat(context.getChatModel()).isSameAs(chatModel);
+        verify(providers).createChatModel(enabled, new AiModelRuntimeOptions("deepseek-chat", 0.42, 64));
+    }
+
+    @Test
+    void should_resolveViaModelRouter_when_agentUsesPolicyMode() {
+        AiAgent agent = configuration();
+        agent.setModelSelectionMode("POLICY");
+        agent.setProviderId(null);
+        agent.setRoutePolicyId(501L);
+        AiProvider routedProvider = new AiProvider();
+        routedProvider.setId(105L);
+        routedProvider.setTenantId(7L);
+        AiModel routedModel = new AiModel();
+        routedModel.setModelId("gpt-4o-mini");
+        ChatModel chatModel = mock(ChatModel.class);
+        when(router.preview(any())).thenReturn(new RouteDecision(
+                routedProvider, routedModel, AiModelRouteSource.POLICY, AiModelRouteReason.POLICY_PRIORITY, 501L, List.of()));
+        when(providers.createChatModel(eq(routedProvider), any())).thenReturn(chatModel);
+        when(bindings.resolve(agent)).thenReturn(List.of());
+
+        ReactContext context = context();
+        try (var ignored = LoginUserContextHolder.open(user())) {
+            factory.attach(context, agent);
+        }
+
+        assertThat(context.getChatModel()).isSameAs(chatModel);
+        verify(providers).createChatModel(routedProvider, new AiModelRuntimeOptions("gpt-4o-mini", 0.42, 64));
     }
 
     private AiAgent configuration() {

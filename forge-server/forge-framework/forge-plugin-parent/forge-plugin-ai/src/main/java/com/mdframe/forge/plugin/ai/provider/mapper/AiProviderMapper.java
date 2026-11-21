@@ -21,6 +21,8 @@ public interface AiProviderMapper extends BaseMapper<AiProvider> {
 
     AiProvider selectDefaultProvider();
 
+    AiProvider selectFirstEnabledProvider();
+
     AiProvider selectEnabledById(@Param("id") Long id);
 
     List<AiProvider> selectEnabledDefaultProviders();
