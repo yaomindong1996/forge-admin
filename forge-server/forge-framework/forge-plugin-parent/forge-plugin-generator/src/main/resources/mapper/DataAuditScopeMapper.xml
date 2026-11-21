@@ -38,7 +38,7 @@
     <update id="logicDeleteByRoleId">
         UPDATE ai_data_audit_scope
         SET del_flag = id,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND role_id = #{roleId}
           AND del_flag = 0

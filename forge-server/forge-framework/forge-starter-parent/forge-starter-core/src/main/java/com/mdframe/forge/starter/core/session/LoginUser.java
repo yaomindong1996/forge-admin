@@ -83,6 +83,12 @@ public class LoginUser implements Serializable {
     private Boolean forcePasswordChange;
 
     /**
+     * 本次会话是否因密码过期而必须改密。
+     * 只在用户名密码登录时判定，属于会话态，不落库；改密成功后清除。
+     */
+    private Boolean passwordExpired;
+
+    /**
      * 角色ID列表
      */
     private List<Long> roleIds;

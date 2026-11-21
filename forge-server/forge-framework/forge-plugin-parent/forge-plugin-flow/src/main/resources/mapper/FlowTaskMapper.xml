@@ -67,7 +67,7 @@
         FROM sys_flow_task t
         <include refid="TaskFlowModelJoin" />
         LEFT JOIN sys_flow_category c ON c.id = m.category AND c.tenant_id = #{tenantId}
-        WHERE (t.task_id = #{taskId} OR CAST(t.id AS CHAR) = #{taskId})
+        WHERE (t.task_id = #{taskId} OR CAST(t.id AS varchar(64)) = #{taskId})
           AND t.tenant_id = #{tenantId}
         ORDER BY CASE WHEN t.task_id = #{taskId} THEN 0 ELSE 1 END
         LIMIT 1

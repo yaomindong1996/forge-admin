@@ -1,0 +1,16 @@
+# Flow 服务 SQL Server 示例片段：复制相关段到 application-sqlserver.yml 或 include 该 profile。
+# 全量脚本不含 act_*/flw_*，首次启动须 database-schema-update=true。
+spring:
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          driverClassName: com.microsoft.sqlserver.jdbc.SQLServerDriver
+          url: jdbc:sqlserver://${FORGE_MSSQL_HOST:127.0.0.1}:${FORGE_MSSQL_PORT:1433};databaseName=${FORGE_MSSQL_DB:forge_admin};encrypt=false
+          username: ${FORGE_MSSQL_USERNAME:sa}
+          password: ${FORGE_MSSQL_PASSWORD:Forge_Sa_Passw0rd}
+
+flowable:
+  database-schema-update: true
+  async-executor-activate: true
+  history-level: full

@@ -30,7 +30,7 @@
 
     <update id="disableByClient">
         UPDATE ai_capability_oauth_redirect_uri
-        SET del_flag = id, status = 'DISABLED', update_time = NOW()
+        SET del_flag = id, status = 'DISABLED', update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND client_id = #{clientId}
           AND del_flag = 0

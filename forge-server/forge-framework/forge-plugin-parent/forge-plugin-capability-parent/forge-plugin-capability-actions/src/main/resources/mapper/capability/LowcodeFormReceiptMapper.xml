@@ -6,7 +6,7 @@
         (id, tenant_id, client_id, capability_id, key_hash, request_digest, record_id,
          create_by, create_dept, create_time, update_by, update_time)
         VALUES (#{id}, #{tenantId}, #{clientId}, #{capabilityId}, #{keyHash}, #{digest}, '',
-                #{userId}, #{orgId}, NOW(), #{userId}, NOW())
+                #{userId}, #{orgId}, CURRENT_TIMESTAMP, #{userId}, CURRENT_TIMESTAMP)
     </insert>
     <select id="lock" resultType="java.util.LinkedHashMap">
         SELECT id, request_digest AS requestDigest, record_id AS recordId
@@ -16,7 +16,7 @@
         FOR UPDATE
     </select>
     <update id="complete">
-        UPDATE ai_capability_form_receipt SET record_id = #{recordId}, update_by = #{userId}, update_time = NOW()
+        UPDATE ai_capability_form_receipt SET record_id = #{recordId}, update_by = #{userId}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND client_id = #{clientId}
           AND capability_id = #{capabilityId} AND key_hash = #{keyHash} AND record_id = ''
     </update>

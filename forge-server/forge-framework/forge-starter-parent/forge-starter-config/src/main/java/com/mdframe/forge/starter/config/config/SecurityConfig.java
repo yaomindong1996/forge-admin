@@ -100,7 +100,13 @@ public class SecurityConfig {
         private Boolean requireSpecialChars = false;
 
         /**
-         * 密码过期天数
+         * 是否启用密码过期。默认关闭：升级后不会因为历史账号的密码年龄而突然要求全员改密，
+         * 由管理员在配置页主动开启。
+         */
+        private Boolean expireEnabled = false;
+
+        /**
+         * 密码过期天数（仅在启用密码过期时生效）
          */
         private Integer expireDays = 90;
 

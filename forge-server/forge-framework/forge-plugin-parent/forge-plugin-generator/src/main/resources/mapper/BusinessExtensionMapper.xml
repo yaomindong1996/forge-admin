@@ -239,7 +239,7 @@
         UPDATE ai_business_extension
         SET draft_version = #{draftVersion},
             status = #{status},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND del_flag = '0'
@@ -249,7 +249,7 @@
         UPDATE ai_business_extension
         SET status = #{status},
             enabled_version = #{enabledVersion},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND del_flag = '0'
@@ -342,7 +342,7 @@
         UPDATE ai_business_extension
         SET status = #{status},
             enabled_version = #{enabledVersion},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND application_id = #{applicationId}
           AND id = #{extensionId}

@@ -8,13 +8,19 @@ forge-server/db/
 │   ├── 全量初始化SQL.sql      # MySQL 空库全量（含必需基础数据）
 │   └── migration/             # MySQL Flyway 增量 V*.sql
 ├── postgresql/
-│   ├── 全量初始化SQL.sql      # PostgreSQL 空库全量（由 MySQL 全量转换）
+│   ├── 全量初始化SQL.sql      # PostgreSQL 空库全量（由 MySQL dump 转换）
 │   └── migration/             # PostgreSQL Flyway 增量（与 MySQL 平行版本号）
+├── sqlserver/
+│   ├── 全量初始化SQL.sql      # SQL Server 空库全量（由 MySQL tip 纯净 dump 转换）
+│   └── migration/             # SQL Server Flyway 增量（与 MySQL 平行版本号）
 ├── backup/                    # 历史备份 / 旧脚本归档（不参与运行）
 └── README.md
 ```
 
-社区默认安装使用 **MySQL**。PostgreSQL 为可选双栈，详见 `postgresql/README.md`。
+社区默认安装使用 **MySQL**。PostgreSQL / SQL Server 为可选栈：
+
+- PostgreSQL：`postgresql/README.md`
+- SQL Server 平台主库：`sqlserver/README.md`（阶段 3）；业务库方言见变更 `mssql-dual-stack-support` 阶段 2
 
 ---
 
@@ -85,23 +91,54 @@ Flyway 默认：`classpath:db/postgresql/migration`
 
 ---
 
-## 三、Flyway 约定
+## 三、SQL Server（可选平台主库）
+
+刷新全量（推荐从 tip 纯净 dump）：
+
+```bash
+python3 forge-server/scripts/db/convert-mysql-full-to-sqlserver.py \
+  --input forge-server/db/backup/ForgeAdmin-纯净版-latest.sql \
+  --output forge-server/db/sqlserver/全量初始化SQL.纯净版.sql
+```
+
+空库初始化（需 `sqlcmd`）：
+
+```bash
+SQLCMDPASSWORD=*** bash forge-server/scripts/db/init-db-sqlserver.sh \
+  --database forge_admin --recreate
+```
+
+增量目录：`db/sqlserver/migration/`，baseline=`1.0.234`。
+
+成对检查：
+
+```bash
+node forge-server/scripts/db/check-sqlserver-migration-pairs.mjs
+```
+
+后端示例：`forge-admin-server/src/main/resources/application-sqlserver.example.yml`  
+Flyway：`classpath:db/sqlserver/migration`
+
+---
+
+## 四、Flyway 约定
 
 | 库 | 源目录 | 打包 / 默认扫描 |
 |---|---|---|
 | MySQL | `db/mysql/migration` | `classpath:db/mysql/migration` |
 | PostgreSQL | `db/postgresql/migration` | `classpath:db/postgresql/migration` |
+| SQL Server | `db/sqlserver/migration` | `classpath:db/sqlserver/migration` |
 
 - 仅 `forge-admin-server` 启动时执行迁移；单独启动 `forge-report-server` 不会执行。
 - Admin POM 在 `process-resources` 阶段把上述目录原样拷入 JAR（不经占位符过滤）。
 - 覆盖扫描路径时使用环境变量 `FORGE_FLYWAY_LOCATIONS`（见 `scripts/deployment/admin-flyway.md`）。
-- 新增结构变更：在对应库目录新增 `V1.0.x__desc.sql`；若启用 PG，需成对提交。
+- 新增结构变更：在对应库目录新增 `V1.0.x__desc.sql`；若启用 PG / SQL Server，需平行提交。
 
 历史表：`forge_schema_history`。
 
 ---
 
-## 四、常用命令
+## 五、常用命令
 
 ```bash
 bash forge-server/scripts/db/init-db.sh --help
@@ -114,15 +151,19 @@ MYSQL_PWD=*** bash forge-server/scripts/db/clean-db.sh \
 
 PGPASSWORD=*** bash forge-server/scripts/db/init-db-pg.sh \
   --database forge_admin --recreate --migrate
+
+SQLCMDPASSWORD=*** bash forge-server/scripts/db/init-db-sqlserver.sh \
+  --database forge_admin --recreate --migrate
 ```
 
 ---
 
-## 五、变更流程
+## 六、变更流程
 
 1. 新增 MySQL 增量：`db/mysql/migration/Vx.y.z__xxx.sql`
 2. 若维护 PG：同步新增 `db/postgresql/migration/Vx.y.z__xxx.sql`
-3. 跑成对检查（启用 PG 时）：`node forge-server/scripts/db/check-pg-migration-pairs.mjs`
-4. 本地用 `init-db.sh --migrate` 或启动 Admin 验证
+3. 若维护 SQL Server：同步新增 `db/sqlserver/migration/Vx.y.z__xxx.sql`
+4. 跑成对检查（启用对应栈时）
+5. 本地用对应 `init-db*.sh --migrate` 或启动 Admin 验证
 
 已移除：`db/seed`、`db/community-export`（基础数据以全量脚本为准，演示/社区导出不再作为仓库目录维护）。

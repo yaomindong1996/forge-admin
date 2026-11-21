@@ -391,14 +391,14 @@
     <n-modal
       v-model:show="showPwdModal"
       preset="card"
-      :title="mustChangePassword ? '首次登录必须修改密码' : '修改登录密码'"
+      :title="mustChangePassword ? '必须先修改密码' : '修改登录密码'"
       :closable="!mustChangePassword"
       :mask-closable="!mustChangePassword"
       :close-on-esc="!mustChangePassword"
       style="max-width: 420px"
     >
       <n-alert v-if="mustChangePassword" type="warning" class="mb-4">
-        当前账号仍在使用初始密码或管理员重置密码，修改后才能继续访问系统功能。
+        当前账号仍在使用初始密码，或密码已超过有效期，修改后才能继续访问系统功能。
       </n-alert>
       <n-form ref="pwdFormRef" :model="pwdForm" :rules="pwdRules" label-placement="left" label-width="100">
         <n-form-item label="当前密码" path="oldPassword">
@@ -591,7 +591,7 @@ async function loadUserInfo() {
         userStore.setUser(res.data)
       }
       if (mustChangePassword.value) {
-        window.$message.warning('请先修改初始密码')
+        window.$message.warning('请先修改密码')
         openPwdModal()
       }
       else {

@@ -24,7 +24,7 @@
   </select>
 
   <update id="logicallyDeleteByPolicyId">
-    UPDATE ai_model_route_target SET del_flag = id, update_time = NOW()
+    UPDATE ai_model_route_target SET del_flag = id, update_time = CURRENT_TIMESTAMP
     WHERE policy_id = #{policyId} AND del_flag = '0'
   </update>
 </mapper>

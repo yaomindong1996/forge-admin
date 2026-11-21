@@ -71,6 +71,16 @@ const testQueryMap = {
   SQLServer: 'SELECT 1',
 }
 
+const jdbcUrlExampleMap = {
+  MySQL: 'jdbc:mysql://localhost:3306/forge_biz?useUnicode=true&characterEncoding=utf8',
+  Oracle: 'jdbc:oracle:thin:@localhost:1521:ORCL',
+  PostgreSQL: 'jdbc:postgresql://localhost:5432/forge_biz',
+  SQLServer: 'jdbc:sqlserver://localhost:1433;databaseName=forge_biz;encrypt=false',
+}
+
+const selectedDbType = ref('MySQL')
+const jdbcUrlExample = computed(() => jdbcUrlExampleMap[selectedDbType.value] || jdbcUrlExampleMap.MySQL)
+
 const searchSchema = computed(() => [
   {
     field: 'datasourceName',
@@ -278,6 +288,7 @@ const editSchema = computed(() => [
       placeholder: '请选择数据库类型',
       options: dbTypeOptions.value,
       onUpdateValue: (value, formData) => {
+        selectedDbType.value = value || 'MySQL'
         if (driverClassMap[value])
           formData.driverClassName = driverClassMap[value]
         if (!formData.testQuery || Object.values(testQueryMap).includes(formData.testQuery))
@@ -299,10 +310,10 @@ const editSchema = computed(() => [
     label: '连接地址',
     type: 'input',
     span: 2,
-    labelTip: 'JDBC 连接串。示例：jdbc:mysql://主机:3306/库名?useUnicode=true&characterEncoding=utf8',
+    labelTip: `JDBC 连接串。当前类型示例：${jdbcUrlExample.value}`,
     rules: [{ required: true, message: '请输入连接地址', trigger: 'blur' }],
     props: {
-      placeholder: 'jdbc:mysql://localhost:3306/forge_admin?useUnicode=true&characterEncoding=utf8',
+      placeholder: jdbcUrlExample.value,
     },
   },
   {

@@ -182,7 +182,7 @@
         UPDATE ai_business_app
         SET status = 0,
             del_flag = id,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND suite_code = #{suiteCode}
           AND del_flag = '0'
@@ -213,7 +213,7 @@
     <update id="logicDeleteObjectsBySuite">
         UPDATE ai_business_object
         SET del_flag = id,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND suite_code = #{suiteCode}
           AND del_flag = '0'

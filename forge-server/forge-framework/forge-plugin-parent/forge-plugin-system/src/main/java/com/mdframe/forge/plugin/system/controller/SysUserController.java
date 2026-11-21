@@ -579,7 +579,7 @@ public class SysUserController {
                     error.setRowNum(row.getRowNum());
                     error.setErrorType("写入失败");
                     error.setErrorMessage("用户数据写入失败");
-                    error.setSuggestion("请检查用户名是否重复或字段格式是否正确");
+                    error.setSuggestion("请检查用户名是否重复、字段格式是否正确，以及密码是否符合密码策略");
                     result.addError(error);
                 }
             }

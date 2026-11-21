@@ -133,15 +133,15 @@
           #{id}, #{tenantId}, #{runId}, #{nodeId}, #{nodeType}, #{attemptNo}, 'PENDING',
           #{idempotencyKey}, #{correlationId}, #{inputSummary}, #{outputSummary},
           #{errorCode}, #{errorSummary}, #{nextRetryTime}, #{startTime}, #{endTime},
-          #{createBy}, NOW(), #{createDept}, #{updateBy}, NOW()
+          #{createBy}, CURRENT_TIMESTAMP, #{createDept}, #{updateBy}, CURRENT_TIMESTAMP
         )
     </insert>
 
     <update id="claimAttempt">
         UPDATE ai_business_process_node_run
         SET status = 'RUNNING',
-            start_time = NOW(),
-            update_time = NOW()
+            start_time = CURRENT_TIMESTAMP,
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND status = 'PENDING'
@@ -156,10 +156,10 @@
             error_summary = #{errorSummary},
             next_retry_time = #{nextRetryTime},
             end_time = CASE
-              WHEN #{nextStatus} IN ('SUCCESS', 'FAILED', 'CANCELED') THEN NOW()
+              WHEN #{nextStatus} IN ('SUCCESS', 'FAILED', 'CANCELED') THEN CURRENT_TIMESTAMP
               ELSE NULL
             END,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND status = #{expectedStatus}

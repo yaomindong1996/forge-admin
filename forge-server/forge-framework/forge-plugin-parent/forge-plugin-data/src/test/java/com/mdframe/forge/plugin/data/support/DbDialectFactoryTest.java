@@ -7,7 +7,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DbDialectFactoryTest {
 
-    private final DbDialectFactory factory = new DbDialectFactory(new MySqlDialect(), new PostgreSqlDialect());
+    private final DbDialectFactory factory = new DbDialectFactory(
+            new MySqlDialect(), new PostgreSqlDialect(), new SqlServerDialect());
 
     @Test
     void resolvesPostgresAliases() {
@@ -15,6 +16,14 @@ class DbDialectFactoryTest {
         assertThat(factory.getDialect("postgresql")).isInstanceOf(PostgreSqlDialect.class);
         assertThat(factory.getDialect("Postgres")).isInstanceOf(PostgreSqlDialect.class);
         assertThat(factory.getDialect("pg")).isInstanceOf(PostgreSqlDialect.class);
+    }
+
+    @Test
+    void resolvesSqlServerAliases() {
+        assertThat(factory.getDialect("SQLSERVER")).isInstanceOf(SqlServerDialect.class);
+        assertThat(factory.getDialect("SQLServer")).isInstanceOf(SqlServerDialect.class);
+        assertThat(factory.getDialect("mssql")).isInstanceOf(SqlServerDialect.class);
+        assertThat(factory.getDialect("sql_server")).isInstanceOf(SqlServerDialect.class);
     }
 
     @Test

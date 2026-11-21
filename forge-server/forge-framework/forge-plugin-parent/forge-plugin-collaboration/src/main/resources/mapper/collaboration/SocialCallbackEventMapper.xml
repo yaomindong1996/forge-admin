@@ -24,17 +24,29 @@
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
-    <!-- 批量领取待处理事件：PENDING 或到期重试的 FAILED，置为 PROCESSING 并绑定 Worker -->
-    <update id="claimPendingEvents">
+    <!-- 两段式领取：先查候选 id（LIMIT 由 SQL Server 拦截器改写），再按 id CAS 更新 -->
+    <select id="selectClaimCandidateIds" resultType="java.lang.Long">
+        SELECT id
+        FROM sys_social_callback_event
+        WHERE tenant_id = #{tenantId}
+          AND (process_status = 'PENDING'
+               OR (process_status = 'FAILED' AND next_retry_time IS NOT NULL AND next_retry_time &lt;= CURRENT_TIMESTAMP))
+        ORDER BY id
+        LIMIT #{batchSize}
+    </select>
+
+    <update id="claimEventsByIds">
         UPDATE sys_social_callback_event
         SET process_status = 'PROCESSING',
             claimed_by = #{workerId},
-            claim_time = NOW()
+            claim_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
+          AND id IN
+          <foreach collection="ids" item="id" open="(" separator="," close=")">
+              #{id}
+          </foreach>
           AND (process_status = 'PENDING'
-               OR (process_status = 'FAILED' AND next_retry_time IS NOT NULL AND next_retry_time &lt;= NOW()))
-        ORDER BY id
-        LIMIT #{batchSize}
+               OR (process_status = 'FAILED' AND next_retry_time IS NOT NULL AND next_retry_time &lt;= CURRENT_TIMESTAMP))
     </update>
 
     <!-- 查询指定 Worker 当前已领取的事件 -->
@@ -64,14 +76,11 @@
           AND claimed_by = #{workerId}
     </update>
 
-    <!-- CAS 标记处理失败：指数退避重试，超过上限置为 DISCARDED。
-         MySQL SET 子句从左到右生效，retry_count 必须最后自增，
-         前面的 CASE 判断统一使用 retry_count + 1 表达“本次失败后的次数”。 -->
+    <!-- CAS 标记处理失败：状态与 next_retry_time 由 Java 按指数退避计算后传入 -->
     <update id="markFailed">
         UPDATE sys_social_callback_event
-        SET process_status = CASE WHEN retry_count + 1 &gt;= #{maxRetry} THEN 'DISCARDED' ELSE 'FAILED' END,
-            next_retry_time = CASE WHEN retry_count + 1 &gt;= #{maxRetry} THEN NULL
-                                   ELSE DATE_ADD(NOW(), INTERVAL LEAST(POW(2, retry_count + 1), 60) MINUTE) END,
+        SET process_status = #{processStatus},
+            next_retry_time = #{nextRetryTime},
             error_code = #{errorCode},
             error_summary = #{errorSummary},
             claimed_by = NULL,

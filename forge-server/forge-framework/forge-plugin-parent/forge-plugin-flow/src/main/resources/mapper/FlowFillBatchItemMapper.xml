@@ -21,7 +21,7 @@
     <update id="deleteByProcessInstanceIdLogically">
         UPDATE sys_flow_fill_batch_item
         SET deleted = 1,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE process_instance_id = #{processInstanceId}
           AND tenant_id = #{tenantId}
           AND deleted = 0

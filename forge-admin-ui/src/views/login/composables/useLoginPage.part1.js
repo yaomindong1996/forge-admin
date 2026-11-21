@@ -837,7 +837,7 @@ export function applyLoginPagePart1() {
 
     const mustChangePassword = data.forcePasswordChange === true || data.userInfo?.forcePasswordChange === true
     if (mustChangePassword) {
-      $message.warning('当前账号必须先修改初始密码', { key: 'login' })
+      $message.warning('当前账号必须先修改密码', { key: 'login' })
       router.push('/profile')
       return
     }

@@ -8,11 +8,11 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.mdframe.forge.plugin.system.auth.LoginCaptchaPolicy;
 import com.mdframe.forge.plugin.system.auth.LoginCaptchaPolicyResolver;
 import com.mdframe.forge.plugin.system.auth.LoginPasswordDecoder;
 import com.mdframe.forge.plugin.system.auth.LoginPasswordEncryptionPolicy;
+import com.mdframe.forge.plugin.system.auth.PasswordPolicySupport;
 import com.mdframe.forge.plugin.system.auth.RecoveryChannelSupport;
 import com.mdframe.forge.plugin.system.entity.*;
 import com.mdframe.forge.plugin.system.mapper.*;
@@ -75,6 +75,7 @@ public class SystemAuthServiceImpl implements IAuthService {
     private final SysTenantMapper tenantMapper;
     private final RecoveryChannelSupport recoveryChannelSupport;
     private final LoginPasswordDecoder loginPasswordDecoder;
+    private final PasswordPolicySupport passwordPolicySupport;
 
     // ==================== 核心认证方法 ====================
 
@@ -471,14 +472,17 @@ public class SystemAuthServiceImpl implements IAuthService {
             throw new BusinessException(400, "旧密码错误");
         }
         
-        // 3. 加密新密码
+        // 3. 密码策略：复杂度 + 不得与当前/历史密码相同
+        passwordPolicySupport.validateComplexity(newPassword);
+        passwordPolicySupport.validateNotReused(loginUser.getUserId(), newPassword);
+
+        // 4. 加密并写入新密码（同时记录密码历史）
         String encodedPassword = PasswordUtil.encrypt(newPassword);
-        
-        // 4. 更新密码
-        boolean success = updateUserPassword(loginUser.getUserId(), encodedPassword);
+        boolean success = passwordPolicySupport.changeCredential(loginUser.getUserId(), encodedPassword, false);
         
         if (success) {
             loginUser.setForcePasswordChange(false);
+            loginUser.setPasswordExpired(false);
             SessionHelper.setLoginUser(loginUser);
             log.info("用户修改密码成功: userId={}", loginUser.getUserId());
         }
@@ -530,6 +534,10 @@ public class SystemAuthServiceImpl implements IAuthService {
         String code = StrUtil.trim(request.getCode());
         recoveryChannelSupport.requireChannel(channel);
 
+        // 复杂度与账号无关，先于验证码校验，避免弱密码白白消耗验证码
+        String newPassword = loginPasswordDecoder.decode(request.getNewPassword());
+        passwordPolicySupport.validateComplexity(newPassword);
+
         boolean codeValid = RecoveryChannelSupport.CHANNEL_SMS.equals(channel)
                 ? captchaService.validateAndDeleteSmsCaptcha(account, code)
                 : captchaService.validateAndDeleteEmailCaptcha(account, code);
@@ -538,8 +546,10 @@ public class SystemAuthServiceImpl implements IAuthService {
             throw new BusinessException("验证码错误或已过期");
         }
 
-        String encodedPassword = PasswordUtil.encrypt(loginPasswordDecoder.decode(request.getNewPassword()));
-        boolean success = updateUserPassword(user.getId(), encodedPassword);
+        // 历史比对会暴露密码是否命中，必须放在验证码通过之后
+        passwordPolicySupport.validateNotReused(user.getId(), newPassword);
+        String encodedPassword = PasswordUtil.encrypt(newPassword);
+        boolean success = passwordPolicySupport.changeCredential(user.getId(), encodedPassword, false);
         if (success) {
             log.info("用户重置密码成功: userId={}, channel={}", user.getId(), channel);
         }
@@ -681,6 +691,7 @@ public class SystemAuthServiceImpl implements IAuthService {
         if (StrUtil.isBlank(request.getCode()) || StrUtil.isBlank(request.getCodeKey())) {
             throw new RuntimeException("验证码不能为空");
         }
+        passwordPolicySupport.validateComplexity(request.getPassword());
     }
 
     /**
@@ -728,19 +739,6 @@ public class SystemAuthServiceImpl implements IAuthService {
         loginUser.setUserStatus(user.getUserStatus());
         
         return loginUser;
-    }
-
-    /**
-     * 更新用户密码
-     */
-    @Transactional(rollbackFor = Exception.class)
-    protected boolean updateUserPassword(Long userId, String encodedPassword) {
-        LambdaUpdateWrapper<SysUser> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(SysUser::getId, userId)
-                .set(SysUser::getPassword, encodedPassword)
-                .set(SysUser::getForcePasswordChange, false)
-                .set(SysUser::getUpdateTime, LocalDateTime.now());
-        return userMapper.update(null, wrapper) > 0;
     }
 
     /**

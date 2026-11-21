@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import com.mdframe.forge.plugin.system.auth.PasswordPolicySupport;
 import com.mdframe.forge.plugin.system.dto.BatchUserRoleBindDTO;
 import com.mdframe.forge.plugin.system.dto.BatchUserTenantBindDTO;
 import com.mdframe.forge.plugin.system.dto.SysUserDTO;
@@ -69,6 +70,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     private final SysPostMapper postMapper;
     private final SysRegionMapper regionMapper;
     private final IUserLoadService userLoadService;
+    private final PasswordPolicySupport passwordPolicySupport;
 
     @Override
     public IPage<SysUser> selectUserPage(SysUserQuery query) {
@@ -143,6 +145,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         Long tenantId = resolveWriteTenantId(null);
         List<Long> tenantIds = List.of(tenantId);
         validateUserTypeForWrite(dto);
+        passwordPolicySupport.validateComplexity(dto.getPassword());
         SysUser user = new SysUser();
         BeanUtil.copyProperties(dto, user);
         user.setTenantId(tenantId);
@@ -366,13 +369,12 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     public boolean resetPassword(Long userId, String newPassword) {
         assertCanManageUser(userId);
         assertNotSelfManagementUnlessAdmin(userId);
-        SysUser user = new SysUser();
-        user.setId(userId);
-        user.setPassword(PasswordUtil.encrypt(newPassword));
+        // 只校验复杂度：管理员替他人设密码时不做「与当前/历史密码相同」比对，
+        // 否则报错信息可被用来验证该用户的密码。旧密码仍会进入历史。
+        passwordPolicySupport.validateComplexity(newPassword);
         // 管理员在后台直接指定正式新密码，登录后不应再弹「首次/重新初始化密码」。
         // 新建用户仍走 insertUser 的 forcePasswordChange=true，要求首次登录自行改密。
-        user.setForcePasswordChange(false);
-        return TenantContextHolder.executeIgnore(() -> userMapper.updateById(user) > 0);
+        return passwordPolicySupport.changeCredential(userId, PasswordUtil.encrypt(newPassword), false);
     }
 
     @Override

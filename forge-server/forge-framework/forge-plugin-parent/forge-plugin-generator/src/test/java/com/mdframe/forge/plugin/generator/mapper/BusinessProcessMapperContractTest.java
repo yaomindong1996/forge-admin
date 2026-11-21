@@ -55,7 +55,7 @@ class BusinessProcessMapperContractTest {
                 "select", "selectBySubjectObjectCode");
 
         assertEquals(String.class, BusinessObjectProcessVO.class.getDeclaredField("id").getType());
-        assertTrue(query.contains("CAST(p.id AS CHAR)"));
+        assertTrue(query.contains("CAST(p.id AS varchar(64))"));
         assertTrue(query.contains("p.tenant_id = #{tenantId}"));
         assertTrue(query.contains("p.subject_object_code = #{objectCode}"));
         assertTrue(query.contains("p.del_flag = 0"));
@@ -199,7 +199,7 @@ class BusinessProcessMapperContractTest {
         assertEquals(String.class, BusinessProcessRunVO.class.getDeclaredField("id").getType());
         assertEquals(String.class, BusinessProcessRunVO.class.getDeclaredField("processVersionId").getType());
         assertEquals(String.class, BusinessProcessRunDetailVO.NodeRunVO.class.getDeclaredField("id").getType());
-        assertTrue(runPage.contains("CAST(r.id AS CHAR)"));
+        assertTrue(runPage.contains("CAST(r.id AS varchar(64))"));
         assertTrue(runPage.contains("r.tenant_id = #{tenantId}"));
         assertFalse(runPage.contains("context_snapshot"));
         assertFalse(runPage.contains("idempotency_key"));

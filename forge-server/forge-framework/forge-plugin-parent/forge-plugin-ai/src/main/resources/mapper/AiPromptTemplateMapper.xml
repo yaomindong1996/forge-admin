@@ -222,7 +222,7 @@
     <update id="deleteByTenantId">
         UPDATE ai_prompt_template
         SET del_flag = id,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND del_flag = '0'
@@ -231,7 +231,7 @@
     <update id="incrementUseCount">
         UPDATE ai_prompt_template
         SET use_count = use_count + 1,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND del_flag = '0'
@@ -241,7 +241,7 @@
     <update id="incrementTestCount">
         UPDATE ai_prompt_template
         SET test_count = test_count + 1,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND del_flag = '0'
@@ -251,7 +251,7 @@
     <update id="incrementDownloadCount">
         UPDATE ai_prompt_template
         SET download_count = download_count + 1,
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND del_flag = '0'

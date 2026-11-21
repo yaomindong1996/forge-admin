@@ -52,7 +52,7 @@
     <update id="touchLastUsed">
         UPDATE sys_job_api_token
         SET last_used_at = #{lastUsedAt},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND status = 'ACTIVE'
@@ -64,7 +64,7 @@
         UPDATE sys_job_api_token
         SET status = 'REVOKED',
             revoked_at = #{revokedAt},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND status = 'ACTIVE'

@@ -91,21 +91,21 @@
         SET source_name = #{row.sourceName}, provider_code = #{row.providerCode}, dataset_id = #{row.datasetId},
             object_code = #{row.objectCode}, parameter_schema_json = #{row.parameterSchemaJson},
             mapping_json = #{row.mappingJson}, catalog_json = #{row.catalogJson}, catalog_hash = #{row.catalogHash},
-            source_revision = source_revision + 1, update_by = #{row.updateBy}, update_time = NOW()
+            source_revision = source_revision + 1, update_by = #{row.updateBy}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{row.tenantId} AND id = #{row.id} AND del_flag = 0
           AND source_revision = #{expectedRevision}
     </update>
 
     <update id="changeStatus">
         UPDATE sys_print_business_source
-        SET status = #{status}, source_revision = source_revision + 1, update_by = #{actor}, update_time = NOW()
+        SET status = #{status}, source_revision = source_revision + 1, update_by = #{actor}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
           AND source_revision = #{expectedRevision} AND #{status} IN (0, 1)
     </update>
 
     <update id="softDelete">
         UPDATE sys_print_business_source
-        SET del_flag = id, source_revision = source_revision + 1, update_by = #{actor}, update_time = NOW()
+        SET del_flag = id, source_revision = source_revision + 1, update_by = #{actor}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
           AND source_revision = #{expectedRevision}
     </update>

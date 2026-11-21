@@ -73,13 +73,13 @@
         UPDATE sys_print_template SET template_name = #{row.templateName}, draft_schema = #{row.draftSchema},
             draft_revision = draft_revision + 1,
             design_status = CASE WHEN published_version_id IS NULL THEN 'DRAFT' ELSE 'CHANGED' END,
-            update_by = #{row.updateBy}, update_time = NOW()
+            update_by = #{row.updateBy}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{row.tenantId} AND id = #{row.id} AND del_flag = 0
           AND draft_revision = #{expectedRevision}
     </update>
     <update id="publish">
         UPDATE sys_print_template SET published_version_id = #{versionId}, design_status = 'PUBLISHED',
-            draft_revision = draft_revision + 1, update_by = #{actor}, update_time = NOW()
+            draft_revision = draft_revision + 1, update_by = #{actor}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0 AND status = 1
           AND draft_revision = #{expectedRevision}
           AND EXISTS (SELECT 1 FROM sys_print_template_version v
@@ -87,14 +87,14 @@
     </update>
     <update id="changeStatus">
         UPDATE sys_print_template SET status = #{status}, draft_revision = draft_revision + 1,
-            update_by = #{actor}, update_time = NOW()
+            update_by = #{actor}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
           AND draft_revision = #{expectedRevision} AND #{status} IN (0, 1)
     </update>
     <!-- 调用前还须由应用 Provider 检查已发布快照引用；此条件只保护本插件绑定。 -->
     <update id="softDelete">
         UPDATE sys_print_template SET del_flag = id, draft_revision = draft_revision + 1,
-            update_by = #{actor}, update_time = NOW()
+            update_by = #{actor}, update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
           AND draft_revision = #{expectedRevision}
           AND NOT EXISTS (SELECT 1 FROM sys_print_binding b

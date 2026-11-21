@@ -158,7 +158,7 @@
     </resultMap>
 
     <select id="selectBySubjectObjectCode" resultMap="ObjectProcessSummaryMap">
-        SELECT CAST(p.id AS CHAR) AS id,
+        SELECT CAST(p.id AS varchar(64)) AS id,
                p.process_name AS processName,
                p.process_code AS processCode,
                p.status,
@@ -202,7 +202,7 @@
             subject_object_code = #{subjectObjectCode},
             design_status = #{designStatus},
             update_by = #{updateBy},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND del_flag = 0
@@ -214,7 +214,7 @@
         SET process_name = #{processName},
             process_description = #{processDescription},
             update_by = #{updateBy},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND del_flag = 0
@@ -224,7 +224,7 @@
         UPDATE ai_business_process
         SET status = #{status},
             update_by = #{updateBy},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND del_flag = 0
@@ -234,7 +234,7 @@
         UPDATE ai_business_process
         SET design_status = #{designStatus},
             update_by = #{updateBy},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND del_flag = 0
@@ -243,14 +243,17 @@
 
     <update id="updatePublishedProjection">
         UPDATE ai_business_process
-        SET current_version = GREATEST(COALESCE(current_version, 0), #{versionNo}),
+        SET current_version = CASE
+            WHEN COALESCE(current_version, 0) &gt;= #{versionNo} THEN COALESCE(current_version, 0)
+            ELSE #{versionNo}
+        END,
             published_version = #{versionNo},
             design_status = CASE
               WHEN draft_schema_hash = #{schemaHash} THEN 'PUBLISHED'
               ELSE 'CHANGED'
             END,
             update_by = #{updateBy},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND application_id = #{applicationId}
           AND id = #{id}
@@ -265,7 +268,7 @@
               ELSE design_status
             END,
             update_by = #{updateBy},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND application_id = #{applicationId}
           AND published_version IS NOT NULL
@@ -282,7 +285,7 @@
         UPDATE ai_business_process
         SET del_flag = id,
             update_by = #{updateBy},
-            update_time = NOW()
+            update_time = CURRENT_TIMESTAMP
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
           AND del_flag = 0

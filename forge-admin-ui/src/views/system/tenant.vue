@@ -49,6 +49,7 @@
 import { NTag } from 'naive-ui'
 import { computed, h, onMounted, ref } from 'vue'
 import { listTenantBusinessDatasources, removeTenant } from '@/api/system/tenant'
+import { getTenantPackageDetail, listTenantPackageOptions } from '@/api/system/tenantPackage'
 import { AiCrudPage } from '@/components/ai-form'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
@@ -58,6 +59,7 @@ import { useAppStore, useTenantStore, useUserStore } from '@/store'
 import { applyTenantConfig } from '@/utils/tenant-config'
 import { prepareTenantAppearance, writeTenantAppearance } from './components/tenant/tenant-appearance'
 import { createTenantEditSchema } from './components/tenant/tenant-schema'
+import { itemsToFormFields } from './components/tenant-package/tenant-package-schema'
 import TenantAppearanceEditor from './components/tenant/TenantAppearanceEditor.vue'
 import TenantUsersDialog from './components/tenant/TenantUsersDialog.vue'
 
@@ -70,12 +72,21 @@ const crudRef = ref(null)
 const userStore = useUserStore()
 const usersDialog = ref(null)
 const businessDatasources = ref([])
+const tenantPackages = ref([])
 const { dict } = useDict(NORMAL_DISABLE_DICT)
 const tenantStatusOptions = computed(() => toNumberOptions(dict.value[NORMAL_DISABLE_DICT]))
 const businessDatasourceOptions = computed(() => businessDatasources.value.map(item => ({
   label: `${item.datasourceName} (${item.datasourceCode || item.dbType})`,
   value: item.datasourceId,
 })))
+const packageOptions = computed(() => tenantPackages.value.map(item => ({
+  label: item.isDefault === 1 ? `${item.packageName}（默认）` : item.packageName,
+  value: item.id,
+})))
+const defaultPackageId = computed(() => {
+  const preferred = tenantPackages.value.find(item => Number(item.isDefault) === 1)
+  return preferred?.id || tenantPackages.value[0]?.id || null
+})
 
 // 搜索表单配置
 const searchSchema = computed(() => [
@@ -133,6 +144,15 @@ const tableColumns = computed(() => [
     prop: 'contactPhone',
     label: '联系电话',
     width: 130,
+  },
+  {
+    prop: 'packageId',
+    label: '套餐',
+    width: 120,
+    render: (row) => {
+      const pkg = tenantPackages.value.find(item => String(item.id) === String(row.packageId))
+      return pkg?.packageName || (row.packageId ? String(row.packageId) : '-')
+    },
   },
   {
     prop: 'userLimit',
@@ -199,6 +219,8 @@ const tableColumns = computed(() => [
 const editSchema = computed(() => createTenantEditSchema({
   tenantStatusOptions: tenantStatusOptions.value,
   businessDatasourceOptions: businessDatasourceOptions.value,
+  packageOptions: packageOptions.value,
+  onPackageChange: handlePackageChange,
 }))
 
 function toNumberOptions(options = []) {
@@ -223,6 +245,37 @@ async function loadBusinessDatasources() {
     console.error('加载租户业务数据源失败:', error)
     window.$message?.warning?.('租户业务数据源加载失败')
   }
+}
+
+async function loadTenantPackages() {
+  try {
+    const res = await listTenantPackageOptions()
+    tenantPackages.value = res.data || []
+  }
+  catch (error) {
+    console.error('加载租户套餐失败:', error)
+    window.$message?.warning?.('租户套餐加载失败')
+  }
+}
+
+async function applyPackageDefaults(packageId, formData) {
+  if (!packageId || !formData)
+    return
+  try {
+    const res = await getTenantPackageDetail(packageId)
+    const detail = res.data || {}
+    const fields = itemsToFormFields(detail.items || [])
+    formData.bootstrapPackages = fields.bootstrapPackages
+    formData.userLimit = fields.userLimit
+  }
+  catch (error) {
+    console.error('加载套餐详情失败:', error)
+    window.$message?.warning?.('套餐详情加载失败，可手动勾选初始化包')
+  }
+}
+
+async function handlePackageChange({ value, formData }) {
+  await applyPackageDefaults(value, formData)
 }
 
 // 编辑
@@ -287,15 +340,27 @@ function handleBeforeSubmit(formData) {
   const datasource = findBusinessDatasource(formData.defaultBusinessDatasourceId)
   formData.defaultBusinessDatasourceId = datasource?.datasourceId || null
   formData.defaultBusinessDatasourceCode = datasource?.datasourceCode || null
+  // 编辑时不提交引导包；新建勾选结果原样提交（空数组=不引导，缺省由后端用推荐默认）
+  if (formData?.id) {
+    delete formData.bootstrapPackages
+  }
+  else if (!formData.packageId && defaultPackageId.value) {
+    formData.packageId = defaultPackageId.value
+  }
   return prepareTenantAppearance(formData)
 }
 
-function handleBeforeRenderDetail(data) {
+async function handleBeforeRenderDetail(data = {}) {
+  if (!data?.id && !data.packageId && defaultPackageId.value) {
+    data.packageId = defaultPackageId.value
+    await applyPackageDefaults(data.packageId, data)
+  }
   return data
 }
 
 onMounted(() => {
   loadBusinessDatasources()
+  loadTenantPackages()
 })
 </script>
 

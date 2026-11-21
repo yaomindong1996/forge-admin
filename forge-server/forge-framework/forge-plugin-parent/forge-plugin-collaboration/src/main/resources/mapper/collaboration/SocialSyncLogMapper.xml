@@ -87,7 +87,7 @@
             cursor_info = #{log.cursorInfo},
             error_code = #{log.errorCode},
             error_summary = #{log.errorSummary},
-            end_time = NOW()
+            end_time = CURRENT_TIMESTAMP
         WHERE id = #{log.id}
           AND (#{log.tenantId} IS NULL OR tenant_id = #{log.tenantId})
           AND status = 'RUNNING'
@@ -126,7 +126,7 @@
         VALUES
             (#{issue.tenantId}, #{issue.connectionId}, #{issue.syncLogId}, #{issue.objectType},
              #{issue.externalId}, #{issue.issueCode}, #{issue.issueSummary},
-             #{issue.processStatus}, #{issue.retryCount}, NOW(), NOW(), 0)
+             #{issue.processStatus}, #{issue.retryCount}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0)
     </insert>
 
     <select id="selectPendingIssueByObject" resultMap="SyncIssueResult">
@@ -184,8 +184,8 @@
         SET process_status = #{processStatus},
             process_action = #{processAction},
             process_by = #{processBy},
-            process_time = NOW(),
-            update_time = NOW()
+            process_time = CURRENT_TIMESTAMP,
+            update_time = CURRENT_TIMESTAMP
         WHERE id = #{id}
           AND tenant_id = #{tenantId}
           AND process_status = 'PENDING'

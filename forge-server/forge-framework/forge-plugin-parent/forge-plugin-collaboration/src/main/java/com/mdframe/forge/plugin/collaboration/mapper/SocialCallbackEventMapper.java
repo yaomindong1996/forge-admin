@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.collaboration.domain.entity.SocialCallbackEvent;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -15,11 +16,17 @@ import java.util.List;
 public interface SocialCallbackEventMapper extends BaseMapper<SocialCallbackEvent> {
 
     /**
-     * 批量领取待处理事件（PENDING 或到期重试的 FAILED），置为 PROCESSING 并绑定 Worker
+     * 查询待领取候选 id（PENDING 或到期重试的 FAILED），供两段式 claim 使用。
      */
-    int claimPendingEvents(@Param("tenantId") Long tenantId,
-                           @Param("batchSize") int batchSize,
-                           @Param("workerId") String workerId);
+    List<Long> selectClaimCandidateIds(@Param("tenantId") Long tenantId,
+                                       @Param("batchSize") int batchSize);
+
+    /**
+     * CAS 领取指定 id：仍为可领取状态时置为 PROCESSING 并绑定 Worker。
+     */
+    int claimEventsByIds(@Param("tenantId") Long tenantId,
+                         @Param("workerId") String workerId,
+                         @Param("ids") List<Long> ids);
 
     /**
      * 查询指定 Worker 当前已领取的事件
@@ -35,12 +42,13 @@ public interface SocialCallbackEventMapper extends BaseMapper<SocialCallbackEven
                       @Param("workerId") String workerId);
 
     /**
-     * CAS 标记事件处理失败，指数退避重试，超过上限置为 DISCARDED
+     * CAS 标记事件处理失败；退避时间由调用方计算后传入，避免 Mapper 方言函数。
      */
     int markFailed(@Param("id") Long id,
                    @Param("tenantId") Long tenantId,
                    @Param("workerId") String workerId,
-                   @Param("maxRetry") int maxRetry,
+                   @Param("processStatus") String processStatus,
+                   @Param("nextRetryTime") LocalDateTime nextRetryTime,
                    @Param("errorCode") String errorCode,
                    @Param("errorSummary") String errorSummary);
 

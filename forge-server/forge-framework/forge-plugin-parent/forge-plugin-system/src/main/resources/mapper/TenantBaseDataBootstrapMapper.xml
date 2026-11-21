@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.system.mapper.TenantBaseDataBootstrapMapper">
+
+    <select id="countActiveDictTypes" resultType="long">
+        SELECT COUNT(1)
+        FROM sys_dict_type
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = 0
+    </select>
+
+    <select id="countActiveConfigs" resultType="long">
+        SELECT COUNT(1)
+        FROM sys_config
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = 0
+    </select>
+
+    <select id="countActiveOrgs" resultType="long">
+        SELECT COUNT(1)
+        FROM sys_org
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = 0
+    </select>
+
+    <select id="countRolesByKey" resultType="long">
+        SELECT COUNT(1)
+        FROM sys_role
+        WHERE tenant_id = #{tenantId}
+          AND role_key = #{roleKey}
+          AND del_flag = 0
+    </select>
+
+    <select id="selectTemplateAdminRoleId" resultType="long">
+        SELECT MIN(id)
+        FROM sys_role
+        WHERE tenant_id = #{tenantId}
+          AND role_key = 'admin'
+          AND del_flag = 0
+    </select>
+
+    <select id="selectActiveDictTypes" resultType="com.mdframe.forge.plugin.system.entity.SysDictType">
+        SELECT dict_id, tenant_id, dict_name, dict_type, dict_status, remark,
+               create_by, create_time, create_dept, update_by, update_time, del_flag
+        FROM sys_dict_type
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = 0
+        ORDER BY dict_id ASC
+    </select>
+
+    <select id="selectActiveDictData" resultType="com.mdframe.forge.plugin.system.entity.SysDictData">
+        SELECT dict_code, tenant_id, dict_sort, dict_label, dict_value, dict_type,
+               css_class, list_class, is_default, parent_dict_code, linked_dict_type, linked_dict_value,
+               dict_status, remark, create_by, create_time, create_dept, update_by, update_time, del_flag
+        FROM sys_dict_data
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = 0
+        ORDER BY dict_code ASC
+    </select>
+
+    <select id="selectActiveConfigs" resultType="com.mdframe.forge.plugin.system.entity.SysConfig">
+        SELECT config_id, tenant_id, config_name, config_key, config_value, config_type, config_desc, sort,
+               create_by, create_time, create_dept, update_by, update_time, del_flag
+        FROM sys_config
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = 0
+        ORDER BY config_id ASC
+    </select>
+
+    <insert id="copyRoleResourcesExcludingTenantMgmt">
+        INSERT INTO sys_role_resource (tenant_id, role_id, resource_id, create_time)
+        SELECT #{targetTenantId}, #{targetRoleId}, rr.resource_id, CURRENT_TIMESTAMP
+        FROM sys_role_resource rr
+        WHERE rr.tenant_id = #{sourceTenantId}
+          AND rr.role_id = #{sourceRoleId}
+          AND rr.resource_id NOT IN (
+              SELECT r.id
+              FROM sys_resource r
+              WHERE r.del_flag = 0
+                AND (
+                    r.path LIKE '/system/tenant%'
+                    OR r.perms LIKE 'system:tenant%'
+                    OR r.resource_name = '租户管理'
+                )
+          )
+          AND NOT EXISTS (
+              SELECT 1
+              FROM sys_role_resource x
+              WHERE x.tenant_id = #{targetTenantId}
+                AND x.role_id = #{targetRoleId}
+                AND x.resource_id = rr.resource_id
+          )
+    </insert>
+
+    <insert id="copyRoleResourcesByWhitelist">
+        INSERT INTO sys_role_resource (tenant_id, role_id, resource_id, create_time)
+        SELECT #{targetTenantId}, #{targetRoleId}, r.id, CURRENT_TIMESTAMP
+        FROM sys_resource r
+        WHERE r.del_flag = 0
+          AND r.id IN
+          <foreach collection="resourceIds" item="rid" open="(" separator="," close=")">
+              #{rid}
+          </foreach>
+          AND NOT EXISTS (
+              SELECT 1
+              FROM sys_role_resource x
+              WHERE x.tenant_id = #{targetTenantId}
+                AND x.role_id = #{targetRoleId}
+                AND x.resource_id = r.id
+          )
+    </insert>
+
+    <insert id="copyMessageTemplates">
+        INSERT INTO sys_message_template (
+            tenant_id, template_code, template_name, type, title_template, content_template,
+            default_channel, enabled, remark, create_time, update_time, create_by, update_by, create_dept, del_flag
+        )
+        SELECT #{targetTenantId}, s.template_code, s.template_name, s.type, s.title_template, s.content_template,
+               s.default_channel, s.enabled, s.remark, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, s.create_by, s.update_by,
+               s.create_dept, 0
+        FROM sys_message_template s
+        WHERE s.tenant_id = #{sourceTenantId}
+          AND s.del_flag = 0
+          AND NOT EXISTS (
+              SELECT 1 FROM sys_message_template t
+              WHERE t.tenant_id = #{targetTenantId}
+                AND t.template_code = s.template_code
+                AND t.del_flag = 0
+          )
+    </insert>
+
+    <insert id="copyMessageBizTypes">
+        INSERT INTO sys_message_biz_type (
+            tenant_id, biz_type, biz_name, jump_url, jump_target, icon, sort, enabled, remark,
+            create_time, update_time, create_by, update_by, create_dept, del_flag
+        )
+        SELECT #{targetTenantId}, s.biz_type, s.biz_name, s.jump_url, s.jump_target, s.icon, s.sort, s.enabled, s.remark,
+               CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, s.create_by, s.update_by, s.create_dept, 0
+        FROM sys_message_biz_type s
+        WHERE s.tenant_id = #{sourceTenantId}
+          AND s.del_flag = 0
+          AND NOT EXISTS (
+              SELECT 1 FROM sys_message_biz_type t
+              WHERE t.tenant_id = #{targetTenantId}
+                AND t.biz_type = s.biz_type
+                AND t.del_flag = 0
+          )
+    </insert>
+
+    <insert id="copyFlowCommentPhrases">
+        INSERT INTO sys_flow_comment_phrase (
+            tenant_id, owner_type, user_id, scene, content, sort_order, status,
+            create_by, create_time, create_dept, update_by, update_time, del_flag
+        )
+        SELECT #{targetTenantId}, s.owner_type, COALESCE(s.user_id, 0), s.scene, s.content, s.sort_order, s.status,
+               s.create_by, CURRENT_TIMESTAMP, s.create_dept, s.update_by, CURRENT_TIMESTAMP, 0
+        FROM sys_flow_comment_phrase s
+        WHERE s.tenant_id = #{sourceTenantId}
+          AND s.del_flag = 0
+          AND s.owner_type = 0
+          AND NOT EXISTS (
+              SELECT 1 FROM sys_flow_comment_phrase t
+              WHERE t.tenant_id = #{targetTenantId}
+                AND t.owner_type = 0
+                AND t.scene = s.scene
+                AND t.content = s.content
+                AND t.del_flag = 0
+          )
+    </insert>
+
+    <insert id="copyFlowSpelTemplates">
+        INSERT INTO sys_flow_spel_template (
+            tenant_id, template_name, template_code, expression, description, category, example_params,
+            status, sort, remark, create_by, create_time, update_by, update_time, deleted
+        )
+        SELECT #{targetTenantId}, s.template_name, s.template_code, s.expression, s.description, s.category,
+               s.example_params, s.status, s.sort, s.remark, s.create_by, CURRENT_TIMESTAMP, s.update_by,
+               CURRENT_TIMESTAMP, 0
+        FROM sys_flow_spel_template s
+        WHERE s.tenant_id = #{sourceTenantId}
+          AND s.deleted = 0
+          AND NOT EXISTS (
+              SELECT 1 FROM sys_flow_spel_template t
+              WHERE t.tenant_id = #{targetTenantId}
+                AND t.template_code = s.template_code
+                AND t.deleted = 0
+          )
+    </insert>
+
+    <insert id="copyDataScopeConfigs">
+        INSERT INTO sys_data_scope_config (
+            tenant_id, resource_code, resource_name, mapper_method, table_alias,
+            user_id_column, org_id_column, tenant_id_column, region_code_column, user_region_column,
+            user_table_alias, flow_related_visible, flow_business_type, record_id_column,
+            enabled, remark, create_by, create_time, update_by, update_time, create_dept, del_flag
+        )
+        SELECT #{targetTenantId}, s.resource_code, s.resource_name, s.mapper_method, s.table_alias,
+               s.user_id_column, s.org_id_column, s.tenant_id_column, s.region_code_column, s.user_region_column,
+               s.user_table_alias, s.flow_related_visible, s.flow_business_type, s.record_id_column,
+               s.enabled, s.remark, s.create_by, CURRENT_TIMESTAMP, s.update_by, CURRENT_TIMESTAMP, s.create_dept, 0
+        FROM sys_data_scope_config s
+        WHERE s.tenant_id = #{sourceTenantId}
+          AND s.del_flag = 0
+          AND NOT EXISTS (
+              SELECT 1 FROM sys_data_scope_config t
+              WHERE t.tenant_id = #{targetTenantId}
+                AND t.resource_code = s.resource_code
+                AND t.del_flag = 0
+          )
+    </insert>
+
+</mapper>

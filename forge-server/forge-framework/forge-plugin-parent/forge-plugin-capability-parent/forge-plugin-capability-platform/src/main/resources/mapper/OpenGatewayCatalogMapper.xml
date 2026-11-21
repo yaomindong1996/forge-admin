@@ -34,7 +34,7 @@
          AND cli.id = g.client_id
          AND cli.del_flag = 0
          AND cli.status = 'ENABLED'
-         AND (cli.expires_at IS NULL OR cli.expires_at &gt; NOW())
+         AND (cli.expires_at IS NULL OR cli.expires_at &gt; CURRENT_TIMESTAMP)
         INNER JOIN ai_capability_version v
           ON v.tenant_id = c.tenant_id
          AND v.capability_id = c.id
@@ -64,7 +64,7 @@
           AND g.client_id = #{clientId}
           AND g.del_flag = 0
           AND g.status = 'ENABLED'
-          AND (g.expires_at IS NULL OR g.expires_at &gt; NOW())
+          AND (g.expires_at IS NULL OR g.expires_at &gt; CURRENT_TIMESTAMP)
           AND c.capability_code = #{capabilityCode}
         LIMIT 1
     </select>
