@@ -76,6 +76,8 @@ spring:
     baseline-version: 1.0.0
     table: forge_schema_history
     placeholder-replacement: false
+    # 默认 false；多人并行占号时本地/共享开发库可 FORGE_FLYWAY_OUT_OF_ORDER=true 补跑中间版本。
+    out-of-order: ${FORGE_FLYWAY_OUT_OF_ORDER:true}
   ai:
     chat:
       observations:
