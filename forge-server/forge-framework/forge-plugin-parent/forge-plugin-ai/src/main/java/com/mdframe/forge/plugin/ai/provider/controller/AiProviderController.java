@@ -5,13 +5,14 @@ import com.mdframe.forge.plugin.ai.coordination.AiModelProviderManager;
 import com.mdframe.forge.plugin.ai.constant.AiConstants;
 import com.mdframe.forge.plugin.ai.model.domain.AiModel;
 import com.mdframe.forge.plugin.ai.model.service.AiModelService;
-import com.mdframe.forge.plugin.ai.provider.adapter.AiProviderAdapterCode;
 import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
 import com.mdframe.forge.plugin.ai.provider.dto.AiModelImportItem;
 import com.mdframe.forge.plugin.ai.provider.dto.AiProviderSaveDTO;
 import com.mdframe.forge.plugin.ai.provider.dto.AiProviderTestDTO;
 import com.mdframe.forge.plugin.ai.provider.service.AiProviderService;
+import com.mdframe.forge.plugin.ai.provider.support.AiProviderTemplateCatalog;
 import com.mdframe.forge.plugin.ai.provider.support.ProviderModelFetcher;
+import com.mdframe.forge.plugin.ai.provider.vo.AiProviderTemplateVO;
 import com.mdframe.forge.plugin.ai.provider.vo.AiProviderVO;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
@@ -19,9 +20,7 @@ import com.mdframe.forge.starter.core.domain.RespInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -34,38 +33,11 @@ public class AiProviderController {
     private final AiModelProviderManager modelProviderManager;
 
     /**
-     * 内置供应商预设模板列表（纯代码查表，不查数据库）
+     * 内置供应商预设与当前租户连接计数，不返回连接密钥。
      */
     @GetMapping("/templates")
-    public RespInfo<List<Map<String, String>>> templates() {
-        return RespInfo.success(List.of(
-                template("alibaba_native", "阿里百炼（原生）", "https://dashscope.aliyuncs.com", "qwen-plus",
-                        AiProviderAdapterCode.DASHSCOPE_NATIVE.getCode()),
-                template("alibaba", "阿里百炼（兼容模式）", "https://dashscope.aliyuncs.com/compatible-mode",
-                        "qwen-plus", AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode()),
-                template("openai", "OpenAI", "https://api.openai.com", "gpt-4o-mini",
-                        AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode()),
-                template("zhipu", "智谱 AI", "https://open.bigmodel.cn/api/paas/v4", "glm-4",
-                        AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode()),
-                template("moonshot", "Moonshot", "https://api.moonshot.cn/v1", "moonshot-v1-8k",
-                        AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode()),
-                template("deepseek", "DeepSeek", "https://api.deepseek.com", "deepseek-chat",
-                        AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode()),
-                template("ollama", "Ollama（本地）", "http://localhost:11434", "llama3",
-                        AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode()),
-                template("custom", "自定义", "", "", AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode())
-        ));
-    }
-
-    private Map<String, String> template(String key, String name, String baseUrl,
-                                         String defaultModel, String adapterCode) {
-        Map<String, String> m = new LinkedHashMap<>();
-        m.put("templateKey", key);
-        m.put("name", name);
-        m.put("baseUrl", baseUrl);
-        m.put("defaultModel", defaultModel);
-        m.put("adapterCode", adapterCode);
-        return m;
+    public RespInfo<List<AiProviderTemplateVO>> templates() {
+        return RespInfo.success(AiProviderTemplateCatalog.withCounts(providerService.countProviderTypes()));
     }
 
     /**

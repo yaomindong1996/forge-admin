@@ -37,10 +37,10 @@ class AiProviderAdapterRegistryTest {
 
     @Test
     void getRequiredShouldResolveKnownAdapterAndRejectUnknownCode() {
-        AiProviderAdapter adapter = new RecordingAdapter("dashscope_native", new ArrayList<>(), null);
+        AiProviderAdapter adapter = new RecordingAdapter("openai_compatible", new ArrayList<>(), null);
         AiProviderAdapterRegistry registry = new AiProviderAdapterRegistry(List.of(adapter), secretCrypto());
 
-        assertSame(adapter, registry.getRequired("dashscope_native"));
+        assertSame(adapter, registry.getRequired("openai_compatible"));
         assertThrows(BusinessException.class, () -> registry.getRequired("unknown"));
     }
 
@@ -86,9 +86,9 @@ class AiProviderAdapterRegistryTest {
     @Test
     void createEmbeddingModelDelegatesToTheRegisteredProtocol() {
         List<String> events = new ArrayList<>();
-        var adapter = new RecordingAdapter("dashscope_native", events, null);
+        var adapter = new RecordingAdapter("openai_compatible", events, null);
         var registry = new AiProviderAdapterRegistry(List.of(adapter), secretCrypto());
-        assertSame(adapter.embedding, registry.createEmbeddingModel(provider("dashscope_native"), "t1-embedding"));
+        assertSame(adapter.embedding, registry.createEmbeddingModel(provider("openai_compatible"), "t1-embedding"));
         assertEquals(List.of("create_embedding"), events);
     }
 

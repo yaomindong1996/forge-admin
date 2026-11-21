@@ -64,7 +64,7 @@ class ChatClientCacheTest {
         AiModelRuntimeOptions options = options();
 
         ChatClient first = cache.getOrCreateBase(provider(1L, 10L, "openai_compatible"), options);
-        ChatClient second = cache.getOrCreateBase(provider(1L, 10L, "dashscope_native"), options);
+        ChatClient second = cache.getOrCreateBase(provider(1L, 10L, "custom_adapter"), options);
 
         assertNotSame(first, second);
         verify(adapterRegistry, times(2)).createChatModel(any(), any());

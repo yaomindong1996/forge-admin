@@ -28,6 +28,7 @@ import {
 import { useDict } from '@/composables/useDict'
 import { generateUUID } from '@/utils'
 import AgentConfigForm from '../components/AgentConfigForm.vue'
+
 export function applyAgentPagePart1() {
   const __impl = {}
   const mut = {
@@ -48,7 +49,7 @@ export function applyAgentPagePart1() {
   const stopChat = (...args) => __impl.stopChat(...args)
   const updateToolEnabled = (...args) => __impl.updateToolEnabled(...args)
   const useSuggestedQuestion = (...args) => __impl.useSuggestedQuestion(...args)
-  
+
   const router = useRouter()
   const { dict } = useDict('ai_agent_model_selection_mode')
 
@@ -890,9 +891,10 @@ export function applyAgentPagePart1() {
     viewMode.value = 'market'
   }
 
-  function goToChat() {
-    if (agentForm.id) {
-      router.push({ path: '/ai/agent/chat', query: { agentId: agentForm.id } })
+  function goToChat(agent) {
+    const targetId = agent?.id || agentForm.id
+    if (targetId) {
+      router.push({ path: '/ai/agent-chat', query: { agentId: targetId } })
     }
   }
 
@@ -997,22 +999,136 @@ export function applyAgentPagePart1() {
   __impl.removeTool = removeTool
 
   return {
-    __impl, mut, addContextConfig, addTool, backToMarket, buildBaseAgentPayload, createDefaultExtraConfig, createEmptyAgent,
-    findAgentByCode, finishAgentReasoning, formatRelativeTime, formatTime, getAgentGradient, getAgentInitial, getAgentTools, getContextPreview,
-    getMcpToolLabel, getProviderDefaultModel, goToChat, handleAgentPageSizeChange, handleAgentSSEChunk, handleCreateAgent, handleDeleteAgent, handleEditAgent,
-    handleOpenDesigner, handleOpenWorkbenchBaseSettings, handlePendingPublishAction, handlePublishAgent, handlePublishMenuUpdate, handleSaveBaseInfo, handleSaveDraft, handleTogglePublish,
-    hydrateAgentForm, loadAgentContexts, loadAgentTools, loadAgents, loadKnowledgeList, loadModels, loadProviders, loadRoutePolicies,
-    loadSkills, mergeBaseAgentPayload, openBaseModal, openWorkbench, parseExtraConfig, parseKnowledgeIds, removeContextConfig, removeTool,
-    resetAgentForm, resetBaseForm, resetConversation, resetModelParams, saveAgent, saveSkillBindings, scrollChatToBottom, scrollLatestReasoningToBottom,
-    sendChatMessage, serializeAgent, stopChat, syncContextConfigs, toIdString, toNullableInteger, toNullableNumber, updateToolEnabled,
-    useSuggestedQuestion, validateContextConfigs, router, viewMode, agentLoading, saveLoading, publishLoading, modelLoading,
-    toolModalVisible, contextModalVisible, agentTools, showAddTool, newTool, toolLoading, allSkills, boundSkillIds,
-    skillLoading, skillSaveLoading, knowledgeOptions, knowledgeLoading, baseModalVisible, publishMenuVisible, baseSaveLoading, agentFormRef,
-    baseFormRef, messageListRef, agentList, providerList, modelList, routePolicyList, contextConfigs, deletedContextIds,
-    expandedContextNames, chatMessages, chatInput, chatSending, chatStatusText, sessionId, pagination, filter,
-    baseMode, baseEditingAgent, defaultPrompt, agentForm, modelParamEnabled, baseForm, statusFilterOptions, contextTypeOptions,
-    reservedMcpToolOptions, baseRules, agentRules, providerOptions, modelOptions, modelSelectionModeOptions, routePolicyOptions, selectedProviderName,
-    selectedModelLabel, pageCount, baseModalTitle, enabledContextCount, selectedMcpToolLabels, suggestedQuestionCount, publishTimeText, openingStatement,
-    previewMessages, suggestedQuestionList, canSendChat,
+    __impl,
+    mut,
+    addContextConfig,
+    addTool,
+    backToMarket,
+    buildBaseAgentPayload,
+    createDefaultExtraConfig,
+    createEmptyAgent,
+    findAgentByCode,
+    finishAgentReasoning,
+    formatRelativeTime,
+    formatTime,
+    getAgentGradient,
+    getAgentInitial,
+    getAgentTools,
+    getContextPreview,
+    getMcpToolLabel,
+    getProviderDefaultModel,
+    goToChat,
+    handleAgentPageSizeChange,
+    handleAgentSSEChunk,
+    handleCreateAgent,
+    handleDeleteAgent,
+    handleEditAgent,
+    handleOpenDesigner,
+    handleOpenWorkbenchBaseSettings,
+    handlePendingPublishAction,
+    handlePublishAgent,
+    handlePublishMenuUpdate,
+    handleSaveBaseInfo,
+    handleSaveDraft,
+    handleTogglePublish,
+    hydrateAgentForm,
+    loadAgentContexts,
+    loadAgentTools,
+    loadAgents,
+    loadKnowledgeList,
+    loadModels,
+    loadProviders,
+    loadRoutePolicies,
+    loadSkills,
+    mergeBaseAgentPayload,
+    openBaseModal,
+    openWorkbench,
+    parseExtraConfig,
+    parseKnowledgeIds,
+    removeContextConfig,
+    removeTool,
+    resetAgentForm,
+    resetBaseForm,
+    resetConversation,
+    resetModelParams,
+    saveAgent,
+    saveSkillBindings,
+    scrollChatToBottom,
+    scrollLatestReasoningToBottom,
+    sendChatMessage,
+    serializeAgent,
+    stopChat,
+    syncContextConfigs,
+    toIdString,
+    toNullableInteger,
+    toNullableNumber,
+    updateToolEnabled,
+    useSuggestedQuestion,
+    validateContextConfigs,
+    router,
+    viewMode,
+    agentLoading,
+    saveLoading,
+    publishLoading,
+    modelLoading,
+    toolModalVisible,
+    contextModalVisible,
+    agentTools,
+    showAddTool,
+    newTool,
+    toolLoading,
+    allSkills,
+    boundSkillIds,
+    skillLoading,
+    skillSaveLoading,
+    knowledgeOptions,
+    knowledgeLoading,
+    baseModalVisible,
+    publishMenuVisible,
+    baseSaveLoading,
+    agentFormRef,
+    baseFormRef,
+    messageListRef,
+    agentList,
+    providerList,
+    modelList,
+    routePolicyList,
+    contextConfigs,
+    deletedContextIds,
+    expandedContextNames,
+    chatMessages,
+    chatInput,
+    chatSending,
+    chatStatusText,
+    sessionId,
+    pagination,
+    filter,
+    baseMode,
+    baseEditingAgent,
+    defaultPrompt,
+    agentForm,
+    modelParamEnabled,
+    baseForm,
+    statusFilterOptions,
+    contextTypeOptions,
+    reservedMcpToolOptions,
+    baseRules,
+    agentRules,
+    providerOptions,
+    modelOptions,
+    modelSelectionModeOptions,
+    routePolicyOptions,
+    selectedProviderName,
+    selectedModelLabel,
+    pageCount,
+    baseModalTitle,
+    enabledContextCount,
+    selectedMcpToolLabels,
+    suggestedQuestionCount,
+    publishTimeText,
+    openingStatement,
+    previewMessages,
+    suggestedQuestionList,
+    canSendChat,
   }
 }

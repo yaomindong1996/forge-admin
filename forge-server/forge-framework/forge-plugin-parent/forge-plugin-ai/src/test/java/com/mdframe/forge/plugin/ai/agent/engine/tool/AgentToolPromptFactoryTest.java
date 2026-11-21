@@ -1,7 +1,6 @@
 package com.mdframe.forge.plugin.ai.agent.engine.tool;
 
 import com.mdframe.forge.plugin.ai.agent.engine.ReactContext;
-import com.mdframe.forge.plugin.ai.provider.dashscope.DashScopeNativeChatModel;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.model.tool.ToolCallingChatOptions;
@@ -18,7 +17,7 @@ import static org.mockito.Mockito.when;
 class AgentToolPromptFactoryTest {
 
     @Test
-    void should_bindPerRequestTools_when_nativeAndOpenAiShareTheFactory() {
+    void should_bindPerRequestTools_when_openAiChatModelUsesTheFactory() {
         for (ChatModel model : models()) {
             var defaults = (ToolCallingChatOptions) model.getOptions();
             var originalCallbacks = defaults.getToolCallbacks();
@@ -70,12 +69,9 @@ class AgentToolPromptFactoryTest {
     }
 
     private List<ChatModel> models() {
-        var nativeOptions = ToolCallingChatOptions.builder().model("fixture-model").temperature(0.42)
-                .maxTokens(64).build();
         var openAiOptions = OpenAiChatOptions.builder().model("fixture-model").temperature(0.42)
                 .maxTokens(64).apiKey("fixture-unusable-credential").baseUrl("https://fixture.invalid/v1").build();
-        return List.of(new DashScopeNativeChatModel("https://fixture.invalid", "fixture-unusable-credential",
-                nativeOptions), OpenAiChatModel.builder().options(openAiOptions).build());
+        return List.of(OpenAiChatModel.builder().options(openAiOptions).build());
     }
 
     private ReactContext context(ChatModel model, List<AgentTool> tools) {

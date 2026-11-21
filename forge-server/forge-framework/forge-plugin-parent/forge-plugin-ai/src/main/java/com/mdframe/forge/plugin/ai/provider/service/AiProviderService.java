@@ -20,6 +20,7 @@ import com.mdframe.forge.plugin.ai.provider.support.AiProviderFailureDiagnostics
 import com.mdframe.forge.plugin.ai.provider.support.AiProviderSecretMasker;
 import com.mdframe.forge.plugin.ai.provider.support.AiSecretCrypto;
 import com.mdframe.forge.plugin.ai.provider.support.ProviderModelFetcher;
+import com.mdframe.forge.plugin.ai.provider.vo.AiProviderTypeCountVO;
 import com.mdframe.forge.plugin.ai.provider.vo.AiProviderVO;
 import com.mdframe.forge.plugin.ai.model.adapter.AiModelAdapterRegistry;
 import com.mdframe.forge.plugin.ai.model.adapter.AiEmbeddingModelAdapter;
@@ -84,6 +85,11 @@ public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider>
                                           String providerName, String providerType, String status) {
         return baseMapper.selectProviderPage(
                 new Page<>(pageNum, pageSize), providerName, providerType, status);
+    }
+
+    public List<AiProviderTypeCountVO> countProviderTypes() {
+        List<AiProviderTypeCountVO> counts = baseMapper.selectProviderTypeCounts();
+        return counts == null ? List.of() : counts;
     }
 
     @Transactional(rollbackFor = Exception.class)

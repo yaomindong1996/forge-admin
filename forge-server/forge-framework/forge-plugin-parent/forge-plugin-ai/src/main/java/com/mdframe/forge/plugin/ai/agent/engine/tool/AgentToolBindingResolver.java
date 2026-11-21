@@ -5,8 +5,11 @@ import com.mdframe.forge.plugin.ai.agent.domain.AiAgent;
 import com.mdframe.forge.plugin.ai.agent.engine.tool.registry.AgentToolRegistry;
 import com.mdframe.forge.plugin.ai.agenttool.domain.AiAgentToolConfig;
 import com.mdframe.forge.plugin.ai.agenttool.service.AgentToolService;
+import com.mdframe.forge.plugin.ai.skill.pkg.SkillPackageManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -14,7 +17,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** 复用原绑定表与知识库兜底；无绑定不代表允许全部 registry 工具。 */
+/**
+ * 复用原绑定表与知识库/技能资料包兜底；无绑定不代表允许全部 registry 工具。
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -22,6 +27,9 @@ public class AgentToolBindingResolver {
 
     private final AgentToolService toolService;
     private final AgentToolRegistry registry;
+
+    @Autowired(required = false)
+    private ObjectProvider<SkillPackageManager> skillPackages;
 
     public List<AgentTool> resolve(AiAgent agent) {
         Map<String, AgentTool> bound = new LinkedHashMap<>();
@@ -41,6 +49,13 @@ public class AgentToolBindingResolver {
             AgentTool rag = registry.getTool("builtin", "rag_search");
             if (rag != null) {
                 bound.putIfAbsent("builtin:rag_search", rag);
+            }
+        }
+        SkillPackageManager pkgManager = skillPackages == null ? null : skillPackages.getIfAvailable();
+        if (pkgManager != null && pkgManager.hasBoundPackages(agent.getTenantId(), agent.getId())) {
+            AgentTool readSkill = registry.getTool("builtin", "read_skill");
+            if (readSkill != null) {
+                bound.putIfAbsent("builtin:read_skill", readSkill);
             }
         }
         return new ArrayList<>(bound.values());

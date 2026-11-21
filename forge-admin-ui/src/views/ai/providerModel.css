@@ -774,3 +774,41 @@
 .fetch-models-type-select {
   flex: 0 0 auto;
 }
+
+.service-config-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 6px;
+  background: var(--bg-primary, #fff);
+}
+
+.service-config-tab {
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary, #4b5563);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.service-config-tab:hover {
+  color: var(--text-primary, #111827);
+  background: var(--bg-hover, #f3f4f6);
+}
+
+.service-config-tab.is-active {
+  color: var(--primary-color, #2563eb);
+  border-color: var(--primary-color, #2563eb);
+  background: var(--bg-primary, #fff);
+  font-weight: 600;
+}

@@ -3,6 +3,7 @@ package com.mdframe.forge.plugin.ai.provider.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
+import com.mdframe.forge.plugin.ai.provider.vo.AiProviderTypeCountVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -35,4 +36,6 @@ public interface AiProviderMapper extends BaseMapper<AiProvider> {
     int updateModelSummary(@Param("id") Long id,
                            @Param("models") String models,
                            @Param("defaultModel") String defaultModel);
+
+    List<AiProviderTypeCountVO> selectProviderTypeCounts();
 }

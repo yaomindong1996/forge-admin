@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.ai.skill.pkg.mapper.SkillPackageMapper">
+    <sql id="columns">
+        v.id, v.tenant_id, v.package_id, v.version_name, v.package_hash, v.archive_hash,
+        v.manifest_json, v.snapshot_json, v.file_count, v.total_bytes, v.status, v.del_flag,
+        v.create_by, v.create_time, v.create_dept, v.update_by, v.update_time,
+        p.package_code, p.package_name, p.description
+    </sql>
+
+    <select id="selectCode" resultType="com.mdframe.forge.plugin.ai.skill.pkg.domain.SkillPackage">
+        SELECT id, tenant_id, package_code, package_name, description, del_flag,
+               create_by, create_time, create_dept, update_by, update_time
+        FROM ai_skill_package
+        WHERE tenant_id = #{tenantId} AND package_code = #{code} AND del_flag = 0
+        FOR UPDATE
+    </select>
+
+    <select id="selectPage" resultType="com.mdframe.forge.plugin.ai.skill.pkg.domain.SkillPackageVersion">
+        SELECT <include refid="columns"/>
+        FROM ai_skill_package_version v
+        JOIN ai_skill_package p ON p.id = v.package_id AND p.tenant_id = v.tenant_id AND p.del_flag = 0
+        WHERE v.tenant_id = #{tenantId} AND v.del_flag = 0
+        <if test="keyword != null and keyword != ''">
+            AND (p.package_code LIKE CONCAT('%', #{keyword}, '%') OR p.package_name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="status != null and status != ''">
+            AND v.status = #{status}
+        </if>
+        ORDER BY v.create_time DESC, v.id DESC
+    </select>
+
+    <select id="selectVersions" resultType="com.mdframe.forge.plugin.ai.skill.pkg.domain.SkillPackageVersion">
+        SELECT <include refid="columns"/>
+        FROM ai_skill_package_version v
+        JOIN ai_skill_package p ON p.id = v.package_id AND p.tenant_id = v.tenant_id AND p.del_flag = 0
+        WHERE v.tenant_id = #{tenantId} AND v.package_id = #{packageId} AND v.del_flag = 0
+        ORDER BY v.create_time DESC, v.id DESC
+        LIMIT 100
+    </select>
+
+    <select id="selectVersion" resultType="com.mdframe.forge.plugin.ai.skill.pkg.domain.SkillPackageVersion">
+        SELECT <include refid="columns"/>
+        FROM ai_skill_package_version v
+        JOIN ai_skill_package p ON p.id = v.package_id AND p.tenant_id = v.tenant_id AND p.del_flag = 0
+        WHERE v.tenant_id = #{tenantId} AND v.id = #{id} AND v.del_flag = 0
+    </select>
+
+    <select id="selectExact" resultType="com.mdframe.forge.plugin.ai.skill.pkg.domain.SkillPackageVersion">
+        SELECT <include refid="columns"/>
+        FROM ai_skill_package_version v
+        JOIN ai_skill_package p ON p.id = v.package_id AND p.tenant_id = v.tenant_id AND p.del_flag = 0
+        WHERE v.tenant_id = #{tenantId} AND p.package_code = #{code} AND v.version_name = #{version} AND v.del_flag = 0
+    </select>
+
+    <select id="selectExactCurrent" resultType="com.mdframe.forge.plugin.ai.skill.pkg.domain.SkillPackageVersion">
+        SELECT <include refid="columns"/>
+        FROM ai_skill_package_version v
+        JOIN ai_skill_package p ON p.id = v.package_id AND p.tenant_id = v.tenant_id AND p.del_flag = 0
+        WHERE v.tenant_id = #{tenantId} AND p.package_code = #{code} AND v.version_name = #{version} AND v.del_flag = 0
+        FOR UPDATE
+    </select>
+
+    <select id="selectFiles" resultType="com.mdframe.forge.plugin.ai.skill.pkg.domain.SkillPackageFile">
+        SELECT id, tenant_id, version_id, file_path, content, content_hash, size_bytes, del_flag,
+               create_by, create_time, create_dept, update_by, update_time
+        FROM ai_skill_package_file
+        WHERE tenant_id = #{tenantId} AND version_id = #{versionId} AND del_flag = 0
+        ORDER BY file_path
+        LIMIT 4096
+    </select>
+
+    <update id="changeState">
+        UPDATE ai_skill_package_version
+        SET status = #{status},
+            snapshot_json = COALESCE(#{snapshot}, snapshot_json),
+            update_by = #{actor},
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND package_hash = #{hash}
+          AND status = #{expected}
+          AND del_flag = 0
+    </update>
+
+    <select id="selectBoundByAgent" resultType="com.mdframe.forge.plugin.ai.skill.pkg.domain.SkillPackageVersion">
+        SELECT <include refid="columns"/>
+        FROM ai_agent_skill_package b
+        JOIN ai_skill_package_version v ON v.id = b.version_id AND v.tenant_id = b.tenant_id AND v.del_flag = 0
+        JOIN ai_skill_package p ON p.id = v.package_id AND p.tenant_id = v.tenant_id AND p.del_flag = 0
+        WHERE b.tenant_id = #{tenantId} AND b.agent_id = #{agentId} AND b.del_flag = 0
+        ORDER BY b.create_time ASC, b.id ASC
+        LIMIT 64
+    </select>
+
+    <update id="softDeleteAgentPackage">
+        UPDATE ai_agent_skill_package
+        SET del_flag = id,
+            update_by = #{actor},
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{tenantId}
+          AND agent_id = #{agentId}
+          AND package_id = #{packageId}
+          AND del_flag = 0
+    </update>
+
+    <update id="softDeleteAgentVersion">
+        UPDATE ai_agent_skill_package
+        SET del_flag = id,
+            update_by = #{actor},
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{tenantId}
+          AND agent_id = #{agentId}
+          AND version_id = #{versionId}
+          AND del_flag = 0
+    </update>
+
+    <select id="countBoundByAgent" resultType="int">
+        SELECT COUNT(1)
+        FROM ai_agent_skill_package
+        WHERE tenant_id = #{tenantId} AND agent_id = #{agentId} AND del_flag = 0
+    </select>
+</mapper>

@@ -26,6 +26,11 @@ public class ToolContext {
     private Long tenantId;
 
     /**
+     * 当前调用用户ID
+     */
+    private Long userId;
+
+    /**
      * 当前轮次
      */
     private int turnIndex;

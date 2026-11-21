@@ -100,6 +100,9 @@
             </div>
 
             <div class="agent-card-footer" @click.stop>
+              <NButton text type="primary" @click.stop="goToChat(agent)">
+                测试对话
+              </NButton>
               <NButton text type="primary" @click.stop="handleEditAgent(agent)">
                 编辑信息
               </NButton>
@@ -665,6 +668,31 @@
             </div>
           </n-tab-pane>
 
+          <!-- MCP 远程工具快速勾选 Tab -->
+          <n-tab-pane name="mcp" tab="MCP 远程工具">
+            <div class="modal-section">
+              <AgentResourceBindingPanel
+                v-if="agentForm.id"
+                :agent-id="agentForm.id"
+                mode="mcp"
+                @changed="loadAgentTools"
+              />
+              <n-empty v-else description="请先保存智能体后再绑定 MCP 工具" size="small" />
+            </div>
+          </n-tab-pane>
+
+          <!-- 技能资料包 Tab -->
+          <n-tab-pane name="skill-packages" tab="技能资料包">
+            <div class="modal-section">
+              <AgentResourceBindingPanel
+                v-if="agentForm.id"
+                :agent-id="agentForm.id"
+                mode="skill-package"
+              />
+              <n-empty v-else description="请先保存智能体后再绑定技能资料包" size="small" />
+            </div>
+          </n-tab-pane>
+
           <!-- 技能绑定 Tab -->
           <n-tab-pane name="skills" tab="技能绑定">
             <div class="modal-section">
@@ -699,7 +727,9 @@
               <div class="tool-section-header">
                 <span class="tool-section-title">关联知识库 ({{ agentForm.knowledgeIds.length }})</span>
               </div>
-              <p class="knowledge-tip">勾选的知识库会作为对话检索的默认来源，随「保存/发布」一起生效。</p>
+              <p class="knowledge-tip">
+                勾选的知识库会作为对话检索的默认来源，随「保存/发布」一起生效。
+              </p>
               <n-spin :show="knowledgeLoading">
                 <n-checkbox-group v-model:value="agentForm.knowledgeIds">
                   <div class="skill-check-list">
@@ -861,4 +891,5 @@ export default {
 </script>
 
 <style scoped src="./agent-shell.css"></style>
+
 <style scoped src="./agent-panels.css"></style>

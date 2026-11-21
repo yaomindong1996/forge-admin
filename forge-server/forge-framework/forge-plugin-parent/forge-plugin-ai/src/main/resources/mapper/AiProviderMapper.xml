@@ -36,12 +36,32 @@
             AND provider_name LIKE CONCAT('%', #{providerName}, '%')
         </if>
         <if test="providerType != null and providerType != ''">
-            AND provider_type = #{providerType}
+            <choose>
+                <when test="providerType == 'alibaba'">AND provider_type IN ('alibaba', 'dashscope')</when>
+                <when test="providerType == 'moonshot'">AND provider_type IN ('moonshot', 'kimi')</when>
+                <when test="providerType == 'volcengine'">AND provider_type IN ('volcengine', 'volcanic_engine')</when>
+                <when test="providerType == 'siliconflow'">AND provider_type IN ('siliconflow', 'silicon_flow')</when>
+                <when test="providerType == 'baidu'">AND provider_type IN ('baidu', 'wenxin')</when>
+                <when test="providerType == 'tencent'">AND provider_type IN ('tencent', 'hunyuan')</when>
+                <when test="providerType == 'xunfei'">AND provider_type IN ('xunfei', 'spark')</when>
+                <when test="providerType == 'google'">AND provider_type IN ('google', 'gemini')</when>
+                <when test="providerType == 'anthropic'">AND provider_type IN ('anthropic', 'claude')</when>
+                <when test="providerType == 'localai'">AND provider_type IN ('localai', 'local_ai')</when>
+                <otherwise>AND provider_type = #{providerType}</otherwise>
+            </choose>
         </if>
         <if test="status != null and status != ''">
             AND status = #{status}
         </if>
         ORDER BY create_time DESC
+    </select>
+
+    <select id="selectProviderTypeCounts"
+            resultType="com.mdframe.forge.plugin.ai.provider.vo.AiProviderTypeCountVO">
+        SELECT provider_type, COUNT(*) AS configured_count
+        FROM ai_provider
+        WHERE del_flag = '0'
+        GROUP BY provider_type
     </select>
 
     <select id="selectEnabledById" resultType="com.mdframe.forge.plugin.ai.provider.domain.AiProvider">

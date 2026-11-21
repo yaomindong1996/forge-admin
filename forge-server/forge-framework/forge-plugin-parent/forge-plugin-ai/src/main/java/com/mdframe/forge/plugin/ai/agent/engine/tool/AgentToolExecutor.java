@@ -118,6 +118,7 @@ public class AgentToolExecutor {
         try {
             ToolContext toolContext = ToolContext.of(context.getSessionId(), context.getAgentId(),
                     context.getTenantId(), context.getTurnIndex());
+            toolContext.setUserId(context.getUserId());
             toolContext.setKnowledgeIds(AgentToolBindingResolver.knowledgeIds(
                     context.getAgent() == null ? null : context.getAgent().getKnowledgeIds()));
             ToolResult result = tool.execute(arguments, toolContext);

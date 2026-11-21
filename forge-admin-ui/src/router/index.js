@@ -100,6 +100,12 @@ export const manualRoutes = [
     redirect: '/home',
     meta: { title: '首页' },
   },
+  // AI 能力父路由默认重定向到智能体页，防止硬进 /ai 出现 404
+  {
+    path: '/ai',
+    redirect: '/ai/agent',
+    meta: { title: 'AI能力' },
+  },
   // iframe 页面
   {
     name: 'iframe',

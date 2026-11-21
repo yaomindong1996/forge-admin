@@ -118,7 +118,7 @@ class AiClientImplTest {
         ArgumentCaptor<AiModelRuntimeOptions> optionsCaptor =
                 ArgumentCaptor.forClass(AiModelRuntimeOptions.class);
         verify(adapterRegistry).createChatModel(providerCaptor.capture(), optionsCaptor.capture());
-        assertEquals(AiProviderAdapterCode.DASHSCOPE_NATIVE.getCode(),
+        assertEquals(AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode(),
                 providerCaptor.getValue().getAdapterCode());
         assertEquals("qwen-plus", optionsCaptor.getValue().model());
         assertEquals(0.4D, optionsCaptor.getValue().temperature());
@@ -179,13 +179,13 @@ class AiClientImplTest {
     }
 
     private AiProvider nativeProvider() {
-        AiProvider nativeProvider = new AiProvider();
-        nativeProvider.setId(10L);
-        nativeProvider.setTenantId(1L);
-        nativeProvider.setProviderName("DashScope Native");
-        nativeProvider.setProviderType("alibaba");
-        nativeProvider.setAdapterCode(AiProviderAdapterCode.DASHSCOPE_NATIVE.getCode());
-        return nativeProvider;
+        AiProvider compatibleProvider = new AiProvider();
+        compatibleProvider.setId(10L);
+        compatibleProvider.setTenantId(1L);
+        compatibleProvider.setProviderName("DashScope Compatible");
+        compatibleProvider.setProviderType("alibaba");
+        compatibleProvider.setAdapterCode(AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode());
+        return compatibleProvider;
     }
 
     private ChatResponse response(String content, Map<String, Object> metadata) {

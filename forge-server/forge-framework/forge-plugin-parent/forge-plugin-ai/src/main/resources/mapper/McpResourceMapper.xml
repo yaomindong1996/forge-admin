@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.ai.resource.mapper.McpResourceMapper">
+    <sql id="connections">
+        id, tenant_id, connection_code, connection_name, endpoint, secret_cipher,
+        timeout_seconds, enabled, row_version, sync_state, error_code, synced_at,
+        create_by, create_time, create_dept, update_by, update_time, del_flag
+    </sql>
+    <select id="connections" resultType="com.mdframe.forge.plugin.ai.resource.domain.McpConnection">
+        SELECT <include refid="connections"/>
+        FROM ai_mcp_connection
+        WHERE tenant_id = #{tenant} AND del_flag = 0
+        ORDER BY update_time DESC, id DESC
+        LIMIT 200
+    </select>
+    <select id="connection" resultType="com.mdframe.forge.plugin.ai.resource.domain.McpConnection">
+        SELECT <include refid="connections"/>
+        FROM ai_mcp_connection
+        WHERE tenant_id = #{tenant} AND id = #{id} AND del_flag = 0
+        FOR UPDATE
+    </select>
+    <select id="byCode" resultType="com.mdframe.forge.plugin.ai.resource.domain.McpConnection">
+        SELECT <include refid="connections"/>
+        FROM ai_mcp_connection
+        WHERE tenant_id = #{tenant} AND connection_code = #{code} AND del_flag = 0
+    </select>
+    <update id="updateConnection">
+        UPDATE ai_mcp_connection
+        SET connection_name = #{row.connectionName},
+            endpoint = #{row.endpoint},
+            secret_cipher = #{row.secretCipher},
+            timeout_seconds = #{row.timeoutSeconds},
+            enabled = #{row.enabled},
+            row_version = row_version + 1,
+            sync_state = 'UNSYNCED',
+            error_code = NULL,
+            synced_at = NULL,
+            update_by = #{row.updateBy},
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{row.tenantId}
+          AND id = #{row.id}
+          AND del_flag = 0
+          AND row_version = #{expected}
+    </update>
+    <update id="deleteConnection">
+        UPDATE ai_mcp_connection
+        SET del_flag = id,
+            enabled = 0,
+            row_version = row_version + 1,
+            update_by = #{actor},
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{tenant}
+          AND id = #{id}
+          AND row_version = #{expected}
+          AND del_flag = 0
+    </update>
+    <update id="syncResult">
+        UPDATE ai_mcp_connection
+        SET sync_state = #{state},
+            error_code = #{error},
+            synced_at = CURRENT_TIMESTAMP,
+            update_by = #{actor},
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{tenant}
+          AND id = #{id}
+          AND row_version = #{expected}
+          AND del_flag = 0
+    </update>
+    <sql id="tools">
+        id, tenant_id, connection_id, connection_version, tool_key, remote_name, title,
+        description, input_schema, contract_hash, available,
+        create_by, create_time, create_dept, update_by, update_time, del_flag
+    </sql>
+    <select id="tools" resultType="com.mdframe.forge.plugin.ai.resource.domain.McpTool">
+        SELECT <include refid="tools"/>
+        FROM ai_mcp_tool
+        WHERE tenant_id = #{tenant} AND del_flag = 0
+        <if test="connectionId != null">
+            AND connection_id = #{connectionId}
+        </if>
+        ORDER BY connection_id, title, id
+        LIMIT 2000
+    </select>
+    <select id="tool" resultType="com.mdframe.forge.plugin.ai.resource.domain.McpTool">
+        SELECT <include refid="tools"/>
+        FROM ai_mcp_tool
+        WHERE tenant_id = #{tenant} AND tool_key = #{key} AND del_flag = 0
+    </select>
+    <update id="invalidate">
+        UPDATE ai_mcp_tool
+        SET available = 0,
+            update_by = #{actor},
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{tenant}
+          AND connection_id = #{id}
+          AND del_flag = 0
+    </update>
+    <insert id="insertTool">
+        INSERT INTO ai_mcp_tool (
+            id, tenant_id, connection_id, connection_version, tool_key, remote_name, title,
+            description, input_schema, contract_hash, available,
+            create_by, create_time, create_dept, update_by, update_time, del_flag
+        ) VALUES (
+            #{row.id}, #{row.tenantId}, #{row.connectionId}, #{row.connectionVersion},
+            #{row.toolKey}, #{row.remoteName}, #{row.title}, #{row.description},
+            #{row.inputSchema}, #{row.contractHash}, #{row.available},
+            #{row.createBy}, CURRENT_TIMESTAMP, #{row.createDept}, #{row.updateBy}, CURRENT_TIMESTAMP, 0
+        )
+    </insert>
+    <update id="touchTool">
+        UPDATE ai_mcp_tool
+        SET available = 1,
+            connection_version = #{version},
+            update_by = #{actor},
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{tenant}
+          AND tool_key = #{key}
+          AND del_flag = 0
+    </update>
+    <select id="bindingCount" resultType="int">
+        SELECT COUNT(DISTINCT agent_id)
+        FROM ai_agent_tool_config
+        WHERE tenant_id = #{tenant}
+          AND tool_source = #{source}
+          AND tool_key = #{key}
+          AND del_flag = 0
+    </select>
+</mapper>

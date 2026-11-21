@@ -1,0 +1,93 @@
+import { createPinia, setActivePinia } from 'pinia'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const hubRouteMock = vi.fn()
+const hubAgentsMock = vi.fn()
+const streamEngineChatMock = vi.fn()
+const engineStopMock = vi.fn(() => Promise.resolve({ code: 200 }))
+
+vi.mock('@/api/ai', () => ({
+  hubRoute: (...args) => hubRouteMock(...args),
+  hubAgents: (...args) => hubAgentsMock(...args),
+  streamEngineChat: (...args) => streamEngineChatMock(...args),
+  engineStop: (...args) => engineStopMock(...args),
+}))
+
+vi.mock('@/store', () => ({
+  useAuthStore: () => ({ accessToken: 'token-1' }),
+  useUserStore: () => ({ userId: 1 }),
+}))
+
+const { useHubAssistantStore } = await import('../hubAssistantStore')
+
+describe('useHubAssistantStore', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.clearAllMocks()
+  })
+
+  it('routes todo intent and renders todo list without starting SSE stream', async () => {
+    hubRouteMock.mockResolvedValue({
+      code: 200,
+      data: {
+        kind: 'TODO',
+        todos: { available: true, total: 1, items: [{ taskId: 't-1', taskName: '审批采购单' }] },
+      },
+    })
+
+    const store = useHubAssistantStore()
+    await store.send('查看我的待办任务')
+
+    expect(store.turns).toHaveLength(1)
+    expect(store.turns[0].kind).toBe('TODO')
+    expect(store.turns[0].todos.total).toBe(1)
+    expect(store.turns[0].status).toBe('done')
+    expect(streamEngineChatMock).not.toHaveBeenCalled()
+  })
+
+  it('routes chat intent to matched agent and streams answer deltas', async () => {
+    hubRouteMock.mockResolvedValue({
+      code: 200,
+      data: {
+        kind: 'CHAT',
+        agent: { code: 'general_assistant', name: '通用助手' },
+      },
+    })
+    streamEngineChatMock.mockImplementation((_payload, onEvent, onComplete) => {
+      onEvent('TOOL_CALL_START', { tool: 'mcp:crm:search' })
+      onEvent('TOOL_RESULT_END', { tool: 'mcp:crm:search', error: false })
+      onEvent('TEXT_BLOCK_DELTA', { text: '你好，' })
+      onEvent('TEXT_BLOCK_DELTA', { text: '这是测试回复。' })
+      onComplete()
+      return { abort: vi.fn() }
+    })
+
+    const store = useHubAssistantStore()
+    await store.send('帮我查下客户资料')
+
+    expect(store.turns).toHaveLength(1)
+    expect(store.turns[0].agent.code).toBe('general_assistant')
+    expect(store.turns[0].answer).toBe('你好，这是测试回复。')
+    expect(store.turns[0].tools).toEqual([{ name: 'mcp:crm:search', status: 'done' }])
+    expect(store.turns[0].status).toBe('done')
+    expect(store.busy).toBe(false)
+  })
+
+  it('handles clarify response with clickable candidate agents', async () => {
+    hubRouteMock.mockResolvedValue({
+      code: 200,
+      data: {
+        kind: 'CLARIFY',
+        message: '请选择智能体',
+        candidates: [{ code: 'hr_helper', name: '人事助手' }],
+      },
+    })
+
+    const store = useHubAssistantStore()
+    await store.send('请问年假怎么算')
+
+    expect(store.turns[0].kind).toBe('CLARIFY')
+    expect(store.turns[0].candidates).toHaveLength(1)
+    expect(store.turns[0].status).toBe('done')
+  })
+})

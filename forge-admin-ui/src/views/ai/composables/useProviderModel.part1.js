@@ -20,6 +20,7 @@ import {
 import AuthImage from '@/components/common/AuthImage.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
+
 export function applyProviderModelPart1() {
   const __impl = {}
   const mut = {}
@@ -27,7 +28,10 @@ export function applyProviderModelPart1() {
   const { dict } = useDict('ai_provider_type', 'ai_provider_adapter_type', 'ai_model_type', 'ai_status', 'ai_is_default', 'ai_model_capability_type')
 
   const providerTypeOptions = computed(() => dict.value.ai_provider_type || [])
-  const providerAdapterOptions = computed(() => dict.value.ai_provider_adapter_type || [])
+  const providerAdapterOptions = computed(() => {
+    const raw = (dict.value.ai_provider_adapter_type || []).filter(opt => opt.value !== 'dashscope_native')
+    return raw.length ? raw : [{ label: 'OpenAI 兼容协议', value: 'openai_compatible' }]
+  })
   const modelTypeOptions = computed(() => dict.value.ai_model_type || [])
   const statusOptions = computed(() => dict.value.ai_status || [])
   const isDefaultOptions = computed(() => dict.value.ai_is_default || [])
@@ -79,26 +83,39 @@ export function applyProviderModelPart1() {
     if (!modelId)
       return 'chat'
     const lower = modelId.toLowerCase()
-    if (lower.includes('embedding') || lower.includes('embed')) return 'embedding'
-    if (lower.includes('rerank') || lower.includes('re-rank') || lower.includes('cross-encoder')) return 'rerank'
+    if (lower.includes('embedding') || lower.includes('embed'))
+      return 'embedding'
+    if (lower.includes('rerank') || lower.includes('re-rank') || lower.includes('cross-encoder'))
+      return 'rerank'
     if (lower.includes('t2v') || lower.includes('i2v')
       || lower.includes('video-gen') || lower.includes('videogen')
-      || lower.includes('maku')) return 'video_generation'
+      || lower.includes('maku')) {
+      return 'video_generation'
+    }
     if (lower.includes('t2i') || lower.includes('i2i')
       || lower.includes('dall-e') || lower.includes('dalle')
       || lower.includes('imagen') || lower.includes('flux')
       || lower.includes('midjourney') || lower.includes('stable-diffusion')
       || lower.includes('sdxl') || lower.includes('cogview')
-      || lower.includes('wanx')) return 'image_generation'
-    if (lower.includes('video')) return 'video_understanding'
+      || lower.includes('wanx')) {
+      return 'image_generation'
+    }
+    if (lower.includes('video'))
+      return 'video_understanding'
     if (lower.includes('whisper') || lower.includes('asr')
       || lower.includes('speech-to-text') || lower.includes('paraformer')
-      || lower.includes('sensevoice')) return 'asr'
+      || lower.includes('sensevoice')) {
+      return 'asr'
+    }
     if (lower.includes('tts') || lower.includes('speech-to-speech')
       || lower.includes('speech-synthesis') || lower.includes('cosyvoice')
-      || lower.includes('sambert')) return 'tts'
-    if (lower.includes('audio')) return 'audio_understanding'
-    if (lower.includes('vl') || lower.includes('vision')) return 'vision'
+      || lower.includes('sambert')) {
+      return 'tts'
+    }
+    if (lower.includes('audio'))
+      return 'audio_understanding'
+    if (lower.includes('vl') || lower.includes('vision'))
+      return 'vision'
     return 'chat'
   }
 
@@ -150,25 +167,34 @@ export function applyProviderModelPart1() {
   })
   const providerApiKeyPlaceholder = computed(() => providerModal.isEdit ? '留空表示不修改' : '请输入 API Key')
 
-  const DASHSCOPE_NATIVE_BASE_URL = 'https://dashscope.aliyuncs.com'
-  // 已知供应商类型（字典 ai_provider_type）的默认 OpenAI Compatible 端点，与后端 AiProviderBaseUrlPolicy 对齐
+  // 已知供应商类型（与后端 AiProviderTemplateCatalog 19 家预设对齐，统一 OpenAI Compatible）
   const PROVIDER_DEFAULT_BASE_URL = {
     alibaba: 'https://dashscope.aliyuncs.com/compatible-mode',
+    dashscope: 'https://dashscope.aliyuncs.com/compatible-mode',
     openai: 'https://api.openai.com/v1',
+    deepseek: 'https://api.deepseek.com/v1',
     zhipu: 'https://open.bigmodel.cn/api/paas/v4',
     moonshot: 'https://api.moonshot.cn/v1',
-    deepseek: 'https://api.deepseek.com/v1',
+    volcengine: 'https://ark.cn-beijing.volces.com/api/v3',
+    siliconflow: 'https://api.siliconflow.cn/v1',
+    openrouter: 'https://openrouter.ai/api/v1',
+    minimax: 'https://api.minimax.chat/v1',
+    stepfun: 'https://api.stepfun.com/v1',
+    baidu: 'https://qianfan.baidubce.com/v2',
+    tencent: 'https://api.hunyuan.cloud.tencent.com/v1',
+    spark: 'https://spark-api-open.xf-yun.com/v1',
+    baichuan: 'https://api.baichuan-ai.com/v1',
+    yi: 'https://api.lingyiwanwu.com/v1',
+    gemini: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    groq: 'https://api.groq.com/openai/v1',
     ollama: 'http://localhost:11434/v1',
+    vllm: 'http://localhost:8000/v1',
   }
-  // 已知默认地址集合（含尾斜杠变体）：当前地址是"别的协议/类型的默认"时切换后覆盖，自定义地址不覆盖
   const KNOWN_PROVIDER_DEFAULT_URLS = new Set(
-    [DASHSCOPE_NATIVE_BASE_URL, ...Object.values(PROVIDER_DEFAULT_BASE_URL)]
-      .flatMap(url => [url, `${url}/`]),
+    Object.values(PROVIDER_DEFAULT_BASE_URL).flatMap(url => [url, `${url}/`]),
   )
 
-  function resolveDefaultBaseUrl(adapterCode, providerType) {
-    if (adapterCode === 'dashscope_native')
-      return DASHSCOPE_NATIVE_BASE_URL
+  function resolveDefaultBaseUrl(_adapterCode, providerType) {
     return PROVIDER_DEFAULT_BASE_URL[providerType] || ''
   }
 
@@ -218,7 +244,7 @@ export function applyProviderModelPart1() {
   const fetchModelsModalFilteredModels = computed(() => {
     const keyword = fetchModelsModalSearch.value.trim().toLowerCase()
     const category = fetchModelsModalCategory.value
-    return fetchModelsModal.models.filter(m => {
+    return fetchModelsModal.models.filter((m) => {
       if (category !== 'all' && (fetchModelsModal.modelTypes[m.id] || inferModelType(m.id)) !== category)
         return false
       if (keyword && !(m.id || '').toLowerCase().includes(keyword))
@@ -925,17 +951,99 @@ export function applyProviderModelPart1() {
   __impl.handleDefaultModelChange = handleDefaultModelChange
 
   return {
-    __impl, mut, clearSelectedProvider, createModelForm, createProviderForm, formatProviderTime, groupModels, handleAddModel,
-    handleAddProvider, handleDefaultModelChange, handleDeleteModel, handleDeleteProvider, handleEditModel, handleEditProvider, handleFetchModels, handleIconUploadFinish,
-    handleImportModels, handleLogoUploadFinish, handleModelPageChange, handleModelPageSizeChange, handleModelSearch, handleProviderPageChange, handleProviderPageSizeChange, handleProviderSearch,
-    handleResetProviderSearch, handleSaveModel, handleSaveProvider, handleSelectProvider, handleSetDefault, handleTestModel, handleToggleGroup, handleToggleModel,
-    inferModelType, isGroupChecked, isGroupIndeterminate, isModelRowActionLoading, loadModels, loadProviders, modelTypeLabel, modelTypeTagColor,
-    paginationPrefix, providerInitial, providerModelCount, resolveDefaultBaseUrl, providerTypeOptions, providerAdapterOptions, modelTypeOptions, statusOptions,
-    isDefaultOptions, modelCapabilityOptions, MODEL_TYPE_LABEL, MODEL_TYPE_ORDER, MODEL_TYPE_TAG_COLOR, modelTypeOverrideOptions, providerPageSizes, modelPageSizes,
-    modalCardStyle, fetchModelsModalStyle, fetchModelsModalContentStyle, providerAvatarStyle, providerListAvatarStyle, providerSearch, providerList, providerLoading,
-    providerPagination, selectedProvider, modelList, modelLoading, defaultModelUpdatingId, providerDefaultUpdatingId, modelPagination, modelSearch,
-    providerFormRef, modelFormRef, providerSelectOptions, modelRowActionLoading, uploadPrefix, uploadHeaders, providerEditing, providerModal,
-    providerApiKeyPlaceholder, DASHSCOPE_NATIVE_BASE_URL, PROVIDER_DEFAULT_BASE_URL, KNOWN_PROVIDER_DEFAULT_URLS, modelModal, fetchModelsModal, fetchModelsModalSearch, fetchModelsModalCategory,
-    fetchModelsModalCategories, fetchModelsModalFilteredModels, fetchModelsModalGroups, fetchModelsModalVisibleCheckedCount, providerRules, modelRules, modelColumns,
+    __impl,
+    mut,
+    clearSelectedProvider,
+    createModelForm,
+    createProviderForm,
+    formatProviderTime,
+    groupModels,
+    handleAddModel,
+    handleAddProvider,
+    handleDefaultModelChange,
+    handleDeleteModel,
+    handleDeleteProvider,
+    handleEditModel,
+    handleEditProvider,
+    handleFetchModels,
+    handleIconUploadFinish,
+    handleImportModels,
+    handleLogoUploadFinish,
+    handleModelPageChange,
+    handleModelPageSizeChange,
+    handleModelSearch,
+    handleProviderPageChange,
+    handleProviderPageSizeChange,
+    handleProviderSearch,
+    handleResetProviderSearch,
+    handleSaveModel,
+    handleSaveProvider,
+    handleSelectProvider,
+    handleSetDefault,
+    handleTestModel,
+    handleToggleGroup,
+    handleToggleModel,
+    inferModelType,
+    isGroupChecked,
+    isGroupIndeterminate,
+    isModelRowActionLoading,
+    loadModels,
+    loadProviders,
+    modelTypeLabel,
+    modelTypeTagColor,
+    paginationPrefix,
+    providerInitial,
+    providerModelCount,
+    resolveDefaultBaseUrl,
+    providerTypeOptions,
+    providerAdapterOptions,
+    modelTypeOptions,
+    statusOptions,
+    isDefaultOptions,
+    modelCapabilityOptions,
+    MODEL_TYPE_LABEL,
+    MODEL_TYPE_ORDER,
+    MODEL_TYPE_TAG_COLOR,
+    modelTypeOverrideOptions,
+    providerPageSizes,
+    modelPageSizes,
+    modalCardStyle,
+    fetchModelsModalStyle,
+    fetchModelsModalContentStyle,
+    providerAvatarStyle,
+    providerListAvatarStyle,
+    providerSearch,
+    providerList,
+    providerLoading,
+    providerPagination,
+    selectedProvider,
+    modelList,
+    modelLoading,
+    defaultModelUpdatingId,
+    providerDefaultUpdatingId,
+    modelPagination,
+    modelSearch,
+    providerFormRef,
+    modelFormRef,
+    providerSelectOptions,
+    modelRowActionLoading,
+    uploadPrefix,
+    uploadHeaders,
+    providerEditing,
+    providerModal,
+    providerApiKeyPlaceholder,
+    PROVIDER_DEFAULT_BASE_URL,
+    KNOWN_PROVIDER_DEFAULT_URLS,
+    modelModal,
+    fetchModelsModal,
+    fetchModelsModalSearch,
+    fetchModelsModalCategory,
+    fetchModelsModalCategories,
+    fetchModelsModalFilteredModels,
+    fetchModelsModalGroups,
+    fetchModelsModalVisibleCheckedCount,
+    providerRules,
+    modelRules,
+    modelColumns,
   }
 }

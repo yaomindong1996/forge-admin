@@ -7,16 +7,20 @@ import com.mdframe.forge.plugin.ai.skill.domain.AiSkill;
 import com.mdframe.forge.plugin.ai.skill.domain.AiSkillFile;
 import com.mdframe.forge.plugin.ai.skill.mapper.AiSkillFileMapper;
 import com.mdframe.forge.plugin.ai.skill.mapper.AiSkillMapper;
+import com.mdframe.forge.plugin.ai.skill.pkg.SkillRuntimeFiles;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
 
 /**
- * 读取技能文件工具。
- * Agent 可通过此工具读取技能包中的文件内容，获取技能知识。
+ * 读取技能资料文件工具。
+ * 优先从智能体已绑定的不可变 SkillPackage 只读版本读取，兼容历史 AiSkill 表。
  */
 @Component
 @RequiredArgsConstructor
@@ -26,6 +30,9 @@ public class ReadSkillTool implements AgentTool {
     private final AiSkillMapper skillMapper;
     private final AiSkillFileMapper skillFileMapper;
 
+    @Autowired(required = false)
+    private ObjectProvider<SkillRuntimeFiles> skillRuntimeFiles;
+
     @Override
     public String getKey() {
         return "read_skill";
@@ -33,7 +40,7 @@ public class ReadSkillTool implements AgentTool {
 
     @Override
     public String getDescription() {
-        return "读取技能包文件内容。当需要了解某个技能的详细说明、使用指南或脚本内容时使用此工具。";
+        return "读取技能资料包中的文件内容。当需要了解某个已绑定技能的说明文档或参考资料时使用此工具。";
     }
 
     @Override
@@ -63,6 +70,19 @@ public class ReadSkillTool implements AgentTool {
             if (skillCode == null || skillCode.isBlank()) {
                 return ToolResult.error("技能编码不能为空");
             }
+            String targetPath = (String) args.get("file_path");
+
+            SkillRuntimeFiles runtimeFiles = skillRuntimeFiles == null ? null : skillRuntimeFiles.getIfAvailable();
+            if (runtimeFiles != null && context != null && context.getAgentId() != null) {
+                try {
+                    String packagedContent = runtimeFiles.read(context, skillCode, targetPath);
+                    if (packagedContent != null) {
+                        return ToolResult.text(packagedContent);
+                    }
+                } catch (BusinessException ex) {
+                    return ToolResult.error(ex.getMessage());
+                }
+            }
 
             AiSkill skill = skillMapper.selectEnabledByCode(skillCode);
             if (skill == null) {
@@ -74,10 +94,7 @@ public class ReadSkillTool implements AgentTool {
                 return ToolResult.text("技能包为空，无文件内容。");
             }
 
-            String targetPath = (String) args.get("file_path");
-
             if (targetPath != null && !targetPath.isBlank()) {
-                // 读取指定文件
                 AiSkillFile target = files.stream()
                         .filter(f -> targetPath.equals(f.getFilePath()))
                         .findFirst()
@@ -88,7 +105,6 @@ public class ReadSkillTool implements AgentTool {
                 return ToolResult.text(target.getFileContent());
             }
 
-            // 默认返回 SKILL.md
             AiSkillFile skillMd = files.stream()
                     .filter(f -> "SKILL.md".equals(f.getFilePath()) || f.getFilePath().endsWith("/SKILL.md"))
                     .findFirst()
@@ -98,7 +114,6 @@ public class ReadSkillTool implements AgentTool {
                 return ToolResult.text(skillMd.getFileContent());
             }
 
-            // 无 SKILL.md，返回文件列表
             StringBuilder sb = new StringBuilder();
             sb.append("技能: ").append(skill.getSkillName()).append(" (").append(skill.getSkillCode()).append(")\n");
             sb.append("描述: ").append(skill.getDescription() != null ? skill.getDescription() : "无").append("\n");

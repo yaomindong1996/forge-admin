@@ -14,6 +14,27 @@ public interface AgentTool {
     String getKey();
 
     /**
+     * 工具契约摘要（MCP 工具用于检测远端契约变化）
+     */
+    default String getExecutionContract() {
+        return "";
+    }
+
+    /**
+     * 工具来源标识（builtin / mcp）
+     */
+    default String getSource() {
+        return "builtin";
+    }
+
+    /**
+     * 工具来源可读标签
+     */
+    default String getSourceLabel() {
+        return "平台内置";
+    }
+
+    /**
      * 工具描述（供 LLM 理解工具用途）
      */
     String getDescription();

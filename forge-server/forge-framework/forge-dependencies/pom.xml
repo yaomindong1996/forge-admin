@@ -57,6 +57,8 @@
         <anyline.version>8.7.2-20240808</anyline.version>
         <!--工作流配置-->
         <flowable.version>8.0.0</flowable.version>
+        <!-- MCP SDK -->
+        <mcp-sdk.version>2.0.0</mcp-sdk.version>
         
         <!-- 插件版本 -->
         <maven-jar-plugin.version>3.2.2</maven-jar-plugin.version>
@@ -260,6 +262,17 @@
                 <artifactId>commons-compress</artifactId>
                 <groupId>org.apache.commons</groupId>
                 <version>1.26.2</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.modelcontextprotocol.sdk</groupId>
+                <artifactId>mcp-core</artifactId>
+                <version>${mcp-sdk.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.modelcontextprotocol.sdk</groupId>
+                <artifactId>mcp-json-jackson3</artifactId>
+                <version>${mcp-sdk.version}</version>
             </dependency>
             
             <dependency>

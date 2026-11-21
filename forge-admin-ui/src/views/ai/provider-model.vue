@@ -1,6 +1,20 @@
 <template>
   <div class="ai-provider-model-page">
-    <main class="provider-workspace">
+    <nav class="service-config-tabs" aria-label="模型与服务配置分区">
+      <button
+        v-for="tab in serviceConfigTabs"
+        :key="tab.key"
+        type="button"
+        class="service-config-tab"
+        :class="{ 'is-active': configTab === tab.key }"
+        :aria-current="configTab === tab.key ? 'page' : undefined"
+        @click="configTab = tab.key"
+      >
+        {{ tab.label }}
+      </button>
+    </nav>
+
+    <main v-if="configTab === 'models'" class="provider-workspace">
       <aside class="provider-list-panel" aria-label="供应商列表">
         <div class="provider-list-panel__header">
           <h2>供应商列表</h2>
@@ -8,6 +22,13 @@
             <NTag size="small" :bordered="false">
               {{ providerPagination.itemCount }} 个
             </NTag>
+            <NButton
+              secondary
+              size="small"
+              @click="handleOpenTemplatePicker"
+            >
+              预设
+            </NButton>
             <NButton
               type="primary"
               circle
@@ -288,6 +309,11 @@
       </section>
     </main>
 
+    <StoreInstanceView v-else-if="configTab === 'stores'" />
+    <KnowledgeRetrievalDefaultsPanel v-else-if="configTab === 'retrieval'" />
+
+    <ProviderTemplatePickerModal v-model:show="templatePickerShow" @select="handleApplyTemplate" />
+
     <n-modal
       v-model:show="providerModal.show"
       preset="card"
@@ -560,8 +586,8 @@
 </template>
 
 <script>
-import { providerModelLocalComponents } from './providerModelLocalComponents'
 import { useProviderModel } from './composables/useProviderModel'
+import { providerModelLocalComponents } from './providerModelLocalComponents'
 
 export default {
   name: 'ProviderModel',

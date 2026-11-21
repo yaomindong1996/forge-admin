@@ -72,7 +72,19 @@
             <artifactId>spring-ai-client-chat</artifactId>
         </dependency>
 
-        <!-- 通义原生模型由 Forge 协议桥适配，供应商仍来自租户配置，不加载 Alibaba milestone。 -->
+        <!-- MCP Client 远程工具连接与 Jackson 3 编解码（与 forge-plugin-mcp 统一由 Spring AI BOM 管理版本） -->
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp-json-jackson3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+        </dependency>
 
         <!-- 文件服务（文件上传/下载） -->
         <dependency>

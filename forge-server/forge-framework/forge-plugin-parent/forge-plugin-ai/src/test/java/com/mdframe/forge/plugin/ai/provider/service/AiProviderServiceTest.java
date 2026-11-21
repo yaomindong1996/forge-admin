@@ -114,13 +114,13 @@ class AiProviderServiceTest {
         request.setId(10L);
         request.setAdapterCode(null);
         request.setApiKey("sk-r****7890");
-        request.setBaseUrl("https://dashscope.aliyuncs.com");
+        request.setBaseUrl("https://dashscope.aliyuncs.com/compatible-mode");
 
         service.updateProvider(request);
 
         ArgumentCaptor<AiProvider> captor = ArgumentCaptor.forClass(AiProvider.class);
         verify(providerMapper).updateById(captor.capture());
-        assertEquals(AiProviderAdapterCode.DASHSCOPE_NATIVE.getCode(), captor.getValue().getAdapterCode());
+        assertEquals(AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode(), captor.getValue().getAdapterCode());
         assertEquals(REAL_SECRET, captor.getValue().getApiKey());
         verify(evictionScheduler).scheduleAfterCommit(captor.getValue());
     }
@@ -132,9 +132,9 @@ class AiProviderServiceTest {
         when(providerMapper.updateById(any(AiProvider.class))).thenReturn(1);
         AiProviderSaveDTO request = completeSaveRequest();
         request.setId(10L);
-        request.setAdapterCode(AiProviderAdapterCode.DASHSCOPE_NATIVE.getCode());
+        request.setAdapterCode(AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode());
         request.setApiKey("sk-new-secret-1234");
-        request.setBaseUrl("https://dashscope.aliyuncs.com");
+        request.setBaseUrl("https://dashscope.aliyuncs.com/compatible-mode");
 
         service.updateProvider(request);
 
@@ -162,8 +162,8 @@ class AiProviderServiceTest {
         when(providerMapper.updateById(any(AiProvider.class))).thenReturn(0);
         AiProviderSaveDTO request = completeSaveRequest();
         request.setId(10L);
-        request.setAdapterCode(AiProviderAdapterCode.DASHSCOPE_NATIVE.getCode());
-        request.setBaseUrl("https://dashscope.aliyuncs.com");
+        request.setAdapterCode(AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode());
+        request.setBaseUrl("https://dashscope.aliyuncs.com/compatible-mode");
 
         assertThrows(BusinessException.class, () -> service.updateProvider(request));
 
@@ -201,9 +201,9 @@ class AiProviderServiceTest {
         AiProviderTestDTO request = new AiProviderTestDTO();
         request.setProviderName("Inline DashScope");
         request.setProviderType("alibaba");
-        request.setAdapterCode(AiProviderAdapterCode.DASHSCOPE_NATIVE.getCode());
+        request.setAdapterCode(AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode());
         request.setApiKey("sk-inline-secret");
-        request.setBaseUrl("https://dashscope.aliyuncs.com");
+        request.setBaseUrl("https://dashscope.aliyuncs.com/compatible-mode");
         request.setDefaultModel("qwen-plus");
 
         String result = service.testConnection(request);
@@ -319,9 +319,9 @@ class AiProviderServiceTest {
         provider.setTenantId(1L);
         provider.setProviderName("DashScope");
         provider.setProviderType("alibaba");
-        provider.setAdapterCode(AiProviderAdapterCode.DASHSCOPE_NATIVE.getCode());
+        provider.setAdapterCode(AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode());
         provider.setApiKey(REAL_SECRET);
-        provider.setBaseUrl("https://dashscope.aliyuncs.com");
+        provider.setBaseUrl("https://dashscope.aliyuncs.com/compatible-mode");
         provider.setDefaultModel("qwen-plus");
         provider.setStatus("0");
         provider.setIsDefault("0");

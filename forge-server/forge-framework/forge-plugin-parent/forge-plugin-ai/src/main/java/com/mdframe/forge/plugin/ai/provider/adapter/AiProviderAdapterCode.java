@@ -12,8 +12,7 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public enum AiProviderAdapterCode {
 
-    OPENAI_COMPATIBLE("openai_compatible"),
-    DASHSCOPE_NATIVE("dashscope_native");
+    OPENAI_COMPATIBLE("openai_compatible");
 
     private final String code;
 

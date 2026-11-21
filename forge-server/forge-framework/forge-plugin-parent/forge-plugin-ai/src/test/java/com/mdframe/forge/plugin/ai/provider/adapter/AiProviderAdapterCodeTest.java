@@ -12,15 +12,14 @@ class AiProviderAdapterCodeTest {
     void requireShouldResolveSupportedCodes() {
         assertEquals(AiProviderAdapterCode.OPENAI_COMPATIBLE,
                 AiProviderAdapterCode.require("openai_compatible"));
-        assertEquals(AiProviderAdapterCode.DASHSCOPE_NATIVE,
-                AiProviderAdapterCode.require("dashscope_native"));
     }
 
     @Test
-    void requireShouldFailClosedForInvalidCodes() {
+    void requireShouldFailClosedForInvalidOrRetiredCodes() {
         assertThrows(BusinessException.class, () -> AiProviderAdapterCode.require(null));
         assertThrows(BusinessException.class, () -> AiProviderAdapterCode.require(""));
         assertThrows(BusinessException.class, () -> AiProviderAdapterCode.require("   "));
+        assertThrows(BusinessException.class, () -> AiProviderAdapterCode.require("dashscope_native"));
         assertThrows(BusinessException.class, () -> AiProviderAdapterCode.require("unknown"));
     }
 }

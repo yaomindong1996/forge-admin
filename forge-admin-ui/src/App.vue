@@ -54,6 +54,7 @@
         </div>
         <!-- 无侧栏停靠点时左下角兜底：始终图标态，避免白底长按钮挡内容 -->
         <RecentDownloads v-if="showRecentDownloads && !downloadsDockAvailable" compact />
+        <AiAssistantDock v-if="showAiAssistant" />
         <NoticeDetailModal />
         <SystemAboutModal v-if="versionStore.visible" />
       </n-message-provider>
@@ -96,6 +97,7 @@ import { canConfigureLayout } from './layouts/layout-settings-visibility'
 import { defaultLayout, layoutSettingVisible, normalizeLayout } from './settings'
 
 const SystemAboutModal = defineAsyncComponent(() => import('@/components/common/SystemAboutModal.vue'))
+const AiAssistantDock = defineAsyncComponent(() => import('@/components/ai-workspace/AiAssistantDock.vue'))
 const versionStore = useSystemVersionStore()
 const versionAuth = useAuthStore()
 watch(() => versionAuth.accessToken, () => versionStore.close())
@@ -185,6 +187,17 @@ const showRecentDownloads = computed(() => {
     && activeShellLayout.value !== 'empty'
     && activeShellLayout.value !== 'app-portal'
     && route.path !== '/login'
+})
+const showAiAssistant = computed(() => {
+  if (!showRecentDownloads.value)
+    return false
+  if (userStore.userInfo?.admin || userStore.userInfo?.isAdmin)
+    return true
+  const perms = userStore.permissions || []
+  return perms.includes('*:*:*')
+    || perms.includes('ai:hub:use')
+    || perms.includes('ai:engine:stream')
+    || perms.includes('ai:agent:list')
 })
 const showLayoutSetting = computed(() => {
   const shell = activeShellLayout.value
