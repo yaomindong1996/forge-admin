@@ -304,42 +304,28 @@ public class PostgreSqlRuntimeDatabaseDialect implements RuntimeDatabaseDialect 
     }
 
     private String defaultLiteral(DdlColumn column) {
-        Object normalized = normalizeDefaultValue(column.defaultValue());
+        Object normalized = SqlStoredDefaultNormalizer.prepareForDdl(column.defaultValue(), column.sqlType());
+        if (normalized == null) {
+            return "NULL";
+        }
         String value = Objects.toString(normalized, "").trim();
-        if (isExpressionDefault(value) || isNumericType(column.sqlType()) || normalized instanceof Number) {
+        if (SqlStoredDefaultNormalizer.isExpressionDefault(value)
+                || isNumericType(column.sqlType())
+                || normalized instanceof Number) {
             return value;
         }
         return "'" + escapeSqlComment(value) + "'";
     }
 
-    private Object normalizeDefaultValue(Object defaultValue) {
-        if (defaultValue instanceof Boolean bool) {
-            return bool ? 1 : 0;
-        }
-        String text = Objects.toString(defaultValue, "").trim();
-        if ("true".equalsIgnoreCase(text)) {
-            return 1;
-        }
-        if ("false".equalsIgnoreCase(text)) {
-            return 0;
-        }
-        return defaultValue;
-    }
-
     private boolean isNumericType(String sqlType) {
-        String normalized = StringUtils.defaultString(sqlType).toLowerCase(Locale.ROOT);
-        return normalized.startsWith("integer")
-            || normalized.startsWith("bigint")
-            || normalized.startsWith("smallint")
-            || normalized.startsWith("numeric");
-    }
-
-    private boolean isExpressionDefault(String value) {
-        String normalized = StringUtils.defaultString(value).trim().toUpperCase(Locale.ROOT);
-        return normalized.equals("CURRENT_TIMESTAMP")
-            || normalized.equals("CURRENT_DATE")
-            || normalized.equals("CURRENT_TIME")
-            || normalized.equals("NOW()");
+        String alias = SqlStoredDefaultNormalizer.normalizeTypeAlias(sqlType);
+        return alias.equals("int")
+            || alias.equals("bigint")
+            || alias.equals("smallint")
+            || alias.equals("decimal")
+            || alias.equals("double")
+            || alias.equals("float")
+            || alias.equals("numeric");
     }
 
     private String normalizeObjectName(String value) {
@@ -354,25 +340,13 @@ public class PostgreSqlRuntimeDatabaseDialect implements RuntimeDatabaseDialect 
     }
 
     private String normalizePostgresType(String value) {
-        String normalized = Objects.toString(value, "")
-            .toLowerCase(Locale.ROOT)
-            .replaceAll("\\s+", "");
-        if (normalized.startsWith("charactervarying(")) {
-            return normalized.replace("charactervarying", "varchar");
-        }
-        if (normalized.equals("timestampwithouttimezone")) {
-            return "timestamp";
-        }
-        if (normalized.equals("integer")) {
-            return "int";
-        }
-        if (normalized.equals("numeric")) {
-            return "decimal";
-        }
-        if (normalized.startsWith("numeric(")) {
-            return normalized.replace("numeric", "decimal");
-        }
-        return normalized;
+        String raw = Objects.toString(value, "").trim();
+        int paren = raw.indexOf('(');
+        String base = paren > 0 ? raw.substring(0, paren) : raw;
+        String args = paren > 0 ? raw.substring(paren) : "";
+        String alias = SqlStoredDefaultNormalizer.normalizeTypeAlias(base);
+        String compactArgs = args.replaceAll("\\s+", "");
+        return alias + compactArgs;
     }
 
     private String escapeSqlComment(String value) {

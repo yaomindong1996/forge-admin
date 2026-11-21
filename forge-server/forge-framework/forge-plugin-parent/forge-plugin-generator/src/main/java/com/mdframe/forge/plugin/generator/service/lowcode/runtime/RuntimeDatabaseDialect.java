@@ -137,7 +137,7 @@ public interface RuntimeDatabaseDialect {
     }
 
     default boolean sameSqlType(String expected, String actual) {
-        return normalizeSqlType(expected).equals(normalizeSqlType(actual));
+        return SqlStoredDefaultNormalizer.sameTypeAlias(expected, actual);
     }
 
     default String listImportTablesSql() {
@@ -188,7 +188,7 @@ public interface RuntimeDatabaseDialect {
             }
             return;
         }
-        Object normalized = normalizeDefaultValue(defaultValue, sqlType);
+        Object normalized = SqlStoredDefaultNormalizer.prepareForDdl(defaultValue, sqlType);
         if (normalized == null) {
             if (nullable) {
                 definition.append(" DEFAULT NULL");
@@ -202,51 +202,24 @@ public interface RuntimeDatabaseDialect {
             }
             return;
         }
-        if (isExpressionDefault(value) || isUnquotedDefault(normalized, sqlType)) {
+        if (SqlStoredDefaultNormalizer.isExpressionDefault(value) || isUnquotedDefault(normalized, sqlType)) {
             definition.append(" DEFAULT ").append(value);
             return;
         }
         definition.append(" DEFAULT '").append(escapeSqlComment(value)).append("'");
     }
 
-    /**
-     * 开关/布尔默认值写入 tinyint 时必须是 0/1，不能落成 DEFAULT 'true'。
-     */
-    private Object normalizeDefaultValue(Object defaultValue, String sqlType) {
-        if (defaultValue instanceof Boolean bool) {
-            return bool ? 1 : 0;
-        }
-        String text = String.valueOf(defaultValue).trim();
-        if ("true".equalsIgnoreCase(text)) {
-            return 1;
-        }
-        if ("false".equalsIgnoreCase(text)) {
-            return 0;
-        }
-        if (isNumericSqlType(sqlType) && text.length() >= 2
-                && ((text.startsWith("'") && text.endsWith("'")) || (text.startsWith("\"") && text.endsWith("\"")))) {
-            return text.substring(1, text.length() - 1);
-        }
-        return defaultValue;
-    }
-
     private boolean isUnquotedDefault(Object defaultValue, String sqlType) {
         if (defaultValue instanceof Number) {
             return true;
         }
-        if (!isNumericSqlType(sqlType)) {
+        String alias = SqlStoredDefaultNormalizer.normalizeTypeAlias(sqlType);
+        if (!(alias.equals("int") || alias.equals("bigint") || alias.equals("tinyint")
+                || alias.equals("smallint") || alias.equals("decimal") || alias.equals("numeric"))) {
             return false;
         }
         String text = String.valueOf(defaultValue).trim();
         return text.matches("-?\\d+(\\.\\d+)?");
-    }
-
-    private boolean isNumericSqlType(String sqlType) {
-        String normalized = normalizeSqlType(sqlType);
-        return normalized.equals("int")
-            || normalized.equals("bigint")
-            || normalized.equals("tinyint")
-            || normalized.startsWith("decimal");
     }
 
     private void appendExtra(StringBuilder definition, String extra) {
@@ -258,37 +231,6 @@ public interface RuntimeDatabaseDialect {
         if (upper.contains("ON UPDATE CURRENT_TIMESTAMP")) {
             definition.append(" ON UPDATE CURRENT_TIMESTAMP");
         }
-    }
-
-    private boolean isExpressionDefault(String value) {
-        String normalized = Objects.toString(value, "").trim().toUpperCase(Locale.ROOT);
-        return normalized.equals("CURRENT_TIMESTAMP")
-            || normalized.equals("CURRENT_TIMESTAMP()")
-            || normalized.equals("CURRENT_DATE")
-            || normalized.equals("CURRENT_DATE()")
-            || normalized.equals("CURRENT_TIME")
-            || normalized.equals("CURRENT_TIME()")
-            || normalized.startsWith("B'")
-            || normalized.startsWith("X'");
-    }
-
-    private String normalizeSqlType(String value) {
-        String normalized = Objects.toString(value, "")
-            .toLowerCase(Locale.ROOT)
-            .replaceAll("\\s+", "");
-        if (normalized.startsWith("int(")) {
-            return "int";
-        }
-        if (normalized.startsWith("bigint(")) {
-            return "bigint";
-        }
-        if (normalized.startsWith("tinyint(")) {
-            return "tinyint";
-        }
-        if (normalized.startsWith("datetime(")) {
-            return "datetime";
-        }
-        return normalized;
     }
 
     private String escapeSqlComment(String value) {

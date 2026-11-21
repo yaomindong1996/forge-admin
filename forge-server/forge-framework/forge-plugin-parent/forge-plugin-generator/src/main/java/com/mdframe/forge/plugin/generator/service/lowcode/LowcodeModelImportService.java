@@ -17,6 +17,7 @@ import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeSourceTableRef;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeTenantStrategy;
 import com.mdframe.forge.plugin.generator.service.IGenDatasourceService;
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.LowcodeRuntimeDataSourceResolver;
+import com.mdframe.forge.plugin.generator.service.lowcode.runtime.SqlStoredDefaultNormalizer;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.enums.EnableStatus;
 import lombok.RequiredArgsConstructor;
@@ -279,7 +280,7 @@ public class LowcodeModelImportService {
         if (isCurrentDateExpression(lower)) {
             return "$forge:today";
         }
-        text = stripSqlDefaultDecorators(text);
+        text = SqlStoredDefaultNormalizer.stripDecorators(text);
         if (StringUtils.isBlank(text) || "NULL".equalsIgnoreCase(text)) {
             return null;
         }
@@ -316,25 +317,6 @@ public class LowcodeModelImportService {
 
     private boolean isCurrentDateExpression(String lower) {
         return lower.matches("current_date|curdate\\(\\)|today");
-    }
-
-    private String stripSqlDefaultDecorators(String value) {
-        String text = StringUtils.defaultString(value).trim();
-        Matcher castMatcher = Pattern.compile("^'(.*)'::[\\w\\s\\[\\]()]+$", Pattern.CASE_INSENSITIVE).matcher(text);
-        if (castMatcher.matches()) {
-            text = castMatcher.group(1);
-        }
-        Matcher bitMatcher = Pattern.compile("^b'([01])'$", Pattern.CASE_INSENSITIVE).matcher(text);
-        if (bitMatcher.matches()) {
-            return bitMatcher.group(1);
-        }
-        if (text.startsWith("(") && text.endsWith(")") && text.length() > 2) {
-            text = text.substring(1, text.length() - 1).trim();
-        }
-        if ((text.startsWith("'") && text.endsWith("'")) || (text.startsWith("\"") && text.endsWith("\""))) {
-            text = text.substring(1, text.length() - 1);
-        }
-        return text.replace("''", "'");
     }
 
     private boolean isAuditColumn(String columnName) {
