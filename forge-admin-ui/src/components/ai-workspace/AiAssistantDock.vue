@@ -1,6 +1,7 @@
 <script setup>
 import { nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import assistantAvatar from '@/assets/ai/assistant-avatar.jpg'
 import { useAssistantWindow } from '@/composables/ai/useAssistantWindow'
 import { useHubAssistantStore } from '@/stores/ai/hubAssistantStore'
 import HubAssistantConversation from './HubAssistantConversation.vue'
@@ -62,7 +63,8 @@ function openAgentsPage() {
       @click="openPanel"
     >
       <span class="launcher-orb" aria-hidden="true">
-        <i class="i-lucide:sparkles" />
+        <img :src="assistantAvatar" alt="" class="assistant-avatar-img" draggable="false">
+        <span class="avatar-online-dot" />
       </span>
       <span class="launcher-label">AI 助手</span>
     </button>
@@ -127,7 +129,8 @@ function openAgentsPage() {
           @lostpointercapture="end"
         >
           <div class="header-avatar" aria-hidden="true">
-            <i class="i-lucide:sparkles" />
+            <img :src="assistantAvatar" alt="" class="assistant-avatar-img" draggable="false">
+            <span class="avatar-online-dot is-lg" />
           </div>
           <div class="header-copy">
             <strong>AI 助手</strong>
@@ -223,19 +226,47 @@ function openAgentsPage() {
 }
 
 .launcher-orb {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: linear-gradient(
-    135deg,
-    var(--primary-color, #2563eb),
-    color-mix(in srgb, var(--primary-color, #2563eb) 72%, #6366f1)
-  );
-  color: #fff;
-  font-size: 15px;
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--primary-color, #2563eb) 34%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color, #2563eb) 18%, #e0edff), #fff);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--primary-color, #2563eb) 28%, transparent),
+    0 3px 10px color-mix(in srgb, var(--primary-color, #2563eb) 28%, transparent);
+}
+
+.assistant-avatar-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center 18%;
+  pointer-events: none;
+}
+
+.avatar-online-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 2px solid var(--bg-primary, #fff);
+  box-sizing: border-box;
+}
+
+.avatar-online-dot.is-lg {
+  right: 0;
+  bottom: 0;
+  width: 11px;
+  height: 11px;
 }
 
 .launcher-label {
@@ -302,20 +333,18 @@ function openAgentsPage() {
 }
 
 .header-avatar {
-  display: grid;
+  position: relative;
+  display: inline-flex;
   flex: none;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: linear-gradient(
-    135deg,
-    var(--primary-color, #2563eb),
-    color-mix(in srgb, var(--primary-color, #2563eb) 72%, #6366f1)
-  );
-  color: #fff;
-  font-size: 20px;
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--primary-color, #2563eb) 28%, transparent);
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color, #2563eb) 18%, #e0edff), #fff);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--primary-color, #2563eb) 24%, transparent),
+    0 6px 16px color-mix(in srgb, var(--primary-color, #2563eb) 22%, transparent);
 }
 
 .header-copy {

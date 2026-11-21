@@ -16,6 +16,8 @@ final class HubAgentMatch {
     private static final Set<String> COMMON = Set.of(
             "帮我", "一下", "请帮", "麻烦", "智能", "助手", "用户", "提供",
             "支持", "需要", "可以", "处理", "根据", "是否", "如何", "什么",
+            "怎么", "怎样", "配置", "设置", "使用", "说明", "介绍", "查看",
+            "请问", "这个", "那个", "系统", "功能", "页面", "问题",
             "help", "with", "please", "the");
 
     private HubAgentMatch() {

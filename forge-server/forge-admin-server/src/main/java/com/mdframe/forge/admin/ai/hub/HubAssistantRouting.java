@@ -26,10 +26,11 @@ class HubAssistantRouting {
             Pattern.CASE_INSENSITIVE);
     private static final Set<String> GENERAL_CODES = Set.of(
             "general_assistant", "general", "default_assistant", "ai_assistant");
-    /** 内部结构化生成专用智能体（只输出 JSON/Schema），不作为日常闲聊默认兜底。 */
+    /** 内部结构化生成专用智能体（只输出 JSON/Schema/BPMN），不参与全局助手自动路由或兜底。 */
     private static final Set<String> INTERNAL_GENERATOR_CODES = Set.of(
-            "crud_config_builder", "dashboard_generator", "lowcode_app_designer",
-            "page_schema_generator", "sql_generator");
+            "crud_config_builder", "codegen_schema_builder", "codegen_column_advisor",
+            "dashboard_generator", "flow_bpmn_builder", "lowcode_system_generator",
+            "lowcode_app_designer", "page_schema_generator", "sql_generator");
 
     private final HubAccess access;
     private final AiAgentMapper agentMapper;
@@ -49,7 +50,16 @@ class HubAssistantRouting {
     }
 
     List<Agent> catalog() {
-        return list(access.current());
+        var actor = access.current();
+        List<Agent> all = list(actor);
+        Agent general = resolveGeneral(actor.tenantId(), all);
+        return all.stream()
+                .filter(agent -> !isInternalGenerator(agent) || agent.equals(general))
+                .sorted(Comparator
+                        .comparing((Agent agent) -> !agent.equals(general))
+                        .thenComparing(Agent::name)
+                        .thenComparing(Agent::code))
+                .toList();
     }
 
     private List<Agent> list(HubAccess.Actor actor) {
@@ -78,6 +88,7 @@ class HubAssistantRouting {
         }
         List<Agent> specialists = candidates.stream()
                 .filter(candidate -> !candidate.equals(general))
+                .filter(candidate -> !isInternalGenerator(candidate))
                 .toList();
         Agent matched = HubAgentMatch.best(message, specialists);
         if (matched != null) {
@@ -86,6 +97,7 @@ class HubAssistantRouting {
         if (StringUtils.hasText(previousCode)) {
             Agent previous = candidates.stream()
                     .filter(agent -> agent.code().equals(previousCode))
+                    .filter(agent -> !isInternalGenerator(agent))
                     .findFirst()
                     .orElse(general);
             return chatOrClarify(previous, Stage.FALLBACK, turnId);
@@ -130,11 +142,19 @@ class HubAssistantRouting {
 
     private boolean isInternalGenerator(Agent agent) {
         String code = agent.code() == null ? "" : agent.code().trim().toLowerCase(Locale.ROOT);
-        if (INTERNAL_GENERATOR_CODES.contains(code)) {
+        if (INTERNAL_GENERATOR_CODES.contains(code)
+                || code.startsWith("codegen_")
+                || code.endsWith("_builder")
+                || code.endsWith("_generator")) {
             return true;
         }
         String name = agent.name() == null ? "" : agent.name();
-        return name.contains("生成器") || name.contains("大屏生成");
+        return name.contains("生成器")
+                || name.contains("构建器")
+                || name.contains("大屏生成")
+                || name.contains("字段顾问")
+                || name.contains("BPMN生成")
+                || name.contains("系统生成");
     }
 
     private Route chatOrClarify(Agent agent, Stage stage, String turnId) {

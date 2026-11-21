@@ -2,6 +2,7 @@
 import { NButton, NSelect } from 'naive-ui'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import assistantAvatar from '@/assets/ai/assistant-avatar.jpg'
 import { useHubAssistantStore } from '@/stores/ai/hubAssistantStore'
 import { renderMarkdown, renderMarkdownStreaming } from '@/views/ai/components/agent-chat/chat-markdown'
 
@@ -110,6 +111,9 @@ defineExpose({ focus })
       <div class="hub-conversation-inner">
         <section v-if="!store.turns.length" class="hub-welcome">
           <button type="button" class="dock-tip" @click="emit('openAgents')">
+            <span class="dock-tip-avatar" aria-hidden="true">
+              <img :src="assistantAvatar" alt="" draggable="false">
+            </span>
             <div class="dock-tip-copy">
               <strong>AI 助手随时待命</strong>
               <span>
@@ -146,7 +150,7 @@ defineExpose({ focus })
 
           <div class="assistant-reply">
             <span class="reply-avatar" aria-hidden="true">
-              <i class="i-lucide:sparkles" />
+              <img :src="assistantAvatar" alt="" draggable="false">
             </span>
             <div class="reply-body">
               <div class="reply-byline">
@@ -349,7 +353,9 @@ defineExpose({ focus })
 }
 
 .dock-tip {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   width: 100%;
   padding: 13px 14px;
   border: 1px solid color-mix(in srgb, #9eb6d6 30%, transparent);
@@ -360,6 +366,23 @@ defineExpose({ focus })
   text-align: start;
   cursor: pointer;
   transition: border-color 150ms ease;
+}
+
+.dock-tip-avatar {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color, #2563eb) 20%, transparent);
+}
+
+.dock-tip-avatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center 18%;
 }
 
 .dock-tip:hover {
@@ -461,15 +484,23 @@ defineExpose({ focus })
 }
 
 .reply-avatar {
-  display: grid;
+  display: inline-flex;
   flex: none;
-  place-items: center;
+  align-items: center;
+  justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--primary-color, #2563eb) 12%, var(--bg-primary, #fff));
-  color: var(--primary-color, #2563eb);
-  font-size: 14px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--primary-color, #2563eb) 24%, transparent);
+}
+
+.reply-avatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center 18%;
 }
 
 .reply-body {

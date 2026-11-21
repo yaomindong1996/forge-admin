@@ -284,7 +284,7 @@
           </header>
 
           <div ref="messageListRef" class="chat-scroll">
-            <div class="chat-message-list">
+            <div class="chat-message-list" @click="handlePreviewContentClick">
               <article
                 v-for="message in previewMessages"
                 :key="message.id"
@@ -320,9 +320,14 @@
                   v-if="message.content || (message.streaming && !message.isReasoning)"
                   class="message-bubble"
                 >
-                  <template v-if="message.content">
+                  <template v-if="message.role === 'user'">
                     {{ message.content }}
                   </template>
+                  <div
+                    v-else-if="message.content"
+                    class="preview-markdown"
+                    v-html="renderPreviewMarkdown(message)"
+                  />
                   <span v-if="message.streaming && !message.isReasoning" class="stream-cursor" />
                 </div>
               </article>

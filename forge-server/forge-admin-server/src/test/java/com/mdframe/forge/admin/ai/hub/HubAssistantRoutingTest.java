@@ -118,6 +118,42 @@ class HubAssistantRoutingTest {
         }
     }
 
+    @Test
+    void routeShouldRouteHowToMenuQuestionToGeneralAndNeverCodegenBuilder() {
+        AiAgent schemaBuilder = agent(1002L, 1L, "codegen_schema_builder", "代码生成Schema构建器",
+                "根据自然语言描述推断数据模型Schema，支持菜单配置表结构生成");
+        AiAgent columnAdvisor = agent(1001L, 1L, "codegen_column_advisor", "代码生成字段顾问",
+                "根据数据库字段信息推荐Java类型、表单组件和配置");
+        AiAgent bpmnBuilder = agent(1003L, 1L, "flow_bpmn_builder", "流程BPMN生成助手", "生成BPMN流程配置");
+        AiAgent general = agent(200L, 1L, "general_assistant", "通用助手", "回答日常办公与平台使用问答");
+        when(agentMapper.selectEnabledAgents()).thenReturn(List.of(schemaBuilder, columnAdvisor, bpmnBuilder, general));
+        when(bindings.findGeneralAgentCode(1L)).thenReturn("general_assistant");
+
+        try (MockedStatic<SessionHelper> session = mockStatic(SessionHelper.class)) {
+            session.when(() -> SessionHelper.hasPermission(HubAccess.PERM_HUB_USE)).thenReturn(true);
+            var actor = new HubAccess.Actor(1L, 100L, 10L);
+
+            var route = routing.route(actor, "怎么配置菜单", "codegen_schema_builder");
+            assertEquals(HubAssistantRouting.Kind.CHAT, route.kind());
+            assertEquals("general_assistant", route.agent().code());
+        }
+    }
+
+    @Test
+    void catalogShouldExcludeInternalGeneratorsAndPutGeneralFirst() {
+        AiAgent schemaBuilder = agent(1002L, 1L, "codegen_schema_builder", "代码生成Schema构建器", "推断Schema");
+        AiAgent crudBuilder = agent(104L, 1L, "crud_config_builder", "CRUD配置生成器", "生成CRUD JSON");
+        AiAgent hr = agent(2L, 1L, "hr_policy", "A人事顾问", "请假考勤政策");
+        AiAgent general = agent(200L, 1L, "general_assistant", "通用助手", "日常问答");
+        when(access.current()).thenReturn(new HubAccess.Actor(1L, 100L, 10L));
+        when(agentMapper.selectEnabledAgents()).thenReturn(List.of(schemaBuilder, crudBuilder, hr, general));
+        when(bindings.findGeneralAgentCode(1L)).thenReturn("general_assistant");
+
+        var catalog = routing.catalog();
+        assertEquals(List.of("general_assistant", "hr_policy"),
+                catalog.stream().map(HubAssistantRouting.Agent::code).toList());
+    }
+
     private AiAgent agent(Long id, Long tenantId, String code, String name, String desc) {
         AiAgent a = new AiAgent();
         a.setId(id);
