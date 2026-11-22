@@ -213,7 +213,7 @@ function isBusinessAppRuntimeTarget(path) {
     || /^\/app-center\/app\/[^/]+$/.test(normalizedPath)
 }
 
-function buildMenuNavigationLocation(targetPath, originalItem) {
+export function buildMenuNavigationLocation(targetPath, originalItem) {
   if (!targetPath || isExternal(targetPath) || !isBusinessAppRuntimeTarget(targetPath))
     return targetPath
 

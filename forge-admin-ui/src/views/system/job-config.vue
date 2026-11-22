@@ -61,7 +61,7 @@
       </section>
 
       <div class="job-toolbar">
-        <NButton v-if="canAdd" type="primary" @click="handleCreate">
+        <NButton v-if="canAdd" type="primary" data-assistant-guide="job-add" @click="handleCreate">
           <template #icon>
             <i class="i-material-symbols:add-rounded" />
           </template>

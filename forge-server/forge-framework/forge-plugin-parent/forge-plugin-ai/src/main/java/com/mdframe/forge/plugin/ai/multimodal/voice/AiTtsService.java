@@ -56,9 +56,7 @@ public class AiTtsService {
 
         // 解密 API Key
         String apiKey = provider.getApiKey();
-        if (AiSecretCrypto.isEncrypted(apiKey)) {
-            apiKey = aiSecretCrypto.decrypt(apiKey);
-        }
+        apiKey = aiSecretCrypto.resolvePlainSecret(apiKey);
 
         // 调用 TTS 适配器
         AiTtsModelAdapter adapter = adapterRegistry.getTts(model.getModelId());

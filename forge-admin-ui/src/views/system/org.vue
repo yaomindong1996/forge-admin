@@ -1,5 +1,5 @@
 <template>
-  <div class="system-org-page">
+  <div class="system-org-page" data-assistant-guide="page">
     <MasterDetailWorkspace
       class="org-workspace"
       persist-key="system-org"
@@ -23,6 +23,7 @@
                 circle
                 size="small"
                 title="新增顶级组织"
+                data-assistant-guide="add-org"
                 @click="handleAddRootOrg"
               >
                 <template #icon>
@@ -43,7 +44,7 @@
             </div>
           </div>
 
-          <div v-show="!leftOrgPanelCollapsed" class="org-tree-content">
+          <div v-show="!leftOrgPanelCollapsed" class="org-tree-content" data-assistant-guide="org-tree">
             <n-spin :show="leftOrgTreeLoading">
               <PremiumTree
                 v-if="leftOrgTreeData.length > 0"

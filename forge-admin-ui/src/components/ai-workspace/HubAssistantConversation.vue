@@ -1,16 +1,30 @@
 <script setup>
 import { NButton, NSelect } from 'naive-ui'
 import { computed, nextTick, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import assistantAvatar from '@/assets/ai/assistant-avatar.jpg'
+import {
+  assistantPageDirectory,
+  currentAssistantPage,
+  hasApplicationPermission,
+} from '@/composables/ai/assistant-page-context'
+import { usePermissionStore, useUserStore } from '@/store'
 import { useHubAssistantStore } from '@/stores/ai/hubAssistantStore'
 import { renderMarkdown, renderMarkdownStreaming } from '@/views/ai/components/agent-chat/chat-markdown'
+import HubPageGuide from './HubPageGuide.vue'
 
-const emit = defineEmits(['navigate', 'openAgents'])
+const emit = defineEmits(['navigate', 'openAgents', 'locate'])
 const store = useHubAssistantStore()
 const router = useRouter()
+const route = useRoute()
+const permission = usePermissionStore()
+const user = useUserStore()
 const listRef = ref(null)
 const inputRef = ref(null)
+const entries = computed(() => assistantPageDirectory(permission, user))
+const page = computed(() => currentAssistantPage(route, entries.value))
+const can = code => hasApplicationPermission(user, permission, code)
+const guideContext = computed(() => ({ page: page.value, entries: entries.value, can }))
 
 const agentOptions = computed(() =>
   store.agents.map(item => ({
@@ -19,17 +33,18 @@ const agentOptions = computed(() =>
   })),
 )
 
-const recommendedPrompts = [
-  '你好，介绍一下你可以帮我做什么？',
+const recommendedPrompts = computed(() => [
+  page.value ? '这个页面怎么用？' : '你好，介绍一下你可以帮我做什么？',
+  '角色怎么配置？',
   '查看我的待办任务',
-  '帮我梳理一份工作周报要点',
-]
+])
 
-const dockActions = [
+const dockActions = computed(() => [
+  page.value && { id: 'guide', label: '这个页面怎么用', icon: 'i-lucide:map-pin', text: '这个页面怎么用？' },
   { id: 'ask', label: '问个问题', icon: 'i-lucide:message-circle', text: '你好，你能帮我做什么？' },
   { id: 'todo', label: '查待办', icon: 'i-lucide:list-checks', text: '查看我的待办任务' },
   { id: 'agents', label: '管理智能体', icon: 'i-lucide:bot', action: 'agents' },
-]
+].filter(Boolean))
 
 const lastTurn = computed(() => store.turns.at(-1))
 
@@ -47,10 +62,14 @@ function focus() {
   inputRef.value?.focus?.()
 }
 
+function sendMessage(text, agent = null) {
+  void store.send(text, agent, guideContext.value)
+}
+
 function handleKeydown(event) {
   if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
     event.preventDefault()
-    void store.send()
+    sendMessage()
   }
 }
 
@@ -60,7 +79,7 @@ function runQuickAction(item) {
     return
   }
   if (!store.busy)
-    void store.send(item.text)
+    sendMessage(item.text)
 }
 
 function goTodoCenter() {
@@ -69,7 +88,7 @@ function goTodoCenter() {
 }
 
 function chooseCandidate(turn, agent) {
-  void store.send(turn.question, agent)
+  sendMessage(turn.question, agent)
 }
 
 function renderReplyHtml(turn) {
@@ -134,7 +153,7 @@ defineExpose({ focus })
                 type="button"
                 class="dock-prompt"
                 :disabled="store.busy"
-                @click="store.send(prompt)"
+                @click="sendMessage(prompt)"
               >
                 <i class="i-lucide:sparkles" aria-hidden="true" />
                 <span>{{ prompt }}</span>
@@ -154,8 +173,9 @@ defineExpose({ focus })
             </span>
             <div class="reply-body">
               <div class="reply-byline">
-                <strong>{{ turn.agent?.name || 'AI 助手' }}</strong>
-                <span v-if="turn.agent">已分派</span>
+                <strong>{{ turn.kind === 'GUIDE' ? '操作指引' : (turn.agent?.name || 'AI 助手') }}</strong>
+                <span v-if="turn.kind === 'GUIDE'">本地定位</span>
+                <span v-else-if="turn.agent">已分派</span>
                 <span v-else-if="turn.status === 'routing'">匹配中…</span>
               </div>
 
@@ -194,6 +214,13 @@ defineExpose({ focus })
                     暂无待处理任务
                   </p>
                 </template>
+              </div>
+
+              <div v-else-if="turn.guide" class="reply-guide">
+                <p class="reply-muted">
+                  已根据你的权限菜单匹配到以下入口，点击后会打开页面并圈选对应操作。
+                </p>
+                <HubPageGuide :guide="turn.guide" @locate="emit('locate')" />
               </div>
 
               <!-- eslint-disable vue/no-v-html -->
@@ -245,13 +272,18 @@ defineExpose({ focus })
         </button>
       </div>
 
-      <form class="hub-composer" @submit.prevent="store.send()">
+      <div v-if="page" class="current-page-context" :title="page.trail.join(' › ')">
+        <i class="i-lucide:panel-top" aria-hidden="true" />
+        <span>当前页面 · {{ page.title }}</span>
+      </div>
+
+      <form class="hub-composer" @submit.prevent="sendMessage()">
         <textarea
           ref="inputRef"
           v-model="store.draft"
           rows="1"
           class="hub-composer__input"
-          placeholder="发消息，Enter 发送（Shift+Enter 换行）"
+          placeholder="可问「角色怎么配置」「用户在哪里新增」"
           :disabled="store.busy"
           @keydown="handleKeydown"
         />
@@ -663,6 +695,30 @@ defineExpose({ focus })
   width: 100%;
   padding: 10px 12px 12px;
   box-sizing: border-box;
+}
+
+.current-page-context {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.current-page-context i {
+  flex: none;
+  color: var(--primary-color, #2563eb);
+}
+
+.current-page-context span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reply-guide {
+  margin-top: 4px;
 }
 
 .dock-actions {

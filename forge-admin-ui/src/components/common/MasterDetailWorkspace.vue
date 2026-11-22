@@ -33,7 +33,10 @@
       </span>
     </div>
     <main class="master-detail-workspace__main">
-      <slot />
+      <!-- 兼容 #main 与默认插槽；二者择一即可 -->
+      <slot name="main">
+        <slot />
+      </slot>
     </main>
   </section>
 </template>

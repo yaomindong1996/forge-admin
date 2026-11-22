@@ -105,7 +105,12 @@ public class AiProviderAdapterRegistry {
      * @return apiKey 解密后的供应商配置
      */
     private AiProvider decryptProvider(AiProvider provider) {
-        if (!AiSecretCrypto.isEncrypted(provider.getApiKey())) {
+        String stored = provider.getApiKey();
+        if (!StringUtils.hasText(stored)) {
+            return provider;
+        }
+        String plain = aiSecretCrypto.resolvePlainSecret(stored);
+        if (plain == null ? stored == null : plain.equals(stored)) {
             return provider;
         }
         AiProvider decryptedProvider = new AiProvider();
@@ -115,7 +120,7 @@ public class AiProviderAdapterRegistry {
         decryptedProvider.setProviderType(provider.getProviderType());
         decryptedProvider.setAdapterCode(provider.getAdapterCode());
         decryptedProvider.setLogo(provider.getLogo());
-        decryptedProvider.setApiKey(aiSecretCrypto.decrypt(provider.getApiKey()));
+        decryptedProvider.setApiKey(plain);
         decryptedProvider.setBaseUrl(provider.getBaseUrl());
         decryptedProvider.setModels(provider.getModels());
         decryptedProvider.setDefaultModel(provider.getDefaultModel());

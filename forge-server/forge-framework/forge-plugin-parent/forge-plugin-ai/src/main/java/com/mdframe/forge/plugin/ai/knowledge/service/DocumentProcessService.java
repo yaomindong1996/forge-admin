@@ -307,8 +307,7 @@ public class DocumentProcessService {
         }
 
         // 解密 API Key
-        String apiKey = aiSecretCrypto.isEncrypted(provider.getApiKey())
-                ? aiSecretCrypto.decrypt(provider.getApiKey()) : provider.getApiKey();
+        String apiKey = aiSecretCrypto.resolvePlainSecret(provider.getApiKey());
 
         // 获取适配器
         var adapter = modelAdapterRegistry.getEmbedding(embeddingModel.getModelId());

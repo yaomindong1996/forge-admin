@@ -1,6 +1,6 @@
 <template>
   <div class="app-center-page">
-    <header class="app-center-view-head">
+    <header class="app-center-view-head" data-assistant-guide="page">
       <div class="app-center-view-brand">
         <span class="app-center-view-brand__mark" aria-hidden="true">
           <i class="i-lucide:boxes" />

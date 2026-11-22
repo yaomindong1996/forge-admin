@@ -134,7 +134,7 @@ function openAgentsPage() {
           </div>
           <div class="header-copy">
             <strong>AI 助手</strong>
-            <small>智能对话 · 工具调用 · 流程待办</small>
+            <small>智能对话 · 菜单定位 · 流程待办</small>
           </div>
         </div>
       </header>
@@ -143,6 +143,7 @@ function openAgentsPage() {
         <HubAssistantConversation
           ref="conversationRef"
           @navigate="closePanel"
+          @locate="closePanel"
           @open-agents="openAgentsPage"
         />
       </div>

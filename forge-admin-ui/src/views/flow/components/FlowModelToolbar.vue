@@ -23,6 +23,7 @@ const moreOptions = computed(() => [{ label: '调整本页排序', key: 'sort', 
     <div class="model-toolbar__filters" role="search" aria-label="流程模型查询">
       <NInput
         :value="modelName" placeholder="搜索流程名称或 Key" clearable class="model-toolbar__search"
+        data-assistant-guide="search"
         :disabled="sortMode" :input-props="{ 'aria-label': '流程名称或 Key' }"
         @update:value="emit('update:modelName', $event)" @keyup.enter="emit('search')"
       >
@@ -60,7 +61,7 @@ const moreOptions = computed(() => [{ label: '调整本页排序', key: 'sort', 
         </NButton>
       </template>
       <template v-else>
-        <NButton type="primary" @click="emit('add')">
+        <NButton type="primary" data-assistant-guide="add" @click="emit('add')">
           <template #icon>
             <i class="i-lucide:plus" />
           </template>

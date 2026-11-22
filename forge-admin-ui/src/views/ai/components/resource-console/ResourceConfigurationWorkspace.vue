@@ -77,10 +77,8 @@ onMounted(() => {
           <template #aside>
             <ProviderRail />
           </template>
-          <template #main>
-            <ProviderTemplateSetup v-if="store.selectedTemplate && !store.selectedProvider" />
-            <ModelResourceList v-else />
-          </template>
+          <ProviderTemplateSetup v-if="store.selectedTemplate && !store.selectedProvider" />
+          <ModelResourceList v-else />
         </MasterDetailWorkspace>
         <ProviderModelDialogs />
         <ModelImportDialog />

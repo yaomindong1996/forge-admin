@@ -1,0 +1,29 @@
+.assistant-guide-highlight {
+  position: relative;
+  z-index: 3;
+  outline: 2px solid var(--primary-color, #2f6fed) !important;
+  outline-offset: 3px;
+  border-radius: 8px;
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--primary-color, #2f6fed) 20%, transparent),
+    0 0 0 12px color-mix(in srgb, var(--primary-color, #2f6fed) 8%, transparent);
+  scroll-margin: 24px;
+  animation: assistant-guide-pulse 1.4s ease-out 2;
+}
+
+.assistant-guide-highlight:not(:is(button, a, input, textarea, [tabindex])) {
+  outline-offset: -2px;
+}
+
+@keyframes assistant-guide-pulse {
+  0% {
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--primary-color, #2f6fed) 28%, transparent),
+      0 0 0 8px color-mix(in srgb, var(--primary-color, #2f6fed) 10%, transparent);
+  }
+  100% {
+    box-shadow:
+      0 0 0 6px color-mix(in srgb, var(--primary-color, #2f6fed) 20%, transparent),
+      0 0 0 14px color-mix(in srgb, var(--primary-color, #2f6fed) 0%, transparent);
+  }
+}

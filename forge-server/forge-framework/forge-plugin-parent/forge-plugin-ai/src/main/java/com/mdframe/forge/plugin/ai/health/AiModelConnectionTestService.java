@@ -60,6 +60,9 @@ public class AiModelConnectionTestService {
             lease.success();
             log.info("[AI模型测试] Chat连接成功, providerId={}, modelId={}", provider.getId(), model.getId());
             return "连接成功";
+        } catch (BusinessException e) {
+            lease.cancel();
+            throw e;
         } catch (Exception e) {
             return handleTestFailure(e, provider, model, lease);
         } finally {
@@ -80,6 +83,9 @@ public class AiModelConnectionTestService {
             log.info("[AI模型测试] Embedding连接成功, providerId={}, modelId={}, dimension={}",
                     provider.getId(), model.getId(), vector.length);
             return "连接成功";
+        } catch (BusinessException e) {
+            lease.cancel();
+            throw e;
         } catch (Exception e) {
             return handleTestFailure(e, provider, model, lease);
         } finally {
@@ -106,6 +112,13 @@ public class AiModelConnectionTestService {
         AiProviderFailureDiagnostics d = AiProviderFailureDiagnostics.from(e);
         log.warn("[AI模型测试] 连接失败, providerId={}, modelId={}, category={}, httpStatus={}, errorCode={}, exceptionType={}",
                 provider.getId(), model.getId(), category, d.httpStatus(), d.errorCode(), e.getClass().getSimpleName());
-        throw new BusinessException("模型连接失败，请检查供应商配置和模型标识");
+        throw new BusinessException(switch (category) {
+            case AUTHENTICATION -> "模型连接失败：API Key 无效或无权限，请检查供应商密钥";
+            case MODEL_UNAVAILABLE -> "模型连接失败：模型标识不可用，请检查供应商配置和模型标识";
+            case RATE_LIMIT -> "模型连接失败：供应商限流，请稍后重试";
+            case TIMEOUT, NETWORK -> "模型连接失败：网络不可达或超时，请检查 Base URL 与出网";
+            case PROVIDER_5XX -> "模型连接失败：供应商服务异常，请稍后重试";
+            default -> "模型连接失败，请检查供应商配置和模型标识";
+        });
     }
 }

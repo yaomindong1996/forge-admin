@@ -249,8 +249,7 @@ public class AiSkillService extends ServiceImpl<AiSkillMapper, AiSkill> {
         }
 
         AiProvider provider = providerService.requireEnabledDefaultProvider();
-        String apiKey = aiSecretCrypto.isEncrypted(provider.getApiKey())
-                ? aiSecretCrypto.decrypt(provider.getApiKey()) : provider.getApiKey();
+        String apiKey = aiSecretCrypto.resolvePlainSecret(provider.getApiKey());
 
         AiModelRuntimeOptions options = new AiModelRuntimeOptions(
                 provider.getDefaultModel(), 0.7, 2048);
@@ -299,8 +298,7 @@ public class AiSkillService extends ServiceImpl<AiSkillMapper, AiSkill> {
                 .orElseThrow(() -> new BusinessException("技能未包含SKILL.md文件"));
 
         AiProvider provider = providerService.requireEnabledDefaultProvider();
-        String apiKey = aiSecretCrypto.isEncrypted(provider.getApiKey())
-                ? aiSecretCrypto.decrypt(provider.getApiKey()) : provider.getApiKey();
+        String apiKey = aiSecretCrypto.resolvePlainSecret(provider.getApiKey());
 
         AiModelRuntimeOptions options = new AiModelRuntimeOptions(
                 provider.getDefaultModel(), 0.7, 2048);

@@ -100,8 +100,7 @@ public class RerankHandler implements RagSearchHandler {
                 return;
             }
 
-            String apiKey = aiSecretCrypto.isEncrypted(provider.getApiKey())
-                    ? aiSecretCrypto.decrypt(provider.getApiKey()) : provider.getApiKey();
+            String apiKey = aiSecretCrypto.resolvePlainSecret(provider.getApiKey());
 
             var adapter = modelAdapterRegistry.getRerank(rerankModel.getModelId());
             List<String> passages = results.stream().map(KnowledgeSearchResult::getContent).toList();

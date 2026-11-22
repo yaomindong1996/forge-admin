@@ -42,8 +42,7 @@ public class QueryCompleter {
 
         try {
             AiProvider provider = providerService.requireEnabledDefaultProvider();
-            String apiKey = aiSecretCrypto.isEncrypted(provider.getApiKey())
-                    ? aiSecretCrypto.decrypt(provider.getApiKey()) : provider.getApiKey();
+            String apiKey = aiSecretCrypto.resolvePlainSecret(provider.getApiKey());
 
             AiModelRuntimeOptions options = new AiModelRuntimeOptions(
                     provider.getDefaultModel(), 0.3, 256);

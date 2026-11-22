@@ -12,6 +12,7 @@
   <div
     ref="crudRootRef"
     class="ai-crud-page"
+    data-assistant-guide="page"
     :class="{
       'is-form-only': formOnly,
       'is-inline-form-active': showInlineFormWorkspacePane && !isTabWorkspaceMode,
@@ -111,14 +112,14 @@
         <n-button secondary @click="resetFormOnly">
           重置
         </n-button>
-        <n-button type="primary" :loading="confirmLoading" @click="handleModalConfirm">
+        <n-button type="primary" :loading="confirmLoading" data-assistant-guide="save" @click="handleModalConfirm">
           {{ formOnlySubmitText }}
         </n-button>
       </footer>
     </div>
 
     <!-- 搜索表单区域 -->
-    <div v-if="!formOnly && showInlineListPane && hasSearchSchema && searchPanelVisible" class="ai-crud-search">
+    <div v-if="!formOnly && showInlineListPane && hasSearchSchema && searchPanelVisible" class="ai-crud-search" data-assistant-guide="search">
       <AiSearch
         ref="searchRef"
         v-model="searchParams"
@@ -196,7 +197,7 @@
       </div>
 
       <!-- 数据表格区域 -->
-      <div v-show="showInlineListPane" class="ai-crud-table">
+      <div v-show="showInlineListPane" class="ai-crud-table" data-assistant-guide="list">
         <AiTable
           ref="tableRef"
           v-model:checked-row-keys="selectedKeys"
@@ -239,6 +240,7 @@
                     v-if="!hideAdd"
                     type="primary"
                     size="small"
+                    data-assistant-guide="add"
                     @click="handleAdd()"
                   >
                     <template #icon>
@@ -521,6 +523,7 @@
               type="primary"
               :loading="confirmLoading"
               :disabled="confirmLoading"
+              data-assistant-guide="save"
               @click="handleModalConfirm"
             >
               确定
@@ -716,6 +719,7 @@
             type="primary"
             :loading="confirmLoading"
             :disabled="confirmLoading"
+            data-assistant-guide="save"
             @click="handleModalConfirm"
           >
             确定
@@ -822,6 +826,7 @@
               type="primary"
               :loading="confirmLoading"
               :disabled="confirmLoading"
+              data-assistant-guide="save"
               @click="handleModalConfirm"
             >
               确定

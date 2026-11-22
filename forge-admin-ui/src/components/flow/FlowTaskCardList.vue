@@ -1,5 +1,5 @@
 <template>
-  <section class="flow-task-card-list" :class="{ 'is-embedded': embedded }">
+  <section class="flow-task-card-list" data-assistant-guide="list" :class="{ 'is-embedded': embedded }">
     <div v-if="$slots.prepend" class="task-list-prepend">
       <slot name="prepend" />
     </div>
@@ -26,6 +26,7 @@
           :placeholder="searchPlaceholder"
           clearable
           class="task-list-search"
+          data-assistant-guide="search"
           @update:value="emit('update:searchValue', $event)"
           @keydown.enter="emit('search')"
         >

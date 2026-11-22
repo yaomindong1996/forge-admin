@@ -10,7 +10,7 @@
     />
 
     <!-- 卡片列表、局部反馈与固定分页 -->
-    <section class="model-workbench" :aria-busy="loading">
+    <section class="model-workbench" data-assistant-guide="list" :aria-busy="loading">
       <div class="model-list-context" aria-live="polite">
         <span v-if="hasLoaded">{{ hasAppliedFilters ? '匹配' : '共' }} {{ pagination.itemCount }} 个流程模型</span>
         <span v-else>流程模型</span>

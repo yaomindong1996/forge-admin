@@ -4,7 +4,9 @@
     <div class="menu-workbench-header">
       <div class="header-main">
         <div class="header-brand">
-          <h2>菜单管理</h2>
+          <h2 data-assistant-guide="page">
+            菜单管理
+          </h2>
           <div class="client-segment" role="tablist" aria-label="按客户端筛选菜单">
             <button
               type="button"
@@ -36,7 +38,7 @@
             </template>
             刷新
           </NButton>
-          <NButton size="small" type="primary" @click="handleAddRoot">
+          <NButton size="small" type="primary" data-assistant-guide="add" @click="handleAddRoot">
             <template #icon>
               <i class="i-material-symbols:add" />
             </template>
@@ -143,6 +145,7 @@
                 clearable
                 placeholder="搜索名称 / 路由 / 权限 / API"
                 class="keyword-input"
+                data-assistant-guide="search"
               >
                 <template #prefix>
                   <i class="i-material-symbols:search" />
@@ -176,7 +179,7 @@
               <NButton v-if="currentNode" size="small" secondary @click="openResourceDetail(currentNode)">
                 本级详情
               </NButton>
-              <NButton v-if="currentNode" size="small" @click="handleEdit(currentNode)">
+              <NButton v-if="currentNode" size="small" data-assistant-guide="edit" @click="handleEdit(currentNode)">
                 编辑本级
               </NButton>
               <NButton v-if="currentNode" size="small" type="primary" @click="handleAdd(currentNode)">
@@ -238,7 +241,7 @@
                 <span>「{{ currentNode.resourceName }}」下暂无子资源</span>
                 <span class="empty-hint">可先编辑本级配置，或新增子项</span>
                 <div class="empty-actions">
-                  <NButton size="small" @click="handleEdit(currentNode)">
+                  <NButton size="small" data-assistant-guide="edit" @click="handleEdit(currentNode)">
                     编辑本级
                   </NButton>
                   <NButton size="small" type="primary" @click="handleAdd(currentNode)">
@@ -460,7 +463,7 @@
             <NButton @click="drawerVisible = false">
               取消
             </NButton>
-            <NButton type="primary" :loading="submitLoading" @click="handleDrawerSubmit">
+            <NButton type="primary" :loading="submitLoading" data-assistant-guide="save" @click="handleDrawerSubmit">
               保存
             </NButton>
           </n-space>

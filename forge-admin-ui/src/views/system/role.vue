@@ -1,5 +1,5 @@
 <template>
-  <div class="system-role-page">
+  <div class="system-role-page" data-assistant-guide="page">
     <MasterDetailWorkspace
       class="role-workspace"
       persist-key="system-role"
@@ -18,7 +18,7 @@
                 <small>{{ roleList.length }} 个角色</small>
               </span>
             </div>
-            <n-button size="small" type="primary" circle title="新增角色" @click="handleAddRole">
+            <n-button size="small" type="primary" circle title="新增角色" data-assistant-guide="add-role" @click="handleAddRole">
               <template #icon>
                 <i class="i-material-symbols:add-rounded" />
               </template>
@@ -29,6 +29,7 @@
             <n-input
               v-model:value="roleKeyword"
               class="role-search"
+              data-assistant-guide="search-role"
               clearable
               size="small"
               placeholder="搜索角色名称..."
@@ -53,7 +54,7 @@
           </div>
 
           <n-spin :show="roleListLoading" class="role-list-spin">
-            <div class="role-list">
+            <div class="role-list" data-assistant-guide="role-list">
               <div
                 v-for="role in roleList"
                 :key="role.id"

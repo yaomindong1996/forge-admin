@@ -102,4 +102,24 @@ describe('useHubAssistantStore', () => {
     expect(store.turns[0].candidates).toHaveLength(1)
     expect(store.turns[0].status).toBe('done')
   })
+
+  it('locally answers menu guidance without routing to agents', async () => {
+    const store = useHubAssistantStore()
+    await store.send('角色怎么配置？', null, {
+      page: null,
+      entries: [{
+        id: '10',
+        title: '角色管理',
+        trail: ['系统管理', '角色管理'],
+        path: '/system/role',
+        menu: { path: '/system/role' },
+      }],
+      can: () => true,
+    })
+
+    expect(store.turns[0].kind).toBe('GUIDE')
+    expect(store.turns[0].guide.options[0].title).toBe('角色管理')
+    expect(hubRouteMock).not.toHaveBeenCalled()
+    expect(streamEngineChatMock).not.toHaveBeenCalled()
+  })
 })

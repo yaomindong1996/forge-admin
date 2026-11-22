@@ -202,8 +202,8 @@ public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider>
         String model = resolveNonChatTestModel(provider, modelType, request);
         String baseUrl = AiProviderBaseUrlPolicy.normalizeAndValidate(
                 provider.getAdapterCode(), provider.getProviderType(), provider.getBaseUrl());
-        String apiKey = provider.getId() != null && aiSecretCrypto.isEncrypted(provider.getApiKey())
-                ? aiSecretCrypto.decrypt(provider.getApiKey()) : provider.getApiKey();
+        String apiKey = provider.getId() != null
+                ? aiSecretCrypto.resolvePlainSecret(provider.getApiKey()) : provider.getApiKey();
         try {
             String result = dispatchNonChatTest(type, model, baseUrl, apiKey);
             log.info("[AI供应商测试] 连接成功, providerId={}, adapterCode={}, modelType={}, model={}",
@@ -289,8 +289,7 @@ public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider>
      */
     public List<ProviderModelFetcher.FetchedModel> fetchModels(Long providerId) {
         AiProvider provider = requireProvider(providerId);
-        String apiKey = aiSecretCrypto.isEncrypted(provider.getApiKey())
-                ? aiSecretCrypto.decrypt(provider.getApiKey()) : provider.getApiKey();
+        String apiKey = aiSecretCrypto.resolvePlainSecret(provider.getApiKey());
         return providerModelFetcher.fetch(provider.getBaseUrl(), apiKey);
     }
 

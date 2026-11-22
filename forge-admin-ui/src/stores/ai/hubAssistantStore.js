@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { engineStop, hubAgents, hubRoute, hubTodos, streamEngineChat } from '@/api/ai'
+import { assistantLocalTurn } from '@/composables/ai/assistant-local-turn'
+import { messageWithPageContext } from '@/composables/ai/assistant-page-context'
 import { useAuthStore, useUserStore } from '@/store'
 import { generateUUID } from '@/utils'
 
@@ -73,7 +75,7 @@ export const useHubAssistantStore = defineStore('hub-assistant', () => {
       {
         agentCode: agent.code,
         sessionId,
-        message: turn.question,
+        message: messageWithPageContext(turn.question, turn.page),
       },
       (type, data) => {
         if (type === 'TEXT_BLOCK_DELTA' && data?.text) {
@@ -106,7 +108,7 @@ export const useHubAssistantStore = defineStore('hub-assistant', () => {
     )
   }
 
-  async function send(rawText, forcedAgent = null) {
+  async function send(rawText, forcedAgent = null, context = null) {
     const question = String(rawText ?? draft.value).trim()
     if (!question || busy.value)
       return
@@ -122,11 +124,24 @@ export const useHubAssistantStore = defineStore('hub-assistant', () => {
       todos: null,
       answer: '',
       tools: [],
+      guide: null,
+      page: context?.page || null,
       sessionId: '',
       status: 'routing',
       error: '',
     }
     turns.value.push(turn)
+
+    if (!forcedAgent?.code) {
+      const local = assistantLocalTurn(question, context || {})
+      if (local.resolve) {
+        turn.kind = 'GUIDE'
+        Object.assign(turn, await local.resolve())
+        turn.status = 'done'
+        busy.value = false
+        return
+      }
+    }
 
     if (forcedAgent?.code) {
       startAgentStream(turn, forcedAgent)

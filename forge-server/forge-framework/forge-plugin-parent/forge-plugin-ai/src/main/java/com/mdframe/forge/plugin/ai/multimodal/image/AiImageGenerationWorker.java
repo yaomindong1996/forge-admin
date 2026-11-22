@@ -35,10 +35,7 @@ public class AiImageGenerationWorker {
             if (!Objects.equals(binding.provider().getId(), record.getProviderId())) {
                 throw new BusinessException("图像模型供应商配置已变更，请重新发起");
             }
-            String key = binding.provider().getApiKey();
-            if (AiSecretCrypto.isEncrypted(key)) {
-                key = crypto.decrypt(key);
-            }
+            String key = crypto.resolvePlainSecret(binding.provider().getApiKey());
             if (key == null || key.isBlank()) {
                 throw new BusinessException("图像供应商密钥不可用");
             }

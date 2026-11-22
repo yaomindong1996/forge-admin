@@ -171,8 +171,7 @@ public class KnowledgeSearchService {
             throw new BusinessException("Embedding模型供应商不存在");
         }
 
-        String apiKey = aiSecretCrypto.isEncrypted(provider.getApiKey())
-                ? aiSecretCrypto.decrypt(provider.getApiKey()) : provider.getApiKey();
+        String apiKey = aiSecretCrypto.resolvePlainSecret(provider.getApiKey());
 
         var adapter = modelAdapterRegistry.getEmbedding(embeddingModel.getModelId());
         List<List<Float>> vectors = adapter.embed(provider.getBaseUrl(), apiKey, embeddingModel.getModelId(), List.of(query));
@@ -213,8 +212,7 @@ public class KnowledgeSearchService {
                 return results;
             }
 
-            String apiKey = aiSecretCrypto.isEncrypted(provider.getApiKey())
-                    ? aiSecretCrypto.decrypt(provider.getApiKey()) : provider.getApiKey();
+            String apiKey = aiSecretCrypto.resolvePlainSecret(provider.getApiKey());
 
             var adapter = modelAdapterRegistry.getRerank(rerankModel.getModelId());
             List<String> passages = results.stream().map(KnowledgeSearchResult::getContent).toList();
