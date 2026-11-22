@@ -10,8 +10,11 @@ import {
 } from '@/composables/ai/assistant-page-context'
 import { usePermissionStore, useUserStore } from '@/store'
 import { useHubAssistantStore } from '@/stores/ai/hubAssistantStore'
+import { formatDuration } from '@/views/ai/components/agent-chat/chat-utils'
 import { renderMarkdown, renderMarkdownStreaming } from '@/views/ai/components/agent-chat/chat-markdown'
+import ChatRunTrace from '@/views/ai/components/agent-chat/ChatRunTrace.vue'
 import HubPageGuide from './HubPageGuide.vue'
+import 'highlight.js/styles/atom-one-dark.css'
 
 const emit = defineEmits(['navigate', 'openAgents', 'locate'])
 const store = useHubAssistantStore()
@@ -49,7 +52,15 @@ const dockActions = computed(() => [
 const lastTurn = computed(() => store.turns.at(-1))
 
 watch(
-  () => [store.turns.length, lastTurn.value?.answer, lastTurn.value?.status, lastTurn.value?.tools?.length],
+  () => [
+    store.turns.length,
+    lastTurn.value?.answer,
+    lastTurn.value?.thinking,
+    lastTurn.value?.status,
+    lastTurn.value?.tools?.length,
+    lastTurn.value?.resources?.skills?.length,
+    lastTurn.value?.resources?.knowledge?.length,
+  ],
   async () => {
     await nextTick()
     if (listRef.value)
@@ -88,7 +99,8 @@ function goTodoCenter() {
 }
 
 function chooseCandidate(turn, agent) {
-  sendMessage(turn.question, agent)
+  const catalog = store.agents.find(item => item.code === agent?.code)
+  sendMessage(turn.question, catalog ? { ...catalog, ...agent } : agent)
 }
 
 function renderReplyHtml(turn) {
@@ -99,12 +111,31 @@ function renderReplyHtml(turn) {
     : renderMarkdown(turn.answer)
 }
 
-function toolStatusLabel(status) {
-  if (status === 'error')
-    return '失败'
-  if (status === 'done')
-    return '完成'
-  return '执行中…'
+function onReplyClick(event) {
+  const btn = event.target?.closest?.('.code-copy-btn')
+  if (!btn)
+    return
+  const code = decodeURIComponent(btn.dataset.code || '')
+  navigator.clipboard?.writeText(code).then(() => {
+    btn.textContent = '已复制'
+    setTimeout(() => { btn.textContent = '复制' }, 1500)
+  }).catch(() => {})
+}
+
+async function copyTurnAnswer(turn) {
+  const text = String(turn?.answer || '').trim()
+  if (!text)
+    return
+  try {
+    await navigator.clipboard.writeText(text)
+  }
+  catch {
+    // ignore
+  }
+}
+
+function hasReplyMeta(turn) {
+  return turn?.firstTokenMs != null || turn?.totalMs != null || turn?.tokenUsage != null
 }
 
 defineExpose({ focus })
@@ -179,15 +210,19 @@ defineExpose({ focus })
                 <span v-else-if="turn.status === 'routing'">匹配中…</span>
               </div>
 
-              <details v-if="turn.tools.length" class="reply-tools" :open="turn.status === 'streaming'">
-                <summary>工具执行 · {{ turn.tools.length }} 项</summary>
-                <ul>
-                  <li v-for="(tool, idx) in turn.tools" :key="`${tool.name}-${idx}`">
-                    <span>{{ tool.name }}</span>
-                    <small :class="`is-${tool.status}`">{{ toolStatusLabel(tool.status) }}</small>
-                  </li>
-                </ul>
+              <details
+                v-if="turn.thinking"
+                class="reply-thinking"
+                :open="turn.status === 'streaming' && !turn.answer"
+              >
+                <summary>思考过程</summary>
+                <pre>{{ turn.thinking }}</pre>
               </details>
+
+              <ChatRunTrace
+                :tools="turn.tools || []"
+                :resources="turn.resources || {}"
+              />
 
               <p v-if="turn.status === 'routing'" class="reply-muted">
                 正在识别意图并匹配智能体…
@@ -223,17 +258,36 @@ defineExpose({ focus })
                 <HubPageGuide :guide="turn.guide" @locate="emit('locate')" />
               </div>
 
-              <!-- eslint-disable vue/no-v-html -->
-              <div
-                v-else-if="turn.answer"
-                class="reply-rich"
-                v-html="renderReplyHtml(turn)"
-              />
-              <!-- eslint-enable vue/no-v-html -->
+              <template v-else-if="turn.answer || turn.status === 'streaming'">
+                <!-- eslint-disable vue/no-v-html -->
+                <div
+                  v-if="turn.answer"
+                  class="reply-rich markdown-body"
+                  @click="onReplyClick"
+                  v-html="renderReplyHtml(turn)"
+                />
+                <!-- eslint-enable vue/no-v-html -->
+                <p v-else class="reply-muted">
+                  正在思考并生成回复…
+                </p>
+                <span
+                  v-if="turn.status === 'streaming' && turn.answer"
+                  class="stream-cursor"
+                  aria-hidden="true"
+                />
 
-              <p v-else-if="turn.status === 'streaming'" class="reply-muted">
-                正在思考并生成回复…
-              </p>
+                <div v-if="hasReplyMeta(turn)" class="reply-meta">
+                  <span v-if="turn.firstTokenMs != null">首字 {{ turn.firstTokenMs }}ms</span>
+                  <span v-if="turn.totalMs != null">总耗时 {{ formatDuration(turn.totalMs) }}</span>
+                  <span v-if="turn.tokenUsage != null">Token {{ turn.tokenUsage }}</span>
+                </div>
+
+                <div v-if="turn.answer && turn.status !== 'streaming'" class="reply-actions">
+                  <button type="button" class="reply-action-btn" @click="copyTurnAnswer(turn)">
+                    复制
+                  </button>
+                </div>
+              </template>
 
               <div v-if="turn.candidates?.length" class="reply-candidates">
                 <button
@@ -554,43 +608,6 @@ defineExpose({ focus })
   color: var(--text-tertiary);
 }
 
-.reply-tools {
-  margin-top: 6px;
-  padding: 6px 10px;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.reply-tools summary {
-  cursor: pointer;
-}
-
-.reply-tools ul {
-  display: grid;
-  gap: 4px;
-  margin: 6px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.reply-tools li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.reply-tools small.is-done {
-  color: #16a34a;
-}
-
-.reply-tools small.is-error {
-  color: var(--error-color, #dc2626);
-}
-
 .reply-rich {
   margin-top: 4px;
   color: var(--text-primary);
@@ -613,18 +630,124 @@ defineExpose({ focus })
   padding-left: 18px;
 }
 
-.reply-rich :deep(code) {
+.reply-rich :deep(:not(pre) > code) {
   padding: 1px 5px;
   border-radius: 4px;
-  background: var(--bg-secondary);
+  background: color-mix(in srgb, var(--primary-color, #3b82f6) 10%, transparent);
   font-size: 12px;
 }
 
-.reply-rich :deep(pre) {
-  margin: 6px 0;
-  padding: 10px;
-  overflow: auto;
+.reply-rich :deep(.code-block) {
+  margin: 10px 0;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #282c34;
+}
+
+.reply-rich :deep(.code-block-header) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 14px;
+  background: color-mix(in srgb, #fff 6%, transparent);
+  color: #abb2bf;
+  font-size: 11px;
+}
+
+.reply-rich :deep(.code-copy-btn) {
+  padding: 2px 10px;
+  border: none;
+  border-radius: 5px;
+  background: color-mix(in srgb, #fff 12%, transparent);
+  color: #dfe4ee;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.reply-rich :deep(.code-copy-btn:hover) {
+  background: color-mix(in srgb, #fff 22%, transparent);
+}
+
+.reply-rich :deep(.code-block pre) {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  background: transparent;
+}
+
+.reply-rich :deep(.code-block code) {
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  line-height: 1.65;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.reply-thinking {
+  margin: 4px 0 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-light, var(--border));
   border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.reply-thinking summary {
+  cursor: pointer;
+  user-select: none;
+}
+
+.reply-thinking pre {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  color: var(--text-tertiary);
+}
+
+.stream-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 14px;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--primary-color, #2563eb);
+  animation: hub-stream-blink 1s steps(1) infinite;
+}
+
+@keyframes hub-stream-blink {
+  50% { opacity: 0; }
+}
+
+.reply-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.reply-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.reply-action-btn {
+  padding: 2px 8px;
+  border: 1px solid var(--border-light, var(--border));
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.reply-action-btn:hover {
+  color: var(--text-primary);
   background: var(--bg-secondary);
 }
 

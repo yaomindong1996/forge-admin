@@ -254,8 +254,7 @@
             :model-selection-mode-options="modelSelectionModeOptions"
             :route-policy-options="routePolicyOptions"
             :model-loading="modelLoading"
-            :mcp-tool-labels="selectedMcpToolLabels"
-            :mcp-tool-count="selectedMcpToolLabels.length"
+            :mcp-tool-count="boundToolCount"
             :question-count="suggestedQuestionCount"
             :context-count="contextConfigs.length"
             :enabled-context-count="enabledContextCount"
@@ -315,6 +314,11 @@
                     {{ message.reasoning }}
                   </div>
                 </details>
+
+                <ChatRunTrace
+                  :tools="message.toolCalls || []"
+                  :resources="message.resources || {}"
+                />
 
                 <div
                   v-if="message.content || (message.streaming && !message.isReasoning)"
@@ -421,24 +425,31 @@
       class="agent-config-modal"
       :bordered="false"
     >
-      <n-tabs type="segment" animated size="small">
-        <n-tab-pane name="tools" tab="工具绑定">
+      <n-tabs type="segment" animated size="small" default-value="mcp">
+        <n-tab-pane name="mcp" tab="MCP 工具">
           <div class="modal-section">
-            <div class="tool-section-header">
-              <span class="tool-section-title">已绑定工具 ({{ agentTools.length }})</span>
-              <n-button size="tiny" type="primary" @click="showAddTool = true">
-                添加工具
-              </n-button>
+            <p class="knowledge-tip">
+              从已同步的 MCP 服务里开关即可挂到本智能体；下方「当前启用」可再启停或解除。
+            </p>
+            <AgentResourceBindingPanel
+              v-if="agentForm.id"
+              :agent-id="agentForm.id"
+              mode="mcp"
+              @changed="loadAgentTools"
+            />
+            <n-empty v-else description="请先保存智能体后再绑定 MCP 工具" size="small" />
+
+            <div class="tool-section-header" style="margin-top: 14px">
+              <span class="tool-section-title">当前启用 ({{ agentTools.filter(t => t.enabled).length }}/{{ agentTools.length }})</span>
             </div>
-            <n-empty v-if="!agentTools.length" description="暂无绑定工具" size="small" class="my-4" />
+            <n-empty v-if="!agentTools.length" description="尚未绑定任何工具" size="small" class="my-2" />
             <div v-else class="tool-list">
               <div v-for="tool in agentTools" :key="tool.id" class="tool-item">
                 <div class="tool-info">
                   <n-tag size="tiny" :type="tool.toolSource === 'mcp' ? 'info' : 'default'" :bordered="false">
-                    {{ tool.toolSource }}
+                    {{ tool.sourceLabel || tool.toolSource }}
                   </n-tag>
-                  <span class="tool-key">{{ tool.toolKey }}</span>
-                  <span v-if="tool.toolGroup" class="tool-group">{{ tool.toolGroup }}</span>
+                  <span class="tool-key" :title="tool.toolKey">{{ tool.displayTitle || tool.toolKey }}</span>
                 </div>
                 <div class="tool-actions">
                   <n-switch v-model:value="tool.enabled" size="small" @update:value="(val) => updateToolEnabled(tool, val)" />
@@ -448,75 +459,21 @@
                 </div>
               </div>
             </div>
-
-            <div v-if="showAddTool" class="add-tool-form">
-              <n-divider />
-              <n-form inline size="small">
-                <n-form-item label="来源">
-                  <n-input v-model:value="newTool.source" placeholder="mcp/builtin/capability" size="small" style="width: 120px" />
-                </n-form-item>
-                <n-form-item label="工具标识">
-                  <n-input v-model:value="newTool.key" placeholder="tool_key" size="small" style="width: 180px" />
-                </n-form-item>
-                <n-form-item label="分组">
-                  <n-input v-model:value="newTool.group" placeholder="分组" size="small" style="width: 100px" />
-                </n-form-item>
-                <n-button size="small" type="primary" :disabled="!newTool.source || !newTool.key" @click="addTool">
-                  确认
-                </n-button>
-                <n-button size="small" @click="showAddTool = false">
-                  取消
-                </n-button>
-              </n-form>
-            </div>
           </div>
         </n-tab-pane>
 
-        <n-tab-pane name="mcp" tab="MCP 远程工具">
+        <n-tab-pane name="skill-packages" tab="技能资料">
           <div class="modal-section">
-            <AgentResourceBindingPanel
-              v-if="agentForm.id"
-              :agent-id="agentForm.id"
-              mode="mcp"
-              @changed="loadAgentTools"
-            />
-            <n-empty v-else description="请先保存智能体后再绑定 MCP 工具" size="small" />
-          </div>
-        </n-tab-pane>
-
-        <n-tab-pane name="skill-packages" tab="技能资料包">
-          <div class="modal-section">
+            <p class="knowledge-tip">
+              <strong>技能资料包</strong>：导入的只读 ZIP 文档（固定版本），对话时由智能体按需查阅，不会当可执行脚本跑。
+              请先在「资源中心 → 技能资料」导入并启用。
+            </p>
             <AgentResourceBindingPanel
               v-if="agentForm.id"
               :agent-id="agentForm.id"
               mode="skill-package"
             />
             <n-empty v-else description="请先保存智能体后再绑定技能资料包" size="small" />
-          </div>
-        </n-tab-pane>
-
-        <n-tab-pane name="skills" tab="技能绑定">
-          <div class="modal-section">
-            <n-spin :show="skillLoading">
-              <n-checkbox-group v-model:value="boundSkillIds">
-                <div class="skill-check-list">
-                  <div v-for="skill in allSkills" :key="skill.id" class="skill-check-item">
-                    <n-checkbox :value="skill.id">
-                      <span class="skill-label">{{ skill.name }}</span>
-                      <n-tag v-if="skill.category" size="tiny" :bordered="false">
-                        {{ skill.category }}
-                      </n-tag>
-                    </n-checkbox>
-                  </div>
-                </div>
-              </n-checkbox-group>
-              <n-empty v-if="!allSkills.length && !skillLoading" description="暂无可用技能" size="small" />
-            </n-spin>
-            <div v-if="allSkills.length" class="modal-inline-footer">
-              <NButton size="small" type="primary" :loading="skillSaveLoading" @click="saveSkillBindings">
-                保存技能绑定
-              </NButton>
-            </div>
           </div>
         </n-tab-pane>
 

@@ -30,10 +30,12 @@ public class ResourceCatalogController {
         Long tenant = McpResourceManager.tenant();
         List<ResourceViews.Tool> result = new ArrayList<>();
         registry.catalog().forEach((source, tools) -> tools.forEach(tool -> result.add(new ResourceViews.Tool(
-                source, tool.getKey(), title(tool.getKey()), tool.getDescription(), tool.getParametersSchema(),
-                null, "平台内置", null, true,
+                source, sourceLabel(source), tool.getKey(), title(tool.getKey()), tool.getDescription(),
+                tool.getParametersSchema(), null, "平台内置", null, true,
                 mapper.bindingCount(tenant, source, tool.getKey())))));
-        if (SessionHelper.hasPermission("ai:mcp:connection:list")) {
+        // 智能体装配与 MCP 目录共用本接口；具备工具列表或 MCP 查询权限即可看到已同步工具
+        if (SessionHelper.hasPermission("ai:mcp:connection:list")
+                || SessionHelper.hasPermission("ai:agent:tool:list")) {
             var connections = new HashMap<Long, McpConnection>();
             mapper.connections(tenant).forEach(row -> connections.put(row.getId(), row));
             for (var tool : mapper.tools(tenant, null)) {
@@ -41,15 +43,29 @@ public class ResourceCatalogController {
                 if (row == null) {
                     continue;
                 }
+                String label = row.getConnectionName() == null || row.getConnectionName().isBlank()
+                        ? "MCP" : row.getConnectionName();
                 result.add(new ResourceViews.Tool(
-                        "mcp", tool.getToolKey(), tool.getTitle(), tool.getDescription(), tool.getInputSchema(),
+                        "mcp", label, tool.getToolKey(),
+                        tool.getTitle() == null || tool.getTitle().isBlank() ? tool.getRemoteName() : tool.getTitle(),
+                        tool.getDescription(), tool.getInputSchema(),
                         row.getId(), row.getConnectionName(), tool.getContractHash(),
                         McpResourceManager.available(row, tool),
                         mapper.bindingCount(tenant, "mcp", tool.getToolKey())));
             }
         }
-        result.sort(Comparator.comparing(ResourceViews.Tool::source).thenComparing(ResourceViews.Tool::name));
+        result.sort(Comparator.comparing(ResourceViews.Tool::source)
+                .thenComparing(t -> t.title() == null ? "" : t.title()));
         return RespInfo.success(new ResourceViews.Catalog(result));
+    }
+
+    private String sourceLabel(String source) {
+        return switch (source) {
+            case "builtin" -> "内置工具";
+            case "capability" -> "能力平台";
+            case "mcp" -> "MCP";
+            default -> source;
+        };
     }
 
     private String title(String key) {

@@ -14,11 +14,15 @@ import com.mdframe.forge.plugin.ai.resource.mapper.McpResourceMapper;
 import com.mdframe.forge.starter.core.enums.EnableStatus;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
+import com.mdframe.forge.starter.outbound.constant.OutboundScenes;
+import com.mdframe.forge.starter.outbound.domain.dto.OutboundWhitelistSaveRequest;
+import com.mdframe.forge.starter.outbound.service.OutboundWhitelistService;
 import io.modelcontextprotocol.spec.McpSchema;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -42,6 +46,7 @@ public class McpResourceManager {
     private final McpCatalogTransactions transactions;
     private final AiSecretCrypto secrets;
     private final AgentToolPermissionService permissions;
+    private final OutboundWhitelistService outboundWhitelist;
 
     public static Long tenant() {
         Long id = SessionHelper.getTenantId();
@@ -55,11 +60,15 @@ public class McpResourceManager {
         Long tenant = tenant();
         var tools = mapper.tools(tenant, null);
         return mapper.connections(tenant).stream()
-                .map(row -> view(row, (int) tools.stream()
+                .map(row -> view(row, tools.stream()
                         .filter(t -> t.getConnectionId().equals(row.getId())
                                 && EnableStatus.ENABLED.matches(t.getAvailable())
-                                && t.getConnectionVersion().equals(row.getRowVersion()))
-                        .count()))
+                                && Objects.equals(t.getConnectionVersion(), row.getRowVersion()))
+                        .map(t -> new ResourceViews.SyncedTool(
+                                t.getToolKey(),
+                                t.getTitle() == null || t.getTitle().isBlank() ? t.getRemoteName() : t.getTitle(),
+                                t.getDescription()))
+                        .toList()))
                 .toList();
     }
 
@@ -121,7 +130,7 @@ public class McpResourceManager {
             mapper.invalidate(tenant, row.getId(), SessionHelper.getUserId());
             row.setRowVersion(dto.expectedRowVersion() + 1);
         }
-        return view(row, 0);
+        return view(row, List.of());
     }
 
     public McpConnection require(Long id) {
@@ -155,6 +164,35 @@ public class McpResourceManager {
             throw new BusinessException("连接或目录读取失败，请检查地址、令牌和超时后重试；已有绑定与权限保持不变");
         }
         transactions.replace(row, tools, SessionHelper.getUserId(), SessionHelper.getActiveOrgId());
+    }
+
+    /**
+     * 超级管理员将 MCP 源写入平台出站白名单（AI_MCP），无需改配置文件重启。
+     * 本机 / 链路本地等仍会被 {@link McpDestinationPolicy#require} 拒绝。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public String allowOrigin(String endpoint) {
+        SessionHelper.assertAdmin("只有超级管理员可以放行 MCP 出站地址");
+        URI uri = McpDestinationPolicy.parse(endpoint);
+        int port = uri.getPort() < 0 ? ("https".equals(uri.getScheme()) ? 443 : 80) : uri.getPort();
+        OutboundWhitelistSaveRequest request = new OutboundWhitelistSaveRequest();
+        request.setScene(OutboundScenes.AI_MCP);
+        request.setProtocol(uri.getScheme());
+        request.setHost(uri.getHost());
+        request.setPortStart(port);
+        request.setPortEnd(port);
+        request.setAllowPrivate(0);
+        request.setStatus(1);
+        request.setRemark("MCP 服务出站 " + McpDestinationPolicy.origin(uri));
+        try {
+            outboundWhitelist.create(request);
+        }
+        catch (BusinessException e) {
+            if (e.getMessage() == null || !e.getMessage().contains("重叠")) {
+                throw e;
+            }
+        }
+        return McpDestinationPolicy.origin(uri);
     }
 
     public static String contract(McpConnection row, McpSchema.Tool tool, McpGateway gateway) {
@@ -253,12 +291,13 @@ public class McpResourceManager {
         };
     }
 
-    private ResourceViews.Connection view(McpConnection row, int count) {
+    private ResourceViews.Connection view(McpConnection row, List<ResourceViews.SyncedTool> tools) {
+        List<ResourceViews.SyncedTool> synced = tools == null ? List.of() : List.copyOf(tools);
         return new ResourceViews.Connection(
                 row.getId(), row.getConnectionCode(), row.getConnectionName(), row.getEndpoint(),
                 row.getSecretCipher() != null && !row.getSecretCipher().isBlank(),
                 row.getTimeoutSeconds(), row.getEnabled(), row.getRowVersion(),
                 row.getSyncState(), row.getErrorCode(), row.getSyncedAt(),
-                count, destinations.allowed(row.getEndpoint()));
+                synced.size(), destinations.allowed(row.getEndpoint()), synced);
     }
 }

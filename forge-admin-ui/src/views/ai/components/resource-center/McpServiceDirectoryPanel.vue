@@ -1,5 +1,6 @@
 <script setup>
 import {
+  NAlert,
   NButton,
   NDataTable,
   NDrawer,
@@ -15,22 +16,43 @@ import {
 } from 'naive-ui'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import {
+  mcpAllowOrigin,
   mcpConnectionCreate,
   mcpConnectionDelete,
   mcpConnectionList,
   mcpConnectionSync,
   mcpConnectionUpdate,
 } from '@/api/ai'
+import { mcpOriginOf, parseMcpServersConfig } from './mcpConfigImport'
 import './resource-center.css'
 
 const loading = ref(false)
 const saving = ref(false)
 const busyId = ref(null)
+const allowBusy = ref(null)
 const keyword = ref('')
 const rows = ref([])
 const drawerOpen = ref(false)
+const importOpen = ref(false)
+const importText = ref('')
+const importBusy = ref(false)
 const toolsDrawer = reactive({ open: false, connectionName: '', tools: [] })
 const formRef = ref(null)
+
+const blockedOrigins = computed(() => {
+  const seen = new Set()
+  const list = []
+  for (const row of rows.value) {
+    if (row.destinationAllowed)
+      continue
+    const origin = mcpOriginOf(row.endpoint)
+    if (!origin || seen.has(origin))
+      continue
+    seen.add(origin)
+    list.push(origin)
+  }
+  return list
+})
 
 const form = reactive({
   id: null,
@@ -75,7 +97,7 @@ function syncLabel(state) {
   return '未同步'
 }
 
-function openCreate() {
+function openCreate(preset = null) {
   Object.assign(form, {
     id: null,
     expectedRowVersion: null,
@@ -86,8 +108,87 @@ function openCreate() {
     clearToken: false,
     timeoutSeconds: 15,
     enabled: 1,
+    ...(preset || {}),
   })
   drawerOpen.value = true
+}
+
+function openImport() {
+  importText.value = ''
+  importOpen.value = true
+}
+
+function applyImport() {
+  try {
+    const entries = parseMcpServersConfig(importText.value)
+    importOpen.value = false
+    if (entries.length === 1) {
+      openCreate(entries[0])
+      window.$message.success('已填入 MCP 配置，请确认后保存')
+      return
+    }
+    void importAll(entries)
+  }
+  catch (e) {
+    window.$message.error(e.message || '导入失败')
+  }
+}
+
+async function importAll(entries) {
+  importBusy.value = true
+  let ok = 0
+  try {
+    for (const item of entries) {
+      const res = await mcpConnectionCreate(toSavePayload({
+        ...item,
+        id: null,
+        expectedRowVersion: 0,
+        clearToken: false,
+      }))
+      if (res.code === 200)
+        ok += 1
+      else
+        window.$message.warning(`${item.connectionCode}：${res.msg || '保存失败'}`)
+    }
+    window.$message.success(`已导入 ${ok}/${entries.length} 个 MCP 服务`)
+    await loadList()
+  }
+  catch (e) {
+    window.$message.error(e.message || '批量导入失败')
+  }
+  finally {
+    importBusy.value = false
+  }
+}
+
+async function copyOrigin(origin) {
+  try {
+    await navigator.clipboard.writeText(origin)
+    window.$message.success('已复制精确源地址')
+  }
+  catch {
+    window.$message.warning('复制失败，请手动选中地址')
+  }
+}
+
+async function allowOrigin(origin) {
+  allowBusy.value = origin
+  try {
+    const res = await mcpAllowOrigin(origin)
+    if (res.code === 200) {
+      window.$message.success(`已放行 ${res.data?.origin || origin}，可重新「测试并同步」`)
+      await loadList()
+    }
+    else {
+      window.$message.error(res.msg || '放行失败')
+    }
+  }
+  catch (e) {
+    window.$message.error(e.message || '放行失败（需超级管理员）')
+  }
+  finally {
+    allowBusy.value = null
+  }
 }
 
 function openEdit(row) {
@@ -125,6 +226,20 @@ async function loadList() {
   }
 }
 
+function toSavePayload(source = form) {
+  return {
+    id: source.id || null,
+    connectionCode: source.connectionCode,
+    connectionName: source.connectionName,
+    endpoint: source.endpoint,
+    bearerToken: source.token || null,
+    clearSecret: !!source.clearToken,
+    timeoutSeconds: Number(source.timeoutSeconds || 15),
+    enabled: Number(source.enabled ?? 1),
+    expectedRowVersion: source.id ? Number(source.expectedRowVersion || 1) : 0,
+  }
+}
+
 async function handleSave() {
   try {
     await formRef.value?.validate()
@@ -134,7 +249,7 @@ async function handleSave() {
   }
   saving.value = true
   try {
-    const payload = { ...form }
+    const payload = toSavePayload()
     const res = form.id
       ? await mcpConnectionUpdate(payload)
       : await mcpConnectionCreate(payload)
@@ -214,6 +329,16 @@ const columns = [
     ellipsis: { tooltip: true },
   },
   {
+    title: '出站',
+    key: 'destinationAllowed',
+    width: 96,
+    render: row => h(
+      NTag,
+      { size: 'small', type: row.destinationAllowed ? 'success' : 'warning', bordered: false },
+      () => (row.destinationAllowed ? '已放行' : '未加白'),
+    ),
+  },
+  {
     title: '同步状态',
     key: 'syncState',
     width: 110,
@@ -272,11 +397,41 @@ onMounted(() => {
         <NButton secondary :loading="loading" @click="loadList">
           刷新
         </NButton>
-        <NButton type="primary" @click="openCreate">
+        <NButton secondary :loading="importBusy" @click="openImport">
+          从 MCP 配置导入
+        </NButton>
+        <NButton type="primary" @click="openCreate()">
           接入 MCP 服务
         </NButton>
       </NSpace>
     </div>
+
+    <NAlert
+      v-if="blockedOrigins.length"
+      type="warning"
+      :bordered="false"
+      style="margin-bottom: 12px"
+      title="以下地址当前不能直接同步（多半是 HTTP / 私网）"
+    >
+      <div v-for="origin in blockedOrigins" :key="origin" style="display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap">
+        <code>{{ origin }}</code>
+        <NButton
+          size="tiny"
+          type="primary"
+          secondary
+          :loading="allowBusy === origin"
+          @click="allowOrigin(origin)"
+        >
+          一键放行
+        </NButton>
+        <NButton size="tiny" quaternary type="primary" @click="copyOrigin(origin)">
+          复制
+        </NButton>
+      </div>
+      <p style="margin: 8px 0 0; font-size: 12px; color: var(--text-secondary)">
+        公网 HTTPS 一般不用加白。HTTP 地址可由<strong>超级管理员</strong>在本页一键写入平台出站白名单（立即生效，无需重启）；本机与未授权私网仍禁止。
+      </p>
+    </NAlert>
 
     <NDataTable
       :columns="columns"
@@ -321,6 +476,30 @@ onMounted(() => {
             </NButton>
             <NButton type="primary" :loading="saving" @click="handleSave">
               保存
+            </NButton>
+          </NSpace>
+        </template>
+      </NDrawerContent>
+    </NDrawer>
+
+    <NDrawer v-model:show="importOpen" :width="520">
+      <NDrawerContent title="从 MCP 配置导入" closable>
+        <p style="margin: 0 0 10px; font-size: 13px; color: var(--text-secondary)">
+          粘贴 Cursor / Claude Desktop 的 <code>mcpServers</code> JSON，将自动识别 HTTP 地址与 Bearer 令牌。
+        </p>
+        <NInput
+          v-model:value="importText"
+          type="textarea"
+          :rows="16"
+          placeholder='{"mcpServers":{"forge-docs":{"type":"http","url":"http://host:port/mcp","headers":{"Authorization":"Bearer …"}}}}'
+        />
+        <template #footer>
+          <NSpace justify="end">
+            <NButton @click="importOpen = false">
+              取消
+            </NButton>
+            <NButton type="primary" :loading="importBusy" @click="applyImport">
+              解析并导入
             </NButton>
           </NSpace>
         </template>

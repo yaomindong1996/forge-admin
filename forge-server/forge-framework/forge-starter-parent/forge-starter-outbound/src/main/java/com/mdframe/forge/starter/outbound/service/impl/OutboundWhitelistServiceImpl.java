@@ -90,8 +90,11 @@ public class OutboundWhitelistServiceImpl implements OutboundWhitelistService {
         validatePorts(request.getPortStart(), request.getPortEnd());
         int allowPrivate = normalizeFlag(request.getAllowPrivate(), "私网例外标志不合法");
         int status = normalizeFlag(request.getStatus(), "状态不合法");
-        if (OutboundScenes.JOB_WEBHOOK.equals(scene) && allowPrivate == 1) {
-            throw new BusinessException("JOB_WEBHOOK场景禁止私网例外");
+        if ((OutboundScenes.JOB_WEBHOOK.equals(scene)
+                || OutboundScenes.COLLABORATION_PROVIDER.equals(scene)
+                || OutboundScenes.EXTERNAL_CONNECTOR.equals(scene)
+                || OutboundScenes.AI_MCP.equals(scene)) && allowPrivate == 1) {
+            throw new BusinessException(scene + "场景禁止私网例外");
         }
         if (request.getRemark() != null && request.getRemark().length() > 500) {
             throw new BusinessException("备注长度不能超过500个字符");

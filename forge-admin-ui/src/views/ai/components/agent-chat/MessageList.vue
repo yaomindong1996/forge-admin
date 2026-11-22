@@ -234,7 +234,7 @@ defineExpose({ scrollToBottom, beforePrepend, afterPrepend })
 <style scoped>
 .message-area {
   flex: 1;
-  padding: 28px 24px 12px;
+  padding: 20px 24px 4px;
   overflow-y: auto;
   background: var(--surface);
   scrollbar-width: thin;

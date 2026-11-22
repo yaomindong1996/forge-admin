@@ -15,6 +15,7 @@ import {
   contextConfigDelete,
   contextConfigList,
   contextConfigUpdate,
+  agentSkillPackages,
   knowledgePage,
   modelListByProvider,
   providerPage,
@@ -44,14 +45,49 @@ export function applyAgentPagePart2(deps = {}) {
     chatStatusText, sessionId, pagination, filter, baseMode, baseEditingAgent, defaultPrompt, agentForm,
     modelParamEnabled, baseForm, statusFilterOptions, contextTypeOptions, reservedMcpToolOptions, baseRules, agentRules, providerOptions,
     modelOptions, modelSelectionModeOptions, routePolicyOptions, selectedProviderName, selectedModelLabel, pageCount, baseModalTitle, enabledContextCount,
-    selectedMcpToolLabels, suggestedQuestionCount, publishTimeText, openingStatement, previewMessages, suggestedQuestionList, canSendChat,
+    selectedMcpToolLabels, boundToolCount, suggestedQuestionCount, publishTimeText, openingStatement, previewMessages, suggestedQuestionList, canSendChat,
   } = deps
-  async function updateToolEnabled(tool, enabled) {
+  const boundSkillPackageLabels = ref([])
+  const boundKnowledgeLabels = computed(() => {
+    const ids = new Set((agentForm.knowledgeIds || []).map(String))
+    return knowledgeOptions.value
+      .filter(item => ids.has(String(item.id)))
+      .map(item => item.knowledgeName || item.name || item.title)
+      .filter(Boolean)
+  })
+
+  async function loadBoundSkillPackages() {
+    if (!agentForm.id) {
+      boundSkillPackageLabels.value = []
+      return
+    }
     try {
-      await agentToolUpdate({ ...tool, enabled: enabled ? '1' : '0' })
+      const res = await agentSkillPackages(agentForm.id)
+      const rows = res.code === 200 && Array.isArray(res.data) ? res.data : []
+      boundSkillPackageLabels.value = rows.map((row) => {
+        const name = row.packageName || row.name || row.packageCode || row.code
+        const ver = row.versionName || row.version
+        return ver ? `${name} v${ver}` : name
+      }).filter(Boolean)
+    }
+    catch {
+      boundSkillPackageLabels.value = []
+    }
+  }
+
+  async function updateToolEnabled(tool, enabled) {
+    const previous = tool.enabled
+    tool.enabled = !!enabled
+    try {
+      await agentToolUpdate({
+        ...tool,
+        enabled: enabled ? '1' : '0',
+        displayTitle: undefined,
+        sourceLabel: undefined,
+      })
     }
     catch (e) {
-      tool.enabled = !enabled
+      tool.enabled = previous
       window.$message.error(e.message || '更新失败')
     }
   }
@@ -109,12 +145,22 @@ export function applyAgentPagePart2(deps = {}) {
     finally { knowledgeLoading.value = false }
   }
 
-  // 打开工具与技能弹窗时加载数据
+  // 打开工具与技能弹窗时加载数据（不再加载旧版技能）
   watch(toolModalVisible, (visible) => {
     if (visible) {
       loadAgentTools()
-      loadSkills()
       loadKnowledgeList()
+      loadBoundSkillPackages()
+    }
+  })
+
+  watch(() => agentForm.id, (id) => {
+    if (id) {
+      void loadKnowledgeList()
+      void loadBoundSkillPackages()
+    }
+    else {
+      boundSkillPackageLabels.value = []
     }
   })
 
@@ -149,6 +195,11 @@ export function applyAgentPagePart2(deps = {}) {
       reasoningTime: null,
       time: now,
       streaming: true,
+      toolCalls: [],
+      resources: {
+        skills: [...boundSkillPackageLabels.value],
+        knowledge: [...boundKnowledgeLabels.value],
+      },
     })
     const streamId = assistantMessage.id
     const streamState = {
@@ -273,8 +324,41 @@ export function applyAgentPagePart2(deps = {}) {
         chatStatusText.value = '生成中'
         break
       case 'TOOL_CALL_START':
-        chatStatusText.value = data.tool ? `调用工具 ${data.tool}` : '调用工具'
+        if (!Array.isArray(assistantMessage.toolCalls))
+          assistantMessage.toolCalls = []
+        assistantMessage.toolCalls.push({
+          callId: data.toolCallId || '',
+          name: data.tool || '工具',
+          label: data.label || data.tool || '工具',
+          source: data.source || '',
+          args: data.args ?? '',
+          result: '',
+          status: 'running',
+          error: '',
+        })
+        chatStatusText.value = data.label || data.tool ? `调用工具 ${data.label || data.tool}` : '调用工具'
         break
+      case 'TOOL_RESULT_END': {
+        const tools = assistantMessage.toolCalls || []
+        const item = [...tools].reverse().find((t) => {
+          if (data.toolCallId && t.callId)
+            return t.callId === data.toolCallId
+          return t.name === data.tool && t.status === 'running'
+        })
+        if (item) {
+          item.status = data.success === false ? 'error' : 'done'
+          item.error = data.success === false ? '工具执行失败' : ''
+        }
+        break
+      }
+      case 'TOOL_RESULT_TEXT_DELTA':
+      case 'TOOL_RESULT_DATA_DELTA': {
+        const tools = assistantMessage.toolCalls || []
+        const item = [...tools].reverse().find(t => t.status === 'running')
+        if (item)
+          item.result = `${item.result || ''}${data.content || ''}`
+        break
+      }
       case 'HINT_BLOCK':
         if (data.hint)
           window.$message.info(data.hint)

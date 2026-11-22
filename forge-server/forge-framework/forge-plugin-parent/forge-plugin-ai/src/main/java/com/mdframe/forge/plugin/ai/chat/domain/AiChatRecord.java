@@ -6,8 +6,10 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -15,9 +17,12 @@ import java.time.LocalDateTime;
 
 /**
  * AI 对话记录实体（对应 ai_chat_record 表）
+ * 保留无参构造，避免自定义 resultMap 触发全参构造器自动映射失败。
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @TableName("ai_chat_record")
 public class AiChatRecord implements Serializable {
 

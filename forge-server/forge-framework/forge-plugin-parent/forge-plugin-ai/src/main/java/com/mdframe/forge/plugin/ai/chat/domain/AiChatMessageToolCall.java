@@ -6,8 +6,10 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -16,9 +18,12 @@ import java.time.LocalDateTime;
 /**
  * AI 对话工具调用明细实体（对应 ai_chat_message_tool_call 表）。
  * 一次工具调用一行，按 record_id 关联 assistant 消息，用于回放、筛选与审计。
+ * 必须保留无参构造：自定义 resultMap 只映射部分列，避免 MyBatis 走全参构造器自动映射失败。
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @TableName("ai_chat_message_tool_call")
 public class AiChatMessageToolCall implements Serializable {
 

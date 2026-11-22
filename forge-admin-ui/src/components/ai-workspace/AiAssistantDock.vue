@@ -16,6 +16,8 @@ const {
   start,
   move,
   end,
+  cancelInteraction,
+  clampLauncherAwayFromHeader,
   shouldAllowClick,
 } = useAssistantWindow()
 
@@ -23,8 +25,12 @@ const open = ref(false)
 const conversationRef = ref(null)
 
 async function openPanel() {
-  if (!shouldAllowClick())
+  // 先判定是否为拖拽；再清掉 pointer capture，避免 launcher 被 v-show 隐藏后坐标被甩到顶栏
+  if (!shouldAllowClick()) {
+    cancelInteraction()
     return
+  }
+  cancelInteraction()
   open.value = true
   void store.loadAgents()
   await nextTick()
@@ -32,6 +38,9 @@ async function openPanel() {
 }
 
 function closePanel() {
+  cancelInteraction()
+  maximized.value = false
+  clampLauncherAwayFromHeader()
   open.value = false
 }
 

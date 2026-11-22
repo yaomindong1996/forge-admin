@@ -31,6 +31,8 @@ function toolEvent(type, data, msg) {
     msg.toolCalls.push({
       callId: data?.toolCallId,
       name: data?.tool || '工具',
+      label: data?.label || '',
+      source: data?.source || '',
       args: data?.args ?? '',
       result: '',
       status: 'running',

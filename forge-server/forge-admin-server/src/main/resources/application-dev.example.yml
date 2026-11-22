@@ -71,6 +71,9 @@ spring.data:
 # FORGE_CAPABILITY_OPENAPI_RESOURCE 对应统一 REST 开放网关，两个 Token 不可交叉使用。
 # 显式关闭 FORGE_CRYPTO_BOOTSTRAP_ENABLED 时必须手工提供，否则能力身份模块失败关闭。
 # 浏览器型 MCP 客户端还应通过 FORGE_CAPABILITY_MCP_ALLOWED_ORIGINS 配置精确 Origin 白名单。
+# 远程 MCP：默认允许公网 HTTPS（FORGE_AI_MCP_ALLOW_UNLISTED_HTTPS=true），不必每个源都加白。
+# 仅 HTTP/私网需 FORGE_AI_MCP_ALLOWED_ORIGINS=http://host:port（精确 scheme://host:port）。
+# 企业若要求全部精确加白：FORGE_AI_MCP_ALLOW_UNLISTED_HTTPS=false。
 # 受控业务动作默认跟随 FORGE_MCP_ENABLED，可用 FORGE_CAPABILITY_SECURE_ACTIONS_ENABLED=false 单独关闭。
 # 外部用户委托无需在机器客户端上绑定 Forge 账号，但仍需配置受信 OIDC：
 # FORGE_CAPABILITY_OIDC_PROVIDER_ENABLED=true

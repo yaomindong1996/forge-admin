@@ -9,8 +9,10 @@ public final class OutboundScenes {
     public static final String FLOW_API = "FLOW_API";
     public static final String COLLABORATION_PROVIDER = "COLLABORATION_PROVIDER";
     public static final String EXTERNAL_CONNECTOR = "EXTERNAL_CONNECTOR";
+    /** AI MCP Streamable HTTP 远程工具出站；禁止私网例外。 */
+    public static final String AI_MCP = "AI_MCP";
     public static final Set<String> SUPPORTED = Set.of(
-            JOB_WEBHOOK, JOB_RPC, FLOW_API, COLLABORATION_PROVIDER, EXTERNAL_CONNECTOR);
+            JOB_WEBHOOK, JOB_RPC, FLOW_API, COLLABORATION_PROVIDER, EXTERNAL_CONNECTOR, AI_MCP);
 
     private OutboundScenes() {
     }

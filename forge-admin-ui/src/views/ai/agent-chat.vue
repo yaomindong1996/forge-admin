@@ -139,6 +139,7 @@ import {
   sessionPin,
   sessionRename,
 } from '@/api/ai'
+import { resolveAgentRunResources } from '@/composables/ai/agent-run-resources'
 import { renderMarkdown, renderMarkdownStreaming } from './components/agent-chat/chat-markdown'
 import { colorFor, formatSessionBucket, parsePresetQuestions } from './components/agent-chat/chat-utils'
 import ChatInput from './components/agent-chat/ChatInput.vue'
@@ -450,6 +451,7 @@ function createAssistantMessage() {
     html: '',
     thinking: '',
     toolCalls: [],
+    resources: { skills: [], knowledge: [] },
     status: 'streaming',
     error: '',
     firstTokenMs: null,
@@ -463,7 +465,18 @@ function createAssistantMessage() {
   // 若继续用 push 前的原始对象（assistantMsg），`.content/.thinking += ...` 会绕过 Proxy 的
   // set 拦截、不触发依赖，直到 isStreaming 等其它响应式变化才整篇刷新 →「不流式、一次性全出」。
   const reactiveMsg = messages.value[messages.value.length - 1]
+  void attachRunResources(reactiveMsg)
   return reactiveMsg
+}
+
+async function attachRunResources(msg) {
+  const agent = currentAgent.value
+  if (!agent || !msg)
+    return
+  msg.resources = await resolveAgentRunResources({
+    agentId: agent.id,
+    knowledgeIds: agent.knowledgeIds,
+  })
 }
 
 function backToBuilder() {

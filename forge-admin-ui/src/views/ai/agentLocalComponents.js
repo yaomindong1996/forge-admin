@@ -2,6 +2,7 @@
 import { NButton, NDropdown, NPopconfirm, NTag } from 'naive-ui'
 import AgentConfigForm from './components/AgentConfigForm.vue'
 import AgentResourceBindingPanel from './components/AgentResourceBindingPanel.vue'
+import ChatRunTrace from './components/agent-chat/ChatRunTrace.vue'
 
 export const agentLocalComponents = {
   NButton,
@@ -10,4 +11,5 @@ export const agentLocalComponents = {
   NTag,
   AgentConfigForm,
   AgentResourceBindingPanel,
+  ChatRunTrace,
 }

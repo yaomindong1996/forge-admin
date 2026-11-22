@@ -44,8 +44,12 @@ class AgentEventPipelineTest {
         try (var fixture = new Fixture()) {
             when(fixture.model.stream(any(Prompt.class))).thenReturn(answer());
             var events = fixture.run(context(31L, 7L, "short"));
+            // 审计表跳过 TEXT/THINKING/TOOL 增量；SSE 仍会推送全部事件
+            assertThat(events.stream().map(event -> event.getEventType().getCode()).toList())
+                    .contains("TEXT_BLOCK_DELTA");
             assertThat(fixture.stored).extracting(AgentEventEntity::getEventType)
-                    .containsExactlyElementsOf(events.stream().map(event -> event.getEventType().getCode()).toList());
+                    .doesNotContain("TEXT_BLOCK_DELTA", "THINKING_BLOCK_DELTA", "TOOL_RESULT_TEXT_DELTA")
+                    .contains("AGENT_START", "AGENT_END");
             assertThat(fixture.stored).allMatch(row -> row.getTenantId().equals(7L));
             assertThat(fixture.threads).allMatch(thread -> thread.startsWith("synthetic-agent-events-"));
             verify(fixture.mapper, times(1)).insertBatch(any());

@@ -218,7 +218,7 @@
           <div class="section-heading">
             <i class="i-lucide:wrench" aria-hidden="true" />
             <span>能力与上下文</span>
-            <small>MCP 工具、技能资料、知识库与上下文的绑定</small>
+            <small>MCP 工具、技能资料包、知识库</small>
           </div>
 
           <div class="config-entry-grid">
@@ -234,15 +234,7 @@
                   {{ mcpToolCount }} 个工具 · {{ questionCount }} 个推荐问题
                 </div>
                 <div class="config-entry-tags">
-                  <NTag
-                    v-for="label in mcpToolLabels.slice(0, 3)"
-                    :key="label"
-                    size="tiny"
-                    :bordered="false"
-                  >
-                    {{ label }}
-                  </NTag>
-                  <span v-if="!mcpToolLabels.length" class="config-entry-empty">点击装配 MCP / 技能包 / 知识库</span>
+                  <span class="config-entry-empty">点击装配 MCP / 技能资料 / 知识库</span>
                 </div>
               </div>
               <i class="config-entry-arrow i-lucide:chevron-right" aria-hidden="true" />
@@ -273,7 +265,6 @@
 </template>
 
 <script setup>
-import { NTag } from 'naive-ui'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 defineOptions({ name: 'AgentConfigForm' })
@@ -286,7 +277,6 @@ const props = defineProps({
   modelSelectionModeOptions: { type: Array, default: () => [] },
   routePolicyOptions: { type: Array, default: () => [] },
   modelLoading: { type: Boolean, default: false },
-  mcpToolLabels: { type: Array, default: () => [] },
   mcpToolCount: { type: Number, default: 0 },
   questionCount: { type: Number, default: 0 },
   contextCount: { type: Number, default: 0 },

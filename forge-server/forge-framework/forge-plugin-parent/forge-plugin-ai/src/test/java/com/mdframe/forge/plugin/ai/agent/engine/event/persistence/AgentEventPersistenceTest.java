@@ -60,10 +60,11 @@ class AgentEventPersistenceTest {
             persistence.flush();
         }
         verify(mapper, times(1)).insertBatch(any());
+        // TEXT_BLOCK_DELTA 等高频增量不落审计表，正文由 chat_record 聚合
         assertThat(stored).extracting(AgentEventEntity::getEventType)
-                .containsExactly("AGENT_START", "TEXT_BLOCK_DELTA", "AGENT_END");
+                .containsExactly("AGENT_START", "AGENT_END");
         assertThat(stored).extracting(AgentEventEntity::getId)
-                .containsExactly(9007199254740993L, 9007199254740994L, 9007199254740995L);
+                .containsExactly(9007199254740993L, 9007199254740994L);
         assertThat(stored).allSatisfy(row -> {
             assertThat(row.getTenantId()).isEqualTo(7L);
             assertThat(row.getCreateTime()).isNotNull();
@@ -75,10 +76,10 @@ class AgentEventPersistenceTest {
     void should_flushAtBoundAndKeepOrder_when_streamExceedsOneBatch() {
         try (var ignored = LoginUserContextHolder.open(user(31L, 7L))) {
             for (int index = 0; index < 20; index++) {
-                emit("long", AgentEventType.TEXT_BLOCK_DELTA, String.valueOf(index));
+                emit("long", AgentEventType.HINT_BLOCK, String.valueOf(index));
             }
             assertThat(stored).hasSize(20);
-            emit("long", AgentEventType.TEXT_BLOCK_DELTA, "20");
+            emit("long", AgentEventType.HINT_BLOCK, "20");
             assertThat(stored).hasSize(20);
             persistence.flush();
             persistence.flush();
@@ -102,13 +103,28 @@ class AgentEventPersistenceTest {
     @Test
     void should_flushOldSessionBeforeNewOne_when_sameTrustedOwnerReusesThread() {
         try (var ignored = LoginUserContextHolder.open(user(31L, 7L))) {
-            emit("first", AgentEventType.TEXT_BLOCK_DELTA, "first");
-            emit("second", AgentEventType.TEXT_BLOCK_DELTA, "second");
+            emit("first", AgentEventType.HINT_BLOCK, "first");
+            emit("second", AgentEventType.HINT_BLOCK, "second");
             assertThat(stored).extracting(AgentEventEntity::getSessionId).containsExactly("first");
             persistence.flush();
         }
         assertThat(stored).extracting(AgentEventEntity::getSessionId).containsExactly("first", "second");
         verify(mapper, times(2)).insertBatch(any());
+    }
+
+    @Test
+    void should_skipHighFrequencyDeltas_fromAuditTable() {
+        try (var ignored = LoginUserContextHolder.open(user(31L, 7L))) {
+            emit("delta", AgentEventType.AGENT_START, "{}");
+            emit("delta", AgentEventType.TEXT_BLOCK_DELTA, "a");
+            emit("delta", AgentEventType.THINKING_BLOCK_DELTA, "b");
+            emit("delta", AgentEventType.TOOL_RESULT_TEXT_DELTA, "c");
+            emit("delta", AgentEventType.TOOL_CALL_START, "{}");
+            emit("delta", AgentEventType.AGENT_END, "{}");
+            persistence.flush();
+        }
+        assertThat(stored).extracting(AgentEventEntity::getEventType)
+                .containsExactly("AGENT_START", "TOOL_CALL_START", "AGENT_END");
     }
 
     @Test

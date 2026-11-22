@@ -1,8 +1,8 @@
 <template>
   <div class="input-area">
     <div class="input-col">
-      <div class="composer">
-        <div class="input-attachments">
+      <div class="composer" :class="{ 'is-focused': focused }">
+        <div class="input-attachments" :class="{ 'is-empty': !attach.length }">
           <ImageUpload
             ref="imageUploadRef"
             v-model="attach"
@@ -14,39 +14,45 @@
             :disabled="isStreaming"
           />
         </div>
+
         <NInput
           v-model:value="text"
           type="textarea"
           :bordered="false"
-          :autosize="{ minRows: 1, maxRows: 6 }"
-          placeholder="输入消息…"
+          :autosize="{ minRows: 1, maxRows: 5 }"
+          placeholder="发消息…"
           :disabled="isStreaming"
+          @focus="focused = true"
+          @blur="focused = false"
           @keydown.enter.exact="onEnter"
         />
+
         <div class="composer-bar">
           <div class="composer-tools">
             <NTooltip>
               <template #trigger>
-                <NButton
-                  quaternary
-                  circle
-                  size="small"
-                  class="tool-btn"
+                <button
+                  type="button"
+                  class="tool-chip"
                   :disabled="isStreaming"
+                  aria-label="添加图片"
                   @click="triggerAttach"
                 >
-                  <template #icon>
-                    <NIcon><AttachOutline /></NIcon>
-                  </template>
-                </NButton>
+                  <NIcon size="16">
+                    <AddOutline />
+                  </NIcon>
+                </button>
               </template>
               添加图片
             </NTooltip>
-            <span class="composer-hint">Enter 发送 · Shift+Enter 换行</span>
+            <span class="tool-divider" aria-hidden="true" />
+            <span class="composer-hint">Enter 发送</span>
           </div>
+
           <NButton
             circle
             :type="isStreaming ? 'error' : 'primary'"
+            size="small"
             class="send-btn"
             :disabled="!isStreaming && !text.trim()"
             @click="isStreaming ? emit('stop') : emit('send')"
@@ -65,7 +71,7 @@
 </template>
 
 <script setup>
-import { AttachOutline, SendOutline, StopCircleOutline } from '@vicons/ionicons5'
+import { AddOutline, SendOutline, StopCircleOutline } from '@vicons/ionicons5'
 import { NButton, NIcon, NInput, NTooltip } from 'naive-ui'
 import { computed, ref } from 'vue'
 import ImageUpload from '@/components/image-upload/index.vue'
@@ -73,9 +79,7 @@ import ImageUpload from '@/components/image-upload/index.vue'
 defineOptions({ name: 'ChatInput' })
 
 const props = defineProps({
-  // 输入文本（v-model）
   modelValue: { type: String, default: '' },
-  // 附件 fileId 列表（v-model:attachments）
   attachments: { type: Array, default: () => [] },
   isStreaming: { type: Boolean, default: false },
 })
@@ -92,8 +96,8 @@ const attach = computed({
 })
 
 const imageUploadRef = ref(null)
+const focused = ref(false)
 
-// 回形针按钮触发隐藏的上传输入（内置「+」块已隐藏）
 function triggerAttach() {
   imageUploadRef.value?.triggerUpload?.()
 }
@@ -105,7 +109,6 @@ function onEnter(e) {
   emit('send')
 }
 
-// 清空上传组件内部状态（发送后父组件调用；仅重置 v-model 不足以清 UI 态）
 function clearAttachments() {
   imageUploadRef.value?.clear?.()
 }
@@ -115,9 +118,9 @@ defineExpose({ clearAttachments })
 
 <style scoped>
 .input-area {
-  padding: 12px 24px 18px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
+  flex: none;
+  padding: 8px 20px 14px;
+  background: linear-gradient(180deg, transparent 0%, var(--surface) 28%);
 }
 
 .input-col {
@@ -125,27 +128,48 @@ defineExpose({ clearAttachments })
   margin: 0 auto;
 }
 
-/* 现代圆角输入器：无边框输入 + 底部操作条 */
+/* 豆包式悬浮输入条：浅底、大圆角、轻阴影，默认单行高度 */
 .composer {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 10px 8px 14px;
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: 18px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  gap: 2px;
+  padding: 10px 12px 8px;
+  background: var(--bg-soft, #f5f7fa);
+  border: 1px solid color-mix(in srgb, var(--border, #e5e7eb) 80%, transparent);
+  border-radius: 22px;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 24px rgba(15, 23, 42, 0.04);
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    box-shadow 0.15s ease,
+    background 0.15s ease;
 }
 
-.composer:focus-within {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+.composer.is-focused {
+  background: var(--surface, #fff);
+  border-color: color-mix(in srgb, var(--primary, #3b82f6) 55%, var(--border, #e5e7eb));
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--primary, #3b82f6) 12%, transparent),
+    0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
-/* 附件缩略图行：无图时自然塌陷；隐藏内置大「+」块与文件名，缩略图紧凑圆角 */
+:global(.dark) .composer {
+  background: color-mix(in srgb, var(--bg-soft, #1e293b) 88%, #000);
+}
+
+:global(.dark) .composer.is-focused {
+  background: var(--surface, #131c2b);
+}
+
+.input-attachments.is-empty {
+  height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 .input-attachments :deep(.upload-trigger) {
   display: none;
 }
@@ -155,9 +179,9 @@ defineExpose({ clearAttachments })
 }
 
 .input-attachments :deep(.image-item) {
-  width: 64px;
-  height: 64px;
-  margin: 2px 0 6px;
+  width: 56px;
+  height: 56px;
+  margin: 0 0 4px;
   border-radius: 10px;
 }
 
@@ -165,21 +189,33 @@ defineExpose({ clearAttachments })
   display: none;
 }
 
-.input-attachments :deep(.image-actions) {
-  gap: 8px;
-}
-
-.input-attachments :deep(.action-icon) {
-  font-size: 16px;
-}
-
 .composer :deep(.n-input) {
-  background: transparent;
+  background: transparent !important;
+}
+
+.composer :deep(.n-input-wrapper) {
+  padding: 0 !important;
+}
+
+/* 光标 / 占位符垂直对齐：textarea 与 placeholder 共用同一套字号、行高、内边距 */
+.composer :deep(.n-input .n-input__textarea-el),
+.composer :deep(.n-input__placeholder) {
+  font-size: 14px;
+  line-height: 22px;
 }
 
 .composer :deep(.n-input .n-input__textarea-el) {
-  font-size: 15px;
-  line-height: 1.7;
+  min-height: 22px !important;
+  max-height: 140px;
+  padding: 6px 4px !important;
+  resize: none;
+}
+
+.composer :deep(.n-input__placeholder) {
+  top: 6px !important;
+  left: 4px !important;
+  right: 4px !important;
+  margin: 0 !important;
 }
 
 .composer-bar {
@@ -187,6 +223,8 @@ defineExpose({ clearAttachments })
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  min-height: 32px;
+  padding-top: 2px;
 }
 
 .composer-tools {
@@ -196,18 +234,45 @@ defineExpose({ clearAttachments })
   min-width: 0;
 }
 
-.tool-btn {
-  color: var(--text-muted);
-  flex-shrink: 0;
+.tool-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted, #94a3b8);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
-.tool-btn:hover {
-  color: var(--primary);
+.tool-chip:hover:not(:disabled) {
+  color: var(--primary, #2563eb);
+  background: color-mix(in srgb, var(--primary, #2563eb) 8%, transparent);
+  border-color: color-mix(in srgb, var(--primary, #2563eb) 16%, transparent);
+}
+
+.tool-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tool-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--border, #e5e7eb);
+  flex: none;
 }
 
 .composer-hint {
-  font-size: 12px;
-  color: var(--text-muted);
+  color: var(--text-muted, #94a3b8);
+  font-size: 11px;
   user-select: none;
   white-space: nowrap;
   overflow: hidden;
@@ -216,5 +281,7 @@ defineExpose({ clearAttachments })
 
 .send-btn {
   flex-shrink: 0;
+  width: 32px !important;
+  height: 32px !important;
 }
 </style>

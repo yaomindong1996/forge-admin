@@ -42,6 +42,14 @@ const boundPkgMap = computed(() => {
   return map
 })
 
+function unwrapCatalogTools(payload) {
+  if (Array.isArray(payload))
+    return payload
+  if (Array.isArray(payload?.tools))
+    return payload.tools
+  return []
+}
+
 async function loadData() {
   if (!props.agentId)
     return
@@ -49,24 +57,28 @@ async function loadData() {
   try {
     if (props.mode === 'mcp') {
       const [catalogRes, toolsRes] = await Promise.all([
-        resourceToolsCatalog({ source: 'mcp' }),
+        resourceToolsCatalog({}),
         agentToolPage({ agentId: props.agentId, pageNum: 1, pageSize: 200 }),
       ])
-      mcpCatalog.value = catalogRes.code === 200 && Array.isArray(catalogRes.data) ? catalogRes.data : []
+      const all = catalogRes.code === 200 ? unwrapCatalogTools(catalogRes.data) : []
+      mcpCatalog.value = all.filter(tool => tool.source === 'mcp' && tool.available !== false)
       agentTools.value = toolsRes.data?.records || []
     }
     else {
       const [lookupRes, boundRes] = await Promise.all([
-        skillPackagePage({ pageNum: 1, pageSize: 200, status: 'READY' }),
+        skillPackagePage({ pageNum: 1, pageSize: 100, status: 'READY' }),
         agentSkillPackages(props.agentId),
       ])
-      readyPackages.value = lookupRes.code === 200 && Array.isArray(lookupRes.data?.records) ? lookupRes.data.records : []
+      readyPackages.value = lookupRes.code === 200 && Array.isArray(lookupRes.data?.records)
+        ? lookupRes.data.records
+        : []
       boundPackages.value = boundRes.code === 200 && Array.isArray(boundRes.data) ? boundRes.data : []
     }
   }
-  catch {
+  catch (e) {
     mcpCatalog.value = []
     readyPackages.value = []
+    window.$message.error(e.message || '加载绑定列表失败')
   }
   finally {
     loading.value = false
@@ -153,7 +165,7 @@ watch(() => [props.agentId, props.mode], () => {
           @update:value="val => toggleMcpTool(tool, val)"
         />
       </div>
-      <NEmpty v-if="!loading && !mcpCatalog.length" description="请先在「资源中心 → MCP 服务」接入并同步工具" size="small" />
+      <NEmpty v-if="!loading && !mcpCatalog.length" description="请先在「资源中心 → MCP 服务」接入并「测试并同步」" size="small" />
     </div>
 
     <div v-else class="binding-list">
@@ -166,7 +178,7 @@ watch(() => [props.agentId, props.mode], () => {
             </NTag>
           </div>
           <div class="binding-row__meta">
-            {{ pkg.packageCode }} · {{ pkg.description || '只读参考资料包' }}
+            {{ pkg.packageCode }} · {{ pkg.description || '只读文档资料，按需查阅' }}
           </div>
         </div>
         <NSwitch

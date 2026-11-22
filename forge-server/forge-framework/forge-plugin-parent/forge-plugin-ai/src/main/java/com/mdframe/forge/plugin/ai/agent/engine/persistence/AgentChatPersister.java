@@ -258,7 +258,10 @@ public class AgentChatPersister implements AgentEventListener {
             closeToolCall(state, AiChatMessageStatus.ERROR.getCode(), "工具调用未正常结束");
         }
         state.toolResult.setLength(0);
-        String toolName = data != null ? data.getString("tool") : null;
+        String toolKey = data != null ? data.getString("tool") : null;
+        String label = data != null ? data.getString("label") : null;
+        // 历史回放优先展示可读标签；技术 key 仍保留在 args 旁的事件审计里
+        String toolName = StringUtils.hasText(label) ? label : toolKey;
         String argsJson = data != null && data.get("args") != null ? JSON.toJSONString(data.get("args")) : null;
         LocalDateTime now = LocalDateTime.now();
         AiChatMessageToolCall call = AiChatMessageToolCall.builder()

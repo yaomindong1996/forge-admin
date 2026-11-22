@@ -34,6 +34,10 @@ public class AgentEventPersistence {
                 || event.getSessionId().length() > 64) {
             throw new BusinessException("Agent 事件标识无效");
         }
+        // 正文/工具结果增量已由 AgentChatPersister 聚合进最终消息，审计表只留里程碑，避免拖慢流式输出
+        if (!auditWorthy(event.getEventType())) {
+            return;
+        }
         Batch batch = buffer.get();
         if (batch != null) {
             requireOwner(batch, caller);
@@ -94,6 +98,15 @@ public class AgentEventPersistence {
         entity.setParentId(event.getParentId());
         entity.setCreateTime(LocalDateTime.now());
         return entity;
+    }
+
+    /** 高频 delta 不进 ai_agent_event；对话可读内容落在 ai_chat_record / tool_call。 */
+    private static boolean auditWorthy(AgentEventType type) {
+        return switch (type) {
+            case TEXT_BLOCK_DELTA, THINKING_BLOCK_DELTA, DATA_BLOCK_DELTA,
+                 TOOL_CALL_DELTA, TOOL_RESULT_TEXT_DELTA, TOOL_RESULT_DATA_DELTA -> false;
+            default -> true;
+        };
     }
 
     private record Batch(String sessionId, Long tenantId, Long userId, List<AgentEventEntity> events) {

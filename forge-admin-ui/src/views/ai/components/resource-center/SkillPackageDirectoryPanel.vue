@@ -94,10 +94,27 @@ async function handleFileChange(event) {
   importModal.previewing = true
   try {
     const res = await skillPackagePreview(file)
-    if (res.code === 200)
-      importModal.preview = res.data
-    else
+    if (res.code === 200) {
+      const payload = res.data || {}
+      const content = payload.content || payload
+      const manifest = content.manifest || {}
+      importModal.preview = {
+        archiveHash: content.archiveHash || payload.archiveHash,
+        packageName: manifest.name || content.packageName,
+        packageCode: manifest.code || content.packageCode,
+        versionName: manifest.version || content.versionName,
+        fileCount: Array.isArray(content.files) ? content.files.length : (content.fileCount || 0),
+        totalBytes: content.totalBytes || 0,
+        files: (content.files || []).map(file => ({
+          filePath: file.filePath || file.path,
+          ...file,
+        })),
+        issues: payload.issues || [],
+      }
+    }
+    else {
       window.$message.error(res.msg || 'ZIP 预览校验失败')
+    }
   }
   catch (e) {
     window.$message.error(e.message || 'ZIP 预览校验失败')
@@ -174,8 +191,17 @@ async function openDetail(row) {
   detailDrawer.data = null
   try {
     const res = await skillPackageVersionDetail(row.versionId)
-    if (res.code === 200)
-      detailDrawer.data = res.data
+    if (res.code === 200) {
+      const detail = res.data || {}
+      const version = detail.version || detail
+      detailDrawer.data = {
+        ...version,
+        packageName: version.packageName || version.name,
+        packageCode: version.packageCode || version.code,
+        versionName: version.versionName || version.version,
+        files: detail.files || [],
+      }
+    }
   }
   finally {
     detailDrawer.loading = false

@@ -65,8 +65,12 @@ export function useAssistantWindow() {
       return
     const dx = event.clientX - dragStart.x
     const dy = event.clientY - dragStart.y
-    if (Math.abs(dx) > 4 || Math.abs(dy) > 4)
+    // 未超过阈值前不改坐标，避免「点击打开」时轻微抖动把悬浮球甩到屏幕顶部盖住导航
+    if (!moved) {
+      if (Math.abs(dx) <= 4 && Math.abs(dy) <= 4)
+        return
       moved = true
+    }
 
     const vw = viewport.value.width
     const vh = viewport.value.height
@@ -74,7 +78,8 @@ export function useAssistantWindow() {
     if (activeMode === 'launcher') {
       launcherPos.value = {
         right: clamp(dragStart.launcherRight - dx, 12, vw - 130),
-        bottom: clamp(dragStart.launcherBottom - dy, 12, vh - 56),
+        // 预留顶栏高度，避免悬浮球拖进导航区域
+        bottom: clamp(dragStart.launcherBottom - dy, 12, vh - 120),
       }
       return
     }
@@ -110,10 +115,32 @@ export function useAssistantWindow() {
     }
   }
 
-  function end() {
+  function end(event) {
+    if (event?.currentTarget?.hasPointerCapture?.(event.pointerId))
+      event.currentTarget.releasePointerCapture(event.pointerId)
     activeMode = null
     dragStart = null
     dragging.value = false
+  }
+
+  /** 打开面板前强制收口拖拽，防止隐藏 launcher 后仍持有 pointer capture 把位置甩飞 */
+  function cancelInteraction() {
+    activeMode = null
+    dragStart = null
+    dragging.value = false
+  }
+
+  /** 关闭后若悬浮球盖住顶栏，收回右下角安全区 */
+  function clampLauncherAwayFromHeader() {
+    const vh = viewport.value.height
+    const minBottomFromTop = 72
+    const maxBottom = Math.max(MARGIN, vh - minBottomFromTop - 48)
+    if (launcherPos.value.bottom > maxBottom) {
+      launcherPos.value = {
+        right: Math.min(launcherPos.value.right, Math.max(MARGIN, viewport.value.width - 130)),
+        bottom: MARGIN,
+      }
+    }
   }
 
   function shouldAllowClick() {
@@ -159,6 +186,8 @@ export function useAssistantWindow() {
     start,
     move,
     end,
+    cancelInteraction,
+    clampLauncherAwayFromHeader,
     startDrag,
     moveDrag: move,
     endDrag: end,

@@ -1,6 +1,7 @@
 package com.mdframe.forge.plugin.ai.resource;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import com.mdframe.forge.plugin.ai.resource.dto.McpAllowOriginDTO;
 import com.mdframe.forge.plugin.ai.resource.dto.McpConnectionActionDTO;
 import com.mdframe.forge.plugin.ai.resource.dto.McpConnectionSaveDTO;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/ai/mcp/connection")
@@ -54,6 +56,14 @@ public class McpResourceController {
     public RespInfo<Void> sync(@PathVariable Long id, @Valid @RequestBody McpConnectionActionDTO dto) {
         resources.sync(id, dto.expectedRowVersion());
         return RespInfo.success();
+    }
+
+    @PostMapping("/allow-origin")
+    @ApiDecrypt
+    @SaCheckPermission("ai:mcp:connection:edit")
+    @OperationLog(module = "MCP资源", desc = "放行MCP出站源", saveRequestParams = false, saveResponseResult = false)
+    public RespInfo<Map<String, String>> allowOrigin(@Valid @RequestBody McpAllowOriginDTO dto) {
+        return RespInfo.success(Map.of("origin", resources.allowOrigin(dto.endpoint())));
     }
 
     @DeleteMapping("/{id}")

@@ -68,11 +68,19 @@ const columns = [
   },
 ]
 
+function unwrapCatalogTools(payload) {
+  if (Array.isArray(payload))
+    return payload
+  if (Array.isArray(payload?.tools))
+    return payload.tools
+  return []
+}
+
 async function loadCatalog() {
   loading.value = true
   try {
     const res = await resourceToolsCatalog({})
-    items.value = res.code === 200 && Array.isArray(res.data) ? res.data : []
+    items.value = res.code === 200 ? unwrapCatalogTools(res.data) : []
   }
   catch (e) {
     window.$message.error(e.message || '加载工具目录失败')

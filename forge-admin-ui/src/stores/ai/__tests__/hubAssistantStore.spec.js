@@ -13,6 +13,9 @@ vi.mock('@/api/ai', () => ({
   hubTodos: (...args) => hubTodosMock(...args),
   streamEngineChat: (...args) => streamEngineChatMock(...args),
   engineStop: (...args) => engineStopMock(...args),
+  agentGetById: vi.fn(() => Promise.resolve({ code: 200, data: null })),
+  agentSkillPackages: vi.fn(() => Promise.resolve({ code: 200, data: [] })),
+  knowledgePage: vi.fn(() => Promise.resolve({ code: 200, data: { records: [] } })),
 }))
 
 vi.mock('@/store', () => ({
@@ -66,10 +69,17 @@ describe('useHubAssistantStore', () => {
       },
     })
     streamEngineChatMock.mockImplementation((_payload, onEvent, onComplete) => {
-      onEvent('TOOL_CALL_START', { tool: 'mcp:crm:search' })
-      onEvent('TOOL_RESULT_END', { tool: 'mcp:crm:search', error: false })
+      onEvent('TOOL_CALL_START', {
+        tool: 'mcp_1_abc',
+        toolCallId: 'c1',
+        label: 'CRM / search',
+        source: 'mcp',
+      })
+      onEvent('TOOL_RESULT_END', { tool: 'mcp_1_abc', toolCallId: 'c1', success: true })
       onEvent('TEXT_BLOCK_DELTA', { text: '你好，' })
       onEvent('TEXT_BLOCK_DELTA', { text: '这是测试回复。' })
+      onEvent('MODEL_CALL_END', { usage: { totalTokens: 42 } })
+      onEvent('AGENT_END', {})
       onComplete()
       return { abort: vi.fn() }
     })
@@ -80,7 +90,19 @@ describe('useHubAssistantStore', () => {
     expect(store.turns).toHaveLength(1)
     expect(store.turns[0].agent.code).toBe('general_assistant')
     expect(store.turns[0].answer).toBe('你好，这是测试回复。')
-    expect(store.turns[0].tools).toEqual([{ name: 'mcp:crm:search', status: 'done' }])
+    expect(store.turns[0].tools).toEqual([{
+      callId: 'c1',
+      name: 'mcp_1_abc',
+      label: 'CRM / search',
+      source: 'mcp',
+      args: '',
+      result: '',
+      status: 'done',
+      error: '',
+    }])
+    expect(store.turns[0].tokenUsage).toBe(42)
+    expect(store.turns[0].firstTokenMs).toEqual(expect.any(Number))
+    expect(store.turns[0].totalMs).toEqual(expect.any(Number))
     expect(store.turns[0].status).toBe('done')
     expect(store.busy).toBe(false)
   })

@@ -83,6 +83,14 @@ spring:
       observations:
         log-prompt: false     # 生产环境禁止记录 prompt
         log-completion: false # 生产环境禁止记录 completion
+    resources:
+      mcp:
+        # 默认 true：公网 HTTPS MCP 无需逐个加白；HTTP/私网仍须精确源白名单。
+        # 企业若要「全部精确加白」，设 FORGE_AI_MCP_ALLOW_UNLISTED_HTTPS=false。
+        allow-unlisted-https: ${FORGE_AI_MCP_ALLOW_UNLISTED_HTTPS:true}
+        # 可选：启动时装入的精确源（scheme://host:port，逗号分隔）。日常更推荐超级管理员在 MCP 页「一键放行」写入 AI_MCP 出站白名单。
+        # 例：FORGE_AI_MCP_ALLOWED_ORIGINS=http://www.dlforgelab.com:8084
+        allowed-origins: ${FORGE_AI_MCP_ALLOWED_ORIGINS:}
     mcp:
       server:
         # 默认关闭；开启后只接受 Identity 模块签发的短期 fdu_ Bearer Token

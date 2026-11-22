@@ -18,6 +18,7 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Sinks;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,11 +56,18 @@ public class AgentToolExecutor {
 
     private Outcome process(ReactContext context, AssistantMessage.ToolCall call, Sinks.Many<AgentEvent> sink) {
         boolean confirmed = call.id().equals(context.getConfirmedToolCallId());
-        if (!confirmed) {
-            emit(context, sink, AgentEventType.TOOL_CALL_START,
-                    Map.of("tool", call.name(), "toolCallId", call.id(), "args", safeArguments(call.arguments())));
-        }
         AgentTool tool = boundTool(context, call.name());
+        if (!confirmed) {
+            Map<String, Object> start = new LinkedHashMap<>();
+            start.put("tool", call.name());
+            start.put("toolCallId", call.id());
+            start.put("args", safeArguments(call.arguments()));
+            if (tool != null) {
+                start.put("source", Objects.toString(tool.getSource(), ""));
+                start.put("label", Objects.toString(tool.getSourceLabel(), call.name()));
+            }
+            emit(context, sink, AgentEventType.TOOL_CALL_START, start);
+        }
         if (tool == null) {
             deny(context, call, sink);
             return Outcome.DONE;

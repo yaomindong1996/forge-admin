@@ -80,11 +80,11 @@
         <!-- 思考块（生成中默认展开，回答完毕自动收起） -->
         <ThinkingBlock v-if="msg.thinking" :content="msg.thinking" :streaming="msg.streaming" />
 
-        <!-- 工具调用卡片 -->
-        <ToolCard
-          v-for="(tc, idx) in msg.toolCalls"
-          :key="idx"
-          :tool-call="tc"
+        <!-- 工具 / 技能资料 / 知识库：统一折叠摘要，点开再看详情 -->
+        <ChatRunTrace
+          v-if="(msg.toolCalls && msg.toolCalls.length) || hasResources"
+          :tools="msg.toolCalls || []"
+          :resources="msg.resources || runResources"
         />
 
         <!-- 助手状态 -->
@@ -172,8 +172,8 @@ import { NButton, NIcon, NInput, NPopconfirm, NTag, NTooltip } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
 import AuthImage from '@/components/common/AuthImage.vue'
 import { formatDuration, getStatusLabel } from './chat-utils'
+import ChatRunTrace from './ChatRunTrace.vue'
 import ThinkingBlock from './ThinkingBlock.vue'
-import ToolCard from './ToolCard.vue'
 
 defineOptions({ name: 'ChatMessageBubble' })
 
@@ -190,6 +190,13 @@ const props = defineProps({
   isLastAssistant: { type: Boolean, default: false },
   // 是否处于内联编辑态（父组件持有 editingMsgId 决定）
   editing: { type: Boolean, default: false },
+  /** 本轮可用资源摘要：{ skills?: string[], knowledge?: string[] } */
+  runResources: { type: Object, default: () => ({}) },
+})
+
+const hasResources = computed(() => {
+  const resources = props.msg.resources || props.runResources || {}
+  return !!(resources.skills?.length || resources.knowledge?.length)
 })
 
 const emit = defineEmits(['copy', 'edit-start', 'edit-cancel', 'edit-confirm', 'delete', 'retry'])

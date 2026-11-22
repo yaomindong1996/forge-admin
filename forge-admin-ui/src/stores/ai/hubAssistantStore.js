@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { engineStop, hubAgents, hubRoute, hubTodos, streamEngineChat } from '@/api/ai'
+import { resolveAgentRunResources } from '@/composables/ai/agent-run-resources'
 import { assistantLocalTurn } from '@/composables/ai/assistant-local-turn'
 import { messageWithPageContext } from '@/composables/ai/assistant-page-context'
 import { useAuthStore, useUserStore } from '@/store'
@@ -64,43 +65,128 @@ export const useHubAssistantStore = defineStore('hub-assistant', () => {
     return undefined
   }
 
+  function enrichAgent(agent) {
+    if (!agent?.code)
+      return agent
+    const catalog = agents.value.find(item => item.code === agent.code)
+    if (!catalog)
+      return agent
+    return {
+      ...catalog,
+      ...agent,
+      id: agent.id || catalog.id,
+      name: agent.name || catalog.name,
+      description: agent.description || catalog.description,
+    }
+  }
+
+  function markFirstToken(turn) {
+    if (turn.firstTokenMs == null && turn._startedAt != null)
+      turn.firstTokenMs = Date.now() - turn._startedAt
+  }
+
+  function finishTurnTiming(turn) {
+    if (turn.totalMs == null && turn._startedAt != null)
+      turn.totalMs = Date.now() - turn._startedAt
+  }
+
   function startAgentStream(turn, agent) {
+    const resolved = enrichAgent(agent)
     const sessionId = turn.sessionId || generateUUID()
     turn.sessionId = sessionId
-    turn.agent = agent
+    turn.agent = resolved
     turn.status = 'streaming'
+    turn.resources = turn.resources || { skills: [], knowledge: [] }
+    turn._startedAt = Date.now()
+    turn.firstTokenMs = null
+    turn.totalMs = null
+    turn.tokenUsage = null
     activeSessionId = sessionId
+
+    // 异步挂载本轮技能资料 / 知识库摘要（不阻塞开流）
+    if (resolved?.id) {
+      void resolveAgentRunResources({ agentId: resolved.id }).then((resources) => {
+        if (turn.sessionId === sessionId)
+          turn.resources = resources
+      })
+    }
 
     activeStream = streamEngineChat(
       {
-        agentCode: agent.code,
+        agentCode: resolved?.code || agent?.code,
         sessionId,
         message: messageWithPageContext(turn.question, turn.page),
       },
       (type, data) => {
         if (type === 'TEXT_BLOCK_DELTA' && data?.text) {
+          markFirstToken(turn)
           turn.answer += data.text
         }
-        else if (type === 'TOOL_CALL_START' && data?.tool) {
-          turn.tools.push({ name: data.tool, status: 'running' })
+        else if (type === 'THINKING_BLOCK_DELTA' && data?.text) {
+          markFirstToken(turn)
+          turn.thinking = `${turn.thinking || ''}${data.text}`
         }
-        else if (type === 'TOOL_RESULT_END' && data?.tool) {
-          const item = [...turn.tools].reverse().find(t => t.name === data.tool && t.status === 'running')
+        else if (type === 'TOOL_CALL_START' && data?.tool) {
+          turn.tools.push({
+            callId: data.toolCallId || '',
+            name: data.tool,
+            label: data.label || data.tool,
+            source: data.source || '',
+            args: data.args ?? '',
+            result: '',
+            status: 'running',
+            error: '',
+          })
+        }
+        else if (type === 'TOOL_RESULT_TEXT_DELTA' || type === 'TOOL_RESULT_DATA_DELTA') {
+          const item = [...turn.tools].reverse().find(t => t.status === 'running')
           if (item)
-            item.status = data.error ? 'error' : 'done'
+            item.result = `${item.result || ''}${data?.content || ''}`
+        }
+        else if (type === 'TOOL_RESULT_END' && (data?.toolCallId || data?.tool)) {
+          const item = [...turn.tools].reverse().find((t) => {
+            if (data.toolCallId && t.callId)
+              return t.callId === data.toolCallId
+            return t.name === data.tool && t.status === 'running'
+          })
+          if (item) {
+            item.status = data.success === false || data.error ? 'error' : 'done'
+            item.error = data.success === false ? '工具执行失败' : ''
+          }
+        }
+        else if (type === 'MODEL_CALL_END' && data?.usage?.totalTokens != null) {
+          turn.tokenUsage = data.usage.totalTokens
+        }
+        else if (type === 'AGENT_END') {
+          if (data?.error) {
+            turn.status = 'error'
+            turn.error = data.error
+          }
+          else if (data?.aborted) {
+            turn.status = 'stopped'
+          }
+          finishTurnTiming(turn)
+        }
+        else if ((type === 'ERROR' || type === 'error') && (data?.message || data?.error)) {
+          turn.status = 'error'
+          turn.error = data.message || data.error
+          finishTurnTiming(turn)
         }
       },
       () => {
         activeStream = null
         activeSessionId = ''
-        turn.status = turn.answer.trim() ? 'done' : 'error'
-        if (turn.status === 'error')
+        finishTurnTiming(turn)
+        if (turn.status === 'streaming')
+          turn.status = turn.answer.trim() ? 'done' : 'error'
+        if (turn.status === 'error' && !turn.error)
           turn.error = '智能体未返回正文，请重试。'
         busy.value = false
       },
       (err) => {
         activeStream = null
         activeSessionId = ''
+        finishTurnTiming(turn)
         turn.status = 'error'
         turn.error = err?.message || '智能体对话失败'
         busy.value = false
@@ -115,7 +201,9 @@ export const useHubAssistantStore = defineStore('hub-assistant', () => {
 
     draft.value = ''
     busy.value = true
-    const turn = {
+    // 必须用 reactive：push 前的 plain object 若继续拿来做 answer +=，会绕过 Proxy，
+    // 界面要等到 status 等其它字段变化才整篇刷新 →「看起来没流式」。
+    const turn = reactive({
       id: generateUUID(),
       question,
       kind: 'CHAT',
@@ -123,13 +211,19 @@ export const useHubAssistantStore = defineStore('hub-assistant', () => {
       candidates: [],
       todos: null,
       answer: '',
+      thinking: '',
       tools: [],
+      resources: { skills: [], knowledge: [] },
       guide: null,
       page: context?.page || null,
       sessionId: '',
       status: 'routing',
       error: '',
-    }
+      firstTokenMs: null,
+      totalMs: null,
+      tokenUsage: null,
+      _startedAt: null,
+    })
     turns.value.push(turn)
 
     if (!forcedAgent?.code) {

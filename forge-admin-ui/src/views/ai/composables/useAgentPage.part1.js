@@ -16,6 +16,7 @@ import {
   contextConfigUpdate,
   modelListByProvider,
   providerPage,
+  resourceToolsCatalog,
   routePolicyPage,
 } from '@/api/ai'
 import { useDict } from '@/composables/useDict'
@@ -182,7 +183,12 @@ export function applyAgentPagePart1() {
 
   const baseModalTitle = computed(() => baseMode.value === 'create' ? '创建智能体' : '编辑基础信息')
   const enabledContextCount = computed(() => contextConfigs.value.filter(config => config.enabled).length)
-  const selectedMcpToolLabels = computed(() => (agentForm.extraConfig.mcpTools || []).map(getMcpToolLabel))
+  // 外层卡片计数以真实绑定表为准（不是 extraConfig.mcpTools 旧字段）
+  const enabledBoundTools = computed(() => agentTools.value.filter(tool => tool.enabled))
+  const selectedMcpToolLabels = computed(() =>
+    enabledBoundTools.value.map(tool => tool.displayTitle || tool.toolKey).filter(Boolean),
+  )
+  const boundToolCount = computed(() => enabledBoundTools.value.length)
   const suggestedQuestionCount = computed(() => (agentForm.extraConfig.suggestedQuestions || []).filter(Boolean).length)
   const publishTimeText = computed(() => {
     if (agentForm.status !== '0') {
@@ -558,7 +564,10 @@ export function applyAgentPagePart1() {
     baseModalVisible.value = false
     chatInput.value = ''
     await hydrateAgentForm(agent)
-    await loadAgentContexts(agent.agentCode)
+    await Promise.all([
+      loadAgentContexts(agent.agentCode),
+      loadAgentTools(),
+    ])
     resetConversation()
     await nextTick()
     agentFormRef.value?.restoreValidation?.()
@@ -946,8 +955,24 @@ export function applyAgentPagePart1() {
       return
     toolLoading.value = true
     try {
-      const res = await agentToolPage({ agentId: agentForm.id, pageNum: 1, pageSize: 200 })
-      agentTools.value = res.data?.records || []
+      const [toolsRes, catalogRes] = await Promise.all([
+        agentToolPage({ agentId: agentForm.id, pageNum: 1, pageSize: 200 }),
+        resourceToolsCatalog({}).catch(() => null),
+      ])
+      const catalog = Array.isArray(catalogRes?.data?.tools)
+        ? catalogRes.data.tools
+        : (Array.isArray(catalogRes?.data) ? catalogRes.data : [])
+      const titleByKey = new Map(catalog.map(item => [item.toolKey, item]))
+      agentTools.value = (toolsRes.data?.records || []).map((row) => {
+        const meta = titleByKey.get(row.toolKey)
+        return {
+          ...row,
+          // 后端存 '1'/'0'，开关需要布尔值，避免显示成一直关闭
+          enabled: row.enabled === true || row.enabled === 1 || row.enabled === '1',
+          displayTitle: meta?.title || row.toolKey,
+          sourceLabel: meta?.sourceLabel || (row.toolSource === 'mcp' ? 'MCP' : row.toolSource),
+        }
+      })
     }
     catch { agentTools.value = [] }
     finally { toolLoading.value = false }
@@ -1166,6 +1191,7 @@ export function applyAgentPagePart1() {
     baseModalTitle,
     enabledContextCount,
     selectedMcpToolLabels,
+    boundToolCount,
     suggestedQuestionCount,
     publishTimeText,
     openingStatement,

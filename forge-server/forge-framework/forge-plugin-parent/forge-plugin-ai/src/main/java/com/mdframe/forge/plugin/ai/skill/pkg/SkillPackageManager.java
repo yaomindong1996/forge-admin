@@ -39,8 +39,8 @@ import java.util.TreeMap;
 @RequiredArgsConstructor
 public class SkillPackageManager {
 
-    public record Summary(Long id, Long packageId, String code, String name, String description,
-                          String version, String packageHash, String status,
+    public record Summary(Long versionId, Long packageId, String packageCode, String packageName,
+                          String description, String versionName, String packageHash, String status,
                           Integer fileCount, Integer totalBytes, LocalDateTime createTime) {
     }
 
@@ -71,7 +71,7 @@ public class SkillPackageManager {
 
     public Page<Summary> page(int pageNum, int pageSize, String keyword, String status) {
         var ctx = caller();
-        if (pageNum < 1 || pageSize < 1 || pageSize > 100 || (keyword != null && keyword.length() > 100)) {
+        if (pageNum < 1 || pageSize < 1 || pageSize > 200 || (keyword != null && keyword.length() > 100)) {
             throw invalid("分页或搜索范围无效");
         }
         if (status != null && !status.isBlank()) {
@@ -248,7 +248,7 @@ public class SkillPackageManager {
         if (agent == null || !ctx.tenantId().equals(agent.getTenantId())) {
             throw denied();
         }
-        var skill = required(ctx.tenantId(), dto.skillVersionId());
+        var skill = required(ctx.tenantId(), dto.versionId());
         if (!SkillPackageStatus.READY.matches(skill.getStatus())) {
             throw conflict("仅已启用（READY）状态的技能版本允许绑定至智能体");
         }

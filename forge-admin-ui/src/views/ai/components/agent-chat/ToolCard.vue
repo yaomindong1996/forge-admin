@@ -4,8 +4,16 @@
       <NIcon size="14" class="tool-icon">
         <ConstructOutline />
       </NIcon>
+      <NTag
+        v-if="toolCall.source"
+        size="tiny"
+        :bordered="false"
+        :type="toolCall.source === 'mcp' ? 'info' : 'default'"
+      >
+        {{ sourceBadge }}
+      </NTag>
       <NTag size="small" type="info" :bordered="false">
-        {{ toolCall.name }}
+        {{ displayName }}
       </NTag>
       <NTag
         v-if="toolCall.status"
@@ -15,6 +23,9 @@
       >
         {{ toolStatusLabel(toolCall.status) }}
       </NTag>
+    </div>
+    <div v-if="showTechnicalKey" class="tool-key">
+      {{ toolCall.name }}
     </div>
     <div v-if="toolCall.error" class="tool-error" role="alert">
       {{ toolCall.error }}
@@ -57,6 +68,19 @@ const tagType = computed(() => {
   }
   return ['done', 'success'].includes(props.toolCall.status) ? 'success' : 'default'
 })
+const displayName = computed(() => props.toolCall.label || props.toolCall.name || '工具')
+const sourceBadge = computed(() => {
+  if (props.toolCall.source === 'mcp')
+    return 'MCP'
+  if (props.toolCall.source === 'builtin')
+    return '内置'
+  if (props.toolCall.source === 'capability')
+    return '能力'
+  return props.toolCall.source || ''
+})
+const showTechnicalKey = computed(() =>
+  !!props.toolCall.label && props.toolCall.label !== props.toolCall.name,
+)
 </script>
 
 <style scoped>
@@ -78,6 +102,14 @@ const tagType = computed(() => {
 
 .tool-icon {
   color: var(--text-muted);
+}
+
+.tool-key {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--text-muted);
+  word-break: break-all;
 }
 
 .tool-error {
