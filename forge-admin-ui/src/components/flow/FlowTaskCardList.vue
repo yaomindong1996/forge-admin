@@ -411,6 +411,21 @@ function clearSelection() {
   padding: 12px;
   gap: 10px;
   scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--text-tertiary, #94a3b8) 55%, transparent) transparent;
+}
+
+.task-card-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.task-card-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-tertiary, #94a3b8) 45%, transparent);
+}
+
+.task-card-list::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .task-card-list.empty {
@@ -443,18 +458,18 @@ function clearSelection() {
 }
 
 .task-card-item:hover {
-  border-color: #cbd5e1;
-  background: #fcfcfd;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  border-color: color-mix(in srgb, var(--primary-color, #165dff) 28%, var(--border-light, #cbd5e1));
+  background: color-mix(in srgb, var(--bg-secondary, #f8fafc) 88%, var(--bg-primary, #fff));
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--text-primary, #0f172a) 8%, transparent);
 }
 
 .task-card-item.selected {
-  border-color: color-mix(in srgb, var(--primary-color, #165dff) 45%, #e5e7eb);
-  background: color-mix(in srgb, var(--primary-color, #165dff) 4%, #fff);
+  border-color: color-mix(in srgb, var(--primary-color, #165dff) 45%, var(--border-light, #e5e7eb));
+  background: color-mix(in srgb, var(--primary-color, #165dff) 8%, var(--bg-primary, #fff));
 }
 
 .task-card-item.unread {
-  background: color-mix(in srgb, var(--primary-color, #165dff) 3%, #fff);
+  background: color-mix(in srgb, var(--primary-color, #165dff) 6%, var(--bg-primary, #fff));
 }
 
 .task-card-body {
@@ -493,32 +508,32 @@ function clearSelection() {
 }
 
 .task-card-icon.blue {
-  border-color: #bfdbfe;
-  background: #eff6ff;
+  border-color: color-mix(in srgb, #2563eb 28%, var(--border-light, #bfdbfe));
+  background: color-mix(in srgb, #2563eb 10%, var(--bg-primary, #eff6ff));
   color: #2563eb;
 }
 
 .task-card-icon.green {
-  border-color: #bbf7d0;
-  background: #f0fdf4;
+  border-color: color-mix(in srgb, #16a34a 28%, var(--border-light, #bbf7d0));
+  background: color-mix(in srgb, #16a34a 10%, var(--bg-primary, #f0fdf4));
   color: #16a34a;
 }
 
 .task-card-icon.amber {
-  border-color: #fde68a;
-  background: #fffbeb;
+  border-color: color-mix(in srgb, #d97706 28%, var(--border-light, #fde68a));
+  background: color-mix(in srgb, #d97706 10%, var(--bg-primary, #fffbeb));
   color: #d97706;
 }
 
 .task-card-icon.red {
-  border-color: #fecaca;
-  background: #fef2f2;
+  border-color: color-mix(in srgb, #dc2626 28%, var(--border-light, #fecaca));
+  background: color-mix(in srgb, #dc2626 10%, var(--bg-primary, #fef2f2));
   color: #dc2626;
 }
 
 .task-card-icon.violet {
-  border-color: #ddd6fe;
-  background: #f5f3ff;
+  border-color: color-mix(in srgb, #7c3aed 28%, var(--border-light, #ddd6fe));
+  background: color-mix(in srgb, #7c3aed 10%, var(--bg-primary, #f5f3ff));
   color: #7c3aed;
 }
 
@@ -638,7 +653,7 @@ function clearSelection() {
   overflow: visible;
   border-top: 1px solid var(--border-light, #eef1f5);
   border-radius: 0 0 6px 6px;
-  background: #f8fafc;
+  background: color-mix(in srgb, var(--bg-secondary, #f8fafc) 92%, var(--bg-primary, #fff));
 }
 
 .task-list-empty {
@@ -785,7 +800,7 @@ function clearSelection() {
   width: 1px;
   height: 14px;
   margin: 0 2px;
-  background: #e2e8f0;
+  background: var(--border-light, #e2e8f0);
 }
 
 :global(.task-row-link-action i) {
@@ -805,5 +820,92 @@ function clearSelection() {
   .task-list-search {
     width: 100%;
   }
+}
+</style>
+
+<style>
+/* 暗黑：去掉写死浅色底，避免列表出现白条/白块 */
+.dark .flow-task-card-list .task-card-item:hover {
+  border-color: color-mix(in srgb, var(--primary-color, #5388ff) 35%, var(--border-light));
+  background: color-mix(in srgb, var(--bg-secondary) 70%, var(--bg-primary));
+  box-shadow: none;
+}
+
+.dark .flow-task-card-list .task-card-item.selected,
+.dark .flow-task-card-list .task-card-item.unread {
+  background: color-mix(in srgb, var(--primary-color, #5388ff) 14%, var(--bg-primary));
+}
+
+.dark .flow-task-card-list .task-card-actions {
+  background: color-mix(in srgb, var(--bg-secondary) 75%, var(--bg-primary));
+  border-top-color: var(--border-light);
+}
+
+.dark .flow-task-card-list .task-card-icon.blue {
+  border-color: color-mix(in srgb, #60a5fa 35%, transparent);
+  background: color-mix(in srgb, #2563eb 22%, var(--bg-primary));
+  color: #93c5fd;
+}
+
+.dark .flow-task-card-list .task-card-icon.green {
+  border-color: color-mix(in srgb, #4ade80 35%, transparent);
+  background: color-mix(in srgb, #16a34a 22%, var(--bg-primary));
+  color: #86efac;
+}
+
+.dark .flow-task-card-list .task-card-icon.amber {
+  border-color: color-mix(in srgb, #fbbf24 35%, transparent);
+  background: color-mix(in srgb, #d97706 22%, var(--bg-primary));
+  color: #fcd34d;
+}
+
+.dark .flow-task-card-list .task-card-icon.red {
+  border-color: color-mix(in srgb, #f87171 35%, transparent);
+  background: color-mix(in srgb, #dc2626 22%, var(--bg-primary));
+  color: #fca5a5;
+}
+
+.dark .flow-task-card-list .task-card-icon.violet {
+  border-color: color-mix(in srgb, #a78bfa 35%, transparent);
+  background: color-mix(in srgb, #7c3aed 22%, var(--bg-primary));
+  color: #c4b5fd;
+}
+
+.dark .task-status-pill.success,
+.dark .task-status-pill.read {
+  background: color-mix(in srgb, #16a34a 22%, var(--bg-primary));
+  color: #86efac;
+  border-color: color-mix(in srgb, #16a34a 35%, transparent);
+}
+
+.dark .task-status-pill.error,
+.dark .task-status-pill.unread {
+  background: color-mix(in srgb, #e11d48 22%, var(--bg-primary));
+  color: #fda4af;
+  border-color: color-mix(in srgb, #e11d48 35%, transparent);
+}
+
+.dark .task-status-pill.info {
+  background: color-mix(in srgb, #2563eb 22%, var(--bg-primary));
+  color: #93c5fd;
+  border-color: color-mix(in srgb, #2563eb 35%, transparent);
+}
+
+.dark .task-list-hint.urgent {
+  background: color-mix(in srgb, #ea580c 18%, var(--bg-primary));
+  color: #fdba74;
+}
+
+.dark .task-list-hint.pending {
+  background: color-mix(in srgb, #2563eb 18%, var(--bg-primary));
+  color: #93c5fd;
+}
+
+.dark .task-row-link-action:hover {
+  background: color-mix(in srgb, var(--primary-color, #5388ff) 14%, transparent);
+}
+
+.dark .task-row-action-separator {
+  background: var(--border-light);
 }
 </style>

@@ -17,29 +17,37 @@
       placement="right"
       :width="panelWidth"
       class="message-center-drawer"
-      :style="{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }"
+      :style="{ background: 'transparent', color: 'var(--text-primary)' }"
     >
       <div class="message-center">
         <header class="message-center-header">
-          <h2>通知中心</h2>
+          <div class="message-center-title">
+            <span class="title-icon" aria-hidden="true">
+              <i class="i-material-symbols:notifications-outline" />
+            </span>
+            <h2>通知中心</h2>
+          </div>
           <button class="icon-button" type="button" aria-label="关闭通知中心" @click="showPanel = false">
             <i class="i-material-symbols:close" />
           </button>
         </header>
 
-        <div class="message-tabs">
-          <button
-            v-for="tab in tabs"
-            :key="tab.key"
-            class="message-tab"
-            :class="{ active: activeTab === tab.key }"
-            type="button"
-            :aria-pressed="activeTab === tab.key"
-            @click="activeTab = tab.key"
-          >
-            <span>{{ tab.label }}</span>
-            <span v-if="tab.showCount && tab.count > 0" class="tab-count">{{ tab.count }}</span>
-          </button>
+        <div class="message-tabs-row">
+          <div class="message-tabs" role="tablist" aria-label="通知分类">
+            <button
+              v-for="tab in tabs"
+              :key="tab.key"
+              class="message-tab"
+              :class="{ active: activeTab === tab.key }"
+              type="button"
+              role="tab"
+              :aria-selected="activeTab === tab.key"
+              @click="activeTab = tab.key"
+            >
+              <span>{{ tab.label }}</span>
+              <span v-if="tab.showCount && tab.count > 0" class="tab-count">{{ tab.count > 99 ? '99+' : tab.count }}</span>
+            </button>
+          </div>
           <button class="tab-action" type="button" title="刷新通知" @click="initData">
             <i class="i-material-symbols:refresh" />
           </button>
@@ -75,54 +83,70 @@
               v-for="msg in filteredMessages"
               :key="msg.key"
               class="message-card"
-              :class="{ unread: msg.readFlag === 0, approval: isApprovalMessage(msg) }"
+              :class="[
+                `kind-${getMessageKind(msg)}`,
+                { unread: msg.readFlag === 0 },
+              ]"
               role="button"
               tabindex="0"
               @keydown.enter="handleMessageClick(msg)"
               @keydown.space.prevent="handleMessageClick(msg)"
               @click="handleMessageClick(msg)"
             >
-              <div class="message-card-main">
-                <div class="message-icon" :class="{ approval: isApprovalMessage(msg) }">
-                  <i :class="msg.source === 'notice' ? 'i-material-symbols:campaign-outline' : isApprovalMessage(msg) ? 'i-material-symbols:approval-delegation-outline' : 'i-material-symbols:mail-outline'" />
-                </div>
-
-                <div class="message-content">
-                  <div class="message-meta">
-                    <span>{{ getMessageCategory(msg) }}</span>
-                    <time>{{ formatMessageTime(msg.createTime) }}</time>
-                  </div>
-                  <h3><span v-if="msg.readFlag === 0" class="unread-dot" />{{ msg.title || '消息通知' }}</h3>
-                  <p>{{ msg.content || '-' }}</p>
-
-                  <div v-if="isApprovalMessage(msg)" class="approval-meta">
-                    <span>任务编号：{{ msg.bizKey || '-' }}</span>
-                    <span>状态：{{ msg.readFlag === 0 ? '未读' : '已读' }}</span>
-                  </div>
-                </div>
+              <div class="message-icon" :class="`kind-${getMessageKind(msg)}`" aria-hidden="true">
+                <i :class="getMessageIcon(msg)" />
               </div>
 
-              <div v-if="msg.source === 'notice' || msg.readFlag === 0" class="message-card-actions" @click.stop @keydown.stop>
-                <NButton v-if="msg.source === 'notice'" text type="primary" size="small" @click="handleMessageClick(msg)">
-                  阅读公告
-                </NButton>
-                <NButton
-                  v-if="isPendingApprovalMessage(msg)"
-                  type="primary"
-                  size="small"
-                  class="approval-button"
-                  @click="openApproval(msg)"
+              <div class="message-content">
+                <div class="message-meta">
+                  <span class="message-kind-tag" :class="`kind-${getMessageKind(msg)}`">{{ getMessageCategory(msg) }}</span>
+                  <time>{{ formatMessageTime(msg.createTime) }}</time>
+                </div>
+                <h3>
+                  <span v-if="msg.readFlag === 0" class="unread-dot" aria-hidden="true" />
+                  {{ msg.title || '消息通知' }}
+                </h3>
+                <p v-if="getMessagePreview(msg)">
+                  {{ getMessagePreview(msg) }}
+                </p>
+
+                <div v-if="isApprovalMessage(msg)" class="approval-meta">
+                  <span class="approval-meta-item">
+                    <i class="i-material-symbols:description-outline" aria-hidden="true" />
+                    任务编号：{{ msg.bizKey || '-' }}
+                  </span>
+                  <span class="approval-meta-item" :class="{ unread: msg.readFlag === 0, read: msg.readFlag !== 0 }">
+                    <i :class="msg.readFlag === 0 ? 'i-material-symbols:mark-email-unread-outline' : 'i-material-symbols:check-circle-outline'" aria-hidden="true" />
+                    状态：{{ msg.readFlag === 0 ? '未读' : '已读' }}
+                  </span>
+                </div>
+
+                <div
+                  v-if="msg.source === 'notice' || isPendingApprovalMessage(msg) || (msg.source !== 'notice' && msg.readFlag === 0)"
+                  class="message-card-actions"
+                  @click.stop
+                  @keydown.stop
                 >
-                  去审批
-                </NButton>
-                <NButton
-                  v-if="msg.source !== 'notice' && msg.readFlag === 0"
-                  size="small"
-                  ghost
-                  @click="markRead(msg)"
-                >
-                  标记已读
-                </NButton>
+                  <NButton v-if="msg.source === 'notice'" text type="primary" size="tiny" @click="handleMessageClick(msg)">
+                    阅读公告
+                  </NButton>
+                  <NButton
+                    v-if="isPendingApprovalMessage(msg)"
+                    type="primary"
+                    size="tiny"
+                    @click="openApproval(msg)"
+                  >
+                    去审批
+                  </NButton>
+                  <NButton
+                    v-if="msg.source !== 'notice' && msg.readFlag === 0 && !isPendingApprovalMessage(msg)"
+                    size="tiny"
+                    quaternary
+                    @click="markRead(msg)"
+                  >
+                    标记已读
+                  </NButton>
+                </div>
               </div>
             </article>
           </div>
@@ -139,18 +163,21 @@
         </NScrollbar>
 
         <footer class="message-center-footer">
-          <NButton quaternary size="small" @click="handleViewAll">
+          <button class="footer-link" type="button" @click="handleViewAll">
             {{ activeTab === 'notice' ? '查看全部公告' : '查看全部消息' }}
-          </NButton>
+            <i class="i-material-symbols:chevron-right" aria-hidden="true" />
+          </button>
           <NButton
             v-if="activeTab !== 'notice'"
             type="primary"
-            ghost
             size="small"
             title="仅标记个人消息，不包含公告"
             :disabled="unreadCount <= 0"
             @click="handleMarkAllRead"
           >
+            <template #icon>
+              <i class="i-material-symbols:done-all" />
+            </template>
             消息全部已读
           </NButton>
         </footer>
@@ -238,10 +265,34 @@ function isPendingApprovalMessage(msg) {
   return isPendingFlowApprovalMessage(msg)
 }
 
-function getMessageCategory(msg) {
+function getMessageKind(msg) {
   if (isApprovalMessage(msg))
+    return 'approval'
+  return msg.source === 'notice' ? 'notice' : 'other'
+}
+
+function getMessageCategory(msg) {
+  if (getMessageKind(msg) === 'approval')
     return '审批'
-  return msg.source === 'notice' ? '公告' : '其他消息'
+  return getMessageKind(msg) === 'notice' ? '公告' : '其他消息'
+}
+
+function getMessageIcon(msg) {
+  const kind = getMessageKind(msg)
+  if (kind === 'notice')
+    return 'i-material-symbols:campaign-outline'
+  if (kind === 'approval')
+    return 'i-material-symbols:approval-delegation-outline'
+  return 'i-material-symbols:mail-outline'
+}
+
+function getMessagePreview(msg) {
+  const preview = String(msg?.preview || '').trim()
+  if (preview)
+    return preview
+  if (isApprovalMessage(msg))
+    return msg?.title ? `您有一个待办任务需要处理：${msg.title}` : '您有一个待办任务需要处理'
+  return ''
 }
 
 function formatMessageTime(value) {
@@ -480,8 +531,13 @@ defineExpose({
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--error-color, #e34d59) 35%, transparent);
 }
 
-:deep(.message-center-drawer .n-drawer-content) {
-  background: var(--bg-primary);
+:deep(.message-center-drawer.n-drawer),
+:deep(.message-center-drawer .n-drawer-content),
+:deep(.message-center-drawer .n-drawer-body),
+:deep(.message-center-drawer .n-drawer-body-content-wrapper) {
+  height: 100%;
+  background: transparent !important;
+  box-shadow: none;
 }
 
 :deep(.message-center-drawer .n-drawer-body-content-wrapper) {
@@ -489,110 +545,148 @@ defineExpose({
 }
 
 .message-center {
-  --notification-accent: color-mix(in srgb, var(--primary-color) 75%, var(--text-primary));
   height: 100%;
   display: flex;
   flex-direction: column;
   color: var(--text-primary);
-  background: var(--bg-primary);
+  /* 设计图：浅蓝光晕毛玻璃底，不是灰蓝实色 */
+  background:
+    radial-gradient(90% 55% at 8% 0%, color-mix(in srgb, var(--primary-color) 18%, transparent), transparent 58%),
+    radial-gradient(80% 50% at 100% 0%, color-mix(in srgb, var(--primary-color) 22%, transparent), transparent 55%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-primary, #fff) 82%, #edf3ff) 0%, color-mix(in srgb, var(--bg-secondary, #f5f7fb) 70%, #eaf0fb) 100%);
 }
 
 .message-center-header {
-  height: 64px;
-  padding: 18px 22px 8px;
+  flex: 0 0 auto;
+  padding: 20px 20px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.message-center-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.title-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-color);
+  background:
+    radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--primary-color) 28%, transparent), transparent 70%),
+    color-mix(in srgb, var(--primary-color) 10%, var(--bg-primary, #fff));
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary-color) 6%, transparent);
+}
+
+.title-icon i {
+  font-size: 20px;
 }
 
 .message-center-header h2 {
   margin: 0;
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0;
 }
 
 .icon-button,
 .tab-action {
-  width: 32px;
-  height: 32px;
-  border: 0;
-  background: transparent;
+  width: 34px;
+  height: 34px;
+  border: 1px solid color-mix(in srgb, var(--border-light, #e5e7eb) 70%, transparent);
+  background: color-mix(in srgb, var(--bg-primary, #fff) 72%, transparent);
   color: var(--text-secondary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
 }
 
 .icon-button:hover,
 .tab-action:hover {
-  background: var(--bg-secondary);
+  background: color-mix(in srgb, var(--bg-primary, #fff) 88%, transparent);
   color: var(--text-primary);
 }
 
 .icon-button i,
 .tab-action i {
-  font-size: 20px;
+  font-size: 18px;
+}
+
+.message-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 20px 10px;
 }
 
 .message-tabs {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) 42px;
-  align-items: end;
-  gap: 0;
-  padding: 0 22px;
-  border-bottom: 1px solid var(--border-light);
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  background: transparent;
 }
 
 .message-tab {
-  min-width: 0;
-  height: 44px;
   position: relative;
+  flex: 0 0 auto;
+  min-width: 0;
+  height: 34px;
+  padding: 0 14px;
   border: 0;
+  border-radius: 999px;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
-  letter-spacing: 0;
   cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .message-tab.active {
-  color: var(--notification-accent);
-}
-
-.message-tab.active::after {
-  content: '';
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 0;
-  height: 2px;
-  border-radius: 3px 3px 0 0;
+  color: #fff;
   background: var(--primary-color);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--primary-color) 28%, transparent);
 }
 
 .tab-count {
-  position: absolute;
-  min-width: 20px;
-  height: 18px;
-  top: 4px;
-  right: 4px;
-  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  padding: 0 4px;
   border-radius: 999px;
-  background: var(--error-color);
+  background: color-mix(in srgb, var(--error-color, #e34d59) 92%, #fff);
   color: #fff;
-  font-size: 12px;
-  line-height: 18px;
+  font-size: 10px;
+  line-height: 1;
   font-weight: 700;
+  vertical-align: 1px;
+}
+
+.message-tab.active .tab-count {
+  background: color-mix(in srgb, #fff 28%, transparent);
 }
 
 .message-filter-row {
   display: flex;
-  gap: 8px;
-  padding: 12px 22px 8px;
+  gap: 10px;
+  padding: 2px 20px 8px;
 }
 
 .message-filter-row :deep(.n-select) {
@@ -600,12 +694,23 @@ defineExpose({
   min-width: 0;
 }
 
+.message-filter-row :deep(.n-base-selection) {
+  --n-height: 36px !important;
+  --n-border-radius: 10px !important;
+  background: var(--bg-primary) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary-color) 10%, var(--border-light, #e5e7eb));
+}
+
 .notification-hint {
   margin: 0;
-  padding: 0 22px 8px;
+  padding: 0 20px 10px;
   font-size: 11px;
   color: var(--text-tertiary);
   line-height: 1.4;
+}
+
+.notification-error {
+  margin: 0 20px 8px;
 }
 
 .message-scrollbar {
@@ -621,45 +726,62 @@ defineExpose({
 }
 
 .message-list {
-  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 16px 18px;
 }
 
 .message-card {
-  padding: 12px 22px 14px;
-  border-bottom: 1px solid var(--border-light);
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px 14px 12px;
+  border: 1px solid color-mix(in srgb, var(--border-light, #e5e7eb) 80%, transparent);
+  border-radius: 12px;
+  background: var(--bg-primary);
+  box-shadow: 0 1px 2px color-mix(in srgb, #0f172a 4%, transparent);
   cursor: pointer;
-  transition: background-color 0.16s ease;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
 }
 
 .message-card:hover {
-  background: var(--bg-secondary);
+  border-color: color-mix(in srgb, var(--primary-color) 28%, var(--border-light, #e5e7eb));
+  box-shadow: 0 4px 12px color-mix(in srgb, #0f172a 6%, transparent);
 }
 
-.message-card-main {
-  display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
-  gap: 10px;
+.message-card.unread {
+  border-color: color-mix(in srgb, var(--primary-color) 22%, var(--border-light, #e5e7eb));
 }
 
 .message-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-top: 2px;
-  background: color-mix(in srgb, var(--primary-color) 10%, var(--bg-primary));
-  color: var(--notification-accent);
+  background: color-mix(in srgb, var(--primary-color) 12%, var(--bg-primary, #fff));
+  color: var(--primary-color);
 }
 
-.message-icon.approval {
-  background: color-mix(in srgb, var(--primary-color) 10%, var(--bg-primary));
-  color: var(--notification-accent);
+.message-icon.kind-approval {
+  background: color-mix(in srgb, var(--primary-color) 14%, var(--bg-primary, #fff));
+  color: var(--primary-color);
+}
+
+.message-icon.kind-notice {
+  background: color-mix(in srgb, var(--warning-color, #f59e0b) 14%, var(--bg-primary, #fff));
+  color: var(--warning-color, #b45309);
+}
+
+.message-icon.kind-other {
+  background: color-mix(in srgb, var(--info-color, var(--primary-color)) 12%, var(--bg-primary, #fff));
+  color: var(--info-color, var(--primary-color));
 }
 
 .message-icon i {
-  font-size: 17px;
+  font-size: 20px;
 }
 
 .message-content {
@@ -676,26 +798,57 @@ defineExpose({
   line-height: 18px;
 }
 
-.message-meta span {
-  color: var(--text-secondary);
-  font-size: 13px;
+.message-kind-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 4px;
+  font-size: 12px;
   font-weight: 600;
+  line-height: 20px;
+}
+
+.message-kind-tag.kind-approval {
+  color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 12%, var(--bg-primary, #fff));
+}
+
+.message-kind-tag.kind-notice {
+  color: var(--warning-color, #b45309);
+  background: color-mix(in srgb, var(--warning-color, #f59e0b) 14%, var(--bg-primary, #fff));
+}
+
+.message-kind-tag.kind-other {
+  color: var(--info-color, var(--primary-color));
+  background: color-mix(in srgb, var(--info-color, var(--primary-color)) 12%, var(--bg-primary, #fff));
 }
 
 .message-content h3 {
-  margin: 6px 0 6px;
+  margin: 8px 0 6px;
   color: var(--text-primary);
   font-size: 14px;
   line-height: 1.45;
-  font-weight: 600;
+  font-weight: 650;
   letter-spacing: 0;
+}
+
+.unread-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--error-color, #e34d59);
+  vertical-align: 2px;
 }
 
 .message-content p {
   margin: 0;
   color: var(--text-secondary);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
+  white-space: pre-line;
   word-break: break-word;
 }
 
@@ -703,34 +856,87 @@ defineExpose({
   margin-top: 8px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   color: var(--text-tertiary);
   font-size: 12px;
 }
 
-.message-card-actions {
-  margin-top: 10px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  padding-left: 42px;
+.approval-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
 }
 
-.message-card-actions :deep(.n-button) {
-  height: 30px;
-  border-radius: 4px;
-  font-size: 13px;
-  font-weight: 600;
+.approval-meta-item i {
+  flex: 0 0 auto;
+  font-size: 14px;
+}
+
+.approval-meta-item.read {
+  color: #16895a;
+}
+
+.approval-meta-item.unread {
+  color: var(--primary-color);
+}
+
+.message-card-actions {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .message-center-footer {
-  min-height: 52px;
-  padding: 10px 18px;
-  border-top: 1px solid var(--border-light);
+  flex: 0 0 auto;
+  z-index: 2;
+  min-height: 76px;
+  box-sizing: border-box;
+  padding: 18px 20px 20px;
+  border-top: 1px solid color-mix(in srgb, var(--primary-color) 8%, var(--border-light, #e5e7eb));
+  /* 与设计图一致：底部独立浅蓝毛玻璃条，和列表白卡区分开 */
+  background: color-mix(in srgb, var(--bg-primary, #fff) 62%, color-mix(in srgb, var(--primary-color) 10%, #e8eef8)) !important;
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--bg-primary, #fff) 70%, transparent);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 36px;
+  cursor: pointer;
+}
+
+.footer-link:hover {
+  color: var(--primary-color);
+}
+
+.footer-link i {
+  font-size: 18px;
+}
+
+.message-center-footer :deep(.n-button) {
+  --n-height: 36px !important;
+  --n-border-radius: 12px !important;
+  --n-padding: 0 18px !important;
+  height: 36px;
+  padding: 0 18px;
+  border-radius: 12px !important;
+  font-weight: 600;
 }
 
 .message-empty {
@@ -738,7 +944,7 @@ defineExpose({
 }
 
 .load-more {
-  padding: 12px 22px;
+  padding: 4px 14px 8px;
   text-align: center;
 }
 
@@ -760,24 +966,39 @@ defineExpose({
 .message-center button:focus-visible,
 .message-card:focus-visible {
   outline: 2px solid var(--primary-color);
-  outline-offset: -2px;
+  outline-offset: 1px;
 }
 
 @media (max-width: 520px) {
-  .message-center-header {
-    padding: 22px 20px 8px;
+  .message-center-header,
+  .message-tabs-row,
+  .message-filter-row,
+  .notification-hint,
+  .message-center-footer {
+    padding-left: 14px;
+    padding-right: 14px;
   }
 
-  .message-tabs {
-    padding: 0 16px;
+  .message-list {
+    padding-left: 10px;
+    padding-right: 10px;
   }
+}
+</style>
 
-  .message-card {
-    padding: 16px 20px 18px;
-  }
+<!-- Drawer teleport 到 body，补一层全局兜底，避免底栏样式偶发未命中 -->
+<style>
+.message-center-drawer .message-center-footer {
+  min-height: 76px !important;
+  padding: 18px 20px 20px !important;
+  border-top: 1px solid color-mix(in srgb, var(--primary-color) 8%, var(--border-light, #e5e7eb)) !important;
+  background: color-mix(in srgb, var(--bg-primary, #fff) 62%, color-mix(in srgb, var(--primary-color) 10%, #e8eef8)) !important;
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
 
-  .message-card-actions {
-    padding-left: 0;
-  }
+.message-center-drawer .message-center-footer .n-button {
+  height: 36px !important;
+  border-radius: 12px !important;
 }
 </style>

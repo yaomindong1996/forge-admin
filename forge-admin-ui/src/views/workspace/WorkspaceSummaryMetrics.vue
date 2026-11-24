@@ -296,10 +296,10 @@ defineExpose({ loadSummary, summary })
   align-items: center;
   min-height: 118px;
   padding: 16px;
-  border: 1px solid #e5eaf3;
+  border: 1px solid var(--border-light, #e5eaf3);
   border-radius: 8px;
   background: var(--bg-primary);
-  color: #344256;
+  color: var(--text-secondary, #344256);
   text-align: left;
   cursor: pointer;
   transition:
@@ -313,34 +313,34 @@ defineExpose({ loadSummary, summary })
 }
 
 .summary-metric:not(:disabled):hover {
-  border-color: #c9cdd4;
-  box-shadow: 0 8px 22px rgba(31, 35, 41, 0.06);
+  border-color: color-mix(in srgb, var(--metric-accent, var(--primary-color)) 28%, var(--border-light, #c9cdd4));
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--text-primary, #1f2329) 8%, transparent);
   transform: translateY(-1px);
 }
 
 .summary-metric.is-emphasis {
-  border-color: color-mix(in srgb, var(--metric-accent, var(--primary-color, #2563eb)) 42%, #e5eaf3);
+  border-color: color-mix(in srgb, var(--metric-accent, var(--primary-color, #2563eb)) 42%, var(--border-light, #e5eaf3));
   box-shadow: inset 3px 0 0 var(--metric-accent, var(--primary-color, #2563eb));
 }
 
 .summary-metric.tone-blue {
   --metric-accent: #2563eb;
-  background: linear-gradient(135deg, #eff6ff 0%, var(--bg-primary) 58%);
+  background: linear-gradient(135deg, color-mix(in srgb, #2563eb 10%, var(--bg-primary)) 0%, var(--bg-primary) 58%);
 }
 
 .summary-metric.tone-green {
   --metric-accent: #16a34a;
-  background: linear-gradient(135deg, #ecfdf5 0%, var(--bg-primary) 58%);
+  background: linear-gradient(135deg, color-mix(in srgb, #16a34a 10%, var(--bg-primary)) 0%, var(--bg-primary) 58%);
 }
 
 .summary-metric.tone-amber {
   --metric-accent: #d97706;
-  background: linear-gradient(135deg, #fffbeb 0%, var(--bg-primary) 58%);
+  background: linear-gradient(135deg, color-mix(in srgb, #d97706 10%, var(--bg-primary)) 0%, var(--bg-primary) 58%);
 }
 
 .summary-metric.tone-red {
   --metric-accent: #dc2626;
-  background: linear-gradient(135deg, #fff1f2 0%, var(--bg-primary) 58%);
+  background: linear-gradient(135deg, color-mix(in srgb, #dc2626 10%, var(--bg-primary)) 0%, var(--bg-primary) 58%);
 }
 
 .is-compact .summary-metric {
@@ -359,22 +359,22 @@ defineExpose({ loadSummary, summary })
 }
 
 .metric-icon.blue {
-  background: #dbeafe;
+  background: color-mix(in srgb, #2563eb 16%, var(--bg-primary, #dbeafe));
   color: #1d4ed8;
 }
 
 .metric-icon.green {
-  background: #dcfce7;
+  background: color-mix(in srgb, #16a34a 16%, var(--bg-primary, #dcfce7));
   color: #15803d;
 }
 
 .metric-icon.amber {
-  background: #fef3c7;
+  background: color-mix(in srgb, #d97706 16%, var(--bg-primary, #fef3c7));
   color: #b45309;
 }
 
 .metric-icon.red {
-  background: #ffe4e6;
+  background: color-mix(in srgb, #dc2626 16%, var(--bg-primary, #ffe4e6));
   color: #dc2626;
 }
 
@@ -405,14 +405,14 @@ defineExpose({ loadSummary, summary })
 
 .metric-copy span {
   margin-top: 4px;
-  color: #344256;
+  color: var(--text-primary, #344256);
   font-size: 14px;
   font-weight: 650;
 }
 
 .metric-copy small {
   margin-top: 2px;
-  color: #667085;
+  color: var(--text-tertiary, #667085);
   font-size: 12px;
 }
 
@@ -423,7 +423,7 @@ defineExpose({ loadSummary, summary })
   margin-top: 8px;
   overflow: hidden;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--metric-accent, #2563eb) 14%, #eef2f7);
+  background: color-mix(in srgb, var(--metric-accent, #2563eb) 14%, var(--bg-secondary, #eef2f7));
 }
 
 .metric-share > i {
@@ -439,7 +439,7 @@ defineExpose({ loadSummary, summary })
 }
 
 .metric-arrow {
-  color: #98a2b3;
+  color: var(--text-tertiary, #98a2b3);
   font-size: 20px;
 }
 
@@ -453,5 +453,67 @@ defineExpose({ loadSummary, summary })
   .summary-grid {
     grid-template-columns: 1fr !important;
   }
+}
+</style>
+
+<style>
+.dark .workspace-summary-metrics .summary-metric {
+  border-color: var(--border-light);
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+
+.dark .workspace-summary-metrics .summary-metric:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--metric-accent, var(--primary-color)) 40%, var(--border-light));
+  box-shadow: 0 8px 22px color-mix(in srgb, #000 28%, transparent);
+}
+
+.dark .workspace-summary-metrics .summary-metric.tone-blue {
+  background: linear-gradient(135deg, color-mix(in srgb, #2563eb 22%, var(--bg-primary)) 0%, var(--bg-primary) 68%);
+}
+
+.dark .workspace-summary-metrics .summary-metric.tone-green {
+  background: linear-gradient(135deg, color-mix(in srgb, #16a34a 22%, var(--bg-primary)) 0%, var(--bg-primary) 68%);
+}
+
+.dark .workspace-summary-metrics .summary-metric.tone-amber {
+  background: linear-gradient(135deg, color-mix(in srgb, #d97706 22%, var(--bg-primary)) 0%, var(--bg-primary) 68%);
+}
+
+.dark .workspace-summary-metrics .summary-metric.tone-red {
+  background: linear-gradient(135deg, color-mix(in srgb, #dc2626 22%, var(--bg-primary)) 0%, var(--bg-primary) 68%);
+}
+
+.dark .workspace-summary-metrics .metric-icon.blue {
+  background: color-mix(in srgb, #2563eb 28%, var(--bg-primary));
+  color: #93c5fd;
+}
+
+.dark .workspace-summary-metrics .metric-icon.green {
+  background: color-mix(in srgb, #16a34a 28%, var(--bg-primary));
+  color: #86efac;
+}
+
+.dark .workspace-summary-metrics .metric-icon.amber {
+  background: color-mix(in srgb, #d97706 28%, var(--bg-primary));
+  color: #fcd34d;
+}
+
+.dark .workspace-summary-metrics .metric-icon.red {
+  background: color-mix(in srgb, #dc2626 28%, var(--bg-primary));
+  color: #fca5a5;
+}
+
+.dark .workspace-summary-metrics .metric-copy span {
+  color: var(--text-primary);
+}
+
+.dark .workspace-summary-metrics .metric-copy small,
+.dark .workspace-summary-metrics .metric-arrow {
+  color: var(--text-tertiary);
+}
+
+.dark .workspace-summary-metrics .metric-share {
+  background: color-mix(in srgb, var(--metric-accent, #2563eb) 22%, var(--bg-secondary));
 }
 </style>

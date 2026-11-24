@@ -40,7 +40,7 @@
 }
 
 .layout-chrome-header :is(.header-right, .header-actions-inner, .header-tools-wrap, .business-header-tools) {
-  gap: 4px;
+  gap: 10px;
   color: var(--chrome-text);
 }
 .layout-chrome-header :is(.search-trigger, .notification-trigger, .menu-collapse-button, .menu-trigger-btn,
@@ -54,7 +54,7 @@
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: 4px;
+  border-radius: 8px;
   background: transparent;
   color: var(--chrome-text);
   font-size: 18px;
@@ -65,17 +65,30 @@
   background: var(--layout-header-hover-color);
   color: var(--chrome-text);
 }
-.layout-chrome-header :is(.tenant-switcher, .org-switcher) {
+/* 设计图：租户浅色胶囊高亮，组织保持纯文字 */
+.layout-chrome-header .tenant-switcher {
+  background: color-mix(in srgb, var(--primary-color) 14%, var(--layout-header-bg-color));
+  color: var(--chrome-text);
+  border-color: transparent;
+}
+.layout-chrome-header .tenant-switcher:hover {
+  background: color-mix(in srgb, var(--primary-color) 20%, var(--layout-header-bg-color));
+  color: var(--chrome-text);
+}
+.layout-chrome-header .org-switcher {
   background: transparent;
   color: var(--chrome-text);
   border-color: transparent;
 }
-.layout-chrome-header :is(.tenant-switcher, .org-switcher):hover {
+.layout-chrome-header .org-switcher:hover {
   background: var(--layout-header-hover-color);
   color: var(--chrome-text);
 }
 .layout-chrome-header .message-notification-wrapper { margin-right: 0; }
-.layout-chrome-header .header-divider { background: var(--layout-header-border-color); }
+.layout-chrome-header .header-divider,
+.layout-chrome-header .tools-divider {
+  background: color-mix(in srgb, var(--layout-header-text-color) 22%, transparent);
+}
 .layout-chrome-header .n-breadcrumb-item__link,
 .layout-chrome-header .n-breadcrumb-item:last-child .n-breadcrumb-item__link,
 .layout-chrome-header .n-breadcrumb-item__separator { color: var(--chrome-text); }

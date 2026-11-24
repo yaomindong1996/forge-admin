@@ -13,7 +13,7 @@
       <AccountIdentity class="account-summary" />
       <div class="account-context">
         <TenantSwitcher />
-        <OrgSwitcher />
+        <OrgSwitcher quiet />
       </div>
       <div class="account-actions">
         <button id="user-dropdown" type="button" @click="openProfile">

@@ -1,9 +1,32 @@
 import { describe, expect, it } from 'vitest'
 import {
+  formatNotificationPreview,
   isFlowApprovalMessage,
   isPendingFlowApprovalMessage,
   mergeMessageNavigationTarget,
 } from '../message-notification-utils'
+
+describe('formatNotificationPreview', () => {
+  it('strips card html tags so notification list does not show raw div markup', () => {
+    const preview = formatNotificationPreview(
+      '<div class="gray">流程待办提醒</div><div class="normal">任务：模具清洗</div><div class="normal">流程：请假流程</div>',
+    )
+
+    expect(preview).toContain('流程待办提醒')
+    expect(preview).toContain('任务：模具清洗')
+    expect(preview).not.toContain('<div')
+  })
+
+  it('fills known placeholders then drops unresolved ones', () => {
+    const preview = formatNotificationPreview(
+      '<div class="normal">任务：${taskTitle}</div><div class="normal">流程：${processName}</div>',
+      { taskTitle: '模具清洗申请' },
+    )
+
+    expect(preview).toBe('任务：模具清洗申请')
+    expect(preview).not.toContain('${processName}')
+  })
+})
 
 describe('message notification flow actions', () => {
   it('keeps the approval action for an unread flow todo message', () => {

@@ -58,7 +58,8 @@ describe('布局主题覆盖与工具接入契约', () => {
   it('工作台共用工具区保留身份入口，布局外观入口在顶栏而非侧边悬浮', () => {
     const content = source('layouts/components/HeaderTools.vue')
     expect(content).toContain('<TenantSwitcher />')
-    expect(content).toContain('<OrgSwitcher />')
+    expect(content).not.toContain('<OrgSwitcher')
+    expect(content).toContain('<UserAvatar')
     expect(content).toContain('<Fullscreen />')
     expect(content).toContain('aria-label="布局与外观"')
     expect(content).not.toContain('aria-label="更多工具"')
