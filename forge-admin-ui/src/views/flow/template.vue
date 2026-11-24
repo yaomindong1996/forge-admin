@@ -1,68 +1,35 @@
 <template>
-  <div class="flow-workbench-page">
-    <!-- 工具栏 -->
-    <div class="panel-toolbar">
-      <div class="toolbar-filters">
-        <n-input
-          v-model:value="queryParams.templateName"
-          placeholder="模板名称"
-          clearable
-          style="width: 180px"
-          @keydown.enter="handleSearch"
-        >
-          <template #prefix>
-            <i class="i-material-symbols:search" />
-          </template>
-        </n-input>
-        <NTreeSelect
-          v-model:value="queryParams.category"
-          placeholder="流程分类"
-          clearable
-          style="width: 140px"
-          :options="categoryTreeOptions"
-          :default-expand-all="true"
-        />
-        <n-select
-          v-model:value="queryParams.status"
-          placeholder="状态"
-          clearable
-          style="width: 110px"
-          :options="statusOptions"
-        />
-        <NButton secondary @click="handleSearch">
-          查询
-        </NButton>
-        <NButton quaternary @click="handleReset">
-          重置
-        </NButton>
-      </div>
-      <div class="toolbar-actions">
+  <div class="flow-template-page">
+    <n-alert type="info" :bordered="false" class="template-hint">
+      该列表用于维护独立流程模板；已绑定业务应用的流程请从应用中心进入配置。
+    </n-alert>
+
+    <AiCrudPage
+      ref="crudRef"
+      :api-config="{
+        list: 'get@/api/flow/template/page',
+      }"
+      :search-schema="searchSchema"
+      :columns="tableColumns"
+      row-key="id"
+      :hide-add="true"
+      :hide-selection="true"
+      :hide-batch-delete="true"
+      :search-grid-cols="3"
+      :search-max-visible-fields="3"
+      :search-y-gap="8"
+      search-label-width="72px"
+      :scroll-x="1400"
+    >
+      <template #toolbar-end>
         <NButton type="primary" @click="handleAdd">
           <template #icon>
             <i class="i-material-symbols:add" />
           </template>
           新增模板
         </NButton>
-      </div>
-    </div>
-    <div class="panel-hint">
-      <n-alert type="info" :bordered="false">
-        该列表用于维护独立流程模板；已绑定业务应用的流程请从应用中心进入配置。
-      </n-alert>
-    </div>
-    <!-- 表格 -->
-    <div class="table-region">
-      <n-data-table
-        size="medium"
-        class="workbench-table"
-        :columns="columns"
-        :data="dataSource"
-        :loading="loading"
-        :pagination="pagination"
-        :row-key="row => row.id"
-        flex-height
-      />
-    </div>
+      </template>
+    </AiCrudPage>
 
     <!-- 新增/编辑弹窗 -->
     <Teleport to="body">
@@ -178,82 +145,109 @@ import { NButton, NDropdown, NSpace, NTreeSelect } from 'naive-ui'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import flowApi from '@/api/flow'
+import { AiCrudPage } from '@/components/ai-form'
+import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { DingFlowDesigner } from '@/components/flow-designer'
 import { useDict } from '@/composables/useDict'
 import { buildFlowCategoryTreeOptions, flattenFlowCategoryOptions, resolveFlowCategoryLabel, resolveFlowCategoryValue } from './utils/categoryOptions'
 
 const router = useRouter()
+const crudRef = ref(null)
 
 const { dict } = useDict('sys_enable_disable', 'flow_process_form_type')
 
 const statusOptions = computed(() => toNumberOptions(dict.value.sys_enable_disable))
 const formTypeOptions = computed(() => dict.value.flow_process_form_type || [])
 
-// 分类选项
 const categoryOptions = ref([])
 const categoryTreeOptions = ref([])
 
-// 查询参数
-const queryParams = reactive({
-  templateName: '',
-  category: null,
-  status: null,
-})
+const searchSchema = computed(() => [
+  {
+    field: 'templateName',
+    label: '模板名称',
+    type: 'input',
+    props: { placeholder: '请输入模板名称', clearable: true },
+  },
+  {
+    field: 'category',
+    label: '流程分类',
+    type: 'treeSelect',
+    props: {
+      placeholder: '请选择分类',
+      options: categoryTreeOptions.value,
+      clearable: true,
+      defaultExpandAll: true,
+    },
+  },
+  {
+    field: 'status',
+    label: '状态',
+    type: 'select',
+    props: { placeholder: '请选择状态', options: statusOptions.value, clearable: true },
+  },
+])
 
-// 表格列
-const columns = [
+const tableColumns = computed(() => [
   {
-    title: '模板名称',
-    key: 'templateName',
-    width: 200,
+    prop: 'templateName',
+    label: '模板名称',
+    minWidth: 180,
+    render: row => h(SystemTableCell, {
+      title: row.templateName || '-',
+      subtitle: row.templateKey || '',
+      interactive: true,
+      tooltip: `编辑模板：${row.templateName || row.templateKey || '-'}`,
+      onActivate: () => handleEdit(row),
+    }),
   },
   {
-    title: '模板Key',
-    key: 'templateKey',
-    width: 150,
-  },
-  {
-    title: '分类',
-    key: 'category',
-    width: 100,
+    prop: 'category',
+    label: '分类',
+    width: 120,
     render: row => getCategoryDisplayName(row.category),
   },
   {
-    title: '表单类型',
-    key: 'formType',
-    width: 100,
+    prop: 'formType',
+    label: '表单类型',
+    width: 110,
     render: row => h(DictTag, { dictType: 'flow_process_form_type', value: row.formType }),
   },
   {
-    title: '使用次数',
-    key: 'usageCount',
+    prop: 'usageCount',
+    label: '使用次数',
     width: 100,
   },
   {
-    title: '状态',
-    key: 'status',
-    width: 80,
+    prop: 'status',
+    label: '状态',
+    width: 100,
     render: row => h(DictTag, { dictType: 'sys_enable_disable', value: row.status }),
   },
   {
-    title: '描述',
-    key: 'description',
+    prop: 'description',
+    label: '描述',
+    minWidth: 160,
     ellipsis: { tooltip: true },
   },
   {
-    title: '创建时间',
-    key: 'createTime',
-    width: 180,
+    prop: 'createTime',
+    label: '创建时间',
+    width: 170,
   },
   {
-    title: '操作',
-    key: 'actions',
-    width: 180,
+    prop: 'action',
+    label: '操作',
+    width: 200,
     fixed: 'right',
     render: row => renderTemplateActions(row),
   },
-]
+])
+
+function refreshList() {
+  crudRef.value?.refresh?.()
+}
 
 function renderTemplateActions(row) {
   const moreOptions = [
@@ -316,26 +310,6 @@ function getCategoryDisplayName(category) {
   return resolveFlowCategoryLabel(category, categoryTreeOptions.value, category || '-')
 }
 
-// 数据源
-const dataSource = ref([])
-const loading = ref(false)
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  showSizePicker: true,
-  pageSizes: [10, 20, 50],
-  onChange: (page) => {
-    pagination.page = page
-    loadData()
-  },
-  onUpdatePageSize: (pageSize) => {
-    pagination.pageSize = pageSize
-    pagination.page = 1
-    loadData()
-  },
-})
-
 // 弹窗相关
 const showModal = ref(false)
 const modalTitle = ref('新增模板')
@@ -391,29 +365,6 @@ const createFormData = reactive({
 })
 const createLoading = ref(false)
 
-// 加载数据
-async function loadData() {
-  loading.value = true
-  try {
-    const res = await flowApi.getTemplatePage({
-      pageNum: pagination.page,
-      pageSize: pagination.pageSize,
-      ...queryParams,
-    })
-    if (res.data) {
-      dataSource.value = res.data.records || []
-      pagination.itemCount = res.data.total || 0
-    }
-  }
-  catch (error) {
-    console.error('加载数据失败:', error)
-  }
-  finally {
-    loading.value = false
-  }
-}
-
-// 加载分类
 async function loadCategories() {
   try {
     const res = await flowApi.getCategoryTreeSelect(false)
@@ -428,20 +379,6 @@ async function loadCategories() {
   catch (error) {
     console.error('加载分类失败:', error)
   }
-}
-
-// 搜索
-function handleSearch() {
-  pagination.page = 1
-  loadData()
-}
-
-// 重置
-function handleReset() {
-  queryParams.templateName = ''
-  queryParams.category = null
-  queryParams.status = null
-  handleSearch()
 }
 
 // 新增
@@ -510,7 +447,7 @@ async function handleSubmit() {
     }
 
     showModal.value = false
-    loadData()
+    refreshList()
   }
   catch (error) {
     console.error('保存失败:', error)
@@ -520,45 +457,41 @@ async function handleSubmit() {
   }
 }
 
-// 删除
 async function handleDelete(row) {
   try {
     await flowApi.deleteTemplate(row.id)
-    loadData()
+    refreshList()
   }
   catch (error) {
     console.error('删除失败:', error)
   }
 }
 
-// 启用
 async function handleEnable(row) {
   try {
     await flowApi.enableTemplate(row.id)
-    loadData()
+    refreshList()
   }
   catch (error) {
     console.error('启用失败:', error)
   }
 }
 
-// 禁用
 async function handleDisable(row) {
   try {
     await flowApi.disableTemplate(row.id)
-    loadData()
+    refreshList()
   }
   catch (error) {
     console.error('禁用失败:', error)
   }
 }
 
-// 复制
 async function handleCopy(row) {
   try {
     const newName = `${row.templateName}_副本`
     await flowApi.copyTemplate(row.id, newName)
-    loadData()
+    refreshList()
   }
   catch (error) {
     console.error('复制失败:', error)
@@ -602,20 +535,47 @@ async function handleCreateModel() {
   }
 }
 
-// 初始化
 onMounted(() => {
   loadCategories()
-  loadData()
 })
 </script>
 
-<style src="./flow-workbench.css"></style>
-
 <style scoped>
+.flow-template-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.template-hint {
+  flex: none;
+  margin-bottom: 8px;
+}
+
+.flow-template-page :deep(.ai-crud-page) {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}
+
 .bpmn-container {
   height: 400px;
   border: 1px solid var(--border-light, #e5e7eb);
   border-radius: 4px;
   overflow: hidden;
+}
+
+.flow-template-page :deep(.flow-row-actions) {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.flow-template-page :deep(.flow-row-more-btn) {
+  width: 22px;
+  height: 22px;
+  color: var(--text-tertiary, #6b7280);
 }
 </style>

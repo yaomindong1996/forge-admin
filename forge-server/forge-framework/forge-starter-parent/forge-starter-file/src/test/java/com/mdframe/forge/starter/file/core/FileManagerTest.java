@@ -250,13 +250,13 @@ class FileManagerTest {
     }
 
     @Test
-    @DisplayName("instant upload refreshes expired accessUrl")
+    @DisplayName("instant upload refreshes expired accessUrl when businessId is bound")
     void instantUploadRefreshesAccessUrl() throws Exception {
         FileManager fileManager = fileManagerWithAllowedTypes("png,jpg,jpeg");
         FileMetadata existing = FileMetadata.builder()
                 .fileId("file-common")
                 .businessType("common")
-                .businessId(null)
+                .businessId("biz-1")
                 .storageType("local")
                 .accessUrl("https://expired.example/old.png")
                 .isPrivate(true)
@@ -305,7 +305,7 @@ class FileManagerTest {
         storageMap.put("local", storage);
 
         MultipartFile file = multipartFile("pic.png", "image/png");
-        FileMetadata result = fileManager.upload(file, "common", null, "local", true);
+        FileMetadata result = fileManager.upload(file, "common", "biz-1", "local", true);
 
         assertEquals("file-common", result.getFileId());
         assertEquals("https://fresh.example/new.png", result.getAccessUrl());
@@ -313,6 +313,79 @@ class FileManagerTest {
                 .upload(org.mockito.ArgumentMatchers.any(MultipartFile.class),
                         org.mockito.ArgumentMatchers.anyString(),
                         org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    @DisplayName("skips instant upload when businessId is blank so file library can re-upload same content")
+    void skipsInstantUploadWhenBusinessIdBlank() throws Exception {
+        FileManager fileManager = fileManagerWithAllowedTypes("png,jpg,jpeg");
+        FileMetadata existing = FileMetadata.builder()
+                .fileId("file-common")
+                .businessType("common")
+                .businessId(null)
+                .storageType("local")
+                .accessUrl("https://expired.example/old.png")
+                .isPrivate(true)
+                .build();
+        AtomicBoolean saved = new AtomicBoolean(false);
+        setPersistence(fileManager, new FileMetadataPersistence() {
+            @Override
+            public void save(FileMetadata metadata) {
+                saved.set(true);
+            }
+
+            @Override
+            public FileMetadata getById(String fileId) {
+                return existing;
+            }
+
+            @Override
+            public FileMetadata getByMd5(String md5) {
+                return existing;
+            }
+
+            @Override
+            public void incrementDownloadCount(String fileId) {
+            }
+
+            @Override
+            public void delete(String fileId) {
+            }
+
+            @Override
+            public boolean checkPermission(String fileId, Long userId) {
+                return true;
+            }
+
+            @Override
+            public boolean canModify(String fileId, Long userId) {
+                return true;
+            }
+        });
+
+        FileStorage storage = mock(FileStorage.class);
+        when(storage.getStorageType()).thenReturn("local");
+        when(storage.upload(org.mockito.ArgumentMatchers.any(MultipartFile.class),
+                org.mockito.ArgumentMatchers.eq("common"),
+                org.mockito.ArgumentMatchers.isNull()))
+                .thenReturn(FileMetadata.builder()
+                        .fileId("file-new")
+                        .businessType("common")
+                        .storageType("local")
+                        .originalName("pic.png")
+                        .build());
+        Field storageField = FileManager.class.getDeclaredField("storageMap");
+        storageField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, FileStorage> storageMap = (java.util.Map<String, FileStorage>) storageField.get(fileManager);
+        storageMap.put("local", storage);
+
+        MultipartFile file = multipartFile("pic.png", "image/png");
+        FileMetadata result = fileManager.upload(file, "common", null, "local", true);
+
+        assertEquals("file-new", result.getFileId());
+        assertTrue(saved.get());
+        org.mockito.Mockito.verify(storage).upload(file, "common", null);
     }
 
     private void setPersistence(FileManager fileManager, FileMetadataPersistence persistence) throws Exception {

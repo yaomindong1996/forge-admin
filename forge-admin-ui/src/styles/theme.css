@@ -310,10 +310,185 @@
   box-shadow: var(--shadow-modal) !important;
 }
 
-/* 标签 */
+/* —— 全局 Tag：结构样式；色板走 settings.js → naiveThemeOverrides.Tag —— */
+/* Naive Tag 不会给 DOM 挂 n-tag--success 等 type class，CSS 按 type 选色无效；
+   bordered 时背景取自 colorBordered*，必须在主题覆盖里写浅底。 */
 .n-tag {
-  border-radius: var(--radius-sm);
-  font-weight: var(--font-weight-medium);
+  --n-border-radius: 4px;
+  height: 22px;
+  padding: 0 8px;
+  font-weight: 500;
+  letter-spacing: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.n-tag + .n-tag {
+  margin-left: 6px;
+}
+
+.n-space .n-tag + .n-tag,
+.n-flex .n-tag + .n-tag {
+  margin-left: 0;
+}
+
+.n-tag:not(.n-tag--round) {
+  border-radius: 4px !important;
+}
+
+/* DictTag 自带 dict-tag--*，可作主题覆盖之外的 CSS 兜底（含暗色） */
+.n-tag.dict-tag--default {
+  --n-color: #eef2f7 !important;
+  --n-border: 1px solid #dbe3ef;
+  --n-text-color: #5f6f86 !important;
+}
+
+.n-tag.dict-tag--primary,
+.n-tag.dict-tag--info {
+  --n-color: rgba(66, 102, 247, 0.14) !important;
+  --n-border: 1px solid rgba(66, 102, 247, 0.28);
+  --n-text-color: #4266d6 !important;
+}
+
+.n-tag.dict-tag--success {
+  --n-color: rgba(30, 174, 117, 0.16) !important;
+  --n-border: 1px solid rgba(30, 174, 117, 0.28);
+  --n-text-color: #16895a !important;
+}
+
+.n-tag.dict-tag--warning {
+  --n-color: rgba(245, 158, 11, 0.16) !important;
+  --n-border: 1px solid rgba(245, 158, 11, 0.32);
+  --n-text-color: #a76508 !important;
+}
+
+.n-tag.dict-tag--error {
+  --n-color: rgba(239, 82, 82, 0.14) !important;
+  --n-border: 1px solid rgba(239, 82, 82, 0.28);
+  --n-text-color: #c54747 !important;
+}
+
+.dark .n-tag {
+  box-shadow: none;
+}
+
+.dark .n-tag.dict-tag--default {
+  --n-color: rgba(255, 255, 255, 0.06) !important;
+  --n-border: 1px solid rgba(255, 255, 255, 0.14);
+  --n-text-color: #cbd5e1 !important;
+}
+
+.dark .n-tag.dict-tag--primary,
+.dark .n-tag.dict-tag--info {
+  --n-color: rgba(96, 165, 250, 0.16) !important;
+  --n-border: 1px solid rgba(96, 165, 250, 0.22);
+  --n-text-color: #a9c8f7 !important;
+}
+
+.dark .n-tag.dict-tag--success {
+  --n-color: rgba(52, 211, 153, 0.16) !important;
+  --n-border: 1px solid rgba(52, 211, 153, 0.22);
+  --n-text-color: #8ddbb8 !important;
+}
+
+.dark .n-tag.dict-tag--warning {
+  --n-color: rgba(245, 158, 11, 0.16) !important;
+  --n-border: 1px solid rgba(245, 158, 11, 0.24);
+  --n-text-color: #e7c178 !important;
+}
+
+.dark .n-tag.dict-tag--error {
+  --n-color: rgba(248, 113, 113, 0.16) !important;
+  --n-border: 1px solid rgba(248, 113, 113, 0.22);
+  --n-text-color: #eba0a0 !important;
+}
+
+/* —— 全局 Tabs —— */
+/* line：底部分隔线 + 主色短下划线，去掉填充底避免与边框叠色 */
+.n-tabs.n-tabs--line-type .n-tabs-nav {
+  line-height: 1.4;
+}
+
+.n-tabs.n-tabs--line-type .n-tabs-tab {
+  padding: 10px 4px;
+  color: var(--text-secondary, #4b5563);
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.n-tabs.n-tabs--line-type .n-tabs-tab:hover {
+  color: var(--primary-color, #4242f7);
+}
+
+.n-tabs.n-tabs--line-type .n-tabs-tab.n-tabs-tab--active {
+  background: transparent !important;
+  color: var(--primary-color, #4242f7) !important;
+  font-weight: 600;
+}
+
+.n-tabs.n-tabs--line-type .n-tabs-bar {
+  height: 2px;
+  border-radius: 1px;
+  background-color: var(--primary-color, #4242f7) !important;
+}
+
+/* segment：灰轨 + 白底选中胶囊，项与项无共用边框 */
+.n-tabs.n-tabs--segment-type .n-tabs-rail {
+  display: flex;
+  align-items: stretch;
+  padding: 3px;
+  gap: 2px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-secondary, #f5f6f8) !important;
+  box-shadow: none;
+}
+
+.n-tabs.n-tabs--segment-type .n-tabs-tab {
+  border: none !important;
+  border-radius: 6px !important;
+  color: var(--text-secondary, #4b5563);
+  font-weight: 500;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.n-tabs.n-tabs--segment-type .n-tabs-tab:hover {
+  color: var(--text-primary, #1f2937);
+}
+
+.n-tabs.n-tabs--segment-type .n-tabs-tab.n-tabs-tab--active {
+  color: var(--primary-color, #4242f7) !important;
+  background: var(--bg-primary, #fff) !important;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.06),
+    0 1px 2px rgba(15, 23, 42, 0.06) !important;
+}
+
+.n-tabs.n-tabs--segment-type .n-tabs-tab .n-icon,
+.n-tabs.n-tabs--segment-type .n-tabs-tab .n-base-icon {
+  color: inherit;
+}
+
+/* card：拆开相邻边框，避免左右线重合 */
+.n-tabs.n-tabs--card-type .n-tabs-tab {
+  margin-right: 6px;
+  border-radius: 6px 6px 0 0 !important;
+  border: 1px solid var(--border-light, #e5e7eb) !important;
+  background: var(--bg-secondary, #f5f6f8);
+}
+
+.n-tabs.n-tabs--card-type .n-tabs-tab.n-tabs-tab--active {
+  background: var(--bg-primary, #fff) !important;
+  border-bottom-color: var(--bg-primary, #fff) !important;
+  color: var(--primary-color, #4242f7) !important;
+  font-weight: 600;
+}
+
+.n-tabs.n-tabs--card-type .n-tabs-pad,
+.n-tabs.n-tabs--card-type .n-tabs-tab-pad {
+  border-bottom-color: var(--border-light, #e5e7eb) !important;
 }
 
 /* 通知 */
@@ -350,9 +525,19 @@
   color: var(--text-primary);
 }
 
-.dark .n-tabs .n-tabs-tab--active {
-  background: var(--primary-900);
-  color: var(--primary-100);
+.dark .n-tabs.n-tabs--line-type .n-tabs-tab.n-tabs-tab--active {
+  background: transparent !important;
+  color: var(--primary-color, #5388ff) !important;
+}
+
+.dark .n-tabs.n-tabs--segment-type .n-tabs-rail {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.dark .n-tabs.n-tabs--segment-type .n-tabs-tab.n-tabs-tab--active {
+  background: var(--bg-primary, #1f2937) !important;
+  color: var(--primary-color, #5388ff) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
 }
 
 .dark .n-data-table .n-data-table-th {
@@ -801,4 +986,72 @@
   border-color: rgba(71, 85, 105, 0.9) !important;
   background: rgba(30, 41, 59, 0.72) !important;
   box-shadow: none !important;
+}
+
+/* —— Select / Cascader / TreeSelect：下拉箭头竖直居中 —— */
+/*
+  结构：.n-base-suffix.n-base-loading > __placeholder > .n-base-clear > __placeholder > arrow
+  中间两层子节点都是 absolute，父级 height 一塌，translateY(-50%) 就按 0 算，箭头会掉到中线下方。
+  策略：suffix 上下拉满 + 中间层给死 1em 盒，让 clear 自带的 50% 居中重新有效。
+*/
+.n-base-selection .n-base-suffix {
+  top: 0 !important;
+  bottom: 0 !important;
+  transform: none !important;
+  height: auto !important;
+  margin: auto 0;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  font-size: var(--n-arrow-size, 16px);
+  width: 1em;
+}
+
+.n-base-selection .n-base-suffix .n-base-loading__placeholder {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em !important;
+  line-height: 0 !important;
+}
+
+.n-base-selection .n-base-suffix .n-base-clear {
+  position: relative !important;
+  display: block !important;
+  flex-shrink: 0;
+  width: 1em !important;
+  height: 1em !important;
+  line-height: 0;
+}
+
+.n-base-selection .n-base-suffix__arrow,
+.n-base-selection .n-base-clear__placeholder,
+.n-base-selection .n-base-clear__clear {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.n-base-selection .n-base-suffix .n-base-icon,
+.n-base-selection .n-base-clear .n-base-icon {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  line-height: 0 !important;
+}
+
+.n-base-selection .n-base-suffix .n-base-icon svg,
+.n-base-selection .n-base-clear .n-base-icon svg {
+  display: block;
+  width: 1em;
+  height: 1em;
 }

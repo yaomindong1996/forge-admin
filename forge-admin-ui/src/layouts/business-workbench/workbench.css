@@ -149,14 +149,43 @@
 .menu-scroll {
   display: grid;
   place-items: center;
-  width: 22px;
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
-  background: var(--workbench-surface);
-  color: var(--workbench-primary);
+  border: 1px solid color-mix(in srgb, var(--top-menu-text-color, var(--chrome-text, #fff)) 58%, transparent);
+  border-radius: 4px;
+  background: color-mix(
+    in srgb,
+    var(--top-menu-text-color, var(--chrome-text, #fff)) 24%,
+    var(--layout-header-bg-color, var(--workbench-surface, #185abd))
+  );
+  color: var(--top-menu-text-color, var(--chrome-text, #fff));
+  box-shadow: 0 1px 2px color-mix(in srgb, #000 20%, transparent);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.menu-scroll i {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  color: inherit;
+}
+.menu-scroll:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--top-menu-text-color, var(--chrome-text, #fff)) 72%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--top-menu-text-color, var(--chrome-text, #fff)) 32%,
+    var(--layout-header-bg-color, var(--workbench-surface, #185abd))
+  );
 }
 .menu-scroll:disabled {
-  opacity: 0.25;
+  opacity: 0.35;
   cursor: default;
+  box-shadow: none;
 }
 .menu-empty {
   align-self: center;

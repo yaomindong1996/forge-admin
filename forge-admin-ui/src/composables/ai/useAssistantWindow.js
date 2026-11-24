@@ -19,8 +19,8 @@ export function useAssistantWindow() {
   const panelBox = ref({
     right: MARGIN,
     bottom: MARGIN,
-    width: 420,
-    height: 640,
+    width: 440,
+    height: 680,
   })
 
   let activeMode = null
@@ -77,9 +77,9 @@ export function useAssistantWindow() {
 
     if (activeMode === 'launcher') {
       launcherPos.value = {
-        right: clamp(dragStart.launcherRight - dx, 12, vw - 130),
-        // 预留顶栏高度，避免悬浮球拖进导航区域
-        bottom: clamp(dragStart.launcherBottom - dy, 12, vh - 120),
+        right: clamp(dragStart.launcherRight - dx, 12, vw - 96),
+        // 预留顶栏高度，避免悬浮球拖进导航区域（头像+文案约 88px）
+        bottom: clamp(dragStart.launcherBottom - dy, 12, vh - 160),
       }
       return
     }
@@ -134,10 +134,10 @@ export function useAssistantWindow() {
   function clampLauncherAwayFromHeader() {
     const vh = viewport.value.height
     const minBottomFromTop = 72
-    const maxBottom = Math.max(MARGIN, vh - minBottomFromTop - 48)
+    const maxBottom = Math.max(MARGIN, vh - minBottomFromTop - 88)
     if (launcherPos.value.bottom > maxBottom) {
       launcherPos.value = {
-        right: Math.min(launcherPos.value.right, Math.max(MARGIN, viewport.value.width - 130)),
+        right: Math.min(launcherPos.value.right, Math.max(MARGIN, viewport.value.width - 96)),
         bottom: MARGIN,
       }
     }

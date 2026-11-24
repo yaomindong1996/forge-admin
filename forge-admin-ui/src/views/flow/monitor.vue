@@ -9,43 +9,103 @@
       </template>
     </n-alert>
 
-    <div class="flow-workbench">
-      <!-- 摘要条：可点超时筛选，避免营销式指标卡 -->
-      <div class="monitor-summary" role="group" aria-label="流程监控摘要">
-        <span class="summary-item">
-          <small>运行中</small>
-          <strong>{{ statistics.runningInstances || 0 }}</strong>
-        </span>
-        <span class="summary-item">
-          <small>待办</small>
-          <strong>{{ statistics.pendingTasks || 0 }}</strong>
-        </span>
-        <span class="summary-item">
-          <small>今日完成</small>
-          <strong>{{ statistics.todayCompleted || 0 }}</strong>
-        </span>
-        <button
-          type="button"
-          class="summary-item is-action"
-          :class="{ 'is-active': searchForm.overdue === true }"
-          title="按超时任务筛选"
-          @click="filterByTimeout"
-        >
-          <small>超时</small>
-          <strong>{{ statistics.timeoutTasks || 0 }}</strong>
-        </button>
+    <header class="monitor-page-header">
+      <div class="header-copy">
+        <h2>流程监控中心</h2>
+        <p>实时监控流程运行状态，统计任务处理情况</p>
       </div>
 
-      <!-- 工具栏 -->
+      <nav class="header-tabs" aria-label="监控视图切换">
+        <button
+          v-for="tab in viewTabs"
+          :key="tab.value"
+          type="button"
+          class="header-tab"
+          :class="{ 'is-active': activeView === tab.value }"
+          @click="activeView = tab.value"
+        >
+          {{ tab.label }}
+        </button>
+      </nav>
+
+      <div class="header-range">
+        <n-select
+          v-model:value="chartPeriod"
+          :options="periodOptions"
+          size="small"
+          class="period-select"
+          @update:value="refreshCharts"
+        />
+        <n-date-picker
+          v-model:value="searchForm.dateRange"
+          type="daterange"
+          clearable
+          size="small"
+          class="header-date-range"
+          @update:value="handleSearch"
+        />
+      </div>
+    </header>
+
+    <section class="monitor-kpi" role="group" aria-label="流程监控摘要">
+      <article class="kpi-card theme-running">
+        <span class="kpi-icon" aria-hidden="true">
+          <i class="i-lucide:play" />
+        </span>
+        <div class="kpi-copy">
+          <small>运行中</small>
+          <strong>{{ statistics.runningInstances || 0 }}</strong>
+        </div>
+      </article>
+      <article class="kpi-card theme-pending">
+        <span class="kpi-icon" aria-hidden="true">
+          <i class="i-lucide:clipboard-list" />
+        </span>
+        <div class="kpi-copy">
+          <small>待办</small>
+          <strong>{{ statistics.pendingTasks || 0 }}</strong>
+        </div>
+      </article>
+      <article class="kpi-card theme-done">
+        <span class="kpi-icon" aria-hidden="true">
+          <i class="i-lucide:check" />
+        </span>
+        <div class="kpi-copy">
+          <small>今日完成</small>
+          <strong>{{ statistics.todayCompleted || 0 }}</strong>
+        </div>
+      </article>
+      <button
+        type="button"
+        class="kpi-card theme-timeout is-action"
+        :class="{ 'is-active': searchForm.overdue === true }"
+        title="按超时任务筛选"
+        @click="filterByTimeout"
+      >
+        <span class="kpi-icon" aria-hidden="true">
+          <i class="i-lucide:alarm-clock" />
+        </span>
+        <div class="kpi-copy">
+          <small>超时</small>
+          <strong>{{ statistics.timeoutTasks || 0 }}</strong>
+        </div>
+      </button>
+    </section>
+
+    <div v-show="activeView === 'monitor'" class="flow-workbench">
       <div class="panel-toolbar">
         <div class="toolbar-filters">
           <n-input
             v-model:value="searchForm.processName"
-            placeholder="流程名称"
+            placeholder="搜索流程名称"
             clearable
             class="filter-name"
             @keydown.enter="handleSearch"
-          />
+          >
+            <template #prefix>
+              <i class="i-lucide:search" />
+            </template>
+          </n-input>
           <n-input
             v-model:value="searchForm.initiator"
             placeholder="发起人"
@@ -69,7 +129,7 @@
           <NButton type="primary" @click="handleSearch">
             查询
           </NButton>
-          <NButton quaternary @click="handleReset">
+          <NButton secondary @click="handleReset">
             重置
           </NButton>
         </div>
@@ -90,7 +150,6 @@
         </div>
       </div>
 
-      <!-- 列表 -->
       <div class="table-region">
         <n-alert v-if="dataError" type="error" class="monitor-alert" :show-icon="true">
           流程实例列表加载失败，请重试。
@@ -218,9 +277,17 @@
       </template>
     </n-modal>
 
-    <!-- 图表区：并入下方紧凑面板，避免再套多层白卡 -->
-    <div class="monitor-charts">
-      <section class="chart-panel">
+    <div
+      class="monitor-charts"
+      :class="{
+        'is-stats': activeView === 'stats',
+        'is-analysis': activeView === 'analysis',
+      }"
+    >
+      <section
+        class="chart-panel"
+        :class="{ 'is-primary': activeView === 'analysis' }"
+      >
         <header class="chart-panel-head">
           <strong>任务处理趋势</strong>
           <n-radio-group v-model:value="chartPeriod" size="small" @update:value="refreshCharts">
@@ -236,7 +303,10 @@
           <div ref="taskChartRef" />
         </div>
       </section>
-      <section class="chart-panel">
+      <section
+        class="chart-panel"
+        :class="{ 'is-primary': activeView === 'stats' }"
+      >
         <header class="chart-panel-head">
           <strong>流程分布统计</strong>
         </header>
@@ -487,6 +557,7 @@
 </template>
 
 <script setup>
+import { nextTick, ref, watch } from 'vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import UserSelectModal from '@/components/common/UserSelectModal.vue'
 import DictTag from '@/components/DictTag.vue'
@@ -496,6 +567,17 @@ import FlowTaskDetailShell from '@/components/flow/FlowTaskDetailShell.vue'
 import { useFlowMonitor } from './composables/useFlowMonitor'
 
 defineOptions({ name: 'FlowMonitor' })
+
+const activeView = ref('monitor')
+const viewTabs = [
+  { label: '流程监控', value: 'monitor' },
+  { label: '数据统计', value: 'stats' },
+  { label: '运行分析', value: 'analysis' },
+]
+const periodOptions = [
+  { label: '近7天', value: 7 },
+  { label: '近30天', value: 30 },
+]
 
 const {
   adminActionsModalVisible,
@@ -589,6 +671,11 @@ const {
   variablesLoading,
   variablesModalVisible,
 } = useFlowMonitor()
+
+watch(activeView, async () => {
+  await nextTick()
+  window.dispatchEvent(new Event('resize'))
+})
 </script>
 
 <style scoped src="./flowMonitor.css"></style>

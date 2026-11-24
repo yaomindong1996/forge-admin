@@ -36,6 +36,38 @@ export const naiveThemeOverrides = {
     borderRadiusLarge: '4px',
     fontWeight: '500',
   },
+  Tag: {
+    borderRadius: '4px',
+    heightSmall: '22px',
+    heightMedium: '24px',
+    fontWeightStrong: '500',
+    // bordered 时 Naive 用 colorBordered* 作为 --n-color；非 bordered 用 color*
+    // 两边都写成同一套浅底，避免表格里只剩描边
+    color: '#eef2f7',
+    colorBordered: '#eef2f7',
+    textColor: '#5f6f86',
+    border: '1px solid #dbe3ef',
+    colorPrimary: 'rgba(66, 102, 247, 0.14)',
+    colorBorderedPrimary: 'rgba(66, 102, 247, 0.14)',
+    textColorPrimary: '#4266d6',
+    borderPrimary: '1px solid rgba(66, 102, 247, 0.28)',
+    colorInfo: 'rgba(66, 102, 247, 0.14)',
+    colorBorderedInfo: 'rgba(66, 102, 247, 0.14)',
+    textColorInfo: '#4266d6',
+    borderInfo: '1px solid rgba(66, 102, 247, 0.28)',
+    colorSuccess: 'rgba(30, 174, 117, 0.16)',
+    colorBorderedSuccess: 'rgba(30, 174, 117, 0.16)',
+    textColorSuccess: '#16895a',
+    borderSuccess: '1px solid rgba(30, 174, 117, 0.28)',
+    colorWarning: 'rgba(245, 158, 11, 0.16)',
+    colorBorderedWarning: 'rgba(245, 158, 11, 0.16)',
+    textColorWarning: '#a76508',
+    borderWarning: '1px solid rgba(245, 158, 11, 0.32)',
+    colorError: 'rgba(239, 82, 82, 0.14)',
+    colorBorderedError: 'rgba(239, 82, 82, 0.14)',
+    textColorError: '#c54747',
+    borderError: '1px solid rgba(239, 82, 82, 0.28)',
+  },
 }
 
 // 控制是否显示布局设置按钮

@@ -235,12 +235,13 @@
   align-items: center;
 }
 
-.ai-form-control :deep(.n-base-selection__clear),
-.ai-form-control :deep(.n-base-clear) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
+/* 箭头居中交给 theme.css；这里只做布局对齐，禁止再写 height:100% 把 clear 压成 0 */
+.ai-form-control :deep(.n-base-selection .n-base-suffix) {
+  top: 0;
+  bottom: 0;
+  transform: none;
+  height: auto;
+  margin: auto 0;
 }
 
 .time-range-picker {

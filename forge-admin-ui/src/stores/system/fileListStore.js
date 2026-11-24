@@ -22,6 +22,8 @@ export const useFileListStore = defineStore('system-file-list', () => {
   const pageSize = ref(20)
   const total = ref(0)
   const loading = ref(false)
+  const uploadingCount = ref(0)
+  const uploading = computed(() => uploadingCount.value > 0)
   const loadError = ref('')
   const groupModalVisible = ref(false)
   const newGroupName = ref('')
@@ -391,12 +393,32 @@ export const useFileListStore = defineStore('system-file-list', () => {
     })
   }
 
+  function beginUpload() {
+    uploadingCount.value += 1
+  }
+
+  function endUpload() {
+    uploadingCount.value = Math.max(0, uploadingCount.value - 1)
+  }
+
+  function beforeUpload() {
+    beginUpload()
+    return true
+  }
+
   function uploadFinished({ file, event }) {
+    endUpload()
     try {
       const response = JSON.parse(event.target.response)
       if (response.code !== 200)
         throw new Error(response.msg || '上传失败')
-      window.$message?.success(`“${file.name}”上传成功`)
+      const uploaded = response.data || {}
+      const alreadyListed = !!uploaded.fileId && files.value.some(item => item.fileId === uploaded.fileId)
+      window.$message?.success(
+        alreadyListed
+          ? `“${file.name}”已存在（内容相同，未新增记录）`
+          : `“${file.name}”上传成功`,
+      )
       page.value = 1
       refresh()
       return file
@@ -408,10 +430,15 @@ export const useFileListStore = defineStore('system-file-list', () => {
     }
   }
 
+  function uploadError() {
+    endUpload()
+  }
+
   function dispose() {
     listVersion++
     previewVersion++
     previewLoadingId.value = ''
+    uploadingCount.value = 0
     closePreview()
     groupModalVisible.value = false
     moveFile.value = null
@@ -435,6 +462,7 @@ export const useFileListStore = defineStore('system-file-list', () => {
     pageSize,
     total,
     loading,
+    uploading,
     loadError,
     groupModalVisible,
     newGroupName,
@@ -478,7 +506,9 @@ export const useFileListStore = defineStore('system-file-list', () => {
     download,
     copyLink,
     deleteFile,
+    beforeUpload,
     uploadFinished,
+    uploadError,
     dispose,
   }
 })

@@ -32,6 +32,14 @@ Forge Admin 是供日常反复使用的企业管理控制台，不是营销网�
 - 管理页禁止使用营销式大标题、英文装饰标签、虚假指标卡和重阴影。
 - 面板圆角通常为 6px，控件间距通常为 6–8px；页面根节点不再额外叠加大留白。
 
+### 2.1 Tag 与 Tabs
+
+- **Tag**：浅色底 + 同色系细描边 + 4px 圆角；多标签之间保留间距，禁止边框贴合重合。语义色（info/success/warning/error）用低饱和底与加深文字，不用实心色块。
+- **Tabs `line`**：底部分隔线 + 主色短下划线；选中态只改文字色与下划线，不要给 Tab 铺实心底。
+- **Tabs `segment`**：灰轨容器 + 白底选中胶囊（轻阴影/描边）；未选中无边框，避免相邻项共用边线。
+- **Tabs `card`**：Tab 之间留缝，禁止左右边框重叠成双线。
+- Tag 色板在 `src/settings.js` → `naiveThemeOverrides.Tag`（含 `colorBordered*`）；结构样式在 `src/styles/theme.css`。Naive Tag 不挂 type class，不要用 `.n-tag--success` 这类选择器改色。页面不要再各自覆盖一套冲突的 Tag/Tab 色板，除非有明确业务例外。
+
 ## 3. 页面边界与工作台
 
 ### 3.1 页面级边界

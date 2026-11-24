@@ -142,7 +142,13 @@ function openAgentsPage() {
             <span class="avatar-online-dot is-lg" />
           </div>
           <div class="header-copy">
-            <strong>AI 助手</strong>
+            <div class="header-title-row">
+              <strong>AI 助手</strong>
+              <span class="header-badge">
+                <i class="i-lucide:sparkles" aria-hidden="true" />
+                智能工作伙伴
+              </span>
+            </div>
             <small>智能对话 · 菜单定位 · 流程待办</small>
           </div>
         </div>
@@ -205,34 +211,32 @@ function openAgentsPage() {
 
 .assistant-launcher {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 6px 14px 6px 7px;
-  border: 1px solid color-mix(in srgb, var(--primary-color, #2563eb) 22%, var(--border-light, #e5e7eb));
-  border-radius: 999px;
-  background: var(--bg-primary, #fff);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--text-primary, #111827);
   font: inherit;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 650;
   cursor: grab;
   touch-action: none;
   user-select: none;
-  box-shadow:
-    0 8px 24px color-mix(in srgb, #152456 14%, transparent),
-    0 2px 6px color-mix(in srgb, #152456 6%, transparent);
-  transition:
-    transform 150ms ease,
-    border-color 150ms ease,
-    box-shadow 150ms ease;
+  box-shadow: none;
+  transition: transform 150ms ease;
 }
 
 .assistant-launcher:hover {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--primary-color, #2563eb) 46%, var(--border-light, #e5e7eb));
+}
+
+.assistant-launcher:hover .launcher-orb {
   box-shadow:
-    0 12px 28px color-mix(in srgb, var(--primary-color, #2563eb) 18%, transparent),
-    0 2px 8px color-mix(in srgb, #152456 8%, transparent);
+    0 0 0 3px color-mix(in srgb, var(--primary-color, #2563eb) 34%, transparent),
+    0 10px 22px color-mix(in srgb, var(--primary-color, #2563eb) 34%, transparent);
 }
 
 .launcher-orb {
@@ -241,13 +245,14 @@ function openAgentsPage() {
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color, #2563eb) 18%, #e0edff), #fff);
   box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--primary-color, #2563eb) 28%, transparent),
-    0 3px 10px color-mix(in srgb, var(--primary-color, #2563eb) 28%, transparent);
+    0 0 0 3px color-mix(in srgb, var(--primary-color, #2563eb) 28%, transparent),
+    0 8px 18px color-mix(in srgb, var(--primary-color, #2563eb) 28%, transparent);
+  transition: box-shadow 150ms ease;
 }
 
 .assistant-avatar-img {
@@ -262,14 +267,21 @@ function openAgentsPage() {
 
 .avatar-online-dot {
   position: absolute;
-  right: -1px;
-  bottom: -1px;
-  width: 9px;
-  height: 9px;
+  right: 1px;
+  bottom: 1px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: #22c55e;
   border: 2px solid var(--bg-primary, #fff);
   box-sizing: border-box;
+}
+
+.launcher-orb .avatar-online-dot {
+  right: 2px;
+  bottom: 2px;
+  width: 13px;
+  height: 13px;
 }
 
 .avatar-online-dot.is-lg {
@@ -280,25 +292,38 @@ function openAgentsPage() {
 }
 
 .launcher-label {
-  letter-spacing: 0.01em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary-color, #2563eb) 92%, #0f172a);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #fff 22%, transparent) inset,
+    0 4px 10px color-mix(in srgb, var(--primary-color, #2563eb) 35%, transparent);
 }
 
 .assistant-panel {
   --assistant-panel-gradient:
-    radial-gradient(
-      120% 70% at 10% -8%,
-      color-mix(in srgb, var(--primary-color, #2563eb) 15%, transparent) 0,
-      transparent 48%
-    ),
-    linear-gradient(180deg, color-mix(in srgb, var(--primary-color, #2563eb) 8%, #fff) 0, #f5f8fc 36%, #f7f9fc 100%);
+    radial-gradient(90% 60% at 8% -4%, rgba(147, 197, 253, 0.55), transparent 52%),
+    radial-gradient(70% 50% at 96% 8%, rgba(196, 181, 253, 0.35), transparent 46%),
+    linear-gradient(180deg, #eaf2ff 0%, #f3f6fb 38%, #f6f8fc 100%);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--primary-color, #2563eb) 14%, var(--border-light, #e5e7eb));
-  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 22px;
   background: var(--assistant-panel-gradient);
+  backdrop-filter: blur(10px);
   box-shadow:
-    0 22px 54px color-mix(in srgb, #1a3a6e 20%, transparent),
+    0 26px 60px color-mix(in srgb, #1a3a6e 24%, transparent),
     0 2px 10px color-mix(in srgb, #152456 8%, transparent);
 }
 
@@ -321,13 +346,13 @@ function openAgentsPage() {
   position: relative;
   flex: none;
   min-width: 0;
-  padding: 14px 14px 10px;
+  padding: 16px 16px 12px;
 }
 
 .assistant-handle {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 12px;
   min-width: 0;
   padding-right: 112px;
 }
@@ -348,8 +373,8 @@ function openAgentsPage() {
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color, #2563eb) 18%, #e0edff), #fff);
   box-shadow:
@@ -361,25 +386,50 @@ function openAgentsPage() {
   min-width: 0;
 }
 
-.header-copy strong,
-.header-copy small {
-  display: block;
-  line-height: 1.35;
+.header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .header-copy strong {
   overflow: hidden;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
-  color: var(--text-primary);
+  line-height: 1.3;
+  color: var(--text-primary, #111827);
+  letter-spacing: 0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.header-copy small {
-  margin-top: 2px;
-  color: var(--text-tertiary);
+.header-badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--primary-color, #2563eb) 22%, #c7d7f0);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary-color, #2563eb) 8%, #fff);
+  color: var(--primary-color, #2563eb);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.header-badge i {
   font-size: 12px;
+}
+
+.header-copy small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-tertiary, #6b7280);
+  font-size: 12px;
+  line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -453,14 +503,19 @@ function openAgentsPage() {
 
 .resize-grip {
   position: absolute;
-  right: 4px;
-  bottom: 4px;
-  width: 20px;
-  height: 20px;
-  font-size: 13px;
-  color: var(--text-tertiary);
+  right: 6px;
+  bottom: 6px;
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+  color: var(--text-secondary);
   cursor: nwse-resize;
   touch-action: none;
+  opacity: 0.72;
+}
+
+.resize-grip:hover {
+  opacity: 1;
 }
 
 .assistant-dock :is(button, .assistant-handle):focus-visible {

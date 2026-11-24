@@ -1,17 +1,42 @@
 <template>
   <div class="dict-data-page">
-    <!-- 面包屑导航 -->
-    <NPageHeader style="margin-bottom: 16px" @back="handleBack">
-      <template #title>
-        <span>字典数据管理</span>
-        <NTag v-if="dictTypeName" type="info" size="small" style="margin-left: 12px">
-          {{ dictTypeName }}
-        </NTag>
-      </template>
-      <template #subtitle>
-        <span v-if="currentDictType">字典类型：{{ currentDictType }}</span>
-      </template>
-    </NPageHeader>
+    <header class="dict-data-header">
+      <button type="button" class="dict-data-back" aria-label="返回字典类型" @click="handleBack">
+        <i class="i-lucide:arrow-left" aria-hidden="true" />
+        <span>返回</span>
+      </button>
+
+      <div class="dict-data-identity">
+        <div class="dict-data-identity__icon" aria-hidden="true">
+          <i class="i-lucide:book-type" />
+        </div>
+        <div class="dict-data-identity__body">
+          <div class="dict-data-identity__title-row">
+            <h1 class="dict-data-identity__title">
+              字典数据管理
+            </h1>
+            <span v-if="dictTypeName" class="dict-data-identity__name">{{ dictTypeName }}</span>
+          </div>
+          <div v-if="currentDictType" class="dict-data-identity__meta">
+            <span class="dict-data-identity__meta-label">类型编码</span>
+            <code class="dict-data-identity__code">{{ currentDictType }}</code>
+            <button
+              type="button"
+              class="dict-data-identity__copy"
+              title="复制类型编码"
+              aria-label="复制类型编码"
+              @click="copyDictType"
+            >
+              <i class="i-lucide:copy" aria-hidden="true" />
+              复制
+            </button>
+          </div>
+          <p v-else class="dict-data-identity__empty">
+            未指定字典类型，请从字典类型页进入
+          </p>
+        </div>
+      </div>
+    </header>
 
     <AiCrudPage
       ref="crudRef"
@@ -62,7 +87,6 @@
 </template>
 
 <script setup>
-import { NPageHeader, NTag } from 'naive-ui'
 import { computed, h, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { AiCrudPage } from '@/components/ai-form'
@@ -612,6 +636,31 @@ function handleBack() {
   router.push('/system/dictType')
 }
 
+async function copyDictType() {
+  const value = String(currentDictType.value || '').trim()
+  if (!value)
+    return
+  try {
+    if (navigator.clipboard?.writeText)
+      await navigator.clipboard.writeText(value)
+    else {
+      const input = document.createElement('textarea')
+      input.value = value
+      input.setAttribute('readonly', 'readonly')
+      input.style.position = 'fixed'
+      input.style.left = '-9999px'
+      document.body.appendChild(input)
+      input.select()
+      document.execCommand('copy')
+      document.body.removeChild(input)
+    }
+    window.$message?.success('类型编码已复制')
+  }
+  catch {
+    window.$message?.error('复制失败')
+  }
+}
+
 function handleExpandedKeysUpdate(keys) {
   expandedKeys.value = keys
 
@@ -786,9 +835,196 @@ watch(
   height: 100%;
   display: flex;
   flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.dict-data-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 4px;
+  padding: 12px 14px;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 0;
+}
+
+.dict-data-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: center;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 0;
+  background: var(--bg-primary, #fff);
+  color: var(--text-secondary, #64748b);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.dict-data-back i {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+}
+
+.dict-data-back:hover {
+  color: var(--text-primary, #0f172a);
+  border-color: color-mix(in srgb, var(--primary-color, #356de0) 35%, var(--border-light, #e5e7eb));
+  background: color-mix(in srgb, var(--primary-color, #356de0) 6%, #fff);
+}
+
+.dict-data-identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.dict-data-identity__icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--primary-color, #356de0) 10%, #fff);
+  color: var(--primary-color, #356de0);
+}
+
+.dict-data-identity__icon i {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+}
+
+.dict-data-identity__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dict-data-identity__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.dict-data-identity__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary, #0f172a);
+}
+
+.dict-data-identity__name {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--primary-color, #356de0) 22%, transparent);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--primary-color, #356de0) 8%, #fff);
+  color: color-mix(in srgb, var(--primary-color, #356de0) 82%, #0f172a);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dict-data-identity__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.dict-data-identity__meta-label {
+  flex-shrink: 0;
+  color: var(--text-tertiary, #94a3b8);
+  font-size: 12px;
+}
+
+.dict-data-identity__code {
+  min-width: 0;
+  max-width: 100%;
+  padding: 2px 6px;
+  border-radius: 0;
+  background: var(--bg-secondary, #f6f8fb);
+  border: 1px solid var(--border-light, #e5e7eb);
+  color: var(--text-secondary, #475569);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dict-data-identity__copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--primary-color, #356de0);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.dict-data-identity__copy i {
+  width: 13px;
+  height: 13px;
+  font-size: 13px;
+}
+
+.dict-data-identity__copy:hover {
+  background: color-mix(in srgb, var(--primary-color, #356de0) 8%, transparent);
+}
+
+.dict-data-identity__empty {
+  margin: 0;
+  color: var(--text-tertiary, #94a3b8);
+  font-size: 12px;
 }
 
 .dict-data-page :deep(.ai-crud-page) {
   flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 720px) {
+  .dict-data-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .dict-data-back {
+    align-self: flex-start;
+  }
 }
 </style>

@@ -1,60 +1,33 @@
 <template>
-  <div class="flow-workbench-page">
-    <!-- 工具栏 -->
-    <div class="panel-toolbar">
-      <div class="toolbar-filters">
-        <n-input
-          v-model:value="searchForm.ruleName"
-          placeholder="规则名称"
-          clearable
-          style="width: 180px"
-          @keydown.enter="handleSearch"
-        />
-        <n-select
-          v-model:value="searchForm.ruleType"
-          :options="ruleTypeOptions"
-          placeholder="规则类型"
-          clearable
-          style="width: 140px"
-        />
-        <n-select
-          v-model:value="searchForm.status"
-          :options="statusOptions"
-          placeholder="状态"
-          clearable
-          style="width: 110px"
-        />
-        <NButton secondary @click="handleSearch">
-          查询
-        </NButton>
-        <NButton quaternary @click="handleReset">
-          重置
-        </NButton>
-      </div>
-      <div class="toolbar-actions">
+  <div class="flow-condition-rule-page">
+    <AiCrudPage
+      ref="crudRef"
+      :api-config="{
+        list: 'get@/api/flow/conditionRule/page',
+      }"
+      list-data-field="list"
+      :search-schema="searchSchema"
+      :columns="tableColumns"
+      :before-load-list="beforeLoadList"
+      row-key="id"
+      :hide-add="true"
+      :hide-selection="true"
+      :hide-batch-delete="true"
+      :search-grid-cols="3"
+      :search-max-visible-fields="3"
+      :search-y-gap="8"
+      search-label-width="72px"
+      :scroll-x="1100"
+    >
+      <template #toolbar-end>
         <NButton type="primary" @click="handleAdd">
           <template #icon>
             <i class="i-mdi:plus" />
           </template>
           新增规则
         </NButton>
-      </div>
-    </div>
-
-    <!-- 表格 -->
-    <div class="table-region">
-      <n-data-table
-        size="medium"
-        class="workbench-table"
-        :columns="columns"
-        :data="tableData"
-        :loading="loading"
-        :pagination="pagination"
-        :row-key="row => row.id"
-        flex-height
-        @update:page="handlePageChange"
-      />
-    </div>
+      </template>
+    </AiCrudPage>
 
     <!-- 新增/编辑弹窗 -->
     <n-modal v-model:show="modalVisible" preset="card" :title="modalTitle" :style="{ width: '800px' }">
@@ -180,10 +153,10 @@
 </template>
 
 <script setup>
-// 引入必要的组件
 import { NButton, NSpace } from 'naive-ui'
 import { computed, h, onMounted, reactive, ref } from 'vue'
-
+import { AiCrudPage } from '@/components/ai-form'
+import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
 import { request } from '@/utils'
@@ -192,15 +165,8 @@ defineOptions({ name: 'FlowConditionRule' })
 
 const message = window.$message
 const { dict } = useDict('flow_rule_type', 'flow_rule_operator', 'sys_enable_disable')
+const crudRef = ref(null)
 
-// 搜索表单
-const searchForm = reactive({
-  ruleName: '',
-  ruleType: null,
-  status: null,
-})
-
-// 选项
 const ruleTypeOptions = computed(() => dict.value.flow_rule_type || [])
 const statusOptions = computed(() => toNumberOptions(dict.value.sys_enable_disable))
 const operatorOptions = computed(() => dict.value.flow_rule_operator || [])
@@ -214,82 +180,86 @@ const fieldOptions = ref([
 
 const modelOptions = ref([])
 
-// 表格数据
-const tableData = ref([])
-const loading = ref(false)
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  showSizePicker: true,
-  pageSizes: [10, 20, 50],
-})
+const searchSchema = computed(() => [
+  {
+    field: 'ruleName',
+    label: '规则名称',
+    type: 'input',
+    props: { placeholder: '请输入规则名称', clearable: true },
+  },
+  {
+    field: 'ruleType',
+    label: '规则类型',
+    type: 'select',
+    props: { placeholder: '请选择规则类型', options: ruleTypeOptions.value, clearable: true },
+  },
+  {
+    field: 'status',
+    label: '状态',
+    type: 'select',
+    props: { placeholder: '请选择状态', options: statusOptions.value, clearable: true },
+  },
+])
 
-// 表格列定义
-const columns = [
+const tableColumns = computed(() => [
   {
-    title: '规则名称',
-    key: 'ruleName',
-    ellipsis: { tooltip: true },
+    prop: 'ruleName',
+    label: '规则名称',
+    minWidth: 180,
+    render: row => h(SystemTableCell, {
+      title: row.ruleName || '-',
+      subtitle: row.ruleCode || '',
+      interactive: true,
+      tooltip: `编辑规则：${row.ruleName || row.ruleCode || '-'}`,
+      onActivate: () => handleEdit(row),
+    }),
   },
   {
-    title: '规则编码',
-    key: 'ruleCode',
-    width: 150,
+    prop: 'ruleType',
+    label: '规则类型',
+    width: 110,
+    render: row => h(DictTag, { dictType: 'flow_rule_type', value: row.ruleType }),
   },
   {
-    title: '规则类型',
-    key: 'ruleType',
+    prop: 'priority',
+    label: '优先级',
+    width: 90,
+  },
+  {
+    prop: 'status',
+    label: '状态',
     width: 100,
-    render(row) {
-      return h(DictTag, { dictType: 'flow_rule_type', value: row.ruleType })
-    },
+    render: row => h(DictTag, { dictType: 'sys_enable_disable', value: row.status }),
   },
   {
-    title: '优先级',
-    key: 'priority',
-    width: 80,
+    prop: 'createTime',
+    label: '创建时间',
+    width: 170,
   },
   {
-    title: '状态',
-    key: 'status',
-    width: 80,
-    render(row) {
-      return h(DictTag, { dictType: 'sys_enable_disable', value: row.status })
-    },
-  },
-  {
-    title: '创建时间',
-    key: 'createTime',
-    width: 160,
-  },
-  {
-    title: '操作',
-    key: 'actions',
-    width: 148,
+    prop: 'action',
+    label: '操作',
+    width: 180,
     fixed: 'right',
-    render: row => renderRuleActions(row),
+    actions: [
+      { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit },
+      { label: '测试', key: 'test', type: 'info', onClick: handleTestRule },
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+    ],
   },
-]
+])
 
-function renderRuleActions(row) {
-  return h('div', {
-    class: 'flow-row-actions',
-    onClick: event => event.stopPropagation(),
-  }, [
-    h('a', {
-      class: 'text-primary cursor-pointer hover:text-primary-hover',
-      onClick: () => handleEdit(row),
-    }, '编辑'),
-    h('a', {
-      class: 'text-primary cursor-pointer hover:text-primary-hover',
-      onClick: () => handleTestRule(row),
-    }, '测试'),
-    h('a', {
-      class: 'text-error cursor-pointer hover:text-error-hover',
-      onClick: () => handleDelete(row),
-    }, '删除'),
-  ])
+function beforeLoadList(params = {}) {
+  const next = { ...params }
+  if (next.pageNum != null) {
+    next.page = next.pageNum
+    delete next.pageNum
+  }
+  return next
+}
+
+function refreshList() {
+  crudRef.value?.refresh?.()
 }
 
 // 弹窗
@@ -351,51 +321,6 @@ async function loadModels() {
   }
 }
 
-// 加载表格数据
-async function loadData() {
-  loading.value = true
-  try {
-    const params = {
-      page: pagination.page,
-      pageSize: pagination.pageSize,
-      ...searchForm,
-    }
-    const res = await request.get('/api/flow/conditionRule/page', { params })
-    if (res.code === 200) {
-      tableData.value = res.data.list || []
-      pagination.itemCount = res.data.total || 0
-    }
-  }
-  catch (error) {
-    console.error('加载数据失败', error)
-  }
-  finally {
-    loading.value = false
-  }
-}
-
-// 搜索
-function handleSearch() {
-  pagination.page = 1
-  loadData()
-}
-
-// 重置
-function handleReset() {
-  Object.assign(searchForm, {
-    ruleName: '',
-    ruleType: null,
-    status: null,
-  })
-  handleSearch()
-}
-
-// 分页变化
-function handlePageChange(page) {
-  pagination.page = page
-  loadData()
-}
-
 // 新增
 function handleAdd() {
   modalTitle.value = '新增规则'
@@ -433,7 +358,7 @@ async function handleDelete(row) {
     const res = await request.delete(`/api/flow/conditionRule/${row.id}`)
     if (res.code === 200) {
       message.success('删除成功')
-      loadData()
+      refreshList()
     }
   }
   catch {
@@ -458,7 +383,7 @@ async function handleSubmit() {
     if (res.code === 200) {
       message.success(isEdit.value ? '修改成功' : '新增成功')
       modalVisible.value = false
-      loadData()
+      refreshList()
     }
   }
   catch {
@@ -519,13 +444,18 @@ async function handleTest() {
 
 onMounted(() => {
   loadModels()
-  loadData()
 })
 </script>
 
-<style src="./flow-workbench.css"></style>
-
 <style scoped>
+.flow-condition-rule-page {
+  height: 100%;
+}
+
+.flow-condition-rule-page :deep(.ai-crud-page) {
+  height: 100%;
+}
+
 .condition-items {
   width: 100%;
 }

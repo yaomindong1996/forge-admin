@@ -1,65 +1,75 @@
 <template>
   <div class="job-config-page" :style="pageThemeStyle">
-    <main class="job-content">
-      <section
-        class="monitor-overview"
-        :class="{ 'is-loading': monitorLoading }"
-        :aria-busy="monitorLoading"
-        aria-label="近 24 小时任务运行概览"
-      >
-        <div class="monitor-heading-block">
-          <div>
-            <i class="i-material-symbols:monitoring-rounded" />
+    <section
+      class="monitor-overview"
+      :class="{ 'is-loading': monitorLoading }"
+      :aria-busy="monitorLoading"
+      aria-label="近 24 小时任务运行概览"
+    >
+      <div class="monitor-heading-block">
+        <div class="monitor-heading-main">
+          <span class="monitor-heading-icon" aria-hidden="true">
+            <i class="i-lucide:activity" />
+          </span>
+          <div class="monitor-heading-copy">
             <strong>运行概览</strong>
+            <span>近 24 小时</span>
           </div>
-          <span>近 24 小时</span>
         </div>
+      </div>
 
-        <div class="monitor-metric">
-          <span>执行次数</span>
-          <div><strong>{{ monitorSummary.totalCount }}</strong><small>次</small></div>
-          <small>滚动统计窗口</small>
+      <div class="monitor-metric">
+        <span>执行次数</span>
+        <div><strong>{{ monitorSummary.totalCount }}</strong><small>次</small></div>
+        <small>滚动统计窗口</small>
+      </div>
+
+      <div class="monitor-metric is-success">
+        <span><i />执行成功</span>
+        <div><strong>{{ monitorSummary.successCount }}</strong><small>次</small></div>
+        <small>成功率 {{ monitorSummary.successRate.toFixed(2) }}%</small>
+      </div>
+
+      <div class="monitor-metric" :class="{ 'is-error': monitorSummary.failedCount > 0 }">
+        <span><i />执行失败</span>
+        <div><strong>{{ monitorSummary.failedCount }}</strong><small>次</small></div>
+        <small>失败率 {{ monitorSummary.failureRate.toFixed(2) }}%</small>
+      </div>
+
+      <div class="monitor-metric">
+        <span>当前窗口</span>
+        <div>
+          <strong :class="{ 'is-running': monitorSummary.runningCount > 0 }">{{ monitorSummary.runningCount }}</strong>
+          <small>运行中</small>
         </div>
+        <small>接收 {{ monitorSummary.acceptedCount }} · 跳过 {{ monitorSummary.skippedCount }}</small>
+      </div>
 
-        <div class="monitor-metric is-success">
-          <span><i />执行成功</span>
-          <div><strong>{{ monitorSummary.successCount }}</strong><small>次</small></div>
-          <small>成功率 {{ monitorSummary.successRate.toFixed(2) }}%</small>
-        </div>
-
-        <div class="monitor-metric" :class="{ 'is-error': monitorSummary.failedCount > 0 }">
-          <span><i />执行失败</span>
-          <div><strong>{{ monitorSummary.failedCount }}</strong><small>次</small></div>
-          <small>失败率 {{ monitorSummary.failureRate.toFixed(2) }}%</small>
-        </div>
-
-        <div class="monitor-metric">
-          <span>当前窗口</span>
-          <div><strong :class="{ 'is-running': monitorSummary.runningCount > 0 }">{{ monitorSummary.runningCount }}</strong><small>运行中</small></div>
-          <small>接收 {{ monitorSummary.acceptedCount }} · 跳过 {{ monitorSummary.skippedCount }}</small>
-        </div>
-
-        <NTooltip v-if="monitorSummary.consecutiveFailureTaskCount > 0">
-          <template #trigger>
-            <div class="monitor-metric risk-metric is-error is-clickable">
-              <span><i />连续失败</span>
-              <div><strong>{{ monitorSummary.consecutiveFailureTaskCount }}</strong><small>个任务</small></div>
-              <small>悬停查看任务清单</small>
+      <NTooltip v-if="monitorSummary.consecutiveFailureTaskCount > 0">
+        <template #trigger>
+          <div class="monitor-metric risk-metric is-error is-clickable">
+            <span><i />连续失败</span>
+            <div>
+              <strong>{{ monitorSummary.consecutiveFailureTaskCount }}</strong>
+              <small>个任务</small>
             </div>
-          </template>
-          <div class="failure-task-tooltip">
-            <div v-for="task in monitorSummary.failureTasks" :key="task.jobConfigId">
-              {{ task.jobName }} · {{ task.consecutiveFailures }} 次
-            </div>
+            <small>悬停查看任务清单</small>
           </div>
-        </NTooltip>
-        <div v-else class="monitor-metric risk-metric is-healthy">
-          <span><i />连续失败</span>
-          <div><strong>0</strong><small>个任务</small></div>
-          <small>当前运行正常</small>
+        </template>
+        <div class="failure-task-tooltip">
+          <div v-for="task in monitorSummary.failureTasks" :key="task.jobConfigId">
+            {{ task.jobName }} · {{ task.consecutiveFailures }} 次
+          </div>
         </div>
-      </section>
+      </NTooltip>
+      <div v-else class="monitor-metric risk-metric is-healthy">
+        <span><i />连续失败</span>
+        <div><strong>0</strong><small>个任务</small></div>
+        <small>当前运行正常</small>
+      </div>
+    </section>
 
+    <main class="job-content">
       <div class="job-toolbar">
         <NButton v-if="canAdd" type="primary" data-assistant-guide="job-add" @click="handleCreate">
           <template #icon>
@@ -625,25 +635,35 @@ onMounted(loadMonitorSummary)
 
 <style scoped>
 .job-config-page {
-  --job-table-max-height: calc(100vh - 278px);
+  --job-table-max-height: calc(100vh - 298px);
+  --job-overview-bg: color-mix(in srgb, #ffffff 78%, transparent);
+  --job-overview-border: color-mix(in srgb, #ffffff 70%, #dbe4f5);
   height: 100%;
   min-height: 0;
-  padding: 14px;
+  padding: 12px 10px 14px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   overflow: hidden;
+  background:
+    radial-gradient(42% 36% at 6% 0%, rgba(147, 197, 253, 0.42), transparent 62%),
+    radial-gradient(36% 32% at 96% 4%, rgba(196, 181, 253, 0.28), transparent 58%),
+    linear-gradient(180deg, #eef4ff 0%, #f5f7fb 46%, #f7f8fb 100%);
+  border-radius: 16px;
 }
 
 .monitor-overview {
   flex: 0 0 auto;
-  min-height: 112px;
+  min-height: 92px;
   display: grid;
-  grid-template-columns: minmax(158px, 0.72fr) minmax(260px, 1.35fr) minmax(250px, 1.1fr) minmax(205px, 0.9fr);
+  grid-template-columns: minmax(140px, 0.85fr) repeat(5, minmax(120px, 1fr));
   align-items: stretch;
-  background: transparent;
-  border-top: 1px solid var(--divider-color);
-  border-bottom: 1px solid var(--divider-color);
+  overflow: hidden;
+  border: 1px solid var(--job-overview-border);
+  border-radius: 18px;
+  background: var(--job-overview-bg);
+  box-shadow: 0 10px 28px color-mix(in srgb, #1e3a8a 8%, transparent);
+  backdrop-filter: blur(16px);
   transition: opacity 0.2s ease;
 }
 
@@ -872,101 +892,120 @@ onMounted(loadMonitorSummary)
   box-shadow: inset 3px 0 0 var(--error-color);
 }
 
-.monitor-overview {
-  min-height: 78px;
-  grid-template-columns: minmax(130px, 0.8fr) repeat(5, minmax(130px, 1fr));
-  background: transparent;
-  border-top: 0;
-  border-bottom: 1px solid var(--divider-color);
-}
-
 .monitor-heading-block,
 .monitor-metric {
   min-width: 0;
-  padding: 11px 16px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
-.monitor-heading-block > div,
+.monitor-heading-block {
+  position: relative;
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.1), transparent 78%);
+}
+
+.monitor-heading-main,
+.monitor-heading-copy,
 .monitor-metric > span,
 .monitor-metric > div {
   display: flex;
   align-items: center;
+  min-width: 0;
 }
 
-.monitor-heading-block > div {
-  gap: 7px;
-  color: var(--text-color-1);
+.monitor-heading-main {
+  gap: 10px;
 }
 
-.monitor-heading-block i {
-  color: var(--primary-color);
-  font-size: 17px;
+.monitor-heading-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #4f8cff, #2563eb);
+  color: #fff;
+  font-size: 16px;
+  box-shadow: 0 6px 14px color-mix(in srgb, #2563eb 26%, transparent);
 }
 
-.monitor-heading-block strong {
-  font-size: 13px;
+.monitor-heading-copy {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
 }
 
-.monitor-heading-block > span {
-  margin-top: 3px;
-  color: var(--text-color-3);
+.monitor-heading-copy strong {
+  color: var(--text-primary, var(--text-color-1));
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.monitor-heading-copy span {
+  color: var(--text-tertiary, var(--text-color-3));
   font-size: 11px;
+  line-height: 1.3;
 }
 
 .monitor-metric {
-  gap: 2px;
-  border-left: 1px solid var(--divider-color);
+  gap: 4px;
+  border-left: 1px solid color-mix(in srgb, var(--border-light, var(--divider-color)) 78%, transparent);
 }
 
 .monitor-metric > span {
   gap: 6px;
-  color: var(--text-color-3);
+  color: var(--text-tertiary, var(--text-color-3));
   font-size: 11px;
+  line-height: 1.3;
 }
 
 .monitor-metric > span i {
-  width: 6px;
-  height: 6px;
-  background: var(--text-color-3);
+  width: 7px;
+  height: 7px;
+  flex: none;
+  background: var(--text-tertiary, var(--text-color-3));
   border-radius: 50%;
 }
 
 .monitor-metric > div {
   align-items: baseline;
   gap: 5px;
+  flex-wrap: wrap;
 }
 
 .monitor-metric > div strong {
-  color: var(--text-color-1);
-  font-size: 21px;
+  color: var(--text-primary, var(--text-color-1));
+  font-size: 22px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.15;
   font-variant-numeric: tabular-nums;
 }
 
 .monitor-metric > div small,
 .monitor-metric > small {
-  color: var(--text-color-3);
-  font-size: 10px;
+  color: var(--text-tertiary, var(--text-color-3));
+  font-size: 11px;
+  line-height: 1.3;
 }
 
-.monitor-metric.is-success > span i {
-  background: var(--success-color);
+.monitor-metric.is-success > span i,
+.monitor-metric.is-healthy > span i {
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.16);
 }
 
 .monitor-metric.is-error > span i {
-  background: var(--error-color);
+  background: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.16);
 }
 
 .monitor-metric.is-error > div strong {
-  color: var(--error-color);
-}
-
-.monitor-metric.is-healthy > span i {
-  background: var(--success-color);
+  color: #dc2626;
 }
 
 .monitor-metric > div strong.is-running {
@@ -991,9 +1030,11 @@ onMounted(loadMonitorSummary)
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  background: var(--card-color);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  background: color-mix(in srgb, #ffffff 82%, transparent);
+  border: 1px solid var(--job-overview-border);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px color-mix(in srgb, #1e3a8a 6%, transparent);
+  backdrop-filter: blur(14px);
 }
 
 .job-toolbar {
@@ -1079,6 +1120,18 @@ onMounted(loadMonitorSummary)
   width: min(1120px, 94vw);
 }
 
+:global(.dark) .job-config-page {
+  --job-overview-bg: color-mix(in srgb, var(--bg-primary) 82%, transparent);
+  --job-overview-border: color-mix(in srgb, var(--border-light) 80%, transparent);
+  background:
+    radial-gradient(42% 36% at 6% 0%, color-mix(in srgb, var(--primary-color, #2563eb) 24%, transparent), transparent 62%),
+    linear-gradient(180deg, color-mix(in srgb, var(--primary-color, #2563eb) 10%, var(--bg-secondary)) 0%, var(--bg-secondary) 48%);
+}
+
+:global(.dark) .job-content {
+  background: color-mix(in srgb, var(--bg-primary) 86%, transparent);
+}
+
 @media (max-width: 768px) {
   .job-config-page {
     --job-table-max-height: 520px;
@@ -1095,16 +1148,12 @@ onMounted(loadMonitorSummary)
 
   .monitor-heading-block {
     grid-column: 1 / -1;
-    padding: 10px 12px;
-  }
-
-  .monitor-heading-block > span {
-    margin-top: 0;
+    padding: 12px 14px;
   }
 
   .monitor-metric {
-    padding: 10px 12px;
-    border-top: 1px solid var(--divider-color);
+    padding: 12px 14px;
+    border-top: 1px solid color-mix(in srgb, var(--border-light, var(--divider-color)) 78%, transparent);
   }
 
   .monitor-metric:nth-child(even) {
@@ -1112,7 +1161,7 @@ onMounted(loadMonitorSummary)
   }
 
   .monitor-metric:nth-child(odd) {
-    border-left: 1px solid var(--divider-color);
+    border-left: 1px solid color-mix(in srgb, var(--border-light, var(--divider-color)) 78%, transparent);
   }
 
   .job-content {
@@ -1126,7 +1175,7 @@ onMounted(loadMonitorSummary)
 
 @media (min-width: 769px) and (max-width: 1120px) {
   .job-config-page {
-    --job-table-max-height: calc(100vh - 390px);
+    --job-table-max-height: calc(100vh - 410px);
   }
 
   .monitor-overview {
@@ -1135,14 +1184,12 @@ onMounted(loadMonitorSummary)
 
   .monitor-heading-block {
     grid-column: 1 / -1;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--divider-color);
+    border-bottom: 1px solid color-mix(in srgb, var(--border-light, var(--divider-color)) 78%, transparent);
   }
 
-  .monitor-heading-block > span {
-    margin-top: 0;
+  .monitor-heading-main {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .monitor-metric:nth-child(2) {

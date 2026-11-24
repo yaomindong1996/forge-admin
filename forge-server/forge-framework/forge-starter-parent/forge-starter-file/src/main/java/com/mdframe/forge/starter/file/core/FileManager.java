@@ -202,16 +202,20 @@ public class FileManager {
         // 验证文件
         validateFile(file, storageType);
         
-        // 秒传检查：仅当 businessType 和 businessId 也一致时才复用
-        // avatar 不做秒传：同图反复裁剪上传应生成新记录，避免复用旧元数据里过期的 accessUrl
+        // 秒传：仅业务已绑定（businessId 非空）且 businessType/businessId 一致时复用。
+        // 文件库等无业务绑定的上传不做秒传，否则同内容再传列表无新记录，看起来像“传不上去”。
+        // avatar 也不做秒传：同图反复裁剪应生成新记录，避免复用过期 accessUrl。
         String md5 = FileUtil.calculateMd5(file);
-        if (metadataPersistence != null && !isAvatarBusinessType(businessType)) {
+        String normalizedBusinessId = normalizeBusinessId(businessId);
+        if (metadataPersistence != null
+                && !isAvatarBusinessType(businessType)
+                && normalizedBusinessId != null) {
             FileMetadata existing = metadataPersistence.getByMd5(md5);
             if (existing != null
                     && java.util.Objects.equals(existing.getBusinessType(), businessType)
-                    && java.util.Objects.equals(normalizeBusinessId(existing.getBusinessId()), normalizeBusinessId(businessId))) {
+                    && java.util.Objects.equals(normalizeBusinessId(existing.getBusinessId()), normalizedBusinessId)) {
                 assertReadPermission(existing.getFileId(), existing);
-                log.info("文件秒传: md5={}, businessType={}", md5, businessType);
+                log.info("文件秒传: md5={}, businessType={}, businessId={}", md5, businessType, normalizedBusinessId);
                 return withFreshAccessUrl(existing);
             }
         }

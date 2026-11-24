@@ -245,90 +245,15 @@ function handleClose() {
 </script>
 
 <style>
+/* 色板：settings.js Tag 主题 + theme.css 对 .dict-tag--* 兜底；此处只处理多标签间距 */
 .dict-tag-list {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
   align-items: center;
 }
 
-.dict-tag.n-tag {
-  --n-border-radius: 3px !important;
-  --n-font-weight-strong: 500 !important;
-  height: 22px;
-  font-weight: 500;
-  letter-spacing: 0;
-}
-
-.dict-tag.dict-tag--default {
-  --n-color: #f7f9fc !important;
-  --n-border: 1px solid #dbe3ef !important;
-  --n-text-color: #5f6f86 !important;
-}
-
-.dict-tag.dict-tag--success {
-  --n-color: rgba(30, 174, 117, 0.11) !important;
-  --n-border: 1px solid rgba(30, 174, 117, 0.24) !important;
-  --n-text-color: #16895a !important;
-  --n-close-icon-color: #16895a !important;
-  --n-close-icon-color-hover: #0f6f49 !important;
-  --n-close-color-hover: rgba(30, 174, 117, 0.13) !important;
-}
-
-.dict-tag.dict-tag--info {
-  --n-color: rgba(66, 102, 247, 0.09) !important;
-  --n-border: 1px solid rgba(66, 102, 247, 0.22) !important;
-  --n-text-color: #4266d6 !important;
-  --n-close-icon-color: #4266d6 !important;
-  --n-close-icon-color-hover: #2944b8 !important;
-  --n-close-color-hover: rgba(66, 102, 247, 0.12) !important;
-}
-
-.dict-tag.dict-tag--warning {
-  --n-color: rgba(245, 158, 11, 0.12) !important;
-  --n-border: 1px solid rgba(245, 158, 11, 0.26) !important;
-  --n-text-color: #a76508 !important;
-  --n-close-icon-color: #a76508 !important;
-  --n-close-icon-color-hover: #815006 !important;
-  --n-close-color-hover: rgba(245, 158, 11, 0.14) !important;
-}
-
-.dict-tag.dict-tag--error {
-  --n-color: rgba(239, 82, 82, 0.09) !important;
-  --n-border: 1px solid rgba(239, 82, 82, 0.22) !important;
-  --n-text-color: #c54747 !important;
-  --n-close-icon-color: #c54747 !important;
-  --n-close-icon-color-hover: #9f3434 !important;
-  --n-close-color-hover: rgba(239, 82, 82, 0.12) !important;
-}
-
-.dark .dict-tag.dict-tag--default {
-  --n-color: rgba(255, 255, 255, 0.06) !important;
-  --n-border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  --n-text-color: #cbd5e1 !important;
-}
-
-.dark .dict-tag.dict-tag--success {
-  --n-color: rgba(52, 211, 153, 0.12) !important;
-  --n-border: 1px solid rgba(52, 211, 153, 0.22) !important;
-  --n-text-color: #8ddbb8 !important;
-}
-
-.dark .dict-tag.dict-tag--info {
-  --n-color: rgba(96, 165, 250, 0.12) !important;
-  --n-border: 1px solid rgba(96, 165, 250, 0.22) !important;
-  --n-text-color: #a9c8f7 !important;
-}
-
-.dark .dict-tag.dict-tag--warning {
-  --n-color: rgba(245, 158, 11, 0.12) !important;
-  --n-border: 1px solid rgba(245, 158, 11, 0.24) !important;
-  --n-text-color: #e7c178 !important;
-}
-
-.dark .dict-tag.dict-tag--error {
-  --n-color: rgba(248, 113, 113, 0.12) !important;
-  --n-border: 1px solid rgba(248, 113, 113, 0.22) !important;
-  --n-text-color: #eba0a0 !important;
+.dict-tag-list .n-tag + .n-tag {
+  margin-left: 0;
 }
 </style>

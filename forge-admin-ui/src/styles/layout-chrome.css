@@ -108,7 +108,25 @@
   background: var(--top-menu-active-bar-color, var(--primary-color));
 }
 .layout-chrome-header .workbench-brand { border-color: var(--layout-header-border-color); }
-.layout-chrome-header .menu-scroll { color: var(--chrome-text); background: var(--layout-header-bg-color); }
+.layout-chrome-header .menu-scroll {
+  color: var(--top-menu-text-color, var(--chrome-text));
+  border-color: color-mix(in srgb, var(--top-menu-text-color, var(--chrome-text)) 58%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--top-menu-text-color, var(--chrome-text)) 24%,
+    var(--layout-header-bg-color)
+  );
+  box-shadow: 0 1px 2px color-mix(in srgb, #000 20%, transparent);
+}
+.layout-chrome-header .menu-scroll:hover:not(:disabled) {
+  color: var(--top-menu-text-color-hover, var(--top-menu-text-color, var(--chrome-text)));
+  border-color: color-mix(in srgb, var(--top-menu-text-color, var(--chrome-text)) 72%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--top-menu-text-color, var(--chrome-text)) 32%,
+    var(--layout-header-bg-color)
+  );
+}
 .layout-chrome-header .business-mega-panel,
 .side-flyout-rail-wrap .business-mega-panel {
   --workbench-surface: var(--side-menu-bg-color);

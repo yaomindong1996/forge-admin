@@ -1,65 +1,35 @@
 <template>
-  <div class="business-studio">
-    <section class="business-panel">
-      <div class="panel-toolbar">
-        <h3>业务定义</h3>
-        <div class="toolbar-actions">
-          <NInput
-            v-model:value="queryForm.businessName"
-            clearable
-            placeholder="搜索业务名称或编码"
-            @keydown.enter="applySearch"
-          >
-            <template #prefix>
-              <i class="i-material-symbols:search-rounded" />
-            </template>
-          </NInput>
-          <NSelect
-            v-model:value="queryForm.status"
-            clearable
-            placeholder="状态"
-            :options="statusOptions"
-          />
-          <NButton type="primary" @click="applySearch">
-            搜索
-          </NButton>
-          <NButton @click="handleReset">
-            重置
-          </NButton>
-          <NButton type="primary" secondary @click="handleOpenAddBusiness">
-            新增业务定义
-          </NButton>
-        </div>
-      </div>
-
-      <AiCrudPage
-        ref="crudRef"
-        class="business-crud"
-        :api-config="{
-          list: 'get@/data/business/page',
-          detail: 'get@/data/business/:id',
-          add: 'post@/data/business',
-          update: 'put@/data/business',
-          delete: 'delete@/data/business/:id',
-        }"
-        :show-search="false"
-        :hide-toolbar="true"
-        :columns="tableColumns"
-        :edit-schema="editSchema"
-        :before-render-form="beforeRenderForm"
-        :before-render-detail="beforeRenderDetail"
-        :before-submit="beforeSubmit"
-        :load-detail-on-edit="true"
-        row-key="id"
-        :bordered="false"
-        :striped="false"
-        :scroll-x="1480"
-        :edit-grid-cols="12"
-        edit-label-placement="top"
-        edit-form-class="data-business-edit-form"
-        modal-width="min(1180px, calc(100vw - 32px))"
-        add-button-text="新增业务定义"
-      >
+  <div class="data-business-page">
+    <AiCrudPage
+      ref="crudRef"
+      :api-config="{
+        list: 'get@/data/business/page',
+        detail: 'get@/data/business/:id',
+        add: 'post@/data/business',
+        update: 'put@/data/business',
+        delete: 'delete@/data/business/:id',
+      }"
+      :search-schema="searchSchema"
+      :columns="tableColumns"
+      :edit-schema="editSchema"
+      :before-render-form="beforeRenderForm"
+      :before-render-detail="beforeRenderDetail"
+      :before-submit="beforeSubmit"
+      :load-detail-on-edit="true"
+      row-key="id"
+      :scroll-x="1480"
+      :edit-grid-cols="12"
+      edit-label-placement="top"
+      edit-form-class="data-business-edit-form"
+      modal-width="min(1180px, calc(100vw - 32px))"
+      add-button-text="新增业务定义"
+      :hide-selection="true"
+      :hide-batch-delete="true"
+      :search-grid-cols="3"
+      :search-max-visible-fields="3"
+      :search-y-gap="8"
+      search-label-width="72px"
+    >
         <template #form-businessEditor="{ formData, field }">
           <div class="business-editor">
             <section class="business-editor-section">
@@ -191,17 +161,17 @@
             </section>
           </div>
         </template>
-      </AiCrudPage>
-    </section>
+    </AiCrudPage>
   </div>
 </template>
 
 <script setup>
 import { NButton, NInput, NInputNumber, NProgress, NSelect, NSwitch, NTag } from 'naive-ui'
-import { computed, h, onMounted, reactive, ref } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import { deleteDataBusiness } from '@/api/data/business'
 import { getDataDatasetList } from '@/api/data/dataset'
 import { AiCrudPage } from '@/components/ai-form'
+import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
 
@@ -213,62 +183,84 @@ const crudRef = ref(null)
 const datasetOptions = ref([])
 const datasetOptionMap = computed(() => new Map(datasetOptions.value.map(item => [item.value, item])))
 
-const queryForm = reactive({
-  businessName: '',
-  status: null,
-})
-
 const statusOptions = computed(() => dict.value.sys_enable_disable || [])
+
+const searchSchema = computed(() => [
+  {
+    field: 'businessName',
+    label: '业务名称',
+    type: 'input',
+    props: {
+      placeholder: '名称或编码',
+      clearable: true,
+    },
+  },
+  {
+    field: 'status',
+    label: '状态',
+    type: 'select',
+    props: {
+      placeholder: '请选择状态',
+      options: statusOptions.value,
+      clearable: true,
+    },
+  },
+])
 
 const tableColumns = computed(() => [
   {
     prop: 'businessName',
     label: '业务定义',
-    width: 340,
-    render: row => h('div', { class: 'business-name-card' }, [
-      h('div', { class: 'business-name-row' }, [
-        h('div', { class: 'business-name' }, row.businessName),
-        h(DictTag, {
-          dictType: 'sys_enable_disable',
-          value: String(row.status),
-          size: 'small',
-        }),
-      ]),
-      h('div', { class: 'business-code' }, row.businessCode),
-      h('div', { class: 'business-desc' }, row.businessDesc || '暂无业务定义描述'),
-    ]),
+    minWidth: 220,
+    render: row => h(SystemTableCell, {
+      title: row.businessName || '-',
+      subtitle: row.businessCode || '',
+      interactive: true,
+      tooltip: `编辑业务定义：${row.businessName || row.businessCode || '-'}`,
+      onActivate: () => handleEditBusiness(row),
+    }),
+  },
+  {
+    prop: 'status',
+    label: '状态',
+    width: 100,
+    render: row => h(DictTag, {
+      dictType: 'sys_enable_disable',
+      value: String(row.status),
+      size: 'small',
+    }),
   },
   {
     prop: 'analysisGoal',
     label: '分析目标',
-    width: 300,
-    ellipsis: true,
+    minWidth: 220,
+    ellipsis: { tooltip: true },
     render: row => row.analysisGoal || '-',
   },
   {
     prop: 'datasetNames',
     label: '绑定数据集',
-    width: 240,
+    width: 220,
     render: row => renderDatasetSummary(row),
   },
   {
     prop: 'aiReadiness',
     label: '配置完整度',
-    width: 170,
+    width: 140,
     render: row => renderReadiness(row),
   },
   {
     prop: 'metricDefinition',
     label: '指标口径',
-    width: 300,
-    ellipsis: true,
+    minWidth: 220,
+    ellipsis: { tooltip: true },
     render: row => row.metricDefinition || '-',
   },
   { prop: 'updateTime', label: '更新时间', width: 170 },
   {
     prop: 'action',
     label: '操作',
-    width: 180,
+    width: 160,
     fixed: 'right',
     actions: [
       { label: '编辑', key: 'edit', type: 'primary', onClick: handleEditBusiness },
@@ -306,23 +298,6 @@ async function loadDatasetOptions() {
   catch (error) {
     window.$message?.error(error?.message || '加载数据集失败')
   }
-}
-
-function applySearch() {
-  crudRef.value?.search({
-    businessName: queryForm.businessName || undefined,
-    status: queryForm.status ?? undefined,
-  })
-}
-
-function handleReset() {
-  queryForm.businessName = ''
-  queryForm.status = null
-  crudRef.value?.search({})
-}
-
-function handleOpenAddBusiness() {
-  crudRef.value?.showAdd()
 }
 
 function hasText(value) {
@@ -699,87 +674,12 @@ function handleDeleteBusiness(row) {
 </script>
 
 <style scoped>
-.business-studio {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
+.data-business-page {
   height: 100%;
-  min-height: 0;
-  padding: 10px;
-  background: var(--bg-secondary);
-  box-sizing: border-box;
-  overflow: hidden;
 }
 
-.business-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  border-radius: 12px;
-  background: var(--bg-primary);
-  padding: 10px;
-}
-
-/* AiCrudPage 依赖父级 flex 链提供高度，否则 flex-height 表格体会塌陷为 0 */
-.business-panel :deep(.ai-crud-page) {
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-.panel-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.panel-toolbar h3 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.toolbar-actions {
-  display: grid;
-  grid-template-columns: minmax(200px, 1fr) 130px auto auto auto;
-  gap: 6px;
-  align-items: center;
-  min-width: min(700px, 100%);
-}
-
-.business-name-card {
-  display: grid;
-  gap: 3px;
-}
-
-.business-name-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.business-name {
-  color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.business-code {
-  color: #0f766e;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.business-desc {
-  color: var(--text-secondary);
-  font-size: 11px;
-  line-height: 1.4;
+.data-business-page :deep(.ai-crud-page) {
+  height: 100%;
 }
 
 .dataset-summary {
@@ -944,37 +844,6 @@ function handleDeleteBusiness(row) {
   min-height: 0;
 }
 
-:deep(.business-crud .ai-crud-main) {
-  background: transparent;
-}
-
-:deep(.business-crud .ai-crud-table) {
-  overflow: hidden;
-  border: 1px solid #e8ecf1;
-  border-radius: 12px;
-  background: var(--bg-primary);
-  box-shadow: 0 4px 16px rgb(15 23 42 / 3%);
-}
-
-:deep(.business-crud .n-data-table-th) {
-  padding: 9px 12px;
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid #e8ecf1;
-}
-
-:deep(.business-crud .n-data-table-tr:nth-child(even) td) {
-  background: rgb(248 250 252 / 50%);
-}
-
-:deep(.business-crud .n-data-table-tr:hover td) {
-  background: rgb(241 245 249 / 80%);
-}
-
 @media (max-width: 900px) {
   .dataset-binding-toolbar {
     align-items: stretch;
@@ -984,16 +853,6 @@ function handleDeleteBusiness(row) {
   .business-form-grid--base,
   .business-form-grid--semantic {
     grid-template-columns: 1fr;
-  }
-
-  .panel-toolbar {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .toolbar-actions {
-    grid-template-columns: 1fr 1fr;
-    min-width: 0;
   }
 }
 </style>

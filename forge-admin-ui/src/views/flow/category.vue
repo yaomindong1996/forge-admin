@@ -509,6 +509,8 @@ onMounted(() => {
 }
 
 .table-region {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -516,7 +518,35 @@ onMounted(() => {
 }
 
 .category-table {
+  flex: 1 1 auto;
+  min-height: 0;
   height: 100%;
+}
+
+.flow-category-page :deep(.category-table .n-data-table-wrapper),
+.flow-category-page :deep(.category-table .n-data-table-base-table),
+.flow-category-page :deep(.category-table .n-data-table-base-table-body) {
+  min-height: 0;
+}
+
+/*
+ * 树表首列：展开箭头与双行标题横排垂直居中。
+ * SystemTableCell 已改为 width:auto，这里再用 flex 兜住占位符对齐。
+ */
+.flow-category-page :deep(.n-data-table-tr > td.n-data-table-td:first-child) {
+  display: flex;
+  align-items: center;
+}
+
+.flow-category-page :deep(.n-data-table-expand-trigger),
+.flow-category-page :deep(.n-data-table-expand-placeholder) {
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+.flow-category-page :deep(.system-table-cell--interactive) {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 /* 表格 render 节点拿不到 scoped 属性，必须用 :deep */

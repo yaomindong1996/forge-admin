@@ -133,3 +133,4 @@ forge/db/community-export/
 # forge-template-only:end
 __pycache__/
 .jscpd-out/
+.local-forge-secrets/

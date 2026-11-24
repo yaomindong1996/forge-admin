@@ -397,36 +397,47 @@ watch(() => props.activeKey, () => {
   position: absolute;
   top: 50%;
   z-index: 35;
-  width: 28px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: 0;
-  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--top-menu-text-color, #fff) 58%, transparent);
+  border-radius: 4px;
   color: var(--top-menu-text-color, #fff);
-  background: transparent;
-  opacity: 0.62;
+  background: color-mix(
+    in srgb,
+    var(--top-menu-text-color, #fff) 24%,
+    var(--layout-header-bg-color, #185abd)
+  );
+  box-shadow: 0 1px 2px color-mix(in srgb, #000 20%, transparent);
+  opacity: 1;
   cursor: pointer;
   transform: translateY(-50%);
   transition:
     color var(--transition-fast),
     background-color var(--transition-fast),
-    opacity var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
     transform var(--transition-fast);
 }
 
 .forge-top-menu-scroll i {
-  width: 20px;
-  height: 20px;
-  font-size: 20px;
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  color: inherit;
 }
 
 .forge-top-menu-scroll:hover {
   color: var(--top-menu-text-color-hover, var(--top-menu-text-color, #fff));
-  background: color-mix(in srgb, var(--top-menu-text-color, #fff) 14%, transparent);
-  opacity: 1;
+  border-color: color-mix(in srgb, var(--top-menu-text-color, #fff) 72%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--top-menu-text-color, #fff) 32%,
+    var(--layout-header-bg-color, #185abd)
+  );
 }
 
 .forge-top-menu-scroll:active {
@@ -434,17 +445,16 @@ watch(() => props.activeKey, () => {
 }
 
 .forge-top-menu-scroll:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--top-menu-text-color, #fff) 78%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--top-menu-text-color, #fff) 70%, transparent);
   outline-offset: 1px;
-  opacity: 1;
 }
 
 .forge-top-menu-scroll.is-left {
-  left: 0;
+  left: 2px;
 }
 
 .forge-top-menu-scroll.is-right {
-  right: 0;
+  right: 2px;
 }
 
 .forge-top-menu.can-scroll-left::before,
@@ -454,18 +464,18 @@ watch(() => props.activeKey, () => {
   top: 0;
   bottom: 0;
   z-index: 30;
-  width: 32px;
+  width: 40px;
   pointer-events: none;
 }
 
 .forge-top-menu.can-scroll-left::before {
   left: 0;
-  background: linear-gradient(90deg, var(--layout-header-bg-color) 0%, transparent 100%);
+  background: linear-gradient(90deg, var(--layout-header-bg-color) 18%, transparent 100%);
 }
 
 .forge-top-menu.can-scroll-right::after {
   right: 0;
-  background: linear-gradient(270deg, var(--layout-header-bg-color) 0%, transparent 100%);
+  background: linear-gradient(270deg, var(--layout-header-bg-color) 18%, transparent 100%);
 }
 
 @keyframes forge-top-menu-dropdown-in {

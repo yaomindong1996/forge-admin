@@ -4,8 +4,8 @@
     <div class="page-header">
       <div class="header-left">
         <div class="title-row">
-          <div class="title-icon storage-icon">
-            <i class="i-material-symbols:cloud-upload-rounded" />
+          <div class="title-icon storage-icon" aria-hidden="true">
+            <IconRenderer icon="forge:database" :size="18" />
           </div>
           <h2 class="page-title">
             存储配置管理
@@ -34,6 +34,7 @@
         row-key="id"
         add-button-text="新增存储配置"
         :load-detail-on-edit="true"
+        :search-grid-cols="3"
         :edit-grid-cols="24"
         edit-label-placement="top"
         edit-label-align="left"
@@ -94,6 +95,7 @@
 import { NButton, NDynamicTags, NInput, NTag } from 'naive-ui'
 import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
+import IconRenderer from '@/components/IconRenderer.vue'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
@@ -120,18 +122,18 @@ const searchSchema = computed(() => [
     field: 'configName',
     label: '配置名称',
     type: 'input',
-    span: 8,
     props: {
       placeholder: '请输入配置名称',
+      clearable: true,
     },
   },
   {
     field: 'storageType',
     label: '存储类型',
     type: 'select',
-    span: 8,
     props: {
       placeholder: '请选择存储类型',
+      clearable: true,
       options: storageTypeOptions.value,
     },
   },
@@ -139,9 +141,9 @@ const searchSchema = computed(() => [
     field: 'enabled',
     label: '状态',
     type: 'select',
-    span: 8,
     props: {
       placeholder: '请选择状态',
+      clearable: true,
       options: [
         { label: '启用', value: true },
         { label: '禁用', value: false },
@@ -715,15 +717,24 @@ function handleCreateBucket(row) {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   color: #fff;
   font-size: 17px;
 }
 
 .title-icon.storage-icon {
   background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+}
+
+.title-icon :deep(.icon-renderer),
+.title-icon :deep(svg) {
+  width: 18px;
+  height: 18px;
+  display: block;
+  color: #fff;
 }
 
 .page-title {

@@ -1,70 +1,34 @@
 <template>
-  <div class="dimension-studio">
-    <section class="dimension-panel">
-      <div class="panel-toolbar">
-        <h3>数据维度</h3>
-        <div class="toolbar-actions">
-          <NInput
-            v-model:value="queryForm.dimensionName"
-            clearable
-            placeholder="搜索维度名称或编码"
-            @keydown.enter="applySearch"
-          >
-            <template #prefix>
-              <i class="i-material-symbols:search-rounded" />
-            </template>
-          </NInput>
-          <NSelect
-            v-model:value="queryForm.sourceType"
-            clearable
-            placeholder="录入方式"
-            :options="sourceTypeOptions"
-          />
-          <NSelect
-            v-model:value="queryForm.status"
-            clearable
-            placeholder="状态"
-            :options="statusOptions"
-          />
-          <NButton type="primary" @click="applySearch">
-            搜索
-          </NButton>
-          <NButton @click="handleReset">
-            重置
-          </NButton>
-          <NButton type="primary" secondary @click="handleOpenAddDimension">
-            新增维度
-          </NButton>
-        </div>
-      </div>
-
-      <AiCrudPage
-        ref="crudRef"
-        class="dimension-crud"
-        :api-config="{
-          list: 'get@/data/dimension/page',
-          detail: 'get@/data/dimension/:id',
-          add: 'post@/data/dimension',
-          update: 'put@/data/dimension',
-          delete: 'delete@/data/dimension/:id',
-        }"
-        :show-search="false"
-        :hide-toolbar="true"
-        :columns="tableColumns"
-        :edit-schema="editSchema"
-        :before-render-form="beforeRenderForm"
-        :before-render-detail="beforeRenderDetail"
-        :before-submit="beforeSubmit"
-        row-key="id"
-        :bordered="false"
-        :striped="false"
-        :scroll-x="1460"
-        :edit-grid-cols="12"
-        edit-label-placement="top"
-        edit-form-class="data-dimension-edit-form"
-        modal-width="min(1120px, calc(100vw - 32px))"
-        add-button-text="新增维度"
-      >
+  <div class="data-dimension-page">
+    <AiCrudPage
+      ref="crudRef"
+      :api-config="{
+        list: 'get@/data/dimension/page',
+        detail: 'get@/data/dimension/:id',
+        add: 'post@/data/dimension',
+        update: 'put@/data/dimension',
+        delete: 'delete@/data/dimension/:id',
+      }"
+      :search-schema="searchSchema"
+      :columns="tableColumns"
+      :edit-schema="editSchema"
+      :before-render-form="beforeRenderForm"
+      :before-render-detail="beforeRenderDetail"
+      :before-submit="beforeSubmit"
+      row-key="id"
+      :scroll-x="1460"
+      :edit-grid-cols="12"
+      edit-label-placement="top"
+      edit-form-class="data-dimension-edit-form"
+      modal-width="min(1120px, calc(100vw - 32px))"
+      add-button-text="新增维度"
+      :hide-selection="true"
+      :hide-batch-delete="true"
+      :search-grid-cols="3"
+      :search-max-visible-fields="3"
+      :search-y-gap="8"
+      search-label-width="72px"
+    >
         <template #form-dimensionGuide="{ formData }">
           <div class="dimension-guide">
             <div class="dimension-guide__main">
@@ -124,8 +88,7 @@
             </NButton>
           </div>
         </template>
-      </AiCrudPage>
-    </section>
+    </AiCrudPage>
 
     <n-modal
       v-model:show="itemModalVisible"
@@ -225,7 +188,7 @@
 
 <script setup>
 import { NButton, NInput, NInputNumber, NSelect } from 'naive-ui'
-import { computed, h, reactive, ref } from 'vue'
+import { computed, h, ref } from 'vue'
 import { getDataConnectionList } from '@/api/data/connection'
 import {
   deleteDataDimension,
@@ -234,6 +197,7 @@ import {
   syncDataDimensionItems,
 } from '@/api/data/dimension'
 import { AiCrudPage } from '@/components/ai-form'
+import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import SqlEditor from '@/components/SqlEditor.vue'
 import { useDict } from '@/composables/useDict'
@@ -262,59 +226,79 @@ const sqlPreviewScrollX = ref(0)
 const sqlPreviewValueColumn = ref('')
 const sqlPreviewLabelColumn = ref('')
 
-const queryForm = reactive({
-  dimensionName: '',
-  sourceType: null,
-  status: null,
-})
-
 const sourceTypeOptions = computed(() => dict.value.data_dimension_source_type || [])
 
 const statusOptions = computed(() => dict.value.sys_enable_disable || [])
 
+const searchSchema = computed(() => [
+  {
+    field: 'dimensionName',
+    label: '维度名称',
+    type: 'input',
+    props: {
+      placeholder: '名称或编码',
+      clearable: true,
+    },
+  },
+  {
+    field: 'sourceType',
+    label: '录入方式',
+    type: 'select',
+    props: {
+      placeholder: '请选择录入方式',
+      options: sourceTypeOptions.value,
+      clearable: true,
+    },
+  },
+  {
+    field: 'status',
+    label: '状态',
+    type: 'select',
+    props: {
+      placeholder: '请选择状态',
+      options: statusOptions.value,
+      clearable: true,
+    },
+  },
+])
+
 const tableColumns = computed(() => [
   {
     prop: 'dimensionName',
-    label: '维度资产',
-    width: 300,
-    render: row => h('div', { class: 'dimension-name-card' }, [
-      h('div', { class: 'dimension-name-row' }, [
-        h('div', { class: 'dimension-name' }, row.dimensionName),
-        h(DictTag, {
-          dictType: 'data_dimension_source_type',
-          value: row.sourceType,
-          size: 'small',
-        }),
-      ]),
-      h('div', { class: 'dimension-code' }, row.dimensionCode),
-      h('div', { class: 'dimension-desc' }, row.description || '暂无描述'),
-    ]),
+    label: '维度',
+    minWidth: 220,
+    render: row => h(SystemTableCell, {
+      title: row.dimensionName || '-',
+      subtitle: row.dimensionCode || '',
+      interactive: true,
+      tooltip: `编辑维度：${row.dimensionName || row.dimensionCode || '-'}`,
+      onActivate: () => handleEditDimension(row),
+    }),
   },
   {
     prop: 'sourceType',
     label: '录入方式',
-    width: 150,
-    render: row => h('div', { class: 'source-type-cell' }, [
-      h('strong', getSourceTypeLabel(row.sourceType)),
-      h('span', row.sourceType === 'SQL' ? '数据源同步' : '后台维护'),
-    ]),
+    width: 120,
+    render: row => h(DictTag, {
+      dictType: 'data_dimension_source_type',
+      value: row.sourceType,
+      size: 'small',
+    }),
   },
   {
     prop: 'connectionName',
     label: '同步来源',
-    width: 260,
-    render: row => h('div', { class: 'source-cell' }, [
-      h('div', { class: 'source-cell__name' }, row.sourceType === 'SQL' ? row.connectionName || getConnectionName(row.connectionId) : '手动维护'),
-      h('div', { class: 'source-cell__desc' }, row.sourceType === 'SQL'
-        ? `值列：${row.valueColumn || '第1列'}，显示列：${row.labelColumn || '第2列'}`
-        : '直接编辑维度值，无需数据源'),
-    ]),
+    minWidth: 200,
+    ellipsis: { tooltip: true },
+    render: row => (row.sourceType === 'SQL'
+      ? (row.connectionName || getConnectionName(row.connectionId) || '-')
+      : '手动维护'),
   },
   {
     prop: 'itemCount',
     label: '维度值',
-    width: 100,
-    render: row => h('span', { class: 'item-count' }, row.itemCount ?? 0),
+    width: 90,
+    render: row => row.itemCount ?? 0,
   },
   {
     prop: 'status',
@@ -331,7 +315,7 @@ const tableColumns = computed(() => [
   {
     prop: 'action',
     label: '操作',
-    width: 320,
+    width: 260,
     fixed: 'right',
     maxActionButtons: 3,
     actions: [
@@ -533,25 +517,6 @@ async function loadConnectionOptions() {
   catch (error) {
     console.error('Failed to load connections', error)
   }
-}
-
-function applySearch() {
-  crudRef.value?.search({
-    dimensionName: queryForm.dimensionName?.trim() || undefined,
-    sourceType: queryForm.sourceType || undefined,
-    status: queryForm.status ?? undefined,
-  })
-}
-
-function handleReset() {
-  queryForm.dimensionName = ''
-  queryForm.sourceType = null
-  queryForm.status = null
-  crudRef.value?.search({})
-}
-
-function handleOpenAddDimension() {
-  crudRef.value?.showAdd()
 }
 
 function handleEditDimension(row) {
@@ -890,92 +855,12 @@ function handleDeleteDimension(row) {
 </script>
 
 <style scoped>
-.dimension-studio {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
+.data-dimension-page {
   height: 100%;
-  min-height: 0;
-  padding: 10px;
-  background: var(--bg-secondary);
-  box-sizing: border-box;
-  overflow: hidden;
 }
 
-.dimension-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  border-radius: 12px;
-  background: var(--bg-primary);
-  padding: 10px;
-}
-
-/* AiCrudPage 依赖父级 flex 链提供高度，否则 flex-height 表格体会塌陷为 0 */
-.dimension-panel :deep(.ai-crud-page) {
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-.panel-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.panel-toolbar h3 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.toolbar-actions {
-  display: grid;
-  grid-template-columns: 200px 130px 110px auto auto auto;
-  gap: 6px;
-  align-items: center;
-}
-
-.dimension-crud {
-  border-radius: 12px;
-  background: var(--bg-primary);
-}
-
-:deep(.dimension-crud .ai-crud-main) {
-  background: transparent;
-}
-
-:deep(.dimension-crud .ai-crud-table) {
-  overflow: hidden;
-  border: 1px solid #e8ecf1;
-  border-radius: 12px;
-  background: var(--bg-primary);
-  box-shadow: 0 4px 16px rgb(15 23 42 / 3%);
-}
-
-:deep(.dimension-crud .n-data-table-th) {
-  padding: 9px 12px;
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid #e8ecf1;
-}
-
-:deep(.dimension-crud .n-data-table-tr:nth-child(even) td) {
-  background: rgb(248 250 252 / 50%);
-}
-
-:deep(.dimension-crud .n-data-table-tr:hover td) {
-  background: rgb(241 245 249 / 80%);
+.data-dimension-page :deep(.ai-crud-page) {
+  height: 100%;
 }
 
 :global(.data-dimension-edit-form .n-form-item:has(.dimension-guide)),
@@ -997,67 +882,6 @@ function handleDeleteDimension(row) {
 :global(.data-dimension-edit-form .dimension-sql-editor .sql-editor) {
   width: 100% !important;
   max-width: none !important;
-}
-
-.dimension-name-card {
-  min-width: 0;
-}
-
-.dimension-name-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.dimension-name {
-  overflow: hidden;
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dimension-code,
-.dimension-desc,
-.source-cell__desc,
-.source-type-cell span {
-  margin-top: 3px;
-  color: var(--text-tertiary);
-  font-size: 11px;
-}
-
-.dimension-desc {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.source-type-cell,
-.source-cell {
-  display: flex;
-  flex-direction: column;
-}
-
-.source-type-cell strong,
-.source-cell__name {
-  color: var(--text-primary);
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.item-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 36px;
-  height: 24px;
-  border-radius: 6px;
-  background: #eff6ff;
-  color: #1e40af;
-  font-size: 12px;
-  font-weight: 600;
 }
 
 .dimension-guide {
@@ -1209,23 +1033,9 @@ function handleDeleteDimension(row) {
   .dimension-guide {
     grid-template-columns: 1fr;
   }
-
-  .toolbar-actions {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: 100%;
-  }
-
-  .panel-toolbar {
-    flex-direction: column;
-  }
 }
 
 @media (max-width: 760px) {
-  .dimension-studio {
-    padding: 12px;
-  }
-
-  .toolbar-actions,
   .dimension-guide__facts,
   .dimension-preview-summary {
     grid-template-columns: 1fr;

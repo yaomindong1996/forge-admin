@@ -12,13 +12,20 @@
           aria-label="上传存储位置" title="上传存储位置"
         />
         <NUpload
-          :action="store.uploadUrl" :headers="store.uploadHeaders" :data="store.uploadData" multiple
-          :show-file-list="false" @finish="store.uploadFinished" @error="handleUploadError"
+          :action="store.uploadUrl"
+          :headers="store.uploadHeaders"
+          :data="store.uploadData"
+          multiple
+          :show-file-list="false"
+          @before-upload="store.beforeUpload"
+          @finish="store.uploadFinished"
+          @error="handleUploadError"
         >
-          <NButton type="primary" size="small">
-            <template #icon>
+          <NButton type="primary" size="small" :loading="store.uploading">
+            <template v-if="!store.uploading" #icon>
               <i class="i-lucide:upload" />
-            </template>上传文件
+            </template>
+            {{ store.uploading ? '上传中…' : '上传文件' }}
           </NButton>
         </NUpload>
       </div>
@@ -162,7 +169,8 @@ function clearName() {
   store.search()
 }
 function handleUploadError({ file }) {
-  window.$message?.error(`“${file.name}”上传失败`)
+  store.uploadError()
+  window.$message?.error(`“${file?.name || '文件'}”上传失败`)
 }
 onMounted(() => store.initialize())
 onBeforeUnmount(() => store.dispose())

@@ -111,7 +111,9 @@ const avatarInitial = computed(() => {
 }
 
 .system-table-cell--interactive {
-  width: 100%;
+  /* 勿用 width:100%：树表里会与展开箭头并排挤换行，箭头看起来“跑丢” */
+  width: auto;
+  max-width: 100%;
   padding: 0;
   border: 0;
   background: transparent;
