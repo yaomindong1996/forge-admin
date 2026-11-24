@@ -10,11 +10,15 @@ import com.mdframe.forge.plugin.system.mapper.SysRegionMapper;
 import com.mdframe.forge.plugin.system.service.ISysRegionService;
 import com.mdframe.forge.plugin.system.vo.SysRegionTreeVO;
 import com.mdframe.forge.starter.cache.service.ICacheService;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.session.SessionHelper;
+import com.mdframe.forge.starter.datascope.service.IDataScopeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -30,9 +34,13 @@ public class SysRegionServiceImpl extends ServiceImpl<SysRegionMapper, SysRegion
 
     private final SysRegionMapper regionMapper;
     private final ICacheService cacheService;
+    private final IDataScopeService dataScopeService;
 
     private static final String REGION_TREE_CACHE_PREFIX = "region:treeAll:";
     private static final long REGION_TREE_CACHE_TTL_HOURS = 24;
+    private static final int REGION_CODE_MAX_LENGTH = 20;
+    private static final int REGION_LEVEL_MIN = 1;
+    private static final int REGION_LEVEL_MAX = 5;
 
     @Override
     public List<SysRegionTreeVO> selectRegionTree() {
@@ -90,33 +98,125 @@ public class SysRegionServiceImpl extends ServiceImpl<SysRegionMapper, SysRegion
 
     @Override
     public boolean insertRegion(SysRegionDTO dto) {
-        SysRegion region = new SysRegion();
-        BeanUtil.copyProperties(dto, region);
+        SysRegion region = prepareRegionForSave(dto, false);
         boolean result = this.save(region);
         if (result) {
-            refreshRegionTreeCache();
+            afterRegionChanged();
         }
         return result;
     }
 
     @Override
     public boolean updateRegion(SysRegionDTO dto) {
-        SysRegion region = new SysRegion();
-        BeanUtil.copyProperties(dto, region);
+        SysRegion region = prepareRegionForSave(dto, true);
         boolean result = this.updateById(region);
         if (result) {
-            refreshRegionTreeCache();
+            afterRegionChanged();
         }
         return result;
     }
 
     @Override
     public boolean deleteRegionByCode(String code) {
+        if (StrUtil.isBlank(code)) {
+            throw new BusinessException("行政区划编码不能为空");
+        }
+        Long childCount = regionMapper.selectCount(new LambdaQueryWrapper<SysRegion>()
+                .eq(SysRegion::getParentCode, code));
+        if (childCount != null && childCount > 0) {
+            throw new BusinessException("存在下级行政区划，请先删除子级后再删除");
+        }
         boolean result = regionMapper.deleteById(code) > 0;
         if (result) {
-            refreshRegionTreeCache();
+            afterRegionChanged();
         }
         return result;
+    }
+
+    private SysRegion prepareRegionForSave(SysRegionDTO dto, boolean updating) {
+        if (dto == null) {
+            throw new BusinessException("行政区划数据不能为空");
+        }
+        String code = StrUtil.trim(dto.getCode());
+        if (StrUtil.isBlank(code)) {
+            throw new BusinessException("行政区划编码不能为空");
+        }
+        if (code.length() > REGION_CODE_MAX_LENGTH) {
+            throw new BusinessException("行政区划编码长度不能超过" + REGION_CODE_MAX_LENGTH + "位");
+        }
+        if (StrUtil.isBlank(dto.getName())) {
+            throw new BusinessException("行政区划名称不能为空");
+        }
+
+        String parentCode = StrUtil.trim(dto.getParentCode());
+        if (StrUtil.isBlank(parentCode)) {
+            parentCode = null;
+        }
+        if (code.equals(parentCode)) {
+            throw new BusinessException("上级区域不能选择自身");
+        }
+
+        Integer level = dto.getLevel();
+        if (parentCode == null) {
+            if (level == null) {
+                level = REGION_LEVEL_MIN;
+            }
+            if (level != REGION_LEVEL_MIN) {
+                throw new BusinessException("顶级行政区划级别必须为省(1)");
+            }
+        } else {
+            SysRegion parent = regionMapper.selectById(parentCode);
+            if (parent == null) {
+                throw new BusinessException("上级行政区划不存在");
+            }
+            if (parent.getLevel() == null || parent.getLevel() >= REGION_LEVEL_MAX) {
+                throw new BusinessException("村/社区下不能再新增下级行政区划");
+            }
+            int expectedLevel = parent.getLevel() + 1;
+            if (level == null) {
+                level = expectedLevel;
+            } else if (!Objects.equals(level, expectedLevel)) {
+                throw new BusinessException("行政级别必须为上级级别+1（期望 " + expectedLevel + "）");
+            }
+        }
+        if (level < REGION_LEVEL_MIN || level > REGION_LEVEL_MAX) {
+            throw new BusinessException("行政级别必须在" + REGION_LEVEL_MIN + "-" + REGION_LEVEL_MAX + "之间");
+        }
+
+        SysRegion existing = regionMapper.selectById(code);
+        if (updating) {
+            if (existing == null) {
+                throw new BusinessException("行政区划不存在");
+            }
+        } else if (existing != null) {
+            throw new BusinessException("行政区划编码已存在");
+        }
+
+        SysRegion region = new SysRegion();
+        BeanUtil.copyProperties(dto, region);
+        region.setCode(code);
+        region.setParentCode(parentCode);
+        region.setLevel(level);
+        region.setName(StrUtil.trim(dto.getName()));
+        return region;
+    }
+
+    private void afterRegionChanged() {
+        refreshRegionTreeCache();
+        refreshDataScopeCacheAfterCommit();
+    }
+
+    private void refreshDataScopeCacheAfterCommit() {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            dataScopeService.refreshDataScopeCache();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                dataScopeService.refreshDataScopeCache();
+            }
+        });
     }
 
     @Override

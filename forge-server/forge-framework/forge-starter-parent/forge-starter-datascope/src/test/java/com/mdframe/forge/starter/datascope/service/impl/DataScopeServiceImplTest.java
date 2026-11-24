@@ -4,21 +4,24 @@ import com.mdframe.forge.starter.datascope.config.DataScopeProperties;
 import com.mdframe.forge.starter.datascope.entity.SysDataScopeConfig;
 import com.mdframe.forge.starter.datascope.event.DataScopeCacheRefreshedEvent;
 import com.mdframe.forge.starter.datascope.mapper.*;
+import com.mdframe.forge.starter.datascope.model.DataScopeRegionInfo;
 import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class DataScopeServiceImplTest {
     private final SysDataScopeConfigMapper mapper = mock(SysDataScopeConfigMapper.class);
+    private final DataScopeRegionMapper regionMapper = mock(DataScopeRegionMapper.class);
     private final ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
     private final DataScopeServiceImpl service = new DataScopeServiceImpl(mapper,
             mock(DataScopeRoleMapper.class), mock(DataScopeOrgMapper.class), mock(SysRoleDataScopeMapper.class),
-            mock(SysRoleModuleDataScopeMapper.class), mock(DataScopeRegionMapper.class),
+            mock(SysRoleModuleDataScopeMapper.class), regionMapper,
             new DataScopeProperties(), publisher);
 
     @Test
@@ -62,5 +65,30 @@ class DataScopeServiceImplTest {
         verifyNoInteractions(publisher);
         doReturn(List.of()).when(mapper).selectRuntimeConfigs();
         assertNull(service.getDataScopeConfig("example.OrderMapper.page"));
+    }
+
+    @Test
+    void shouldExpandRegionDescendantsAcrossCountyStreetVillage() {
+        DataScopeRegionInfo county = region("110101", "110100");
+        DataScopeRegionInfo street = region("110101001", "110101");
+        DataScopeRegionInfo village = region("110101001001", "110101001");
+        when(regionMapper.selectAllRegions()).thenReturn(List.of(county, street, village));
+        when(mapper.selectRuntimeConfigs()).thenReturn(List.of());
+
+        service.reloadLocalDataScopeCache();
+
+        assertEquals(Set.of("110101", "110101001", "110101001001"),
+                service.getRegionAndChildCodes("110101"));
+        assertEquals(Set.of("110101001", "110101001001"),
+                service.getRegionAndChildCodes("110101001"));
+        assertEquals(Set.of("110101001001"),
+                service.getRegionAndChildCodes("110101001001"));
+    }
+
+    private static DataScopeRegionInfo region(String code, String parentCode) {
+        DataScopeRegionInfo info = new DataScopeRegionInfo();
+        info.setCode(code);
+        info.setParentCode(parentCode);
+        return info;
     }
 }

@@ -154,21 +154,10 @@ async function handleCallback() {
     if (callbackRes.code !== 200 || !callbackRes.data) {
       loading.value = false
       success.value = false
-      const errMsg = callbackRes.msg || ''
-      // Gitee Star 检查失败：提示并自动跳转到仓库点 Star
-      if (/star/i.test(errMsg)) {
-        message.value = '请先给 Gitee 仓库点 Star'
-        detailMessage.value = '正在跳转到 Gitee 仓库，点 Star 后请重新登录…'
-        // 尝试从错误信息中提取仓库 URL，回退默认地址
-        const urlMatch = errMsg.match(/https?:\/\/gitee\.com\/\S+/)
-        const repoUrl = urlMatch ? urlMatch[0] : 'https://gitee.com/ForgeLab/forge-admin'
-        setTimeout(() => {
-          window.location.href = repoUrl
-        }, 2000)
+      if (presentGiteeCommunityFailure(callbackRes.msg || ''))
         return
-      }
       message.value = '授权失败'
-      detailMessage.value = errMsg || '第三方平台授权失败'
+      detailMessage.value = callbackRes.msg || '第三方平台授权失败'
       setTimeout(() => {
         router.push('/login')
       }, 2000)
@@ -213,22 +202,65 @@ async function handleCallback() {
     loading.value = false
     success.value = false
     const errMsg = error?.message || error?.response?.data?.msg || ''
-    if (/star/i.test(errMsg)) {
-      message.value = '请先给 Gitee 仓库点 Star'
-      detailMessage.value = '正在跳转到 Gitee 仓库，点 Star 后请重新登录…'
-      const urlMatch = errMsg.match(/https?:\/\/gitee\.com\/\S+/)
-      const repoUrl = urlMatch ? urlMatch[0] : 'https://gitee.com/ForgeLab/forge-admin'
-      setTimeout(() => {
-        window.location.href = repoUrl
-      }, 2000)
+    if (presentGiteeCommunityFailure(errMsg))
       return
-    }
     message.value = '登录异常'
     detailMessage.value = '处理登录时发生错误，请重新尝试'
     setTimeout(() => {
       router.push('/login')
     }, 2000)
   }
+}
+
+/**
+ * 区分 Gitee 社区登录失败原因：未 Star / 缺 projects 授权 / 校验超时。
+ * @returns {boolean} 是否已按社区登录失败处理
+ */
+function presentGiteeCommunityFailure(errMsg) {
+  const text = String(errMsg || '')
+  if (!text)
+    return false
+
+  const repoUrl = (text.match(/https?:\/\/gitee\.com\/\S+/) || [])[0]
+    || 'https://gitee.com/ForgeLab/forge-admin'
+
+  if (/GITEE_SCOPE_INSUFFICIENT|授权不足|projects/i.test(text)) {
+    message.value = 'Gitee 授权权限不足'
+    detailMessage.value = '请在 Gitee 开放平台应用勾选 projects，取消旧授权后重新登录并勾选权限'
+    setTimeout(() => {
+      router.push('/login')
+    }, 3500)
+    return true
+  }
+
+  if (/GITEE_STAR_CHECK_TIMEOUT|校验超时|校验被中断/i.test(text)) {
+    message.value = 'Gitee Star 校验超时'
+    detailMessage.value = '网络或 Star 列表较大，请稍候片刻再重新登录'
+    setTimeout(() => {
+      router.push('/login')
+    }, 3000)
+    return true
+  }
+
+  if (/GITEE_STAR_REQUIRED|点 Star|star/i.test(text)) {
+    message.value = '请先给 Gitee 仓库点 Star'
+    detailMessage.value = '正在跳转到 Gitee 仓库，点 Star 后请稍候再重新登录…'
+    setTimeout(() => {
+      window.location.href = repoUrl
+    }, 2000)
+    return true
+  }
+
+  if (/GITEE_STAR_CHECK_FAILED/i.test(text)) {
+    message.value = 'Gitee Star 校验失败'
+    detailMessage.value = text.replace(/\[GITEE_[A-Z_]+\]\s*/g, '') || '请稍后重试'
+    setTimeout(() => {
+      router.push('/login')
+    }, 3000)
+    return true
+  }
+
+  return false
 }
 
 async function onLoginSuccess(data = {}) {

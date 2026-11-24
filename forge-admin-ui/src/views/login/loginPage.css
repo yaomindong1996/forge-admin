@@ -299,6 +299,13 @@
   font-size: 11px;
 }
 
+.gitee-community-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
 .social-button-gitee {
   display: flex;
   align-items: center;
@@ -324,6 +331,19 @@
 
 .gitee-label {
   font-size: 12px;
+}
+
+.gitee-community-hint {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.gitee-community-link {
+  color: #c71d23;
+  text-decoration: underline;
 }
 
 .social-buttons {

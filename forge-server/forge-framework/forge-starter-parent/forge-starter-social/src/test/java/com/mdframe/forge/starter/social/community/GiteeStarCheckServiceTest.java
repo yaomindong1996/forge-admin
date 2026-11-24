@@ -74,6 +74,7 @@ class GiteeStarCheckServiceTest {
     void unauthorizedScopeFailsWithPermissionHint() {
         assertThatThrownBy(() -> service.interpret(403, "{\"message\":\"403\"}"))
                 .isInstanceOf(BusinessException.class)
+                .hasMessageContaining(GiteeStarCheckService.ERR_SCOPE_INSUFFICIENT)
                 .hasMessageContaining("projects");
     }
 
@@ -81,6 +82,7 @@ class GiteeStarCheckServiceTest {
     void unexpectedStatusCodeCarriesCode() {
         assertThatThrownBy(() -> service.interpret(500, "{\"message\":\"internal error\"}"))
                 .isInstanceOf(BusinessException.class)
+                .hasMessageContaining(GiteeStarCheckService.ERR_FAILED)
                 .hasMessageContaining("状态码 500");
     }
 
@@ -92,6 +94,13 @@ class GiteeStarCheckServiceTest {
         assertThat(GiteeStarCheckService.containsRepo(
                 JSONUtil.parseArray("[{\"full_name\":\"other/repo\"}]"),
                 "ForgeLab/forge-admin")).isFalse();
+    }
+
+    @Test
+    void containsRepoMatchesCaseInsensitively() {
+        assertThat(GiteeStarCheckService.containsRepo(
+                JSONUtil.parseArray("[{\"full_name\":\"ForgeLab/Forge-admin\"}]"),
+                "forgelab/forge-admin")).isTrue();
     }
 
     @Test

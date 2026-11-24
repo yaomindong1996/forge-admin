@@ -92,7 +92,7 @@ public class LoginConfig {
     /**
      * 调用 Gitee API 超时毫秒。
      */
-    private Integer giteeCommunityTimeoutMs = 3000;
+    private Integer giteeCommunityTimeoutMs = 5000;
 
     /**
      * 是否启用群二维码引流验证码。独立于 enableCaptcha 总开关：

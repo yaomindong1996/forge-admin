@@ -310,14 +310,26 @@
                   <span class="divider-text">其他登录方式</span>
                 </div>
                 <!-- Gitee 社区登录：突出展示 -->
-                <button
-                  v-if="giteeCommunity.enabled"
-                  class="social-button-gitee"
-                  @click="handleSocialLogin('GITEE')"
-                >
-                  <i class="gitee-icon i-simple-icons:gitee" aria-hidden="true" />
-                  <span class="gitee-label">Gitee 免密登录</span>
-                </button>
+                <div v-if="giteeCommunity.enabled" class="gitee-community-block">
+                  <button
+                    class="social-button-gitee"
+                    @click="handleSocialLogin('GITEE')"
+                  >
+                    <i class="gitee-icon i-simple-icons:gitee" aria-hidden="true" />
+                    <span class="gitee-label">Gitee 免密登录</span>
+                  </button>
+                  <p class="gitee-community-hint">
+                    需先
+                    <a
+                      class="gitee-community-link"
+                      :href="giteeCommunity.repoUrl || 'https://gitee.com/ForgeLab/forge-admin'"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      @click.stop
+                    >Star 仓库</a>
+                    ；授权时请勾选 <strong>projects</strong>。点完 Star 请稍候再登录。
+                  </p>
+                </div>
                 <!-- 其他三方平台 -->
                 <div v-if="nonGiteePlatforms.length > 0" class="social-buttons">
                   <button

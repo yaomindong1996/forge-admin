@@ -54,7 +54,8 @@ const levelOptions = [
   { label: '省', value: 1 },
   { label: '市', value: 2 },
   { label: '区/县', value: 3 },
-  { label: '街道', value: 4 },
+  { label: '乡镇/街道', value: 4 },
+  { label: '村/社区', value: 5 },
 ]
 
 const searchSchema = [
@@ -77,18 +78,19 @@ const tableColumns = computed(() => [
   {
     prop: 'code',
     label: '编码',
-    width: 120,
+    width: 160,
   },
   {
     prop: 'level',
     label: '级别',
-    width: 100,
+    width: 110,
     render: (row) => {
       const levelMap = {
         1: { text: '省', type: 'success' },
         2: { text: '市', type: 'info' },
         3: { text: '区/县', type: 'warning' },
-        4: { text: '街道', type: 'default' },
+        4: { text: '乡镇/街道', type: 'default' },
+        5: { text: '村/社区', type: 'success' },
       }
       const config = levelMap[row.level] || { text: '未知', type: 'default' }
       return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
@@ -135,9 +137,13 @@ const editSchema = ref([
     field: 'code',
     label: '编码',
     type: 'input',
-    rules: [{ required: true, message: '请输入行政区划编码', trigger: 'blur' }],
+    rules: [
+      { required: true, message: '请输入行政区划编码', trigger: 'blur' },
+      { max: 20, message: '编码长度不能超过20位', trigger: 'blur' },
+    ],
     props: {
-      placeholder: '请输入行政区划编码',
+      placeholder: '自编码或12位国标村社区码，最长20位',
+      maxlength: 20,
     },
   },
   {
@@ -182,7 +188,10 @@ const editSchema = ref([
 
 async function loadParentRegionOptions() {
   try {
-    const res = await request.get('/system/region/tree')
+    // treeAll 返回完整树，便于选择乡镇后再挂村/社区；管理页不套数据权限
+    const res = await request.get('/system/region/treeAll', {
+      params: { dataRight: false },
+    })
     if (res.code === 200) {
       const convertToTreeSelect = (list) => {
         return list.map(item => ({
@@ -270,10 +279,30 @@ function toggleExpandLoaded() {
 async function handleAdd(row) {
   await loadParentRegionOptions()
   const parentCodeField = editSchema.value.find(f => f.field === 'parentCode')
-  if (row && parentCodeField) {
-    parentCodeField.defaultValue = row.code
+  const levelField = editSchema.value.find(f => f.field === 'level')
+  const defaults = {}
+  if (row) {
+    defaults.parentCode = row.code
+    const nextLevel = (Number(row.level) || 0) + 1
+    if (nextLevel >= 1 && nextLevel <= 5) {
+      defaults.level = nextLevel
+    }
+    if (parentCodeField) {
+      parentCodeField.defaultValue = row.code
+    }
+    if (levelField && defaults.level != null) {
+      levelField.defaultValue = defaults.level
+    }
   }
-  crudRef.value?.showAdd()
+  else {
+    if (parentCodeField) {
+      parentCodeField.defaultValue = ''
+    }
+    if (levelField) {
+      levelField.defaultValue = 1
+    }
+  }
+  crudRef.value?.showAdd(defaults)
 }
 
 async function handleEdit(row) {

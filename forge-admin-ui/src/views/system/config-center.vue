@@ -125,6 +125,7 @@
                     </div>
                     <div class="config-help">
                       打开后，Gitee 登录会校验仓库 Star，新用户进入隔离体验租户。关闭后仍可用账号密码登录。
+                      协作连接里 Gitee OAuth scope 须含 <code>user_info,projects</code>，与开放平台勾选一致；改 scope 后用户需重新授权。
                     </div>
                   </div>
                   <n-switch v-model:value="configForms.login.giteeCommunityEnabled" />
@@ -136,7 +137,7 @@
                       要求仓库 Star
                     </div>
                     <div class="config-help">
-                      未点 Star 的 Gitee 账号不能登录，也不会自动建号。
+                      未点 Star 的 Gitee 账号不能登录，也不会自动建号。Star 列表接口依赖 projects 权限。
                     </div>
                   </div>
                   <n-switch v-model:value="configForms.login.giteeCommunityRequireStar" />

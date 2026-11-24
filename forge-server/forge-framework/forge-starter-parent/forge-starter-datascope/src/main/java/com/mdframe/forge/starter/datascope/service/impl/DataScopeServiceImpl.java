@@ -384,20 +384,62 @@ public class DataScopeServiceImpl implements IDataScopeService {
     }
 
     private Map<String, Set<String>> buildRegionChildMap(List<DataScopeRegionInfo> regions) {
-        Map<String, Set<String>> mutable = new HashMap<>();
+        Map<String, List<String>> adjacency = new HashMap<>();
+        Set<String> allCodes = new LinkedHashSet<>();
         if (regions != null) {
             for (DataScopeRegionInfo region : regions) {
                 if (region == null || StrUtil.isBlank(region.getCode())) {
                     continue;
                 }
-                mutable.computeIfAbsent(region.getCode(), key -> new LinkedHashSet<>()).add(region.getCode());
+                String code = region.getCode();
+                allCodes.add(code);
                 if (StrUtil.isNotBlank(region.getParentCode())) {
-                    mutable.computeIfAbsent(region.getParentCode(), key -> new LinkedHashSet<>()).add(region.getCode());
+                    adjacency.computeIfAbsent(region.getParentCode(), key -> new ArrayList<>()).add(code);
                 }
             }
         }
-        mutable.forEach((code, children) -> children.add(code));
+
+        Map<String, Set<String>> mutable = new HashMap<>();
+        for (String code : allCodes) {
+            mutable.put(code, collectRegionDescendants(code, adjacency));
+        }
+        // 父编码可能尚未单独入库（脏数据/半截树），仍保证能查到已登记的直属及以下节点
+        for (String parentCode : adjacency.keySet()) {
+            if (StrUtil.isBlank(parentCode) || mutable.containsKey(parentCode)) {
+                continue;
+            }
+            mutable.put(parentCode, collectRegionDescendants(parentCode, adjacency));
+        }
         return unmodifiableNestedStringMap(mutable);
+    }
+
+    /**
+     * 收集区划自身及全部子孙编码（BFS），支持省→市→县→街→村多级展开。
+     */
+    private Set<String> collectRegionDescendants(String rootCode, Map<String, List<String>> adjacency) {
+        Set<String> result = new LinkedHashSet<>();
+        if (StrUtil.isBlank(rootCode)) {
+            return result;
+        }
+        ArrayList<String> queue = new ArrayList<>();
+        queue.add(rootCode);
+        int index = 0;
+        while (index < queue.size()) {
+            String current = queue.get(index++);
+            if (!result.add(current)) {
+                continue;
+            }
+            List<String> children = adjacency.get(current);
+            if (children == null || children.isEmpty()) {
+                continue;
+            }
+            for (String child : children) {
+                if (StrUtil.isNotBlank(child) && !result.contains(child)) {
+                    queue.add(child);
+                }
+            }
+        }
+        return result;
     }
 
     private Set<Long> collectCustomOrgIds(List<Long> roleIds) {

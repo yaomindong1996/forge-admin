@@ -28,18 +28,27 @@ import java.util.List;
  * 单仓库 Star 查询接口 GET /user/starred/{owner}/{repo} 已被 Gitee 废弃（返回 200 + 废弃提示），
  * 改用 GET /users/{login}/starred 分页拉取当前用户 Star 列表，本地匹配 full_name。
  * 已 Star 结论本地缓存短周期，降低对 Gitee 的调用频率。
+ * <p>
+ * 失败文案前缀约定（前端可区分展示）：
+ * {@code [GITEE_STAR_REQUIRED]} / {@code [GITEE_SCOPE_INSUFFICIENT]} /
+ * {@code [GITEE_STAR_CHECK_TIMEOUT]} / {@code [GITEE_STAR_CHECK_FAILED]}
  */
 @Slf4j
 @Service
 public class GiteeStarCheckService {
+
+    static final String ERR_STAR_REQUIRED = "[GITEE_STAR_REQUIRED]";
+    static final String ERR_SCOPE_INSUFFICIENT = "[GITEE_SCOPE_INSUFFICIENT]";
+    static final String ERR_TIMEOUT = "[GITEE_STAR_CHECK_TIMEOUT]";
+    static final String ERR_FAILED = "[GITEE_STAR_CHECK_FAILED]";
 
     private static final String STARRED_LIST_URL = "https://gitee.com/api/v5/users/";
     private static final String REPO_API_URL = "https://gitee.com/api/v5/repos/";
     private static final int PER_PAGE = 100;
     /** 分页安全上限：防止 Gitee 异常返回造成无限翻页；正常用户 Star 数远达不到 */
     private static final int MAX_PAGES = 30;
-    /** 分页拉取总耗时预算：校验在登录线程上同步执行，防止 Gitee 慢响应长时间占住容器 worker，超预算按未 Star 降级处理并告警 */
-    private static final long TOTAL_BUDGET_MS = 10_000;
+    /** 分页拉取总耗时预算：校验在登录线程上同步执行，防止 Gitee 慢响应长时间占住容器 worker，超预算按校验超时处理 */
+    private static final long TOTAL_BUDGET_MS = 20_000;
     /** 已 Star 结果本地缓存分钟数：登录高峰降低对 Gitee 的调用频率，规避限流 */
     private static final long STAR_CACHE_MINUTES = 10;
     /** 仓库真实创建者缓存分钟数：创建者极少变化，缓存降低对 Gitee 的调用频率 */
@@ -75,16 +84,16 @@ public class GiteeStarCheckService {
             return;
         }
         if (StrUtil.isBlank(accessToken)) {
-            throw new BusinessException("未能获取 Gitee 授权，请重新登录");
+            throw new BusinessException(ERR_FAILED + " 未能获取 Gitee 授权，请重新登录");
         }
         if (StrUtil.isBlank(login)) {
-            throw new BusinessException("未能获取 Gitee 用户名，请重新登录");
+            throw new BusinessException(ERR_FAILED + " 未能获取 Gitee 用户名，请重新登录");
         }
         GiteeCommunityLoginSupport.GiteeCommunitySettings config = communityLoginSupport.config();
         String owner = StrUtil.trimToEmpty(config.getOwner());
         String repo = StrUtil.trimToEmpty(config.getRepo());
         if (StrUtil.hasBlank(owner, repo)) {
-            throw new BusinessException("Gitee 社区登录未配置仓库");
+            throw new BusinessException(ERR_FAILED + " Gitee 社区登录未配置仓库");
         }
         String targetFullName = owner + "/" + repo;
 
@@ -101,15 +110,20 @@ public class GiteeStarCheckService {
             return;
         }
 
-        boolean starred = fetchStarred(accessToken, login, targetFullName, config);
-        if (starred) {
+        StarFetchResult fetchResult = fetchStarred(accessToken, login, targetFullName, config);
+        if (fetchResult.starred()) {
             starCache.put(login, Boolean.TRUE);
             return;
+        }
+        if (fetchResult.timedOut()) {
+            throw new BusinessException(ERR_TIMEOUT
+                    + " Gitee Star 校验超时，请稍后重试；若刚点完 Star 请稍候片刻再登录");
         }
         // 未 Star 不缓存：用户跳去点 Star 后马上回来重试必须能通过
         // 提示稍候：Gitee Star 列表存在秒级传播延迟，点完立即重试可能仍未命中
         String link = StrUtil.blankToDefault(config.getRepoUrl(), "https://gitee.com/ForgeLab/forge-admin");
-        throw new BusinessException("请先给仓库点 Star 后再登录（点完稍候片刻再重试）：" + link);
+        throw new BusinessException(ERR_STAR_REQUIRED
+                + " 请先给仓库点 Star 后再登录（点完稍候片刻再重试）：" + link);
     }
 
     /**
@@ -154,20 +168,20 @@ public class GiteeStarCheckService {
     /**
      * 分页拉取当前用户 Star 列表并匹配目标仓库。
      * <p>
-     * 返回 false 的终止条件：空页 / 不足一页（列表拉完）；翻页达页数上限或总耗时预算时按未 Star 处理并告警。
+     * 未命中终止条件：空页 / 不足一页（列表拉完）；翻页达页数上限或总耗时预算时标记超时。
      * 每次未命中都会通过 logStarredDetail 打出实际拉取的仓库明细，便于定位 Gitee 接口异常。
      */
-    private boolean fetchStarred(String accessToken, String login, String targetFullName,
-                                 GiteeCommunityLoginSupport.GiteeCommunitySettings config) {
-        int timeoutMs = Math.max(500, config.getTimeoutMs());
+    private StarFetchResult fetchStarred(String accessToken, String login, String targetFullName,
+                                         GiteeCommunityLoginSupport.GiteeCommunitySettings config) {
+        int timeoutMs = Math.max(1000, config.getTimeoutMs());
         long deadline = System.currentTimeMillis() + TOTAL_BUDGET_MS;
         List<String> seenRepos = new ArrayList<>();
         for (int page = 1; page <= MAX_PAGES; page++) {
             if (page > 1 && System.currentTimeMillis() > deadline) {
-                log.warn("Gitee Star 列表翻页达总耗时预算: login={}, repo={}, page={}, budgetMs={}，按未 Star 处理",
+                log.warn("Gitee Star 列表翻页达总耗时预算: login={}, repo={}, page={}, budgetMs={}，按校验超时处理",
                         login, targetFullName, page, TOTAL_BUDGET_MS);
                 logStarredDetail(login, targetFullName, seenRepos);
-                return false;
+                return StarFetchResult.timeout();
             }
             String url = STARRED_LIST_URL + encode(login) + "/starred"
                     + "?access_token=" + encode(accessToken)
@@ -183,33 +197,47 @@ public class GiteeStarCheckService {
                 JSONArray repos = interpret(response.statusCode(), response.body());
                 if (repos == null) {
                     logStarredDetail(login, targetFullName, seenRepos);
-                    return false;
+                    return StarFetchResult.missing();
                 }
                 seenRepos.addAll(extractFullNames(repos));
                 if (containsRepo(repos, targetFullName)) {
                     log.info("Gitee Star 校验通过: login={}, repo={}, 命中于第 {} 页，已扫描 {} 个仓库",
                             login, targetFullName, page, seenRepos.size());
-                    return true;
+                    return StarFetchResult.found();
                 }
                 if (repos.size() < PER_PAGE) {
                     logStarredDetail(login, targetFullName, seenRepos);
-                    return false;
+                    return StarFetchResult.missing();
                 }
             } catch (BusinessException exception) {
                 throw exception;
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
-                throw new BusinessException("Gitee Star 校验被中断，请稍后重试");
+                throw new BusinessException(ERR_TIMEOUT + " Gitee Star 校验被中断，请稍后重试");
             } catch (Exception exception) {
                 log.warn("Gitee Star 校验失败: login={}, repo={}, page={}, timeoutMs={}, reason={}",
                         login, targetFullName, page, timeoutMs, exception.getMessage());
-                throw new BusinessException("Gitee Star 校验超时或失败，请稍后重试");
+                throw new BusinessException(ERR_TIMEOUT + " Gitee Star 校验超时或失败，请稍后重试");
             }
         }
-        log.warn("Gitee Star 列表翻页达安全上限: login={}, repo={}, maxPages={}，按未 Star 处理",
+        log.warn("Gitee Star 列表翻页达安全上限: login={}, repo={}, maxPages={}，按校验超时处理",
                 login, targetFullName, MAX_PAGES);
         logStarredDetail(login, targetFullName, seenRepos);
-        return false;
+        return StarFetchResult.timeout();
+    }
+
+    private record StarFetchResult(boolean starred, boolean timedOut) {
+        static StarFetchResult found() {
+            return new StarFetchResult(true, false);
+        }
+
+        static StarFetchResult missing() {
+            return new StarFetchResult(false, false);
+        }
+
+        static StarFetchResult timeout() {
+            return new StarFetchResult(false, true);
+        }
     }
 
     /**
@@ -235,21 +263,26 @@ public class GiteeStarCheckService {
             } catch (Exception exception) {
                 // 200 但非数组（如接口废弃提示对象）：日志保留响应体便于定位
                 log.warn("Gitee Star 列表响应非预期（可能接口变更/废弃）: body={}", truncate(responseBody));
-                throw new BusinessException("Gitee Star 校验失败，请稍后重试");
+                throw new BusinessException(ERR_FAILED + " Gitee Star 校验失败，请稍后重试");
             }
         }
         if (statusCode == 401 || statusCode == 403) {
             log.warn("Gitee Star 校验未通过: statusCode={}, body={}", statusCode, truncate(responseBody));
-            throw new BusinessException("Gitee 授权不足，请确认已勾选 projects 权限后重新登录");
+            throw new BusinessException(ERR_SCOPE_INSUFFICIENT
+                    + " Gitee 授权不足，请确认 OAuth 应用已勾选 projects，并在登录授权页重新勾选后重试");
         }
         log.warn("Gitee Star 校验返回非预期状态码: statusCode={}, body={}", statusCode, truncate(responseBody));
-        throw new BusinessException("Gitee Star 校验失败（状态码 " + statusCode + "），请稍后重试");
+        throw new BusinessException(ERR_FAILED + " Gitee Star 校验失败（状态码 " + statusCode + "），请稍后重试");
     }
 
     static boolean containsRepo(JSONArray repos, String targetFullName) {
+        if (StrUtil.isBlank(targetFullName) || repos == null) {
+            return false;
+        }
         for (Object item : repos) {
             JSONObject starredRepo = JSONUtil.parseObj(item);
-            if (targetFullName.equals(starredRepo.getStr("full_name"))) {
+            String fullName = starredRepo.getStr("full_name");
+            if (targetFullName.equalsIgnoreCase(StrUtil.trimToEmpty(fullName))) {
                 return true;
             }
         }

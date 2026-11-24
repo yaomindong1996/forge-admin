@@ -29,7 +29,7 @@ public class SysRegion implements Serializable {
     private String name;
 
     /**
-     * 行政级别(1-省,2-市,3-区/县,4-街道)
+     * 行政级别(1-省,2-市,3-区/县,4-乡镇/街道,5-村/社区)
      */
     private Integer level;
 

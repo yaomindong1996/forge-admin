@@ -20,7 +20,8 @@ public class GiteeCommunityLoginSupport {
     private static final String DEFAULT_OWNER = "ForgeLab";
     private static final String DEFAULT_REPO = "forge-admin";
     private static final String DEFAULT_REPO_URL = "https://gitee.com/ForgeLab/forge-admin";
-    private static final int DEFAULT_TIMEOUT_MS = 3000;
+    /** 单页 Star 列表请求超时；过短易在 Gitee 慢响应时误判失败 */
+    private static final int DEFAULT_TIMEOUT_MS = 5000;
 
     private final ConfigManagerService configManagerService;
 

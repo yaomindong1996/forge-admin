@@ -27,6 +27,7 @@ import me.zhyd.oauth.request.AuthDingTalkAccountRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -154,7 +155,14 @@ public class SocialAuthRequestFactory {
         }
 
         if (StrUtil.isNotBlank(scope)) {
-            builder.scopes(Arrays.asList(scope.split(",")));
+            // Gitee 社区登录需 user_info,projects；允许配置里带空格
+            List<String> scopes = Arrays.stream(scope.split(","))
+                    .map(String::trim)
+                    .filter(StrUtil::isNotBlank)
+                    .toList();
+            if (!scopes.isEmpty()) {
+                builder.scopes(scopes);
+            }
         }
 
         if (StrUtil.isNotBlank(agentId)) {
