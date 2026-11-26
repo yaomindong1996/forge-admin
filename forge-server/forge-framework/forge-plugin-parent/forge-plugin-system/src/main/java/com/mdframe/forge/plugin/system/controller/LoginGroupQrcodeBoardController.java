@@ -90,6 +90,7 @@ public class LoginGroupQrcodeBoardController {
                 }
             }
             board.put("historyGroups", history);
+            board.put("officialAccount", normalizeOfficialAccount(data.get("officialAccount"), boardUrl));
             return board;
         }
         catch (Exception ex) {
@@ -119,7 +120,25 @@ public class LoginGroupQrcodeBoardController {
         Map<String, Object> board = new LinkedHashMap<>();
         board.put("openGroup", null);
         board.put("historyGroups", List.of());
+        board.put("officialAccount", null);
         return board;
+    }
+
+    private Map<String, Object> normalizeOfficialAccount(JsonNode node, String boardUrl) {
+        if (node == null || node.isNull() || !node.isObject()) {
+            return null;
+        }
+        String qrcodeUrl = firstNonBlank(textOrNull(node.get("qrcodeUrl")), textOrNull(node.get("qrcodeImage")));
+        if (StringUtils.isBlank(qrcodeUrl)) {
+            return null;
+        }
+        Map<String, Object> account = new LinkedHashMap<>();
+        account.put("name", StringUtils.defaultIfBlank(textOrNull(node.get("name")), "公众号"));
+        account.put("hint", textOrNull(node.get("hint")));
+        account.put("keyword", textOrNull(node.get("keyword")));
+        account.put("qrcodeUrl", absolutize(boardUrl, qrcodeUrl));
+        account.put("source", "remote");
+        return account;
     }
 
     private Map<String, Object> normalizeGroup(JsonNode node, String boardUrl, boolean keepQrcode) {

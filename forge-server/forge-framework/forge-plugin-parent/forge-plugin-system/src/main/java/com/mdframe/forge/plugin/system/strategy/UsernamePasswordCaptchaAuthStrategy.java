@@ -1,6 +1,8 @@
 package com.mdframe.forge.plugin.system.strategy;
 
 import cn.hutool.core.util.StrUtil;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mdframe.forge.plugin.system.auth.LoginCaptchaPolicy;
 import com.mdframe.forge.plugin.system.auth.LoginCaptchaPolicyResolver;
 import com.mdframe.forge.plugin.system.auth.LoginPasswordDecoder;
@@ -11,7 +13,13 @@ import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
+
+import java.net.URI;
+import java.util.Map;
 
 /**
  * 用户名+密码+验证码认证策略
@@ -33,6 +41,9 @@ public class UsernamePasswordCaptchaAuthStrategy extends AbstractAuthStrategy {
 
     @Autowired
     private com.mdframe.forge.starter.config.service.ConfigManagerService configManagerService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Override
     protected void validateRequest(LoginRequest request) {
@@ -156,7 +167,7 @@ public class UsernamePasswordCaptchaAuthStrategy extends AbstractAuthStrategy {
     }
 
     /**
-     * 校验群二维码验证码（固定码，从 LoginConfig 读取）
+     * 校验社区固定验证码：优先走官网 Website 配置（群/公众号共用），失败或未配置时回退本地 LoginConfig。
      */
     private boolean validateGroupCaptcha(String code) {
         if (StrUtil.isBlank(code)) {
@@ -165,7 +176,15 @@ public class UsernamePasswordCaptchaAuthStrategy extends AbstractAuthStrategy {
         try {
             com.mdframe.forge.starter.config.config.LoginConfig loginConfig =
                     configManagerService.getLoginConfig();
-            if (loginConfig == null || StrUtil.isBlank(loginConfig.getGroupCaptchaCode())) {
+            if (loginConfig == null) {
+                log.warn("登录配置为空，拒绝群验证码登录");
+                return false;
+            }
+            Boolean remote = verifyRemoteCommunityCaptcha(code, loginConfig.getGroupQrcodeBoardUrl());
+            if (remote != null) {
+                return remote;
+            }
+            if (StrUtil.isBlank(loginConfig.getGroupCaptchaCode())) {
                 log.warn("群验证码未配置或为空，拒绝登录");
                 return false;
             }
@@ -174,6 +193,65 @@ public class UsernamePasswordCaptchaAuthStrategy extends AbstractAuthStrategy {
             log.error("校验群验证码失败: {}", e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * 调用官网 /api/community/login-captcha/verify；无法推导或请求异常时返回 null（回退本地码）。
+     */
+    private Boolean verifyRemoteCommunityCaptcha(String code, String boardUrl) {
+        String verifyUrl = resolveCaptchaVerifyUrl(boardUrl);
+        if (StrUtil.isBlank(verifyUrl)) {
+            return null;
+        }
+        try {
+            SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+            factory.setConnectTimeout(2000);
+            factory.setReadTimeout(3000);
+            RestClient client = RestClient.builder().requestFactory(factory).build();
+            String body = client.post()
+                    .uri(URI.create(verifyUrl))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("code", code.trim()))
+                    .retrieve()
+                    .body(String.class);
+            if (StrUtil.isBlank(body)) {
+                return null;
+            }
+            JsonNode root = objectMapper.readTree(body);
+            JsonNode data = root.has("data") ? root.get("data") : root;
+            if (data == null || data.isNull()) {
+                return null;
+            }
+            if (data.has("configured") && !data.get("configured").asBoolean(true)) {
+                return null;
+            }
+            if (data.has("valid")) {
+                return data.get("valid").asBoolean(false);
+            }
+            return null;
+        } catch (Exception ex) {
+            log.warn("官网社区验证码校验失败，回退本地固定码: {}", ex.toString());
+            return null;
+        }
+    }
+
+    private String resolveCaptchaVerifyUrl(String boardUrl) {
+        if (StrUtil.isBlank(boardUrl)) {
+            return null;
+        }
+        String value = boardUrl.trim();
+        int apiIdx = value.indexOf("/api/community/wechat-groups");
+        if (apiIdx >= 0) {
+            return value.substring(0, apiIdx) + "/api/community/login-captcha/verify";
+        }
+        if (value.endsWith("/")) {
+            value = value.substring(0, value.length() - 1);
+        }
+        int slash = value.lastIndexOf('/');
+        if (slash > 0 && value.substring(slash + 1).contains("wechat-groups")) {
+            return value.substring(0, slash) + "/login-captcha/verify";
+        }
+        return null;
     }
 
     @Override

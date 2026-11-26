@@ -66,8 +66,11 @@ export function applyLoginPagePart1() {
   // 群二维码引流验证码：独立于验证码总开关生效；优先官网看板开放群，再回退本地配置
   const groupQrcodeEnabled = computed(() => loginConfig.value?.groupQrcodeEnabled === true)
   const activeCaptchaTab = ref('default') // 'default' 或 'group'
-  const groupQrcodeBoard = ref({ openGroup: null, historyGroups: [] })
+  const groupQrcodeBoard = ref({ openGroup: null, historyGroups: [], officialAccount: null })
   const groupQrcodeBoardLoading = ref(false)
+  const qrcodePreviewImage = ref('')
+  const qrcodePreviewTitle = ref('')
+  const qrcodePreviewHint = ref('')
 
   function resolveLocalGroupQrcodeImage(raw) {
     const value = String(raw || '').trim()
@@ -112,13 +115,24 @@ export function applyLoginPagePart1() {
     return Number.isFinite(Number(count)) ? Number(count) : null
   })
   const groupQrcodeHistory = computed(() => groupQrcodeBoard.value?.historyGroups || [])
+  const officialAccount = computed(() => groupQrcodeBoard.value?.officialAccount || null)
+  const oaQrcodeImage = computed(() => resolveBoardQrcodeImage(officialAccount.value?.qrcodeUrl))
+  const oaQrcodeName = computed(() => officialAccount.value?.name || '公众号')
+  const oaQrcodeHint = computed(() => {
+    const hint = officialAccount.value?.hint
+    if (hint)
+      return hint
+    const keyword = officialAccount.value?.keyword || '验证码'
+    return `关注后回复「${keyword}」，获取登录验证码`
+  })
+  const hasOfficialAccount = computed(() => !!oaQrcodeImage.value)
   // 群二维码浮层交互：点“获取验证码”展开浮动二维码，点二维码可放大
   const qrcodePopoverVisible = ref(false)
   const qrcodePreviewVisible = ref(false)
 
   async function loadGroupQrcodeBoard() {
     if (!groupQrcodeEnabled.value) {
-      groupQrcodeBoard.value = { openGroup: null, historyGroups: [] }
+      groupQrcodeBoard.value = { openGroup: null, historyGroups: [], officialAccount: null }
       return
     }
     groupQrcodeBoardLoading.value = true
@@ -128,15 +142,16 @@ export function applyLoginPagePart1() {
         groupQrcodeBoard.value = {
           openGroup: res.data.openGroup || null,
           historyGroups: Array.isArray(res.data.historyGroups) ? res.data.historyGroups : [],
+          officialAccount: res.data.officialAccount || null,
         }
       }
       else {
-        groupQrcodeBoard.value = { openGroup: null, historyGroups: [] }
+        groupQrcodeBoard.value = { openGroup: null, historyGroups: [], officialAccount: null }
       }
     }
     catch (error) {
       console.warn('加载交流群看板失败，回退本地配置:', error)
-      groupQrcodeBoard.value = { openGroup: null, historyGroups: [] }
+      groupQrcodeBoard.value = { openGroup: null, historyGroups: [], officialAccount: null }
     }
     finally {
       groupQrcodeBoardLoading.value = false
@@ -145,6 +160,15 @@ export function applyLoginPagePart1() {
 
   function toggleQrcodePopover() {
     qrcodePopoverVisible.value = !qrcodePopoverVisible.value
+  }
+
+  function openQrcodePreview(image, title, hint) {
+    if (!image)
+      return
+    qrcodePreviewImage.value = image
+    qrcodePreviewTitle.value = title || ''
+    qrcodePreviewHint.value = hint || ''
+    qrcodePreviewVisible.value = true
   }
   const resetPasswordChannels = computed(() => loginConfig.value?.resetPasswordChannels || [])
   const canResetPassword = computed(() => resetPasswordChannels.value.includes('sms') || resetPasswordChannels.value.includes('email'))
@@ -1014,12 +1038,13 @@ export function applyLoginPagePart1() {
     confirmWorkspace, getSelectedTenantFromStorage, getSocialTenantMap, handleBrandLogoError, handleLogin, handleLoginFailure, handleSocialLogin, handleSocialLoginMessage,
     loadAndSetMenuData, loadCaptchaByType, loadLoginConfig, loadSlideImages, loadSocialPlatforms, normalizeTenantId, onLoginClick, onLoginSuccess,
     onSlideFail, onSlideRefresh, onSlideSuccess, openResetForm, openSliderModal, refreshCaptcha, refreshLoginContext, rememberSocialTenant,
-    sendResetCode, sendSmsCode, setSocialTenantMap, startResetCountdown, startSmsCountdown, submitResetPassword, syncSelectedTenantToStorage, toggleQrcodePopover,
+    sendResetCode, sendSmsCode, setSocialTenantMap, startResetCountdown, startSmsCountdown, submitResetPassword, syncSelectedTenantToStorage, toggleQrcodePopover, openQrcodePreview,
     authStore, userStore, appStore, router, route, userClient, LOGIN_TENANT_STORAGE_KEY, SOCIAL_TENANT_MAP_KEY,
     LOGIN_TENANT_SELECTION_REQUIRED, tenantOptions, selectedTenantId, showWorkspaceModal, lastUsedTenantId, skipTenantContextRefresh, tenantConfigApplying, brandLogoUrl,
     loginConfig, selectedTenantOption, tenantSelectOptions, showTenantSelect, brandSystemName, loginSubtitle, copyrightInfo, loginInfo,
     captchaImage, captchaExpires, captchaType, captchaEnabled, groupQrcodeEnabled, activeCaptchaTab, groupQrcodeImage, groupQrcodeName,
-    groupQrcodeHint, groupQrcodeMemberCount, groupQrcodeHistory, groupQrcodeBoardLoading, qrcodePopoverVisible, qrcodePreviewVisible, resetPasswordChannels, canResetPassword, showResetForm, resetSending, resetSubmitting,
+    groupQrcodeHint, groupQrcodeMemberCount, groupQrcodeHistory, groupQrcodeBoardLoading, hasOfficialAccount, oaQrcodeImage, oaQrcodeName, oaQrcodeHint,
+    qrcodePopoverVisible, qrcodePreviewVisible, qrcodePreviewImage, qrcodePreviewTitle, qrcodePreviewHint, resetPasswordChannels, canResetPassword, showResetForm, resetSending, resetSubmitting,
     resetCountdown, resetTimer, resetForm, resetSubtitle, resetAccountLabel, resetAccountPlaceholder, resetAccountValid, slideVerifyRef,
     slideImages, sliderSuccess, sliderFail, showSliderModal, smsCountdown, smsTimer, localLoginInfo, isRemember,
     loading, socialPlatforms, socialLoading, giteeCommunity, nonGiteePlatforms, displaySocialPlatforms, isValidPhone,

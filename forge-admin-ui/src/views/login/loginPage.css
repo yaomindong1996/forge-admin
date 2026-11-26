@@ -545,7 +545,7 @@ button:focus-visible,
 .qrcode-popover {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 10px;
   padding: 14px;
   border-radius: 12px;
@@ -555,6 +555,47 @@ button:focus-visible,
   -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12),
     0 4px 10px rgba(15, 23, 42, 0.06);
+}
+
+.qrcode-channels {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.qrcode-popover.is-dual .qrcode-channels {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.qrcode-channel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.qrcode-channel-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  color: #0369a1;
+  background: #e0f2fe;
+  vertical-align: middle;
+}
+
+.qrcode-channel-badge.is-group {
+  color: #166534;
+  background: #dcfce7;
 }
 
 /* 浮层展开/收起过渡 */

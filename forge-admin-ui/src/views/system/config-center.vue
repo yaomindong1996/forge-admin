@@ -188,7 +188,7 @@
                       官网交流群看板地址
                     </div>
                     <div class="config-help">
-                      填 website 公开接口（须含生产网关前缀）。示例：https://你的域名/forge-official-api/api/community/wechat-groups。配置后登录页优先展示官网「当前开放群」与历史满员群；拉取失败再回退下方本地二维码。
+                      填 website 公开接口（须含生产网关前缀）。示例：https://你的域名/forge-official-api/api/community/wechat-groups。配置后登录页优先展示官网公众号/开放群；拉取失败再回退下方本地二维码。固定验证码与公众号二维码在 Website「微信交流群」页配置。
                     </div>
                   </div>
                   <n-input
@@ -255,15 +255,18 @@
                 <div v-if="configForms.login.groupQrcodeEnabled" class="config-item">
                   <div class="config-label">
                     <i class="i-material-symbols:password-outline" />
-                    群验证码
+                    群验证码（本地回退）
                   </div>
                   <n-input
                     v-model:value="configForms.login.groupCaptchaCode"
                     type="password"
                     show-password-on="click"
-                    placeholder="固定码，管理员定期更新"
+                    placeholder="官网看板可达时以 Website「固定验证码」为准"
                     class="config-input"
                   />
+                  <div class="config-help" style="margin-top: 6px;">
+                    已配置官网看板地址时，优先校验 Website 后台「微信交流群 → 社区登录验证码」；仅官网不可达时才用此处本地码。
+                  </div>
                 </div>
                 <div v-if="configForms.login.groupQrcodeEnabled" class="config-item full-width">
                   <div class="config-label">

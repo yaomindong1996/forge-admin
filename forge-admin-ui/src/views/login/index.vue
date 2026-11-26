@@ -214,7 +214,7 @@
                     class="qrcode-trigger-btn"
                     :class="{ active: qrcodePopoverVisible }"
                     :aria-expanded="qrcodePopoverVisible"
-                    title="点击展示群二维码"
+                    title="点击展示公众号/群二维码"
                     @click="toggleQrcodePopover"
                   >
                     <i class="i-material-symbols:qr-code-2-outline" />
@@ -222,47 +222,79 @@
                   </button>
                 </div>
                 <Transition name="qrcode-pop">
-                  <div v-if="qrcodePopoverVisible" class="qrcode-popover">
-                    <div
-                      class="qrcode-container"
-                      :class="{ zoomable: !!groupQrcodeImage }"
-                      :role="groupQrcodeImage ? 'button' : undefined"
-                      :tabindex="groupQrcodeImage ? 0 : undefined"
-                      title="点击放大二维码"
-                      @click="groupQrcodeImage && (qrcodePreviewVisible = true)"
-                      @keydown.enter="groupQrcodeImage && (qrcodePreviewVisible = true)"
-                    >
-                      <img
-                        v-if="groupQrcodeImage"
-                        :src="groupQrcodeImage"
-                        :alt="groupQrcodeName"
-                        class="qrcode-image"
-                      >
-                      <div v-else class="qrcode-placeholder">
-                        <i class="ai-icon:image" />
-                        <span>群二维码未配置</span>
+                  <div v-if="qrcodePopoverVisible" class="qrcode-popover" :class="{ 'is-dual': hasOfficialAccount }">
+                    <div class="qrcode-channels">
+                      <div v-if="hasOfficialAccount" class="qrcode-channel">
+                        <div
+                          class="qrcode-container"
+                          :class="{ zoomable: !!oaQrcodeImage }"
+                          role="button"
+                          tabindex="0"
+                          title="点击放大二维码"
+                          @click="openQrcodePreview(oaQrcodeImage, oaQrcodeName, oaQrcodeHint)"
+                          @keydown.enter="openQrcodePreview(oaQrcodeImage, oaQrcodeName, oaQrcodeHint)"
+                        >
+                          <img
+                            :src="oaQrcodeImage"
+                            :alt="oaQrcodeName"
+                            class="qrcode-image"
+                          >
+                          <i class="qrcode-zoom-hint ai-icon:zoom-in" />
+                        </div>
+                        <div class="qrcode-info">
+                          <h4 class="qrcode-title">
+                            {{ oaQrcodeName }}
+                            <span class="qrcode-channel-badge">公众号</span>
+                          </h4>
+                          <p class="qrcode-hint">
+                            {{ oaQrcodeHint }}
+                          </p>
+                        </div>
                       </div>
-                      <i v-if="groupQrcodeImage" class="qrcode-zoom-hint ai-icon:zoom-in" />
+                      <div class="qrcode-channel">
+                        <div
+                          class="qrcode-container"
+                          :class="{ zoomable: !!groupQrcodeImage }"
+                          :role="groupQrcodeImage ? 'button' : undefined"
+                          :tabindex="groupQrcodeImage ? 0 : undefined"
+                          title="点击放大二维码"
+                          @click="openQrcodePreview(groupQrcodeImage, groupQrcodeName, groupQrcodeHint)"
+                          @keydown.enter="openQrcodePreview(groupQrcodeImage, groupQrcodeName, groupQrcodeHint)"
+                        >
+                          <img
+                            v-if="groupQrcodeImage"
+                            :src="groupQrcodeImage"
+                            :alt="groupQrcodeName"
+                            class="qrcode-image"
+                          >
+                          <div v-else class="qrcode-placeholder">
+                            <i class="ai-icon:image" />
+                            <span>群二维码未配置</span>
+                          </div>
+                          <i v-if="groupQrcodeImage" class="qrcode-zoom-hint ai-icon:zoom-in" />
+                        </div>
+                        <div class="qrcode-info">
+                          <h4 class="qrcode-title">
+                            {{ groupQrcodeName }}
+                            <span v-if="hasOfficialAccount" class="qrcode-channel-badge is-group">交流群</span>
+                            <span v-if="groupQrcodeMemberCount != null" class="qrcode-count">约 {{ groupQrcodeMemberCount }} 人</span>
+                          </h4>
+                          <p class="qrcode-hint">
+                            {{ groupQrcodeHint }}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div class="qrcode-info">
-                      <h4 class="qrcode-title">
-                        {{ groupQrcodeName }}
-                        <span v-if="groupQrcodeMemberCount != null" class="qrcode-count">约 {{ groupQrcodeMemberCount }} 人</span>
-                      </h4>
-                      <p class="qrcode-hint">
-                        {{ groupQrcodeHint }}
-                      </p>
-                      <p v-if="groupQrcodeBoardLoading" class="qrcode-history-tip">
-                        正在同步官网开放群…
-                      </p>
-                      <ul v-if="groupQrcodeHistory.length" class="qrcode-history">
-                        <li v-for="item in groupQrcodeHistory" :key="item.id || item.groupName">
-                          <span class="qrcode-history-badge">已满</span>
-                          <strong>{{ item.groupName }}</strong>
-                          <em v-if="item.memberCount != null">约 {{ item.memberCount }} 人</em>
-                        </li>
-                      </ul>
-                    </div>
+                    <p v-if="groupQrcodeBoardLoading" class="qrcode-history-tip">
+                      正在同步官网开放群…
+                    </p>
+                    <ul v-if="groupQrcodeHistory.length" class="qrcode-history">
+                      <li v-for="item in groupQrcodeHistory" :key="item.id || item.groupName">
+                        <span class="qrcode-history-badge">已满</span>
+                        <strong>{{ item.groupName }}</strong>
+                        <em v-if="item.memberCount != null">约 {{ item.memberCount }} 人</em>
+                      </li>
+                    </ul>
                   </div>
                 </Transition>
               </div>
@@ -474,13 +506,13 @@
       </div>
     </div>
 
-    <!-- 群二维码放大预览浮层 -->
+    <!-- 群/公众号二维码放大预览浮层 -->
     <Transition name="modal">
       <div
         v-if="qrcodePreviewVisible"
         class="slider-modal-overlay qrcode-preview-overlay"
         role="dialog"
-        aria-label="群二维码放大预览"
+        aria-label="二维码放大预览"
         @click.self="qrcodePreviewVisible = false"
       >
         <div class="qrcode-preview-modal">
@@ -488,10 +520,10 @@
             <i class="ai-icon:x" />
           </button>
           <div class="qrcode-preview-header">
-            <h3>{{ groupQrcodeName }}</h3>
-            <p>{{ groupQrcodeHint }}</p>
+            <h3>{{ qrcodePreviewTitle || groupQrcodeName }}</h3>
+            <p>{{ qrcodePreviewHint || groupQrcodeHint }}</p>
           </div>
-          <img :src="groupQrcodeImage" :alt="groupQrcodeName" class="qrcode-preview-image" @click.stop>
+          <img :src="qrcodePreviewImage || groupQrcodeImage" :alt="qrcodePreviewTitle || groupQrcodeName" class="qrcode-preview-image" @click.stop>
         </div>
       </div>
     </Transition>
