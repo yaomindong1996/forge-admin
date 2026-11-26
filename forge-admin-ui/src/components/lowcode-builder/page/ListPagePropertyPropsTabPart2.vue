@@ -520,7 +520,7 @@
                                   </button>
                                 </template>
                                 <div class="bitable-field-info-content">
-                                  行按钮会显示在表格操作列；隐藏后仍保留配置，可随时重新显示。
+                                  编辑/查看详情/删除为内置行按钮，可改名或删除（隐藏）；自定义按钮同样显示在操作列，隐藏后仍可恢复。
                                 </div>
                               </n-popover>
                             </div>
@@ -531,6 +531,41 @@
                           </div>
                         </div>
                         <div v-if="customActionsEditable" class="bitable-operation-list">
+                          <div
+                            v-for="element in builtinRowActionList"
+                            :key="element.clientKey || element.key"
+                            class="bitable-field-row bitable-action-row"
+                            :class="{ invisible: element.visible === false }"
+                          >
+                            <span class="bitable-field-drag disabled" title="内置操作">
+                              <n-icon>
+                                <BitableDragIcon />
+                              </n-icon>
+                            </span>
+                            <n-icon class="bitable-field-icon">
+                              <BitableButtonIcon />
+                            </n-icon>
+                            <div class="bitable-field-name">
+                              <span>{{ element.label || element.key }}</span>
+                              <small>{{ resolveActionBehaviorLabel(element) }}</small>
+                            </div>
+                            <button type="button" class="bitable-field-icon-button" :title="element.visible === false ? '显示按钮' : '隐藏按钮'" @click="toggleCustomActionVisible(element)">
+                              <n-icon>
+                                <component :is="element.visible === false ? 'BitableInvisibleIcon' : 'BitableVisibleIcon'" />
+                              </n-icon>
+                            </button>
+                            <n-dropdown
+                              trigger="click"
+                              :options="customActionMoreOptions(element)"
+                              @select="key => handleCustomActionMoreSelect(key, element)"
+                            >
+                              <button type="button" class="bitable-field-icon-button" title="配置按钮">
+                                <n-icon>
+                                  <BitableAdminIcon />
+                                </n-icon>
+                              </button>
+                            </n-dropdown>
+                          </div>
                           <draggable
                             :model-value="rowCustomActions"
                             item-key="clientKey"
@@ -571,7 +606,6 @@
                               </div>
                             </template>
                           </draggable>
-                          <span v-if="!rowCustomActions.length" class="custom-action-empty">暂无行自定义按钮</span>
                         </div>
                       </div>
                     </n-form-item>

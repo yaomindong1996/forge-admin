@@ -65,13 +65,13 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
   const {
     __impl, mut, addActivePageParam, addDesignerPage, buildCurrentViewSchema, buildDesignerActionsForSave, buildDesignerCrudHookHandlers, buildDesignerRuntimeCrudProps,
     clearActivePageLayout, clearEmbeddedTreeForLeftTreeLayout, clearTreeAddChildOnListBlocks, createCleanTemplateGridLayout, createUniquePageKey, duplicateActivePage, filterDesignerGridBlocks, handleGridLayoutUpdate,
-    handleGridModelSchemaUpdate, handleListCustomActionsUpdate, handleListMoreSelect, handlePageActionSelect, isChildRowDesignerAction, isProtectedPage, mergeUnmanagedChildRowActions, normalizeDesignerActionsForList,
+    handleGridModelSchemaUpdate, handleListCustomActionsUpdate, handleBuiltinRowActionsUpdate, handleListMoreSelect, handlePageActionSelect, isChildRowDesignerAction, isProtectedPage, mergeUnmanagedChildRowActions, normalizeDesignerActionsForList,
     normalizeDesignerPageType, normalizePageKey, normalizePageParamName, openPrintPreview, pageTypeText, patchActivePage, patchPageWatermark, removeActivePage, removeActivePageParam,
     renderMenuIcon, resetActivePageLayout, resetListSchema, resetZoneFields, resolveDesignerFormOpenMode, resolveDesignerModalType, resolveTemplateSelectValue, rewriteBlocksPageEventTargets,
     rewriteGridLayoutPageEventTargets, rewritePageEventTargets, saveLayout, switchActivePage, syncSchemaCustomActions, updateActivePageKey, updateActivePageParam, updateListTemplate,
     updateTreeLayoutEnabled, message, saving, undoStack, redoStack, listGridDesignerRef, activePageKey, pageSettingsExpanded,
     HISTORY_LIMIT, VALID_PAGE_TYPES, baseModelSchema, localSchema, pendingModelSchema, workingModelSchema, effectiveModelSchema, designFields,
-    layoutModeLabel, canUndo, canRedo, listPreviewVisible, listPreviewLayout, listPreviewLayoutKey, templateSelectValue, listCustomActions, pageTypeOptions, listTemplateOptions,
+    layoutModeLabel, canUndo, canRedo, listPreviewVisible, listPreviewLayout, listPreviewLayoutKey, listPreviewRuntimeCrudProps, previewRuntimeCrudProps, templateSelectValue, listCustomActions, pageTypeOptions, listTemplateOptions,
     activeTemplateLabel, listMoreOptions, pageActionOptions, designerPages, actionPageOptions, activeDesignerPage, currentPageGridLayout, previewGridLayout, designerGridLayout,
     designerPreviewGridLayout, listDesignerPage, listPreviewPageName, pageWatermark, pageWatermarkContent,
     listPreviewWatermark, listPreviewWatermarkContent, visibleListCustomActions, designerRuntimeCrudProps,
@@ -882,31 +882,151 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
     return Array.isArray(persisted?.items) ? JSON.parse(JSON.stringify(persisted)) : { items: [] }
   }
 
+  function findCrudBlockInLayout(layout = null) {
+    const walk = (items = []) => {
+      for (const item of items || []) {
+        if (['AiCrudPage', 'data-table', 'AiTable'].includes(item?.blockType))
+          return item
+        const nested = [
+          ...(Array.isArray(item?.children) ? item.children : []),
+          ...((item?.props?.tabs || []).flatMap(tab => tab?.children || [])),
+          ...((item?.props?.cells || []).flatMap(cell => cell?.children || [])),
+        ]
+        const hit = walk(nested)
+        if (hit)
+          return hit
+      }
+      return null
+    }
+    return walk(layout?.items || [])
+  }
+
+  function collectPreviewCustomActions(layout = null) {
+    const fromParent = Array.isArray(visibleListCustomActions.value) ? visibleListCustomActions.value : []
+    const crud = findCrudBlockInLayout(layout)
+    const fromBlock = Array.isArray(crud?.props?.customActions) ? crud.props.customActions : []
+    const fromStore = findCrudBlockInLayout(useListDesignerStore().layout)
+    const storeCustoms = Array.isArray(fromStore?.props?.customActions) ? fromStore.props.customActions : []
+    return normalizeListCustomActions(fromParent.length ? fromParent : (fromBlock.length ? fromBlock : storeCustoms))
+  }
+
+  /** 把设计器 store 上的操作配置盖回预览 layout，避免快照/schema 回写时序丢配置 */
+  function hydrateLayoutActionProps(layout = null) {
+    if (!layout || !Array.isArray(layout.items))
+      return layout
+    const designerStore = useListDesignerStore()
+    const storeCrud = findCrudBlockInLayout(designerStore.layout)
+    const override = storeCrud?.id
+      ? designerStore.getBlockRowActionOverride?.(storeCrud.id)
+      : null
+    const builtins = (Array.isArray(override?.builtinRowActions) && override.builtinRowActions.length)
+      ? override.builtinRowActions
+      : (Array.isArray(storeCrud?.props?.builtinRowActions) ? storeCrud.props.builtinRowActions : null)
+    const customs = (Array.isArray(override?.customActions) && override.customActions.length)
+      ? override.customActions
+      : (Array.isArray(storeCrud?.props?.customActions) ? storeCrud.props.customActions : null)
+    if (!builtins && !customs)
+      return layout
+    const patchItems = (items = []) => items.map((item) => {
+      if (['AiCrudPage', 'data-table', 'AiTable'].includes(item?.blockType)
+        && (!storeCrud?.id || item.id === storeCrud.id)) {
+        return {
+          ...item,
+          props: {
+            ...(item.props || {}),
+            ...(builtins ? { builtinRowActions: JSON.parse(JSON.stringify(builtins)) } : {}),
+            ...(customs ? { customActions: JSON.parse(JSON.stringify(customs)) } : {}),
+          },
+        }
+      }
+      const next = { ...item }
+      if (Array.isArray(item?.children) && item.children.length)
+        next.children = patchItems(item.children)
+      if (Array.isArray(item?.props?.tabs) && item.props.tabs.length) {
+        next.props = {
+          ...(next.props || {}),
+          tabs: item.props.tabs.map(tab => ({
+            ...tab,
+            children: patchItems(tab.children || []),
+          })),
+        }
+      }
+      if (Array.isArray(item?.props?.cells) && item.props.cells.length) {
+        next.props = {
+          ...(next.props || {}),
+          cells: item.props.cells.map(cell => ({
+            ...cell,
+            children: patchItems(cell.children || []),
+          })),
+        }
+      }
+      return next
+    })
+    return {
+      ...layout,
+      items: patchItems(layout.items),
+    }
+  }
+
+  function buildPreviewSchemaFromLayout(layout = null) {
+    const synced = syncGridLayoutWithModel(
+      layout,
+      effectiveModelSchema.value,
+      { layoutType: localSchema.value.layoutType },
+    )
+    return {
+      ...localSchema.value,
+      listGridLayout: synced,
+      pages: updateDesignerPageGrid(localSchema.value.pages || [], 'list', synced),
+      zones: applyGridLayoutToZones(localSchema.value.zones || [], synced, effectiveModelSchema.value),
+    }
+  }
+
   async function openLocalPreview() {
     // 先把画布未发出的 layout 刷回 localSchema，再落盘，最后开预览
     const designer = listGridDesignerRef.value
     const designerStore = useListDesignerStore()
     designer?.flushDeferredLayoutEmit?.()
-    if (props.objectId) {
-      try {
-        await saveLayout()
-      }
-      catch {
-        return
+    // 打开预览前：把当前选中 CRUD 块上的操作配置灌进权威缓存（用户可能只改了面板尚未再次触发 persist）
+    const designerStoreForSeed = useListDesignerStore()
+    const selectedCrud = designerStoreForSeed.selectedBlock
+    if (selectedCrud && ['AiCrudPage', 'data-table', 'AiTable'].includes(selectedCrud.blockType)) {
+      const seedBuiltins = selectedCrud.props?.builtinRowActions
+      const seedCustoms = selectedCrud.props?.customActions
+      if (Array.isArray(seedBuiltins) || Array.isArray(seedCustoms)) {
+        designerStoreForSeed.setBlockRowActionOverride(selectedCrud.id, {
+          ...(Array.isArray(seedBuiltins) ? { builtinRowActions: seedBuiltins } : {}),
+          ...(Array.isArray(seedCustoms) ? { customActions: seedCustoms } : {}),
+        })
       }
     }
     // 仅 pageKey=list 才采信画布 live；pageType=list 但 key 非 list 的异常页视为二级页
     const onListPage = activePageKey.value === 'list'
       || activeDesignerPage.value?.pageKey === 'list'
-    const snapshot = onListPage && typeof designer?.captureLayoutSnapshot === 'function'
+    // 先采快照：保存可能走异步校验，避免属性面板刚改的 builtinRowActions/customActions 丢失
+    const earlySnapshot = onListPage && typeof designer?.captureLayoutSnapshot === 'function'
       ? designer.captureLayoutSnapshot()
       : null
+    if (earlySnapshot?.items?.length)
+      handleGridLayoutUpdate(earlySnapshot)
+    // 预览不强制落盘：保存失败/校验拦截时仍要用画布最新操作配置预览
+    if (props.objectId) {
+      try {
+        await saveLayout({ quiet: true })
+      }
+      catch {
+        // ignore — 继续用快照预览
+      }
+    }
+    const snapshot = onListPage && typeof designer?.captureLayoutSnapshot === 'function'
+      ? designer.captureLayoutSnapshot()
+      : earlySnapshot
     const storeLayout = onListPage ? designerStore.layout : null
     const exposedLayout = onListPage ? designer?.localLayout : null
     // 多页面时预览必须锁定「列表页」布局；禁止用页面2/弹窗页画布（否则会串出 action-button 等）
     const persisted = resolveListPagePreviewLayout()
     const liveLayout = onListPage
-      ? (pickLivePreviewLayout(snapshot, storeLayout, exposedLayout)
+      ? (pickLivePreviewLayout(snapshot, earlySnapshot, storeLayout, exposedLayout)
         || (Array.isArray(persisted?.items) && persisted.items.length ? persisted : null))
       : null
     const source = (Array.isArray(liveLayout?.items) && liveLayout.items.length)
@@ -918,7 +1038,17 @@ export function applyBusinessListDesignerPart2(props, emit, expose, deps = {}) {
       effectiveModelSchema.value,
       { layoutType: localSchema.value.layoutType },
     )
-    listPreviewLayout.value = normalizeListPreviewLayout(filterDesignerGridBlocks(syncedSource))
+    const actionHydrated = hydrateLayoutActionProps(syncedSource)
+    if (actionHydrated?.items?.length)
+      handleGridLayoutUpdate(actionHydrated)
+    const previewSchema = buildPreviewSchemaFromLayout(actionHydrated)
+    // 现场合成预览 props，绑定到 modal，彻底摆脱 localSchema/v-model 回写时序
+    listPreviewRuntimeCrudProps.value = buildDesignerRuntimeCrudProps(
+      previewSchema,
+      designFields.value,
+      collectPreviewCustomActions(actionHydrated),
+    )
+    listPreviewLayout.value = normalizeListPreviewLayout(filterDesignerGridBlocks(actionHydrated))
     listPreviewLayoutKey.value += 1
     listPreviewVisible.value = true
   }

@@ -126,6 +126,16 @@ export const aiCrudPageProps = {
   },
 
   /**
+   * 设计器保存的内置行操作覆盖（改名/隐藏）。
+   * AiCrudPage 在渲染前会按此裁剪操作列，避免上游漏 compose 时回落默认编辑/删除。
+   * @type {Array<object>}
+   */
+  builtinRowActions: {
+    type: Array,
+    default: null,
+  },
+
+  /**
    * 行键字段名
    * @type {string | Function}
    */

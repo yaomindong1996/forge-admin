@@ -1891,3 +1891,45 @@ Flyway 脚本为新环境写了包含完整字段的 `CREATE TABLE IF NOT EXISTS
 1. 前端 `autoFieldRegistry` 按 `normalizeFieldCode` 做等价查找；新建字段写入驼峰码，并把组件绑定回写为目录规范码。
 2. `buildBusinessObjectDesignerPayloadFromFormAsset` / 表单设计器草稿用 `alignFormDesignerBindingsToFields` 就地对齐绑定。
 3. 后端 `normalizeFields` 对归一化后重复做跳过（保留首次），兜底历史脏 payload，不再因双胞胎阻断进设计器。
+
+## 列表设计器草稿预览（draft=1）仍显示已发布操作栏
+
+**发现日期**：2026-11-26
+
+**问题描述**:
+列表设计器改名/隐藏内置操作、加自定义操作后点保存，`draft=1` 预览仍是旧的「编辑|查看详情|删除」。DB `page_schema` 草稿已正确，但预览路径没吃到草稿。
+
+**根因**:
+1. 后端草稿编译查流程草稿时，MySQL `CAST(id AS CHAR)` 把数字 id 转成带空格的定长串，与 `process_key`（varchar）比较触发 `Illegal mix of collations ... for operation '='`，`compileRuntimeConfig(..., forceDraftCompile=true)` 整段失败。
+2. 前端 `PortalPageRenderer` 在 designPreview 下捕获 500 后**静默回退已发布** `/api/.../runtime-config`，把失败掩盖成「草稿没生效」。
+
+**解决方案**:
+1. `BusinessProcessMapper.xml` 用 `CONCAT(id, '')`（或等价 varchar 归一）替代 `CAST(id AS CHAR)`。
+2. `BusinessApplicationRuntimeConfigOverlayService` 对草稿/流程叠加 try/catch，单条失败不拖垮整页 compile。
+3. `PortalPageRenderer`：designPreview 下禁止回退 published；仅非预览才允许降级。
+4. `AiCrudConfigService` / 列表运行时组合：designPreview 或 `draft=1` 时强制走草稿 compile。
+
+## 列表操作「改名」用 window.prompt 弹窗怪异且保存点不动
+
+**发现日期**：2026-11-26
+
+**问题描述**:
+属性面板点「改名」弹出系统原生 prompt，样式错位；有时改完保存按钮仍像不可点。
+
+**解决方案**:
+1. `useListPageGridDesigner.part5.js` 改用 Naive `dialog.create` + 受控输入，确认后写回 `action.label` 并标脏。
+2. 应用运行时页保存按钮不要用 `:disabled="!dirty"` 卡死；允许重复保存（dirty 仅作视觉提示）。
+3. 操作菜单项补 `renderIcon`（编辑/隐藏/改名/删除等），与设计器其它下拉一致。
+
+## 行操作类型 REFRESH 保存报「操作类型不正确」
+
+**发现日期**：2026-11-26
+
+**问题描述**:
+自定义行操作选「刷新」保存接口 400：操作类型不正确。
+
+**根因**:
+`BusinessObjectActionService` / `BusinessObjectPublishService` 白名单与运行时 `actionType` 映射未包含 `REFRESH`（及小写 `refresh`）。
+
+**解决方案**:
+后端校验与编译映射补 `REFRESH`→运行时 refresh；前端 `ACTION_TYPES` 与 `builtin-row-actions.js` 保持一致。草稿保存与发布路径都要放行。

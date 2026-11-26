@@ -467,6 +467,9 @@ async function loadRuntimeCrudProps(configKey, objectRef, key) {
       const message = String(error?.message || error?.msg || '')
       if (message.includes('尚未发布') || message.includes('无业务对象设计') || message.includes('不能预览设计草稿'))
         throw error
+      // 草稿预览（父级 draft=1）禁止静默回落已发布：否则会把已保存未发布的操作列改动盖掉
+      if (props.designPreview)
+        throw error
       designPreview = false
       config = (await crudConfigRender(configKey, false, renderOptions)).data
     }

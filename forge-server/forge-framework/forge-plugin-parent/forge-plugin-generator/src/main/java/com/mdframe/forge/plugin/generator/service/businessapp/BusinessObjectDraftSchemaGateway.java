@@ -279,13 +279,42 @@ final class BusinessObjectDraftSchemaGateway {
         target.setTenantStrategy(writeJson(modelSchema.getTenantStrategy(), "tenantStrategy"));
         target.setAuditStrategy(writeJson(modelSchema.getAuditStrategy(), "auditStrategy"));
         target.setLogicDeleteStrategy(writeJson(modelSchema.getLogicDeleteStrategy(), "logicDeleteStrategy"));
-        target.setOptions(mergeFormDesignerSchemaIntoRuntimeOptions(target.getOptions(), pageSchema));
+        // 同步重编译 columnsSchema/options：否则草稿预览若走存量字段会回落默认「编辑/删除」，自定义行按钮也不见
+        syncCompiledRuntimeSchemas(target, pageSchema);
         if (target.getId() == null) {
             crudConfigService.save(target);
         } else {
             crudConfigService.updateById(target);
         }
         return target;
+    }
+
+    private void syncCompiledRuntimeSchemas(AiCrudConfig target, LowcodePageSchema pageSchema) {
+        if (target == null) {
+            return;
+        }
+        if (StringUtils.isBlank(target.getModelSchema()) || StringUtils.isBlank(target.getPageSchema())) {
+            target.setOptions(mergeFormDesignerSchemaIntoRuntimeOptions(target.getOptions(), pageSchema));
+            return;
+        }
+        try {
+            AiCrudConfig compiled = crudConfigService.resolveDraftRuntimeConfig(target);
+            if (compiled != null) {
+                target.setSearchSchema(compiled.getSearchSchema());
+                target.setColumnsSchema(compiled.getColumnsSchema());
+                target.setEditSchema(compiled.getEditSchema());
+                target.setApiConfig(compiled.getApiConfig());
+                target.setDictConfig(compiled.getDictConfig());
+                target.setDesensitizeConfig(compiled.getDesensitizeConfig());
+                target.setEncryptConfig(compiled.getEncryptConfig());
+                target.setTransConfig(compiled.getTransConfig());
+                target.setOptions(mergeFormDesignerSchemaIntoRuntimeOptions(compiled.getOptions(), pageSchema));
+                return;
+            }
+        } catch (Exception ignored) {
+            // 编译失败时仍保存 pageSchema，预览链路会再次尝试 compile
+        }
+        target.setOptions(mergeFormDesignerSchemaIntoRuntimeOptions(target.getOptions(), pageSchema));
     }
 
     private void applyRuntimeDatasourceFromObjectOptions(AiBusinessObject object, LowcodeModelSchema schema) {

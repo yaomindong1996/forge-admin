@@ -72,6 +72,11 @@ import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import AiCrudRowExpand from '../../AiCrudRowExpand.vue'
 import AiForm from '../../AiForm.vue'
+import { composeActionColumns } from '@/components/lowcode-builder/shared/runtime-crud-props'
+import {
+  isBuiltinRowActionKey,
+  resolveVisibleBuiltinRowActions,
+} from '@/components/lowcode-builder/page/builtin-row-actions'
 
 export function applyAiCrudPagePart1(props, emit, deps = {}) {
   const __impl = {}
@@ -639,13 +644,37 @@ export function applyAiCrudPagePart1(props, emit, deps = {}) {
     icon: () => h(NIcon, null, { default: () => h(option.iconComponent) }),
   })))
 
+  /**
+   * 叶节点再 compose 一次：设计器 builtinRowActions / runtimeActions 即使上游漏传操作列，
+   * 也不要回落到硬编码「编辑/查看详情/删除」。
+   */
+  const resolvedColumns = computed(() => {
+    const source = Array.isArray(props.columns) ? props.columns : []
+    const builtins = Array.isArray(props.builtinRowActions)
+      ? props.builtinRowActions
+      : (Array.isArray(props.options?.builtinRowActions) ? props.options.builtinRowActions : [])
+    const rowActions = (Array.isArray(props.runtimeActions) ? props.runtimeActions : [])
+      .filter(action => String(action?.position || 'row').toLowerCase() === 'row')
+    const hasBuiltinOverrides = Array.isArray(builtins) && builtins.length > 0
+    const hasRowActions = rowActions.length > 0
+    if (!hasBuiltinOverrides && !hasRowActions)
+      return source
+    return composeActionColumns(
+      source,
+      builtins,
+      rowActions,
+      { treeRuntime: props.enableTreeAddChild === true },
+    )
+  })
+
   const activeSourceColumns = computed(() => {
+    const columns = resolvedColumns.value
     if (!customQueryFields.value.length) {
-      return props.columns
+      return columns
     }
-    const actionColumns = props.columns.filter(isActionColumnConfig)
+    const actionColumns = columns.filter(isActionColumnConfig)
     const orderedColumns = customQueryFields.value
-      .map(field => props.columns.find(col => getColumnKey(col) === field))
+      .map(field => columns.find(col => getColumnKey(col) === field))
       .filter(Boolean)
     return [...orderedColumns, ...actionColumns]
   })
@@ -810,7 +839,7 @@ export function applyAiCrudPagePart1(props, emit, deps = {}) {
     }
 
     activeSourceColumns.value.forEach((col) => {
-      if (isActionCol(col) && col.actions) {
+      if (isActionCol(col) && Array.isArray(col.actions)) {
         const actionCol = { ...col }
         const actions = normalizeRowActions(col.actions)
         if (shouldDefaultActionFixedRight(actionCol)) {
@@ -819,6 +848,7 @@ export function applyAiCrudPagePart1(props, emit, deps = {}) {
         delete actionCol.actions
         delete actionCol._slot
         delete actionCol.slot
+        // 允许空 actions（设计器隐藏全部内置操作），不要丢掉列再回落默认编辑/删除
         actionCol.render = row => renderActionColumn(row, actions, col.maxActionButtons)
         cols.push(actionCol)
         return
@@ -837,23 +867,37 @@ export function applyAiCrudPagePart1(props, emit, deps = {}) {
       cols.push(resolvedCol)
     })
 
-    // 如果没有操作列且没有隐藏，添加默认操作列
+    // 如果没有操作列且没有隐藏，按 builtinRowActions / runtimeActions 合成；禁止无视设计器隐藏配置
     const hasActionColumn = cols.some(isActionCol)
 
     if (!hasActionColumn) {
-      cols.push({
-        prop: 'action',
-        label: '操作',
-        width: 200,
-        fixed: 'right',
-        render: (row) => {
-          const actions = normalizeRowActions([
-            { label: '编辑', key: 'edit', type: 'primary' },
-            { label: '删除', key: 'delete', type: 'error' },
-          ])
-          return renderActionColumn(row, actions)
-        },
-      })
+      const builtins = resolveVisibleBuiltinRowActions(
+        Array.isArray(props.builtinRowActions)
+          ? props.builtinRowActions
+          : (props.options?.builtinRowActions || []),
+        { treeRuntime: props.enableTreeAddChild === true },
+      )
+      const extras = (Array.isArray(props.runtimeActions) ? props.runtimeActions : [])
+        .filter(action => action && action.visible !== false)
+        .filter(action => String(action.position || 'row').toLowerCase() === 'row')
+        .filter(action => !isBuiltinRowActionKey(action.key))
+      const actions = normalizeRowActions([
+        ...builtins.map(item => ({
+          label: item.label,
+          key: item.key,
+          type: item.type || 'default',
+        })),
+        ...extras,
+      ])
+      if (actions.length) {
+        cols.push({
+          prop: 'actions',
+          label: '操作',
+          width: Math.max(200, actions.length * 58),
+          fixed: 'right',
+          render: row => renderActionColumn(row, actions),
+        })
+      }
     }
 
     return cols

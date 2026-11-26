@@ -257,11 +257,11 @@ async function initialize(payload) {
   background: #f2f3f5;
 }
 
-/* 选中态与属性面板 segment 一致：主题蓝胶囊 + 白字 */
-.create-mode-tabs :deep(.n-tabs-capsule) {
+/* 选中态与属性面板 segment 一致：主题蓝胶囊 + 白字（盖过全局白底主色字） */
+.create-mode-tabs.n-tabs--segment-type :deep(.n-tabs-capsule) {
   border-radius: 6px;
-  background: var(--primary-color, #3370ff);
-  box-shadow: none;
+  background: var(--primary-color, #3370ff) !important;
+  box-shadow: none !important;
 }
 
 .create-mode-tabs :deep(.n-tabs-tab) {
@@ -272,9 +272,10 @@ async function initialize(payload) {
   font-weight: 600;
 }
 
-.create-mode-tabs :deep(.n-tabs-tab--active) {
+.create-mode-tabs.n-tabs--segment-type :deep(.n-tabs-tab.n-tabs-tab--active) {
   --n-tab-text-color-active: #fff;
   color: #fff !important;
+  background: transparent !important;
 }
 
 .create-mode-tabs :deep(.n-tabs-tab:not(.n-tabs-tab--active):hover) {

@@ -158,7 +158,8 @@
     </resultMap>
 
     <select id="selectBySubjectObjectCode" resultMap="ObjectProcessSummaryMap">
-        SELECT CAST(p.id AS varchar(64)) AS id,
+        <!-- 勿 CAST AS varchar(64)：MySQL 非法；CONCAT 在 MySQL/PG 均可把 bigint 转成字符串 -->
+        SELECT CONCAT(p.id, '') AS id,
                p.process_name AS processName,
                p.process_code AS processCode,
                p.status,

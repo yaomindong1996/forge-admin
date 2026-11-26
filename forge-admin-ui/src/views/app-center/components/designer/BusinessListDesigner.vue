@@ -275,6 +275,7 @@
           @update:model-value="handleGridLayoutUpdate"
           @update:model-schema="handleGridModelSchemaUpdate"
           @update:custom-actions="handleListCustomActionsUpdate"
+          @update:builtin-row-actions="handleBuiltinRowActionsUpdate"
         />
       </main>
     </div>
@@ -310,7 +311,7 @@
             :key="`preview-flow-${listPreviewLayoutKey}`"
             :layout="listPreviewRuntimeModel.layout"
             :fields="listPreviewRuntimeModel.fields"
-            :runtime-crud-props="designerRuntimeCrudProps"
+            :runtime-crud-props="previewRuntimeCrudProps"
             :runtime-interactive="false"
             :force-live-preview="false"
             fill-host
@@ -327,7 +328,7 @@
           :pages="designerPages"
           :action-pages="actionPageOptions"
           :form-options="formOptions"
-          :runtime-crud-props="designerRuntimeCrudProps"
+          :runtime-crud-props="previewRuntimeCrudProps"
           :custom-actions="visibleListCustomActions"
           readonly
         />
@@ -340,7 +341,7 @@
           :key="`preview-flow-${listPreviewLayoutKey}`"
           :layout="listPreviewRuntimeModel.layout"
           :fields="listPreviewRuntimeModel.fields"
-          :runtime-crud-props="designerRuntimeCrudProps"
+          :runtime-crud-props="previewRuntimeCrudProps"
           :runtime-interactive="false"
           :force-live-preview="false"
           fill-host
@@ -357,7 +358,7 @@
         :pages="designerPages"
         :action-pages="actionPageOptions"
         :form-options="formOptions"
-        :runtime-crud-props="designerRuntimeCrudProps"
+        :runtime-crud-props="previewRuntimeCrudProps"
         :custom-actions="visibleListCustomActions"
         readonly
       />

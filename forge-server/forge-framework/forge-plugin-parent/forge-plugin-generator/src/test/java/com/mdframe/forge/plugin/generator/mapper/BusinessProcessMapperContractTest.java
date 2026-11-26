@@ -55,7 +55,7 @@ class BusinessProcessMapperContractTest {
                 "select", "selectBySubjectObjectCode");
 
         assertEquals(String.class, BusinessObjectProcessVO.class.getDeclaredField("id").getType());
-        assertTrue(query.contains("CAST(p.id AS varchar(64))"));
+        assertTrue(query.contains("CONCAT(p.id, '')"));
         assertTrue(query.contains("p.tenant_id = #{tenantId}"));
         assertTrue(query.contains("p.subject_object_code = #{objectCode}"));
         assertTrue(query.contains("p.del_flag = 0"));

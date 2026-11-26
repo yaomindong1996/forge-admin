@@ -223,7 +223,8 @@ export function resolveRuntimeListGridModel(pageSchema = null, {
   return {
     layout: {
       ...layout,
-      items: buildRuntimeListFlowBlocks(layout),
+      // 必须透传 forceLivePreview：默认 true 会把设计器预览又改回实时列表，冲掉刚删掉的 previewLiveData
+      items: buildRuntimeListFlowBlocks(layout, { forceLivePreview }),
     },
     fields,
     layoutType: layout.layoutType || layoutType || pageSchema?.layoutType || 'simple-crud',

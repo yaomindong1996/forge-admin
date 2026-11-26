@@ -39,6 +39,13 @@ import FieldValueRenderer from '@/components/lowcode-builder/shared/FieldValueRe
 import { isDataFieldBlockType, resolveListFieldTitle } from '../page-schema'
 import { resolveWidgetLinkAction } from '../free-layout-widget-kit.js'
 import { safeHtml as sanitizeCustomHtmlContent } from '@/components/lowcode-builder/shared/page-widget-schema'
+import { resolveVisibleBuiltinRowActions } from '../builtin-row-actions'
+import { findBlockInTree } from '../blockTree'
+import { useListDesignerStore } from '@/store/modules/designer/listDesigner'
+import {
+  composeActionColumns,
+  mergeConfiguredRuntimeActions,
+} from '@/components/lowcode-builder/shared/runtime-crud-props'
 import { buildRuntimeCrudBlockProps, resolveEffectiveFormOpenMode, resolveEffectiveModalType } from '../runtime-crud-block-props'
 import {
   resolvePreviewChildHeight,
@@ -116,7 +123,33 @@ const route = useRoute()
 const router = useRouter()
 const runtimeMessage = useMessage()
 const userStore = useUserStore()
+const listDesignerStore = useListDesignerStore()
 const fieldMap = computed(() => new Map(props.fields.map(f => [f.field, f])))
+
+/** 预览/只读副本可能丢操作配置：优先读 rowActionOverrides，再回读 layout 同源区块 */
+function resolveLiveCrudBlockProps(block = {}) {
+  const localProps = block?.props && typeof block.props === 'object' ? block.props : {}
+  const override = listDesignerStore.getBlockRowActionOverride?.(block?.id) || null
+  const live = findBlockInTree(listDesignerStore.layout?.items || [], block?.id)
+  const liveProps = live?.props && typeof live.props === 'object' ? live.props : {}
+  const builtins = (Array.isArray(override?.builtinRowActions) && override.builtinRowActions.length)
+    ? override.builtinRowActions
+    : (Array.isArray(localProps.builtinRowActions) && localProps.builtinRowActions.length)
+      ? localProps.builtinRowActions
+      : (Array.isArray(liveProps.builtinRowActions) ? liveProps.builtinRowActions : localProps.builtinRowActions)
+  const customs = (Array.isArray(override?.customActions) && override.customActions.length)
+    ? override.customActions
+    : (Array.isArray(localProps.customActions) && localProps.customActions.length)
+      ? localProps.customActions
+      : (Array.isArray(liveProps.customActions) ? liveProps.customActions : localProps.customActions)
+  if (builtins === localProps.builtinRowActions && customs === localProps.customActions)
+    return localProps
+  return {
+    ...localProps,
+    ...(builtins ? { builtinRowActions: builtins } : {}),
+    ...(customs ? { customActions: customs } : {}),
+  }
+}
 const isDataFieldBlock = computed(() => isDataFieldBlockType(props.block.blockType))
 const configuredFieldRefs = computed(() => Array.isArray(props.block.fieldRefs) ? props.block.fieldRefs.filter(Boolean) : [])
 const resolvedFields = computed(() => {
@@ -974,7 +1007,12 @@ const tableColumns = computed(() => [
   { key: '__actions', title: '操作', width: 96, fixed: 'right', align: fieldAlign('__actions') },
 ])
 const aiActionColumn = computed(() => {
-  const rowActions = (props.block.props?.customActions || []).filter(action => (action.position || 'row') === 'row' && action.visible !== false)
+  const liveProps = resolveLiveCrudBlockProps(props.block)
+  const builtins = resolveVisibleBuiltinRowActions(liveProps.builtinRowActions || [], {
+    treeRuntime: liveProps.enableTreeAddChild === true,
+  })
+  const customs = (liveProps.customActions || []).filter(action => (action.position || 'row') === 'row' && action.visible !== false)
+  const rowActions = [...builtins, ...customs]
   if (!rowActions.length)
     return null
   return {
@@ -1062,9 +1100,10 @@ const effectiveRuntimeCrudProps = computed(() => {
   if (!runtimeProps) {
     return null
   }
-  return buildRuntimeCrudBlockProps({
+  const blockProps = resolveLiveCrudBlockProps(props.block)
+  const base = buildRuntimeCrudBlockProps({
     runtimeProps,
-    blockProps: props.block.props || {},
+    blockProps,
     runtimeInteractive: props.runtimeInteractive,
     extensionHooks: runtimeExtensionHandlers.value,
     configuredFieldRefs: configuredFieldRefs.value,
@@ -1080,6 +1119,38 @@ const effectiveRuntimeCrudProps = computed(() => {
     // 自由布局抑制列表伴生壳后，属性面板改的 formOpenMode/modalWidth 必须盖过对象 runtime
     preferBlockFormChrome: props.suppressRuntimeListGrid === true,
   })
+  if (!base)
+    return null
+  const builtins = Array.isArray(blockProps.builtinRowActions) ? blockProps.builtinRowActions : []
+  const customs = Array.isArray(blockProps.customActions) ? blockProps.customActions : []
+  if (!builtins.length && !customs.length)
+    return base
+  // 区块上的操作配置必须压过上游 columns（含硬编码兜底列），否则预览仍显示默认编辑/删除
+  const nonActionColumns = (Array.isArray(base.columns) ? base.columns : []).filter((column) => {
+    const key = String(column?.prop || column?.key || column?.dataIndex || '').trim().toLowerCase()
+    const title = String(column?.label || column?.title || '').trim()
+    return !(['action', 'actions', 'operation', 'operations', '__actions'].includes(key)
+      || column?.type === 'action'
+      || title === '操作')
+  })
+  const rowActions = mergeConfiguredRuntimeActions(
+    { runtimeActions: base.runtimeActions },
+    customs,
+  ).filter(action => String(action.position || 'row').toLowerCase() === 'row')
+  return {
+    ...base,
+    builtinRowActions: builtins.length ? builtins : base.builtinRowActions,
+    columns: composeActionColumns(
+      nonActionColumns,
+      builtins.length ? builtins : (base.builtinRowActions || []),
+      rowActions,
+      { treeRuntime: base.enableTreeAddChild === true },
+    ),
+    runtimeActions: mergeConfiguredRuntimeActions(
+      { runtimeActions: base.runtimeActions },
+      customs,
+    ),
+  }
 })
 
 /** 与对象多画布 pageKey 对齐（应用路由保留 pageId，用 query.pageKey 切 list/dialog/自定义页） */

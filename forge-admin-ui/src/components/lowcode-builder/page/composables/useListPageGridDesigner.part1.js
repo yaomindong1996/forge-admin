@@ -45,6 +45,7 @@ import {
 } from '../page-schema'
 
 import { PAGE_FORM_ASSET_OPTIONS_KEY, provideListPageDesignerApi } from '../listPageDesignerContext'
+import { normalizeBuiltinRowActions } from '../builtin-row-actions'
 import { resolveEffectiveFormOpenMode, resolveEffectiveModalType } from '../runtime-crud-block-props'
 import {
   alignSearchSchemaWithLeftTree,
@@ -669,6 +670,13 @@ const customActionList = computed(() => normalizeCustomActionList(
 ))
 const toolbarCustomActions = computed(() => customActionList.value.filter(action => (action.position || 'toolbar') === 'toolbar'))
 const rowCustomActions = computed(() => customActionList.value.filter(action => (action.position || 'row') === 'row'))
+const builtinRowActionList = computed(() => normalizeBuiltinRowActions(
+  selectedBlock.value?.props?.builtinRowActions
+  || (externalCustomActionsEnabled.value ? props.builtinRowActions : null)
+  || [],
+  { treeRuntime: selectedBlock.value?.props?.enableTreeAddChild === true },
+))
+const rowOperationActions = computed(() => [...builtinRowActionList.value, ...rowCustomActions.value])
 const activeAction = computed(() => customActionList.value[activeActionIndex.value] || null)
 const apiConfigs = ref([])
 const apiConfigLoading = ref(false)
@@ -1634,6 +1642,8 @@ __impl.hydrateInitialState = hydrateInitialState
     externalCustomActionsEnabled,
     customActionList,
     toolbarCustomActions,
+    builtinRowActionList,
+    rowOperationActions,
     rowCustomActions,
     activeAction,
     apiConfigs,

@@ -131,4 +131,12 @@ describe('list page grid designer nested selection', () => {
     expect(source).not.toMatch(/height:\s*child\.props\?\.style\?\.height\s*\|\|\s*childHeight/)
     expect(source).toContain('顶层默认 height 是 100%')
   })
+
+  it('builtin row action rename uses Naive dialog instead of window.prompt', () => {
+    const source = readSource('src/components/lowcode-builder/page/composables/useListPageGridDesigner.part5.js')
+    expect(source).toContain('promptBuiltinRowActionLabel')
+    expect(source).toContain('修改按钮名称')
+    expect(source).toContain('window.$dialog')
+    expect(source).not.toContain('window.prompt(')
+  })
 })

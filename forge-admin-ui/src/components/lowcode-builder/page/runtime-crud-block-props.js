@@ -2,8 +2,10 @@ import { resolveCrudPagePresentation } from '../shared/runtime-crud-page-mode'
 import {
   appendDesignPreviewToApiValue,
   applyTableColumnLayout,
+  composeActionColumns,
   ensureManagedFlowStatusColumns,
   filterCrudItemsByFieldRefs,
+  mergeConfiguredRuntimeActions,
   resolveColumnsByFieldRefs,
   includeCompiledChildColumnRefs,
   includeManagedRuntimeFieldRefs,
@@ -279,21 +281,46 @@ export function buildRuntimeCrudBlockProps({
     emptyFilterTitle: blockProps.emptyFilterTitle || runtimeProps.emptyFilterTitle,
     emptyFilterDescription: blockProps.emptyFilterDescription || runtimeProps.emptyFilterDescription,
     // 列表列：设计预览跟 tableZone columns；运行态跟修理后的 fieldRefs，缺列从字段目录合成
-    columns: ensureManagedFlowStatusColumns(
-      applyTableColumnLayout(
-        resolveColumnsByFieldRefs(
-          columnSource,
-          runtimeTableFieldRefs,
-          runtimeProps.fieldCatalog,
+    // 区块 customActions / builtinRowActions（设计器「字段与操作」）必须并进操作列；
+    // 预览配置常无操作列，composeActionColumns 会按内置+自定义补一列
+    builtinRowActions: Array.isArray(blockProps.builtinRowActions) && blockProps.builtinRowActions.length
+      ? blockProps.builtinRowActions
+      : (runtimeProps.builtinRowActions || runtimeProps.options?.builtinRowActions || []),
+    columns: composeActionColumns(
+      ensureManagedFlowStatusColumns(
+        applyTableColumnLayout(
+          resolveColumnsByFieldRefs(
+            columnSource,
+            runtimeTableFieldRefs,
+            runtimeProps.fieldCatalog,
+          ),
+          blockProps,
         ),
-        blockProps,
+        runtimeProps.fieldCatalog,
+        blockProps.fieldSettings,
       ),
-      runtimeProps.fieldCatalog,
-      blockProps.fieldSettings,
+      Array.isArray(blockProps.builtinRowActions) && blockProps.builtinRowActions.length
+        ? blockProps.builtinRowActions
+        : (runtimeProps.builtinRowActions || runtimeProps.options?.builtinRowActions || []),
+      mergeConfiguredRuntimeActions(
+        {
+          runtimeActions: runtimeProps.runtimeActions,
+          rowActions: runtimeProps.rowActions || runtimeProps.options?.rowActions,
+        },
+        blockProps.customActions,
+      ).filter(action => String(action.position || 'row').toLowerCase() === 'row'),
+      { treeRuntime: resolveEnableTreeAddChild(blockProps, runtimeProps) },
     ),
-    runtimeActions: Array.isArray(runtimeProps.runtimeActions)
-      ? runtimeProps.runtimeActions
-      : [],
+    runtimeActions: mergeConfiguredRuntimeActions(
+      {
+        runtimeActions: runtimeProps.runtimeActions,
+        rowActions: runtimeProps.rowActions || runtimeProps.options?.rowActions,
+        toolbarActions: runtimeProps.toolbarActions || runtimeProps.options?.toolbarActions,
+        detailActions: runtimeProps.detailActions || runtimeProps.options?.detailActions,
+        formActions: runtimeProps.formActions || runtimeProps.options?.formActions,
+      },
+      blockProps.customActions,
+    ),
     toolbarActions: Array.isArray(blockProps.toolbarActions)
       ? blockProps.toolbarActions
       : (runtimeProps.toolbarActions || []),

@@ -16,21 +16,84 @@ final class RuntimeActionCompiler {
     }
 
     static List<Map<String, Object>> rowActions(Map<String, Object> tableProps, boolean treeRuntime) {
-        List<Map<String, Object>> actions = new ArrayList<>();
-        actions.add(defaultAction("edit", "编辑", "primary"));
-        actions.add(defaultAction("detail", "查看详情", "info"));
-        if (treeRuntime) {
-            actions.add(defaultAction("addChild", "添加下级", "success"));
-        }
-        actions.add(defaultAction("delete", "删除", "error"));
-        List<Map<String, Object>> customActions = customActions(tableProps, "row");
+        List<Map<String, Object>> actions = new ArrayList<>(builtinRowActions(tableProps, treeRuntime));
         Set<String> existingKeys = actions.stream()
                 .map(action -> text(action.get("key")))
                 .collect(Collectors.toSet());
-        customActions.stream()
+        customActions(tableProps, "row").stream()
+                .filter(action -> !isBuiltinRowActionKey(text(action.get("key"))))
                 .filter(action -> !existingKeys.contains(text(action.get("key"))))
                 .forEach(actions::add);
         return actions;
+    }
+
+    /**
+     * 读取设计器保存的 builtinRowActions（可改名/隐藏）；未配置时回退默认三项。
+     */
+    static List<Map<String, Object>> builtinRowActions(Map<String, Object> tableProps, boolean treeRuntime) {
+        Map<String, Map<String, Object>> overrides = indexBuiltinRowActionOverrides(tableProps);
+        List<Map<String, Object>> defaults = new ArrayList<>();
+        defaults.add(defaultAction("edit", "编辑", "primary"));
+        defaults.add(defaultAction("detail", "查看详情", "info"));
+        if (treeRuntime) {
+            defaults.add(defaultAction("addChild", "添加下级", "success"));
+        }
+        defaults.add(defaultAction("delete", "删除", "error"));
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> item : defaults) {
+            String key = text(item.get("key"));
+            Map<String, Object> override = overrides.get(StringUtils.lowerCase(key));
+            if (override != null && Boolean.FALSE.equals(override.get("visible"))) {
+                continue;
+            }
+            Map<String, Object> action = new LinkedHashMap<>(item);
+            if (override != null) {
+                String label = text(override.get("label"));
+                if (StringUtils.isNotBlank(label)) {
+                    action.put("label", label);
+                }
+                String type = text(override.get("type"));
+                if (StringUtils.isNotBlank(type)) {
+                    action.put("type", type);
+                }
+            }
+            result.add(action);
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Map<String, Object>> indexBuiltinRowActionOverrides(Map<String, Object> tableProps) {
+        Map<String, Map<String, Object>> overrides = new LinkedHashMap<>();
+        if (tableProps == null) {
+            return overrides;
+        }
+        Object value = tableProps.get("builtinRowActions");
+        if (!(value instanceof List<?> list)) {
+            return overrides;
+        }
+        for (Object item : list) {
+            if (!(item instanceof Map<?, ?> source)) {
+                continue;
+            }
+            String key = text(source.get("key"));
+            if (!isBuiltinRowActionKey(key)) {
+                continue;
+            }
+            overrides.put(StringUtils.lowerCase(key), new LinkedHashMap<>((Map<String, Object>) source));
+        }
+        return overrides;
+    }
+
+    private static boolean isBuiltinRowActionKey(String key) {
+        if (StringUtils.isBlank(key)) {
+            return false;
+        }
+        String normalized = key.trim();
+        return "edit".equalsIgnoreCase(normalized)
+                || "detail".equalsIgnoreCase(normalized)
+                || "delete".equalsIgnoreCase(normalized)
+                || "addChild".equalsIgnoreCase(normalized);
     }
 
     static List<Map<String, Object>> customActions(Map<String, Object> tableProps, String position) {
@@ -43,8 +106,12 @@ final class RuntimeActionCompiler {
             if (!(item instanceof Map<?, ?> source)) {
                 continue;
             }
-            String actionPosition = StringUtils.defaultIfBlank(text(source.get("position")), "toolbar");
+            // 与设计器默认一致：缺省视为行操作，避免自定义按钮被误分到工具栏后列表看不到
+            String actionPosition = StringUtils.defaultIfBlank(text(source.get("position")), "row");
             if (!position.equals(actionPosition)) {
+                continue;
+            }
+            if (Boolean.FALSE.equals(source.get("visible"))) {
                 continue;
             }
             String key = StringUtils.defaultIfBlank(text(source.get("key")), "custom_" + result.size());
@@ -55,6 +122,7 @@ final class RuntimeActionCompiler {
             action.put("type", StringUtils.defaultIfBlank(text(source.get("type")), "default"));
             action.put("position", position);
             action.put("actionType", StringUtils.defaultIfBlank(text(source.get("actionType")), "route"));
+            action.put("visible", true);
             putIfNotBlank(action, "actionCode", text(source.get("actionCode")));
             putIfNotBlank(action, "suiteCode", text(source.get("suiteCode")));
             putIfNotBlank(action, "objectCode", text(source.get("objectCode")));
@@ -67,6 +135,8 @@ final class RuntimeActionCompiler {
                 action.put("actionConfig", actionConfig);
             }
             putIfNotBlank(action, "routePath", text(source.get("routePath")));
+            putIfNotBlank(action, "targetPageKey", firstNonBlank(
+                    text(source.get("targetPageKey")), text(actionConfig.get("targetPageKey"))));
             putIfNotBlank(action, "targetFormKey", text(source.get("targetFormKey")));
             putIfNotBlank(action, "openTarget", StringUtils.defaultIfBlank(text(source.get("openTarget")), "_self"));
             putIfNotBlank(action, "permissionCode", text(source.get("permissionCode")));
@@ -132,6 +202,10 @@ final class RuntimeActionCompiler {
         if (StringUtils.isNotBlank(value)) {
             target.put(key, value);
         }
+    }
+
+    private static String firstNonBlank(String... values) {
+        return StringUtils.firstNonBlank(values);
     }
 
     private static String text(Object value) {

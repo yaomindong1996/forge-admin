@@ -47,6 +47,8 @@ import {
 import {
   appendDesignPreviewToApiConfig,
   appendDesignPreviewToApiValue,
+  composeActionColumns,
+  mergeConfiguredRuntimeActions,
 } from '@/components/lowcode-builder/shared/runtime-crud-props'
 import { applyEmbeddedTreeTableRuntimeProps } from '@/components/lowcode-builder/shared/runtime-tree-table'
 import { createViewSchemaFromPageSchema } from '../form-first/viewSchema'
@@ -145,6 +147,8 @@ export function applyBusinessListDesignerPart1(props, emit) {
   const listPreviewVisible = ref(false)
   const listPreviewLayout = ref(null)
   const listPreviewLayoutKey = ref(0)
+  /** 预览专用 CRUD props：打开预览时从画布快照现场合成，不跟 localSchema 异步漂移 */
+  const listPreviewRuntimeCrudProps = ref(null)
   const templateSelectValue = ref(resolveTemplateSelectValue(localSchema.value?.layoutType))
   const listCustomActions = ref([])
 
@@ -295,6 +299,7 @@ export function applyBusinessListDesignerPart1(props, emit) {
   const listPreviewWatermarkContent = computed(() => listPreviewWatermark.value.text || '内部资料')
   const visibleListCustomActions = computed(() => props.defaultViewOnly ? [] : listCustomActions.value)
   const designerRuntimeCrudProps = computed(() => buildDesignerRuntimeCrudProps(localSchema.value, designFields.value, visibleListCustomActions.value))
+  const previewRuntimeCrudProps = computed(() => listPreviewRuntimeCrudProps.value || designerRuntimeCrudProps.value)
 
   function resolveTemplateSelectValue(layoutType = '') {
     return layoutType === 'tree-crud' ? 'tree-crud' : 'simple-crud'
@@ -1122,10 +1127,26 @@ export function applyBusinessListDesignerPart1(props, emit) {
           enabled: true,
         }
       : null
-    const crudBlock = (schema.listGridLayout?.items || schema.pages?.find(page => page?.pageKey === 'list')?.gridLayout?.items || [])
-      .find(item => ['AiCrudPage', 'data-table', 'AiTable'].includes(item?.blockType))
-    const treePanelBlock = (schema.listGridLayout?.items || schema.pages?.find(page => page?.pageKey === 'list')?.gridLayout?.items || [])
-      .find(item => item?.blockType === 'tree-panel')
+    const listItems = schema.listGridLayout?.items
+      || schema.pages?.find(page => page?.pageKey === 'list')?.gridLayout?.items
+      || []
+    const findCrudBlockDeep = (items = []) => {
+      for (const item of items || []) {
+        if (['AiCrudPage', 'data-table', 'AiTable'].includes(item?.blockType))
+          return item
+        const nested = [
+          ...(Array.isArray(item?.children) ? item.children : []),
+          ...((item?.props?.tabs || []).flatMap(tab => tab?.children || [])),
+          ...((item?.props?.cells || []).flatMap(cell => cell?.children || [])),
+        ]
+        const hit = findCrudBlockDeep(nested)
+        if (hit)
+          return hit
+      }
+      return null
+    }
+    const crudBlock = findCrudBlockDeep(listItems)
+    const treePanelBlock = listItems.find(item => item?.blockType === 'tree-panel')
     const treePanelApi = treePanelBlock?.props?.treeApi
       || (treePanelBlock?.props?.sourceConfigKey
         ? `get@/ai/crud/${treePanelBlock.props.sourceConfigKey}/tree`
@@ -1154,12 +1175,37 @@ export function applyBusinessListDesignerPart1(props, emit) {
                 : true)
         : crudBlock?.props?.enableTreeAddChild === true || tableProps.enableTreeAddChild === true
     const designerColumns = buildDesignerColumns(tableZone, fieldMap)
+    const builtinRowActions = Array.isArray(crudBlock?.props?.builtinRowActions)
+      ? crudBlock.props.builtinRowActions
+      : (Array.isArray(tableProps.builtinRowActions) ? tableProps.builtinRowActions : [])
+    // 自定义按钮：父级 listCustomActions 优先；区块上残留的 customActions 作兜底，避免 emit 未回写时预览丢「测试」
+    const blockCustomActions = Array.isArray(crudBlock?.props?.customActions)
+      ? crudBlock.props.customActions
+      : (Array.isArray(tableProps.customActions) ? tableProps.customActions : [])
+    const mergedCustomActions = normalizeListCustomActions(
+      (Array.isArray(customActions) && customActions.length) ? customActions : blockCustomActions,
+    )
+    const effectiveRuntimeActions = mergedCustomActions.length
+      ? mergedCustomActions
+      : runtimeActions
+    const rowRuntimeActions = mergeConfiguredRuntimeActions(
+      {},
+      effectiveRuntimeActions.filter(action => (action.position || 'row') === 'row'),
+    )
+    const columnsWithActions = composeActionColumns(
+      designerColumns,
+      builtinRowActions,
+      rowRuntimeActions,
+      { treeRuntime: enableTreeAddChild === true },
+    )
     const baseProps = {
       lazy: true,
       designPreview: true,
       loadDetailOnEdit: false,
-      // 列表列以 tableZone 为准；fieldCatalog 供缺列合成与流程状态列补齐
-      columns: designerColumns,
+      // 列表列以 tableZone 为准；fieldCatalog 供缺列合成与流程状态列补齐。
+      // 必须带上按 builtinRowActions 裁剪后的操作列，否则预览会回落到 AiCrudPage 默认编辑/删除。
+      columns: columnsWithActions,
+      builtinRowActions,
       fieldCatalog: Array.from(fieldMap.values()),
       searchSchema: buildDesignerSearchSchema(searchZone, fieldMap, schema),
       editSchema: editFields,
@@ -1226,8 +1272,8 @@ export function applyBusinessListDesignerPart1(props, emit) {
       publicQuery: tableProps.publicQuery || {},
       formDefaultValues: tableProps.formDefaultValues || {},
       submitDefaultParams: tableProps.submitDefaultParams || {},
-      toolbarActions: runtimeActions.filter(action => (action.position || 'toolbar') === 'toolbar'),
-      runtimeActions: runtimeActions.filter(action => (action.position || 'row') === 'row'),
+      toolbarActions: effectiveRuntimeActions.filter(action => (action.position || 'toolbar') === 'toolbar'),
+      runtimeActions: effectiveRuntimeActions.filter(action => (action.position || 'row') === 'row'),
       enableTreeAddChild,
       ...(treeConfig ? { treeConfig } : {}),
       ...hookHandlers,
@@ -1279,6 +1325,63 @@ export function applyBusinessListDesignerPart1(props, emit) {
     emit('dirtyChange', true)
   }
 
+  /** 属性面板直接改 builtinRowActions 时同步进 schema（不依赖 layout emit 时序） */
+  function handleBuiltinRowActionsUpdate(actions = []) {
+    if (props.defaultViewOnly)
+      return
+    const normalized = Array.isArray(actions) ? cloneSchema(actions) : []
+    setLocalSchema(syncSchemaBuiltinRowActions(localSchema.value, normalized))
+    emit('dirtyChange', true)
+  }
+
+  function syncSchemaBuiltinRowActions(schema = {}, actions = []) {
+    const normalized = Array.isArray(actions) ? cloneSchema(actions) : []
+    const syncGrid = (grid = {}) => {
+      if (!grid || !Array.isArray(grid.items))
+        return grid
+      let changed = false
+      const items = grid.items.map((item) => {
+        if (!['AiCrudPage', 'data-table', 'AiTable'].includes(item?.blockType))
+          return item
+        changed = true
+        return {
+          ...item,
+          props: {
+            ...(item.props || {}),
+            builtinRowActions: cloneSchema(normalized),
+          },
+        }
+      })
+      return changed ? { ...grid, items } : grid
+    }
+    const listGridLayout = syncGrid(schema.listGridLayout)
+    const pages = Array.isArray(schema.pages)
+      ? schema.pages.map(page => ({
+          ...page,
+          gridLayout: syncGrid(page?.gridLayout),
+        }))
+      : schema.pages
+    const zones = Array.isArray(schema.zones)
+      ? schema.zones.map((zone) => {
+          if (zone?.zoneKey !== 'table')
+            return zone
+          return {
+            ...zone,
+            props: {
+              ...(zone.props || {}),
+              builtinRowActions: cloneSchema(normalized),
+            },
+          }
+        })
+      : schema.zones
+    return {
+      ...schema,
+      listGridLayout,
+      pages,
+      zones,
+    }
+  }
+
   function buildDesignerActionsForSave() {
     const managedActions = normalizeListCustomActions(listCustomActions.value)
       .map((action, index) => listActionToDesignerAction(action, index))
@@ -1307,6 +1410,9 @@ export function applyBusinessListDesignerPart1(props, emit) {
 
   function syncSchemaCustomActions(schema = {}, actions = []) {
     const normalizedActions = normalizeListCustomActions(actions)
+    const pickBuiltinRowActions = (props = {}) => (
+      Array.isArray(props.builtinRowActions) ? cloneSchema(props.builtinRowActions) : undefined
+    )
     const syncGrid = (grid = {}) => {
       if (!grid || !Array.isArray(grid.items))
         return grid
@@ -1315,12 +1421,17 @@ export function applyBusinessListDesignerPart1(props, emit) {
         if (!['AiCrudPage', 'data-table', 'AiTable', 'toolbar'].includes(item?.blockType))
           return item
         changed = true
+        const nextProps = {
+          ...(item.props || {}),
+          customActions: cloneSchema(normalizedActions),
+        }
+        // 保留内置行操作改名/隐藏配置，避免只同步 customActions 时被冲掉
+        const builtinRowActions = pickBuiltinRowActions(item.props)
+        if (builtinRowActions)
+          nextProps.builtinRowActions = builtinRowActions
         return {
           ...item,
-          props: {
-            ...(item.props || {}),
-            customActions: cloneSchema(normalizedActions),
-          },
+          props: nextProps,
         }
       })
       return changed ? { ...grid, items } : grid
@@ -1337,12 +1448,16 @@ export function applyBusinessListDesignerPart1(props, emit) {
       ? schema.zones.map((zone) => {
           if (zone?.zoneKey !== 'table')
             return zone
+          const nextProps = {
+            ...(zone.props || {}),
+            customActions: cloneSchema(normalizedActions),
+          }
+          const builtinRowActions = pickBuiltinRowActions(zone.props)
+          if (builtinRowActions)
+            nextProps.builtinRowActions = builtinRowActions
           return {
             ...zone,
-            props: {
-              ...(zone.props || {}),
-              customActions: cloneSchema(normalizedActions),
-            },
+            props: nextProps,
           }
         })
       : schema.zones
@@ -1398,6 +1513,8 @@ export function applyBusinessListDesignerPart1(props, emit) {
   __impl.resolveDesignerModalType = resolveDesignerModalType
   __impl.buildDesignerCrudHookHandlers = buildDesignerCrudHookHandlers
   __impl.handleListCustomActionsUpdate = handleListCustomActionsUpdate
+  __impl.handleBuiltinRowActionsUpdate = handleBuiltinRowActionsUpdate
+  __impl.syncSchemaBuiltinRowActions = syncSchemaBuiltinRowActions
   __impl.buildDesignerActionsForSave = buildDesignerActionsForSave
   __impl.normalizeDesignerActionsForList = normalizeDesignerActionsForList
   __impl.mergeUnmanagedChildRowActions = mergeUnmanagedChildRowActions
@@ -1409,7 +1526,7 @@ export function applyBusinessListDesignerPart1(props, emit) {
     buildDesignerActionsForSave, buildDesignerColumns, buildDesignerCrudHookHandlers, buildDesignerEditSchema, buildDesignerFieldMap, buildDesignerRuntimeCrudProps, buildDesignerRuntimeField, buildDesignerSearchSchema,
     buildDesignerSelfTreeOptionSource, clearActivePageLayout, clearEmbeddedTreeForLeftTreeLayout, clearTreeAddChildOnListBlocks, collectSchemaCustomActions, createCleanTemplateGridLayout, createUniquePageKey, deduplicateListActions,
     designerActionToListAction, designerActionTypeToListType, duplicateActivePage, ensureDesignerPages, ensureGridListSchema, filterDesignerGridBlocks, handleGridLayoutUpdate, handleGridModelSchemaUpdate,
-    handleListCustomActionsUpdate, handleListDesignerShortcut, handleListMoreSelect, handlePageActionSelect, hydrateDesignerFormLayout, hydrateDesignerFormLayoutNode, inferLayoutType, isChildRowDesignerAction,
+    handleListCustomActionsUpdate, handleBuiltinRowActionsUpdate, syncSchemaBuiltinRowActions, handleListDesignerShortcut, handleListMoreSelect, handlePageActionSelect, hydrateDesignerFormLayout, hydrateDesignerFormLayoutNode, inferLayoutType, isChildRowDesignerAction,
     isInvalidDesignerApiAction, isProtectedPage, isRelationLayout, isStandaloneDesignerLayoutNode, isStandardListGridLayout, isTreeLayout, listActionToDesignerAction, listActionTypeToDesignerType,
     mergePrimaryModelRef, mergeUnmanagedChildRowActions, normalizeActionApiMethod, normalizeActionCode, normalizeActionParams, normalizeDesignerActionPosition, normalizeDesignerActionType, normalizeDesignerActionsForList,
     normalizeDesignerPage, normalizeDesignerPageType, normalizeDesignerRuntimeFieldType, normalizeListActionConfig, normalizeListActionPosition, normalizeListActionType, normalizeListCustomAction, normalizeListCustomActions,
@@ -1420,7 +1537,7 @@ export function applyBusinessListDesignerPart1(props, emit) {
     setLocalSchema, switchActivePage, syncDesignerDraft, syncSchemaCustomActions, toDesignerActionParams, toPageField, undoSchema, updateActivePageKey,
     updateActivePageParam, updateDesignerPageGrid, updateListTemplate, updateTreeLayoutEnabled, updateTreeZone, message, saving, undoStack,
     redoStack, listGridDesignerRef, activePageKey, pageSettingsExpanded, HISTORY_LIMIT, VALID_PAGE_TYPES, baseModelSchema, localSchema,
-    pendingModelSchema, workingModelSchema, effectiveModelSchema, designFields, layoutModeLabel, canUndo, canRedo, listPreviewVisible, listPreviewLayout, listPreviewLayoutKey,
+    pendingModelSchema, workingModelSchema, effectiveModelSchema, designFields, layoutModeLabel, canUndo, canRedo, listPreviewVisible, listPreviewLayout, listPreviewLayoutKey, listPreviewRuntimeCrudProps, previewRuntimeCrudProps,
     templateSelectValue, listCustomActions, pageTypeOptions, listTemplateOptions, activeTemplateLabel, listMoreOptions, pageActionOptions, designerPages,
     actionPageOptions,
     activeDesignerPage, currentPageGridLayout, previewGridLayout, designerGridLayout, designerPreviewGridLayout,

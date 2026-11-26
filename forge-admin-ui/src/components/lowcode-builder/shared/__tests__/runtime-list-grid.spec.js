@@ -4,6 +4,7 @@ import {
   normalizeRuntimeListGridLayout,
   buildRuntimeListFlowBlocks,
   resolveListGridLayoutFromPageSchema,
+  resolveRuntimeListGridModel,
   shouldRenderRuntimeListGrid,
 } from '../runtime-list-grid'
 
@@ -38,6 +39,32 @@ describe('runtime-list-grid', () => {
     expect(next.items[0].props.style.widthMode).toBe('full')
     expect(next.items[0].props.style.height).toBeUndefined()
     expect(next.items[0].props.previewLiveData).toBe(true)
+  })
+
+  it('keeps designer preview static when forceLivePreview=false', () => {
+    const model = resolveRuntimeListGridModel(
+      {
+        listGridLayout: {
+          items: [
+            { id: 'title', blockType: 'page-title', props: {} },
+            {
+              id: 'crud',
+              blockType: 'AiCrudPage',
+              props: {
+                builtinRowActions: [{ key: 'delete', visible: false }],
+                customActions: [{ key: 'test', label: '测试', position: 'row' }],
+                previewLiveData: false,
+              },
+            },
+          ],
+        },
+      },
+      { forceLivePreview: false },
+    )
+    const crud = model.layout.items.find(item => item.id === 'crud')
+    expect(crud.props.previewLiveData).toBeUndefined()
+    expect(crud.props.builtinRowActions).toEqual([{ key: 'delete', visible: false }])
+    expect(crud.props.customActions[0].label).toBe('测试')
   })
 
   it('sorts flow blocks by pageFlowY', () => {

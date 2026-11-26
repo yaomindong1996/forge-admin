@@ -39,7 +39,8 @@ public class BusinessObjectActionService {
 
     private static final String DESIGNER_ACTIONS_KEY = "actions";
     private static final Set<String> ACTION_POSITIONS = Set.of("TOOLBAR", "ROW", "DETAIL", "CHILD_ROW");
-    private static final Set<String> ACTION_TYPES = Set.of("OPEN_PAGE", "CALL_API", "START_FLOW", "START_APPROVAL", "TRIGGER", "OPEN_EXTERNAL", "COMMAND");
+    private static final Set<String> ACTION_TYPES = Set.of(
+            "OPEN_PAGE", "CALL_API", "START_FLOW", "START_APPROVAL", "TRIGGER", "OPEN_EXTERNAL", "COMMAND", "REFRESH");
     private static final String PERMISSION_PATTERN = "^[A-Za-z0-9:_-]{3,128}$";
 
     private final ObjectMapper objectMapper;

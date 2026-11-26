@@ -432,7 +432,7 @@
   background-color: var(--primary-color, #4242f7) !important;
 }
 
-/* segment：灰轨 + 白底选中胶囊，项与项无共用边框 */
+/* segment：灰轨；默认白底选中胶囊 + 主色字。页面可自行改成蓝底白字，勿用 !important 锁死字色。 */
 .n-tabs.n-tabs--segment-type .n-tabs-rail {
   display: flex;
   align-items: stretch;
@@ -458,12 +458,18 @@
   color: var(--text-primary, #1f2937);
 }
 
-.n-tabs.n-tabs--segment-type .n-tabs-tab.n-tabs-tab--active {
-  color: var(--primary-color, #4242f7) !important;
-  background: var(--bg-primary, #fff) !important;
+/* 滑动胶囊默认白底；局部页面（如应用中心）可覆盖为主题蓝 */
+.n-tabs.n-tabs--segment-type .n-tabs-capsule {
+  background: var(--bg-primary, #fff);
   box-shadow:
     0 0 0 1px rgba(15, 23, 42, 0.06),
-    0 1px 2px rgba(15, 23, 42, 0.06) !important;
+    0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.n-tabs.n-tabs--segment-type .n-tabs-tab.n-tabs-tab--active {
+  color: var(--primary-color, #4242f7);
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .n-tabs.n-tabs--segment-type .n-tabs-tab .n-icon,
@@ -534,10 +540,15 @@
   background: rgba(255, 255, 255, 0.06) !important;
 }
 
+.dark .n-tabs.n-tabs--segment-type .n-tabs-capsule {
+  background: var(--bg-primary, #1f2937);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
 .dark .n-tabs.n-tabs--segment-type .n-tabs-tab.n-tabs-tab--active {
-  background: var(--bg-primary, #1f2937) !important;
-  color: var(--primary-color, #5388ff) !important;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+  background: transparent !important;
+  color: var(--primary-color, #5388ff);
+  box-shadow: none !important;
 }
 
 .dark .n-data-table .n-data-table-th {

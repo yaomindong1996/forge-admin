@@ -428,7 +428,8 @@ public class BusinessObjectPublishService {
             item.put("label", StringUtils.defaultIfBlank(actionName, "自定义操作"));
             item.put("position", position);
             item.put("type", resolveActionButtonType(actionType));
-            item.put("actionType", resolveRuntimeActionType(actionType));
+            item.put("actionType", resolveRuntimeActionType(actionType, config));
+            item.put("visible", !Boolean.FALSE.equals(booleanValue(action.get("visible"))));
             putIfNotBlank(item, "relationKey", text(config.get("relationKey")));
             AiBusinessObject object = context == null ? null : context.getObject();
             if (object != null) {
@@ -438,6 +439,8 @@ public class BusinessObjectPublishService {
                 putIfNotBlank(item, "targetObjectCode", object.getObjectCode());
             }
             putIfNotBlank(item, "routePath", resolveActionRoutePath(actionType, config));
+            // 应用内页面依赖 targetPageKey；不能只保留 routePath，否则发布后按钮丢目标或无法跳转
+            putIfNotBlank(item, "targetPageKey", text(config.get("targetPageKey")));
             putIfNotBlank(item, "targetFormKey", text(config.get("targetFormKey")));
             putIfNotBlank(item, "openTarget", StringUtils.defaultIfBlank(text(config.get("openTarget")), "_self"));
             String permissionKey = StringUtils.firstNonBlank(
@@ -447,6 +450,8 @@ public class BusinessObjectPublishService {
             putIfNotBlank(item, "permissionKey", permissionKey);
             putIfNotBlank(item, "permissionCode", permissionKey);
             putIfNotBlank(item, "permissionStrategy", text(action.get("permissionStrategy")));
+            putIfNotBlank(item, "displayCondition", StringUtils.firstNonBlank(
+                    text(action.get("displayCondition")), text(config.get("displayCondition"))));
             putIfNotBlank(item, "successMessage", text(action.get("successMessage")));
             putIfNotBlank(item, "failureMessage", text(action.get("failureMessage")));
             putIfNotBlank(item, "successBehavior", text(config.get("successBehavior")));
@@ -454,7 +459,8 @@ public class BusinessObjectPublishService {
             if (!params.isEmpty()) {
                 item.put("params", params);
             }
-            if (("CALL_API".equals(actionType) || "COMMAND".equals(actionType)) && !config.isEmpty()) {
+            if (("CALL_API".equals(actionType) || "COMMAND".equals(actionType) || "OPEN_PAGE".equals(actionType))
+                    && !config.isEmpty()) {
                 item.put("actionConfig", new LinkedHashMap<>(config));
             }
             if (Boolean.TRUE.equals(booleanValue(action.get("confirmRequired")))) {
@@ -478,7 +484,9 @@ public class BusinessObjectPublishService {
 
     private boolean isBuiltinCrudAction(String position, String actionCode, String actionName,
                                         String actionType, Map<String, Object> config) {
-        if (!"OPEN_PAGE".equals(actionType) || StringUtils.isNotBlank(resolveActionRoutePath(actionType, config))) {
+        if (!"OPEN_PAGE".equals(actionType)
+                || StringUtils.isNotBlank(resolveActionRoutePath(actionType, config))
+                || StringUtils.isNotBlank(text(config == null ? null : config.get("targetPageKey")))) {
             return false;
         }
         if ("toolbar".equals(position)) {
@@ -520,6 +528,10 @@ public class BusinessObjectPublishService {
     }
 
     private String resolveRuntimeActionType(String actionType) {
+        return resolveRuntimeActionType(actionType, Map.of());
+    }
+
+    private String resolveRuntimeActionType(String actionType, Map<String, Object> config) {
         return switch (actionType) {
             case "START_FLOW" -> "START_FLOW";
             case "START_APPROVAL" -> "START_FLOW";
@@ -527,6 +539,11 @@ public class BusinessObjectPublishService {
             case "OPEN_EXTERNAL" -> "external";
             case "TRIGGER" -> "TRIGGER";
             case "CALL_API" -> "CALL_API";
+            case "REFRESH" -> "refresh";
+            // 应用内页面：保留 page，避免发布后只剩 route 且丢 targetPageKey 语义
+            case "OPEN_PAGE" -> "page".equalsIgnoreCase(text(config == null ? null : config.get("navigationMode")))
+                    ? "page"
+                    : "route";
             default -> "route";
         };
     }

@@ -10,6 +10,7 @@ import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationRunt
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +25,7 @@ import java.util.Map;
  * <p>对象可以被多个应用复用，因而 flowInteraction 不能写回 AiCrudConfig 全局配置；
  * 只有携带业务应用入口上下文时，才从该应用的正式快照读取并叠加。</p>
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BusinessApplicationRuntimeConfigOverlayService {
@@ -119,12 +121,21 @@ public class BusinessApplicationRuntimeConfigOverlayService {
         if (processActionProjectionService == null) {
             return;
         }
-        List<Map<String, Object>> compiled = processActionProjectionService.compileForRender(
-                configKey,
-                renderConfig.getObjectCode(),
-                renderConfig.getModelSchema(),
-                applicationId,
-                designPreview);
+        List<Map<String, Object>> compiled;
+        try {
+            compiled = processActionProjectionService.compileForRender(
+                    configKey,
+                    renderConfig.getObjectCode(),
+                    renderConfig.getModelSchema(),
+                    applicationId,
+                    designPreview);
+        }
+        catch (RuntimeException ex) {
+            // 流程草稿投影失败时不能拖垮整个 designPreview render，否则前端会回落已发布操作列
+            log.warn("[RuntimeConfigOverlay] 流程按钮投影失败, configKey={}, designPreview={}, err={}",
+                    configKey, designPreview, ex.getMessage());
+            return;
+        }
         if (compiled.isEmpty()) {
             return;
         }

@@ -715,10 +715,15 @@ public class AiCrudConfigService extends ServiceImpl<AiCrudConfigMapper, AiCrudC
     }
 
     AiCrudConfigRenderVO buildDraftRenderConfig(AiCrudConfig config) {
-        return buildRenderConfig(resolveDraftRuntimeConfig(config));
+        // 草稿预览：强制按最新 pageSchema 编译操作列，避免 saveRuntimeDraft 未刷新的 columnsSchema 回落默认编辑/删除
+        return buildRenderConfig(resolveDraftRuntimeConfig(config), true);
     }
 
     public AiCrudConfigRenderVO buildRenderConfig(AiCrudConfig config) {
+        return buildRenderConfig(config, false);
+    }
+
+    AiCrudConfigRenderVO buildRenderConfig(AiCrudConfig config, boolean forceDraftCompile) {
         AiCrudConfigRenderVO vo = new AiCrudConfigRenderVO();
         vo.setConfigKey(config.getConfigKey());
         vo.setTableName(config.getTableName());
@@ -753,7 +758,7 @@ public class AiCrudConfigService extends ServiceImpl<AiCrudConfigMapper, AiCrudC
                 vo.setPageSchema(objectMapper.readValue(config.getPageSchema(), Object.class));
             }
             if (StringUtils.isNotBlank(config.getModelSchema()) && StringUtils.isNotBlank(config.getPageSchema())) {
-                if (hasStoredRuntimeConfig(config)) {
+                if (!forceDraftCompile && hasStoredRuntimeConfig(config)) {
                     applyStoredRuntimeConfig(config, vo);
                 } else {
                     applyLowcodeRuntimeConfig(config, vo);

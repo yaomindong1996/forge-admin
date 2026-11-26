@@ -302,6 +302,11 @@ public class LowcodeRuntimeConfigBuilder {
         options.put("rowActions", RuntimeActionCompiler.customActions(tableProps, "row"));
         options.put("detailActions", RuntimeActionCompiler.customActions(tableProps, "detail"));
         options.put("formActions", RuntimeActionCompiler.customActions(tableProps, "form"));
+        // 透出设计器内置行操作改名/隐藏，供前端在未重编译 columnsSchema 时也能覆盖
+        Object builtinRowActions = tableProps.get("builtinRowActions");
+        if (builtinRowActions instanceof List<?> builtinList && !builtinList.isEmpty()) {
+            options.put("builtinRowActions", builtinList);
+        }
         options.put("defaultSort", buildDefaultSort(modelSchema, pageSchema));
         options.put("childListDisplayMode", normalizeChildListDisplayMode(tableProps.get("childListDisplayMode")));
         options.put("joinConfig", buildJoinConfig(modelSchema, pageSchema));

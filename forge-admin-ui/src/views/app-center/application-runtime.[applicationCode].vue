@@ -222,7 +222,6 @@
             v-if="editing || (canEditApplication && dirty)"
             class="runtime-action-save"
             size="small"
-            :disabled="!dirty && !embeddedDesignerDirty"
             :loading="saving || embeddedDesignerSaving"
             title="保存当前设计"
             secondary

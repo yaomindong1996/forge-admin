@@ -509,7 +509,17 @@ export function applyGridLayoutToZones(zones, gridLayout, modelSchema) {
         showExport: toolbar ? actions.includes('export') : sourceProps.showExport !== false,
         hideBatchDelete: toolbar ? !actions.includes('batch-delete') : sourceProps.hideBatchDelete === true,
         enableCustomQuery: toolbar ? actions.includes('custom-query') : sourceProps.enableCustomQuery !== false,
-        customActions: toolbar ? (toolbar.props?.customActions || sourceProps.customActions || []) : (sourceProps.customActions || []),
+        // toolbar.customActions=[] 是真值，不能用 || 否则会冲掉 AiCrudPage 上的行内「测试」等自定义按钮
+        customActions: pickNonEmptyActionList(
+          toolbar?.props?.customActions,
+          sourceProps.customActions,
+          zone.props?.customActions,
+        ),
+        // 内置行操作改名/隐藏必须落到 table zone，后端 RuntimeActionCompiler / 前端 resolvePageBuiltinRowActions 都读这里
+        builtinRowActions: pickNonEmptyActionList(
+          sourceProps.builtinRowActions,
+          zone.props?.builtinRowActions,
+        ),
         defaultSortField: sourceProps.defaultSortField || zone.props?.defaultSortField || 'id',
         defaultSortOrder: sourceProps.defaultSortOrder || zone.props?.defaultSortOrder || 'desc',
       }
@@ -567,6 +577,19 @@ export function applyGridLayoutToZones(zones, gridLayout, modelSchema) {
     }
     return zone
   })
+}
+
+/** 取第一个非空数组；避免 [] 被 || 当成有值而冲掉真实配置 */
+function pickNonEmptyActionList(...candidates) {
+  for (const list of candidates) {
+    if (Array.isArray(list) && list.length)
+      return list
+  }
+  for (const list of candidates) {
+    if (Array.isArray(list))
+      return list
+  }
+  return []
 }
 
 function pickRuntimeTableProps(props = {}) {
@@ -1763,6 +1786,12 @@ function createDefaultAiCrudPageProps() {
     exportButtonText: '导出',
     exportFileName: '',
     customActions: [],
+    // 默认三项内置行操作，设计器改名/隐藏后可落到 table zone / 草稿编译
+    builtinRowActions: [
+      { key: 'edit', label: '编辑', type: 'primary', visible: true },
+      { key: 'detail', label: '查看详情', type: 'info', visible: true },
+      { key: 'delete', label: '删除', type: 'error', visible: true },
+    ],
     crudHookRules: {},
     beforeSubmitRules: [],
     publicParams: {},

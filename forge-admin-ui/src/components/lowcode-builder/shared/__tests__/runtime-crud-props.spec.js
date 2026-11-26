@@ -562,7 +562,9 @@ describe('runtime CRUD design preview props', () => {
     })
     expect(props.businessObjectCode).toBe('order')
     expect(props.runtimeActions).toEqual([
-      { key: 'startProcess:submit_approval', actionType: 'START_PROCESS' },
+      { key: 'startProcess:submit_approval', actionType: 'START_PROCESS', position: 'row' },
+      { key: 'startProcess:submit_approval:detail', position: 'detail' },
+      { key: 'startProcess:submit_approval:form', position: 'form' },
     ])
     expect(props.detailActions).toEqual([
       { key: 'startProcess:submit_approval:detail', position: 'detail' },
@@ -570,6 +572,135 @@ describe('runtime CRUD design preview props', () => {
     expect(props.formActions).toEqual([
       { key: 'startProcess:submit_approval:form', position: 'form' },
     ])
+  })
+
+  it('composeActionColumns creates action column for designer preview without actions', async () => {
+    const { composeActionColumns } = await import('../runtime-crud-props')
+    const columns = composeActionColumns(
+      [{ key: 'name', prop: 'name', title: '姓名' }],
+      [
+        { key: 'edit', label: '编辑', visible: true },
+        { key: 'detail', label: '查看详情', visible: true },
+        { key: 'delete', label: '删除', visible: false },
+      ],
+      [{ key: 'test', label: '测试', position: 'row' }],
+    )
+    const actionCol = columns.find(col => col.key === 'actions' || col.prop === 'actions')
+    expect(actionCol).toBeTruthy()
+    expect(actionCol.actions.map(item => item.key)).toEqual(['edit', 'detail', 'test'])
+  })
+
+  it('applies builtinRowActions rename and hide on action column', () => {
+    const props = buildRuntimeCrudProps({
+      columnsSchema: [
+        {
+          key: 'actions',
+          prop: 'actions',
+          title: '操作',
+          fixed: 'right',
+          actions: [
+            { key: 'edit', label: '编辑', type: 'primary' },
+            { key: 'detail', label: '查看详情', type: 'info' },
+            { key: 'delete', label: '删除', type: 'error' },
+          ],
+        },
+      ],
+      pageSchema: {
+        zones: [{
+          zoneKey: 'table',
+          props: {
+            builtinRowActions: [
+              { key: 'edit', label: '修改', visible: true },
+              { key: 'detail', label: '查看详情', visible: false },
+              { key: 'delete', label: '删除', visible: true },
+            ],
+          },
+        }],
+      },
+    })
+    const actionCol = props.columns.find(col => col.key === 'actions' || col.prop === 'actions')
+    expect(actionCol.actions.map(item => item.key)).toEqual(['edit', 'delete'])
+    expect(actionCol.actions.find(item => item.key === 'edit').label).toBe('修改')
+  })
+
+  it('merges options.rowActions into runtimeActions and action column', () => {
+    const props = buildRuntimeCrudProps({
+      columnsSchema: [
+        { key: 'name', prop: 'name', title: '名称' },
+        {
+          key: 'actions',
+          prop: 'actions',
+          title: '操作',
+          fixed: 'right',
+          actions: [
+            { key: 'edit', label: '编辑', type: 'primary' },
+            { key: 'detail', label: '查看详情', type: 'info' },
+            { key: 'delete', label: '删除', type: 'error' },
+          ],
+        },
+      ],
+      options: {
+        rowActions: [
+          {
+            key: 'custom_test',
+            label: '测试',
+            actionType: 'page',
+            targetPageKey: 'detail_page',
+          },
+        ],
+      },
+    })
+    expect(props.runtimeActions).toEqual([
+      expect.objectContaining({
+        key: 'custom_test',
+        label: '测试',
+        position: 'row',
+        targetPageKey: 'detail_page',
+      }),
+    ])
+    const actionCol = props.columns.find(col => col.key === 'actions' || col.prop === 'actions')
+    expect(actionCol.actions.map(item => item.key)).toEqual(['edit', 'detail', 'delete', 'custom_test'])
+  })
+
+  it('reads customActions and hidden delete from pageSchema when options are stale', () => {
+    const props = buildRuntimeCrudProps({
+      columnsSchema: [
+        {
+          key: 'actions',
+          prop: 'actions',
+          title: '操作',
+          actions: [
+            { key: 'edit', label: '编辑' },
+            { key: 'detail', label: '查看详情' },
+            { key: 'delete', label: '删除' },
+          ],
+        },
+      ],
+      options: {
+        // 旧存量：没有自定义按钮、也没有内置覆盖
+        rowActions: [],
+      },
+      pageSchema: {
+        listGridLayout: {
+          items: [{
+            blockType: 'AiCrudPage',
+            props: {
+              builtinRowActions: [
+                { key: 'edit', label: '编辑', visible: true },
+                { key: 'detail', label: '查看详情', visible: true },
+                { key: 'delete', label: '删除', visible: false },
+              ],
+              customActions: [
+                { key: 'test', label: '测试', position: 'row', visible: true },
+              ],
+            },
+          }],
+        },
+      },
+    })
+    const actionCol = props.columns.find(col => col.key === 'actions' || col.prop === 'actions')
+    expect(actionCol.actions.map(item => item.key)).toEqual(['edit', 'detail', 'test'])
+    expect(props.runtimeActions.map(item => item.key)).toContain('test')
   })
 
   it('prefers the form designer layout over flattened runtime options', () => {

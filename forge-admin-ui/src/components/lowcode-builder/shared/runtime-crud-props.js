@@ -11,6 +11,63 @@ import {
   compileUiDocumentFromDesigner,
   UI_DOCUMENT_PROTOCOL_VERSION,
 } from '@/protocols/ui-document'
+import {
+  isBuiltinRowActionKey,
+  resolveVisibleBuiltinRowActions,
+} from '../page/builtin-row-actions'
+
+/**
+ * 合成操作列：按 builtinRowActions 改名/隐藏，再并入自定义行按钮；
+ * 若源 columns 根本没有操作列（设计器预览常见），则新建一列，避免回落到 AiCrudPage 硬编码「编辑/删除」。
+ */
+export function composeActionColumns(columns = [], builtinRowActions = [], rowActions = [], options = {}) {
+  const withBuiltins = applyBuiltinRowActionsToColumns(columns, builtinRowActions, options)
+  const withCustoms = enrichActionColumnWithRowActions(withBuiltins, rowActions)
+  const hasActionColumn = (Array.isArray(withCustoms) ? withCustoms : []).some((column) => {
+    const key = String(column?.prop || column?.key || column?.dataIndex || '').trim().toLowerCase()
+    const title = String(column?.label || column?.title || '').trim()
+    const isAction = ['action', 'actions', 'operation', 'operations', '__actions'].includes(key)
+      || column?.type === 'action'
+      || title === '操作'
+    return isAction && (Array.isArray(column.actions) || typeof column.render === 'function')
+  })
+  if (hasActionColumn)
+    return withCustoms
+
+  const hasExplicitBuiltins = Array.isArray(builtinRowActions) && builtinRowActions.length > 0
+  const customs = (Array.isArray(rowActions) ? rowActions : [])
+    .filter(action => action && typeof action === 'object' && action.visible !== false)
+    .map(action => ({
+      ...action,
+      position: String(action.position || 'row').trim().toLowerCase() || 'row',
+    }))
+    .filter(action => action.position === 'row' && !isBuiltinRowActionKey(action.key))
+  // 无显式内置配置且无自定义行按钮时，保持原 columns（兼容旧发布包/单测）
+  if (!hasExplicitBuiltins && !customs.length)
+    return Array.isArray(withCustoms) ? withCustoms : []
+  const visibleBuiltins = resolveVisibleBuiltinRowActions(builtinRowActions, options)
+  const actions = [
+    ...visibleBuiltins.map(item => ({
+      key: item.key,
+      label: item.label,
+      type: item.type || 'default',
+      position: 'row',
+    })),
+    ...customs,
+  ]
+  return [
+    ...(Array.isArray(withCustoms) ? withCustoms : []),
+    {
+      key: 'actions',
+      prop: 'actions',
+      title: '操作',
+      fixed: 'right',
+      width: Math.max(96, Math.max(1, actions.length) * 58),
+      maxActionButtons: Math.min(3, Math.max(1, actions.length)),
+      actions,
+    },
+  ]
+}
 import { applyEmbeddedTreeTableRuntimeProps } from './runtime-tree-table'
 import { buildFormGovernanceHookProps } from './form-governance-runtime'
 
@@ -38,9 +95,18 @@ export function buildRuntimeCrudProps(config = {}, { designPreview = false } = {
   const uiDocument = fdsSource
     ? compileUiDocumentFromDesigner(fdsSource, { resolvedFields: flatEditSchema })
     : null
+  const pageCustomActions = resolvePageCustomActions(config)
+  const configuredRuntimeActions = mergeConfiguredRuntimeActions(options, pageCustomActions)
+  const builtinRowActions = resolvePageBuiltinRowActions(config)
+  const treeRuntime = Boolean(options.treeConfig?.enabled || config.treeConfig?.enabled)
   const baseProps = {
     searchSchema: normalizeFields(config.searchSchema),
-    columns: normalizeColumns(config.columnsSchema, config.transConfig),
+    columns: composeActionColumns(
+      normalizeColumns(config.columnsSchema, config.transConfig),
+      builtinRowActions,
+      configuredRuntimeActions.filter(action => String(action.position || 'row').toLowerCase() === 'row'),
+      { treeRuntime },
+    ),
     // 平铺 fields 保留给 fieldRefs 过滤；布局由 uiDocument / hydrateRuntimeFormLayout 合成
     editSchema: flatEditSchema,
     fieldCatalog: buildRuntimeFieldCatalog(config),
@@ -121,7 +187,11 @@ export function buildRuntimeCrudProps(config = {}, { designPreview = false } = {
     toolbarActions: Array.isArray(options.toolbarActions) ? options.toolbarActions : [],
     detailActions: Array.isArray(options.detailActions) ? options.detailActions : [],
     formActions: Array.isArray(options.formActions) ? options.formActions : [],
-    runtimeActions: Array.isArray(options.runtimeActions) ? options.runtimeActions : [],
+    rowActions: Array.isArray(options.rowActions) ? options.rowActions : [],
+    // 设计器内置行操作改名/隐藏；区块合并时优先 blockProps，其次这里
+    builtinRowActions,
+    // 发布配置把自定义行按钮写在 options.rowActions；AiCrudPage 只读 runtimeActions 合并进操作列
+    runtimeActions: configuredRuntimeActions,
     businessObjectCode: config.objectCode || options.businessObjectCode || '',
     showDataChangeLog: designerLayout.showDataChangeLog === true || options.showDataChangeLog === true,
     dataAuditObjectId: options.dataAuditObjectId || '',
@@ -747,6 +817,157 @@ function buildRuntimeFieldCatalog(config = {}) {
   append(config.columnsSchema, { listVisible: true })
   append(config.searchSchema, { searchable: true })
   return [...fields.values()]
+}
+
+/** 从 pageSchema 区块/table zone 读取操作配置列表 */
+function resolvePageActionList(pageSchema, propName = 'builtinRowActions') {
+  if (!pageSchema || typeof pageSchema !== 'object')
+    return []
+  const zones = Array.isArray(pageSchema.zones) ? pageSchema.zones : []
+  const tableZone = zones.find(zone => String(zone?.zoneKey || '').toLowerCase() === 'table')
+  if (Array.isArray(tableZone?.props?.[propName]) && tableZone.props[propName].length)
+    return tableZone.props[propName]
+  const grids = [
+    pageSchema.listGridLayout,
+    ...(Array.isArray(pageSchema.pages) ? pageSchema.pages.map(page => page?.gridLayout) : []),
+  ]
+  for (const grid of grids) {
+    const items = Array.isArray(grid?.items) ? grid.items : []
+    const hit = items.find(item => ['AiCrudPage', 'data-table', 'AiTable'].includes(item?.blockType)
+      && Array.isArray(item?.props?.[propName])
+      && item.props[propName].length)
+    if (hit)
+      return hit.props[propName]
+  }
+  // 允许显式空数组（全部隐藏）落在 table zone
+  if (Array.isArray(tableZone?.props?.[propName]))
+    return tableZone.props[propName]
+  return []
+}
+
+/** 从 pageSchema / options 读取设计器保存的内置行操作覆盖；pageSchema 优先（草稿 SoT） */
+export function resolvePageBuiltinRowActions(config = {}) {
+  const fromPage = resolvePageActionList(config.pageSchema, 'builtinRowActions')
+  if (fromPage.length)
+    return fromPage
+  const options = config.options || {}
+  if (Array.isArray(options.builtinRowActions) && options.builtinRowActions.length)
+    return options.builtinRowActions
+  return fromPage
+}
+
+/** 从 pageSchema 读取自定义按钮（含行内「测试」），补 options.rowActions 落后于草稿的情况 */
+export function resolvePageCustomActions(config = {}) {
+  return resolvePageActionList(config.pageSchema, 'customActions')
+}
+
+/**
+ * 按设计器 builtinRowActions 改写操作列中的内置按钮（改名/隐藏）。
+ * 未配置时保持 columnsSchema 原样，兼容旧发布包。
+ */
+export function applyBuiltinRowActionsToColumns(columns = [], builtinRowActions = [], options = {}) {
+  const hasOverrides = Array.isArray(builtinRowActions) && builtinRowActions.length > 0
+  if (!hasOverrides)
+    return Array.isArray(columns) ? columns : []
+  const visibleBuiltins = resolveVisibleBuiltinRowActions(builtinRowActions, options)
+  const visibleKeys = new Set(visibleBuiltins.map(item => String(item.key).toLowerCase()))
+  const labelByKey = new Map(visibleBuiltins.map(item => [String(item.key).toLowerCase(), item]))
+  return (Array.isArray(columns) ? columns : []).map((column) => {
+    const key = String(column?.prop || column?.key || column?.dataIndex || '').trim().toLowerCase()
+    const title = String(column?.label || column?.title || '').trim()
+    const isAction = ['action', 'actions', 'operation', 'operations'].includes(key)
+      || column?.type === 'action'
+      || title === '操作'
+    if (!isAction || !Array.isArray(column.actions))
+      return column
+    const customs = column.actions.filter(action => !isBuiltinRowActionKey(action?.key))
+    const builtins = visibleBuiltins.map((item) => {
+      const existing = column.actions.find(action => String(action?.key || '').toLowerCase() === String(item.key).toLowerCase())
+      return {
+        ...(existing || {}),
+        key: item.key,
+        label: item.label,
+        type: item.type || existing?.type || 'default',
+        position: 'row',
+      }
+    }).filter(item => visibleKeys.has(String(item.key).toLowerCase()))
+    // labelByKey 仅用于保证覆盖项存在；避免 unused lint
+    void labelByKey
+    return {
+      ...column,
+      actions: [...builtins, ...customs],
+    }
+  })
+}
+
+/**
+ * 把发布配置里分位置存放的自定义按钮（rowActions 等）合成 AiCrudPage.runtimeActions。
+ * 缺 position 的行按钮按 row 处理，与设计器默认一致。
+ */
+export function mergeConfiguredRuntimeActions(options = {}, extraActions = []) {
+  const buckets = [
+    [options.runtimeActions, null],
+    [options.rowActions, 'row'],
+    [options.toolbarActions, 'toolbar'],
+    [options.detailActions, 'detail'],
+    [options.formActions, 'form'],
+    [extraActions, null],
+  ]
+  const merged = []
+  const seen = new Set()
+  buckets.forEach(([list, defaultPosition]) => {
+    ;(Array.isArray(list) ? list : []).forEach((action) => {
+      if (!action || typeof action !== 'object' || action.visible === false)
+        return
+      const position = String(action.position || defaultPosition || '').trim().toLowerCase() || 'row'
+      const key = String(action.key || action.actionCode || action.label || '').trim().toUpperCase()
+      const dedupe = `${position}::${key || JSON.stringify(action)}`
+      if (key && seen.has(dedupe))
+        return
+      if (key)
+        seen.add(dedupe)
+      merged.push({
+        ...action,
+        position,
+      })
+    })
+  })
+  return merged
+}
+
+/** 把自定义行按钮补进操作列 actions，避免只靠 runtimeActions 合并时列宽/更多折叠不同步 */
+export function enrichActionColumnWithRowActions(columns = [], rowActions = []) {
+  const extras = (Array.isArray(rowActions) ? rowActions : [])
+    .filter(action => action && typeof action === 'object' && action.visible !== false)
+    .map(action => ({
+      ...action,
+      position: String(action.position || 'row').trim().toLowerCase() || 'row',
+    }))
+    .filter(action => action.position === 'row')
+  if (!extras.length)
+    return Array.isArray(columns) ? columns : []
+  return (Array.isArray(columns) ? columns : []).map((column) => {
+    const key = String(column?.prop || column?.key || column?.dataIndex || '').trim().toLowerCase()
+    const title = String(column?.label || column?.title || '').trim()
+    const isAction = ['action', 'actions', 'operation', 'operations'].includes(key)
+      || column?.type === 'action'
+      || title === '操作'
+    if (!isAction)
+      return column
+    const existing = Array.isArray(column.actions) ? column.actions : []
+    const existingKeys = new Set(existing.map(item => String(item?.key || item?.actionCode || '').trim().toUpperCase()).filter(Boolean))
+    const append = extras.filter((action) => {
+      const actionKey = String(action.key || action.actionCode || '').trim().toUpperCase()
+      return actionKey ? !existingKeys.has(actionKey) : true
+    })
+    if (!append.length)
+      return column
+    return {
+      ...column,
+      actions: [...existing, ...append],
+      maxActionButtons: column.maxActionButtons || Math.min(3, existing.length + append.length),
+    }
+  })
 }
 
 function normalizeColumns(columns, transConfig = {}) {

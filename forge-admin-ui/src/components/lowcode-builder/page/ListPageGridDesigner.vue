@@ -991,6 +991,7 @@ export default {
     'update:modelValue',
     'update:modelSchema',
     'update:customActions',
+    'update:builtinRowActions',
     'bind-form-asset',
     'create-form-asset',
     'edit-form-asset',

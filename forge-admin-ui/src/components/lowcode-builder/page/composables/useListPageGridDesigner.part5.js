@@ -1,5 +1,13 @@
 /** Auto-split part 5 of ListPageGridDesigner setup. */
-import { nextTick } from 'vue'
+import {
+  CreateOutline,
+  DuplicateOutline,
+  SettingsOutline,
+  SwapHorizontalOutline,
+  TrashOutline,
+} from '@vicons/ionicons5'
+import { h, nextTick, ref } from 'vue'
+import { NIcon, NInput } from 'naive-ui'
 import { enabledApiConfigs } from '@/api/business-app'
 import { resolveWidgetRenderMode } from '@/components/lowcode-builder/shared/widget-binding-slots'
 import { resolveSelectedFieldRefs } from '../fieldDrawerConfig'
@@ -7,6 +15,11 @@ import {
   isListFieldSelectable,
   resolveListFieldTitle,
 } from '../page-schema'
+import {
+  builtinRowActionBehaviorLabel,
+  isBuiltinRowActionKey,
+  normalizeBuiltinRowActions,
+} from '../builtin-row-actions'
 import {
   actionBehaviorOptions,
   apiMethodOptions,
@@ -23,6 +36,65 @@ import {
   BitableStyleIcon,
   BitableTodoIcon,
 } from '../bitableIcons'
+
+/** 内置行按钮改名：用 Naive 对话框，禁止 window.prompt（嵌入页会弹错窗并卡住顶栏保存） */
+function promptBuiltinRowActionLabel(current = '') {
+  const label = ref(String(current || ''))
+  return new Promise((resolve) => {
+    const dialog = typeof window !== 'undefined' ? window.$dialog : null
+    const open = dialog && (
+      (typeof dialog.create === 'function' && dialog.create.bind(dialog))
+      || (typeof dialog.info === 'function' && dialog.info.bind(dialog))
+    )
+    if (!open) {
+      resolve(null)
+      return
+    }
+    let settled = false
+    const finish = (value) => {
+      if (settled)
+        return
+      settled = true
+      resolve(value)
+    }
+    open({
+      title: '修改按钮名称',
+      content: () => h(NInput, {
+        'value': label.value,
+        'maxlength': 20,
+        'showCount': true,
+        'clearable': true,
+        'placeholder': '请输入按钮名称',
+        'autofocus': true,
+        'onUpdate:value': (value) => {
+          label.value = value
+        },
+        'onKeyup': (event) => {
+          if (event?.key === 'Enter')
+            event?.target?.blur?.()
+        },
+      }),
+      positiveText: '确定',
+      negativeText: '取消',
+      maskClosable: false,
+      onPositiveClick: () => {
+        const text = String(label.value || '').trim()
+        if (!text) {
+          window.$message?.warning?.('请输入按钮名称')
+          return false
+        }
+        finish(text)
+        return true
+      },
+      onNegativeClick: () => {
+        finish(null)
+      },
+      onClose: () => {
+        finish(null)
+      },
+    })
+  })
+}
 export function useListPageGridDesignerPart5(props, emit, deps = {}, expose = undefined) {
   const {
     __impl,
@@ -40,6 +112,7 @@ export function useListPageGridDesignerPart5(props, emit, deps = {}, expose = un
     selectedBlock,
     externalCustomActionsEnabled,
     customActionList,
+    builtinRowActionList,
     activeAction,
     apiConfigs,
     apiConfigLoading,
@@ -524,6 +597,10 @@ function updateCustomActionByIdentity(actionOrIdentity = '', patch = {}) {
 }
 
 function toggleCustomActionVisible(action = {}) {
+  if (action?.builtin || isBuiltinRowActionKey(action?.key)) {
+    toggleBuiltinRowActionVisible(action)
+    return
+  }
   updateCustomActionByIdentity(action, { visible: action.visible === false })
 }
 
@@ -574,20 +651,103 @@ function handleCustomActionGroupReorder(position = 'toolbar', rows = []) {
   persistCustomActionList(next)
 }
 
+function persistBuiltinRowActionList(list = []) {
+  const normalized = normalizeBuiltinRowActions(list, {
+    treeRuntime: selectedBlock.value?.props?.enableTreeAddChild === true,
+  }).map(({ clientKey, actionType, ...rest }) => ({
+    key: rest.key,
+    label: rest.label,
+    type: rest.type,
+    visible: rest.visible !== false,
+  }))
+  if (selectedBlock.value && ['AiCrudPage', 'data-table', 'AiTable'].includes(selectedBlock.value.blockType)) {
+    const blockId = selectedBlock.value.id
+    patchBlockProps(blockId, { builtinRowActions: normalized })
+    // 权威缓存：layout/schema 回写可能冲掉 block.props，预览一律读这里
+    designerStore.setBlockRowActionOverride?.(blockId, { builtinRowActions: normalized })
+    // 属性面板改内置操作时必须立刻回写父级 schema：拖拽 defer 挂起时 watch 不会 emit，
+    // 预览/保存仍读到空配置就会回落默认「编辑/删除」
+    if (typeof flushDeferredLayoutEmit === 'function')
+      flushDeferredLayoutEmit()
+    emit('update:modelValue', JSON.parse(JSON.stringify(localLayout?.value || {})))
+    emit('update:builtinRowActions', normalized)
+    return
+  }
+  emit('update:builtinRowActions', normalized)
+}
+
+function updateBuiltinRowAction(actionOrKey = {}, patch = {}) {
+  const key = String(actionOrKey?.key || actionOrKey || '').trim()
+  if (!isBuiltinRowActionKey(key))
+    return
+  const next = builtinRowActionList.value.map((item) => {
+    if (item.key !== key)
+      return item
+    return { ...item, ...patch, key, builtin: true }
+  })
+  persistBuiltinRowActionList(next)
+}
+
+function toggleBuiltinRowActionVisible(action = {}) {
+  updateBuiltinRowAction(action, { visible: action.visible === false })
+}
+
+async function renameBuiltinRowAction(action = {}) {
+  if (!isBuiltinRowActionKey(action?.key))
+    return
+  const current = String(action.label || '').trim()
+  // 等下拉收起后再开对话框，避免遮罩叠层导致顶栏「保存」点不到
+  await nextTick()
+  const nextLabel = await promptBuiltinRowActionLabel(current)
+  if (nextLabel == null)
+    return
+  const label = String(nextLabel).trim()
+  if (!label || label === current)
+    return
+  updateBuiltinRowAction(action, { label })
+}
+
+function removeBuiltinRowAction(action = {}) {
+  // 内置操作删除=隐藏，仍保留配置，可用眼睛恢复
+  updateBuiltinRowAction(action, { visible: false })
+}
+
+function renderActionMenuIcon(icon) {
+  return () => h(NIcon, { size: 16 }, { default: () => h(icon) })
+}
+
 function customActionMoreOptions(action = {}) {
+  if (action?.builtin || isBuiltinRowActionKey(action?.key)) {
+    return [
+      { label: '改名', key: 'rename', icon: renderActionMenuIcon(CreateOutline) },
+      { label: '删除', key: 'delete', icon: renderActionMenuIcon(TrashOutline) },
+    ]
+  }
   const currentPosition = action.position || 'toolbar'
   return [
-    { label: '设置', key: 'configure' },
+    { label: '设置', key: 'configure', icon: renderActionMenuIcon(SettingsOutline) },
     {
       label: currentPosition === 'toolbar' ? '移到行按钮' : '移到工具栏',
       key: currentPosition === 'toolbar' ? 'move-row' : 'move-toolbar',
+      icon: renderActionMenuIcon(SwapHorizontalOutline),
     },
-    { label: '复制', key: 'copy' },
-    { label: '删除', key: 'delete' },
+    { label: '复制', key: 'copy', icon: renderActionMenuIcon(DuplicateOutline) },
+    { label: '删除', key: 'delete', icon: renderActionMenuIcon(TrashOutline) },
   ]
 }
 
-function handleCustomActionMoreSelect(key = '', action = {}) {
+async function handleCustomActionMoreSelect(key = '', action = {}) {
+  if (action?.builtin || isBuiltinRowActionKey(action?.key)) {
+    if (key === 'rename') {
+      await renameBuiltinRowAction(action)
+      return
+    }
+    if (key === 'delete') {
+      removeBuiltinRowAction(action)
+      return
+    }
+    return
+  }
   const index = findCustomActionIndexByIdentity(action)
   if (index < 0)
     return
@@ -647,7 +807,10 @@ function persistCustomActionList(list = []) {
     emit('update:customActions', normalized)
   }
   if (selectedBlock.value && ['AiCrudPage', 'toolbar', 'data-table', 'AiTable'].includes(selectedBlock.value.blockType)) {
-    patchBlockProps(selectedBlock.value.id, { customActions: normalized })
+    const blockId = selectedBlock.value.id
+    patchBlockProps(blockId, { customActions: normalized })
+    if (['AiCrudPage', 'data-table', 'AiTable'].includes(selectedBlock.value.blockType))
+      designerStore.setBlockRowActionOverride?.(blockId, { customActions: normalized })
   }
 }
 
@@ -908,6 +1071,8 @@ function resolveActionBehaviorValue(value) {
 }
 
 function resolveActionBehaviorLabel(action = {}) {
+  if (action?.builtin || isBuiltinRowActionKey(action?.key))
+    return builtinRowActionBehaviorLabel(action)
   return actionBehaviorOptions.find(item => item.value === resolveActionBehaviorValue(action.actionType))?.label || '站内跳转'
 }
 
@@ -1363,6 +1528,11 @@ __impl.resolveCrudFieldLabel = resolveCrudFieldLabel
     toggleCustomActionVisible,
     openCustomActionEditor,
     handleCustomActionGroupReorder,
+    persistBuiltinRowActionList,
+    updateBuiltinRowAction,
+    toggleBuiltinRowActionVisible,
+    renameBuiltinRowAction,
+    removeBuiltinRowAction,
     customActionMoreOptions,
     handleCustomActionMoreSelect,
     removeCustomAction,
