@@ -205,6 +205,26 @@ export default defineConfig(({ mode, command }) => {
       cssMinify: 'esbuild',
       // 关闭 CSS 拆包：UnoCSS 会对每个 CSS chunk 再生成一遍，900+ chunk 时能省大半构建时间
       cssCodeSplit: false,
+      // 合并高频公共依赖，避免公网环境下路由切换触发数十个碎片 chunk 排队卡顿
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (/[\\/]node_modules[\\/](vue|@vue|vue-router|pinia|pinia-plugin-persistedstate|@vueuse)[\\/]/.test(id))
+                return 'vendor-vue'
+              if (/[\\/]node_modules[\\/](naive-ui|vueuc|seemly|vooks|evtd|treemate|css-render|@css-render)[\\/]/.test(id))
+                return 'vendor-naive'
+              if (/[\\/]node_modules[\\/]@vicons[\\/]/.test(id))
+                return 'vendor-icons'
+              if (/[\\/]node_modules[\\/](echarts|zrender)[\\/]/.test(id))
+                return 'vendor-echarts'
+              if (/[\\/]node_modules[\\/](axios|dayjs|lodash-es|crypto-js|sm-crypto|md5)[\\/]/.test(id))
+                return 'vendor-utils'
+            }
+            return undefined
+          },
+        },
+      },
     },
   }
 })
