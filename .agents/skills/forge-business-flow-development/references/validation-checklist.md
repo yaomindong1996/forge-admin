@@ -24,7 +24,7 @@ cd forge-server && mvn -pl forge-admin-server -am -DskipTests compile
 
 If the task explicitly includes `/test`, phase verification, review-fix verification, or archive acceptance, first read `code-copilot/rules/automated-testing-standard.md` and append the results to the current change `execution-log.md`.
 
-## Flow Runtime
+## Flow Runtime (end-to-end — required before claiming done)
 
 Validate these behaviors manually or by automated e2e when services are available:
 
@@ -34,6 +34,7 @@ Validate these behaviors manually or by automated e2e when services are availabl
 - Todo form loads correct asset and only shows readable fields.
 - Saving task fields persists only writable fields.
 - Required node fields are enforced server-side.
+- Assignees resolve: user/role/dept/**post**/expr as configured; empty assignee/candidates means broken notify/todo.
 - Approval through all nodes -> status `APPROVED`.
 - Reject from approval node -> task enters applicant modify node and status becomes `NEED_MODIFY`.
 - Applicant modify resubmit -> status returns `IN_PROCESS`.
@@ -41,6 +42,7 @@ Validate these behaviors manually or by automated e2e when services are availabl
 - Cancel/withdraw/terminate -> status `CANCELED`.
 - Done/history form is readonly and can still display business record data.
 - Page/detail query repairs status if event timing drift occurred.
+- Lowcode: started with canonical `objectCode`, not configKey; used built-in `START_FLOW` only once.
 
 ## Security And Data Rules
 

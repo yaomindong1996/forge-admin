@@ -22,7 +22,22 @@ cd forge-admin-ui && pnpm install && pnpm dev              # 前端 :3000
 6. 冒烟：后端 `cd forge-server && mvn -pl forge-admin-server -am compile -DskipTests`；前端按需 `cd forge-admin-ui && pnpm lint:fix`
 7. 必读 `code-copilot/memory/preferences.md`；按任务打开相关 `code-copilot/memory/pitfalls/<主题>.md`
 8. 命中项目 Skill 时先读 `.agents/skills/*/SKILL.md`；UI 变更先读 `forge-admin-ui/DESIGN.md`
-9. 环境坏了先修环境，再开新需求
+9. **生成业务模块 / 审批 / 低代码应用 / 表单·流程·消息·岗位联调**：先读 `.agents/skills/forge-business-module-playbook/SKILL.md`，再按路径加载子 Skill；禁止以全库盲搜代替 Skill
+10. 环境坏了先修环境，再开新需求
+
+### Skill 路由（摘要）
+
+| 场景 | 先读 |
+|------|------|
+| 端到端业务模块（含选 code-first / lowcode） | `forge-business-module-playbook` |
+| 代码 CRUD | `forge-codegen-crud` |
+| 低代码套件/对象/应用创建·设计·发布 | `forge-lowcode-app-create` |
+| AiCrudPage/AiForm/任务表单 Provider | `forge-form-contract` |
+| Flowable 审批 | `forge-business-flow-development` |
+| 站内信/消息模板 | `forge-message-integration` |
+| 岗位与按岗选人 | `forge-post-org-binding` |
+
+完整说明以本仓 `.agents/skills/*/SKILL.md` 为准；文档站镜像见 website 仓 `forge-docs/development/agent-skills.md`。
 
 ## Test
 ```bash
