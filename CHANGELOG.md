@@ -30,6 +30,7 @@
 - 新增 OAuth2/HMAC 开放网关、限流、幂等、调用审计、调用指南和在线测试能力。
 
 ### Fixed
+- （2026-11-27）PostgreSQL 适配：Job 日志 duration / 应用 pageCount 增加 `_databaseId` 方言分支；Dynamic CRUD 主键数字串提升、逻辑删除禁止猜 Long、列类型读取勿用 catalog 过滤；新增 `pnpm db:check-mapper-dialect` 与约定 §5.20。
 - （2026-11-21）低代码库表默认值：统一 `SqlStoredDefaultNormalizer` 清洗 PG `COLUMN_DEFAULT`（如 `'DRAFT'::character varying`），对比与 DDL 回写不再二次加引号；类型别名（character varying↔varchar 等）对齐；表映射/差异预览/同步前端超时分别放宽至 60s/60s/120s。
 - （2026-11-20）租户套餐菜单白名单：改为树勾选并经 `update-value` 写回；编辑开启拉详情回显；主表无变更时仍落库组成项。
 

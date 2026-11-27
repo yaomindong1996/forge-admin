@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.ConnectionCallback;
 
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Collections;
 import java.util.HashMap;
@@ -103,9 +104,63 @@ final class DynamicCrudTableMetadataGateway {
         if (value == null) {
             return null;
         }
-        Integer jdbcType = columnTypes(tableName)
+        Integer jdbcType = columnJdbcType(tableName, columnName);
+        if (jdbcType == null) {
+            // 禁止无元数据时猜类型（尤其是把 "0"/"1" 抬成 Long）
+            return value;
+        }
+        if (isCharacterJdbcType(jdbcType)) {
+            return String.valueOf(value);
+        }
+        if (isNumericJdbcType(jdbcType)) {
+            return coerceNumericLiteral(value);
+        }
+        return value;
+    }
+
+    /**
+     * 路径/查询主键：纯数字串在数值列（或尚无列元数据）时提升为 Long，避免 PG {@code bigint = varchar}。
+     * 元数据明确为字符列时不抬升。
+     */
+    Object coercePrimaryKeyValue(String tableName, String columnName, Object value) {
+        if (value == null) {
+            return null;
+        }
+        Integer jdbcType = columnJdbcType(tableName, columnName);
+        if (jdbcType != null && isCharacterJdbcType(jdbcType)) {
+            return String.valueOf(value);
+        }
+        if (jdbcType == null || isNumericJdbcType(jdbcType)) {
+            return coerceNumericLiteral(value);
+        }
+        return value;
+    }
+
+    /**
+     * 逻辑删除字面量：无列元数据时保持策略原值（通常 {@code "0"}/{@code "1"}）；
+     * 有元数据再按 JDBC 类型归一。
+     */
+    Object coerceLogicFlagLiteral(String tableName, String columnName, Object value) {
+        if (value == null) {
+            return null;
+        }
+        Integer jdbcType = columnJdbcType(tableName, columnName);
+        if (jdbcType == null) {
+            return value;
+        }
+        if (isCharacterJdbcType(jdbcType)) {
+            return String.valueOf(value);
+        }
+        if (isNumericJdbcType(jdbcType)) {
+            Object coerced = coerceNumericLiteral(value);
+            return coerced != null ? coerced : value;
+        }
+        return value;
+    }
+
+    Integer columnJdbcType(String tableName, String columnName) {
+        return columnTypes(tableName)
             .get(StringUtils.defaultString(columnName).toLowerCase(Locale.ROOT));
-        return jdbcType != null && isCharacterJdbcType(jdbcType) ? String.valueOf(value) : value;
     }
 
     void clear(String tableName) {
@@ -132,13 +187,12 @@ final class DynamicCrudTableMetadataGateway {
                     .execute((ConnectionCallback<Map<String, Integer>>) connection -> {
                         Map<String, Integer> types = new HashMap<>();
                         DatabaseMetaData metadata = connection.getMetaData();
-                        try (ResultSet columns = metadata.getColumns(connection.getCatalog(), null, tableName, null)) {
-                            while (columns.next()) {
-                                String columnName = columns.getString("COLUMN_NAME");
-                                if (StringUtils.isNotBlank(columnName)) {
-                                    types.put(columnName.toLowerCase(Locale.ROOT), columns.getInt("DATA_TYPE"));
-                                }
-                            }
+                        // 禁止用 getCatalog() 过滤：PG apps 等非 public schema 会被扫丢
+                        String schema = resolveConnectionSchema(connection);
+                        String lookupName = StringUtils.defaultString(tableName);
+                        readColumnTypes(metadata, schema, lookupName, types);
+                        if (types.isEmpty() && !lookupName.equals(lookupName.toLowerCase(Locale.ROOT))) {
+                            readColumnTypes(metadata, schema, lookupName.toLowerCase(Locale.ROOT), types);
                         }
                         return types;
                     });
@@ -149,6 +203,29 @@ final class DynamicCrudTableMetadataGateway {
         });
     }
 
+    private static void readColumnTypes(DatabaseMetaData metadata,
+                                        String schema,
+                                        String tableName,
+                                        Map<String, Integer> types) throws SQLException {
+        try (ResultSet columns = metadata.getColumns(null, schema, tableName, null)) {
+            while (columns.next()) {
+                String columnName = columns.getString("COLUMN_NAME");
+                if (StringUtils.isNotBlank(columnName)) {
+                    types.put(columnName.toLowerCase(Locale.ROOT), columns.getInt("DATA_TYPE"));
+                }
+            }
+        }
+    }
+
+    private static String resolveConnectionSchema(java.sql.Connection connection) {
+        try {
+            String schema = connection.getSchema();
+            return StringUtils.isNotBlank(schema) ? schema : null;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     private boolean isCharacterJdbcType(int jdbcType) {
         return jdbcType == Types.CHAR
             || jdbcType == Types.VARCHAR
@@ -156,6 +233,52 @@ final class DynamicCrudTableMetadataGateway {
             || jdbcType == Types.NCHAR
             || jdbcType == Types.NVARCHAR
             || jdbcType == Types.LONGNVARCHAR;
+    }
+
+    private boolean isNumericJdbcType(int jdbcType) {
+        return jdbcType == Types.TINYINT
+            || jdbcType == Types.SMALLINT
+            || jdbcType == Types.INTEGER
+            || jdbcType == Types.BIGINT
+            || jdbcType == Types.NUMERIC
+            || jdbcType == Types.DECIMAL
+            || jdbcType == Types.FLOAT
+            || jdbcType == Types.REAL
+            || jdbcType == Types.DOUBLE;
+    }
+
+    private static Object coerceNumericLiteral(Object value) {
+        if (value instanceof Number) {
+            return value;
+        }
+        if (!(value instanceof String text)) {
+            return value;
+        }
+        String trimmed = text.trim();
+        if (!isPureDigits(trimmed)) {
+            return value;
+        }
+        try {
+            return Long.valueOf(trimmed);
+        } catch (NumberFormatException ex) {
+            return value;
+        }
+    }
+
+    private static boolean isPureDigits(String text) {
+        if (StringUtils.isBlank(text)) {
+            return false;
+        }
+        int start = text.charAt(0) == '-' ? 1 : 0;
+        if (start >= text.length()) {
+            return false;
+        }
+        for (int i = start; i < text.length(); i++) {
+            if (!Character.isDigit(text.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private String cacheKey(String tableName) {

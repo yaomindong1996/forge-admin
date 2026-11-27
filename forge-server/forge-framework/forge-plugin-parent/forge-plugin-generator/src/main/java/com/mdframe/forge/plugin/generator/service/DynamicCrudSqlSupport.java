@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -66,7 +67,18 @@ final class DynamicCrudSqlSupport {
     }
 
     MapSqlParameterSource buildIdQueryParams(Object id) {
-        return buildBaseQueryParams(null).addValue("id", id);
+        return buildIdQueryParams(null, primaryKeyColumn(), id);
+    }
+
+    MapSqlParameterSource buildIdQueryParams(String tableName, String primaryKeyColumn, Object id) {
+        MapSqlParameterSource params = buildBaseQueryParams(null);
+        if (tableName != null) {
+            appendLogicDeleteParam(params, tableName);
+            params.addValue("id", repository.coercePrimaryKeyValue(tableName, primaryKeyColumn, id));
+        } else {
+            params.addValue("id", id);
+        }
+        return params;
     }
 
     void appendBaseQueryConditions(StringBuilder whereClause,
@@ -82,7 +94,7 @@ final class DynamicCrudSqlSupport {
         if (tableName != null && repository.hasDelFlag(tableName)) {
             appendWhereCondition(whereClause,
                 qualifyColumn(tableAlias, policy.logicDeleteColumn()) + " = :logicActiveValue");
-            appendLogicDeleteParam(params);
+            appendLogicDeleteParam(params, tableName);
         }
     }
 
@@ -139,10 +151,19 @@ final class DynamicCrudSqlSupport {
     }
 
     void appendLogicDeleteParam(MapSqlParameterSource params) {
+        appendLogicDeleteParam(params, null);
+    }
+
+    void appendLogicDeleteParam(MapSqlParameterSource params, String tableName) {
         DynamicCrudWritePolicy policy = repository.writePolicy();
-        if (params != null && policy.logicDeleteEnabled()) {
-            params.addValue("logicActiveValue", policy.logicActiveValue());
+        if (params == null || !policy.logicDeleteEnabled()) {
+            return;
         }
+        Object active = policy.logicActiveValue();
+        if (tableName != null) {
+            active = repository.coerceLogicFlagLiteral(tableName, policy.logicDeleteColumn(), active);
+        }
+        params.addValue("logicActiveValue", active);
     }
 
     void appendWhereCondition(StringBuilder whereClause, String condition) {
@@ -183,7 +204,7 @@ final class DynamicCrudSqlSupport {
             return sql;
         }
         DynamicCrudWritePolicy policy = repository.writePolicy();
-        appendLogicDeleteParam(params);
+        appendLogicDeleteParam(params, tableName);
         return sql + " AND " + policy.logicDeleteColumn() + " = :logicActiveValue";
     }
 
@@ -231,10 +252,32 @@ final class DynamicCrudSqlSupport {
     }
 
     MapSqlParameterSource toSqlParams(Map<String, Object> data, Object id) {
-        return toSqlParams(data).addValue("id", id);
+        return toSqlParams(data, null, primaryKeyColumn(), id);
+    }
+
+    MapSqlParameterSource toSqlParams(Map<String, Object> data,
+                                      String tableName,
+                                      String primaryKeyColumn,
+                                      Object id) {
+        MapSqlParameterSource params = toSqlParams(data);
+        Object boundId = tableName == null
+            ? id
+            : repository.coercePrimaryKeyValue(tableName, primaryKeyColumn, id);
+        return params.addValue("id", boundId);
     }
 
     MapSqlParameterSource toIdParam(Object id) {
-        return new MapSqlParameterSource().addValue("id", id);
+        return toIdParam(null, primaryKeyColumn(), id);
+    }
+
+    MapSqlParameterSource toIdParam(String tableName, String primaryKeyColumn, Object id) {
+        Object boundId = tableName == null
+            ? id
+            : repository.coercePrimaryKeyValue(tableName, primaryKeyColumn, id);
+        return new MapSqlParameterSource().addValue("id", boundId);
+    }
+
+    List<?> coerceIds(String tableName, String primaryKeyColumn, List<?> ids) {
+        return repository.coercePrimaryKeyValues(tableName, primaryKeyColumn, ids);
     }
 }

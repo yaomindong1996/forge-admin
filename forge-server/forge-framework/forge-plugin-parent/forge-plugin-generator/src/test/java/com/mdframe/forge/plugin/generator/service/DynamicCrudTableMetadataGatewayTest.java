@@ -4,6 +4,7 @@ import com.mdframe.forge.plugin.generator.service.lowcode.runtime.MySqlRuntimeDa
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.RuntimeDatabaseDialectFactory;
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.RuntimeJdbcTemplateProvider;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
@@ -63,6 +64,21 @@ class DynamicCrudTableMetadataGatewayTest {
             return Set.of("del_flag");
         }));
         assertEquals(2, lookups.get());
+    }
+
+    @Test
+    void elevatesDigitPrimaryKeyAndKeepsLogicFlagWhenColumnTypesUnavailable() {
+        RuntimeJdbcTemplateProvider provider = mock(RuntimeJdbcTemplateProvider.class);
+        JdbcTemplate jdbc = mock(JdbcTemplate.class);
+        when(provider.jdbcTemplate(any())).thenReturn(jdbc);
+        when(jdbc.execute(any(ConnectionCallback.class)))
+            .thenThrow(new RuntimeException("metadata unavailable"));
+        DynamicCrudTableMetadataGateway gateway = gateway(provider);
+
+        assertEquals(1017L, gateway.coercePrimaryKeyValue("biz_order", "id", "1017"));
+        assertEquals("ABC", gateway.coercePrimaryKeyValue("biz_order", "id", "ABC"));
+        assertEquals("0", gateway.coerceLogicFlagLiteral("biz_order", "del_flag", "0"));
+        assertEquals("0", gateway.normalizeQueryValue("biz_order", "del_flag", "0"));
     }
 
     private DynamicCrudTableMetadataGateway gateway(RuntimeJdbcTemplateProvider provider) {

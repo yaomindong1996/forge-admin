@@ -27,7 +27,7 @@ final class DynamicCrudRecordQueryExecutor {
         support.validateTableName(tableName);
         support.validateIdentifier(primaryKeyColumn);
         StringBuilder whereClause = support.buildIdWhereClause(tableName, primaryKeyColumn);
-        MapSqlParameterSource params = support.buildIdQueryParams(id);
+        MapSqlParameterSource params = support.buildIdQueryParams(tableName, primaryKeyColumn, id);
         support.appendSqlCondition(whereClause, params, dataScopeCondition);
         String sql = support.buildSelectSql("SELECT *", tableName, whereClause);
         List<Map<String, Object>> results = support.jdbc().queryForList(sql, params);
@@ -44,7 +44,7 @@ final class DynamicCrudRecordQueryExecutor {
             return List.of();
         }
         MapSqlParameterSource params = support.buildBaseQueryParams();
-        params.addValue("ids", ids);
+        params.addValue("ids", support.coercePrimaryKeyValues(tableName, primaryKeyColumn, ids));
         StringBuilder whereClause = new StringBuilder(primaryKeyColumn + " IN (:ids)");
         support.appendBaseQueryConditions(whereClause, params, tableName);
         support.appendSqlCondition(whereClause, params, dataScopeCondition);
@@ -58,7 +58,7 @@ final class DynamicCrudRecordQueryExecutor {
         support.validateTableName(tableName);
         support.validateIdentifier(primaryKeyColumn);
         StringBuilder whereClause = support.buildIdWhereClause(tableName, primaryKeyColumn);
-        MapSqlParameterSource params = support.buildIdQueryParams(id);
+        MapSqlParameterSource params = support.buildIdQueryParams(tableName, primaryKeyColumn, id);
         support.appendSqlCondition(whereClause, params, dataScopeCondition);
         String sql = support.buildSelectSql("SELECT *", tableName, whereClause) + " FOR UPDATE";
         List<Map<String, Object>> results = support.jdbc().queryForList(sql, params);

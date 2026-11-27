@@ -17,7 +17,8 @@
     "quality:prune": "python3 scripts/quality-gate.py baseline --prune",
     "quality:test": "bash scripts/quality-gate-test.sh",
     "docs:check": "python3 scripts/docs-check.py",
-    "skills:smoke": "python3 scripts/skills-smoke-check.py --pro ../ForgePro --website ../forge-website"
+    "skills:smoke": "python3 scripts/skills-smoke-check.py --pro ../ForgePro --website ../forge-website",
+    "db:check-mapper-dialect": "python3 scripts/check-mapper-dialect.py"
   },
   "packageManager": "pnpm@11.7.0+sha512.19cc852c120c7125760f2443ee6be0ca5b40f9f50598de1a09a1f177503e010e57c23c77646e01e761de59bf874fb22a3398c33ab9691fc13eb946b6f0f4d620"
 }

@@ -80,7 +80,7 @@ final class DynamicCrudMutationExecutor {
         Map<String, Object> updateData = support.prepareUpdateData(tableName, data, primaryKeyColumn);
         DataAuditTransactionHolder.prepareWrite(
             tableName, primaryKeyColumn, id, DataAuditTransactionHolder.WriteKind.UPDATE);
-        MapSqlParameterSource params = support.toSqlParams(updateData, id);
+        MapSqlParameterSource params = support.toSqlParams(updateData, tableName, primaryKeyColumn, id);
         String sql = support.appendTenantCondition(
             support.buildUpdateSql(tableName, updateData, primaryKeyColumn), params, tableName);
         sql = support.appendLogicActiveCondition(sql, params, tableName);
@@ -108,7 +108,8 @@ final class DynamicCrudMutationExecutor {
             throw new BusinessException("数值调整字段不能为空");
         }
         Set<String> tableColumns = support.getTableColumns(tableName);
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("id", support.coercePrimaryKeyValue(tableName, primaryKeyColumn, id));
         List<String> setClauses = new ArrayList<>();
         List<String> boundConditions = new ArrayList<>();
         int index = 0;
@@ -162,9 +163,11 @@ final class DynamicCrudMutationExecutor {
                    DynamicCrudRepository.SqlCondition dataScopeCondition) {
         support.validateTableName(tableName);
         support.validateIdentifier(primaryKeyColumn);
-        MapSqlParameterSource params = support.toIdParam(id);
+        MapSqlParameterSource params = support.toIdParam(tableName, primaryKeyColumn, id);
         if (logicDelete) {
-            params.addValue("deletedValue", support.logicDeletedValue());
+            params.addValue("deletedValue",
+                support.coerceLogicFlagLiteral(tableName, support.writePolicy().logicDeleteColumn(),
+                    support.logicDeletedValue()));
         }
         DataAuditTransactionHolder.prepareWrite(
             tableName, primaryKeyColumn, id, DataAuditTransactionHolder.WriteKind.DELETE);
@@ -189,9 +192,12 @@ final class DynamicCrudMutationExecutor {
         if (ids == null || ids.isEmpty()) {
             return 0;
         }
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("ids", ids);
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("ids", support.coercePrimaryKeyValues(tableName, primaryKeyColumn, ids));
         if (logicDelete) {
-            params.addValue("deletedValue", support.logicDeletedValue());
+            params.addValue("deletedValue",
+                support.coerceLogicFlagLiteral(tableName, support.writePolicy().logicDeleteColumn(),
+                    support.logicDeletedValue()));
         }
         for (Object id : ids) {
             Map<String, Object> snapshot = null;

@@ -309,5 +309,18 @@ ORDER BY installed_rank DESC;
 - 收尾在 `execution-log.md` 记录当前/目标版本、CHANGELOG 归属、验证结果、跳过项与发布状态。
   没有真实证据只能报告“待提交 / 待发布 / 待部署”，不能把代码完成或构建通过称为上线成功。
 
+### 5.20 MySQL ↔ PostgreSQL 双库适配（禁止猜类型）
+
+社区支持主库 / 低代码运行库使用 PostgreSQL；默认安装仍是 MySQL。改方言 SQL、动态绑定或低代码 DDL 时必须遵守：
+
+- **SQL 看 `_databaseId`**：Mapper 禁止裸写 `DIV`、`FIND_IN_SET`、`TIMESTAMPDIFF`、`JSON_LENGTH`、`CAST(... AS CHAR)`、MySQL 多表 `UPDATE t JOIN`；PostgreSQL 禁止在 XML 写 `jsonb #>` / `#>>`（MyBatis `#` 冲突，改用 `->` / `->>` 或 `jsonb_extract_path`）。用 `<choose><when test="_databaseId == 'postgresql'">` 成对分支，或跨库便携写法（如 `PortableCsvSql`、`CONCAT(x)` 代替 `CAST AS CHAR`）。
+- **绑定只信列元数据**：PostgreSQL 不做 MySQL 式隐式转换。主键路径数字串可提升为 Long；逻辑删除 `"0"`/`"1"` **禁止**在无列元数据时猜成 Long。读列类型时不要用 `Connection.getCatalog()` 过滤（非 `public` / `apps` schema 会扫丢）。
+- **DDL 先归一 PG cast 字面量**：`information_schema.column_default` 可能返回 `'DRAFT'::character varying`，比对与回写统一走 `SqlStoredDefaultNormalizer`；类型别名对齐 `character varying`↔`varchar`、`integer`↔`int`、`numeric`↔`decimal`。
+- **增量成对**：结构变更必须同时提交 `db/mysql/migration` 与 `db/postgresql/migration` 同号脚本；`node forge-server/scripts/db/check-pg-migration-pairs.mjs`。
+- **flowRelatedVisible**：勿把非数字 / 非本表主键语义的 businessKey 塞进 `id(bigint) IN (...)`。
+- **门禁**：`pnpm db:check-mapper-dialect`（`scripts/check-mapper-dialect.py`）退出码 0 后再宣称 Mapper 方言适配完成。
+
+详单与实战索引见 `code-copilot/changes/postgresql-business-lowcode/pg-adaptation-issues.md` 与同目录 `spec.md`。
+
 ---
 

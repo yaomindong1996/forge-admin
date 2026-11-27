@@ -88,7 +88,14 @@
                COALESCE(binding_stats.flow_count, 0) AS flowCount,
                (COALESCE(binding_stats.extension_count, 0)
                 + COALESCE(extension_stats.extension_count, 0)) AS extensionCount,
-               COALESCE(JSON_LENGTH(a.options, '$.inAppBuilder.nodes'), 0) AS pageCount,
+               <choose>
+                 <when test="_databaseId == 'postgresql'">
+                   COALESCE(jsonb_array_length(a.options::jsonb -&gt; 'inAppBuilder' -&gt; 'nodes'), 0) AS pageCount,
+                 </when>
+                 <otherwise>
+                   COALESCE(JSON_LENGTH(a.options, '$.inAppBuilder.nodes'), 0) AS pageCount,
+                 </otherwise>
+               </choose>
                (CASE WHEN COALESCE(object_stats.primary_count, 0) = 1 THEN 0 ELSE 1 END
                 + CASE WHEN COALESCE(entry_stats.active_entry_count, 0) > 0 THEN 0 ELSE 1 END) AS problemCount,
                a.create_by AS createBy,

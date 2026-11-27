@@ -130,6 +130,18 @@
           AND job.del_flag = 0
     </select>
 
+    <!-- PG 禁止裸写 TIMESTAMPDIFF/DIV；SQL Server 运行时 rewriter 仍可吃 otherwise 分支 -->
+    <sql id="DurationMillisFromStart">
+        <choose>
+            <when test="_databaseId == 'postgresql'">
+                (EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - start_time)) * 1000)::bigint
+            </when>
+            <otherwise>
+                TIMESTAMPDIFF(MICROSECOND, start_time, CURRENT_TIMESTAMP) DIV 1000
+            </otherwise>
+        </choose>
+    </sql>
+
     <update id="completeRunningExecution">
         UPDATE sys_job_log
         SET status = #{status},
@@ -137,7 +149,7 @@
             exception_msg = #{exceptionMsg},
             retry_count = #{retryCount},
             end_time = CURRENT_TIMESTAMP,
-            duration = TIMESTAMPDIFF(MICROSECOND, start_time, CURRENT_TIMESTAMP) DIV 1000
+            duration = <include refid="DurationMillisFromStart"/>
         WHERE id = #{id}
           AND status = 2
           AND del_flag = 0
@@ -151,7 +163,7 @@
             process_instance_id = #{processInstanceId},
             retry_count = #{retryCount},
             end_time = CURRENT_TIMESTAMP,
-            duration = TIMESTAMPDIFF(MICROSECOND, start_time, CURRENT_TIMESTAMP) DIV 1000
+            duration = <include refid="DurationMillisFromStart"/>
         WHERE id = #{id}
           AND status = 2
           AND del_flag = 0
@@ -185,8 +197,8 @@
             end_time = CURRENT_TIMESTAMP,
             duration = CASE
                 WHEN start_time IS NULL THEN 0
-                WHEN TIMESTAMPDIFF(MICROSECOND, start_time, CURRENT_TIMESTAMP) DIV 1000 &lt; 0 THEN 0
-                ELSE TIMESTAMPDIFF(MICROSECOND, start_time, CURRENT_TIMESTAMP) DIV 1000
+                WHEN <include refid="DurationMillisFromStart"/> &lt; 0 THEN 0
+                ELSE <include refid="DurationMillisFromStart"/>
             END
         WHERE del_flag = 0
           AND (

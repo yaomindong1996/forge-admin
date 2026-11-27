@@ -200,7 +200,7 @@ public class DynamicCrudRepository {
         sqlSupport().appendBaseQueryConditions(
                 whereClause, new MapSqlParameterSource(), mainTableName, "t0");
         MapSqlParameterSource params = buildBaseQueryParams("t0");
-        params.addValue("id", id);
+        params.addValue("id", coercePrimaryKeyValue(mainTableName, primaryKeyColumn(), id));
         appendSqlCondition(whereClause, params, dataScopeCondition);
 
         String sql = buildJoinSelectClause(selectFields) + " " + joinQueryCompiler().buildJoinedFromClause(mainTableName, joins)
@@ -549,6 +549,10 @@ public class DynamicCrudRepository {
         return sqlSupport().buildIdQueryParams(id);
     }
 
+    MapSqlParameterSource buildIdQueryParams(String tableName, String primaryKeyColumn, Object id) {
+        return sqlSupport().buildIdQueryParams(tableName, primaryKeyColumn, id);
+    }
+
     void appendBaseQueryConditions(StringBuilder whereClause, MapSqlParameterSource params, String tableName) {
         sqlSupport().appendBaseQueryConditions(whereClause, params, tableName, null);
     }
@@ -831,6 +835,23 @@ public class DynamicCrudRepository {
         return tableMetadataGateway().normalizeQueryValue(tableName, columnName, value);
     }
 
+    Object coercePrimaryKeyValue(String tableName, String columnName, Object value) {
+        return tableMetadataGateway().coercePrimaryKeyValue(tableName, columnName, value);
+    }
+
+    Object coerceLogicFlagLiteral(String tableName, String columnName, Object value) {
+        return tableMetadataGateway().coerceLogicFlagLiteral(tableName, columnName, value);
+    }
+
+    List<?> coercePrimaryKeyValues(String tableName, String columnName, List<?> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return ids == null ? List.of() : ids;
+        }
+        return ids.stream()
+            .map(id -> coercePrimaryKeyValue(tableName, columnName, id))
+            .toList();
+    }
+
     void captureColumnDelete(String tableName, String columnName, Object value) {
         if (DataAuditTransactionHolder.index().findTable(DataAuditTenantSupport.currentTenantIdOrNull(), tableName) == null) {
             return;
@@ -989,8 +1010,19 @@ public class DynamicCrudRepository {
         return sqlSupport().toSqlParams(data, id);
     }
 
+    MapSqlParameterSource toSqlParams(Map<String, Object> data,
+                                      String tableName,
+                                      String primaryKeyColumn,
+                                      Object id) {
+        return sqlSupport().toSqlParams(data, tableName, primaryKeyColumn, id);
+    }
+
     MapSqlParameterSource toIdParam(Object id) {
         return sqlSupport().toIdParam(id);
+    }
+
+    MapSqlParameterSource toIdParam(String tableName, String primaryKeyColumn, Object id) {
+        return sqlSupport().toIdParam(tableName, primaryKeyColumn, id);
     }
 
     private void logDynamicSql(String scene, String sql, MapSqlParameterSource params) {
