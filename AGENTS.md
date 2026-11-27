@@ -22,7 +22,7 @@ cd forge-admin-ui && pnpm install && pnpm dev              # 前端 :3000
 6. 冒烟：后端 `cd forge-server && mvn -pl forge-admin-server -am compile -DskipTests`；前端按需 `cd forge-admin-ui && pnpm lint:fix`
 7. 必读 `code-copilot/memory/preferences.md`；按任务打开相关 `code-copilot/memory/pitfalls/<主题>.md`
 8. 命中项目 Skill 时先读 `.agents/skills/*/SKILL.md`；UI 变更先读 `forge-admin-ui/DESIGN.md`
-9. **生成业务模块 / 审批 / 低代码应用 / 表单·流程·消息·岗位联调**：先读 `.agents/skills/forge-business-module-playbook/SKILL.md`，再按路径加载子 Skill；禁止以全库盲搜代替 Skill
+9. **生成业务模块 / 审批 / 低代码应用 / 表单·流程·消息·岗位·租户数据权限·打印·协作通知联调**：先读 `.agents/skills/forge-business-module-playbook/SKILL.md`，再按路径加载子 Skill；禁止以全库盲搜代替 Skill
 10. 环境坏了先修环境，再开新需求
 
 ### Skill 路由（摘要）
@@ -35,6 +35,9 @@ cd forge-admin-ui && pnpm install && pnpm dev              # 前端 :3000
 | AiCrudPage/AiForm/任务表单 Provider | `forge-form-contract` |
 | Flowable 审批 | `forge-business-flow-development` |
 | 站内信/消息模板 | `forge-message-integration` |
+| 企微/钉钉/飞书协作推送 | `forge-collaboration-notify`（先 message） |
+| 租户上下文 / DataScope 列表隔离 | `forge-tenant-datascope` |
+| 套打 / 单据打印 / Provider SPI | `forge-print-integration` |
 | 岗位与按岗选人 | `forge-post-org-binding` |
 
 完整说明以本仓 `.agents/skills/*/SKILL.md` 为准；文档站镜像见 website 仓 `forge-docs/development/agent-skills.md`。

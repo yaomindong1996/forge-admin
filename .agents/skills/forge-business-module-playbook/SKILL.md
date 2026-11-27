@@ -1,6 +1,6 @@
 ---
 name: forge-business-module-playbook
-description: Orchestrate end-to-end Forge business module creation. Use when the user asks Cursor to analyze the project and generate a business module, approval app, low-code application, CRUD plus workflow, form+message+post integration, or any multi-capability feature spanning form, flow, message, post, or low-code app creation. Decide code-first vs lowcode first, then route to child skills in order. Do not use for unrelated refactors or single-file bugfixes.
+description: Orchestrate end-to-end Forge business module creation. Use when the user asks Cursor to analyze the project and generate a business module, approval app, low-code application, CRUD plus workflow, form+message+post+tenant/datascope+print+collaboration integration, or any multi-capability feature spanning form, flow, message, post, tenant, print, collaboration, or low-code app creation. Decide code-first vs lowcode first, then route to child skills in order. Do not use for unrelated refactors or single-file bugfixes.
 ---
 
 # Forge Business Module Playbook
@@ -26,8 +26,11 @@ If unsure and the user only needs a simple admin table with no approval: use `fo
 2. Read `../forge-form-contract/SKILL.md` — edit/search schema, dict, task-form Provider contract.
 3. If assignee/org by post: read `../forge-post-org-binding/SKILL.md`.
 4. If notify on submit/approve/reject: read `../forge-message-integration/SKILL.md`.
-5. If approval: read `../forge-business-flow-development/SKILL.md` (short path + purchase-order reference).
-6. Run each child checklist, then the combined checklist in `references/validation-checklist.md`.
+5. If WeCom/DingTalk/Feishu push: after message Skill, read `../forge-collaboration-notify/SKILL.md`.
+6. If list isolation / row scope / tenant context: read `../forge-tenant-datascope/SKILL.md`.
+7. If套打/单据打印: read `../forge-print-integration/SKILL.md`.
+8. If approval: read `../forge-business-flow-development/SKILL.md` (short path + purchase-order reference).
+9. Run each child checklist, then the combined checklist in `references/validation-checklist.md`.
 
 ## Lowcode sequence
 
@@ -35,7 +38,8 @@ If unsure and the user only needs a simple admin table with no approval: use `fo
 2. If form field types / runtime AiForm issues: also read `../forge-form-contract/SKILL.md` (boundary section).
 3. If approval: read `../forge-business-flow-development/SKILL.md` and its `references/lowcode-workflow.md` only for **binding/start/task form**, not for app creation.
 4. If message/post needed: message + post Skills as above.
-5. Run lowcode checklist, then flow/message checklists as applicable.
+5. If IM push / datascope / print needed: collaboration-notify / tenant-datascope / print Skills as above.
+6. Run lowcode checklist, then flow/message/tenant/print checklists as applicable.
 
 ## Non-Negotiables
 
@@ -54,6 +58,9 @@ If unsure and the user only needs a simple admin table with no approval: use `fo
 | AiCrudPage schema/AiForm/任务表单/BusinessCodeFormProvider | `forge-form-contract` |
 | Flowable/BPMN/待办/驳回/会签/businessKey | `forge-business-flow-development` |
 | 站内信/消息模板/sendIfAbsent/通知 | `forge-message-integration` |
+| 企微/钉钉/飞书/COLLABORATION渠道/协作连接 | `forge-collaboration-notify`（先 message，再 collab） |
+| 租户上下文/IgnoreTenant/DataScope/列表隔离/区划权限 | `forge-tenant-datascope` |
+| 套打/单据打印/PrintBusinessDataProvider/打印绑定 | `forge-print-integration` |
 | 岗位/SysPost/按岗选人/assigneeType=post | `forge-post-org-binding` |
 
 ## References
