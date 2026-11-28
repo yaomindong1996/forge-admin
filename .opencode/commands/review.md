@@ -1,84 +1,17 @@
 ---
-description: 两阶段代码审查（Spec合规 + 代码质量）
+description: 审查需求符合性、实现风险和验证证据
 agent: general
 ---
 
-你是 code-copilot，正在执行 /review 命令。
+# /review
 
-变更名称：$ARGUMENTS
+目标 `$ARGUMENTS`
 
-## 两阶段审查流程
-
-### 阶段一：Spec Compliance（Spec合规审查）
-
-1. **读取 Spec**
-   - 使用 `read` 工具读取 `code-copilot/changes/$1/spec.md`
-   - 使用 `read` 工具读取 `code-copilot/changes/$1/tasks.md`
-
-2. **检查合规性**
-   - 代码是否完全遵循 Spec 定义的功能点
-   - 数据/接口变更是否与 Spec 一致
-   - 业务规则是否正确实现
-
-3. **输出合规报告**
-   如有偏差，列出：
-   ```
-   ❌ Spec偏差：
-   - [偏差1]：描述 + 涉及文件
-   - [偏差2]：描述 + 涉及文件
-   ```
-   
-   如无偏差：
-   ```
-   ✅ Spec Compliance PASS
-   ```
-
-**阶段一 PASS 后才启动阶段二**
-
-### 阶段二：Code Quality（代码质量审查）
-
-1. **读取代码规则**
-   - 使用 `read` 工具读取 `code-copilot/rules/coding-style.md`
-   - 使用 `read` 工具读取根目录 `AGENTS.md` 第 5 章（关键约定，含 5.16 代码形态上限与 AI 编码红线）
-
-2. **检查代码质量**
-   - 代码风格是否符合规范
-   - 是否有冗余代码
-   - 是否有潜在风险（资金/状态流转/权限变更）
-   - 是否遵循项目约定
-   - 依照根 AGENTS.md §5.19 核对版本策略与 CHANGELOG；正式发版还必须完整读取
-     `forge-docs/guide/release-version.md`，逐项核对发布证据、产物来源和未执行项
-   - 日常改动没有擅自升版；提交、推送、标签及部署的授权和实际状态没有混为一谈
-
-3. **读取审查标准**
-   - 使用 `read` 工具读取 `code-copilot/agents/spec-reviewer.md`
-   - 使用 `read` 工具读取 `code-copilot/agents/code-quality-reviewer.md`
-
-4. **输出质量报告**
-   ```
-   ✅ Code Quality Report
-   
-   🔍 发现：
-   - [发现1]：描述 + 建议
-   - [发现2]：描述 + 建议
-   
-   ⚠️ 需关注：
-   - [风险点]：描述
-   
-   💡 改进建议：
-   - [建议1]
-   ```
-   
-
-## 最终结论
-```
-📊 Review 结论
-   
-阶段一 Spec Compliance：PASS/FAIL
-阶段二 Code Quality：PASS/FAIL
-   
-下一步建议：
-- [建议]
-```
-
-更新 `spec.md` 审查结论部分。
+1. 确认范围。参数可指变更、文件或提交范围；无参数时用当前 diff。读 `AGENTS.md`、`docs/guides/critical-conventions.md`、`code-copilot/rules/coding-style.md`。有对应 Spec 时一起读 `spec.md`、`tasks.md`、`test-spec.md` 和执行记录，逐项核对实现与证据；无 Spec 则按用户需求和仓库约定审查。
+2. 阅读 diff 及其真实调用链，检查边界、数据变更、兼容、失败与回退。即使发现需求偏差，也继续检查实现风险。运行必要的只读检查或隔离测试，区分实测结果和根据代码推断的风险。
+3. 根据涉及的能力补查。
+   - 菜单和 API 读 `.agents/skills/forge-resource-permissions/SKILL.md`。追踪按钮、API 方法/路径、租户角色关联、前端未加载权限、服务端守卫、通配与豁免。用普通账号的权限拒绝证据确认防护。
+   - 数据权限读 `.agents/skills/forge-tenant-datascope/SKILL.md`。从当前会话追踪租户、组织与角色到每个实际执行的 Mapper SQL 和数据结果。导出、打印、任务等另起入口的查询也要追查。
+   - Flyway 读 `.agents/skills/forge-flyway-migration/SKILL.md`。检查已执行脚本是否被改、三库版本/语义、重复保护、历史数据、权限种子影响和回退策略。
+   - 版本或部署读 `forge-docs/guide/release-version.md`，核对版本源、CHANGELOG、产物来源与验证记录。分别说明提交、标签、推送、部署的实际状态。
+4. 按严重度先给可操作的发现。每条注明文件/行号、触发条件、影响和可核对证据，标明需求漏项、实现缺陷或验证缺口。无发现时直接说明并列仍未覆盖的验证。按要求可追加审查证据到现有变更记录。除非用户同时要求修复，审查不改实现。

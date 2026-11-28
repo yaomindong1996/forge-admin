@@ -36,7 +36,9 @@ cd forge-admin-ui && pnpm install && pnpm dev              # 前端 :3000
 | Flowable 审批 | `forge-business-flow-development` |
 | 站内信/消息模板 | `forge-message-integration` |
 | 企微/钉钉/飞书协作推送 | `forge-collaboration-notify`（先 message） |
+| 菜单、按钮、API 方法和路径、角色资源授权 | `forge-resource-permissions` |
 | 租户上下文 / DataScope 列表隔离 | `forge-tenant-datascope` |
+| Flyway 版本、三库迁移、种子和校验和排查 | `forge-flyway-migration` |
 | 套打 / 单据打印 / Provider SPI | `forge-print-integration` |
 | 岗位与按岗选人 | `forge-post-org-binding` |
 
@@ -50,13 +52,13 @@ pnpm quality:check                             # 结构质量门禁
 pnpm quality:test                              # 门禁自检
 python3 scripts/docs-check.py                  # 文档链接/拓扑
 ```
-自动化测试标准：`code-copilot/rules/automated-testing-standard.md`。SDD：`/propose` → `/apply` → `/test` → `/archive`（产物在 `code-copilot/changes/`）。
+自动化测试标准：`code-copilot/rules/automated-testing-standard.md`。SDD：`/propose` → `/apply` → `/test` → `/review` → `/archive`（产物在 `code-copilot/changes/`）。
 
 ## Architecture
 见 [ARCHITECTURE.md](./ARCHITECTURE.md)。业务工作流见 [docs/DOMAIN.md](docs/DOMAIN.md)。
 - 后端：`forge-server` 微内核（`forge-plugin-*` + `forge-starter-*`），入口 `forge-admin-server`
 - 前端：`forge-admin-ui`（Vue3 + Naive UI）；另有 H5 / 报表 UI
-- 库表变更只走 `forge-server/db/{mysql,postgresql}/migration` Flyway
+- 库表变更只走 `forge-server/db/{mysql,postgresql,sqlserver}/migration` Flyway
 - 模块树与分层速查：[docs/architecture/backend-frontend-map.md](docs/architecture/backend-frontend-map.md)
 
 ## Key Conventions

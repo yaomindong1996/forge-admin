@@ -18,9 +18,11 @@ Generate Forge-compliant CRUD artifacts from business requirements without re-di
 5. Generate Flyway SQL first, then backend files, frontend files, and menu/resource seed SQL.
 6. Verify generated code against the checklist before reporting completion.
 
+Use [Forge Flyway migration](../forge-flyway-migration/SKILL.md) for version allocation and upgrade verification. Use [Forge resource permissions](../forge-resource-permissions/SKILL.md) when adding a menu, API, or action permission, including exports on an existing page.
+
 ## Non-Negotiable Rules
 
-- Use Flyway scripts under `forge/db/migration/` for all schema and built-in data changes.
+- Use the active dialect-specific Flyway directories under `forge-server/db/` for schema and built-in data changes.
 - Use `tenant_id = 1` for all built-in business data, dictionaries, and resources. Do not seed tenant `0`.
 - Add `del_flag` and an explicit `@TableLogic` to logical-delete business/configuration/design tables. For active-only business uniqueness with a numeric primary key, use `BIGINT/Long del_flag`, `UNIQUE (..., del_flag)`, and `@TableLogic(value = "0", delval = "<primary-key-column>")`; custom deletes must write the row primary key. Never generate `logic_delete_active`, generated/function/partial indexes, `(business_key, deleted_at)` with active rows stored as `NULL`, or a fixed delete value of `1` for tombstone-indexed tables. Follow `references/sql-seeds.md` for the decision rules and string-primary-key exception.
 - Put query SQL in Mapper XML. Do not generate Service-layer `LambdaQueryWrapper` query chains except MyBatis-Plus built-in `selectById`, `insert`, `updateById`, and `deleteById` style operations.

@@ -27,6 +27,8 @@ CORE = [
     *WAVE2,
 ]
 
+COMMUNITY_STANDALONE = ["forge-resource-permissions", "forge-flyway-migration"]
+
 # Prompt → expected skill + keywords that should appear in description ∪ playbook.
 ROUTING_CASES = [
     (
@@ -151,6 +153,13 @@ def check_repo(root: Path, label: str, *, remap: bool) -> list[str]:
                 issues.append(f"{label}: playbook missing route for {name}")
             if name not in agents_text:
                 issues.append(f"{label}: AGENTS.md missing {name}")
+
+    if not remap:
+        route_rows = "\n".join(line for line in agents_text.splitlines() if line.lstrip().startswith("|"))
+        for name in COMMUNITY_STANDALONE:
+            check_skill_dir(base, name, issues, remap=False)
+            if f"`{name}`" not in route_rows:
+                issues.append(f"{label}: AGENTS.md missing standalone route for {name}")
 
     print("  routing cases:")
     for prompt, expect, keys in ROUTING_CASES:
